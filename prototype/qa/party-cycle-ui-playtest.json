@@ -1,0 +1,746 @@
+{
+  "journey": {
+    "phase": "result",
+    "job": {
+      "id": "medicine",
+      "name": "灯台村へ、夜明けの薬",
+      "client": "薬師イネス",
+      "cargo": "解熱薬の木箱",
+      "weight": 3,
+      "deadline": 7,
+      "reward": 180,
+      "text": "熱を出した子どもたちに。夜明けの診療までに、峠の向こうの村へ届けてほしい。"
+    },
+    "hours": 6,
+    "gold": 180,
+    "xp": 100,
+    "level": 2,
+    "stage": 2,
+    "rested": false,
+    "kit": "medicine",
+    "formation": "convoy",
+    "selected": [
+      "guard",
+      "archer",
+      "archer-2",
+      "mage"
+    ],
+    "party": [
+      {
+        "job": "guard",
+        "name": "ガロ",
+        "role": "盾役",
+        "icon": "盾",
+        "pos": 34,
+        "max": 180,
+        "atk": 26,
+        "agi": 10,
+        "reach": 1,
+        "mp": 6,
+        "image": "knight.png",
+        "id": "guard",
+        "side": "ally",
+        "hp": 168,
+        "maxMp": 6,
+        "skillStage": 1,
+        "next": 130,
+        "guard": true,
+        "cover": null,
+        "tie": 1
+      },
+      {
+        "job": "archer",
+        "name": "リノ",
+        "role": "弓手",
+        "icon": "弓",
+        "pos": 24,
+        "max": 100,
+        "atk": 25,
+        "agi": 14,
+        "reach": 3,
+        "mp": 0,
+        "image": "archer.png",
+        "id": "archer",
+        "side": "ally",
+        "hp": 77,
+        "maxMp": 4,
+        "skillStage": 1,
+        "next": 135.7142857142857,
+        "guard": false,
+        "cover": null,
+        "tie": 4.01
+      },
+      {
+        "job": "archer",
+        "name": "セナ",
+        "role": "弓手",
+        "icon": "弓",
+        "pos": 4,
+        "max": 100,
+        "atk": 25,
+        "agi": 14,
+        "reach": 3,
+        "mp": 0,
+        "image": "archer.png",
+        "id": "archer-2",
+        "side": "ally",
+        "hp": 0,
+        "maxMp": 4,
+        "skillStage": 1,
+        "next": 14.285714285714286,
+        "guard": false,
+        "cover": null,
+        "tie": 4.02
+      },
+      {
+        "job": "mage",
+        "name": "ミオ",
+        "role": "ヒーラー",
+        "icon": "癒",
+        "pos": 33,
+        "max": 100,
+        "atk": 14,
+        "agi": 11,
+        "reach": 2,
+        "mp": 0,
+        "image": "healer.png",
+        "id": "mage",
+        "side": "ally",
+        "hp": 77,
+        "maxMp": 8,
+        "skillStage": 1,
+        "next": 136.36363636363637,
+        "guard": false,
+        "cover": null,
+        "tie": 9.03
+      }
+    ],
+    "potions": 1,
+    "history": [
+      "薬師イネスの依頼を受注。他の依頼は別の運び屋へ。",
+      "1区間：峠の近道（2時間）。",
+      "遭遇：スカウト・ヒーラー・弓手",
+      "戦闘を終えた（1時間・味方10行動）。",
+      "2区間：峠の近道（2時間）。",
+      "遭遇：スカウト・弓手・盾役・弓手",
+      "戦闘を終えた（1時間・味方45行動）。",
+      "納期内に配達。満額報酬と経験値100。"
+    ],
+    "outcome": "success",
+    "route": "short",
+    "completionSeen": true
+  },
+  "battles": [
+    {
+      "policy": "front-focus",
+      "result": "勝利！ 荷物を守り切った。",
+      "actions": 10,
+      "party": [
+        {
+          "name": "ガロ",
+          "hp": 166,
+          "mp": 6,
+          "pos": 24
+        },
+        {
+          "name": "リノ",
+          "hp": 100,
+          "mp": 1,
+          "pos": 13
+        },
+        {
+          "name": "セナ",
+          "hp": 60,
+          "mp": 1,
+          "pos": 4
+        },
+        {
+          "name": "ミオ",
+          "hp": 100,
+          "mp": 8,
+          "pos": 34
+        }
+      ],
+      "potions": {
+        "ally": 3,
+        "enemy": 0
+      },
+      "crossings": [],
+      "trace": [
+        {
+          "actor": "archer",
+          "kind": "skill",
+          "target": "enemy-archer",
+          "pos": 13,
+          "hp": 100
+        },
+        {
+          "actor": "archer-2",
+          "kind": "skill",
+          "target": "enemy-archer",
+          "pos": 4,
+          "hp": 100
+        },
+        {
+          "actor": "mage",
+          "kind": "move",
+          "target": 34,
+          "pos": 33,
+          "hp": 100
+        },
+        {
+          "actor": "guard",
+          "kind": "attack",
+          "target": "enemy-mage-2",
+          "pos": 24,
+          "hp": 180
+        },
+        {
+          "actor": "archer",
+          "kind": "skill",
+          "target": "enemy-scout-2",
+          "pos": 13,
+          "hp": 100
+        },
+        {
+          "actor": "archer-2",
+          "kind": "skill",
+          "target": "enemy-scout-2",
+          "pos": 4,
+          "hp": 83
+        },
+        {
+          "actor": "mage",
+          "kind": "attack",
+          "target": "enemy-mage-2",
+          "pos": 34,
+          "hp": 100
+        },
+        {
+          "actor": "guard",
+          "kind": "attack",
+          "target": "enemy-mage-2",
+          "pos": 24,
+          "hp": 166
+        },
+        {
+          "actor": "archer",
+          "kind": "skill",
+          "target": "enemy-scout-2",
+          "pos": 13,
+          "hp": 100
+        },
+        {
+          "actor": "archer-2",
+          "kind": "skill",
+          "target": "enemy-mage-2",
+          "pos": 4,
+          "hp": 60
+        }
+      ],
+      "log": [
+        "荷物を守り、街道を切り抜けよう。",
+        "リノの強撃 → 敵弓手 3",
+        "敵弓手 3に64ダメージ",
+        "セナの強撃 → 敵弓手 3",
+        "敵弓手 3に64ダメージ・戦闘不能",
+        "敵スカウト 1の奇襲 → セナ",
+        "セナに17ダメージ",
+        "敵ヒーラー 2が敵陣へ移動。",
+        "ミオが味方陣へ移動。",
+        "ガロの攻撃 → 敵ヒーラー 2",
+        "敵ヒーラー 2に26ダメージ",
+        "リノの強撃 → 敵スカウト 1",
+        "敵スカウト 1に43ダメージ",
+        "セナの強撃 → 敵スカウト 1",
+        "敵スカウト 1に43ダメージ",
+        "敵スカウト 1の奇襲 → セナ",
+        "セナに23ダメージ",
+        "敵ヒーラー 2の攻撃 → ガロ",
+        "ガロに14ダメージ",
+        "ミオの攻撃 → 敵ヒーラー 2",
+        "敵ヒーラー 2に14ダメージ",
+        "ガロの攻撃 → 敵ヒーラー 2",
+        "敵ヒーラー 2に26ダメージ",
+        "リノの強撃 → 敵スカウト 1",
+        "敵スカウト 1に43ダメージ・戦闘不能",
+        "セナの強撃 → 敵ヒーラー 2",
+        "敵ヒーラー 2に43ダメージ・戦闘不能"
+      ]
+    },
+    {
+      "policy": "front-focus",
+      "result": "勝利！ 荷物を守り切った。",
+      "actions": 45,
+      "party": [
+        {
+          "name": "ガロ",
+          "hp": 168,
+          "mp": 6,
+          "pos": 34
+        },
+        {
+          "name": "リノ",
+          "hp": 77,
+          "mp": 0,
+          "pos": 24
+        },
+        {
+          "name": "セナ",
+          "hp": 0,
+          "mp": 0,
+          "pos": 4
+        },
+        {
+          "name": "ミオ",
+          "hp": 77,
+          "mp": 0,
+          "pos": 33
+        }
+      ],
+      "potions": {
+        "ally": 1,
+        "enemy": 0
+      },
+      "crossings": [
+        {
+          "step": 5,
+          "name": "敵スカウト 1",
+          "side": "enemy",
+          "from": 5,
+          "to": 3
+        }
+      ],
+      "trace": [
+        {
+          "actor": "archer",
+          "kind": "skill",
+          "target": "enemy-guard-2",
+          "pos": 13,
+          "hp": 100
+        },
+        {
+          "actor": "archer-2",
+          "kind": "skill",
+          "target": "enemy-guard-2",
+          "pos": 4,
+          "hp": 60
+        },
+        {
+          "actor": "mage",
+          "kind": "skill",
+          "target": "mage",
+          "pos": 33,
+          "hp": 52
+        },
+        {
+          "actor": "guard",
+          "kind": "attack",
+          "target": "enemy-guard-2",
+          "pos": 24,
+          "hp": 137
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-guard-2",
+          "pos": 13,
+          "hp": 100
+        },
+        {
+          "actor": "mage",
+          "kind": "skill",
+          "target": "mage",
+          "pos": 33,
+          "hp": 52
+        },
+        {
+          "actor": "guard",
+          "kind": "attack",
+          "target": "enemy-guard-2",
+          "pos": 24,
+          "hp": 108
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-archer-2",
+          "pos": 13,
+          "hp": 100
+        },
+        {
+          "actor": "mage",
+          "kind": "skill",
+          "target": "guard",
+          "pos": 33,
+          "hp": 100
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-archer-2",
+          "pos": 13,
+          "hp": 100
+        },
+        {
+          "actor": "guard",
+          "kind": "move",
+          "target": 14,
+          "pos": 24,
+          "hp": 168
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-archer-2",
+          "pos": 13,
+          "hp": 45
+        },
+        {
+          "actor": "mage",
+          "kind": "skill",
+          "target": "archer",
+          "pos": 33,
+          "hp": 68
+        },
+        {
+          "actor": "guard",
+          "kind": "move",
+          "target": 34,
+          "pos": 14,
+          "hp": 168
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-scout",
+          "pos": 13,
+          "hp": 100
+        },
+        {
+          "actor": "mage",
+          "kind": "skill",
+          "target": "mage",
+          "pos": 33,
+          "hp": 25
+        },
+        {
+          "actor": "guard",
+          "kind": "guard",
+          "pos": 34,
+          "hp": 168
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-scout",
+          "pos": 13,
+          "hp": 77
+        },
+        {
+          "actor": "mage",
+          "kind": "skill",
+          "target": "archer",
+          "pos": 33,
+          "hp": 60
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-scout",
+          "pos": 13,
+          "hp": 100
+        },
+        {
+          "actor": "guard",
+          "kind": "guard",
+          "pos": 34,
+          "hp": 168
+        },
+        {
+          "actor": "mage",
+          "kind": "skill",
+          "target": "mage",
+          "pos": 33,
+          "hp": 35
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-scout",
+          "pos": 13,
+          "hp": 77
+        },
+        {
+          "actor": "guard",
+          "kind": "guard",
+          "pos": 34,
+          "hp": 168
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-scout",
+          "pos": 13,
+          "hp": 77
+        },
+        {
+          "actor": "mage",
+          "kind": "guard",
+          "pos": 33,
+          "hp": 70
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-scout",
+          "pos": 13,
+          "hp": 54
+        },
+        {
+          "actor": "guard",
+          "kind": "guard",
+          "pos": 34,
+          "hp": 168
+        },
+        {
+          "actor": "mage",
+          "kind": "skill",
+          "target": "archer",
+          "pos": 33,
+          "hp": 57
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-scout",
+          "pos": 13,
+          "hp": 77
+        },
+        {
+          "actor": "guard",
+          "kind": "guard",
+          "pos": 34,
+          "hp": 168
+        },
+        {
+          "actor": "mage",
+          "kind": "guard",
+          "pos": 33,
+          "hp": 32
+        },
+        {
+          "actor": "archer",
+          "kind": "move",
+          "target": 24,
+          "pos": 13,
+          "hp": 77
+        },
+        {
+          "actor": "archer",
+          "kind": "item",
+          "target": "mage",
+          "pos": 24,
+          "hp": 77
+        },
+        {
+          "actor": "guard",
+          "kind": "guard",
+          "pos": 34,
+          "hp": 168
+        },
+        {
+          "actor": "mage",
+          "kind": "guard",
+          "pos": 33,
+          "hp": 61
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-archer",
+          "pos": 24,
+          "hp": 77
+        },
+        {
+          "actor": "mage",
+          "kind": "guard",
+          "pos": 33,
+          "hp": 48
+        },
+        {
+          "actor": "guard",
+          "kind": "guard",
+          "pos": 34,
+          "hp": 168
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-archer",
+          "pos": 24,
+          "hp": 77
+        },
+        {
+          "actor": "mage",
+          "kind": "guard",
+          "pos": 33,
+          "hp": 35
+        },
+        {
+          "actor": "guard",
+          "kind": "guard",
+          "pos": 34,
+          "hp": 168
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-archer",
+          "pos": 24,
+          "hp": 77
+        },
+        {
+          "actor": "mage",
+          "kind": "item",
+          "target": "mage",
+          "pos": 33,
+          "hp": 22
+        },
+        {
+          "actor": "archer",
+          "kind": "attack",
+          "target": "enemy-archer",
+          "pos": 24,
+          "hp": 77
+        }
+      ],
+      "log": [
+        "荷物を守り、街道を切り抜けよう。",
+        "リノの強撃 → 敵盾役 3",
+        "敵盾役 3に48ダメージ",
+        "セナの強撃 → 敵盾役 3",
+        "敵盾役 3に48ダメージ",
+        "敵弓手 2の強撃 → セナ",
+        "セナに48ダメージ",
+        "敵弓手 4の強撃 → ミオ",
+        "ミオに48ダメージ",
+        "敵スカウト 1の奇襲 → セナ",
+        "セナに26ダメージ・戦闘不能",
+        "ミオのヒール：ミオのHP＋48",
+        "敵盾役 3の攻撃 → ガロ",
+        "ガロに29ダメージ",
+        "ガロの攻撃 → 敵盾役 3",
+        "敵盾役 3に29ダメージ",
+        "リノの攻撃 → 敵盾役 3",
+        "敵盾役 3に28ダメージ",
+        "敵弓手 2の強撃は空振り。",
+        "敵弓手 4の強撃 → ミオ",
+        "ミオに48ダメージ",
+        "敵スカウト 1が味方陣へ移動。",
+        "ミオのヒール：ミオのHP＋48",
+        "敵盾役 3の攻撃 → ガロ",
+        "ガロに29ダメージ",
+        "ガロの攻撃 → 敵盾役 3",
+        "敵盾役 3に29ダメージ・戦闘不能",
+        "リノの攻撃 → 敵弓手 2",
+        "敵弓手 2に38ダメージ",
+        "敵弓手 2の回復薬は対象・経路が無効になり見送り。",
+        "敵弓手 4の回復薬は対象・経路が無効になり見送り。",
+        "敵スカウト 1の回復薬は対象・経路が無効になり見送り。",
+        "ミオのヒール：ガロのHP＋60",
+        "リノの攻撃 → 敵弓手 2",
+        "敵弓手 2に38ダメージ",
+        "敵弓手 2の強撃 → リノ",
+        "リノに32ダメージ",
+        "敵弓手 4の強撃 → ミオ",
+        "ミオに32ダメージ",
+        "ガロが味方陣へ移動。",
+        "敵スカウト 1の攻撃 → リノ",
+        "リノに23ダメージ",
+        "リノの攻撃 → 敵弓手 2",
+        "敵弓手 2に25ダメージ・戦闘不能",
+        "敵弓手 4の回復薬は対象・経路が無効になり見送り。",
+        "ミオのヒール：リノのHP＋55",
+        "敵スカウト 1の回復薬は対象・経路が無効になり見送り。",
+        "ガロが味方陣へ移動。",
+        "リノの攻撃 → 敵スカウト 1",
+        "敵スカウト 1に25ダメージ",
+        "敵弓手 4の強撃 → ミオ",
+        "ミオに43ダメージ",
+        "ミオのヒール：ミオのHP＋60",
+        "敵スカウト 1の攻撃 → リノ",
+        "リノに23ダメージ",
+        "ガロは防御。",
+        "リノの攻撃 → 敵スカウト 1",
+        "敵スカウト 1に25ダメージ",
+        "敵弓手 4の攻撃 → ミオ",
+        "ミオに25ダメージ",
+        "敵スカウト 1の攻撃 → リノ",
+        "リノに23ダメージ",
+        "ミオのヒール：リノのHP＋46",
+        "リノの攻撃 → 敵スカウト 1",
+        "敵スカウト 1に25ダメージ",
+        "敵弓手 4の攻撃 → ミオ",
+        "ミオに25ダメージ",
+        "ガロは防御。",
+        "敵スカウト 1の攻撃 → リノ",
+        "リノに23ダメージ",
+        "ミオのヒール：ミオのHP＋60",
+        "リノの攻撃 → 敵スカウト 1",
+        "敵スカウト 1に25ダメージ",
+        "敵弓手 4の回復薬：敵スカウト 1のHP＋55",
+        "敵スカウト 1の回復薬は対象・経路が無効になり見送り。",
+        "ガロは防御。",
+        "リノの攻撃 → 敵スカウト 1",
+        "敵スカウト 1に25ダメージ",
+        "敵弓手 4の攻撃 → ミオ",
+        "ミオに25ダメージ",
+        "ミオは防御。",
+        "敵スカウト 1の攻撃 → リノ",
+        "リノに23ダメージ",
+        "リノの攻撃 → 敵スカウト 1",
+        "敵スカウト 1に25ダメージ",
+        "敵弓手 4の攻撃 → ミオ",
+        "ミオに13ダメージ",
+        "ガロは防御。",
+        "ミオのヒール：リノのHP＋46",
+        "敵スカウト 1の攻撃 → リノ",
+        "リノに23ダメージ",
+        "リノの攻撃 → 敵スカウト 1",
+        "敵スカウト 1に25ダメージ・戦闘不能",
+        "敵弓手 4の攻撃 → ミオ",
+        "ミオに25ダメージ",
+        "ガロは防御。",
+        "ミオは防御。",
+        "リノが味方陣へ移動。",
+        "敵弓手 4の攻撃 → ミオ",
+        "ミオに13ダメージ",
+        "リノの回復薬：ミオのHP＋55",
+        "敵弓手 4の攻撃 → ミオ",
+        "ミオに13ダメージ",
+        "ガロは防御。",
+        "ミオは防御。",
+        "リノの攻撃 → 敵弓手 4",
+        "敵弓手 4に25ダメージ",
+        "敵弓手 4の攻撃 → ミオ",
+        "ミオに13ダメージ",
+        "ミオは防御。",
+        "ガロは防御。",
+        "リノの攻撃 → 敵弓手 4",
+        "敵弓手 4に25ダメージ",
+        "敵弓手 4の攻撃 → ミオ",
+        "ミオに13ダメージ",
+        "ミオは防御。",
+        "ガロは防御。",
+        "リノの攻撃 → 敵弓手 4",
+        "敵弓手 4に25ダメージ",
+        "敵弓手 4の攻撃 → ミオ",
+        "ミオに13ダメージ",
+        "ミオの回復薬：ミオのHP＋55",
+        "リノの攻撃 → 敵弓手 4",
+        "敵弓手 4に25ダメージ・戦闘不能"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+node_modules/
+.cache/
+.serena/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
