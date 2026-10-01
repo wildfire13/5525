@@ -2,9 +2,26 @@
 let state=Battle.create(),mode='attack',previewPos=null,previewKind='attack',rushTarget=null;
 const imageRoot='assets/characters/背景透過済み/';
 const imageFor=u=>imageRoot+(u.side==='enemy'?'enemy/enemy_':'')+u.image;
+const playLog=PlayLog.create({mode:document.querySelector('#cycle')?'journey':'battle'});
+function playLogContext(){return {battle:state,journey:typeof getJourneyLogState==='function'?getJourneyLogState():null};}
+function recordPlay(type,details={}){playLog.record(type,details,playLogContext());}
+function exportPlayLog(){
+ const status=document.querySelector('#play-log-status');let url;
+ try{
+  recordPlay('log.export.requested');
+  const data=playLog.export(playLogContext());
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'});
+  url=URL.createObjectURL(blob);const link=document.createElement('a');
+  link.href=url;link.download=`5525-${data.mode}-${data.exportedAt.replace(/[:.]/g,'-')}.json`;
+  document.body.append(link);try{link.click();}finally{link.remove();}
+  status.textContent='ログのダウンロードを開始しました';
+ }catch(error){status.textContent='ログを保存できませんでした。もう一度お試しください';}
+ finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),1000);}
+}
+document.querySelector('#export-play-log').onclick=exportPlayLog;
 const labels={attack:'攻撃',guard:'防御',move:'移動',skill:'スキル',item:'アイテム'};
 function resetPreview(){previewPos=null;rushTarget=null;}
-function perform(kind,target){const before=state.units.map(u=>({...u}));if(Battle.act(state,kind,target)){resetPreview();mode='attack';render();document.dispatchEvent(new CustomEvent('battle-action',{detail:{before,kind,target}}));}}
+function perform(kind,target){const before=state.units.map(u=>({...u})),actor=state.actor,logStart=state.log.length;if(Battle.act(state,kind,target)){recordPlay('battle.action',{actor,kind,target:target??null,messages:state.log.slice(logStart)});resetPreview();mode='attack';render();document.dispatchEvent(new CustomEvent('battle-action',{detail:{before,kind,target}}));}else recordPlay('battle.rejected',{actor,kind,target:target??null});}
 function render(){
  const actor=state.units.find(u=>u.id===state.actor),previewing=previewPos!==null&&!state.result;
  if(actor?.job==='porter'&&mode==='attack')mode='move';
@@ -39,8 +56,8 @@ function render(){
    b.setAttribute('aria-label',`${boardSide==='ally'?'味方陣':'敵陣'}${point.y+1}行${point.x+1}列 ${u?`${u.side==='ally'?'味方':'敵'} ${u.name} HP${u.hp}`:'空き'} ${reach?'射程内':''}`);
    b.title=threats.map(e=>e.name+'の'+e.intent.name).concat(incoming.map(e=>e.name+'の移動先')).join('\n');
    b.onclick=()=>{
-     if(mode==='move'){previewPos=p;previewKind=actor.job==='porter'?'skill':'attack';render();return;}
-    if(mode==='skill'&&actor.job==='scout'){const jump=Battle.ambush(state,actor,u);if(jump){rushTarget=u.id;previewPos=jump.destination;previewKind='attack';render();}return;}
+     if(mode==='move'){previewPos=p;previewKind=actor.job==='porter'?'skill':'attack';recordPlay('battle.preview',{actor:actor.id,kind:'move',target:p,swap:Battle.swapTarget(state,actor,p)?.id??null});render();return;}
+    if(mode==='skill'&&actor.job==='scout'){const jump=Battle.ambush(state,actor,u);if(jump){rushTarget=u.id;previewPos=jump.destination;previewKind='attack';recordPlay('battle.preview',{actor:actor.id,kind:'skill',target:u.id,destination:previewPos});render();}return;}
     perform(mode,target);
    };board.append(b);
   }
@@ -73,5 +90,6 @@ function render(){
 }
 $('previewAttack').onclick=()=>{previewKind='attack';render();};$('previewSkill').onclick=()=>{previewKind='skill';render();};
 $('confirmMove').onclick=()=>{if(previewPos!==null)perform(rushTarget?'skill':'move',rushTarget||previewPos);};
-$('cancelMove').onclick=()=>{resetPreview();render();};$('restart').onclick=()=>{state=Battle.create();mode='attack';resetPreview();render();};
+$('cancelMove').onclick=()=>{recordPlay('battle.preview.cancelled',{destination:previewPos,target:rushTarget});resetPreview();render();};$('restart').onclick=()=>{state=Battle.create();mode='attack';previewKind='attack';resetPreview();playLog.startRun(playLogContext(),'battle.restart');render();};
+if(!document.querySelector('#cycle'))recordPlay('run.started',{reason:'page.opened'});
 render();

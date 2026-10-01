@@ -1,0 +1,66 @@
+const assert = require('node:assert/strict');
+const Log = require('../src/play-log.js');
+const B = require('../src/battle.js');
+const J = require('../src/journey.js');
+
+const fixedTime = () => '2026-10-01T00:00:00.000Z';
+const journey = J.create();
+const battle = B.create({ally: journey.selected, enemy: ['guard'], deployment: true});
+const context = {journey, battle};
+const untouched = JSON.stringify(context);
+const log = Log.create({now: fixedTime});
+log.record('run.started', {reason: 'test'}, context);
+assert.equal(JSON.stringify(context), untouched, 'recording must not mutate gameplay');
+J.accept(journey, 'parts');
+B.deploy(battle, 'porter', 24);
+log.record('deployment.placed', {id: 'porter', pos: 24}, context);
+let exported = log.export(context);
+assert.equal(exported.schemaVersion, 1);
+assert.equal(exported.events[0].state.journey.phase, 'jobs', 'snapshots must not retain live objects');
+assert.equal(exported.events[0].state.battle.units.find(u => u.id === 'porter').pos, 22);
+assert.equal(exported.events[1].state.battle.units.find(u => u.id === 'porter').pos, 24);
+assert.equal(exported.current.journey.job.id, 'parts');
+assert.ok(!('text' in exported.current.journey.job), 'only diagnostic fields are exported');
+assert.ok(!('image' in exported.current.battle.units[0]));
+exported.events[0].details.reason = 'changed';
+assert.equal(log.export().events[0].details.reason, 'test', 'exports must be detached copies');
+
+log.startRun({journey: J.create(), battle: null}, 'journey.restart');
+exported = log.export({journey: J.create(), battle: null});
+assert.equal(exported.run, 2);
+assert.equal(exported.events.at(-1).run, 2);
+assert.equal(exported.events.at(-1).type, 'run.started');
+assert.equal(exported.events[0].run, 1, 'restart retains prior diagnostic events');
+assert.equal(exported.current.battle, null);
+assert.deepEqual(exported.events.map(e => e.sequence), [1, 2, 3]);
+
+const countBound = Log.create({maxEvents: 3, now: fixedTime});
+for (let i = 0; i < 20; i++) countBound.record('step', {i});
+exported = countBound.export();
+assert.equal(exported.events.length, 3);
+assert.equal(exported.retention.droppedEvents, 17);
+assert.equal(exported.retention.firstRetainedSequence, 18);
+assert.deepEqual(exported.events.map(e => e.sequence), [18, 19, 20]);
+
+const byteBound = Log.create({maxEvents: 100, maxBytes: 1000, now: fixedTime});
+for (let i = 0; i < 50; i++) byteBound.record('step', {i, text: '日本語'.repeat(80)});
+exported = byteBound.export();
+assert.ok(exported.retention.retainedBytes <= 1000);
+assert.equal(exported.retention.retainedBytes, exported.events.reduce((sum, event) => sum + Buffer.byteLength(JSON.stringify(event)), 0));
+assert.equal(exported.retention.droppedEvents + exported.events.length, 50);
+const oversize = Log.create({maxBytes: 10, now: fixedTime});
+oversize.record('too-large', {}, context);
+assert.equal(oversize.export().events.length, 0);
+assert.equal(oversize.export().retention.droppedEvents, 1);
+
+const defensive = Log.create({now: fixedTime});
+const cycle = {}; cycle.self = cycle;
+defensive.record('bounded', {text: 'a'.repeat(10000), array: Array(1000).fill('x'), cycle, infinite: Infinity});
+exported = defensive.export();
+assert.equal(exported.events[0].details.text.length, 500);
+assert.equal(exported.events[0].details.array.length, 40);
+assert.equal(exported.events[0].details.infinite, null);
+assert.doesNotThrow(() => JSON.stringify(exported));
+assert.throws(() => Log.create({maxEvents: 0}), RangeError);
+assert.throws(() => Log.create({maxBytes: -1}), RangeError);
+console.log('Play log passed: immutable state snapshots, JSON, run boundaries, count/UTF-8 byte limits, truncation, bounded details.');
