@@ -1,5 +1,13 @@
 "use strict";
 let journey=Journey.create();
+state=null; // The standalone battle created by app.js is not part of this trip.
+function getJourneyLogState(){return journey;}
+function journeyAction(action,...args){
+ const from=journey.phase,accepted=Journey[action](journey,...args);
+ recordPlay('journey.'+action,{accepted,from,to:journey.phase,args:action==='finishBattle'?[]:args});
+ return accepted;
+}
+recordPlay('run.started',{reason:'page.opened'});
 const cycle=document.querySelector('#cycle'),content=document.querySelector('#journey-content');
 document.body.prepend(document.querySelector('#battle-trip'));
 function partyMarkup(){return (journey.party||Battle.roster.filter(u=>journey.selected.includes(u.id)).map(u=>({...u,hp:u.max}))).map(u=>`<div class="party-line"><img src="${imageRoot+u.image}" alt=""><span><b>${u.name}・${u.role}</b>HP ${u.hp}/${u.max}　MP ${u.mp}${u.hp<=0?' ／ 戦闘不能':''}</span></div>`).join('');}
@@ -9,16 +17,17 @@ deadlineDialog.setAttribute('aria-labelledby','deadline-title');
 deadlineDialog.setAttribute('aria-describedby','deadline-description');
 deadlineDialog.innerHTML='<small>DELIVERY / 配達期限の確認</small><h2 id="deadline-title">配達期限を超過します</h2><p id="deadline-description"></p><div class="deadline-actions"><button id="deadline-back" autofocus>戻る</button><button id="deadline-proceed" class="primary">このまま進む</button></div>';
 document.body.append(deadlineDialog);
-let deadlineAction=null;
-document.querySelector('#deadline-back').onclick=()=>{deadlineAction=null;deadlineDialog.close();};
-deadlineDialog.addEventListener('cancel',()=>{deadlineAction=null;});
-document.querySelector('#deadline-proceed').onclick=()=>{const action=deadlineAction;deadlineAction=null;deadlineDialog.close();action?.();};
+let deadlineAction=null,deadlineChoice=null;
+function cancelDeadline(reason){recordPlay('deadline.cancelled',{choice:deadlineChoice,reason});deadlineAction=null;deadlineChoice=null;}
+document.querySelector('#deadline-back').onclick=()=>{cancelDeadline('back');deadlineDialog.close();};
+deadlineDialog.addEventListener('cancel',()=>cancelDeadline('escape'));
+document.querySelector('#deadline-proceed').onclick=()=>{const action=deadlineAction;recordPlay('deadline.confirmed',{choice:deadlineChoice});deadlineAction=null;deadlineChoice=null;deadlineDialog.close();action?.();};
 function confirmDeadline(choice,proceed){
  if(deadlineDialog.open)return;
  const f=Journey.forecast(journey,choice);
  if(!f.late){proceed();return;}
  document.querySelector('#deadline-description').textContent=`${choice==='rest'?'2時間の休息':choice==='safe'?'川沿いの道':'峠の近道'}を選ぶと、残りを最短で進んでも配達は出発から${f.hours}時間後になります。\n\n納期：${journey.job.deadline}時間 ／ 超過：${f.over}時間\n報酬：通常の65％（${Math.floor(journey.job.reward*.65)}G）\n\nこのまま進みますか？`;
- deadlineAction=proceed;deadlineDialog.showModal();
+ deadlineAction=proceed;deadlineChoice=choice;recordPlay('deadline.prompted',{choice,forecast:f});deadlineDialog.showModal();
 }
 function cycleRender(){
  cycle.classList.toggle('deploying',journey.phase==='deployment');
@@ -44,27 +53,33 @@ function cycleRender(){
   document.querySelector('#cycle-sub').textContent='街道を越えて、あなたたちは約束の荷物を届けた。';
   content.innerHTML=`<section class="completion-scene" aria-labelledby="completion-title"><div class="delivery-seal" aria-hidden="true">✓</div><div class="eyebrow">DELIVERY COMPLETE / 灯台村</div><h2 id="completion-title">${s.job.name}</h2><p class="completion-story">${medicine?'木箱を受け取ったイネスは、中身を確かめて大きく息をついた。<br>診療所の扉が開き、待っていた人たちが顔を上げる。':'包みをほどいたトマが、部品を両手で持ち上げた。<br>水車小屋の仲間たちにも、ようやく笑顔が戻る。'}</p><blockquote>「${medicine?(s.outcome==='late'?'待っていたよ。さあ、薬を届けに行こう。<br>ここまで運んでくれて、本当にありがとう。':'間に合った……！　これで診療を始められる。<br>ここまで運んでくれて、本当にありがとう。'):'これだ。この部品があれば、また水車を回せる。<br>重かっただろう。よく届けてくれたね。'}」<cite>― ${s.job.client}</cite></blockquote><div class="completion-party">${s.party.map(u=>`<figure><img src="${imageRoot+u.image}" alt="${u.name}"><figcaption>${u.name}</figcaption></figure>`).join('')}</div><p class="completion-cargo">${s.job.cargo}を引き渡した · 所要${s.hours}時間 · ${s.outcome==='late'?'遅配での達成':'納期内に達成'}</p><div class="completion-next"><button id="show-rewards" class="primary">報酬と成長を確認する →</button></div></section>`;
  }
- content.querySelectorAll('[data-job]').forEach(b=>b.onclick=()=>{Journey.accept(s,b.dataset.job);cycleRender();});
- content.querySelectorAll('[data-route]').forEach(b=>b.onclick=()=>confirmDeadline(b.dataset.route,()=>{if(Journey.travel(s,b.dataset.route))startJourneyBattle();}));
+ content.querySelectorAll('[data-job]').forEach(b=>b.onclick=()=>{journeyAction('accept',b.dataset.job);cycleRender();});
+ content.querySelectorAll('[data-route]').forEach(b=>b.onclick=()=>confirmDeadline(b.dataset.route,()=>{if(journeyAction('travel',b.dataset.route))startJourneyBattle();}));
  if(phase==='prepare'){
   document.querySelector('#cycle-sub').textContent='最大5人の護送隊を編成。ポーターを最低1人含めて出発します。';
   document.querySelector('#placement').options[0].text='基本配置：各ロールの定位置を優先、重複時は空き枠へ';
   document.querySelector('#placement').options[1].text='切り込み配置：最初のスカウトを弓手の列へ';
   content.querySelector('.card').insertAdjacentHTML('afterbegin',`<section class="party-picker"><h2>護送隊を編成 <span id="party-count"></span></h2><p>10人から最大5人。ポーターは最低1人必要。2人編成も可能ですが、どちらか1人でも倒れるとクエスト失敗です。</p><div class="member-grid">${Battle.roster.map(u=>`<label class="member-choice"><input type="checkbox" data-member="${u.id}" ${s.selected.includes(u.id)?'checked':''}><img src="${imageRoot+u.image}" alt=""><span><b>${u.name}・${u.role}</b><small>HP${u.max} / MP${u.mp} / ${u.job==='porter'?'攻撃なし':'ATK'+u.atk} / AGI${u.agi}</small></span></label>`).join('')}</div><p id="porter-required"></p><p>ポーターは移動先の味方と入れ替え可能（移動距離2）。陣形強化はMP1、次の本人の番まで攻撃＋75％・被害−35％。陣形成立時のみ有効、重複なし。</p><p>陣形はロールではなく金色の3マスへの配置で成立します。重複ロールは空き配置枠へ入ります。</p></section>`);
   const refresh=()=>{document.querySelector('#party-count').textContent=`${s.selected.length}/5人`;content.querySelectorAll('[data-member]').forEach(b=>{b.disabled=!b.checked&&s.selected.length>=5;});document.querySelector('#depart').disabled=!Journey.hasPorter(s);document.querySelector('#porter-required').textContent=Journey.hasPorter(s)?'ポーター編成済み：出発できます。':'出発にはポーターを最低1人選んでください。';content.querySelectorAll('.party-line').forEach(b=>b.remove());content.querySelector('.actions').insertAdjacentHTML('beforebegin',partyMarkup());};
-  content.querySelectorAll('[data-member]').forEach(b=>b.onchange=()=>{Journey.select(s,[...content.querySelectorAll('[data-member]:checked')].map(b=>b.dataset.member));refresh();});refresh();
+  content.querySelectorAll('[data-member]').forEach(b=>b.onchange=()=>{journeyAction('select',[...content.querySelectorAll('[data-member]:checked')].map(b=>b.dataset.member));refresh();});refresh();
  }
  const bind=(id,fn)=>{const b=document.getElementById(id);if(b)b.onclick=fn;};
-  bind('show-rewards',()=>{s.completionSeen=true;cycleRender();window.scrollTo(0,0);});
+  bind('show-rewards',()=>{s.completionSeen=true;recordPlay('journey.rewards.viewed');cycleRender();window.scrollTo(0,0);});
   if(phase==='result'&&s.outcome==='failed')content.querySelector('.card h2').insertAdjacentHTML('afterend',`<p>${s.failureReason||'クエスト失敗。'}</p>`);
- bind('depart',()=>{Journey.depart(s,document.querySelector('#kit').value,document.querySelector('#placement').value);cycleRender();});bind('rest',()=>confirmDeadline('rest',()=>{Journey.rest(s);cycleRender();}));bind('onward',()=>{Journey.onward(s);cycleRender();});bind('deliver',()=>{Journey.deliver(s);cycleRender();});bind('new-trip',()=>{journey=Journey.create();cycleRender();});
+ bind('depart',()=>{journeyAction('depart',document.querySelector('#kit').value,document.querySelector('#placement').value);cycleRender();});bind('rest',()=>confirmDeadline('rest',()=>{journeyAction('rest');cycleRender();}));bind('onward',()=>{journeyAction('onward');cycleRender();});bind('deliver',()=>{journeyAction('deliver');cycleRender();});bind('new-trip',restartJourney);
+}
+function restartJourney(){
+ journey=Journey.create();state=null;mode='attack';previewKind='attack';resetPreview();
+ deploymentSelected=null;deploymentInitial=[];deploymentDragging=null;
+ deadlineAction=null;deadlineChoice=null;if(deadlineDialog.open)deadlineDialog.close();
+ playLog.startRun(playLogContext(),'journey.restart');cycleRender();window.scrollTo(0,0);
 }
 function startJourneyBattle(){
  const s=journey,count=s.route==='short'?(s.stage===0?3:4):(s.stage===0?2:3);
   state=Battle.create({ally:s.selected,enemy:Journey.randomEnemies(count),formation:s.formation,previous:s.party,bonusMp:s.kit==='ether'?2:0,skillStage:s.level,potions:s.potions,enemyPotions:s.stage===0?0:1,deployment:true});
   s.history.push('遭遇：'+state.units.filter(u=>u.side==='enemy').map(u=>u.role).join('・'));
   deploymentInitial=state.units.filter(u=>u.side==='ally').map(u=>({id:u.id,pos:u.pos}));deploymentSelected=state.units.find(u=>u.side==='ally'&&u.hp>0)?.id;
-  s.phase='deployment';cycleRender();window.scrollTo(0,0);
+  s.phase='deployment';recordPlay('deployment.started',{enemies:state.units.filter(u=>u.side==='enemy').map(u=>u.id)});cycleRender();window.scrollTo(0,0);
 }
 let deploymentSelected=null,deploymentInitial=[],deploymentDragging=null;
 function renderDeployment(){
@@ -75,20 +90,20 @@ function renderDeployment(){
  const pos=Battle.cell(side,i),u=state.units.find(u=>u.pos===pos&&u.hp>0),ranged=selected&&Battle.inRange(selected,side,pos,'attack',state),rush=selected?.job==='scout'&&u&&Battle.ambush(state,selected,u);
  return `<button data-deploy-pos="${pos}" ${side==='enemy'?'disabled':''} class="deploy-cell ${Battle.slots[side].includes(pos)?'slot':''} ${ranged?'reach':''} ${rush?'rush':''} ${u?.id===deploymentSelected?'selected':''}" aria-label="${side==='ally'?'味方':'敵'}陣 ${Math.floor(i/5)+1}行${i%5+1}列 ${u?.name||'空き'}"><small>${Math.floor(i/5)+1}-${i%5+1}</small>${u?`<img src="${imageFor(u)}" alt="" draggable="${side==='ally'}" ${side==='ally'?`data-drag-unit="${u.id}"`:''}><b>${u.name}</b><span>HP ${u.hp} / MP ${u.mp}</span>`:''}</button>`;
  }).join('')}</div></section>`).join('')}</div><div class="actions"><button id="reset-deployment">初期配置に戻す</button><button id="begin-battle" class="primary">この配置で戦闘開始</button></div></div>`;
- content.querySelectorAll('[data-deploy-unit]').forEach(b=>b.onclick=()=>{deploymentSelected=b.dataset.deployUnit;renderDeployment();});
+ content.querySelectorAll('[data-deploy-unit]').forEach(b=>b.onclick=()=>{deploymentSelected=b.dataset.deployUnit;recordPlay('deployment.selected',{id:deploymentSelected});renderDeployment();});
  const clearDrag=()=>{deploymentDragging=null;content.querySelectorAll('.drop-target,.drag-source').forEach(b=>b.classList.remove('drop-target','drag-source'));};
  content.querySelectorAll('[data-drag-unit]').forEach(img=>{
   img.ondragstart=e=>{deploymentDragging=img.dataset.dragUnit;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',deploymentDragging);img.closest('button').classList.add('drag-source');};
   img.ondragend=clearDrag;
  });
  content.querySelectorAll('[data-deploy-pos]').forEach(b=>{
-  b.onclick=()=>{if(Battle.deploy(state,deploymentSelected,Number(b.dataset.deployPos)))renderDeployment();};
+  b.onclick=()=>{const pos=Number(b.dataset.deployPos),accepted=Battle.deploy(state,deploymentSelected,pos);recordPlay('deployment.placed',{id:deploymentSelected,pos,method:'click',accepted});if(accepted)renderDeployment();};
   b.ondragover=e=>{if(!deploymentDragging||b.disabled)return;e.preventDefault();e.dataTransfer.dropEffect='move';b.classList.add('drop-target');};
   b.ondragleave=e=>{if(!b.contains(e.relatedTarget))b.classList.remove('drop-target');};
-  b.ondrop=e=>{if(!deploymentDragging||b.disabled)return;e.preventDefault();const id=deploymentDragging;clearDrag();if(Battle.deploy(state,id,Number(b.dataset.deployPos))){deploymentSelected=id;renderDeployment();}};
+  b.ondrop=e=>{if(!deploymentDragging||b.disabled)return;e.preventDefault();const id=deploymentDragging;clearDrag();const pos=Number(b.dataset.deployPos),accepted=Battle.deploy(state,id,pos);recordPlay('deployment.placed',{id,pos,method:'drag',accepted});if(accepted){deploymentSelected=id;renderDeployment();}};
  });
- document.querySelector('#reset-deployment').onclick=()=>{for(const p of deploymentInitial)state.units.find(u=>u.id===p.id).pos=p.pos;renderDeployment();};
- document.querySelector('#begin-battle').onclick=()=>{if(Battle.begin(state)){journey.phase='battle';showJourneyBattle();}};
+ document.querySelector('#reset-deployment').onclick=()=>{for(const p of deploymentInitial)state.units.find(u=>u.id===p.id).pos=p.pos;recordPlay('deployment.reset');renderDeployment();};
+ document.querySelector('#begin-battle').onclick=()=>{if(Battle.begin(state)){journey.phase='battle';recordPlay('battle.started');showJourneyBattle();}};
 }
 function showJourneyBattle(){
  const s=journey;
@@ -99,6 +114,6 @@ function showJourneyBattle(){
  document.querySelector('#battle-trip').hidden=false;document.querySelector('#battle-trip').textContent=`${s.job.cargo} ／ 第${s.stage+1}区間 ／ ${s.hours}時間経過・納期${s.job.deadline}時間 ／ 奇襲：第1段階・前方のみ`;
  window.scrollTo(0,0);
 }
-document.addEventListener('battle-action',e=>{if(journey.phase!=='battle')return;for(const u of state.units){const old=e.detail.before.find(p=>p.id===u.id);if(old&&old.hp!==u.hp)World.burst(old.pos,u.hp>old.hp);}if(state.result){const won=!state.failure&&state.units.some(u=>u.side==='ally'&&u.hp>0);if(won){state.result='勝利！ 荷物を守り切った。';render();}const b=document.querySelector('#battle-return');b.hidden=false;b.textContent=won?'戦闘を終えて街道へ':'クエスト失敗の結果へ';}});
-document.querySelector('#battle-return').onclick=()=>{if(Journey.finishBattle(journey,state)){cycleRender();window.scrollTo(0,0);}};
+document.addEventListener('battle-action',e=>{if(journey.phase!=='battle')return;for(const u of state.units){const old=e.detail.before.find(p=>p.id===u.id);if(old&&old.hp!==u.hp)World.burst(old.pos,u.hp>old.hp);}if(state.result){recordPlay('battle.finished');const won=!state.failure&&state.units.some(u=>u.side==='ally'&&u.hp>0);if(won){state.result='勝利！ 荷物を守り切った。';render();}const b=document.querySelector('#battle-return');b.hidden=false;b.textContent=won?'戦闘を終えて街道へ':'クエスト失敗の結果へ';}});
+document.querySelector('#battle-return').onclick=()=>{if(journeyAction('finishBattle',state)){cycleRender();window.scrollTo(0,0);}};
 cycleRender();

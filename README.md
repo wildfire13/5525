@@ -8,6 +8,12 @@
 - 戦闘単体版：`prototype/battle.html`
 - 仕様・検証コマンド：[prototype/README.md](prototype/README.md)
 
+## 動作をまとめてチェック
+
+Node.js 22以上があれば、リポジトリ直下で `node prototype/tools/check.cjs` を実行できます。追加インストール・サーバー・ブラウザー起動は不要です。既存ルール検証、二連戦の進行、UIの配線、ローカルJSONログをまとめて確認し、失敗時は終了コード1を返します。
+
+画面上部の「プレイログを保存（JSON）」で、そのプレイの操作・状態を保存できます。自動送信はありません。自動チェックの範囲と未検証項目は [prototype/README.md](prototype/README.md#自動チェック) を参照してください。
+
 ## フォルダ構成
 
 ```text
