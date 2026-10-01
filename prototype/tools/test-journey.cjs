@@ -1,0 +1,6 @@
+const assert=require('node:assert/strict'),J=require('../src/journey.js');
+const battle=(hp=50)=>({result:'finished',actions:12,potions:{ally:1},units:[{id:'scout',side:'ally',hp,max:105,mp:1,maxMp:5}]});
+const s=J.create();assert.equal(J.travel(s,'short'),false);assert.ok(J.accept(s,'medicine'));assert.equal(J.accept(s,'parts'),false);J.depart(s,'ether','flank');assert.equal(s.potions,1);J.travel(s,'short');J.finishBattle(s,battle());assert.equal(s.hours,3);assert.equal(s.party[0].hp,50);J.rest(s);assert.equal(s.hours,5);assert.equal(s.party[0].hp,105);assert.equal(J.rest(s),false);J.onward(s);J.travel(s,'short');J.finishBattle(s,battle());J.deliver(s);assert.equal(s.outcome,'late');assert.equal(s.gold,117);assert.equal(s.level,1);
+const t=J.create();J.accept(t,'parts');J.depart(t,'medicine','convoy');for(let i=0;i<2;i++){J.travel(t,'short');J.finishBattle(t,battle());if(i===0)J.onward(t);}J.deliver(t);assert.equal(t.outcome,'success');assert.equal(t.level,2);assert.equal(t.gold,150);
+const f=J.create();J.accept(f,'medicine');J.depart(f,'medicine','convoy');J.travel(f,'safe');J.finishBattle(f,battle(0));assert.equal(f.outcome,'failed');assert.equal(J.deliver(f),false);
+console.log('Journey passed: commitment, resource carryover, rest, deadline, growth, defeat.');
