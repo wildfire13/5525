@@ -1,6 +1,14 @@
 # GoGo To Go — 5×5=25
 
-## 遊ぶ
+## 遊ぶ（正式プロトタイプ：ネイティブ版）
+
+Windowsでは **[Start-5525.cmd](Start-5525.cmd)** をダブルクリックしてください。既存のPython 3 + TkとNode.jsが必要です。ランチャーは不足を表示するだけで、インストールや設定変更はしません。
+
+Linuxでは `python3 native/journey_app.py`。戦闘単体版は画面右上のボタン、または `python3 native/app.py`。旅程・編成・配置・二連戦・休息・配達・報酬・再挑戦をネイティブ画面でテストできます。操作、必要環境、2D表示などの違いは [native/README.md](native/README.md)、検証の内訳は [native/COVERAGE.md](native/COVERAGE.md)。
+
+検証：`python native/check.py`（Windows）または `python3 native/check.py`（Linux）。結果は `native/qa-check-report.json` に出力します。Python/Tk + ローカルNodeの構成で、サーバーやネット通信は不要です。
+
+## Web比較版を遊ぶ
 
 **[prototype/index.html](prototype/index.html)** をブラウザーで直接開いてください。サーバー不要です。
 
@@ -19,7 +27,9 @@ Node.js 22以上があれば、リポジトリ直下で `node prototype/tools/ch
 ## フォルダ構成
 
 ```text
-prototype/             プロトタイプ一式
+native/                正式ネイティブ・プロトタイプ
+Start-5525.cmd         Windows用起動入口
+prototype/             変更せず保持したWeb比較版
   index.html           ゲームサイクル版の入口
   battle.html          戦闘単体版の入口
   assets/characters/   仮当て画像（透過前・透過後、敵味方）
