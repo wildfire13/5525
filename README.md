@@ -2,23 +2,25 @@
 
 ## 遊ぶ（正式プロトタイプ：ネイティブ版）
 
-Windowsでは **[Start-5525.cmd](Start-5525.cmd)** をダブルクリックしてください。既存のPython 3 + TkとNode.jsが必要です。ランチャーは不足を表示するだけで、インストールや設定変更はしません。
+Windowsでは **[Start-5525.cmd](Start-5525.cmd)** をダブルクリックしてください。既存のPython 3 + TkとNode.js 22以上が必要です。ランチャーは不足を表示するだけで、インストールや設定変更はしません。
 
-Linuxでは `python3 native/journey_app.py`。戦闘単体版は画面右上のボタン、または `python3 native/app.py`。旅程・編成・配置・二連戦・休息・配達・報酬・再挑戦をネイティブ画面でテストできます。操作、必要環境、2D表示などの違いは [native/README.md](native/README.md)、検証の内訳は [native/COVERAGE.md](native/COVERAGE.md)。
+Linuxでは `python3 native/journey_app.py`。通常の入口は、1都市・4村を往復し、報酬・経験値・キャラ別装備を持ち越して続けるキャンペーン版です。掲示板、未受注の移動、無償編成、下取り式の買い替え、購入前の木人試用、能力配分、ローカル進行セーブを試せます。商品・価格・道路・成長などの未定部分には試遊用の仮値を置いており、完成版の仕様確定を意味しません。
+
+元の一件完結型は `python3 native/journey_app.py --legacy`、戦闘単体は `python3 native/app.py`。Windowsの起動スクリプトとTk起動補助は今回変更せず、呼び出し先の既定画面をキャンペーン版にしています。操作・必要環境は [native/README.md](native/README.md)、今回の範囲・仮仕様は [native/REPLAY.md](native/REPLAY.md)、新旧を分けた検証記録は [native/COVERAGE.md](native/COVERAGE.md)。
 
 検証：`python native/check.py`（Windows）または `python3 native/check.py`（Linux）。結果は `native/qa-check-report.json` に出力します。Python/Tk + ローカルNodeの構成で、サーバーやネット通信は不要です。
 
-## Web比較版を遊ぶ
+## 元のWeb比較版を遊ぶ
 
 **[prototype/index.html](prototype/index.html)** をブラウザーで直接開いてください。サーバー不要です。
 
-2026-10-02：編成候補に「槌戦士（仮）」を追加。スタンプは位置指定の3マス攻撃、弓のアクティブは一撃だけ射程＋1の「スナイプ」になりました。試し方・仮仕様は [prototype/README.md](prototype/README.md#槌戦士スタンプと弓スナイプ2026-10-02)。
+Web版は今回のキャンペーン追加では変更していません。先行する2026-10-02の変更では編成候補に「槌戦士（仮）」を追加。スタンプは位置指定の3マス攻撃、弓のアクティブは一撃だけ射程＋1の「スナイプ」です。試し方・仮仕様は [prototype/README.md](prototype/README.md#槌戦士スタンプと弓スナイプ2026-10-02)。
 
 - ゲームサイクル版：`prototype/index.html`
 - 戦闘単体版：`prototype/battle.html`
 - 仕様・検証コマンド：[prototype/README.md](prototype/README.md)
 
-## 動作をまとめてチェック
+## Web比較版の動作をチェック
 
 Node.js 22以上があれば、リポジトリ直下で `node prototype/tools/check.cjs` を実行できます。追加インストール・サーバー・ブラウザー起動は不要です。既存ルール検証、二連戦の進行、UIの配線、ローカルJSONログをまとめて確認し、失敗時は終了コード1を返します。
 
@@ -27,7 +29,7 @@ Node.js 22以上があれば、リポジトリ直下で `node prototype/tools/ch
 ## フォルダ構成
 
 ```text
-native/                正式ネイティブ・プロトタイプ
+native/                ネイティブ・キャンペーンと旧版比較入口
 Start-5525.cmd         Windows用起動入口
 prototype/             変更せず保持したWeb比較版
   index.html           ゲームサイクル版の入口
@@ -43,4 +45,4 @@ FromLuna/              Lunaの試遊記録
 HANDOFF.md             開発引き継ぎ
 ```
 
-実行に必要なファイルは `prototype/` 内にまとまっています。検証コマンドは `prototype/` を作業ディレクトリにして実行してください。
+ネイティブ版の実行ファイルは `native/`、Web比較版の実行ファイルは `prototype/` にまとまっています。上記の検証コマンドはリポジトリ直下から実行できます。

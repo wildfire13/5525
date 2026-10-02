@@ -13,3 +13,7 @@ native/__pycache__/
 native/**/*.pyc
 native/qa-check-report.json
 native/5525-native-*.json
+
+# Explicit local campaign saves and diagnostic exports
+native/5525-save-*.json
+native/5525-campaign-log-*.json
