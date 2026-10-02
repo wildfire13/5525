@@ -5,10 +5,11 @@
 const B = require('./campaign-battle.js');
 const J = require('./journey.js');
 const Campaign = (() => {
+  const INN_PRICE = 30; // Whole active party, provisional playtest price.
   const VERSION = 1, MAX_SAVE_BYTES = 1024 * 1024;
   const clone = value => JSON.parse(JSON.stringify(value));
   const locations = [
-    {id:'astaris',name:'アスタリス',kind:'city',facilities:['board','guild']},
+    {id:'astaris',name:'アスタリス',kind:'city',facilities:['board','guild','inn']},
     {id:'east',name:'イース',kind:'village',facilities:['board','weapon']},
     {id:'west',name:'ウエス',kind:'village',facilities:['board','armor']},
     {id:'south',name:'サウス',kind:'village',facilities:['board','items']},
@@ -229,6 +230,20 @@ const Campaign = (() => {
     if(s.phase!=='town'||s.location!=='south'||!item||!Number.isInteger(count)||count<1||count>99||s.inventory[id]+count>99||s.gold<item.price*count)return false;
     s.gold-=item.price*count;s.inventory[id]+=count;note(s,`${item.name}を${count}個購入。`);return true;
   }
+  function innQuote(s) {
+    return {price:INN_PRICE,available:s.phase==='town'&&s.location==='astaris',
+      affordable:s.gold>=INN_PRICE,needsRecovery:s.selected.some(id=>{
+        const c=s.characters[id],st=stats(c);return c.hp<st.max||c.mp<st.maxMp;
+      })};
+  }
+  function inn(s) {
+    const q=innQuote(s);
+    if(!q.available||!q.affordable||!q.needsRecovery)return false;
+    s.gold-=q.price;
+    for(const id of s.selected){const c=s.characters[id],st=stats(c);c.hp=st.max;c.mp=st.maxMp;}
+    note(s,`アスタリスの宿屋：${q.price}Gで編成中の全員のHP・MPを全回復。`);
+    return true;
+  }
   function useItem(s,id,charId) {
     const item=items.find(i=>i.id===id),c=s.characters[charId];
     if(!['town','camp'].includes(s.phase)||!item||!c||!s.selected.includes(charId)||s.inventory[id]<=0||c.hp<=0)return false;
@@ -270,7 +285,7 @@ const Campaign = (() => {
     return true;
   }
   function view(s) {
-    return {...clone(s),town:s.location,towns:clone(locations),locations:clone(locations),destinations:clone(destinations(s)),board:board(s),shop:shop(s),provisional:[...provisional],
+    return {...clone(s),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),destinations:clone(destinations(s)),board:board(s),shop:shop(s),provisional:[...provisional],
       roster:B.roster.map(t=>{const c=s.characters[t.id];const st=stats(c);return {...t,...clone(c),max:st.max,maxMp:st.maxMp,atk:st.atk,agi:st.speed,reach:st.reach,stats:st,weaponName:getGear(c.weapon).name,armorName:getGear(c.armor).name,skillName:skills[stats(c).skill]};}),
       guildAvailable:s.phase==='town'&&s.location==='astaris',hasPorter:hasPorter(s)};
   }
@@ -405,6 +420,6 @@ const Campaign = (() => {
   }
   return {VERSION,MAX_SAVE_BYTES,locations,gear,items,materials,provisional,create,view,board,destinations,hasPorter,stats,
     select,accept,depart,travel,deploy,deployment_reset,begin,act,retreat,finishBattle,rest,onward,forecast,arrive,acknowledge,
-    eligibility,shop,quote,buyGear,buyItem,useItem,allocate,previewGear,trial,trialAct,validate,serialize,deserialize};
+    eligibility,shop,quote,buyGear,buyItem,inn,useItem,allocate,previewGear,trial,trialAct,validate,serialize,deserialize};
 })();
 module.exports = Campaign;

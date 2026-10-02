@@ -174,6 +174,8 @@ class CampaignApp(JourneyApp):
         self.item_uid = None
         self.destination = None
         self.trial_purchase = None
+        self.inn_pending = False
+        self.closed = False
         self._scroll_sync_job = None
         self._scroll_reset_pending = True
         self._render_key = None
@@ -316,6 +318,7 @@ class CampaignApp(JourneyApp):
         self.battle_window = None
 
     def close(self):
+        self.closed = True
         if self._scroll_sync_job is not None:
             self.root.after_cancel(self._scroll_sync_job)
             self._scroll_sync_job = None
@@ -504,7 +507,8 @@ class CampaignApp(JourneyApp):
         reset_scroll = reset_scroll or render_key != self._render_key
         self._render_key = render_key
         self.foot.config(text=self.notice)
-        self.status.config(text=f'{self.town_name(self.town_id())}  |  所持金 {campaign.get("gold", 0)}G'
+        display_town = journey.get('destination') if phase == 'arrival' else self.town_id()
+        self.status.config(text=f'{self.town_name(display_town)}  |  所持金 {campaign.get("gold", 0)}G'
                                f'  |  経験値 {campaign.get("xp", 0)} / 隊Lv.{campaign.get("level", 1)}'
                                f'  |  編成 {len(self.selected_ids())}/5人 / 累計{campaign.get("hours", 0)}時間')
         if not campaign:
@@ -536,11 +540,58 @@ class CampaignApp(JourneyApp):
         self.label(town.get('description', town.get('text', '掲示板で依頼を選ぶか、依頼を受けずに次の拠点へ移動できます。')), color=MUTED)
         tabs = tk.Frame(self.panel, bg=BG)
         tabs.pack(fill='x', pady=(4, 9))
-        for key, name in [('board', '掲示板'), ('map', '地図・出発'), ('party', '仲間・装備'), ('shop', 'お店・道具')]:
+        pages = [('board', '掲示板'), ('map', '地図・出発'), ('party', '仲間・装備'), ('shop', 'お店・道具')]
+        if 'inn' in town.get('facilities', []):
+            pages.append(('inn', '宿屋'))
+        for key, name in pages:
             button = self.row_button(tabs, name, lambda page=key: self.set_page(page))
             button.config(relief='sunken' if key == self.page else 'raised')
         {'board': self.render_board, 'map': self.render_map,
-         'party': self.render_party, 'shop': self.render_shop}.get(self.page, self.render_board)()
+         'party': self.render_party, 'shop': self.render_shop, 'inn': self.render_inn}.get(self.page, self.render_board)()
+
+    def render_inn(self):
+        quote = self.campaign.get('inn') or {}
+        if not quote.get('available'):
+            self.label('宿屋はアスタリスで利用できます。')
+            return
+        price = quote['price']
+        self.label(f'宿屋 / パーティ全員で{price}G（仮料金）', 20)
+        self.label('編成中の全員のHP・MPを上限まで回復します。戦闘不能の仲間も回復します。')
+        self.label('控えの仲間は対象外。時間は経過しません（試作仕様）。', color=MUTED)
+        self.label(self.party_text(), 12)
+        if not quote.get('needsRecovery'):
+            self.label('全員が全回復しています。料金はかかりません。', color='#86efac')
+        elif not quote.get('affordable'):
+            self.label(f'所持金が足りません。宿泊には{price}G必要です。', color='#fca5a5')
+        self.button(f'{price}Gで宿泊する / 確認', self.stay_inn,
+                    disabled=not quote.get('needsRecovery') or not quote.get('affordable'))
+
+    def stay_inn(self):
+        if self.inn_pending or self.closed:
+            return
+        quote = self.campaign.get('inn') or {}
+        if not all(quote.get(key) for key in ('available', 'affordable', 'needsRecovery')):
+            return
+        expected = self.campaign
+        self.inn_pending = True
+        try:
+            accepted = messagebox.askyesno('宿屋で休む',
+                f'パーティ全員で{quote["price"]}Gを支払い、編成中の全員のHP・MPを全回復しますか？\n'
+                '戦闘不能も回復します。控えの仲間は対象外です。',
+                parent=self.root, default=messagebox.NO)
+            if not accepted or self.closed:
+                return
+            current = self.request(op='view')
+            if not current.get('ok') or current.get('campaign') != expected or current.get('trial'):
+                self.notice = '状態が変わりました。宿泊内容を確認し直してください。'
+                return
+            result = self.request(op='campaign', action='inn', args=[])
+            if result.get('ok'):
+                self.notice = f'{quote["price"]}Gを支払い、パーティ全員のHP・MPが全回復しました。'
+        finally:
+            self.inn_pending = False
+            if not self.closed:
+                self.render()
 
     def deadline(self, choice):
         journey = self.data.get('journey') or {}
@@ -589,7 +640,7 @@ class CampaignApp(JourneyApp):
                             lambda: self.deadline('rest'), disabled=journey.get('rested', False))
             self.row_button(row, '先へ進む', lambda: self.act('onward'))
         else:
-            self.label('目的地に到着しました', 17, color='#86efac')
+            self.label(f'{self.town_name(journey.get("destination"))}に到着しました', 17, color='#86efac')
             self.button('荷物を渡して報酬を確認' if job else '町へ入る（配達報酬なし）', lambda: self.act('arrive'))
         if phase == 'camp':
             self.render_items()
@@ -897,13 +948,19 @@ class CampaignApp(JourneyApp):
         if result.get('hours') is not None:
             self.label(f'所要時間 {result["hours"]}時間')
         self.label(self.party_text(), 12)
-        self.button('町へ戻って続ける', self.acknowledge)
+        place = self.town_name(self.town_id())
+        self.label(f'現在地: {place}。ここで施設を利用し、次の出発を選べます。', 15)
+        self.button(f'{place}に留まる / 掲示板へ', self.acknowledge)
+        if self.town_id() in ('east', 'west', 'south'):
+            self.button(f'{place}のお店へ', lambda: self.acknowledge('shop'))
+        elif self.town_id() == 'astaris':
+            self.button('アスタリスの宿屋へ', lambda: self.acknowledge('inn'))
         history = self.campaign.get('history', [])
         if history:
             self.label('\n'.join(history[-5:]), 10, color=MUTED)
 
-    def acknowledge(self):
-        self.page = 'board'
+    def acknowledge(self, page='board'):
+        self.page = page
         self.destination = None
         self.act('acknowledge')
 

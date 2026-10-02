@@ -147,3 +147,13 @@ Eight real-bridge/controller retreat tests cover default-NO/cancel, successful o
 ### Long-battle save protection (headless, separate from GUI)
 
 `test_campaign_log.cjs` reaches the seed6 stalemate through public operations and continues to1,452 allied actions:4,014 actual display messages, newest1,000 retained,3,014 counted in `battle.logDropped`. Every action's gameplay state matches a retention-disabled control, excluding only display-log retention fields. Repeated serialize/reload succeeds; post-cap real Node bridge action diagnostics remain nonempty. The independent diagnostic export stays bounded at600 events/2MiB and its dropped counter is tested separately. Valid older saves (up to the existing2,000-array limit) are fully validated before display-tail normalization; malformed and over-limit imports remain rejected without replacing live state. Short fights keep the original shape, with no `logDropped` field until the first eviction. This does not claim an actual1,452-action manual GUI playthrough.
+
+## 宿屋・到着地点の明示（2026-10-02）
+
+- `python native/check.py` の全9段階通過。キャンペーン47テスト、追加の宿屋コントローラ6テスト。凍結エンジン・Web比較版の一致も通過
+- 全4村への納期内・遅配・未受注の実戦エンジン旅程、結果保存→再読込→継続で目的地・掲示板・店舗カテゴリを保持。村→都市の正常到着、失敗時の出発元復元も確認。強制都市帰還は再現していない
+- 宿屋：全選択者（HP0含む）の装備・成長込み上限まで回復、控え不変、30G一回の支払い、資金不足・全快・場所/段階違い・重複の拒否、保存読込、受注前復元を自動確認
+- 実Nodeブリッジ＋ヘッドレス画面制御でYES/NO/取消、確認中の再入、閉じた画面、別セーブの読込による古い確認の拒否を確認
+- クラウドの実Python3/Tk画面：初期全快でボタン無効、試験用HP/MP0の編成を読込、宿泊確認の料金・既定NO、Escで金銭/HP/MP不変、YESで180→150Gと5人全快・ボタン無効を確認
+- 実戦エンジンが二戦を通して作ったイース到着セーブを実GUIから読込。到着前報酬196G、到着先の上部表示、配達180G受取→376G、地名付き滞在・店舗ボタン、直接イース武器屋が表示されることを確認。GUI確認は固定局面からの境界操作であり、今回GUIで二戦を手動操作した記録ではない
+- 独立読み取りレビュー：上記実装と47＋6テストを再確認し、阻害要因なし。Windowsでの確認は別途記録する

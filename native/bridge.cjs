@@ -144,7 +144,7 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       else if(r.action==='forecast'){response={...view(),forecast:C.forecast(campaign,...args)};}
       else if(r.action==='previewGear'){response={...view(),previewGear:C.previewGear(campaign,...args)};}
       else if(r.action==='trial'){trial=C.trial(campaign,...args);result=!!trial;}
-      else if(['accept','select','depart','travel','deploy','deployment_reset','begin','retreat','finishBattle','rest','onward','arrive','acknowledge','buyGear','buyItem','useItem','allocate'].includes(r.action)) {
+      else if(['accept','select','depart','travel','deploy','deployment_reset','begin','retreat','finishBattle','rest','onward','arrive','acknowledge','buyGear','buyItem','inn','useItem','allocate'].includes(r.action)) {
         result=C[r.action](campaign,...args);
       } else throw Error('Unknown campaign action');
       if(!response){syncCampaign();record('campaign.'+r.action,{args,accepted:!!result});response=view(!!result,result?null:campaign.error||'現在の状態では実行できません');}
