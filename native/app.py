@@ -2,6 +2,8 @@
 import json
 from pathlib import Path
 import subprocess
+from tk_bootstrap import prepare_tk
+prepare_tk()
 import tkinter as tk
 from tkinter import filedialog
 from datetime import datetime

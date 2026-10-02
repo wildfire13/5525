@@ -49,7 +49,7 @@ Screenshots were observations of actual native windows, not synthesized. No expo
 
 Run `python check.py` for the final aggregate report in `qa-check-report.json`.
 
--23 Python tests: tiny model, bridge, journey, preview
+-30 Python tests: 23 tiny model/bridge/journey/preview tests plus 7 mocked Windows-bootstrap safety tests
 -Standalone30-action exact state parity
 -Five adapter journeys/ten battles/285 allied actions; only source cycle's journey victory wording adapted
 -Seven source suites with unchanged assertions (require paths only), frozen module hashes, optional live original-source/assertion identity (CRLF normalized to LF only for the original checkout; frozen native hashes remain byte-exact);20checks with source checkout
@@ -64,3 +64,8 @@ The existing gameplay rules and user-facing test controls are reachable in the n
 Meaningful differences requiring acceptance awareness: native2D instead of3D decorative world/effects, separate battle windows, additional confirmation on some commands, generic X11 accessibility rather than rich control labels, and no Windows packaging. These are kept explicit for the final review; **independent review passed and official gameplay prototype designation is recorded**.
 
 Source has no independent encounter-event system, sound, equipment-change UI, progress save/load, replay, continuous campaign or post-result leveled-up new trip. No such feature is silently invented or counted as migrated.
+
+
+## Windows startup correction (2026-10-02)
+
+The Windows executor reported Python3.12.14 x64 with matching Tcl/Tk8.6.12 files, but ordinary Tk creation failed to find a usable init.tcl. A same-process `Tcl_FindExecutable` / temporary interpreter / `pwd` / interpreter deletion before Tk creation was observed to create the actual journey app (mapped1180×850,2 job choices,10 loaded images,Node alive). This was a runtime/window-object observation, not screenshot evidence. The shared bootstrap is gated to that exact existing runtime layout and versions. It respects differing explicit Tcl/Tk paths, restores process environment after initialization failure, and never edits installed resources or persistent settings. Seven mocked tests cover success/idempotence, ordinary platform/version no-op, explicit-path preservation, DLL mismatch, evaluation failure cleanup and null interpreter cleanup. Future runtime versions may require fresh diagnosis.

@@ -2,6 +2,8 @@
 from datetime import datetime
 import json
 from pathlib import Path
+from tk_bootstrap import prepare_tk
+prepare_tk()
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from app import App, Bridge, BASE

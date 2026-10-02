@@ -8,9 +8,9 @@ node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 22 ? 0 : 1)
 if errorlevel 1 goto old_node
 if defined NATIVE5525_PYTHON goto probe_override
 :probe_standard
-py -3 -c "import sys, tkinter; assert sys.version_info.major == 3; t=tkinter.Tk(); t.withdraw(); t.destroy()" >nul 2>nul
+py -3 "%~dp0native\tk_bootstrap.py" >nul 2>nul
 if not errorlevel 1 goto run_py
-python -c "import sys, tkinter; assert sys.version_info.major == 3; t=tkinter.Tk(); t.withdraw(); t.destroy()" >nul 2>nul
+python "%~dp0native\tk_bootstrap.py" >nul 2>nul
 if not errorlevel 1 goto run_python
 set "NATIVE5525_PYTHON=%USERPROFILE%\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
 if exist "%NATIVE5525_PYTHON%" goto probe_runtime
@@ -21,13 +21,13 @@ echo Nothing was installed or changed by this launcher.
 goto error
 :probe_override
 if not exist "%NATIVE5525_PYTHON%" goto invalid_override
-"%NATIVE5525_PYTHON%" -c "import sys, tkinter; assert sys.version_info.major == 3; t=tkinter.Tk(); t.withdraw(); t.destroy()" >nul 2>nul
+"%NATIVE5525_PYTHON%" "%~dp0native\tk_bootstrap.py" >nul 2>nul
 if not errorlevel 1 goto run_explicit
 :invalid_override
 echo [5525] NATIVE5525_PYTHON must be the full path to a working Python 3 with Tk.
 goto error
 :probe_runtime
-"%NATIVE5525_PYTHON%" -c "import sys, tkinter; assert sys.version_info.major == 3; t=tkinter.Tk(); t.withdraw(); t.destroy()" >nul 2>nul
+"%NATIVE5525_PYTHON%" "%~dp0native\tk_bootstrap.py" >nul 2>nul
 if errorlevel 1 goto missing_python
 :run_explicit
 "%NATIVE5525_PYTHON%" "%~dp0native\journey_app.py"

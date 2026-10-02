@@ -8,7 +8,7 @@ import sys
 
 BASE=Path(__file__).resolve().parent
 steps=[
- ('Python syntax',[sys.executable,'-m','compileall','-q','app.py','journey_app.py','tiny_poc.py']),
+ ('Python syntax',[sys.executable,'-m','compileall','-q','app.py','journey_app.py','tiny_poc.py','tk_bootstrap.py']),
  ('Python rules/adapter/preview tests',[sys.executable,'-m','unittest','-v']),
  ('Standalone 30-action parity',['node','test_parity.cjs']),
  ('Reachable QA boundary fixtures',['node','test_qa_fixtures.cjs']),
