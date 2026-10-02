@@ -1,5 +1,5 @@
 "use strict";
-let state=Battle.create(),mode='attack',previewPos=null,previewKind='attack',rushTarget=null;
+let state=Battle.create(),mode='attack',previewPos=null,previewKind='attack',rushTarget=null,areaTarget=null;
 const imageRoot='assets/characters/背景透過済み/';
 const imageFor=u=>imageRoot+(u.side==='enemy'?'enemy/enemy_':'')+u.image;
 const playLog=PlayLog.create({mode:document.querySelector('#cycle')?'journey':'battle'});
@@ -20,10 +20,11 @@ function exportPlayLog(){
 }
 document.querySelector('#export-play-log').onclick=exportPlayLog;
 const labels={attack:'攻撃',guard:'防御',move:'移動',skill:'スキル',item:'アイテム'};
-function resetPreview(){previewPos=null;rushTarget=null;}
+function resetPreview(){previewPos=null;rushTarget=null;areaTarget=null;}
 function perform(kind,target){const before=state.units.map(u=>({...u})),actor=state.actor,logStart=state.log.length;if(Battle.act(state,kind,target)){recordPlay('battle.action',{actor,kind,target:target??null,messages:state.log.slice(logStart)});resetPreview();mode='attack';render();document.dispatchEvent(new CustomEvent('battle-action',{detail:{before,kind,target}}));}else recordPlay('battle.rejected',{actor,kind,target:target??null});}
 function render(){
- const actor=state.units.find(u=>u.id===state.actor),previewing=previewPos!==null&&!state.result;
+ const actor=state.units.find(u=>u.id===state.actor),previewing=previewPos!==null&&!state.result,areaPreviewing=areaTarget!==null&&!state.result;
+ const positionSkill=actor&&Battle.activeSkill(actor)==='stamp';
  if(actor?.job==='porter'&&mode==='attack')mode='move';
  const swapped=previewing?Battle.swapTarget(state,actor,previewPos):null;
  const viewedActor=previewing?{...actor,pos:previewPos}:actor;
@@ -39,11 +40,11 @@ function render(){
    const p=Battle.cell(boardSide,i),u=viewedState.units.find(u=>u.hp>0&&u.pos===p);
    const threats=state.units.filter(e=>e.side==='enemy'&&e.hp>0&&e.intent.cells.includes(p));
    const incoming=state.units.filter(e=>e.side==='enemy'&&e.hp>0&&e.intent.destination===p);
-   const target=mode==='move'?p:u?.id;
-   const valid=!state.result&&!rushTarget&&Battle.legal(state,mode,target);
+   const target=mode==='move'||(mode==='skill'&&positionSkill)?p:u?.id;
+   const valid=!state.result&&!rushTarget&&!areaPreviewing&&Battle.legal(state,mode,target);
    const kind=previewing?previewKind:mode;
     const support=kind==='skill'&&['mage','guard','porter'].includes(actor?.job);
-   const reach=!state.result&&(kind==='attack'||kind==='skill')&&Battle.inRange(viewedActor,u?.side||(support?'ally':'enemy'),p,kind,viewedState);
+   const reach=!state.result&&(kind==='attack'||kind==='skill')&&(areaPreviewing?Battle.stampCells(actor,areaTarget).includes(p):Battle.inRange(viewedActor,u?.side||(support?'ally':'enemy'),p,kind,viewedState));
    const b=document.createElement('button');b.className='cell';b.dataset.pos=p;b.disabled=!valid;
    if(Battle.slots[boardSide].includes(p))b.classList.add('slot');
    if(u)b.classList.add(u.side==='ally'?'ally-unit':'enemy-unit');
@@ -57,7 +58,8 @@ function render(){
    b.title=threats.map(e=>e.name+'の'+e.intent.name).concat(incoming.map(e=>e.name+'の移動先')).join('\n');
    b.onclick=()=>{
      if(mode==='move'){previewPos=p;previewKind=actor.job==='porter'?'skill':'attack';recordPlay('battle.preview',{actor:actor.id,kind:'move',target:p,swap:Battle.swapTarget(state,actor,p)?.id??null});render();return;}
-    if(mode==='skill'&&actor.job==='scout'){const jump=Battle.ambush(state,actor,u);if(jump){rushTarget=u.id;previewPos=jump.destination;previewKind='attack';recordPlay('battle.preview',{actor:actor.id,kind:'skill',target:u.id,destination:previewPos});render();}return;}
+    if(mode==='skill'&&positionSkill){areaTarget=p;recordPlay('battle.preview',{actor:actor.id,kind:'skill',target:p,cells:Battle.stampCells(actor,p)});render();return;}
+    if(mode==='skill'&&Battle.activeSkill(actor)==='scout'){const jump=Battle.ambush(state,actor,u);if(jump){rushTarget=u.id;previewPos=jump.destination;previewKind='attack';recordPlay('battle.preview',{actor:actor.id,kind:'skill',target:u.id,destination:previewPos});render();}return;}
     perform(mode,target);
    };board.append(b);
   }
@@ -65,16 +67,16 @@ function render(){
  $('commands').replaceChildren();
  for(const [key,text] of Object.entries(labels)){
   const b=document.createElement('button');b.textContent=(key==='skill'&&actor?Battle.skillName(actor):text)+(key==='skill'?` (${actor?.mp??0})`:key==='item'?` (${state.potions.ally})`:'');
-   b.className=mode===key?'selected':'';b.disabled=!!state.result||previewing||(key==='skill'&&!actor?.mp)||(key==='item'&&!state.potions.ally);
+   b.className=mode===key?'selected':'';b.disabled=!!state.result||previewing||areaPreviewing||(key==='skill'&&!actor?.mp)||(key==='item'&&!state.potions.ally);
    if(key==='attack'&&actor?.job==='porter'){b.hidden=true;b.disabled=true;}
   b.onclick=()=>{resetPreview();if(key==='guard')perform(key);else{mode=key;render();}};$('commands').append(b);
  }
-  const skillHints={guard:'隣接する味方を、次の自分の番までかばう。',mage:'射程2の味方または自分のHPを60回復。',archer:'射程3・威力1.7倍の強撃。',scout:`同じ横列の${actor?.skillStage===1?'前方':'左右'}の敵へ直進し、手前で止まって攻撃。途中に別のキャラがいれば使用不可。着地点は固定。`,porter:'護送陣が成立中に自分を選択。次の本人の番まで攻撃＋75％・被害−35％。陣形が崩れると効果停止、再成立で復帰。二人で使っても倍率は重複しない。'};
-  $('hint').textContent=state.result?'最初から再挑戦できます。':({attack:`本人から縦横${actor.reach}マス以内の敵を選択。`,move:'移動先を仮選択。移動距離2、ユニットを通り抜けません。スカウトだけが境界を越えられます。',skill:skillHints[actor.job]+' MP1。',item:'味方1人のHPを55回復。'})[mode];
+  const skillHints={guard:'隣接する味方を、次の自分の番までかばう。',mage:'射程2の味方または自分のHPを60回復。',archer:`その一撃だけ通常射程＋1（現在${actor?Battle.attackReach(actor,'skill'):4}）。通常攻撃と同じ威力。`,stamp:'本人に縦横で隣接する中心マスを選択し、向きと3マスの範囲を確認。空きマスも指定可能。敵だけに通常威力の攻撃。',scout:`同じ横列の${actor?.skillStage===1?'前方':'左右'}の敵へ直進し、手前で止まって攻撃。途中に別のキャラがいれば使用不可。着地点は固定。`,porter:'護送陣が成立中に自分を選択。次の本人の番まで攻撃＋75％・被害−35％。陣形が崩れると効果停止、再成立で復帰。二人で使っても倍率は重複しない。'};
+  $('hint').textContent=state.result?'最初から再挑戦できます。':({attack:`本人から縦横${actor.reach}マス以内の敵を選択。`,move:'移動先を仮選択。移動距離2、ユニットを通り抜けません。スカウトだけが境界を越えられます。',skill:skillHints[Battle.activeSkill(actor)]+' MP1。',item:'味方1人のHPを55回復。'})[mode];
   if(!state.result&&actor.job==='porter'&&mode==='move')$('hint').textContent='移動距離2。移動先に生存中の味方がいれば位置を交換できます。途中のキャラは通り抜け不可。ポーターが一人でも倒れるとクエスト失敗。';
- $('movePreview').hidden=!previewing;
+ $('movePreview').hidden=!previewing&&!areaPreviewing;
  if(previewing){
-  const targets=viewedState.units.filter(u=>Battle.legalFor(viewedState,viewedActor,previewKind,u.id)).map(u=>u.name);
+  const targets=viewedState.units.filter(u=>previewKind==='skill'&&positionSkill?u.hp>0&&u.side!==actor.side&&Array.from({length:50},(_,p)=>p).some(p=>Battle.legalFor(viewedState,viewedActor,'skill',p)&&Battle.stampCells(viewedActor,p).includes(u.pos)):Battle.legalFor(viewedState,viewedActor,previewKind,u.id)).map(u=>u.name);
   const before=Battle.formation(state),after=Battle.formation(viewedState);
   const risk=state.units.filter(u=>u.side==='enemy'&&u.hp>0&&u.intent.cells.includes(previewPos)).map(u=>u.name);
    $('previewText').textContent=`${rushTarget?'奇襲 → '+state.units.find(u=>u.id===rushTarget).name:'仮配置：'+(previewKind==='attack'?'攻撃':Battle.skillName(actor))+'の対象 '+(targets.join('・')||'なし')} ／ 護送陣 ${after?before?'維持':'再成立':before?'解除':'未成立'} ／ 着地点への予告：${risk.join('・')||'なし'}`;
@@ -84,12 +86,21 @@ function render(){
    $('previewAttack').disabled=!!rushTarget||actor.job==='porter';$('previewSkill').disabled=!!rushTarget;
   $('previewAttack').className=previewKind==='attack'?'selected':'';$('previewSkill').className=previewKind==='skill'?'selected':'';
  }
+ if(areaPreviewing){
+  const cells=Battle.stampCells(actor,areaTarget),targets=state.units.filter(u=>u.hp>0&&u.side!==actor.side&&cells.includes(u.pos));
+  const dx=areaTarget%10-actor.pos%10,dy=Math.floor(areaTarget/10)-Math.floor(actor.pos/10),direction=dx>0?'右':dx<0?'左':dy>0?'下':'上';
+  $('previewText').textContent=`スタンプ：${direction}方向・${cells.length}マス ／ 対象 ${targets.map(u=>u.name).join('・')||'なし（空振り）'}`;
+  $('hint').textContent='青い3マス（端は盤面内のみ）を確認して確定。敵だけに通常威力、MP1・一行動。取消では消費しません。';
+  $('confirmMove').textContent='スタンプを確定';
+  $('previewAttack').disabled=true;$('previewSkill').disabled=true;
+  $('previewAttack').className='';$('previewSkill').className='selected';
+ }
  $('roster').innerHTML=state.units.filter(u=>u.side==='ally').map(u=>`<span>${u.name}［${u.role}］ HP ${u.hp}/${u.max} ・MP ${u.mp} ・AGI ${u.agi}${u.hp<=0?' 戦闘不能':u.cover?' ／ '+state.units.find(t=>t.id===u.cover).name+'をかばう':''}</span>`).join('');
  $('intents').innerHTML=state.units.filter(u=>u.side==='enemy'&&u.hp>0).map(u=>`<p><b>${u.name}</b> HP ${u.hp}/${u.max}・MP ${u.mp}：${u.intent.name}<small class="intent-detail">${typeof u.intent.target==='string'?'対象：'+state.units.find(t=>t.id===u.intent.target).name+' ／ ':''}${u.intent.reason}</small></p>`).join('');
  $('log').replaceChildren(...state.log.slice(-40).reverse().map(text=>{const p=document.createElement('p');p.textContent=text;return p;}));
 }
 $('previewAttack').onclick=()=>{previewKind='attack';render();};$('previewSkill').onclick=()=>{previewKind='skill';render();};
-$('confirmMove').onclick=()=>{if(previewPos!==null)perform(rushTarget?'skill':'move',rushTarget||previewPos);};
-$('cancelMove').onclick=()=>{recordPlay('battle.preview.cancelled',{destination:previewPos,target:rushTarget});resetPreview();render();};$('restart').onclick=()=>{state=Battle.create();mode='attack';previewKind='attack';resetPreview();playLog.startRun(playLogContext(),'battle.restart');render();};
+$('confirmMove').onclick=()=>{if(areaTarget!==null)perform('skill',areaTarget);else if(previewPos!==null)perform(rushTarget?'skill':'move',rushTarget||previewPos);};
+$('cancelMove').onclick=()=>{recordPlay('battle.preview.cancelled',{destination:previewPos,target:areaTarget??rushTarget});resetPreview();render();};$('restart').onclick=()=>{state=Battle.create();mode='attack';previewKind='attack';resetPreview();playLog.startRun(playLogContext(),'battle.restart');render();};
 if(!document.querySelector('#cycle'))recordPlay('run.started',{reason:'page.opened'});
 render();

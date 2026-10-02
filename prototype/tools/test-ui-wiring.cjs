@@ -9,7 +9,7 @@ const json = value => JSON.stringify(value);
 function prepare(harness, job = 'parts') {
   harness.click(`[data-job=${job}]`);
   assert.equal(harness.run('journey.phase'), 'prepare');
-  assert.equal(harness.document.querySelectorAll('[data-member]').length, 10);
+  assert.equal(harness.document.querySelectorAll('[data-member]').length, 11);
 }
 function start(harness) {
   harness.click('#depart');

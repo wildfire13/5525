@@ -4,6 +4,8 @@
 
 **[prototype/index.html](prototype/index.html)** をブラウザーで直接開いてください。サーバー不要です。
 
+2026-10-02：編成候補に「槌戦士（仮）」を追加。スタンプは位置指定の3マス攻撃、弓のアクティブは一撃だけ射程＋1の「スナイプ」になりました。試し方・仮仕様は [prototype/README.md](prototype/README.md#槌戦士スタンプと弓スナイプ2026-10-02)。
+
 - ゲームサイクル版：`prototype/index.html`
 - 戦闘単体版：`prototype/battle.html`
 - 仕様・検証コマンド：[prototype/README.md](prototype/README.md)
