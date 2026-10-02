@@ -179,4 +179,52 @@ test('inert trial dummies show no threats and never damage party',()=>{
   assert.deepEqual(t.battle.units.filter(u=>u.side==='ally').map(u=>({id:u.id,hp:u.hp})),allies);
   assert.ok(t.battle.units.filter(u=>u.side==='enemy').every(u=>u.intent.cells.length===0));assert.equal(C.serialize(s),before);
 });
+test('retreat rejects nonbattle/finished/stale battles without mutation',()=>{
+  const s=C.create();
+  const reject=()=>{const before=clone(s);assert.equal(C.retreat(s),false);assert.deepEqual(clone(s),before);};
+  reject();C.depart(s,'north');reject();C.travel(s,'safe',random());reject();C.begin(s);
+  const stage=s.battle.campaignStage;s.battle.campaignStage++;reject();s.battle.campaignStage=stage;
+  s.battle.result='already finished';reject();
+});
+test('normal and questless retreats restore pretrip state and cannot double apply',()=>{
+  for(const quest of [false,true]){
+    const s=C.create(),before=clone(s);
+    if(quest)assert(C.accept(s,C.board(s)[0].id));
+    assert(C.depart(s,quest?'east':'north'));assert(C.travel(s,'safe',random()));fight(s);
+    assert.equal(s.gold,before.gold+8);assert.equal(s.xp,before.xp+20);
+    assert(C.onward(s));assert(C.travel(s,'safe',random()));assert(C.begin(s));
+    assert(C.retreat(s));assert.equal(s.result.outcome,'failed');assert.equal(s.result.restored,true);
+    assert.equal(s.result.gold,0);assert.equal(s.result.xp,0);okay(s);
+    const finished=clone(s);assert.equal(C.retreat(s),false);assert.equal(C.finishBattle(s),false);assert.deepEqual(s,finished);
+    assert(C.acknowledge(s));
+    for(const key of Object.keys(before).filter(k=>k!=='history'))assert.deepEqual(s[key],before[key],key);
+    okay(s);
+  }
+});
+test('reachable porter-only stalemate keeps C01 but can explicitly retreat after save reload',()=>{
+  let s=C.create();const before=clone(s),rng=random(6);
+  assert(C.accept(s,C.board(s)[0].id));assert(C.depart(s,'east'));
+  for(let leg=0;leg<2;leg++){
+    assert(C.travel(s,'short',rng));assert(C.begin(s));
+    for(let n=0;n<200&&!s.battle.result;n++){
+      if(s.battle.units.filter(u=>u.side==='ally'&&u.hp>0).every(u=>u.job==='porter'))break;
+      const c=clone(s.battle),a=c.units.find(u=>u.id===c.actor);B.plan(c,a);let {kind,target}=a.intent;
+      if(a.job==='porter'){
+        const hurt=c.units.filter(u=>u.side==='ally'&&u.hp>0&&u.hp<30).sort((a,b)=>a.hp-b.hp).find(u=>B.legal(c,'item',u.id));
+        if(hurt){kind='item';target=hurt.id;}else{kind=B.legal(c,'skill',a.id)?'skill':'guard';target=kind==='skill'?a.id:null;}
+      }
+      if(kind==='skill'&&['archer','scout'].includes(B.activeSkill(a))&&B.legal(c,'attack',target))kind='attack';
+      assert(C.act(s,kind,target));
+    }
+    if(!leg){assert(C.finishBattle(s));assert(C.onward(s));}
+  }
+  assert.equal(s.battle.actions,52);assert.equal(s.battle.result,null);
+  assert.deepEqual(s.battle.units.filter(u=>u.side==='ally'&&u.hp>0).map(u=>u.job),['porter']);
+  for(let n=0;n<20;n++)assert(C.act(s,'guard',null));
+  assert.equal(s.battle.result,null);okay(s);s=C.deserialize(C.serialize(s));
+  for(const enemy of s.battle.units.filter(u=>u.side==='enemy'))assert.equal(B.legal(s.battle,'attack',enemy.id),false);
+  assert(C.retreat(s));assert(C.acknowledge(s));
+  for(const key of Object.keys(before).filter(k=>k!=='history'))assert.deepEqual(s[key],before[key],key);
+  okay(s);
+});
 console.log(`\n${passed} campaign checks passed (actual Battle actions; no GUI or final-balance claim).`);

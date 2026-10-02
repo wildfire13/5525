@@ -144,7 +144,7 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       else if(r.action==='forecast'){response={...view(),forecast:C.forecast(campaign,...args)};}
       else if(r.action==='previewGear'){response={...view(),previewGear:C.previewGear(campaign,...args)};}
       else if(r.action==='trial'){trial=C.trial(campaign,...args);result=!!trial;}
-      else if(['accept','select','depart','travel','deploy','deployment_reset','begin','finishBattle','rest','onward','arrive','acknowledge','buyGear','buyItem','useItem','allocate'].includes(r.action)) {
+      else if(['accept','select','depart','travel','deploy','deployment_reset','begin','retreat','finishBattle','rest','onward','arrive','acknowledge','buyGear','buyItem','useItem','allocate'].includes(r.action)) {
         result=C[r.action](campaign,...args);
       } else throw Error('Unknown campaign action');
       if(!response){syncCampaign();record('campaign.'+r.action,{args,accepted:!!result});response=view(!!result,result?null:campaign.error||'現在の状態では実行できません');}
@@ -155,11 +155,11 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       else {record('journey.'+r.action,{args:r.args,accepted:result});response=view(!!result,result?null:'現在の状態では実行できません');}
     }
     else if(r.op==='act') {
-      const before=state?.log.length||0,actor=state?.actor;
+      const before=(state?.log.length||0)+(state?.logDropped||0),actor=state?.actor;
       const ok=!!state&&(campaign?(trial?campaignEngine().trialAct(trial,r.kind,r.target):campaignEngine().act(campaign,r.kind,r.target)):B.act(state,r.kind,r.target));
       if(campaign)syncCampaign();
       if(ok&&!campaign&&journey&&state.result&&!state.failure&&state.units.some(u=>u.side==='ally'&&u.hp>0))state.result='勝利！ 荷物を守り切った。';
-      record(ok?'battle.action':'battle.rejected',{actor,kind:r.kind,target:r.target??null,messages:state?.log.slice(before)});
+      record(ok?'battle.action':'battle.rejected',{actor,kind:r.kind,target:r.target??null,messages:state?.log.slice(Math.max(0,before-(state?.logDropped||0)))});
       response=view(ok,ok?null:'不正な行動です');
     }
     else if(r.op==='preview')response=preview(r.kind,r.target,r.previewKind);

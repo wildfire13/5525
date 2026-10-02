@@ -292,6 +292,10 @@ class App:
         self.message='新規戦闘を開始しました。' if scenario=='normal' else 'QA固定局面です。標準戦闘のバランス評価には使用しません。'
         self.draw()
 
+    def formation_info(self):
+        # Campaign shells may expand this explanation without changing legacy UI.
+        return [f'陣形: 味方{"強化中" if self.data.get("boosted",{}).get("ally") else "ON" if self.data["formed"]["ally"] else "OFF"} / 敵{"ON" if self.data["formed"]["enemy"] else "OFF"}']
+
     def draw(self):
         c,s=self.canvas,self.data['state'];a=self.actor();c.delete('all')
         if a and a['job']=='porter' and self.mode=='attack':self.mode='move'
@@ -342,7 +346,7 @@ class App:
         self.preview_skill.config(state='normal' if can_inspect else 'disabled')
         self.confirm.config(state='normal' if self.pending and a else 'disabled')
         self.notice.config(text=self.message)
-        info=[f'回復薬: 味方{s["potions"]["ally"]} / 敵{s["potions"]["enemy"]}',f'陣形: 味方{"強化中" if self.data.get("boosted",{}).get("ally") else "ON" if self.data["formed"]["ally"] else "OFF"} / 敵{"ON" if self.data["formed"]["enemy"] else "OFF"}', '']
+        info=[f'回復薬: 味方{s["potions"]["ally"]} / 敵{s["potions"]["enemy"]}',*self.formation_info(), '']
         for u in s['units']:
             info.append(f'{u["name"]}: HP {u["hp"]}/{u["max"]} MP {u["mp"]} AGI {u["agi"]}'+(' 防御' if u['guard'] else '')+(' 戦闘不能' if u['hp']<=0 else ''))
             if u.get('cover'):info.append('  かばう → '+next(v['name'] for v in s['units'] if v['id']==u['cover']))
