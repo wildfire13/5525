@@ -7,3 +7,9 @@ node_modules/
 *.pem
 *.key
 prototype/qa/check-report.json
+
+# Native runtime/test artifacts
+native/__pycache__/
+native/**/*.pyc
+native/qa-check-report.json
+native/5525-native-*.json

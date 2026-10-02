@@ -1,0 +1,3 @@
+native/** text=auto eol=lf
+native/**/*.png binary
+Start-5525.cmd text eol=crlf
