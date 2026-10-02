@@ -3,6 +3,14 @@
 // Optional equippedSkill changes the active command, never the character job.
 // Unextended standalone/journey continue using battle.js.
 const Battle = (() => {
+  // Display history is independent of PlayLog diagnostic retention. Leave the
+  // counter absent until the first eviction to preserve short-battle parity.
+  const MAX_LOG_LINES = 1000;
+  function trimLog(s) {
+    const dropped=Math.max(0,s.log.length-MAX_LOG_LINES);
+    if(dropped){s.log.splice(0,dropped);s.logDropped=(s.logDropped||0)+dropped;}
+  }
+  function log(s,message) {s.log.push(message);trimLog(s);}
   // 全員の位置は共通10×5座標。所属(side)と滞在陣地は独立。
   const x = p => p % 10, y = p => Math.floor(p / 10);
   const alive = s => s.units.filter(u => u.hp > 0);
@@ -93,27 +101,27 @@ const Battle = (() => {
     const recipient=protector||target;
     const hit=Math.max(1,Math.round(power*(formed?(boosted(s,target.side)?.65:.75):1)*(recipient.guard?.5:1)));
     recipient.hp=Math.max(0,recipient.hp-hit);
-    s.log.push(`${protector?`${recipient.name}が${target.name}をかばう：`:""}${recipient.name}に${hit}ダメージ${recipient.hp===0?"・戦闘不能":""}`);
+    log(s,`${protector?`${recipient.name}が${target.name}をかばう：`:""}${recipient.name}に${hit}ダメージ${recipient.hp===0?"・戦闘不能":""}`);
   }
   function apply(s,a,kind,target,landing,fixedCells) {
-    if(kind==='move'){const b=swapTarget(s,a,target);if(b){b.pos=a.pos;a.pos=target;s.log.push(`${a.name}と${b.name}が入れ替わった。`);}else{a.pos=target;s.log.push(`${a.name}が${boardOf(target)==='ally'?'味方陣':'敵陣'}へ移動。`);}return;}
-    if(kind==='guard'){a.guard=true;s.log.push(`${a.name}は防御。`);return;}
+    if(kind==='move'){const b=swapTarget(s,a,target);if(b){b.pos=a.pos;a.pos=target;log(s,`${a.name}と${b.name}が入れ替わった。`);}else{a.pos=target;log(s,`${a.name}が${boardOf(target)==='ally'?'味方陣':'敵陣'}へ移動。`);}return;}
+    if(kind==='guard'){a.guard=true;log(s,`${a.name}は防御。`);return;}
     const b=s.units.find(u=>u.id===target);
-    if(kind==='item'){s.potions[a.side]--;const heal=Math.min(55,b.max-b.hp);b.hp+=heal;s.log.push(`${a.name}の回復薬：${b.name}のHP＋${heal}`);return;}
+    if(kind==='item'){s.potions[a.side]--;const heal=Math.min(55,b.max-b.hp);b.hp+=heal;log(s,`${a.name}の回復薬：${b.name}のHP＋${heal}`);return;}
     if(kind==='skill')a.mp--;
     if(kind==='skill'&&activeSkill(a)==='stamp'){
       const cells=fixedCells||stampCells(a,target),targets=alive(s).filter(u=>u.side!==a.side&&cells.includes(u.pos));
       // 各対象へ通常威力。陣形・かばう・防御は既存のダメージ処理を使う。
       const power=a.atk*(formation(s,a.side)?boosted(s,a.side)?1.75:1.5:1);
-      s.log.push(`${a.name}のスタンプ → 中心(${x(target)+1},${y(target)+1})・${cells.length}マス${targets.length?'':'：空振り。'}`);
+      log(s,`${a.name}のスタンプ → 中心(${x(target)+1},${y(target)+1})・${cells.length}マス${targets.length?'':'：空振り。'}`);
       for(const enemy of targets)if(enemy.hp>0)receive(s,enemy,power);
       return;
     }
-    if(kind==='skill'&&a.job==='porter'){a.boost=true;s.log.push(`${a.name}の陣形強化：次の本人の番まで攻撃＋75％・被害−35％。重複なし。`);return;}
-    if(kind==='skill'&&activeSkill(a)==='mage'){const heal=Math.min(60,b.max-b.hp);b.hp+=heal;s.log.push(`${a.name}のヒール：${b.name}のHP＋${heal}`);return;}
-    if(kind==='skill'&&activeSkill(a)==='guard'){a.cover=b.id;s.log.push(`${a.name}は次の自分の番まで${b.name}をかばう。`);return;}
+    if(kind==='skill'&&a.job==='porter'){a.boost=true;log(s,`${a.name}の陣形強化：次の本人の番まで攻撃＋75％・被害−35％。重複なし。`);return;}
+    if(kind==='skill'&&activeSkill(a)==='mage'){const heal=Math.min(60,b.max-b.hp);b.hp+=heal;log(s,`${a.name}のヒール：${b.name}のHP＋${heal}`);return;}
+    if(kind==='skill'&&activeSkill(a)==='guard'){a.cover=b.id;log(s,`${a.name}は次の自分の番まで${b.name}をかばう。`);return;}
     if(kind==='skill'&&activeSkill(a)==='scout')a.pos=landing;
-    s.log.push(`${a.name}の${kind==='skill'?skillName(a):'攻撃'} → ${b.name}`);
+    log(s,`${a.name}の${kind==='skill'?skillName(a):'攻撃'} → ${b.name}`);
     receive(s,b,a.atk*(formation(s,a.side)?boosted(s,a.side)?1.75:1.5:1));
   }
   function plan(s,a) {
@@ -146,20 +154,20 @@ const Battle = (() => {
     // 攻撃の予告は人物追尾せずセル固定。奇襲の着地点も固定。
     if(i.cells.length){
       if(i.kind==='skill'&&activeSkill(a)==='stamp'){
-        if(a.mp<=0){s.log.push(`${a.name}のスタンプはMP不足で見送り。`);return;}
+        if(a.mp<=0){log(s,`${a.name}のスタンプはMP不足で見送り。`);return;}
         apply(s,a,i.kind,i.target,undefined,i.cells);return;
       }
       if(i.kind==='skill'&&activeSkill(a)==='scout') {
-        if(a.mp<=0||i.path.some(p=>alive(s).some(u=>u.id!==a.id&&u.pos===p))){s.log.push(`${a.name}の奇襲経路が塞がれた。`);return;}
+        if(a.mp<=0||i.path.some(p=>alive(s).some(u=>u.id!==a.id&&u.pos===p))){log(s,`${a.name}の奇襲経路が塞がれた。`);return;}
         a.pos=i.destination;
       }
       const b=alive(s).find(u=>u.side!==a.side&&u.pos===i.cells[0]);
-      if(!b||range(a,b)>attackReach(a,i.kind)){if(i.kind==='skill'&&activeSkill(a)==='scout')a.mp--;s.log.push(`${a.name}の${i.name}は空振り。`);return;}
-      if(i.kind==='skill'&&a.mp<=0){s.log.push(`${a.name}の${i.name}はMP不足で見送り。`);return;}
+      if(!b||range(a,b)>attackReach(a,i.kind)){if(i.kind==='skill'&&activeSkill(a)==='scout')a.mp--;log(s,`${a.name}の${i.name}は空振り。`);return;}
+      if(i.kind==='skill'&&a.mp<=0){log(s,`${a.name}の${i.name}はMP不足で見送り。`);return;}
       apply(s,a,i.kind,b.id,i.destination);return;
     }
     if(legalFor(s,a,i.kind,i.target))apply(s,a,i.kind,i.target);
-    else s.log.push(`${a.name}の${i.name}は対象・経路が無効になり見送り。`);
+    else log(s,`${a.name}の${i.name}は対象・経路が無効になり見送り。`);
   }
   const order=(a,b)=>a.next-b.next||b.agi-a.agi||a.tie-b.tie;
   function check(s){const fallen=s.units.find(u=>u.side==='ally'&&u.job==='porter'&&u.hp<=0);if(fallen){s.failure='porter';s.result=`クエスト失敗。${fallen.name}が倒れ、荷物を運べなくなった。`;}else if(!alive(s).some(u=>u.side==='enemy'))s.result='勝利！ ミラーマッチを制した。';else if(!alive(s).some(u=>u.side==='ally'))s.result='敗北。配置と連携を変えて再挑戦しよう。';return !!s.result;}
@@ -195,6 +203,6 @@ const Battle = (() => {
   }
   function act(s,kind,target){if(!legal(s,kind,target))return false;const a=s.units.find(u=>u.id===s.actor);s.recentEnemies=[];const jump=kind==='skill'&&activeSkill(a)==='scout'?ambush(s,a,s.units.find(u=>u.id===target)):null;apply(s,a,kind,target,jump?.destination);a.next+=100/a.agi;s.actions++;advance(s);return true;}
   function queue(s){const copies=alive(s).map(u=>({...u})),result=[];for(let i=0;i<10&&copies.length;i++){copies.sort(order);result.push({id:copies[0].id,name:copies[0].name,side:copies[0].side});copies[0].next+=100/copies[0].agi;}return result;}
-  return {roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
+  return {MAX_LOG_LINES,trimLog,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
 })();
 if(typeof module!=='undefined')module.exports=Battle;

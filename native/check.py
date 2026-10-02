@@ -11,6 +11,7 @@ steps=[
  ('Python syntax',[sys.executable,'-m','compileall','-q','app.py','journey_app.py','tiny_poc.py','tk_bootstrap.py','campaign_app.py']),
  ('Python rules/adapter/preview tests',[sys.executable,'-m','unittest','-v']),
  ('Campaign battle extension',['node','test_campaign_battle.cjs']),
+ ('Campaign long-battle log retention',['node','test_campaign_log.cjs']),
  ('Campaign replay loop',['node','test_campaign.cjs']),
  ('Standalone 30-action parity',['node','test_parity.cjs']),
  ('Reachable QA boundary fixtures',['node','test_qa_fixtures.cjs']),

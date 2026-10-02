@@ -156,6 +156,11 @@ const Campaign = (() => {
     s.phase='result';s.result={outcome:'failed',reason,restored:true,trip:failedTrip,gold:0,xp:0};
     note(s,reason+' 受注／出発前の状態を復元しました。');return true;
   }
+  function retreat(s) {
+    const b=s.battle,j=s.journey;
+    if(s.phase!=='battle'||!b||b.result||!j||!s.rollback||b.campaignToken!==j.token||b.campaignStage!==j.stage)return false;
+    return rollbackFailure(s,'戦闘から撤退しました。');
+  }
   function finishBattle(s) {
     const b=s.battle,j=s.journey;
     if(s.phase!=='battle'||!b?.result||!j||b.campaignToken!==j.token||b.campaignStage!==j.stage)return false;
@@ -259,9 +264,9 @@ const Campaign = (() => {
   }
   function trialAct(t,kind,target) {
     if(!t?.isolated||t.actions>=100||!t.battle||t.battle.actor!==t.characterId)return false;
-    const before=clone(t.battle.units),logAt=t.battle.log.length;
+    const before=clone(t.battle.units),logAt=t.battle.log.length+(t.battle.logDropped||0);
     if(!B.act(t.battle,kind,target))return false;
-    t.actions++;t.lastAction={kind,target,messages:t.battle.log.slice(logAt),changes:t.battle.units.map(u=>({id:u.id,name:u.name,hp:u.hp-(before.find(v=>v.id===u.id)?.hp||0),mp:u.mp-(before.find(v=>v.id===u.id)?.mp||0)})).filter(d=>d.hp||d.mp)};
+    t.actions++;t.lastAction={kind,target,messages:t.battle.log.slice(Math.max(0,logAt-(t.battle.logDropped||0))),changes:t.battle.units.map(u=>({id:u.id,name:u.name,hp:u.hp-(before.find(v=>v.id===u.id)?.hp||0),mp:u.mp-(before.find(v=>v.id===u.id)?.mp||0)})).filter(d=>d.hp||d.mp)};
     return true;
   }
   function view(s) {
@@ -341,6 +346,7 @@ const Campaign = (() => {
       demand(JSON.stringify(b.units.filter(u=>u.side==='ally').map(u=>u.id))===JSON.stringify(s.selected),'味方の一致');
       demand(b.units.some(u=>u.side==='enemy')&&b.units.every(u=>['ally','enemy'].includes(u.side)),'敵味方');
       demand(integer(b.actions)&&record(b.potions)&&integer(b.potions.ally,0,99)&&integer(b.potions.enemy,0,99)&&Array.isArray(b.log)&&b.log.every(line=>typeof line==='string')&&Array.isArray(b.recentEnemies)&&b.recentEnemies.every(e=>record(e)&&typeof e.name==='string'&&typeof e.action==='string'),'戦闘資源');
+      demand(b.logDropped===undefined||integer(b.logDropped,0,Number.MAX_SAFE_INTEGER),'省略ログ件数');
       demand((s.phase==='deployment')===!!b.deploying,'配置段階');
       demand(b.result===null||typeof b.result==='string','戦闘結果');
       const alivePositions=[];
@@ -393,10 +399,12 @@ const Campaign = (() => {
     else {safeTree(input);demand(Buffer.byteLength(JSON.stringify(input),'utf8')<=MAX_SAVE_BYTES,'保存サイズ');envelope=clone(input);}
     safeTree(envelope);
     demand(record(envelope)&&envelope.format==='5525-native-campaign'&&envelope.version===VERSION,'保存形式');
-    const checked=validate(envelope.state);if(!checked.ok)throw new Error(checked.error);return clone(envelope.state);
+    const checked=validate(envelope.state);if(!checked.ok)throw new Error(checked.error);
+    // Only normalize an already-valid older save; never truncate before validation.
+    const loaded=clone(envelope.state);if(loaded.battle)B.trimLog(loaded.battle);return loaded;
   }
   return {VERSION,MAX_SAVE_BYTES,locations,gear,items,materials,provisional,create,view,board,destinations,hasPorter,stats,
-    select,accept,depart,travel,deploy,deployment_reset,begin,act,finishBattle,rest,onward,forecast,arrive,acknowledge,
+    select,accept,depart,travel,deploy,deployment_reset,begin,act,retreat,finishBattle,rest,onward,forecast,arrive,acknowledge,
     eligibility,shop,quote,buyGear,buyItem,useItem,allocate,previewGear,trial,trialAct,validate,serialize,deserialize};
 })();
 module.exports = Campaign;

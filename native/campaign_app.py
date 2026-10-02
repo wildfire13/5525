@@ -43,17 +43,99 @@ def atomic_json_write(path, data):
             temporary.unlink()
 
 
+def campaign_formation_info(data):
+    """Explain existing side-wide factors; never infer formation from a preview."""
+    lines = ['陣形条件: 金枠3マスを同陣営の生存者で埋める']
+    for side, name, slots in [('ally', '味方', (24, 13, 33)),
+                              ('enemy', '敵', (25, 16, 36))]:
+        occupied = sum(any(u['side'] == side and u['hp'] > 0 and u['pos'] == p
+                           for u in data['state']['units']) for p in slots)
+        formed = data['formed'][side]
+        boosted = formed and data.get('boosted', {}).get(side, False)
+        status = '強化ON' if boosted else 'ON' if formed else 'OFF'
+        attack, received = ('1.75', '0.65') if boosted else ('1.5', '0.75') if formed else ('1', '1')
+        lines.append(f'{name}: {occupied}/3 {status} 攻撃×{attack} / 被ダメ×{received}')
+    lines += ['通常ON: 攻撃×1.5 / 被ダメ×0.75',
+              '強化ON: 攻撃×1.75 / 被ダメ×0.65',
+              '※陣営全体への補正。防御・かばう・丸めは別']
+    if data.get('trial'):
+        lines.insert(0, '木人: 反撃なし / 陣形OFF同士なら基礎ATK比較')
+    return lines
+
+
+class CampaignBattleApp(App):
+    """Explicit opt-in retreat; ordinary battle/window-close behavior is unchanged."""
+    def __init__(self, *args, **kwargs):
+        self.retreat_pending = False
+        self.retreat_closed = False
+        super().__init__(*args, **kwargs)
+        self.info.config(height=25)
+
+    def formation_info(self):
+        return campaign_formation_info(self.data)
+
+    def draw(self):
+        super().draw()
+        active = not self.data['state']['result']
+        self.return_button.config(
+            text='撤退して出発前へ戻る' if active else '戦闘を終えて街道へ',
+            command=self.ask_retreat if active else self.finish,
+            state='disabled' if self.retreat_pending or self.porter_confirmation is not None else 'normal')
+
+    def ask_retreat(self):
+        if (self.retreat_pending or self.retreat_closed
+                or self.porter_confirmation is not None or self.data['state']['result']):
+            return
+        # The native modal owns keyboard/mouse input. NO is the default, and
+        # Escape/window close cancel. Keep an existing move preview on cancel.
+        expected = self.data['state']
+        self.retreat_pending = True
+        try:
+            accepted = messagebox.askyesno(
+                '戦闘から撤退',
+                '戦闘をやめて、受注／出発前の状態へ戻りますか？\n'
+                '今回の旅の報酬・成長は取り消され、所持金・装備・HP・MP・道具は復元されます。\n'
+                '追加のペナルティはありません。',
+                parent=self.root, default=messagebox.NO)
+            if not accepted or self.retreat_closed:
+                return
+            current = self.bridge.call(op='view')
+            if current.get('state') != expected or current.get('trial'):
+                # Another window may have loaded a save or finished the battle.
+                # Never apply an old confirmation to the replacement state.
+                self.close()
+                return
+            result = self.bridge.call(op='campaign', action='retreat', args=[])
+            if result.get('ok'):
+                self.pending = self.preview = None
+                self.close()
+            else:
+                self.message = result.get('error', '現在は撤退できません')
+        finally:
+            self.retreat_pending = False
+            if not self.retreat_closed:
+                self.draw()
+
+    def close(self):
+        self.retreat_closed = True
+        super().close()
+
+
 class TrialBattleApp(App):
     """The normal battle controls, with an always-available exit from try-on."""
     def __init__(self, root, bridge, on_return, images=None):
         self.on_return = on_return
         self.returned = False
         super().__init__(root, bridge=bridge, on_finish=self.return_to_shop, images=images)
+        self.info.config(height=26)
         root.title('5525 / 購入前の木人試用')
         self.return_button.config(text='試用を終えてお店へ戻る', command=self.return_to_shop,
                                   state='normal')
         self.message = '試着用の独立した木人戦です。試すだけでは購入されず、所持金・装備・HP・MP・アイテムは変わりません。'
         self.draw()
+
+    def formation_info(self):
+        return campaign_formation_info(self.data)
 
     def draw(self):
         super().draw()
@@ -347,7 +429,7 @@ class CampaignApp(JourneyApp):
             self.battle_window.lift()
             return
         self.battle_window = tk.Toplevel(self.root)
-        App(self.battle_window, bridge=self.bridge,
+        CampaignBattleApp(self.battle_window, bridge=self.bridge,
             on_finish=lambda: self.act('finishBattle'), on_close=self.refresh, images=self.images)
 
     def start_trial(self, uid, gear_id, dialog=None):
