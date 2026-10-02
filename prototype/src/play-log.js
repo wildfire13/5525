@@ -16,7 +16,7 @@ const PlayLog = (() => {
     return null;
   }
   function snapshot({journey = null, battle = null} = {}) {
-    const unit = u => bounded(pick(u, ['id', 'side', 'job', 'pos', 'hp', 'max', 'mp', 'maxMp', 'atk', 'agi', 'reach', 'skillStage', 'next', 'tie', 'guard', 'cover', 'boost', 'intent']));
+    const unit = u => bounded(pick(u, ['id', 'side', 'job', 'weapon', 'pos', 'hp', 'max', 'mp', 'maxMp', 'atk', 'agi', 'reach', 'skillStage', 'next', 'tie', 'guard', 'cover', 'boost', 'intent']));
     return {
       journey: journey ? {
         ...bounded(pick(journey, ['phase', 'hours', 'gold', 'xp', 'level', 'stage', 'rested', 'kit', 'formation', 'selected', 'potions', 'route', 'outcome', 'failureReason', 'completionSeen'])),

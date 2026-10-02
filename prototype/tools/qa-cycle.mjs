@@ -19,7 +19,7 @@ try{
  assert.ok(await run('World.ready()'));await wait(500);
  await fs.mkdir('qa',{recursive:true});let shot=await send('Page.captureScreenshot',{format:'png'});await fs.writeFile('qa/cycle-jobs.png',Buffer.from(shot.result.data,'base64'));
  await run('document.querySelector("[data-job=medicine]").click()');
- assert.equal(await run('document.querySelectorAll("[data-member]").length'),10);
+ assert.equal(await run('document.querySelectorAll("[data-member]").length'),11);
  for(let i=0;i<50;i++){if(await run('[...document.querySelectorAll(".member-choice img")].every(i=>i.complete&&i.naturalWidth>0)'))break;await wait(100);}
  assert.ok(await run('[...document.querySelectorAll(".member-choice img")].every(i=>i.complete&&i.naturalWidth>0)'));
  shot=await send('Page.captureScreenshot',{format:'png'});await fs.writeFile('qa/porter-party.png',Buffer.from(shot.result.data,'base64'));
@@ -67,7 +67,7 @@ try{
  assert.equal(await run('state.failure'),'porter');assert.ok((await run('document.querySelector("#turn").textContent')).includes('クエスト失敗'));await run('document.querySelector("#battle-return").click()');assert.equal(await run('journey.outcome'),'failed');assert.equal(await run('document.querySelector(".completion-scene")'),null);
  await run('journey=Journey.create();cycleRender();document.querySelector("[data-job=parts]").click();document.querySelector("#depart").click();Journey.randomEnemies=count=>["scout","mage","archer","guard"].slice(0,count)');
  if(process.argv.includes('--two-porters'))await run(`journey=Journey.create();cycleRender();document.querySelector('[data-job=parts]').click();document.querySelector('[data-member=scout]').click();document.querySelector('[data-member=porter-2]').click();document.querySelector('#depart').click()`);
- if(process.argv.includes('--party-playtest'))await run(`journey=Journey.create();cycleRender();document.querySelector('[data-job=medicine]').click();document.querySelector('[data-member=scout]').click();document.querySelector('[data-member=archer-2]').click();document.querySelector('#depart').click();let playSeed=7;Journey.randomEnemies=count=>{const pool=Battle.roster.filter(u=>u.job!=='porter').map(u=>u.id);for(let i=pool.length-1;i>0;i--){playSeed=(playSeed*1664525+1013904223)>>>0;const j=Math.floor(playSeed/4294967296*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}return pool.slice(0,count);}`);
+ if(process.argv.includes('--party-playtest'))await run(`journey=Journey.create();cycleRender();document.querySelector('[data-job=medicine]').click();document.querySelector('[data-member=scout]').click();document.querySelector('[data-member=archer-2]').click();document.querySelector('#depart').click();let playSeed=7;Journey.randomEnemies=count=>{const pool=Battle.roster.filter(u=>u.job!=='porter'&&u.job!=='warrior').map(u=>u.id);for(let i=pool.length-1;i>0;i--){playSeed=(playSeed*1664525+1013904223)>>>0;const j=Math.floor(playSeed/4294967296*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}return pool.slice(0,count);}`);
  const results=[];
  for(let leg=0;leg<2;leg++){
   await run('document.querySelector("[data-route=short]").click()');assert.equal(await run('journey.phase'),'deployment');await run('document.querySelector("#begin-battle").click()');assert.equal(await run('journey.phase'),'battle');

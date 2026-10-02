@@ -22,7 +22,7 @@ for(const id of ['porter','porter-2']){
 const j=J.create();j.selected=['guard'];assert.equal(J.accept(j,'parts'),false);j.selected=['porter'];J.accept(j,'parts');J.select(j,['guard']);assert.equal(J.depart(j,'medicine','convoy'),false);J.select(j,['porter','porter-2','guard','archer','mage']);assert.ok(J.depart(j,'medicine','convoy'));
 s=make();turn(s,'porter');unit(s,'mage').pos=43;assert.equal(B.act(s,'skill','porter'),false);assert.equal(unit(s,'porter').mp,6,'invalid formation consumes no MP');
 const ids=B.roster.map(u=>u.id);let count=0;
-for(let a=0;a<6;a++)for(let b=a+1;b<7;b++)for(let c=b+1;c<8;c++)for(let d=c+1;d<9;d++)for(let e=d+1;e<10;e++){
+for(let a=0;a<ids.length-4;a++)for(let b=a+1;b<ids.length-3;b++)for(let c=b+1;c<ids.length-2;c++)for(let d=c+1;d<ids.length-1;d++)for(let e=d+1;e<ids.length;e++){
  const ally=[ids[a],ids[b],ids[c],ids[d],ids[e]];if(!ally.some(id=>id.startsWith('porter')))continue;
  for(const formation of ['convoy','flank']){const b=B.create({ally,formation});assert.equal(new Set(b.units.map(u=>u.pos)).size,b.units.length);assert.ok(b.units.every(u=>Number.isInteger(u.pos)));}count++;
 }
