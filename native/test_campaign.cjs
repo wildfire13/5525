@@ -34,7 +34,7 @@ function trip(s,destination,{quest=true,route='short',rest=true,seed=5525}={}){
 function town(id){const s=C.create();s.location=id;return s;}
 test('city and four source-map villages, correct facilities',()=>{
   assert.deepEqual(C.locations.map(p=>p.name),['アスタリス','イース','ウエス','サウス','ノース']);
-  assert.deepEqual(C.locations.map(p=>p.facilities),[['board','guild'],['board','weapon'],['board','armor'],['board','items'],['board']]);
+  assert.deepEqual(C.locations.map(p=>p.facilities),[['board','guild','inn'],['board','weapon'],['board','armor'],['board','items'],['board']]);
   for(const p of C.locations){const s=town(p.id);assert.ok(C.board(s).length);assert.equal(C.view(s).guildAvailable,p.id==='astaris');okay(s);}
 });
 test('guild is city-only, free, max five, unique roster, mandatory porter',()=>{
@@ -226,5 +226,101 @@ test('reachable porter-only stalemate keeps C01 but can explicitly retreat after
   assert(C.retreat(s));assert(C.acknowledge(s));
   for(const key of Object.keys(before).filter(k=>k!=='history'))assert.deepEqual(s[key],before[key],key);
   okay(s);
+});
+
+function assertLocalTown(s,id){
+  assert.equal(s.phase,'town');assert.equal(s.location,id);
+  const v=C.view(s);assert.equal(v.town,id);assert.equal(v.location,id);
+  assert.equal(v.guildAvailable,id==='astaris');assert.equal(v.inn.available,id==='astaris');
+  assert.ok(v.board.length);assert.ok(v.board.every(q=>q.from===id));
+  assert.deepEqual(v.destinations.map(p=>p.id),id==='astaris'?['east','west','south','north']:['astaris']);
+  const categories={astaris:[],east:['weapon'],west:['armor'],south:['hp','mp'],north:[]};
+  assert.deepEqual([...new Set(v.shop.map(g=>g.slot||g.resource))],categories[id]);
+  okay(s);
+}
+test('all village arrivals survive result reload and acknowledgement with local facilities',()=>{
+  for(const [index,id] of ['east','west','south','north'].entries())for(const rest of [false,true]){
+    let s=C.create();s.boardRound=index;trip(s,id,{rest});
+    assert.equal(s.result.outcome,rest?'late':'success');assert.equal(s.location,id);assert.equal(s.result.location,id);
+    s=C.deserialize(C.serialize(s));assert.equal(s.location,id);assert.equal(s.result.location,id);
+    assert(C.acknowledge(s));assertLocalTown(s,id);
+    const settled=C.serialize(s);assert.equal(C.acknowledge(s),false);assert.equal(C.serialize(s),settled);
+    assertLocalTown(C.deserialize(settled),id);
+  }
+});
+test('each village return reaches city, and questless arrivals retain exact village',()=>{
+  for(const id of ['east','west','south','north']){
+    let s=town(id);trip(s,'astaris',{rest:false});assert.equal(s.result.location,'astaris');
+    s=C.deserialize(C.serialize(s));assert(C.acknowledge(s));assertLocalTown(s,'astaris');
+    s=C.create();trip(s,id,{quest:false,route:'safe'});assert.equal(s.result.outcome,'travel');
+    s=C.deserialize(C.serialize(s));assert(C.acknowledge(s));assertLocalTown(s,id);
+  }
+});
+test('village-origin failure and result reload restore origin, not attempted city',()=>{
+  for(const quest of [true,false])for(const id of ['east','west','south','north']){
+    let s=town(id);s.selected=['porter'];s.characters.porter.hp=1;const before=clone(s);
+    if(quest)assert(C.accept(s,C.board(s)[0].id));
+    assert(C.depart(s,'astaris'));assert(C.travel(s,'short',random()));fight(s,true);
+    assert.equal(s.result.outcome,'failed');assert.equal(s.location,id);
+    s=C.deserialize(C.serialize(s));assert(C.acknowledge(s));assertLocalTown(s,id);
+    for(const key of Object.keys(before).filter(k=>k!=='history'))assert.deepEqual(s[key],before[key],key);
+  }
+});
+test('inn charges once for selected party, revives KO and honors equipment/growth maxima',()=>{
+  let s=C.create();s.gold=30;
+  for(const id of s.selected){
+    const c=s.characters[id];c.xp=200;c.level=3;c.statPoints=0;c.skillPoints=2;
+    c.allocations={str:2,int:2,agi:0};c.hp=1;c.mp=0;
+  }
+  s.characters.guard.armor='armor-leather-1';s.characters.mage.weapon='staff-silver-1';
+  s.characters.archer.hp=0;s.characters.warrior.hp=0;s.characters.warrior.mp=0;
+  okay(s);const before=clone(s),maxima=Object.fromEntries(s.selected.map(id=>[id,C.stats(s.characters[id])]));
+  assert.deepEqual(C.view(s).inn,{price:30,available:true,needsRecovery:true,affordable:true});
+  assert(C.inn(s));assert.equal(s.gold,0);
+  for(const [id,c] of Object.entries(s.characters)){
+    if(s.selected.includes(id))assert.deepEqual(c,{...before.characters[id],hp:maxima[id].max,mp:maxima[id].maxMp});
+    else assert.deepEqual(c,before.characters[id],`reserve ${id}`);
+  }
+  for(const key of Object.keys(before).filter(k=>!['gold','characters','history'].includes(k)))assert.deepEqual(s[key],before[key],key);
+  assert.equal(C.view(s).inn.needsRecovery,false);okay(s);s=C.deserialize(C.serialize(s));
+  const recovered=clone(s);assert.equal(C.inn(s),false);assert.deepEqual(s,recovered);
+});
+test('inn detects HP-only, MP-only and KO recovery; healthy party/reserve-only rejects atomically',()=>{
+  for(const [id,resource,value] of [['guard','hp',1],['mage','mp',0],['porter','hp',0]]){
+    const s=C.create();s.characters[id][resource]=value;assert(C.view(s).inn.needsRecovery);
+    assert(C.inn(s));assert.equal(s.gold,150);okay(s);
+  }
+  const s=C.create();s.characters.warrior.hp=0;const before=clone(s);
+  assert.equal(C.view(s).inn.needsRecovery,false);assert.equal(C.inn(s),false);assert.deepEqual(s,before);
+});
+test('inn insufficient funds and all village locations reject without mutation',()=>{
+  for(const id of C.locations.map(p=>p.id))for(const gold of [0,29,30,180]){
+    const s=town(id);s.gold=gold;s.characters.mage.mp=0;
+    if(id==='astaris'&&gold>=30)continue;
+    assert.equal(C.view(s).inn.affordable,gold>=30);assert.equal(C.view(s).inn.available,id==='astaris');
+    const before=clone(s);assert.equal(C.inn(s),false);assert.deepEqual(s,before);okay(s);
+  }
+});
+test('inn rejects every active journey and result phase without mutation',()=>{
+  const s=C.create();const reject=()=>{
+    const before=clone(s);assert.equal(C.view(s).inn.available,false);assert.equal(C.inn(s),false);assert.deepEqual(clone(s),before);okay(s);
+  };
+  assert(C.depart(s,'east'));reject();assert(C.travel(s,'safe',random()));reject();
+  assert(C.begin(s));reject();assert(C.retreat(s));reject();assert(C.acknowledge(s));
+  assert(C.depart(s,'east'));
+  for(let leg=0;leg<2;leg++){
+    assert(C.travel(s,'safe',random()));fight(s);reject();
+    if(!leg){assert(C.rest(s));assert(C.onward(s));reject();}
+  }
+  assert.equal(s.phase,'arrival');assert(C.arrive(s));reject();
+});
+test('accepted quest inn cost and recovery roll back exactly on expedition failure',()=>{
+  let s=C.create();assert(C.select(s,['porter']));s.characters.porter.hp=1;s.characters.porter.mp=0;
+  const before=clone(s);assert(C.accept(s,C.board(s)[0].id));const accepted=clone(s);
+  assert(C.inn(s));assert.equal(s.gold,before.gold-30);assert.equal(s.characters.porter.hp,C.stats(s.characters.porter).max);
+  assert.deepEqual(s.rollback,accepted.rollback);assert.deepEqual(s.activeQuest,accepted.activeQuest);okay(s);
+  s=C.deserialize(C.serialize(s));assert(C.depart(s,'east'));assert(C.travel(s,'short',random()));fight(s,true);
+  assert.equal(s.result.outcome,'failed');assert(C.acknowledge(s));
+  for(const key of Object.keys(before).filter(k=>k!=='history'))assert.deepEqual(s[key],before[key],key);okay(s);
 });
 console.log(`\n${passed} campaign checks passed (actual Battle actions; no GUI or final-balance claim).`);
