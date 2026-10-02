@@ -1,4 +1,4 @@
-"""Native journey shell, reusing the frozen Journey/Battle/PlayLog modules."""
+"""Legacy journey shell and stable launcher for the native campaign prototype."""
 from datetime import datetime
 import json
 from pathlib import Path
@@ -191,4 +191,11 @@ class JourneyApp:
     def refresh(self):self.data=self.bridge.call(op='view');self.render()
 
 if __name__=='__main__':
-    root=tk.Tk();JourneyApp(root);root.mainloop()
+    import sys
+    root=tk.Tk()
+    if '--legacy' in sys.argv:
+        JourneyApp(root)
+    else:
+        from campaign_app import CampaignApp
+        CampaignApp(root)
+    root.mainloop()

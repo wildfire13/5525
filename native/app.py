@@ -32,15 +32,19 @@ class Bridge:
 
 
 class App:
-    def __init__(self, root, bridge=None, on_finish=None, on_close=None):
+    def __init__(self, root, bridge=None, on_finish=None, on_close=None, images=None):
         self.owns_bridge = bridge is None
         self.on_finish, self.on_close = on_finish, on_close
         self.root, self.bridge = root, bridge or Bridge()
         self.mode, self.pending = 'attack', None
         self.preview, self.preview_kind = None, 'attack'
-        self.images={}
-        for path in (BASE/'assets').rglob('*.png'):
-            image=tk.PhotoImage(master=root,file=str(path));self.images[path.relative_to(BASE/'assets').as_posix()]=image.subsample(max(1,image.width()//48))
+        self.porter_dialog, self.porter_confirmation = None, None
+        # Toplevel windows share their parent's Tcl interpreter, so campaign
+        # battles can reuse the already-loaded images without decoding PNGs again.
+        self.images = images if images is not None else {}
+        if images is None:
+            for path in (BASE/'assets').rglob('*.png'):
+                image=tk.PhotoImage(master=root,file=str(path));self.images[path.relative_to(BASE/'assets').as_posix()]=image.subsample(max(1,image.width()//48))
         self.data = self.bridge.call(op='reset' if self.owns_bridge else 'view')
         root.title('5525 Native Battle — Official Prototype')
         root.geometry('1210x820+30+25')
@@ -106,6 +110,7 @@ class App:
         self.draw()
 
     def inspect_preview(self,kind=None):
+        if self.porter_confirmation is not None:return
         if not self.pending:return
         if kind:self.preview_kind=kind
         mode,target=self.pending
@@ -113,7 +118,7 @@ class App:
         self.preview=result.get('preview')
         if self.preview:
             p=self.preview;f='維持' if p['formationBefore'] and p['formationAfter'] else '再成立' if p['formationAfter'] else '解除' if p['formationBefore'] else '未成立'
-            if mode=='move' or (mode=='skill' and self.actor()['job']=='scout'):
+            if mode=='move' or (mode=='skill' and self.active_skill()=='scout'):
                 d=p['destination'];name=next((u['name'] for u in self.data['state']['units'] if u['id']==p['swap']),None)
                 self.message=f'仮位置 ({d%10+1},{d//10+1})'+(f' / {name}と交換' if name else '')+f' / 護送陣:{f}\n対象: '+('・'.join(p['targets']) or 'なし')+' / 着地点の敵予告: '+('・'.join(p['risks']) or 'なし')+'\n確定まで行動・MP消費なし'
             elif p['cells']:
@@ -126,6 +131,7 @@ class App:
             self.root.destroy();self.on_finish()
 
     def close(self):
+        self.dismiss_porter_dialog()
         if self.owns_bridge:self.bridge.close()
         self.root.destroy()
         if self.on_close:self.on_close()
@@ -136,22 +142,38 @@ class App:
     def unit_at(self,p):
         return next((u for u in self.data['state']['units'] if u['hp']>0 and u['pos']==p),None)
 
+    def active_skill(self):
+        a=self.actor()
+        if not a:return None
+        if a['job']=='porter':return 'porter'
+        return a.get('equippedSkill') or ('stamp' if a.get('weapon')=='hammer' else a['job'])
+
     def mode_hint(self,mode):
         a=self.actor()
         if not a:return '戦闘終了。再挑戦できます。'
-        active='stamp' if a.get('weapon')=='hammer' else a['job']
+        active=self.active_skill()
         skills={
           'guard':'かばう: 隣接する自分以外の味方を、次の本人の番まで肩代わり。MP1',
           'mage':'ヒール: 射程2の傷ついた味方/自分のHPを60回復（最大HPまで）。MP1',
           'archer':f'スナイプ: その一撃だけ射程{a["reach"]+1}（通常+1）。通常威力。MP1',
           'stamp':'スタンプ: 縦横の隣接中心から3マス。空/味方中心も可。敵のみ通常威力。空振りでもMP1',
           'scout':'奇襲: 同じ横列の'+('前方のみ' if a.get('skillStage')==1 else '左右')+'。遮るキャラなしで手前に着地+通常攻撃。MP1',
-          'porter':'陣形強化: 護送陣成立時に自分を選ぶ。次の本人の番まで攻撃+75%/被害-35%。重複なし。MP1'}
+          'porter':'陣形強化: 護送陣成立時にYESで実行。次の本人の番まで攻撃+75%/被害-35%。重複なし。MP1'}
         text={'attack':f'通常攻撃: 縦横距離{a["reach"]}以内の敵。','move':'移動: 経路2以内、キャラを通り抜け不可。スカウトのみ境界越え可。'+('味方を選ぶと位置交換。MP消費なし。' if a['job']=='porter' else ''),'skill':skills.get(active,''),'item':'回復薬: 距離制限なし、傷ついた生存味方のHP+55（上限まで）。共有在庫を1消費。','guard':'防御: 次の本人の番まで被ダメージ半減。MP消費なし。'}[mode]
         if mode!='guard' and not self.data['choices'].get(mode):text+='\n今は合法な対象なし。射程・HP/MP・陣形・進路を確認してください。'
         return text
 
     def set_mode(self,mode):
+        if self.porter_confirmation is not None:return
+        a=self.actor()
+        if mode=='skill' and a and a['job']=='porter':
+            # A queued move/swap owns its preview until confirmed or cancelled.
+            if self.pending:return
+            self.bridge.call(op='record',type='battle.command',details={'mode':mode})
+            if not self.can_boost_porter():
+                self.message=self.mode_hint(mode);self.draw();return
+            self.ask_porter_boost()
+            return
         self.bridge.call(op='record',type='battle.command',details={'mode':mode})
         self.mode,self.pending=mode,None
         self.preview=None
@@ -162,13 +184,78 @@ class App:
         else:self.message=self.mode_hint(mode)
         self.draw()
 
+    def can_boost_porter(self):
+        a=self.actor()
+        return bool(a and a['job']=='porter' and a['hp']>0 and a['mp']>0
+                    and not self.data['state']['result']
+                    and self.data.get('formed',{}).get(a['side'])
+                    and a['id'] in self.data['choices'].get('skill',[]))
+
+    def ask_porter_boost(self):
+        """One local modal confirmation, with no board target or queued action."""
+        if self.porter_confirmation is not None or self.pending or not self.can_boost_porter():return
+        token={'actor':self.actor()['id'],'actions':self.data['state']['actions']}
+        self.porter_confirmation=token
+        dialog=tk.Toplevel(self.root)
+        self.porter_dialog=dialog
+        dialog.title('陣形強化')
+        dialog.transient(self.root)
+        dialog.resizable(False,False)
+        dialog.configure(bg='#111827',padx=24,pady=20)
+        tk.Label(dialog,text='陣形強化を実行しますか？',font=('sans-serif',15,'bold'),
+                 bg='#111827',fg='#f1f5f9').pack(pady=(0,12))
+        tk.Label(dialog,text='MP1 / 次の本人の番まで攻撃+75%・被害-35%',
+                 font=('sans-serif',11),bg='#111827',fg='#cbd5e1').pack(pady=(0,16))
+        buttons=tk.Frame(dialog,bg='#111827');buttons.pack()
+        tk.Button(buttons,text='YES',font=('sans-serif',12),width=10,pady=5,
+                  command=lambda:self.resolve_porter_boost(token,True)).pack(side='left',padx=6)
+        no=tk.Button(buttons,text='NO',font=('sans-serif',12),width=10,pady=5,
+                     command=lambda:self.resolve_porter_boost(token,False))
+        no.pack(side='left',padx=6)
+        dialog.protocol('WM_DELETE_WINDOW',lambda:self.resolve_porter_boost(token,False))
+        def escape(_):
+            self.resolve_porter_boost(token,False)
+            return 'break'
+        dialog.bind('<Escape>',escape)
+        dialog.update_idletasks()
+        x=self.root.winfo_rootx()+(self.root.winfo_width()-dialog.winfo_reqwidth())//2
+        y=self.root.winfo_rooty()+(self.root.winfo_height()-dialog.winfo_reqheight())//2
+        dialog.geometry(f'+{max(0,x)}+{max(0,y)}')
+        dialog.grab_set()
+        no.focus_set()
+        self.draw()
+
+    def dismiss_porter_dialog(self):
+        # Invalidate callbacks before destroying the widgets or calling the engine.
+        self.porter_confirmation=None
+        dialog,self.porter_dialog=self.porter_dialog,None
+        if dialog is not None:
+            if dialog.grab_current()==dialog:dialog.grab_release()
+            dialog.destroy()
+
+    def resolve_porter_boost(self,token,accepted):
+        if token is None or token is not self.porter_confirmation:return
+        self.dismiss_porter_dialog()
+        if not accepted:
+            self.bridge.call(op='record',type='battle.preview.cancelled',details={'kind':'skill','target':token['actor']})
+            self.message='取消しました。行動・MPは消費していません。';self.draw();return
+        # Other windows may share the bridge. Never confirm a different turn or a
+        # now-illegal skill using the state captured when the dialog was opened.
+        self.data=self.bridge.call(op='view')
+        if (self.data['state']['actor']!=token['actor']
+                or self.data['state']['actions']!=token['actions']
+                or not self.can_boost_porter()):
+            self.message='現在は陣形強化を実行できません。MP・陣形・行動者を確認してください。';self.draw();return
+        self.perform_action('skill',token['actor'])
+
     def click_cell(self,e):
+        if self.porter_confirmation is not None:return
         x,y=e.x//74,e.y//74
         if not (0<=x<10 and 0<=y<5):return
         p=y*10+x;a=self.actor()
         if not a:self.message='戦闘は終了しました。RESETで再挑戦できます。';self.draw();return
         u=self.unit_at(p)
-        target=p if self.mode=='move' or (self.mode=='skill' and a.get('weapon')=='hammer') else u['id'] if u else None
+        target=p if self.mode=='move' or (self.mode=='skill' and self.active_skill()=='stamp') else u['id'] if u else None
         if target not in self.data['choices'].get(self.mode,[]):
             self.pending=None;self.preview=None
             self.message='無効な対象です。緑の範囲・対象を選んでください。';self.draw();return
@@ -180,17 +267,25 @@ class App:
         self.inspect_preview()
 
     def cancel(self):
+        if self.porter_confirmation is not None:
+            self.resolve_porter_boost(self.porter_confirmation,False);return
         self.bridge.call(op='record',type='battle.preview.cancelled')
         self.pending=None;self.preview=None;self.message='取消しました。行動・MPは消費していません。';self.draw()
 
     def commit(self):
+        if self.porter_confirmation is not None:return
         if not self.pending:return
-        mode,target=self.pending;self.pending=None;self.preview=None
+        mode,target=self.pending
+        self.perform_action(mode,target)
+
+    def perform_action(self,mode,target):
+        self.pending=None;self.preview=None
         self.data=self.bridge.call(op='act',kind=mode,target=target)
         self.mode='attack';self.message='行動確定。敵の行動も既存ルールで処理されました。' if self.data['ok'] else self.data['error']
         self.draw()
 
     def reset(self):
+        if self.porter_confirmation is not None:return
         scenario={'標準4対4':'normal','QA: 勝利直前':'victory','QA: 敗北直前':'defeat','QA: ポーター危機':'porter','QA: スタンプ':'stamp','QA: かばう':'support'}[self.scenario.get()]
         self.data=self.bridge.call(op='reset',scenario=scenario)
         self.mode,self.pending='attack',None;self.preview=None
@@ -240,7 +335,7 @@ class App:
         self.turn.config(text=s['result'] or f'行動者: {a["name"]}  HP {a["hp"]}/{a["max"]}  MP {a["mp"]} 射程{a["reach"]} | 行動数: {s["actions"]}')
         self.queue.config(text='行動順: '+' → '.join(('味方 ' if q['side']=='ally' else '敵 ')+q['name'] for q in self.data['queue'][:10]))
         for k,b in self.buttons.items():
-            b.config(state='normal' if a and not self.pending and not(k=='attack' and a['job']=='porter') and not(k=='skill' and a['mp']<=0) and not(k=='item' and s['potions']['ally']<=0) else 'disabled',relief='sunken' if k==self.mode else 'raised')
+            b.config(state='normal' if a and not self.pending and self.porter_confirmation is None and not(k=='attack' and a['job']=='porter') and not(k=='skill' and a['mp']<=0) and not(k=='item' and s['potions']['ally']<=0) else 'disabled',relief='sunken' if k==self.mode else 'raised')
         self.buttons['skill'].config(text=self.data['skill'] or 'スキル')
         can_inspect=bool(self.pending and self.pending[0]=='move' and a)
         self.preview_attack.config(state='normal' if can_inspect and a['job']!='porter' else 'disabled')
