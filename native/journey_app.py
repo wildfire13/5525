@@ -183,11 +183,12 @@ class JourneyApp:
         self.notice='配置しました（消費なし）' if self.data['ok'] else '無効な配置です。味方陣のマスを選んでください';self.render()
     def begin(self):
         self.act('begin')
-        if self.data['ok']:self.open_battle()
-    def open_battle(self):
+        if self.data['ok']:self.open_battle(initial_voice_events=self.data.pop('voiceEvents', []))
+    def open_battle(self, initial_voice_events=None):
         if self.battle_window and self.battle_window.winfo_exists():self.battle_window.lift();return
         self.battle_window=tk.Toplevel(self.root)
-        App(self.battle_window,bridge=self.bridge,on_finish=lambda:self.act('finish'),on_close=self.refresh)
+        App(self.battle_window,bridge=self.bridge,on_finish=lambda:self.act('finish'),on_close=self.refresh,
+            initial_voice_events=initial_voice_events)
     def refresh(self):self.data=self.bridge.call(op='view');self.render()
 
 if __name__=='__main__':

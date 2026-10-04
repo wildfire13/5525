@@ -3,6 +3,37 @@
 // Optional equippedSkill changes the active command, never the character job.
 // Unextended standalone/journey continue using battle.js.
 const Battle = (() => {
+  const {definitions:equipmentSkills}=require('./equipment-skills.js');
+  const hasEffect=(a,id)=>(a.effects||[]).includes(id);
+  const moveReach=a=>hasEffect(a,'firstStride')&&!a.firstMoveUsed?3:2;
+  const skillCost=a=>equipmentSkills[activeSkill(a)]?.cost??1;
+  function emit(s,a,id,details={}) {
+    s.skillEventSequence=(s.skillEventSequence||0)+1;
+    (s.skillEvents||(s.skillEvents=[])).push({sequence:s.skillEventSequence,type:'skill.activated',actorId:a.id,skillId:id,classification:equipmentSkills[id].classification,...details});
+    if(s.skillEvents.length>100)s.skillEvents.splice(0,s.skillEvents.length-100);
+  }
+  function freeCell(s,p){return Number.isInteger(p)&&p>=0&&p<50&&!alive(s).some(u=>u.pos===p);}
+  function retreatCell(s,a){const p=a.pos+(a.side==='ally'?-1:1);return y(p)===y(a.pos)&&freeCell(s,p)&&canEnter(a,p)?p:null;}
+  function crossCells(p){return [p,...[p-1,p+1,p-10,p+10].filter(q=>q>=0&&q<50&&range({pos:p},{pos:q})===1)];}
+  function skillTargets(s,a,kind='skill') {
+    if(kind==='return')return Array.from({length:50},(_,p)=>p).filter(p=>legalFor(s,a,kind,p));
+    const id=activeSkill(a),d=equipmentSkills[id];
+    if(d?.target==='pair'||d?.target==='upToTwo'){
+      const candidates=alive(s).filter(b=>b.id!==a.id&&inRange(a,b.side,b.pos,'skill',s));
+      const targets=d.target==='upToTwo'?candidates.map(b=>[b.id]):[];
+      for(let i=0;i<candidates.length;i++)for(let j=i+1;j<candidates.length;j++)targets.push([candidates[i].id,candidates[j].id]);
+      return targets.filter(t=>legalFor(s,a,'skill',t));
+    }
+    const targets=id==='stamp'?Array.from({length:50},(_,p)=>p):s.units.map(u=>u.id);
+    return targets.filter(t=>legalFor(s,a,'skill',t));
+  }
+  function power(s,a){
+    let p=a.atk*(formation(s,a.side)?boosted(s,a.side)?1.75:1.5:1);
+    if(hasEffect(a,'loneWolf')&&!alive(s).some(u=>u.side===a.side&&u.id!==a.id&&range(a,u)===1)){
+      p*=1.25;emit(s,a,'loneWolf');
+    }
+    return p;
+  }
   // Display history is independent of PlayLog diagnostic retention. Leave the
   // counter absent until the first eviction to preserve short-battle parity.
   const MAX_LOG_LINES = 1000;
@@ -22,8 +53,8 @@ const Battle = (() => {
   const formation = (s,side="ally") => slots[side].every(p=>alive(s).some(u=>u.side===side&&u.pos===p));
   // 仮接続：槌装備でスタンプを試せる。完成版の習得・使用条件は未決定。
   const activeSkill = a => a.job==='porter'?'porter':(a.equippedSkill || (a.weapon==='hammer'?'stamp':a.job));
-  const skillName = a => ({guard:"かばう",archer:"スナイプ",mage:"ヒール",scout:"奇襲",porter:"陣形強化",stamp:"スタンプ"})[activeSkill(a)];
-  const attackReach = (a,kind='attack') => a.reach+(kind==='skill'&&activeSkill(a)==='archer'?1:0);
+  const skillName = a => equipmentSkills[activeSkill(a)]?.name||({guard:"かばう",archer:"スナイプ",mage:"ヒール",scout:"奇襲",porter:"陣形強化",stamp:"スタンプ"})[activeSkill(a)];
+  const attackReach = (a,kind='attack') => kind==='skill'&&equipmentSkills[activeSkill(a)]?equipmentSkills[activeSkill(a)].reach:a.reach+(kind==='skill'&&activeSkill(a)==='archer'?1:0);
   function stampCells(a,center) {
     if(!Number.isInteger(center)||center<0||center>=50||range(a,{pos:center})!==1)return [];
     const dx=x(center)-x(a.pos),dy=y(center)-y(a.pos);
@@ -45,7 +76,7 @@ const Battle = (() => {
     if(a.job!=='porter'||!canEnter(a,p)||p===a.pos)return null;
     const b=alive(s).find(u=>u.side===a.side&&u.id!==a.id&&u.pos===p);
     if(!b||!canEnter(b,a.pos))return null;
-    return paths({...s,units:s.units.filter(u=>u.id!==b.id)},a,2).has(p)?b:null;
+    return paths({...s,units:s.units.filter(u=>u.id!==b.id)},a,moveReach(a)).has(p)?b:null;
   }
   const canEnter = (a,p) => Number.isInteger(p)&&p>=0&&p<50&&((a.canInvade??(a.job==='scout'))||boardOf(p)===a.side);
   function paths(s,a,max=49) {
@@ -75,16 +106,29 @@ const Battle = (() => {
     return {destination,path:route};
   }
   function inRange(a,side,pos,kind,s) {
+    if(kind==='return')return hasEffect(a,'returnHome')&&!a.returnUsed&&pos!==a.pos&&boardOf(pos)===a.side&&(!s||freeCell(s,pos));
     if(kind==='skill'&&activeSkill(a)==='stamp')return stampCells(a,pos).length>0;
     if(a.job==='porter')return kind==='skill'&&side===a.side&&pos===a.pos;
     if(kind==='skill'&&activeSkill(a)==='scout')return !!(s&&ambush(s,a,{side,pos,hp:1}));
-    const support=kind==='skill'&&['guard','mage'].includes(activeSkill(a));
+    const support=kind==='skill'&&['guard','mage','healingCross','defenseLine','manaGift'].includes(activeSkill(a));
     return (support?side===a.side:side!==a.side)&&range(a,{pos})<=attackReach(a,kind);
   }
   function legalFor(s,a,kind,target) {
     if(s.deploying||s.result||!a||a.hp<=0)return false;
     if(kind==='guard')return true;
-    if(kind==='move')return target!==a.pos&&(paths(s,a,2).has(target)||!!swapTarget(s,a,target));
+    if(kind==='move')return target!==a.pos&&(paths(s,a,moveReach(a)).has(target)||!!swapTarget(s,a,target));
+    if(kind==='return')return Number.isInteger(target)&&target>=0&&target<50&&inRange(a,a.side,target,kind,s);
+    if(kind==='skill'&&equipmentSkills[activeSkill(a)]){
+      const id=activeSkill(a),d=equipmentSkills[id];if(a.mp<d.cost)return false;
+      if(d.target==='pair'||d.target==='upToTwo'){
+        return Array.isArray(target)&&target.length>0&&target.length<=2&&(d.target!=='pair'||target.length===2)&&new Set(target).size===target.length&&target.every(t=>{const b=alive(s).find(u=>u.id===t);return b&&b.id!==a.id&&inRange(a,b.side,b.pos,kind,s);});
+      }
+      const b=alive(s).find(u=>u.id===target);if(!b||!inRange(a,b.side,b.pos,kind,s))return false;
+      if(id==='retreatSlash')return retreatCell(s,a)!==null;
+      if(id==='healingCross')return alive(s).some(u=>u.side===a.side&&crossCells(b.pos).includes(u.pos)&&u.hp<u.max);
+      if(id==='manaGift')return b.id!==a.id&&a.mp>0&&b.mp<b.maxMp;
+      return true;
+    }
     if(kind==='skill'&&activeSkill(a)==='stamp')return a.mp>0&&stampCells(a,target).length>0;
     const b=alive(s).find(u=>u.id===target);if(!b)return false;
     if(kind==='item')return s.potions[a.side]>0&&b.side===a.side&&b.hp<b.max;
@@ -97,14 +141,31 @@ const Battle = (() => {
   }
   const legal=(s,k,t)=>legalFor(s,s.units.find(u=>u.id===s.actor),k,t);
   function receive(s,target,power,formed=formation(s,target.side)) {
-    const protector=alive(s).find(u=>u.side===target.side&&u.cover===target.id);
+    const protector=alive(s).find(u=>u.side===target.side&&(u.cover===target.id||u.covers?.includes(target.id)));
     const recipient=protector||target;
     const hit=Math.max(1,Math.round(power*(formed?(boosted(s,target.side)?.65:.75):1)*(recipient.guard?.5:1)));
     recipient.hp=Math.max(0,recipient.hp-hit);
+    if(recipient.hp===0&&recipient.covers)recipient.covers=[];
     log(s,`${protector?`${recipient.name}が${target.name}をかばう：`:""}${recipient.name}に${hit}ダメージ${recipient.hp===0?"・戦闘不能":""}`);
   }
   function apply(s,a,kind,target,landing,fixedCells) {
-    if(kind==='move'){const b=swapTarget(s,a,target);if(b){b.pos=a.pos;a.pos=target;log(s,`${a.name}と${b.name}が入れ替わった。`);}else{a.pos=target;log(s,`${a.name}が${boardOf(target)==='ally'?'味方陣':'敵陣'}へ移動。`);}return;}
+    if(kind==='return'){a.pos=target;a.returnUsed=true;emit(s,a,'returnHome',{target});log(s,`${a.name}の帰還 → (${x(target)+1},${y(target)+1})`);return;}
+    if(kind==='skill'&&equipmentSkills[activeSkill(a)]){
+      const id=activeSkill(a),b=s.units.find(u=>u.id===target),d=equipmentSkills[id];
+      a.mp-=d.cost;emit(s,a,id,{target});log(s,`${a.name}の${d.name}`);
+      if(id==='manaGift'){const amount=Math.min(2,a.mp,b.maxMp-b.mp);a.mp-=amount;b.mp+=amount;log(s,`${a.name}から${b.name}へMP${amount}移譲。`);return;}
+      if(id==='defenseLine'){a.covers=[...target];a.cover=null;log(s,`次の本人の番まで ${target.map(id=>s.units.find(u=>u.id===id).name).join('・')} をかばう。`);return;}
+      if(id==='healingCross'){for(const u of alive(s).filter(u=>u.side===a.side&&crossCells(b.pos).includes(u.pos))){const n=Math.min(30,u.max-u.hp);u.hp+=n;log(s,`${u.name}のHP＋${n}`);}return;}
+      const damage=power(s,a);
+      if(id==='splitShot'){for(const id of target){const u=s.units.find(u=>u.id===id);if(u.hp>0)receive(s,u,damage*.6);}return;}
+      const destination=id==='retreatSlash'?retreatCell(s,a):null;
+      const multiplier=id==='retreatSlash'?.7:id==='pincer'&&alive(s).some(u=>u.side===a.side&&u.id!==a.id&&range(u,b)===1)?1.5:1;
+      receive(s,b,damage*multiplier);
+      if(id==='retreatSlash'){a.pos=destination;log(s,`${a.name}が後退。`);}
+      if(id==='knockback'&&b.hp>0){const p=b.pos+(x(b.pos)-x(a.pos))+10*(y(b.pos)-y(a.pos));if(freeCell(s,p)&&range(b,{pos:p})===1){b.pos=p;log(s,`${b.name}を1マス押し出した。`);}else log(s,'押し出し先なし：攻撃のみ。');}
+      return;
+    }
+    if(kind==='move'){const b=swapTarget(s,a,target);if(hasEffect(a,'firstStride')&&!a.firstMoveUsed){a.firstMoveUsed=true;emit(s,a,'firstStride',{target});log(s,`${a.name}の先駆け：最初の移動。`);}if(b){b.pos=a.pos;a.pos=target;log(s,`${a.name}と${b.name}が入れ替わった。`);}else{a.pos=target;log(s,`${a.name}が${boardOf(target)==='ally'?'味方陣':'敵陣'}へ移動。`);}return;}
     if(kind==='guard'){a.guard=true;log(s,`${a.name}は防御。`);return;}
     const b=s.units.find(u=>u.id===target);
     if(kind==='item'){s.potions[a.side]--;const heal=Math.min(55,b.max-b.hp);b.hp+=heal;log(s,`${a.name}の回復薬：${b.name}のHP＋${heal}`);return;}
@@ -112,9 +173,9 @@ const Battle = (() => {
     if(kind==='skill'&&activeSkill(a)==='stamp'){
       const cells=fixedCells||stampCells(a,target),targets=alive(s).filter(u=>u.side!==a.side&&cells.includes(u.pos));
       // 各対象へ通常威力。陣形・かばう・防御は既存のダメージ処理を使う。
-      const power=a.atk*(formation(s,a.side)?boosted(s,a.side)?1.75:1.5:1);
+      const hitPower=power(s,a);
       log(s,`${a.name}のスタンプ → 中心(${x(target)+1},${y(target)+1})・${cells.length}マス${targets.length?'':'：空振り。'}`);
-      for(const enemy of targets)if(enemy.hp>0)receive(s,enemy,power);
+      for(const enemy of targets)if(enemy.hp>0)receive(s,enemy,hitPower);
       return;
     }
     if(kind==='skill'&&a.job==='porter'){a.boost=true;log(s,`${a.name}の陣形強化：次の本人の番まで攻撃＋75％・被害−35％。重複なし。`);return;}
@@ -122,7 +183,7 @@ const Battle = (() => {
     if(kind==='skill'&&activeSkill(a)==='guard'){a.cover=b.id;log(s,`${a.name}は次の自分の番まで${b.name}をかばう。`);return;}
     if(kind==='skill'&&activeSkill(a)==='scout')a.pos=landing;
     log(s,`${a.name}の${kind==='skill'?skillName(a):'攻撃'} → ${b.name}`);
-    receive(s,b,a.atk*(formation(s,a.side)?boosted(s,a.side)?1.75:1.5:1));
+    receive(s,b,power(s,a));
   }
   function plan(s,a) {
     const friends=alive(s).filter(u=>u.side===a.side), enemies=alive(s).filter(u=>u.side!==a.side).sort((l,r)=>l.hp-r.hp);
@@ -170,8 +231,16 @@ const Battle = (() => {
     else log(s,`${a.name}の${i.name}は対象・経路が無効になり見送り。`);
   }
   const order=(a,b)=>a.next-b.next||b.agi-a.agi||a.tie-b.tie;
-  function check(s){const fallen=s.units.find(u=>u.side==='ally'&&u.job==='porter'&&u.hp<=0);if(fallen){s.failure='porter';s.result=`クエスト失敗。${fallen.name}が倒れ、荷物を運べなくなった。`;}else if(!alive(s).some(u=>u.side==='enemy'))s.result='勝利！ ミラーマッチを制した。';else if(!alive(s).some(u=>u.side==='ally'))s.result='敗北。配置と連携を変えて再挑戦しよう。';return !!s.result;}
-  function advance(s){while(!check(s)){const a=alive(s).sort(order)[0];a.guard=false;a.cover=null;a.boost=false;s.actor=a.id;if(a.side==='ally')return;enemyAction(s,a);a.next+=100/a.agi;if(check(s))break;plan(s,a);}s.actor=null;}
+  function check(s){const fallen=s.units.find(u=>u.side==='ally'&&u.job==='porter'&&u.hp<=0);if(fallen){s.failure='porter';s.result=`クエスト失敗。${fallen.name}が倒れ、荷物を運べなくなった。`;}else if(!alive(s).some(u=>u.side==='enemy'))s.result='勝利！ ミラーマッチを制した。';else if(!alive(s).some(u=>u.side==='ally'))s.result='敗北。配置と連携を変えて再挑戦しよう。';
+    if(s.result){
+      for(const u of s.units)if(u.covers)u.covers=[];
+      if(!s.failure&&!alive(s).some(u=>u.side==='enemy')&&!s.victoryEffectsApplied&&s.units.some(u=>hasEffect(u,'victoryBreath'))){
+        s.victoryEffectsApplied=true;
+        for(const u of alive(s).filter(u=>u.side==='ally'&&hasEffect(u,'victoryBreath'))){const amount=Math.min(2,u.maxMp-u.mp);u.mp+=amount;emit(s,u,'victoryBreath',{amount});log(s,`${u.name}の一息：MP＋${amount}`);}
+      }
+    }
+    return !!s.result;}
+  function advance(s){while(!check(s)){const a=alive(s).sort(order)[0];a.guard=false;a.cover=null;if(a.covers)a.covers=[];a.boost=false;s.actor=a.id;if(a.side==='ally')return;enemyAction(s,a);a.next+=100/a.agi;if(check(s))break;plan(s,a);}s.actor=null;}
   function create(options={}){
     const units=[];
     for(const side of ['ally','enemy']){
@@ -203,6 +272,6 @@ const Battle = (() => {
   }
   function act(s,kind,target){if(!legal(s,kind,target))return false;const a=s.units.find(u=>u.id===s.actor);s.recentEnemies=[];const jump=kind==='skill'&&activeSkill(a)==='scout'?ambush(s,a,s.units.find(u=>u.id===target)):null;apply(s,a,kind,target,jump?.destination);a.next+=100/a.agi;s.actions++;advance(s);return true;}
   function queue(s){const copies=alive(s).map(u=>({...u})),result=[];for(let i=0;i<10&&copies.length;i++){copies.sort(order);result.push({id:copies[0].id,name:copies[0].name,side:copies[0].side});copies[0].next+=100/copies[0].agi;}return result;}
-  return {MAX_LOG_LINES,trimLog,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
+  return {equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
 })();
 if(typeof module!=='undefined')module.exports=Battle;

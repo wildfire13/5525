@@ -12,6 +12,10 @@ prototype/qa/check-report.json
 native/__pycache__/
 native/**/*.pyc
 native/qa-check-report.json
+native/qa-equipment-tk-report.json
+native/qa-audio-tk-report.json
+native/qa-passive-trial-tk-report.json
+native/qa-battle-layout-tk-report.json
 native/5525-native-*.json
 
 # Explicit local campaign saves and diagnostic exports

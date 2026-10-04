@@ -187,6 +187,8 @@ class PorterDialogControllerTests(unittest.TestCase):
 
     def test_yes_revalidates_mp_formation_actor_and_turn_before_acting(self):
         original = deepcopy(self.app.data)
+        # Audio events belong only to the completed action response, not view state.
+        original.pop('voiceEvents', None)
         for reason in ('mp', 'formation', 'choices', 'actor', 'turn', 'finished'):
             with self.subTest(reason=reason):
                 self.app.data = deepcopy(original)

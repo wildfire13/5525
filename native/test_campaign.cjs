@@ -79,7 +79,7 @@ test('questless failure restores departure snapshot',()=>{
   for(const key of ['gold','xp','level','hours','selected','characters','inventory','sequence','completed','location'])assert.deepEqual(s[key],before[key],key);okay(s);
 });
 test('shops stock only their source-map categories; north board only',()=>{
-  assert.ok(C.shop(town('east')).every(g=>g.slot==='weapon'));assert.ok(C.shop(town('west')).every(g=>g.slot==='armor'));
+  assert.ok(C.shop(town('east')).every(g=>g.slot==='weapon'));assert.ok(C.shop(town('west')).every(g=>['armor','accessory1','accessory2'].includes(g.slot)));
   assert.deepEqual(C.shop(town('south')).map(g=>g.id),['potion','ether']);assert.deepEqual(C.shop(town('north')),[]);assert.deepEqual(C.shop(C.create()),[]);
 });
 test('trade in old gear at difference, including refunds, with no inventory stockpile',()=>{
@@ -234,7 +234,7 @@ function assertLocalTown(s,id){
   assert.equal(v.guildAvailable,id==='astaris');assert.equal(v.inn.available,id==='astaris');
   assert.ok(v.board.length);assert.ok(v.board.every(q=>q.from===id));
   assert.deepEqual(v.destinations.map(p=>p.id),id==='astaris'?['east','west','south','north']:['astaris']);
-  const categories={astaris:[],east:['weapon'],west:['armor'],south:['hp','mp'],north:[]};
+  const categories={astaris:[],east:['weapon'],west:['accessory1','accessory2','armor'],south:['hp','mp'],north:[]};
   assert.deepEqual([...new Set(v.shop.map(g=>g.slot||g.resource))],categories[id]);
   okay(s);
 }

@@ -8,9 +8,11 @@ import sys
 
 BASE=Path(__file__).resolve().parent
 steps=[
- ('Python syntax',[sys.executable,'-m','compileall','-q','app.py','journey_app.py','tiny_poc.py','tk_bootstrap.py','campaign_app.py']),
+ ('Python syntax',[sys.executable,'-m','compileall','-q','app.py','journey_app.py','tiny_poc.py','tk_bootstrap.py','campaign_app.py','voice.py','music.py']),
  ('Python rules/adapter/preview tests',[sys.executable,'-m','unittest','-v']),
  ('Campaign battle extension',['node','test_campaign_battle.cjs']),
+ ('Eleven equipment proposals',['node','test_equipment_skills.cjs']),
+ ('Character voice event routing',['node','test_voice_events.cjs']),
  ('Campaign long-battle log retention',['node','test_campaign_log.cjs']),
  ('Campaign replay loop',['node','test_campaign.cjs']),
  ('Standalone 30-action parity',['node','test_parity.cjs']),
