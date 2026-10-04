@@ -21,7 +21,7 @@ const weapons=[
  ['rest-staff','憩いの杖','staff','healingCross',14,2,0,8,0],
  ['battleline-shield','戦列の盾','shield','defenseLine',20,1,8,0,0],
  ['sharing-tome','分かちの魔導書','book','manaGift',14,2,0,8,0],
-].map(([id,name,type,skill,atk,reach,str,int,agi])=>({id,name,type,skill,atk,reach,str,int,agi,slot:'weapon',material:'wood',grade:0,price:100,note:definitions[skill].description+(type==='shield'?' この試作では武器セット枠。':'')}));
+].map(([id,name,type,skill,atk,reach,str,int,agi])=>({id,name,type,...(type==='bow'?{hands:2}:{}),skill,atk,reach,str,int,agi,slot:'weapon',material:'wood',grade:0,price:100,note:definitions[skill].description+(type==='shield'?' 右手または左手に装備。':'')}));
 const accessories=[['return-ring','帰り路の指輪','returnHome'],['victory-earring','凱歌の耳飾り','victoryBreath'],['lone-ring','一匹狼の指輪','loneWolf'],['pioneer-gloves','先駆者の手袋','firstStride'],['invasion-charm','侵入用装飾品（既存効果の仮枠化）','invasion']];
 const gear=[...weapons,...['accessory1','accessory2'].flatMap((slot,index)=>[
  {id:`empty-${slot}`,name:`装飾${index+1}：なし`,slot,type:'accessory',material:'cloth',grade:0,price:0,str:0,int:0,agi:0},

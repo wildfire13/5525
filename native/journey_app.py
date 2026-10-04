@@ -7,6 +7,7 @@ prepare_tk()
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from app import App, Bridge, BASE
+from portraits import resolve_portrait
 
 BG='#111827';FG='#e2e8f0'
 class JourneyApp:
@@ -38,7 +39,7 @@ class JourneyApp:
     def button(self,text,command,parent=None,disabled=False):
         w=tk.Button(parent or self.panel,text=text,command=command,font=('sans-serif',12),padx=12,pady=7,state='disabled' if disabled else 'normal');w.pack(anchor='w',pady=5);return w
     def act(self,action,*args):
-        self.data=self.bridge.call(op='journey',action=action,args=list(args))
+        self.data=self.bridge.call(op='journey',action=action,args=list(args),presentation=action=='begin')
         self.notice='' if self.data['ok'] else self.data.get('error','失敗');self.render()
     def qa_fixture(self,name):
         self.data=self.bridge.call(op='qa_fixture',name=name);self.selected=None
@@ -158,8 +159,8 @@ class JourneyApp:
         for u in s['units']:
             if u['hp']<=0:continue
             x,y=u['pos']%10*100+50,u['pos']//10*70+37
-            key=('enemy/enemy_' if u['side']=='enemy' else '')+u['image']
-            if key in self.images:c.create_image(x,y-7,image=self.images[key])
+            portrait = resolve_portrait(self.images, u)
+            if portrait is not None:c.create_image(x,y-7,image=portrait)
             if u['id']==self.selected:c.create_rectangle(x-34,y-30,x+34,y+31,outline='#fff',width=2)
             c.create_text(x,y+11,text=u['name'] if len(u['name'])<6 else u['icon'],fill='#93c5fd' if u['side']=='ally' else '#fda4af',font=('sans-serif',10,'bold'))
             c.create_text(x,y+25,text=f'HP{u["hp"]} MP{u["mp"]}',fill='#f8fafc',font=('sans-serif',9))

@@ -1,0 +1,11 @@
+attack -> attack_windup: Once at physical action release/windup. Never on damage; impact is hit.
+hit -> damage_impact: Once per impact group after actual positive HP loss; coalesce simultaneous targets. Do not play for heal, blocked zero damage, or missed attack.
+heal -> heal_impact: Once at HP recovery visual pulse when amount > 0. Suppress hit for this event.
+skill -> skill_cast: Once at nonphysical skill cast onset. Skill replaces attack windup; damage hit or heal occurs later at impact.
+confirm -> ui_accept: Accepted noncombat UI action only; suppress if same input starts a gameplay action or result transition.
+cancel -> ui_back: Back/cancel or invalid menu selection; never combat failure.
+victory -> battle_victory: Once when entering victory result state; suppress confirm for same transition.
+failure -> battle_failure: Once when entering defeat/failure result state; never a single missed attack or invalid menu choice.
+
+Event de-duplication: key each sound by actionId + phase + impactGroupId; process once, not every animation frame. Multi-target simultaneous impacts share one hit sound. Sequential multi-hit animation may use one hit per intentional impact, capped at 4 voices.
+Audio/animation timing: schedule attack/skill at release/cast marker, hit/heal at impact marker, results on state entry. No polling-trigger repeats.

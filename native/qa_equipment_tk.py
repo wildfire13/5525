@@ -4,6 +4,7 @@ Run separately: python native/qa_equipment_tk.py. Isolated fixtures, no user sav
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from qa_presentation_tk import pump
 from app import App, Bridge, tk
 
 rows = [('archer','twin-bow','east','skill',[25,15]),
@@ -30,7 +31,7 @@ try:
                 app.click_cell(SimpleNamespace(x=pos%10*74+30,y=pos//10*74+30))
                 window.update_idletasks()
             assert str(app.confirm.cget('state'))=='normal'
-            app.commit();window.update_idletasks()
+            app.commit();pump(window, lambda: app.presentation.busy);window.update_idletasks()
             assert app.data['ok']
             assert app.data['state']['actions']==1
             report['cases'].append({'gear':gear,'passed':True,'canvasItems':len(app.canvas.find_all())})

@@ -17,6 +17,8 @@ from tkinter import filedialog, messagebox
 from app import App, BASE, Bridge
 from journey_app import JourneyApp
 from music import MusicPlayer
+from sound_effects import SoundPlayer
+from portraits import PortraitImages, SAVE_KEY, resolve_portrait
 
 
 BG = '#111827'
@@ -81,9 +83,10 @@ class CampaignBattleApp(App):
         self.return_button.config(
             text='撤退して出発前へ戻る' if active else '戦闘を終えて街道へ',
             command=self.ask_retreat if active else self.finish,
-            state='disabled' if self.retreat_pending or self.porter_confirmation is not None else 'normal')
+            state='disabled' if self.retreat_pending or self.porter_confirmation is not None or self.presentation.busy else 'normal')
 
     def ask_retreat(self):
+        if getattr(self, "presentation", None) and self.presentation.busy:return
         if (self.retreat_pending or self.retreat_closed
                 or self.porter_confirmation is not None or self.data['state']['result']):
             return
@@ -124,10 +127,10 @@ class CampaignBattleApp(App):
 
 class TrialBattleApp(App):
     """The normal battle controls, with an always-available exit from try-on."""
-    def __init__(self, root, bridge, on_return, images=None, music=None):
+    def __init__(self, root, bridge, on_return, images=None, music=None, sounds=None):
         self.on_return = on_return
         self.returned = False
-        super().__init__(root, bridge=bridge, on_finish=self.return_to_shop, images=images, music=music)
+        super().__init__(root, bridge=bridge, on_finish=self.return_to_shop, images=images, music=music, sounds=sounds)
         self.info.config(height=26)
         root.title('5525 / 購入前の木人試用')
         self.return_button.config(text='試用を終えてお店へ戻る', command=self.return_to_shop,
@@ -161,8 +164,9 @@ class CampaignApp(JourneyApp):
     def __init__(self, root, bridge=None):
         self.root = root
         self.music = MusicPlayer(root)
+        self.sounds = SoundPlayer(root)
         self.bridge = bridge or Bridge()
-        self.images = {}
+        self.images = PortraitImages(root, BASE / 'user-data' / 'portraits')
         for path in (BASE / 'assets').rglob('*.png'):
             image = tk.PhotoImage(master=root, file=str(path))
             self.images[path.relative_to(BASE / 'assets').as_posix()] = image.subsample(
@@ -197,8 +201,10 @@ class CampaignApp(JourneyApp):
         tools = tk.Frame(root, bg=BG)
         tools.pack(fill='x', padx=20, pady=(0, 6))
         self.music.control(tools)
+        self.sounds.control(tools)
         for title, command in [('進行を保存', self.save), ('進行を読込', self.load),
-                               ('プレイログ保存', self.export), ('新しく始める', self.restart)]:
+                               ('プレイログ保存', self.export), ('キャラ画像', self.edit_portraits),
+                               ('新しく始める', self.restart)]:
             tk.Button(tools, text=title, command=command, padx=8, pady=4).pack(side='left', padx=(0, 8))
         tk.Label(tools, text='数値・商品・道の接続は試作値', bg=BG, fg=MUTED,
                  font=('sans-serif', 10)).pack(side='right')
@@ -292,6 +298,8 @@ class CampaignApp(JourneyApp):
             self.notice = '処理できませんでした: ' + str(error)
             self.foot.config(text=self.notice)
             return {'ok': False, 'error': self.notice}
+        if getattr(self,'sounds',None) and request.get('op')=='campaign' and request.get('action') not in ('begin','finishBattle','endTrial','trial','forecast','previewGear') and not result.get('presentation'):
+            self.sounds.ui('confirm' if result.get('ok') else 'cancel')
         if result.get('campaign') is not None:
             self.data = result
         if not result.get('ok', False):
@@ -300,7 +308,7 @@ class CampaignApp(JourneyApp):
 
     def act(self, action, *args):
         self.notice = ''
-        result = self.request(op='campaign', action=action, args=list(args))
+        result = self.request(op='campaign', action=action, args=list(args), presentation=action=='begin')
         if result.get('ok'):
             self.selected = None if action in ('depart', 'arrive', 'acknowledge') else self.selected
         self.render()
@@ -335,6 +343,8 @@ class CampaignApp(JourneyApp):
         result = self.request(op='campaign_start')
         if result.get('ok'):
             self.close_battle()
+            if isinstance(getattr(self, 'images', None), PortraitImages):
+                self.images.clear()
             self.page = 'board'
             self.destination = None
             self.trial_purchase = None
@@ -352,13 +362,17 @@ class CampaignApp(JourneyApp):
                     filetypes=[('5525進行JSON', '*.json')])
         if not path:
             self.notice = '進行保存を取り消しました'
+            if getattr(self,'sounds',None):self.sounds.ui('cancel')
         else:
             try:
                 data = result['data']
                 if isinstance(data, str):
                     data = json.loads(data)
+                if isinstance(getattr(self, 'images', None), PortraitImages):
+                    data[SAVE_KEY] = self.images.snapshot()
                 atomic_json_write(path, data)
                 self.notice = '進行を保存しました: ' + str(path)
+                if getattr(self,'sounds',None):self.sounds.ui('confirm')
             except (OSError, ValueError, KeyError, TypeError) as error:
                 self.notice = '進行を保存できませんでした: ' + str(error)
         self.foot.config(text=self.notice)
@@ -368,6 +382,7 @@ class CampaignApp(JourneyApp):
                     initialdir=str(BASE), filetypes=[('5525進行JSON', '*.json')])
         if not path:
             self.notice = '進行読込を取り消しました'
+            if getattr(self,'sounds',None):self.sounds.ui('cancel')
             self.foot.config(text=self.notice)
             return
         if not messagebox.askyesno('進行を読み込む', '現在の未保存の進行を、選んだファイルの進行に置き換えますか？', parent=self.root):
@@ -376,6 +391,12 @@ class CampaignApp(JourneyApp):
             if Path(path).stat().st_size > 8 * 1024 * 1024:
                 raise ValueError('ファイルが大きすぎます（上限8MiB）')
             data = json.loads(Path(path).read_text(encoding='utf-8-sig'))
+            prepared = None
+            if isinstance(getattr(self, 'images', None), PortraitImages):
+                if not isinstance(data, dict):
+                    raise ValueError('セーブJSONの形式が正しくありません')
+                prepared = self.images.prepare(data.pop(SAVE_KEY, None),
+                                               [member['id'] for member in self.roster()])
         except (OSError, ValueError) as error:
             self.notice = '進行を読み込めませんでした: ' + str(error)
             self.foot.config(text=self.notice)
@@ -383,12 +404,76 @@ class CampaignApp(JourneyApp):
         result = self.request(op='campaign_load', data=data)
         if result.get('ok'):
             self.close_battle()
+            if prepared is not None:
+                self.images.activate(prepared)
             self.page = 'board'
             self.destination = None
             self.selected = None
             self.trial_purchase = None
             self.notice = '進行を読み込みました: ' + Path(path).name
         self.render(reset_scroll=bool(result.get('ok')))
+
+    def edit_portraits(self):
+        if self.battle_window and self.battle_window.winfo_exists():
+            self.notice = '画像の変更は戦闘・木人の画面を閉じてから行ってください。'
+            self.foot.config(text=self.notice)
+            self.battle_window.lift()
+            return
+        dialog = tk.Toplevel(self.root)
+        dialog.title('キャラ画像の割当')
+        dialog.transient(self.root)
+        dialog.configure(bg=BG)
+        dialog.grab_set()
+        content = tk.Frame(dialog, bg=BG, padx=16, pady=12)
+        content.pack(fill='both', expand=True)
+        self.label('各キャラの画像を変更します。能力・装備は変わりません。', parent=content)
+        self.label('PNG / JPEG / WebP / BMP / GIF（先頭フレーム）・16MiBまで\n'
+                   '透過・縦横比を保持し、最大256pxのコピーを保存します。\n'
+                   '割当を残すには「進行を保存」。解除で元の画像に戻ります。',
+                   10, parent=content, color=MUTED)
+        members = self.roster()
+        choices = {f'{member["name"]} / {member["id"]}': member for member in members}
+        selection = tk.StringVar(master=dialog, value=next(iter(choices)))
+        preview = tk.Label(content, bg=CARD, fg=FG, compound='top', padx=12, pady=10)
+        status = tk.Label(content, bg=BG, fg='#fcd34d', wraplength=530, justify='left')
+
+        def refresh(*_):
+            member = choices[selection.get()]
+            photo = resolve_portrait(self.images, member)
+            preview.config(image=photo or '', text=member['name'])
+            preview.image = photo
+            reset.config(state='normal' if self.images.portrait(member['id']) is not None else 'disabled')
+
+        def assign():
+            path = filedialog.askopenfilename(parent=dialog, title='キャラに割り当てる画像',
+                filetypes=[('画像', '*.png *.jpg *.jpeg *.webp *.bmp *.gif')])
+            if not path:
+                return
+            try:
+                self.images.assign(choices[selection.get()]['id'], path)
+            except (OSError, ValueError) as error:
+                status.config(text=str(error))
+                return
+            status.config(text='画像をコピーしました。割当を残すには進行を保存してください。')
+            refresh()
+            self.render()
+
+        def clear():
+            self.images.clear(choices[selection.get()]['id'])
+            status.config(text='元の画像に戻しました。割当を残すには進行を保存してください。')
+            refresh()
+            self.render()
+
+        tk.OptionMenu(content, selection, *choices, command=refresh).pack(anchor='w', pady=6)
+        preview.pack(anchor='w', pady=6)
+        row = tk.Frame(content, bg=BG)
+        row.pack(anchor='w')
+        self.row_button(row, '画像ファイルを選ぶ', assign)
+        reset = self.row_button(row, '解除して元画像へ', clear)
+        self.row_button(row, '閉じる', dialog.destroy)
+        status.pack(anchor='w', pady=6)
+        dialog.bind('<Escape>', lambda _: dialog.destroy())
+        refresh()
 
     def export(self):
         result = self.request(op='export')
@@ -437,12 +522,12 @@ class CampaignApp(JourneyApp):
         self.battle_window = tk.Toplevel(self.root)
         CampaignBattleApp(self.battle_window, bridge=self.bridge,
             on_finish=lambda: self.act('finishBattle'), on_close=self.refresh, images=self.images,
-            initial_voice_events=initial_voice_events, music=getattr(self, 'music', None))
+            initial_voice_events=initial_voice_events, music=getattr(self, 'music', None), sounds=getattr(self, 'sounds', None))
 
     def start_trial(self, uid, gear_id, dialog=None):
         if dialog:
             dialog.destroy()
-        result = self.request(op='campaign', action='trial', args=[uid, gear_id])
+        result = self.request(op='campaign', action='trial', args=[uid, gear_id, getattr(self,'shop_slot',None)])
         if not result.get('ok'):
             self.render()
             return
@@ -450,7 +535,7 @@ class CampaignApp(JourneyApp):
         self.close_battle()
         self.battle_window = tk.Toplevel(self.root)
         TrialBattleApp(self.battle_window, bridge=self.bridge, on_return=self.end_trial, images=self.images,
-                       music=self.music)
+                       music=self.music, sounds=self.sounds)
         self.notice = '木人で装備を試用中。終了すると購入前の画面へ戻ります'
         self.foot.config(text=self.notice)
 
@@ -779,6 +864,8 @@ class CampaignApp(JourneyApp):
             self.label(f'武器: {member.get("weaponName", member.get("weapon", ""))}\n'
                        f'防具: {member.get("armorName", member.get("armor", ""))}\n'
                        f'スキル: {member.get("skillName", stats.get("skill", ""))}', 10, parent=frame)
+            self.label(' / '.join(f"{e['label']}: {e['name']}" for e in member.get('equipmentSlots',[])),9,parent=frame,color=MUTED)
+            self.label('使用可能: '+' / '.join(member.get('activeSkillNames',[])),9,parent=frame)
             self.label(' / '.join(member.get('accessoryNames', []))+'\n装飾効果: '+'・'.join(member.get('effectNames', [])), 9, parent=frame, color=MUTED)
             points = member.get('statPoints', 0)
             self.label(f'Lv.{member.get("level", 1)} / 能力ポイント {points}', 10, parent=frame, color=MUTED)
@@ -811,15 +898,32 @@ class CampaignApp(JourneyApp):
             tk.Label(row, text='買い替える仲間:', bg=BG, fg=FG, font=('sans-serif', 12)).pack(side='left')
             pairs = {person['name']: person['id'] for person in members}
             self.shop_member_var = tk.StringVar(master=self.root, value=member['name'])
-            tk.OptionMenu(row, self.shop_member_var, *pairs.keys(),
-                          command=lambda name: self.select_shop_member(pairs[name])).pack(side='left', padx=8)
+            selector = tk.Frame(row, bg=BG)
+            selector.pack(side='left', padx=8)
+            portrait = resolve_portrait(self.images, member)
+            self.shop_portrait = tk.Label(selector, image=portrait or '', bg=BG)
+            self.shop_portrait.image = portrait
+            self.shop_portrait.pack()
+            tk.OptionMenu(selector, self.shop_member_var, *pairs.keys(),
+                          command=lambda name: self.select_shop_member(pairs[name])).pack()
             self.label(self.member_stats(member))
             self.label(f'現在の武器: {member["weaponName"]}\n現在の防具: {member["armorName"]}'
                        f' / スキル: {member["skillName"]}', 11, color='#93c5fd')
-            self.label('武器セット・身体防具・装飾2枠の試作。装飾はウエス。枠番号を選んで交換します。\n'+' / '.join(member.get('accessoryNames',[])), 10, color=MUTED)
+            self.label(' / '.join(f"{e['label']}: {e['name']}" for e in member.get('equipmentSlots',[])),10,color=MUTED)
+            self.label('使用可能: '+' / '.join(member.get('activeSkillNames',[])),10,color=MUTED)
+            self.label('片手装備は1枠、両手剣・両手槍は2枠。旧剣盾セットは剣と盾の2枠へ移行。\n通常攻撃は対象に届く各攻撃武器のATK合算＋成長補正1回。攻撃スキルも対象別に合算。スナイプは各武器の射程+1。同スキル効果は重複しません。',10,color=MUTED)
+            slot_pairs={label:slot for slot,label in self.campaign.get('slots',{}).items()}
+            selected_slot=getattr(self,'shop_slot','rightHand' if location=='east' else 'upperBody')
+            if (location=='east') != (selected_slot in ('rightHand','leftHand')):selected_slot='rightHand' if location=='east' else 'upperBody'
+            self.shop_slot=selected_slot
+            slot_pairs={label:slot for label,slot in slot_pairs.items() if (location=='east')==(slot in ('rightHand','leftHand'))}
+            self.shop_slot_var=tk.StringVar(master=self.root,value=next(label for label,slot in slot_pairs.items() if slot==selected_slot))
+            tk.OptionMenu(row,self.shop_slot_var,*slot_pairs,command=lambda label:self.select_shop_slot(slot_pairs[label])).pack(side='left')
             for gear in self.campaign.get('shop', []):
                 if 'slot' not in gear:
                     continue
+                allowed=(['rightHand'] if gear.get('hands')==2 else gear.get('allowedSlots')) or (['rightHand','leftHand'] if gear['slot']=='weapon' else ['upperBody'] if gear['slot']=='armor' else ['accessory1','accessory2'] if gear.get('type')=='accessory' else [gear['slot']])
+                if self.shop_slot not in allowed:continue
                 frame = self.card()
                 self.label(f'{gear["name"]} / {gear["price"]}G', 15, parent=frame)
                 requirement = ' / '.join(f'{key.upper()} {gear.get(key, 0)}' for key in ('str', 'int', 'agi') if gear.get(key, 0)) or 'なし'
@@ -843,6 +947,10 @@ class CampaignApp(JourneyApp):
             self.label('武器はイース、防具はウエス、道具はサウスで購入できます。', color=MUTED)
         self.render_items()
 
+    def select_shop_slot(self,slot):
+        self.shop_slot=slot
+        self.render()
+
     def select_shop_member(self, uid):
         self.shop_uid = uid
         self.render()
@@ -852,7 +960,7 @@ class CampaignApp(JourneyApp):
                f' / 射程 {stats.get("reach", 0)} / 行動速度 {stats.get("speed", stats.get("agi", 0))}'
 
     def preview_gear(self, uid, gear_id):
-        result = self.request(op='campaign', action='previewGear', args=[uid, gear_id])
+        result = self.request(op='campaign', action='previewGear', args=[uid, gear_id, getattr(self,'shop_slot',None)])
         quote = result.get('previewGear')
         if not quote:
             self.render()
@@ -905,7 +1013,7 @@ class CampaignApp(JourneyApp):
 
     def buy_gear(self, uid, gear_id, dialog):
         dialog.destroy()
-        result = self.act('buyGear', uid, gear_id)
+        result = self.act('buyGear', uid, gear_id, getattr(self,'shop_slot',None))
         if result.get('ok'):
             self.notice = '装備を買い替えました。以前の装備は下取りされました'
             self.foot.config(text=self.notice)

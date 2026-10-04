@@ -21,3 +21,5 @@ native/5525-native-*.json
 # Explicit local campaign saves and diagnostic exports
 native/5525-save-*.json
 native/5525-campaign-log-*.json
+native/user-data/
+native/qa-portraits-tk-report.json

@@ -11,24 +11,25 @@ import wave
 from tk_bootstrap import prepare_tk
 prepare_tk()
 import tkinter as tk
-from music import MusicCatalog, MusicPlayer, WindowsMusic, LOCATIONS
+from music import MusicCatalog, MusicPlayer, LOCATIONS
+from wave_audio import WaveOutput
 from voice import VoiceCatalog, VoicePlayer
 
 
 def main():
     root = tk.Tk()
     root.withdraw()
-    catalog, voices, backend = MusicCatalog(), VoiceCatalog(), WindowsMusic()
+    catalog, voices, backend = MusicCatalog(), VoiceCatalog(), WaveOutput()
     assert not catalog.error and not voices.error
     player, voice = MusicPlayer(root, catalog, backend), VoicePlayer(root, voices)
     report = {'kind': 'real Windows API + hidden Tk, not human perceptual review',
               'tracks': [], 'errors': [], 'voice_count': len(voices.clips)}
     starts, ticks = [], []
-    restart = backend.restart
-    def record_start():
+    start = backend.start
+    def record_start(path):
         starts.append(time.monotonic())
-        restart()
-    backend.restart = record_start
+        start(path)
+    backend.start = record_start
     def safe(callback):
         try:
             callback()
@@ -62,7 +63,7 @@ def main():
         voice.set_muted(True)
         report['music_after_voice_mute'] = backend.playing()
     def finish():
-        report['natural_loop_restarted'] = len(starts) > report['starts_before_loop']
+        report['natural_loop_without_restart'] = len(starts) == report['starts_before_loop'] and backend.playing()
         player.set_muted(True)
         report['music_mute_closed_device'] = not backend.opened
         player.set_muted(False)
@@ -81,7 +82,7 @@ def main():
     report['passed'] = bool(not report['errors'] and len(report['tracks']) == 6
         and all(t['playing'] and t['same_scene_did_not_restart'] for t in report['tracks'])
         and all(report.get(key) for key in ['voice_started', 'music_after_voice_mute',
-            'natural_loop_restarted', 'music_mute_closed_device', 'music_unmute_started', 'device_closed', 'closed'])
+            'natural_loop_without_restart', 'music_mute_closed_device', 'music_unmute_started', 'device_closed', 'closed'])
         and len(ticks) > 100)
     Path(__file__).with_name('qa-audio-tk-report.json').write_text(json.dumps(report, indent=2), encoding='utf8')
     print(json.dumps(report))

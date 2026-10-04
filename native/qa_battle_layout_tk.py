@@ -3,6 +3,7 @@ import copy
 import json
 from pathlib import Path
 from unittest.mock import Mock, patch
+from qa_presentation_tk import pump
 from app import App, Bridge, tk
 from campaign_app import CampaignBattleApp, TrialBattleApp
 
@@ -58,6 +59,7 @@ try:
             assert bridge.call(op='view')['state'] == before
             app.set_mode('guard')
             app.confirm.invoke()
+            pump(window, lambda: app.presentation.busy)
             assert app.data['ok'] and app.data['state']['actions'] == before['actions'] + 1
         finally:
             window.destroy()
