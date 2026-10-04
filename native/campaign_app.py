@@ -16,6 +16,7 @@ from tkinter import filedialog, messagebox
 
 from app import App, BASE, Bridge
 from journey_app import JourneyApp
+from music import MusicPlayer
 
 
 BG = '#111827'
@@ -59,7 +60,7 @@ def campaign_formation_info(data):
               '強化ON: 攻撃×1.75 / 被ダメ×0.65',
               '※陣営全体への補正。防御・かばう・丸めは別']
     if data.get('trial'):
-        lines.insert(0, '木人: 反撃なし / 陣形OFF同士なら基礎ATK比較')
+        lines.insert(0, data['trial'].get('notice', '木人: 反撃なし / 陣形OFF同士なら基礎ATK比較'))
     return lines
 
 
@@ -123,10 +124,10 @@ class CampaignBattleApp(App):
 
 class TrialBattleApp(App):
     """The normal battle controls, with an always-available exit from try-on."""
-    def __init__(self, root, bridge, on_return, images=None):
+    def __init__(self, root, bridge, on_return, images=None, music=None):
         self.on_return = on_return
         self.returned = False
-        super().__init__(root, bridge=bridge, on_finish=self.return_to_shop, images=images)
+        super().__init__(root, bridge=bridge, on_finish=self.return_to_shop, images=images, music=music)
         self.info.config(height=26)
         root.title('5525 / 購入前の木人試用')
         self.return_button.config(text='試用を終えてお店へ戻る', command=self.return_to_shop,
@@ -159,6 +160,7 @@ class TrialBattleApp(App):
 class CampaignApp(JourneyApp):
     def __init__(self, root, bridge=None):
         self.root = root
+        self.music = MusicPlayer(root)
         self.bridge = bridge or Bridge()
         self.images = {}
         for path in (BASE / 'assets').rglob('*.png'):
@@ -194,6 +196,7 @@ class CampaignApp(JourneyApp):
                  font=('sans-serif', 22, 'bold')).pack(side='left')
         tools = tk.Frame(root, bg=BG)
         tools.pack(fill='x', padx=20, pady=(0, 6))
+        self.music.control(tools)
         for title, command in [('進行を保存', self.save), ('進行を読込', self.load),
                                ('プレイログ保存', self.export), ('新しく始める', self.restart)]:
             tk.Button(tools, text=title, command=command, padx=8, pady=4).pack(side='left', padx=(0, 8))
@@ -425,15 +428,16 @@ class CampaignApp(JourneyApp):
     def begin(self):
         result = self.act('begin')
         if result.get('ok'):
-            self.open_battle()
+            self.open_battle(initial_voice_events=result.pop('voiceEvents', []))
 
-    def open_battle(self):
+    def open_battle(self, initial_voice_events=None):
         if self.battle_window and self.battle_window.winfo_exists():
             self.battle_window.lift()
             return
         self.battle_window = tk.Toplevel(self.root)
         CampaignBattleApp(self.battle_window, bridge=self.bridge,
-            on_finish=lambda: self.act('finishBattle'), on_close=self.refresh, images=self.images)
+            on_finish=lambda: self.act('finishBattle'), on_close=self.refresh, images=self.images,
+            initial_voice_events=initial_voice_events, music=getattr(self, 'music', None))
 
     def start_trial(self, uid, gear_id, dialog=None):
         if dialog:
@@ -445,7 +449,8 @@ class CampaignApp(JourneyApp):
         self.trial_purchase = (uid, gear_id)
         self.close_battle()
         self.battle_window = tk.Toplevel(self.root)
-        TrialBattleApp(self.battle_window, bridge=self.bridge, on_return=self.end_trial, images=self.images)
+        TrialBattleApp(self.battle_window, bridge=self.bridge, on_return=self.end_trial, images=self.images,
+                       music=self.music)
         self.notice = '木人で装備を試用中。終了すると購入前の画面へ戻ります'
         self.foot.config(text=self.notice)
 
@@ -498,6 +503,7 @@ class CampaignApp(JourneyApp):
         self.act('select', ids)
 
     def render(self, reset_scroll=False):
+        if getattr(self, 'music', None):self.music.sync(self.data)
         for widget in self.panel.winfo_children():
             widget.destroy()
         campaign = self.campaign
@@ -773,6 +779,7 @@ class CampaignApp(JourneyApp):
             self.label(f'武器: {member.get("weaponName", member.get("weapon", ""))}\n'
                        f'防具: {member.get("armorName", member.get("armor", ""))}\n'
                        f'スキル: {member.get("skillName", stats.get("skill", ""))}', 10, parent=frame)
+            self.label(' / '.join(member.get('accessoryNames', []))+'\n装飾効果: '+'・'.join(member.get('effectNames', [])), 9, parent=frame, color=MUTED)
             points = member.get('statPoints', 0)
             self.label(f'Lv.{member.get("level", 1)} / 能力ポイント {points}', 10, parent=frame, color=MUTED)
             if member.get('skillPoints'):
@@ -809,7 +816,7 @@ class CampaignApp(JourneyApp):
             self.label(self.member_stats(member))
             self.label(f'現在の武器: {member["weaponName"]}\n現在の防具: {member["armorName"]}'
                        f' / スキル: {member["skillName"]}', 11, color='#93c5fd')
-            self.label('装備は武器セットと身体防具の2枠で試作。防具の効果は最大HP増加で表現しています。', 10, color=MUTED)
+            self.label('武器セット・身体防具・装飾2枠の試作。装飾はウエス。枠番号を選んで交換します。\n'+' / '.join(member.get('accessoryNames',[])), 10, color=MUTED)
             for gear in self.campaign.get('shop', []):
                 if 'slot' not in gear:
                     continue
@@ -870,6 +877,8 @@ class CampaignApp(JourneyApp):
         self.label('変更前: ' + self.stats_summary(quote.get('before', {})), 11, parent=content)
         self.label('変更後: ' + self.stats_summary(quote.get('after', {})), 11, parent=content)
         self.label('装備中のスキル: ' + quote.get('skillName', ''), 12, parent=content)
+        if quote.get('effectDescription'):
+            self.label(quote['effectDescription'], 10, parent=content)
         reasons = []
         if not quote.get('eligible'):
             reasons.append(quote.get('reason') or '装備条件を満たしていません')

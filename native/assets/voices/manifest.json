@@ -1,0 +1,1966 @@
+{
+  "schema_version": 1,
+  "pack_id": "5525-character-voices-v3",
+  "status": "temporary_expanded_skills_not_runtime_integrated",
+  "source_commit": "b0176d6ffc99ac50f4496de608fc232bb6e29669",
+  "source_files": {
+    "native/campaign-battle.js": "3cd1965a12456f1d46d0a561fa3192e9f5b908951844457bb352fb60b9c097b4",
+    "native/campaign.js": "31339582be61270d55e99cbad8be0450358340cfd1cd8cc433c46a16706e593d",
+    "native/bridge.cjs": "4c975c87106e89672134fcd644c5147a7f1f72ee7b91067d6421f699fbbab470",
+    "native/app.py": "b1819e09d5f9b133505a69d9b0a83a8c2dd73ead31a0bf6d361283a871c300f4"
+  },
+  "model": {
+    "repository": "phasefield-audio/Irodori-TTS-v4.1-Anime",
+    "revision": "6b259f5baa5e236b3d14cbd1f8555ca87d92b530",
+    "code_revision": "89f9d8fbd4d51ea019867ee1197725ede1df13c5",
+    "cpu_threads": 4,
+    "num_steps": 40,
+    "precision": "FP32"
+  },
+  "scope": {
+    "roster_count": 11,
+    "batch_1_characters": [
+      "guard",
+      "archer",
+      "mage",
+      "scout",
+      "porter",
+      "warrior"
+    ],
+    "prepared_clip_count": 137,
+    "default_roster_coverage_target": 31,
+    "equipment_possible_coverage_target": 65,
+    "equipment_scope_note": "Original 65-cue scope grounded in recorded cloud source. Additional 72 growth-skill cues follow parent-provided current Windows implementation contract; no claim that every skill is initially usable.",
+    "additional_active_skill_clip_target": 72,
+    "total_active_cue_coverage_target": 137
+  },
+  "skill_names": {
+    "guard": "かばう",
+    "archer": "スナイプ",
+    "mage": "ヒール",
+    "scout": "奇襲",
+    "porter": "陣形強化",
+    "stamp": "スタンプ",
+    "retreatSlash": "退き斬り",
+    "knockback": "吹き飛ばし",
+    "splitShot": "分け撃ち",
+    "pincer": "挟撃",
+    "healingCross": "癒しの輪",
+    "defenseLine": "防衛線",
+    "manaGift": "魔力譲渡",
+    "returnHome": "帰還"
+  },
+  "characters": [
+    {
+      "id": "guard",
+      "name": "ガロ",
+      "job": "guard",
+      "default_skill": "guard",
+      "voice_profile": "guard",
+      "prepared": {
+        "attack": {
+          "path": "voices/guard_attack_01.wav",
+          "text": "はっ！",
+          "sha256": "027d6e81e1052becf8fc2e3755d43de927ecf6a9915fa5b4871b94127d473fbd",
+          "duration_seconds": 0.52,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "hurt": {
+          "path": "voices/guard_hurt_01.wav",
+          "text": "くっ！",
+          "sha256": "58d7d627971b9e0aa366193d70f32a5517a822e0aff8210e8e1f2a7f8a5585d5",
+          "duration_seconds": 0.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "skill:archer": {
+          "path": "voices/guard_skill_archer_01.wav",
+          "text": "スナイプ！",
+          "sha256": "97a5cba3e21c4277e018973ecb72137ea856cbe67c069ed1efe0d6361d7a21c0",
+          "duration_seconds": 0.84,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:guard": {
+          "path": "voices/guard_skill_guard_01.wav",
+          "text": "かばう！",
+          "sha256": "2d270469a4ff71540db1e111c1dd34eef9ee89c065fe0cc747225e9ceaf1db5b",
+          "duration_seconds": 0.68,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "skill:mage": {
+          "path": "voices/guard_skill_mage_01.wav",
+          "text": "傷を癒やすよ。ヒール！",
+          "sha256": "eb94c4532f6e5dad4b1e7a2210a9716947a1ee5ab65579a1efc1158d6df6856f",
+          "duration_seconds": 2.24,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:scout": {
+          "path": "voices/guard_skill_scout_01.wav",
+          "text": "奇襲！",
+          "sha256": "3415cfefb39b1b68ff1b81af27852df9e4f6bdd3767badf320c7cd7e301ee845",
+          "duration_seconds": 0.68,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:stamp": {
+          "path": "voices/guard_skill_stamp_01.wav",
+          "text": "スタンプ！",
+          "sha256": "f2cf6705d400fc24f866f739cba364e0712d4e0aa17e537d212a017f99b07fbe",
+          "duration_seconds": 0.92,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:retreatSlash": {
+          "path": "voices/guard_skill_retreatSlash_01.wav",
+          "text": "退き斬り！",
+          "sha256": "2c9817277bfd142f2899c7925e232c8a05034bc26c573c48ded7f73157f3fac8",
+          "duration_seconds": 0.76,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:knockback": {
+          "path": "voices/guard_skill_knockback_01.wav",
+          "text": "吹き飛ばし！",
+          "sha256": "088aa9e7d2658dc447d993f37dbb6887fd19b2ca70a3c6fd4c3967eb716559ce",
+          "duration_seconds": 1.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:splitShot": {
+          "path": "voices/guard_skill_splitShot_01.wav",
+          "text": "分け撃ち！",
+          "sha256": "3a2580c9a55dde654d9f9058524161793afb59b48844fd0fd8303096d0fd02dc",
+          "duration_seconds": 0.88,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:pincer": {
+          "path": "voices/guard_skill_pincer_01.wav",
+          "text": "挟撃！",
+          "sha256": "8e55aeeb6484de36b7f208cec61e6ac7d4642a6bb8993fd7d7a6fe2f05d5a819",
+          "duration_seconds": 0.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:healingCross": {
+          "path": "voices/guard_skill_healingCross_01.wav",
+          "text": "癒しの輪！",
+          "sha256": "29513fff830f749e97039e5815140bfbfca71bc6ef06b9b9e8fefdf550caed6a",
+          "duration_seconds": 1.04,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:defenseLine": {
+          "path": "voices/guard_skill_defenseLine_01.wav",
+          "text": "防衛線！",
+          "sha256": "fcabf98c5a9d2d748568b795774f3a1c5b0894392c4214240e76e9b796930e28",
+          "duration_seconds": 0.92,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:manaGift": {
+          "path": "voices/guard_skill_manaGift_01.wav",
+          "text": "魔力譲渡！",
+          "sha256": "f9ebead8a5a9268feaa5f10b24df49ddcaf63eae2a6506cd25dd7ef0a3b9f77e",
+          "duration_seconds": 1.12,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:returnHome": {
+          "path": "voices/guard_skill_returnHome_01.wav",
+          "text": "帰還！",
+          "sha256": "333c825636cee3a609efe40153be0c79ece3e860e62b8ab43d7f45f707cd8aee",
+          "duration_seconds": 0.6,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        }
+      },
+      "missing": [],
+      "equipment_possible_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp"
+      ],
+      "attack_prohibited": false,
+      "additional_active_skill_ids": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "all_possible_active_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp",
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ]
+    },
+    {
+      "id": "guard-2",
+      "name": "バルト",
+      "job": "guard",
+      "default_skill": "guard",
+      "voice_profile": "guard-2",
+      "prepared": {
+        "attack": {
+          "path": "voices/guard-2_attack_01.wav",
+          "text": "はあっ！",
+          "sha256": "47d13c474877d33c1073c82d8834d97590c96f9df88105b1fb965500a2eaba7b",
+          "duration_seconds": 1.04,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "hurt": {
+          "path": "voices/guard-2_hurt_01.wav",
+          "text": "ぐっ！",
+          "sha256": "4cb9c634ed035843be9531e9520ca88878f83f1def133bc9ec8472e866cace90",
+          "duration_seconds": 0.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:archer": {
+          "path": "voices/guard-2_skill_archer_01.wav",
+          "text": "スナイプ！",
+          "sha256": "1e78f0bc2a6a5d3b320f3667570868eb5472f23ca31bf59e1ce605b163c8af0a",
+          "duration_seconds": 1.2,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:guard": {
+          "path": "voices/guard-2_skill_guard_01.wav",
+          "text": "かばう！",
+          "sha256": "6307cb06380117290981afaebe1b658bb1d5550de78819dbc35cd09906dfb18a",
+          "duration_seconds": 1.12,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:mage": {
+          "path": "voices/guard-2_skill_mage_01.wav",
+          "text": "傷を癒やすよ。ヒール！",
+          "sha256": "af525bf4cd19ceb587fa1ea57b6fb317af4f0f0b53dddceb00da44199cabb6c4",
+          "duration_seconds": 2.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:scout": {
+          "path": "voices/guard-2_skill_scout_01.wav",
+          "text": "奇襲！",
+          "sha256": "1113740d13121855d22981a576eacc11174ff7c6a89a4c25f48879b72a236d47",
+          "duration_seconds": 0.76,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:stamp": {
+          "path": "voices/guard-2_skill_stamp_01.wav",
+          "text": "スタンプ！",
+          "sha256": "40d799d6a62ce74e8cb0ffebe291e7ff888d5ad45039581d4d5eb3be99f8f4c0",
+          "duration_seconds": 1.84,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:retreatSlash": {
+          "path": "voices/guard-2_skill_retreatSlash_01.wav",
+          "text": "退き斬り！",
+          "sha256": "883b648c6638cae8181ae8cbf00ff9ebbec50b9388b49b3cfd6b762859eddd0f",
+          "duration_seconds": 0.96,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:knockback": {
+          "path": "voices/guard-2_skill_knockback_01.wav",
+          "text": "吹き飛ばし！",
+          "sha256": "d4c2663b7500839c8e6775fea7fa182e03b4c33cf996e0f94af4851844efeea2",
+          "duration_seconds": 1.84,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:splitShot": {
+          "path": "voices/guard-2_skill_splitShot_01.wav",
+          "text": "分け撃ち！",
+          "sha256": "6820e721a32859776260372a0e33c6359602ed3f0632acb6b2bd12d20df1197a",
+          "duration_seconds": 1.12,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:pincer": {
+          "path": "voices/guard-2_skill_pincer_01.wav",
+          "text": "挟撃！",
+          "sha256": "2586903e8ceedd58fcd6c54863b62b7018a674d639baef4a6f190191ccb240a0",
+          "duration_seconds": 0.76,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:healingCross": {
+          "path": "voices/guard-2_skill_healingCross_01.wav",
+          "text": "癒しの輪！",
+          "sha256": "baa002a8b1f3ce10e9b49afcd2b701453aa9db90237becffd67eff6dd4363e8e",
+          "duration_seconds": 1.52,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:defenseLine": {
+          "path": "voices/guard-2_skill_defenseLine_01.wav",
+          "text": "防衛線！",
+          "sha256": "f6f52bcde1fbb909fbab60b7359ed16b025b67affc19ea917690217cfc587cc7",
+          "duration_seconds": 1.16,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:manaGift": {
+          "path": "voices/guard-2_skill_manaGift_01.wav",
+          "text": "魔力譲渡！",
+          "sha256": "14da9dc12e7584566716d1dcecc3d9d72e66177eb4beb43600ef91e4a55d3ac5",
+          "duration_seconds": 1.56,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:returnHome": {
+          "path": "voices/guard-2_skill_returnHome_01.wav",
+          "text": "帰還！",
+          "sha256": "5519d6af07a90c8d02671df3d42c6ca8360133083972298a787ecef843bf0fac",
+          "duration_seconds": 0.84,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        }
+      },
+      "missing": [],
+      "equipment_possible_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp"
+      ],
+      "attack_prohibited": false,
+      "additional_active_skill_ids": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "all_possible_active_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp",
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ]
+    },
+    {
+      "id": "archer",
+      "name": "リノ",
+      "job": "archer",
+      "default_skill": "archer",
+      "voice_profile": "archer",
+      "prepared": {
+        "attack": {
+          "path": "voices/archer_attack_01.wav",
+          "text": "えいっ！",
+          "sha256": "8c2cbdaf90ca5451d77739d5228ca35180daf9bd80ce843f8e3ccfa63ed25553",
+          "duration_seconds": 0.56,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "hurt": {
+          "path": "voices/archer_hurt_01.wav",
+          "text": "あっ！",
+          "sha256": "0b6d07b5777e29a4baac2bad7acbe2358c23353238352eb6b7c9b130a340a9af",
+          "duration_seconds": 0.52,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "skill:archer": {
+          "path": "voices/archer_skill_archer_01.wav",
+          "text": "スナイプ！",
+          "sha256": "672470808eccc469f02855ec55ad1125382cbfef43839ccdfe3489d37423934e",
+          "duration_seconds": 0.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "skill:guard": {
+          "path": "voices/archer_skill_guard_01.wav",
+          "text": "かばう！",
+          "sha256": "189b25f13a937f2624eb29b4a79f01db3f95c633ed4882824b33f3e6e9d6177d",
+          "duration_seconds": 0.56,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:mage": {
+          "path": "voices/archer_skill_mage_01.wav",
+          "text": "傷を癒やすよ。ヒール！",
+          "sha256": "ef2555320688138617d3c19d60da290413ac6e14e4d6b59dfd532135b97d8361",
+          "duration_seconds": 2.16,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:scout": {
+          "path": "voices/archer_skill_scout_01.wav",
+          "text": "奇襲！",
+          "sha256": "d8ce5924fbd0ab8a20a24d91b80528c275dd4355bf73fc72da249354ae07d94f",
+          "duration_seconds": 0.64,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:stamp": {
+          "path": "voices/archer_skill_stamp_01.wav",
+          "text": "スタンプ！",
+          "sha256": "a78be8849bf07b4c19162d3e5e5fd59ce3e8bf552112dac0e461f0088b5efb76",
+          "duration_seconds": 0.76,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:retreatSlash": {
+          "path": "voices/archer_skill_retreatSlash_01.wav",
+          "text": "退き斬り！",
+          "sha256": "bb7768e4726b460148df2a056f37b8efd0eed94bd03fb5b9bbe63a51b4c9ed32",
+          "duration_seconds": 0.68,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:knockback": {
+          "path": "voices/archer_skill_knockback_01.wav",
+          "text": "吹き飛ばし！",
+          "sha256": "2236dbead91b2b4338f7199641d44d251be5e95417a86af3f2f607ead32bf252",
+          "duration_seconds": 0.96,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:splitShot": {
+          "path": "voices/archer_skill_splitShot_01.wav",
+          "text": "分け撃ち！",
+          "sha256": "f8b8b7d1c7a24afc968ea9c0b740a06c057b36b54f394ba85a4cb3b50118ac3d",
+          "duration_seconds": 0.88,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:pincer": {
+          "path": "voices/archer_skill_pincer_01.wav",
+          "text": "挟撃！",
+          "sha256": "1adcc18f7104e5a55e025de7998e789a0f479f003d3d5f86667819e2c3417bc2",
+          "duration_seconds": 0.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:healingCross": {
+          "path": "voices/archer_skill_healingCross_01.wav",
+          "text": "癒しの輪！",
+          "sha256": "624d5d991c7eb9700ce215237b631cac7ad295adeed50e71ee5de3ff931f77cb",
+          "duration_seconds": 1.08,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:defenseLine": {
+          "path": "voices/archer_skill_defenseLine_01.wav",
+          "text": "防衛線！",
+          "sha256": "e0a2f452d628e4a213d4021dd4c2ea224472c263ee3bf7d5fae788de625b5a43",
+          "duration_seconds": 0.96,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:manaGift": {
+          "path": "voices/archer_skill_manaGift_01.wav",
+          "text": "魔力譲渡！",
+          "sha256": "0ca73bbc0a9d95eff0081b895bac1a602f62235d0bd07b296c3a1d0abe4f8dc8",
+          "duration_seconds": 1.12,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:returnHome": {
+          "path": "voices/archer_skill_returnHome_01.wav",
+          "text": "帰還！",
+          "sha256": "9e8961e0e0f9530ce49bb059e206705b3192e3bead07d761c12f00f59f4e2608",
+          "duration_seconds": 0.68,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        }
+      },
+      "missing": [],
+      "equipment_possible_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp"
+      ],
+      "attack_prohibited": false,
+      "additional_active_skill_ids": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "all_possible_active_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp",
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ]
+    },
+    {
+      "id": "archer-2",
+      "name": "セナ",
+      "job": "archer",
+      "default_skill": "archer",
+      "voice_profile": "archer-2",
+      "prepared": {
+        "attack": {
+          "path": "voices/archer-2_attack_01.wav",
+          "text": "それっ！",
+          "sha256": "0568169485e2e8755a8c2d77cf3dfa3916b28791b9653a8e71d21bccceb1bf10",
+          "duration_seconds": 0.64,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "hurt": {
+          "path": "voices/archer-2_hurt_01.wav",
+          "text": "うっ！",
+          "sha256": "24082dfac05eab9da08d4d2bcbe167b6e14cd8190dbfe75b02a058a9d0fc820e",
+          "duration_seconds": 0.52,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:archer": {
+          "path": "voices/archer-2_skill_archer_01.wav",
+          "text": "スナイプ！",
+          "sha256": "98fe60055614c45127d6bd55909e0348ca02c1c205a6213c9b763a6bf82cf160",
+          "duration_seconds": 0.88,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:guard": {
+          "path": "voices/archer-2_skill_guard_01.wav",
+          "text": "かばう！",
+          "sha256": "bec885b53afceefb1259d91e64365cae5124fe8783591a299b22fe983173e7a6",
+          "duration_seconds": 0.64,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:mage": {
+          "path": "voices/archer-2_skill_mage_01.wav",
+          "text": "傷を癒やすよ。ヒール！",
+          "sha256": "299ce15f50a09c4cf23888fc1b8a5fce730ed90909b70e8c372a4e8972dfc8fc",
+          "duration_seconds": 2.2,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:scout": {
+          "path": "voices/archer-2_skill_scout_01.wav",
+          "text": "奇襲！",
+          "sha256": "e5dd876ed72567a52685232278498f17c64ed02fb73f8586ca69e3bb14d39529",
+          "duration_seconds": 0.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:stamp": {
+          "path": "voices/archer-2_skill_stamp_01.wav",
+          "text": "スタンプ！",
+          "sha256": "d5a430912cb74274bbf25cb085868c3aa04f86d7f8f5a675733cb363aa1fd7f9",
+          "duration_seconds": 0.88,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:retreatSlash": {
+          "path": "voices/archer-2_skill_retreatSlash_01.wav",
+          "text": "退き斬り！",
+          "sha256": "7d97eb62182c40082568a2eb39b4f9eb509d39808fa0421038bf4f24235afdf2",
+          "duration_seconds": 0.76,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:knockback": {
+          "path": "voices/archer-2_skill_knockback_01.wav",
+          "text": "吹き飛ばし！",
+          "sha256": "050c9ca4cad65fd3a7417fbbdef1cac7abd942c092e40758ed960669a17b2526",
+          "duration_seconds": 1.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:splitShot": {
+          "path": "voices/archer-2_skill_splitShot_01.wav",
+          "text": "分け撃ち！",
+          "sha256": "c752102ed7a7c4e21d94599f2917096aa05b03b090a34b79861e39243c5fb2be",
+          "duration_seconds": 0.92,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:pincer": {
+          "path": "voices/archer-2_skill_pincer_01.wav",
+          "text": "挟撃！",
+          "sha256": "812002e986627648bf70165bfd21072592de613be2e4e2fbfa013dedbe32e271",
+          "duration_seconds": 0.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:healingCross": {
+          "path": "voices/archer-2_skill_healingCross_01.wav",
+          "text": "癒しの輪！",
+          "sha256": "9f2fc991ec0485a2bb16ea09317df441a196303b7e163ecf748a35e6b046e61f",
+          "duration_seconds": 1.04,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:defenseLine": {
+          "path": "voices/archer-2_skill_defenseLine_01.wav",
+          "text": "防衛線！",
+          "sha256": "a9ac8ec2f54b83991071b0ba1f1d53855b436b94ba631d20d31f379d394d6f7e",
+          "duration_seconds": 0.96,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:manaGift": {
+          "path": "voices/archer-2_skill_manaGift_01.wav",
+          "text": "魔力譲渡！",
+          "sha256": "2036a1506c9593519d69e8c238168b314fb1bb5a2106c675c9afa7c05b33cbfd",
+          "duration_seconds": 1.16,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:returnHome": {
+          "path": "voices/archer-2_skill_returnHome_01.wav",
+          "text": "帰還！",
+          "sha256": "d15ce7cacf87b75b9e258956cd1fde3d0417431fac37cfdd52c0cbe22e87f14e",
+          "duration_seconds": 0.68,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        }
+      },
+      "missing": [],
+      "equipment_possible_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp"
+      ],
+      "attack_prohibited": false,
+      "additional_active_skill_ids": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "all_possible_active_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp",
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ]
+    },
+    {
+      "id": "mage",
+      "name": "ミオ",
+      "job": "mage",
+      "default_skill": "mage",
+      "voice_profile": "mage",
+      "prepared": {
+        "attack": {
+          "path": "voices/mage_attack_01.wav",
+          "text": "やっ！",
+          "sha256": "a6d54534f350fa8767b2272721d8df5b24a8ed79df76949a41cefc89503d007d",
+          "duration_seconds": 0.68,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "hurt": {
+          "path": "voices/mage_hurt_01.wav",
+          "text": "うっ！",
+          "sha256": "7a3fb1bb7e46aae24c29d907571794b9a8a4b1a472f805587c02e3d2ab6c4ac9",
+          "duration_seconds": 0.76,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "skill:archer": {
+          "path": "voices/mage_skill_archer_01.wav",
+          "text": "スナイプ！",
+          "sha256": "6fb9a61c1920d715208f2442c20dce07e6fbb8874e4507cc5fe02b491ce34b00",
+          "duration_seconds": 1.16,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:guard": {
+          "path": "voices/mage_skill_guard_01.wav",
+          "text": "かばう！",
+          "sha256": "02abbba7d131a36edaca73d04b7c48822643e591a29275185475415b9bd08b1e",
+          "duration_seconds": 1.08,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:mage": {
+          "path": "voices/mage_skill_mage_01.wav",
+          "text": "傷を癒やします。ヒール！",
+          "sha256": "ed9cf00593eb9fa1e2ef2f2325699ebd58010eff00d2a55fdc1065601d4aade9",
+          "duration_seconds": 2.52,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "skill:scout": {
+          "path": "voices/mage_skill_scout_01.wav",
+          "text": "奇襲！",
+          "sha256": "8a30be687144c6a0caefefb989d4f44a6e862620340166e05d0bffd9fd80ceb0",
+          "duration_seconds": 1.08,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:stamp": {
+          "path": "voices/mage_skill_stamp_01.wav",
+          "text": "スタンプ！",
+          "sha256": "81a1919143e1c75258557fb305d62686094f4f7304ae8eb2ee3094770c595d15",
+          "duration_seconds": 1.2,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:retreatSlash": {
+          "path": "voices/mage_skill_retreatSlash_01.wav",
+          "text": "退き斬り！",
+          "sha256": "8cd92947e53adee5469ceb44e7c32a1b8caa5f80b7d6ff2d739392a39f13f342",
+          "duration_seconds": 1.28,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:knockback": {
+          "path": "voices/mage_skill_knockback_01.wav",
+          "text": "吹き飛ばし！",
+          "sha256": "43545e324fa5f7083d8aa8ba172cb82f43ce93d48e30810ec134af3781bb01e5",
+          "duration_seconds": 1.4,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:splitShot": {
+          "path": "voices/mage_skill_splitShot_01.wav",
+          "text": "分け撃ち！",
+          "sha256": "aba7a9b7beb5ba625ed33f5516cc57089b4b16777dceb26d6b7595a7efe452a6",
+          "duration_seconds": 1.24,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:pincer": {
+          "path": "voices/mage_skill_pincer_01.wav",
+          "text": "挟撃！",
+          "sha256": "6225c41f878233e002146b3e58475de221d3579c3783faa07c3b69ebffc029b5",
+          "duration_seconds": 1.12,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:healingCross": {
+          "path": "voices/mage_skill_healingCross_01.wav",
+          "text": "癒しの輪！",
+          "sha256": "52d290cb23367862abaa3a55f3c6efaa31b7680f1cb5ed036fcba7d410b909c1",
+          "duration_seconds": 1.28,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:defenseLine": {
+          "path": "voices/mage_skill_defenseLine_01.wav",
+          "text": "防衛線！",
+          "sha256": "68f8af77f3d888e31314052bf276794a6e74b750f01250b2942ddec0597c7861",
+          "duration_seconds": 1.24,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:manaGift": {
+          "path": "voices/mage_skill_manaGift_01.wav",
+          "text": "魔力譲渡！",
+          "sha256": "abe2e3b25bea68093bbf4efe419ea4c5cc3a10bbc805ec3b90f2537771d80a2b",
+          "duration_seconds": 1.48,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:returnHome": {
+          "path": "voices/mage_skill_returnHome_01.wav",
+          "text": "帰還！",
+          "sha256": "ee3b10a57e76c3dc256d0ddfe9f95f7eaea8129db87ca912422f33e256720960",
+          "duration_seconds": 0.96,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        }
+      },
+      "missing": [],
+      "equipment_possible_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp"
+      ],
+      "attack_prohibited": false,
+      "additional_active_skill_ids": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "all_possible_active_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp",
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ]
+    },
+    {
+      "id": "mage-2",
+      "name": "ユイ",
+      "job": "mage",
+      "default_skill": "mage",
+      "voice_profile": "mage-2",
+      "prepared": {
+        "attack": {
+          "path": "voices/mage-2_attack_01.wav",
+          "text": "えいっ！",
+          "sha256": "2554596585bad3f0d07495f2547688cd688a238be8452ef7ccb54b2ce42e3ce8",
+          "duration_seconds": 0.88,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "hurt": {
+          "path": "voices/mage-2_hurt_01.wav",
+          "text": "あっ！",
+          "sha256": "cd6d8892ec748a9d47b0fbdf270e895787f8fec3b66ed883c53d3b73c9fed6a8",
+          "duration_seconds": 0.92,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:archer": {
+          "path": "voices/mage-2_skill_archer_01.wav",
+          "text": "スナイプ！",
+          "sha256": "ff8bb45a56ce418bb2d0325436668ee41798b91387c4ffe929856f207ded1afc",
+          "duration_seconds": 1.28,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:guard": {
+          "path": "voices/mage-2_skill_guard_01.wav",
+          "text": "かばう！",
+          "sha256": "526dd7a86d47e45fc9768c0698ee676702c2bd33044ef452799d9b9894ce0632",
+          "duration_seconds": 1.24,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:mage": {
+          "path": "voices/mage-2_skill_mage_01.wav",
+          "text": "傷を癒やすよ。ヒール！",
+          "sha256": "f01842ab1dfe04fbe774d2f252d4b7894f9745f0117bbbd8cf0869a598b92ca4",
+          "duration_seconds": 2.56,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:scout": {
+          "path": "voices/mage-2_skill_scout_01.wav",
+          "text": "奇襲！",
+          "sha256": "289f3c90f1b5f8e8701a18e79c67df0d1117675caa981ef1caefc9803fe52864",
+          "duration_seconds": 1.12,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:stamp": {
+          "path": "voices/mage-2_skill_stamp_01.wav",
+          "text": "スタンプ！",
+          "sha256": "d659c91d5588712bdb70bd7499473cf1e65dd5dab6cc241b4d80e007664fc8df",
+          "duration_seconds": 1.32,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:retreatSlash": {
+          "path": "voices/mage-2_skill_retreatSlash_01.wav",
+          "text": "退き斬り！",
+          "sha256": "3fd888cc05757a64b32320017753f73d5c252c2fd439b2ff17bd58f77a290525",
+          "duration_seconds": 1.4,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:knockback": {
+          "path": "voices/mage-2_skill_knockback_01.wav",
+          "text": "吹き飛ばし！",
+          "sha256": "555c87796138a92cb5192455bd7bef740c2df2fc4877d5d8920569ffa15321a1",
+          "duration_seconds": 1.56,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:splitShot": {
+          "path": "voices/mage-2_skill_splitShot_01.wav",
+          "text": "分け撃ち！",
+          "sha256": "eadb4fcd3e9b722efaa5533c0d067360fed9be991922c771fcc36bd48b57d92a",
+          "duration_seconds": 1.36,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:pincer": {
+          "path": "voices/mage-2_skill_pincer_01.wav",
+          "text": "挟撃！",
+          "sha256": "93688071cd18cfe212e48de9f4ce65f355b26184977ed6b03ecda2501eb79a77",
+          "duration_seconds": 1.28,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:healingCross": {
+          "path": "voices/mage-2_skill_healingCross_01.wav",
+          "text": "癒しの輪！",
+          "sha256": "80e7f1d0e7838da005178d7da064375a8b3b0aca689a6850d6058636004feaff",
+          "duration_seconds": 1.36,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:defenseLine": {
+          "path": "voices/mage-2_skill_defenseLine_01.wav",
+          "text": "防衛線！",
+          "sha256": "23b509b594c8d999fe6f616dab91a924ce727073947e1ccad1631b967471316a",
+          "duration_seconds": 1.32,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:manaGift": {
+          "path": "voices/mage-2_skill_manaGift_01.wav",
+          "text": "魔力譲渡！",
+          "sha256": "cd93d8a574f53e64e2ea4a25231297c3786cc466ab0944250d0207662879bc91",
+          "duration_seconds": 1.64,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:returnHome": {
+          "path": "voices/mage-2_skill_returnHome_01.wav",
+          "text": "帰還！",
+          "sha256": "47292fe4f3d3a69a7d1dca2e10cb6e97f85719c2f8f791f0970af2523d98cb21",
+          "duration_seconds": 1.08,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        }
+      },
+      "missing": [],
+      "equipment_possible_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp"
+      ],
+      "attack_prohibited": false,
+      "additional_active_skill_ids": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "all_possible_active_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp",
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ]
+    },
+    {
+      "id": "scout",
+      "name": "ニカ",
+      "job": "scout",
+      "default_skill": "scout",
+      "voice_profile": "scout",
+      "prepared": {
+        "attack": {
+          "path": "voices/scout_attack_01.wav",
+          "text": "せいっ！",
+          "sha256": "e7745ef09bc5901d2e27e9af818fcc1d2d408e4496f58fbdf13020297c70b4d6",
+          "duration_seconds": 0.92,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "hurt": {
+          "path": "voices/scout_hurt_01.wav",
+          "text": "くっ！",
+          "sha256": "28a596f30770b14e3f13c937603b402500f26a150d54eb5f3b87f62966ac15d9",
+          "duration_seconds": 0.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "skill:archer": {
+          "path": "voices/scout_skill_archer_01.wav",
+          "text": "スナイプ！",
+          "sha256": "682d68be166ead88a6be67c2fedeb99324a1518d8c851c5337de513efaa3f1f6",
+          "duration_seconds": 1.12,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:guard": {
+          "path": "voices/scout_skill_guard_01.wav",
+          "text": "かばう！",
+          "sha256": "0728b12d1c8cbac89e79af3534bcd956f5d51b86f158dc8c401a14db8a1bcf88",
+          "duration_seconds": 1.16,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:mage": {
+          "path": "voices/scout_skill_mage_01.wav",
+          "text": "傷を癒やすよ。ヒール！",
+          "sha256": "a74e0efb425f1cd64fba679528d8c4911d02ebcc6b7c6a79ba42727a7af2b826",
+          "duration_seconds": 2.16,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:scout": {
+          "path": "voices/scout_skill_scout_01.wav",
+          "text": "奇襲！",
+          "sha256": "ef5203cb998e165bda6977f403d2df07b4824f078f9cd41927ac883be8077f29",
+          "duration_seconds": 1.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "skill:stamp": {
+          "path": "voices/scout_skill_stamp_01.wav",
+          "text": "スタンプ！",
+          "sha256": "afcbc70652290ccaff51b7de60008e3bdc5d78736c9f05f502ed9f320c759c4e",
+          "duration_seconds": 1.24,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:retreatSlash": {
+          "path": "voices/scout_skill_retreatSlash_01.wav",
+          "text": "退き斬り！",
+          "sha256": "3662c4e4921bb2bdc72d7873ac69f0bb7cf9206f3e43719ef57788170d890a24",
+          "duration_seconds": 1.28,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:knockback": {
+          "path": "voices/scout_skill_knockback_01.wav",
+          "text": "吹き飛ばし！",
+          "sha256": "b23874ead346f0e94e036af317cbeb04e7074bd6132760ff30d36a4aaaeece5d",
+          "duration_seconds": 1.4,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:splitShot": {
+          "path": "voices/scout_skill_splitShot_01.wav",
+          "text": "分け撃ち！",
+          "sha256": "a1a2d60034bba2253ee3fd1e3776e44a68c4dc32ef70936d25e4075664eb13bc",
+          "duration_seconds": 1.24,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:pincer": {
+          "path": "voices/scout_skill_pincer_01.wav",
+          "text": "挟撃！",
+          "sha256": "f24fecb1dae7c4c9e7ecd7f5a4718d494d3a518c8e7fee0620f7ea6fedc6ed21",
+          "duration_seconds": 1.08,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:healingCross": {
+          "path": "voices/scout_skill_healingCross_01.wav",
+          "text": "癒しの輪！",
+          "sha256": "7b5c70450d3a9cdfa40f04a394dd6d72158a58168c1b01cd27efa4615e3682e8",
+          "duration_seconds": 1.24,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:defenseLine": {
+          "path": "voices/scout_skill_defenseLine_01.wav",
+          "text": "防衛線！",
+          "sha256": "8947ffc3433111cf60223ccaae452a44d64f285febf797d03ab4f2f28b002bfe",
+          "duration_seconds": 1.16,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:manaGift": {
+          "path": "voices/scout_skill_manaGift_01.wav",
+          "text": "魔力譲渡！",
+          "sha256": "11a849dc3c25db4d169c85f3ce9e64c26a29d9542012d77968b6ade16aa55c1f",
+          "duration_seconds": 1.4,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:returnHome": {
+          "path": "voices/scout_skill_returnHome_01.wav",
+          "text": "帰還！",
+          "sha256": "f1e11be1160bf10852e7da1f4d1fb9a8a145aa78a824527229c31a6ea11b21e1",
+          "duration_seconds": 0.92,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        }
+      },
+      "missing": [],
+      "equipment_possible_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp"
+      ],
+      "attack_prohibited": false,
+      "additional_active_skill_ids": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "all_possible_active_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp",
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ]
+    },
+    {
+      "id": "scout-2",
+      "name": "ルカ",
+      "job": "scout",
+      "default_skill": "scout",
+      "voice_profile": "scout-2",
+      "prepared": {
+        "attack": {
+          "path": "voices/scout-2_attack_01.wav",
+          "text": "はっ！",
+          "sha256": "ba58e78efade29e58ff21c9ba30d864fc96bce27a5e9886d1c4709b5b385701b",
+          "duration_seconds": 0.52,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "hurt": {
+          "path": "voices/scout-2_hurt_01.wav",
+          "text": "くっ！",
+          "sha256": "b1045ae6a651ea2e7bf74d2f961562c049d302a603b85fbf35da03a348039923",
+          "duration_seconds": 0.6,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:archer": {
+          "path": "voices/scout-2_skill_archer_01.wav",
+          "text": "スナイプ！",
+          "sha256": "8de7b4edd187712118e7dbe321149ff178dda411f51b1d825d49652badcd5bcb",
+          "duration_seconds": 0.84,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:guard": {
+          "path": "voices/scout-2_skill_guard_01.wav",
+          "text": "かばう！",
+          "sha256": "55b25fc1785bdfdf43ae218b8cbc67593c58ca5bd6d656f38bb0ca67e4703c6c",
+          "duration_seconds": 0.64,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:mage": {
+          "path": "voices/scout-2_skill_mage_01.wav",
+          "text": "傷を癒やすよ。ヒール！",
+          "sha256": "a8dab2072994328afeac11f8c2f45a18aec373045c0f108d2886fd32d8034a1b",
+          "duration_seconds": 2.08,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:scout": {
+          "path": "voices/scout-2_skill_scout_01.wav",
+          "text": "奇襲！",
+          "sha256": "32a9697b03c5a3e7b069d486fb71e9c4e29260088f1d06c57b3f30d12e842836",
+          "duration_seconds": 0.64,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:stamp": {
+          "path": "voices/scout-2_skill_stamp_01.wav",
+          "text": "スタンプ！",
+          "sha256": "8ade2a9440f8686d192b3a1f17a8d13054b09f1f7666264f33a84c824d791b9a",
+          "duration_seconds": 0.84,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:retreatSlash": {
+          "path": "voices/scout-2_skill_retreatSlash_01.wav",
+          "text": "退き斬り！",
+          "sha256": "0aabff2b100760e0505cff395c835fa28b451c920750c2770e063c5015e6db9a",
+          "duration_seconds": 0.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:knockback": {
+          "path": "voices/scout-2_skill_knockback_01.wav",
+          "text": "吹き飛ばし！",
+          "sha256": "e50f2111f1364fb5067dcb49c5bf3b202276e8daa709a4aa7a37920a69f38a5c",
+          "duration_seconds": 0.96,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:splitShot": {
+          "path": "voices/scout-2_skill_splitShot_01.wav",
+          "text": "分け撃ち！",
+          "sha256": "444a5f0072ce14cbc8a2112fb1acef8557e281ae83bcdda2818bc133a79fdf59",
+          "duration_seconds": 0.92,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:pincer": {
+          "path": "voices/scout-2_skill_pincer_01.wav",
+          "text": "挟撃！",
+          "sha256": "c13f8274c4669a2ab0ea1a62552d86af9e148b4ed7ac2282521d68e6296c28ad",
+          "duration_seconds": 0.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:healingCross": {
+          "path": "voices/scout-2_skill_healingCross_01.wav",
+          "text": "癒しの輪！",
+          "sha256": "6965612f5d38a5ccb463dd71eefc653a5f06e66346f82931d8debb4c208709cc",
+          "duration_seconds": 1.04,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:defenseLine": {
+          "path": "voices/scout-2_skill_defenseLine_01.wav",
+          "text": "防衛線！",
+          "sha256": "882a370817347ba975075276c7239e05d190bc051c4e56e46f8cca98a8c3cd78",
+          "duration_seconds": 0.92,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:manaGift": {
+          "path": "voices/scout-2_skill_manaGift_01.wav",
+          "text": "魔力譲渡！",
+          "sha256": "321cf82b16d7bec6d4014aaea7943333db8f29d7178edc7851ddff19282fd04d",
+          "duration_seconds": 1.12,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:returnHome": {
+          "path": "voices/scout-2_skill_returnHome_01.wav",
+          "text": "帰還！",
+          "sha256": "806ecf2018f8f4eca7d26e9226d3281da8d61dc4b360befc2217c3b04830e9ef",
+          "duration_seconds": 0.68,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        }
+      },
+      "missing": [],
+      "equipment_possible_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp"
+      ],
+      "attack_prohibited": false,
+      "additional_active_skill_ids": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "all_possible_active_skill_ids": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "stamp",
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ]
+    },
+    {
+      "id": "porter",
+      "name": "トワ",
+      "job": "porter",
+      "default_skill": "porter",
+      "voice_profile": "porter",
+      "prepared": {
+        "hurt": {
+          "path": "voices/porter_hurt_01.wav",
+          "text": "わっ！",
+          "sha256": "e2d419ca6290033794d7008c0360fa72460d4e4d2486b76bd1c385915ff39817",
+          "duration_seconds": 0.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "skill:porter": {
+          "path": "voices/porter_skill_porter_01.wav",
+          "text": "陣形強化！",
+          "sha256": "ed3c2338099bba429c3532ed3caf2fac20d0aae2e1c9a7d6206f4747e14d3217",
+          "duration_seconds": 1.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "skill:returnHome": {
+          "path": "voices/porter_skill_returnHome_01.wav",
+          "text": "帰還！",
+          "sha256": "753697dcca8993ac137b60c3c8009c0ff966094e88bd8dded8f96ad45f9d5fb7",
+          "duration_seconds": 1.04,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        }
+      },
+      "missing": [],
+      "equipment_possible_skill_ids": [
+        "porter"
+      ],
+      "attack_prohibited": true,
+      "additional_active_skill_ids": [
+        "returnHome"
+      ],
+      "all_possible_active_skill_ids": [
+        "porter",
+        "returnHome"
+      ]
+    },
+    {
+      "id": "porter-2",
+      "name": "ハル",
+      "job": "porter",
+      "default_skill": "porter",
+      "voice_profile": "porter-2",
+      "prepared": {
+        "hurt": {
+          "path": "voices/porter-2_hurt_01.wav",
+          "text": "わっ！",
+          "sha256": "abe9a5bf9573ec34d6e98f827fed14f777eb7a4b5c086d28a8a8a2b3d56378c0",
+          "duration_seconds": 0.52,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:porter": {
+          "path": "voices/porter-2_skill_porter_01.wav",
+          "text": "陣形強化！",
+          "sha256": "a3564b41edcf4d1c25a99b29634114f83196ca23318541a8d4579157f5119eba",
+          "duration_seconds": 1.44,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:returnHome": {
+          "path": "voices/porter-2_skill_returnHome_01.wav",
+          "text": "帰還！",
+          "sha256": "ff2c56d15d9885062a528f5e9092301ee585abf50ff1d1cd0a392d9982be3266",
+          "duration_seconds": 0.68,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        }
+      },
+      "missing": [],
+      "equipment_possible_skill_ids": [
+        "porter"
+      ],
+      "attack_prohibited": true,
+      "additional_active_skill_ids": [
+        "returnHome"
+      ],
+      "all_possible_active_skill_ids": [
+        "porter",
+        "returnHome"
+      ]
+    },
+    {
+      "id": "warrior",
+      "name": "槌戦士（仮）",
+      "job": "warrior",
+      "default_skill": "stamp",
+      "voice_profile": "warrior",
+      "prepared": {
+        "attack": {
+          "path": "voices/warrior_attack_01.wav",
+          "text": "たあっ！",
+          "sha256": "373a21d4e709d02775044ffa79ceb9cd9a6f654a700acb5b0c97ab1cbbba3d26",
+          "duration_seconds": 0.88,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "hurt": {
+          "path": "voices/warrior_hurt_01.wav",
+          "text": "ぐっ！",
+          "sha256": "16d4844f0625e0f32307f940a37e1ec7e1c942b6d95d2ad66d6862d09c2b89db",
+          "duration_seconds": 0.72,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "skill:archer": {
+          "path": "voices/warrior_skill_archer_01.wav",
+          "text": "スナイプ！",
+          "sha256": "9c25fef683debf3aa1090f917dc2137c2b61491729efcb07e1662610c12cf00e",
+          "duration_seconds": 1.24,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:mage": {
+          "path": "voices/warrior_skill_mage_01.wav",
+          "text": "傷を癒やすよ。ヒール！",
+          "sha256": "0a77962c68f88f38fe3fcefcf2567c1db14db3c874bcdac23bb6716bf815cf73",
+          "duration_seconds": 2.56,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:stamp": {
+          "path": "voices/warrior_skill_stamp_01.wav",
+          "text": "スタンプ！",
+          "sha256": "9ae5d11a9b86420fb15e6622a4fb95f871c004f472d850d677df20f8f7e74222",
+          "duration_seconds": 1.32,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "batch1_user_approved_temporary"
+        },
+        "skill:knockback": {
+          "path": "voices/warrior_skill_knockback_01.wav",
+          "text": "吹き飛ばし！",
+          "sha256": "82b58cf58a741948e00037c99ae7db9b19c6a551630e1244cc93cc46b9b882b7",
+          "duration_seconds": 1.48,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:splitShot": {
+          "path": "voices/warrior_skill_splitShot_01.wav",
+          "text": "分け撃ち！",
+          "sha256": "375fbda8c5d2cadc9eae9cddf960aaeac89bf5e2ad996c0faa58a13e7b6046c8",
+          "duration_seconds": 1.4,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:healingCross": {
+          "path": "voices/warrior_skill_healingCross_01.wav",
+          "text": "癒しの輪！",
+          "sha256": "9781434bfe416d2a5ad24ca658204e12bd421e7800e4e0cf18cd3c2c537827b6",
+          "duration_seconds": 1.44,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:defenseLine": {
+          "path": "voices/warrior_skill_defenseLine_01.wav",
+          "text": "防衛線！",
+          "sha256": "49e0bf38f6ae6402539e7255a2e0f6f06271bac63ff045ac7bbbdc133307268a",
+          "duration_seconds": 1.24,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:manaGift": {
+          "path": "voices/warrior_skill_manaGift_01.wav",
+          "text": "魔力譲渡！",
+          "sha256": "46c2f1148fb564be75499c7148b0e094cf00a1e9549bc3e0a629736d90320052",
+          "duration_seconds": 1.64,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        },
+        "skill:returnHome": {
+          "path": "voices/warrior_skill_returnHome_01.wav",
+          "text": "帰還！",
+          "sha256": "7f745a04fd2ad9528e1d739a11c064444fbaf5bc1546d0225a3a3b434c3658c5",
+          "duration_seconds": 1.0,
+          "sample_rate": 48000,
+          "channels": 1,
+          "watermark_applied": true,
+          "perceptual_review": "not_auditorily_reviewed"
+        }
+      },
+      "missing": [],
+      "equipment_possible_skill_ids": [
+        "archer",
+        "mage",
+        "stamp"
+      ],
+      "attack_prohibited": false,
+      "additional_active_skill_ids": [
+        "knockback",
+        "splitShot",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "all_possible_active_skill_ids": [
+        "archer",
+        "mage",
+        "stamp",
+        "knockback",
+        "splitShot",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ]
+    }
+  ],
+  "enemy_policy": "No enemy profile in this batch; skip, never remove enemy- prefix to impersonate an ally.",
+  "missing_policy": "Skip sound and optionally log a missing-cue diagnostic; never substitute another character, another skill, or random voice.",
+  "reference_policy": "Each character uses its own wholly synthetic reference WAV. Same caption foundation and reference file are used for every line; separate fixed seeds are recorded per clip. Seed alone is not a fixed voice identity.",
+  "runtime_state": "Assets only. No game source edited or deployment performed by this asset preparation task.",
+  "new_skill_contract": {
+    "basis": "Parent-provided confirmed Windows implementation contract, 2026-10-04. Cloud source predates these skills and is not authority for new skill eligibility.",
+    "skill_names": {
+      "retreatSlash": "退き斬り",
+      "knockback": "吹き飛ばし",
+      "splitShot": "分け撃ち",
+      "pincer": "挟撃",
+      "healingCross": "癒しの輪",
+      "defenseLine": "防衛線",
+      "manaGift": "魔力譲渡",
+      "returnHome": "帰還"
+    },
+    "no_utterance_passives": {
+      "victoryBreath": "一息",
+      "loneWolf": "孤軍",
+      "firstStride": "先駆け"
+    },
+    "additional_clip_count": 72,
+    "total_clip_count": 137,
+    "character_active_skills": {
+      "guard": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "guard-2": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "archer": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "archer-2": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "mage": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "mage-2": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "scout": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "scout-2": [
+        "retreatSlash",
+        "knockback",
+        "splitShot",
+        "pincer",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ],
+      "porter": [
+        "returnHome"
+      ],
+      "porter-2": [
+        "returnHome"
+      ],
+      "warrior": [
+        "knockback",
+        "splitShot",
+        "healingCross",
+        "defenseLine",
+        "manaGift",
+        "returnHome"
+      ]
+    }
+  }
+}

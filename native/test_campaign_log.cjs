@@ -26,7 +26,7 @@ function stalled(){
 }
 let s=stalled();
 // Same engine with only retention disabled is the control. No unit edits.
-const sandbox={module:{exports:{}}};
+const sandbox={module:{exports:{}},require};
 vm.runInNewContext(fs.readFileSync(require.resolve('./campaign-battle.js'),'utf8').replace('const MAX_LOG_LINES = 1000;','const MAX_LOG_LINES = Infinity;'),sandbox);
 const unbounded=sandbox.module.exports,control=clone(s.battle);
 let legacySave;

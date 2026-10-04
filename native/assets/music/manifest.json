@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "package_id": "5525-bgm-runtime-v1",
+  "purpose": "Approved provisional five location loops and adopted battle Pattern 2 loop for integration. Packaging only; no deployment.",
+  "audio_format": {
+    "container": "WAV",
+    "encoding": "PCM signed integer little-endian",
+    "sample_rate_hz": 48000,
+    "channels": 2,
+    "bits_per_sample": 24
+  },
+  "routes": {
+    "locations": {
+      "astaris": "astaris",
+      "north": "north",
+      "east": "east",
+      "west": "west",
+      "south": "south"
+    },
+    "battle": "battle"
+  },
+  "playback": {
+    "loop_entire_file": true,
+    "frame_indexing": "zero-based; end exclusive",
+    "sample_rate_conversion_required": false
+  },
+  "preservation": {
+    "audio_reencoded": false,
+    "audio_edits": false,
+    "source_bytes_preserved": true
+  },
+  "provenance": {
+    "model": "Stability AI Stable Audio 3 Small-Music official optimized CPU distribution",
+    "model_revision": "da6edc54ddba10bfd79a077102ded687f80e882b",
+    "generation_native_sample_rate_hz": 44100,
+    "delivery_sample_rate_hz": 48000,
+    "scope": "Private noncommercial prototype under previously disclosed terms; no model weights included.",
+    "model_terms_url": "https://huggingface.co/stabilityai/stable-audio-3-optimized/blob/main/LICENSE.md",
+    "gemma_terms_url": "https://ai.google.dev/gemma/terms"
+  },
+  "tracks": [
+    {
+      "id": "astaris",
+      "role": "location",
+      "location_id": "astaris",
+      "name": "アスタリス",
+      "filename": "loops/astaris.wav",
+      "sha256": "0148f18127eef401deb85e50a87001b13dbd1b79cd0c65070c06caaa8f9a6b1f",
+      "size_bytes": 5758472,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "bits_per_sample": 24,
+      "frames": 959738,
+      "duration_seconds": 19.994541666666667,
+      "loop_start_frame": 0,
+      "loop_end_frame_exclusive": 959738,
+      "preserved_source_filename": "01_Astaris_loop_48k24.wav"
+    },
+    {
+      "id": "north",
+      "role": "location",
+      "location_id": "north",
+      "name": "ノース",
+      "filename": "loops/north.wav",
+      "sha256": "310c7b3eb23c30c9f9db9afee1c3908f97f564e6a8c59bb2921f20e732593d6d",
+      "size_bytes": 7596002,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "bits_per_sample": 24,
+      "frames": 1265993,
+      "duration_seconds": 26.374854166666665,
+      "loop_start_frame": 0,
+      "loop_end_frame_exclusive": 1265993,
+      "preserved_source_filename": "02_North_loop_48k24.wav"
+    },
+    {
+      "id": "east",
+      "role": "location",
+      "location_id": "east",
+      "name": "イース",
+      "filename": "loops/east.wav",
+      "sha256": "b155c9056e83a3f1dfe8a479674a50a2695291ccb70343fcfac4bf076ef80979",
+      "size_bytes": 5886416,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "bits_per_sample": 24,
+      "frames": 981062,
+      "duration_seconds": 20.438791666666667,
+      "loop_start_frame": 0,
+      "loop_end_frame_exclusive": 981062,
+      "preserved_source_filename": "03_East_loop_48k24.wav"
+    },
+    {
+      "id": "west",
+      "role": "location",
+      "location_id": "west",
+      "name": "ウエス",
+      "filename": "loops/west.wav",
+      "sha256": "a2de39779db4cb0da1859f55f675ced4acb9b1b69fd6728474ec5e9b5daba942",
+      "size_bytes": 7464842,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "bits_per_sample": 24,
+      "frames": 1244133,
+      "duration_seconds": 25.9194375,
+      "loop_start_frame": 0,
+      "loop_end_frame_exclusive": 1244133,
+      "preserved_source_filename": "04_West_loop_48k24.wav"
+    },
+    {
+      "id": "south",
+      "role": "location",
+      "location_id": "south",
+      "name": "サウス",
+      "filename": "loops/south.wav",
+      "sha256": "3881d107321e2c834948513c813ba72f36d11df85c1380d891932bb35dc6ea98",
+      "size_bytes": 7407452,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "bits_per_sample": 24,
+      "frames": 1234568,
+      "duration_seconds": 25.720166666666668,
+      "loop_start_frame": 0,
+      "loop_end_frame_exclusive": 1234568,
+      "preserved_source_filename": "05_South_loop_48k24.wav"
+    },
+    {
+      "id": "battle",
+      "role": "battle",
+      "name": "バトル（クオリティタグあり・パターン2）",
+      "adopted_pattern": 2,
+      "filename": "loops/battle.wav",
+      "sha256": "debc404ba7fbad663370b5815a22cfec4145deae12a3774b5917dc3f54c5d3bb",
+      "size_bytes": 6581162,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "bits_per_sample": 24,
+      "frames": 1096853,
+      "duration_seconds": 22.851104166666666,
+      "loop_start_frame": 0,
+      "loop_end_frame_exclusive": 1096853,
+      "preserved_source_filename": "2_WithQualityTags_Battle_SA3_loop_48000_24bit.wav"
+    }
+  ]
+}

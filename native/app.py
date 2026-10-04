@@ -7,6 +7,8 @@ prepare_tk()
 import tkinter as tk
 from tkinter import filedialog
 from datetime import datetime
+from voice import VoicePlayer
+from music import MusicPlayer
 
 BASE = Path(__file__).resolve().parent
 
@@ -32,10 +34,12 @@ class Bridge:
 
 
 class App:
-    def __init__(self, root, bridge=None, on_finish=None, on_close=None, images=None):
+    def __init__(self, root, bridge=None, on_finish=None, on_close=None, images=None,
+                 initial_voice_events=None, music=None):
         self.owns_bridge = bridge is None
         self.on_finish, self.on_close = on_finish, on_close
         self.root, self.bridge = root, bridge or Bridge()
+        self.music = music if music is not None else MusicPlayer(root)
         self.mode, self.pending = 'attack', None
         self.preview, self.preview_kind = None, 'attack'
         self.porter_dialog, self.porter_confirmation = None, None
@@ -45,6 +49,8 @@ class App:
         if images is None:
             for path in (BASE/'assets').rglob('*.png'):
                 image=tk.PhotoImage(master=root,file=str(path));self.images[path.relative_to(BASE/'assets').as_posix()]=image.subsample(max(1,image.width()//48))
+        self.voice = VoicePlayer(root)
+        root.bind('<Destroy>', lambda event: self.voice.close() if event.widget is root else None, add='+')
         self.data = self.bridge.call(op='reset' if self.owns_bridge else 'view')
         root.title('5525 Native Battle — Official Prototype')
         root.geometry('1210x820+30+25')
@@ -55,6 +61,17 @@ class App:
                  bg='#111827', fg='#f1f5f9').pack(anchor='w', padx=20, pady=(14, 2))
         tk.Label(root, text='ネイティブ画面 + 既存JS戦闘エンジン / コマンド → 緑の対象 → 確定（取消可）',
                  font=('sans-serif', 12), bg='#111827', fg='#94a3b8').pack(anchor='w', padx=20)
+        audio_controls = tk.Frame(root, bg='#111827')
+        audio_controls.pack(anchor='w', padx=20)
+        self.music.control(audio_controls)
+        self.voice_muted = tk.BooleanVar(value=self.voice.preferences['muted'])
+        tk.Checkbutton(audio_controls, text='ボイスをミュート' if self.voice.available else 'ボイス未導入 / 再生非対応',
+                       variable=self.voice_muted, command=lambda: self.voice.set_muted(self.voice_muted.get()),
+                       bg='#111827', fg='#94a3b8', selectcolor='#1e293b').pack(side='left', padx=6)
+        # Reserve essential actions before the expanding battle body. Wrapped
+        # turn-order text must never consume the confirm/return button area.
+        confirm = tk.Frame(root, bg='#111827')
+        confirm.pack(side='bottom', fill='x', padx=20, pady=(0,12))
         body = tk.Frame(root, bg='#111827')
         body.pack(padx=20, pady=14, fill='both', expand=True)
         left = tk.Frame(body, bg='#111827');left.pack(side='left', anchor='n')
@@ -66,13 +83,12 @@ class App:
         self.queue.pack(anchor='w', pady=10)
         commands = tk.Frame(left, bg='#111827');commands.pack(anchor='w')
         self.buttons = {}
-        for mode, label in [('move','移動'),('attack','攻撃'),('skill','スキル'),('item','回復薬'),('guard','防御')]:
+        for mode, label in [('move','移動'),('attack','攻撃'),('skill','スキル')]+([('return','帰還')] if self.data.get('campaign') else [])+[('item','回復薬'),('guard','防御')]:
             b=tk.Button(commands,text=label,command=lambda m=mode:self.set_mode(m),font=('sans-serif',12),width=8,pady=7)
             b.pack(side='left',padx=(0,7));self.buttons[mode]=b
         self.notice = tk.Label(left,bg='#1e293b',fg='#fde68a',font=('sans-serif',12),wraplength=710,
                                justify='left',anchor='w',padx=12,pady=12,height=3)
         self.notice.pack(fill='x',pady=10)
-        confirm=tk.Frame(left,bg='#111827');confirm.pack(anchor='w')
         self.confirm=tk.Button(confirm,text='確定',command=self.commit,font=('sans-serif',13),width=13,pady=7,bg='#a7f3d0')
         self.confirm.pack(side='left',padx=(0,10))
         tk.Button(confirm,text='取消 / Esc',command=self.cancel,font=('sans-serif',13),width=13,pady=7).pack(side='left')
@@ -84,8 +100,8 @@ class App:
         controls=tk.Frame(left,bg='#111827');controls.pack(anchor='w',pady=16)
         if not self.owns_bridge:
             controls.pack_forget()
-            self.return_button=tk.Button(left,text='戦闘を終えて街道へ',command=self.finish,font=('sans-serif',12))
-            self.return_button.pack(anchor='w',pady=12)
+            self.return_button=tk.Button(confirm,text='戦闘を終えて街道へ',command=self.finish,font=('sans-serif',12))
+            self.return_button.pack(side='right',padx=(12,0))
         tk.Label(controls,text='局面:',bg='#111827',fg='#cbd5e1').pack(side='left')
         self.scenario=tk.StringVar(value='標準4対4')
         tk.OptionMenu(controls,self.scenario,'標準4対4','QA: 勝利直前','QA: 敗北直前','QA: ポーター危機','QA: スタンプ','QA: かばう').pack(side='left',padx=10)
@@ -99,6 +115,9 @@ class App:
         self.log.pack(fill='both',expand=True)
         self.message='移動後の攻撃は次の本人の番。金枠=陣形 / 赤枠=敵の攻撃予告 / ↓=敵移動先'
         self.draw()
+
+        if initial_voice_events:
+            self.voice.play_events(initial_voice_events)
 
     def export(self):
         data=self.bridge.call(op='export')['data']
@@ -118,12 +137,14 @@ class App:
         self.preview=result.get('preview')
         if self.preview:
             p=self.preview;f='維持' if p['formationBefore'] and p['formationAfter'] else '再成立' if p['formationAfter'] else '解除' if p['formationBefore'] else '未成立'
-            if mode=='move' or (mode=='skill' and self.active_skill()=='scout'):
+            if mode in ('move','return') or (mode=='skill' and self.active_skill() in ('scout','retreatSlash')):
                 d=p['destination'];name=next((u['name'] for u in self.data['state']['units'] if u['id']==p['swap']),None)
                 self.message=f'仮位置 ({d%10+1},{d//10+1})'+(f' / {name}と交換' if name else '')+f' / 護送陣:{f}\n対象: '+('・'.join(p['targets']) or 'なし')+' / 着地点の敵予告: '+('・'.join(p['risks']) or 'なし')+'\n確定まで行動・MP消費なし'
-            elif p['cells']:
+            elif p['cells'] and self.active_skill()=='stamp':
                 targets=[u['name'] for u in self.data['state']['units'] if u['hp']>0 and u['side']=='enemy' and u['pos'] in p['cells']]
                 self.message=f'スタンプ: {len(p["cells"])}マス / 敵: '+('・'.join(targets) or 'なし（空振り）')+'\nオレンジ枠が範囲。確定でMP1・一行動。味方は巻き込みません。'
+            elif p['cells']:
+                self.message=f'{self.data.get("skill", "スキル")} 対象: '+('・'.join(p['targets']) or 'なし')+'\n'+(self.data.get('skillInfo') or {}).get('description','')+'\n確定まで消費なし。'
         self.draw()
 
     def finish(self):
@@ -159,7 +180,7 @@ class App:
           'stamp':'スタンプ: 縦横の隣接中心から3マス。空/味方中心も可。敵のみ通常威力。空振りでもMP1',
           'scout':'奇襲: 同じ横列の'+('前方のみ' if a.get('skillStage')==1 else '左右')+'。遮るキャラなしで手前に着地+通常攻撃。MP1',
           'porter':'陣形強化: 護送陣成立時にYESで実行。次の本人の番まで攻撃+75%/被害-35%。重複なし。MP1'}
-        text={'attack':f'通常攻撃: 縦横距離{a["reach"]}以内の敵。','move':'移動: 経路2以内、キャラを通り抜け不可。スカウトのみ境界越え可。'+('味方を選ぶと位置交換。MP消費なし。' if a['job']=='porter' else ''),'skill':skills.get(active,''),'item':'回復薬: 距離制限なし、傷ついた生存味方のHP+55（上限まで）。共有在庫を1消費。','guard':'防御: 次の本人の番まで被ダメージ半減。MP消費なし。'}[mode]
+        text={'attack':f'通常攻撃: 縦横距離{a["reach"]}以内の敵。','move':f'移動: 経路{self.data.get("moveReach",2)}以内、キャラを通り抜け不可。侵入用装飾品の権限に従います。'+('味方を選ぶと位置交換。MP消費なし。' if a['job']=='porter' else ''),'skill':(self.data.get('skillInfo') or {}).get('description',skills.get(active,'')),'return':'帰還: 装備中のみ、1戦1回。自陣の空きマスを指定。MP0・1行動。','item':'回復薬: 距離制限なし、傷ついた生存味方のHP+55（上限まで）。共有在庫を1消費。','guard':'防御: 次の本人の番まで被ダメージ半減。MP消費なし。'}[mode]
         if mode!='guard' and not self.data['choices'].get(mode):text+='\n今は合法な対象なし。射程・HP/MP・陣形・進路を確認してください。'
         return text
 
@@ -255,14 +276,27 @@ class App:
         p=y*10+x;a=self.actor()
         if not a:self.message='戦闘は終了しました。RESETで再挑戦できます。';self.draw();return
         u=self.unit_at(p)
-        target=p if self.mode=='move' or (self.mode=='skill' and self.active_skill()=='stamp') else u['id'] if u else None
+        target=p if self.mode in ('move','return') or (self.mode=='skill' and self.active_skill()=='stamp') else u['id'] if u else None
+        multi=self.mode=='skill' and (self.data.get('skillInfo') or {}).get('target') in ('pair','upToTwo')
+        if multi:
+            options=self.data['choices'].get('skill',[])
+            if not any(target in pair for pair in options):
+                self.message='射程内の別の対象を選んでください。';self.draw();return
+            selected=list(self.pending[1]) if self.pending and self.pending[0]=='skill' and isinstance(self.pending[1],list) else []
+            if target in selected:selected.remove(target)
+            elif len(selected)<2:selected.append(target)
+            else:selected=[target]
+            target=next((pair for pair in options if set(pair)==set(selected)),selected)
+            self.pending=('skill',target);self.preview=None
+            if target not in options:
+                self.message='異なる対象をもう1人選んでください。取消では消費しません。';self.draw();return
         if target not in self.data['choices'].get(self.mode,[]):
             self.pending=None;self.preview=None
             self.message='無効な対象です。緑の範囲・対象を選んでください。';self.draw();return
         self.pending=(self.mode,target)
         self.preview_kind='skill' if a['job']=='porter' else 'attack'
         self.bridge.call(op='record',type='battle.preview',details={'kind':self.mode,'target':target})
-        name=f'({x+1}, {y+1})' if isinstance(target,int) else u['name']
+        name=f'({x+1}, {y+1})' if isinstance(target,int) else '・'.join(v['name'] for v in self.data['state']['units'] if v['id'] in target) if isinstance(target,list) else u['name']
         self.message=f'プレビュー: {self.buttons[self.mode].cget("text")} → {name}\n確定まで位置・HP・MP・行動数は変わりません。'
         self.inspect_preview()
 
@@ -281,12 +315,15 @@ class App:
     def perform_action(self,mode,target):
         self.pending=None;self.preview=None
         self.data=self.bridge.call(op='act',kind=mode,target=target)
+        if self.data.get('ok') and getattr(self, 'voice', None):
+            self.voice.play_events(self.data.get('voiceEvents', []))
         self.mode='attack';self.message='行動確定。敵の行動も既存ルールで処理されました。' if self.data['ok'] else self.data['error']
         self.draw()
 
     def reset(self):
         if self.porter_confirmation is not None:return
         scenario={'標準4対4':'normal','QA: 勝利直前':'victory','QA: 敗北直前':'defeat','QA: ポーター危機':'porter','QA: スタンプ':'stamp','QA: かばう':'support'}[self.scenario.get()]
+        if getattr(self, 'voice', None):self.voice.stop()
         self.data=self.bridge.call(op='reset',scenario=scenario)
         self.mode,self.pending='attack',None;self.preview=None
         self.message='新規戦闘を開始しました。' if scenario=='normal' else 'QA固定局面です。標準戦闘のバランス評価には使用しません。'
@@ -297,11 +334,13 @@ class App:
         return [f'陣形: 味方{"強化中" if self.data.get("boosted",{}).get("ally") else "ON" if self.data["formed"]["ally"] else "OFF"} / 敵{"ON" if self.data["formed"]["enemy"] else "OFF"}']
 
     def draw(self):
+        if getattr(self, 'music', None):self.music.sync(self.data)
         c,s=self.canvas,self.data['state'];a=self.actor();c.delete('all')
         if a and a['job']=='porter' and self.mode=='attack':self.mode='move'
         shown=self.preview['units'] if self.preview else s['units']
         targets=self.data['choices'].get(self.mode,[])
-        cells={t if isinstance(t,int) else next(u['pos'] for u in s['units'] if u['id']==t) for t in targets}
+        flat_targets=[v for t in targets for v in (t if isinstance(t,list) else [t])]
+        cells={t if isinstance(t,int) else next(u['pos'] for u in s['units'] if u['id']==t) for t in flat_targets}
         for p in range(50):
             x,y=(p%10)*74,(p//10)*74
             fill=('#23384c' if p%10<5 else '#482e3e')
@@ -329,7 +368,7 @@ class App:
             if self.preview and u['id']==s['actor']:c.create_text(x,y-29,text='仮',fill='#fff',font=('sans-serif',10,'bold'))
         if self.pending:
             target=self.pending[1]
-            p=target if isinstance(target,int) else next((u['pos'] for u in s['units'] if u['id']==target),None)
+            p=target if isinstance(target,int) else next((u['pos'] for u in s['units'] if u['id']==(target[0] if isinstance(target,list) and target else target)),None)
             if p is not None:
                 for q in self.data.get('stampAreas',{}).get(str(p),[]) if self.pending[0]=='skill' else []:
                     qx,qy=q%10*74,q//10*74
@@ -339,17 +378,18 @@ class App:
         self.turn.config(text=s['result'] or f'行動者: {a["name"]}  HP {a["hp"]}/{a["max"]}  MP {a["mp"]} 射程{a["reach"]} | 行動数: {s["actions"]}')
         self.queue.config(text='行動順: '+' → '.join(('味方 ' if q['side']=='ally' else '敵 ')+q['name'] for q in self.data['queue'][:10]))
         for k,b in self.buttons.items():
-            b.config(state='normal' if a and not self.pending and self.porter_confirmation is None and not(k=='attack' and a['job']=='porter') and not(k=='skill' and a['mp']<=0) and not(k=='item' and s['potions']['ally']<=0) else 'disabled',relief='sunken' if k==self.mode else 'raised')
+            b.config(state='normal' if a and not self.pending and self.porter_confirmation is None and not(k=='attack' and a['job']=='porter') and not(k in ('skill','return') and not self.data['choices'].get(k)) and not(k=='item' and s['potions']['ally']<=0) else 'disabled',relief='sunken' if k==self.mode else 'raised')
         self.buttons['skill'].config(text=self.data['skill'] or 'スキル')
         can_inspect=bool(self.pending and self.pending[0]=='move' and a)
         self.preview_attack.config(state='normal' if can_inspect and a['job']!='porter' else 'disabled')
         self.preview_skill.config(state='normal' if can_inspect else 'disabled')
-        self.confirm.config(state='normal' if self.pending and a else 'disabled')
+        self.confirm.config(state='normal' if self.pending and a and (self.pending[0]=='guard' or self.pending[1] in self.data['choices'].get(self.pending[0],[])) else 'disabled')
         self.notice.config(text=self.message)
         info=[f'回復薬: 味方{s["potions"]["ally"]} / 敵{s["potions"]["enemy"]}',*self.formation_info(), '']
         for u in s['units']:
             info.append(f'{u["name"]}: HP {u["hp"]}/{u["max"]} MP {u["mp"]} AGI {u["agi"]}'+(' 防御' if u['guard'] else '')+(' 戦闘不能' if u['hp']<=0 else ''))
             if u.get('cover'):info.append('  かばう → '+next(v['name'] for v in s['units'] if v['id']==u['cover']))
+            if u.get('covers'):info.append('  防衛線 → '+'・'.join(v['name'] for v in s['units'] if v['id'] in u['covers']))
             if u['side']=='enemy' and u['hp']>0 and u.get('intent'):
                 i=u['intent'];cells=i.get('cells',[])
                 target_name=next((v['name'] for v in s['units'] if v['id']==i.get('target')),'')

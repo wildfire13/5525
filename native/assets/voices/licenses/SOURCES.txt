@@ -1,0 +1,4 @@
+Irodori-TTS code: https://github.com/Aratako/Irodori-TTS
+Anime model: https://huggingface.co/phasefield-audio/Irodori-TTS-v4.1-Anime
+Base model and ethical restrictions: https://huggingface.co/Aratako/Irodori-TTS-v4.1-Small
+The model card identifies MIT and inherited ethical restrictions. No real-person voice reference was used. Model weights are not included in this pack.
