@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import uuid
 import wave
+from wave_audio import WaveOutput
 
 ASSETS = Path(__file__).resolve().parent / 'assets' / 'music'
 LOCATIONS = {'astaris', 'north', 'east', 'west', 'south'}
@@ -111,7 +112,7 @@ class WindowsMusic:
 def default_backend():
     if os.name == 'nt':
         try:
-            return WindowsMusic()
+            return WaveOutput()
         except OSError:
             pass
     return None
@@ -157,7 +158,8 @@ class MusicPlayer:
         try:
             self.backend.start(path)
             self.current = self.requested
-            self.timer = self.root.after(100, self._poll)
+            if getattr(self.backend, 'hardware_loop', False) is not True:
+                self.timer = self.root.after(100, self._poll)
         except (OSError, ValueError) as error:
             self.error = str(error)
             self.stop()
@@ -169,7 +171,8 @@ class MusicPlayer:
         try:
             if not self.backend.playing():
                 self.backend.restart()
-            self.timer = self.root.after(100, self._poll)
+            if getattr(self.backend, 'hardware_loop', False) is not True:
+                self.timer = self.root.after(100, self._poll)
         except OSError as error:
             self.error = str(error)
             self.stop()

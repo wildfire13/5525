@@ -3,6 +3,7 @@ import copy
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from qa_presentation_tk import pump
 from app import App, Bridge, tk
 
 report = {'kind': 'real Tk hidden-window passive regression; not human playtest', 'cases': []}
@@ -35,6 +36,7 @@ try:
                 assert bridge.call(op='view')['state'] == before
                 select()
                 app.commit()
+                pump(window, lambda: app.presentation.busy)
                 window.update_idletasks()
                 assert app.data['ok']
                 events = app.data.get('skillEvents', [])

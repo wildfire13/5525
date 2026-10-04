@@ -1,6 +1,7 @@
 'use strict';
 const LegacyB = require('./battle.js');
 const VoiceEvents = require('./voice-events.cjs');
+const presentation = new (require('./battle-presentation.cjs').Presentation)();
 let B = LegacyB;
 const CampaignB = require('./campaign-battle.js');
 let campaign=null,trial=null;
@@ -13,7 +14,9 @@ let state,journey=null,qa=null,deploymentInitial=[],log=P.create({mode:'battle'}
 const context=()=>({battle:state,journey});
 const record=(type,details={})=>log.record(type,campaign?{...details,campaign:campaignSummary()}:details,context());
 function start(scenario='normal') {
-  state = B.create(scenario==='stamp' ? {ally:['warrior','archer','scout'],enemy:['archer','guard'],enemyPotions:0} : scenario==='porter' ? {ally:['guard','archer','porter'],enemy:['scout'],enemyPotions:0} : {});
+  const options=scenario==='stamp' ? {ally:['warrior','archer','scout'],enemy:['archer','guard'],enemyPotions:0} : scenario==='porter' ? {ally:['guard','archer','porter'],enemy:['scout'],enemyPotions:0} : {};
+  if(scenario==='normal'&&B.stepEnemy)options.deployment=true;
+  state = B.create(options);
   if(scenario!=='normal') {
     if(!state)return {ok,error,state:null,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null}:{})};
   const a=state.units.find(u=>u.id==='archer');
@@ -57,7 +60,7 @@ function view(ok=true, error=null) {
   if(a)for(const kind of ['attack','skill',...(campaign?['return']:[])])ranges[kind]=Array.from({length:50},(_,p)=>p).filter(p=>{const u=state.units.find(u=>u.hp>0&&u.pos===p),support=kind==='skill'&&['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(B.activeSkill(a));return B.inRange(a,u?.side||(support?'ally':'enemy'),p,kind,state);});
   const deployment=state.deploying?Object.fromEntries(state.units.filter(u=>u.side==='ally'&&u.hp>0).map(u=>[u.id,{ranges:Array.from({length:50},(_,p)=>p).filter(p=>B.inRange(u,p%10<5?'ally':'enemy',p,'attack',state)),ambush:state.units.filter(t=>t.hp>0&&B.ambush(state,u,t)).map(t=>t.pos)}])):{};
   const stampAreas=a&&B.activeSkill(a)==='stamp'?Object.fromEntries(choices.skill.map(p=>[p,B.stampCells(a,p)])):{};
-  return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillInfo:a?B.equipmentSkills[B.activeSkill(a)]||null:null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
+  return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillReach:a?B.attackReach(a,'skill'):0,normalAttackReach:a?B.attackReach(a,'attack'):0,skillset:a?B.activeSkills(a).map(id=>({id,name:B.skillName({...a,selectedSkill:id}),sources:(a.skillSources||[]).filter(x=>x.id===id).map(x=>({...x,itemName:campaignEngine().gear.find(g=>g.id===x.itemId)?.name||x.itemId}))})):[],skillInfo:a?B.equipmentSkills[B.activeSkill(a)]||null:null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
 }
 function preview(kind,target,previewKind='attack') {
   if(!state||!B.legal(state,kind,target))return {ok:false,error:'無効なプレビュー'};
@@ -89,7 +92,7 @@ function preview(kind,target,previewKind='attack') {
   });
   const risks=state.units.filter(u=>u.hp>0&&u.side==='enemy'&&u.intent?.cells.includes(destination)).map(u=>u.name);
   return {ok:true,preview:{units:v.units,destination,path,swap,cells,ranges,targets,risks,
-    formationBefore:B.formation(state),formationAfter:B.formation(v),kind,target,previewKind}};
+    damagePreview:['attack','skill'].includes(kind)&&B.damagePreview?B.damagePreview(state,a,kind,target):inspectKind==='attack'&&B.attackPreview?v.units.map(u=>B.attackPreview(v,va,u)).filter(Boolean):[],formationBefore:B.formation(state),formationAfter:B.formation(v),kind,target,previewKind}};
 }
 function trip(action,args=[]) {
   if(campaign||!journey)return false;
@@ -123,7 +126,14 @@ function trip(action,args=[]) {
 readline.createInterface({input:process.stdin}).on('line',line=>{
   try {
     const r=JSON.parse(line);let response;
-    if(r.op==='reset') {campaign=null;trial=null;B=LegacyB;qa=null;const switching=!!journey,first=!state;journey=null;start(r.scenario);if(switching)log=P.create({mode:'battle'});if(switching||first)record('run.started',{reason:'battle.started'});else log.startRun(context(),'battle.restart');response=view();}
+    if(presentation.pending&&!['view','presentation_next','presentation_finish','record'].includes(r.op))
+      throw Error('演出中です。完了してから操作・保存してください');
+    if(r.op==='presentation_next'||r.op==='presentation_finish') {
+      const ok=r.op==='presentation_next'?presentation.next(r.id,r.index):presentation.finish(r.id);
+      response={...view(ok,ok?null:'古い演出確認です'),presentation:presentation.info(),voiceEvents:[]};
+      console.log(JSON.stringify(response));return;
+    }
+    if(r.op==='reset') {campaign=null;trial=null;B=r.presentation?CampaignB:LegacyB;qa=null;const switching=!!journey,first=!state;journey=null;start(r.scenario);if(r.presentation&&state.deploying)presentation.start(state,B,()=>B.begin(state));if(switching)log=P.create({mode:'battle'});if(switching||first)record('run.started',{reason:'battle.started'});else log.startRun(context(),'battle.restart');response=view();}
     else if(r.op==='journey_start') {
       const restarting=!!journey;campaign=null;trial=null;B=LegacyB;qa=null;journey=J.create();state=null;deploymentInitial=[];
       if(!restarting){log=P.create({mode:'journey'});record('run.started',{reason:'journey.started'});}
@@ -156,23 +166,45 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       else if(r.action==='previewGear'){response={...view(),previewGear:C.previewGear(campaign,...args)};}
       else if(r.action==='trial'){trial=C.trial(campaign,...args);result=!!trial;}
       else if(['accept','select','depart','travel','deploy','deployment_reset','begin','retreat','finishBattle','rest','onward','arrive','acknowledge','buyGear','buyItem','inn','useItem','allocate'].includes(r.action)) {
-        if(r.action==='begin') {
+        if(r.action==='begin'&&r.presentation) {
+          result=presentation.start(state,B,()=>C.begin(campaign,...args),()=>record('campaign.begin',{args,accepted:true}));
+        } else if(r.action==='begin') {
           const captured=VoiceEvents.capture(state,B,null,()=>C.begin(campaign,...args));
           result=captured.ok;openingVoices=captured.events;
         } else result=C[r.action](campaign,...args);
       } else throw Error('Unknown campaign action');
-      if(!response){syncCampaign();record('campaign.'+r.action,{args,accepted:!!result});response=view(!!result,result?null:campaign.error||'現在の状態では実行できません');}
+      if(!response){syncCampaign();if(!(r.action==='begin'&&r.presentation&&result))record('campaign.'+r.action,{args,accepted:!!result});response=view(!!result,result?null:campaign.error||'現在の状態では実行できません');}
       if(openingVoices)response.voiceEvents=openingVoices;
     }
     else if(r.op==='journey') {
+      if(r.action==='begin'&&r.presentation){
+        B=CampaignB;
+        const ok=presentation.start(state,B,()=>trip(r.action,r.args),()=>record('journey.begin',{args:r.args,accepted:true}));
+        response={...view(ok),presentation:presentation.info(),voiceEvents:[]};
+        console.log(JSON.stringify(response));return;
+      }
       const captured=r.action==='begin'?VoiceEvents.capture(state,B,null,()=>trip(r.action,r.args)):null;
       const result=captured?captured.ok:trip(r.action,r.args);
       if(r.action==='forecast')response={...view(),forecast:result};
       else {record('journey.'+r.action,{args:r.args,accepted:result});response=view(!!result,result?null:'現在の状態では実行できません');}
       if(captured)response.voiceEvents=captured.events;
     }
+    else if(r.op==='select_skill') {
+      const ok=!!campaign&&!!state&&B.selectSkill(state,r.skillId);
+      if(ok)record('battle.skill.selected',{skillId:r.skillId});
+      response=view(ok,ok?null:'装備中のスキルを選んでください');
+    }
     else if(r.op==='act') {
       const before=(state?.log.length||0)+(state?.logDropped||0),actor=state?.actor;
+      if(r.presentation&&B.stepEnemy){
+        const ok=presentation.start(state,B,()=>!!state&&(campaign?(trial?campaignEngine().trialAct(trial,r.kind,r.target):campaignEngine().act(campaign,r.kind,r.target)):B.act(state,r.kind,r.target)),()=>{
+          if(!campaign&&journey&&state.result&&!state.failure&&state.units.some(u=>u.side==='ally'&&u.hp>0))state.result='勝利！ 荷物を守り切った。';
+          record('battle.action',{actor,kind:r.kind,target:r.target??null,...(campaign?{skillId:r.kind==='return'?'returnHome':r.kind==='skill'?B.activeSkill(state.units.find(u=>u.id===actor)):null,skillEvents:state.skillEvents||[]}:{}),messages:state.log.slice(Math.max(0,before-(state.logDropped||0)))});
+        });
+        if(!ok)record('battle.rejected',{actor,kind:r.kind,target:r.target??null});
+        response={...view(ok,ok?null:'不正な行動です'),presentation:presentation.info(),voiceEvents:[]};
+        console.log(JSON.stringify(response));return;
+      }
       const captured=VoiceEvents.capture(state,B,r.kind,()=>!!state&&(campaign?(trial?campaignEngine().trialAct(trial,r.kind,r.target):campaignEngine().act(campaign,r.kind,r.target)):B.act(state,r.kind,r.target)));
       const ok=captured.ok;
       if(campaign)syncCampaign();
@@ -185,6 +217,7 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
     else if(r.op==='export') {record('log.export.requested');response={ok:true,data:{...log.export(context()),...(campaign?{campaign:campaignSummary()}: {})}};}
     else if(r.op==='view')response=view();
     else response={ok:false,error:'Unknown operation'};
+    if(presentation.pending)response.presentation=presentation.info();
     console.log(JSON.stringify(response));
   } catch(e) {console.log(JSON.stringify({ok:false,error:e.message}));}
 });

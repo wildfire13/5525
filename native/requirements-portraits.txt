@@ -1,0 +1,2 @@
+# Optional for the game; required for custom image import / saves containing images.
+Pillow>=12.3.0,<13
