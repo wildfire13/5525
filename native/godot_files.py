@@ -35,13 +35,29 @@ def publish_new(temp, path):
     else:
         os.link(temp, path)  # POSIX rename overwrites: never use it here.
 
+def resolved_save_target(path, *, create_parent=False, expected_target=None):
+    """Pin sibling publication to the real parent, including AppData redirection.
+
+    Resolve the parent only: replacing a final symlink must not silently replace
+    the file it points to. The user-facing logical path remains the receipt path.
+    """
+    logical = Path(path)
+    if logical.suffix.lower() != '.json': raise ValueError('JSONファイル名を指定してください')
+    if create_parent: logical.parent.mkdir(parents=True, exist_ok=True)
+    resolved = logical.parent.resolve(strict=create_parent) / logical.name
+    if expected_target is not None:
+        if not isinstance(expected_target, str) or not Path(expected_target).is_absolute():
+            raise ValueError('保存先の確認情報が不正です')
+        if os.path.normcase(str(resolved)) != os.path.normcase(expected_target):
+            raise ValueError('確認後に保存先の実体が変わりました。保存先を選び直してください。')
+    return resolved
+
 def write_target(path):
-    path = Path(path)
-    if path.suffix.lower() != '.json': raise ValueError('JSONファイル名を指定してください')
-    if not path.exists(): return {'exists': False}
+    path = resolved_save_target(path)
+    if not path.exists(): return {'exists': False, 'resolved_target': str(path)}
     if not path.is_file(): raise ValueError('保存先に通常ファイルを指定してください')
     if path.stat().st_size > MAX_SAVE: raise ValueError('既存ファイルが大きすぎます')
-    return {'exists': True, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    return {'exists': True, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'resolved_target': str(path)}
 
 def publish_replace(temp, path, expected_sha256):
     current = write_target(path)
@@ -49,14 +65,14 @@ def publish_replace(temp, path, expected_sha256):
         raise ValueError('確認後に保存先の内容が変わりました。保存先を選び直してください。')
     os.replace(temp, path)  # Complete, flushed sibling file becomes visible atomically.
 
-def write_save(path, data, operation=None, overwrite=False, expected_sha256=None):
+def write_save(path, data, operation=None, overwrite=False, expected_sha256=None, resolved_target=None):
     path = Path(path)
     if path.suffix.lower() != '.json': raise ValueError('JSONファイル名を指定してください')
     if type(overwrite) is not bool: raise ValueError('上書き確認が不正です')
     if overwrite and (not isinstance(expected_sha256, str) or not re.fullmatch(r'[0-9a-f]{64}', expected_sha256)):
         raise ValueError('上書きには保存先の確認が必要です')
     raw = encoded_save(data)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path = resolved_save_target(path, create_parent=True, expected_target=resolved_target)
     temp = None
     try:
         if operation is not None:
@@ -77,17 +93,25 @@ def write_new(path, data, operation=None):
     # Low-level creation remains exclusive; UI-confirmed saves use write_save.
     return write_save(path, data, operation)
 
-def recover_write(path, data, operation):
-    path = Path(path)
+def recover_write(path, data, operation, resolved_target=None):
+    logical = str(path)
+    if resolved_target is not None:
+        if not isinstance(resolved_target, str) or not Path(resolved_target).is_absolute() or Path(resolved_target).name != Path(path).name:
+            raise ValueError('保存先の確認情報が不正です')
+        # Recovery uses the same already-pinned destination as publication, even
+        # if the logical directory was retargeted after the helper terminated.
+        path = Path(resolved_target)
+    else:
+        path = resolved_save_target(path)
     temp = operation_temp(path, operation)
     expected = encoded_save(data)
     # Only after this helper PID terminated. Never delete the target.
     temp.unlink(missing_ok=True)
     if path.exists():
         if path.stat().st_size == len(expected) and path.read_bytes() == expected:
-            return {'path':str(path), 'outcome':'saved', 'recovered':True}
-        return {'path':str(path), 'outcome':'not_saved', 'reason':'保存先には別の内容が残っています。今回の保存完了は確認できません。'}
-    return {'path':str(path), 'outcome':'not_saved', 'reason':'保存されていません。別名または別の場所へ保存できます。'}
+            return {'path':logical, 'outcome':'saved', 'recovered':True}
+        return {'path':logical, 'outcome':'not_saved', 'reason':'保存先には別の内容が残っています。今回の保存完了は確認できません。'}
+    return {'path':logical, 'outcome':'not_saved', 'reason':'保存されていません。別名または別の場所へ保存できます。'}
 
 def run(r):
     if r['action']=='portrait':
@@ -102,8 +126,8 @@ def run(r):
         return data
     if r['action']=='write_target': return write_target(r['path'])
     if r['action']=='write':
-        write_save(r['path'],r['data'],r.get('operation'),r.get('overwrite',False),r.get('expected_sha256'));return {'path':r['path'], 'outcome':'saved'}
-    if r['action']=='recover_write':return recover_write(r['path'],r['data'],r['operation'])
+        write_save(r['path'],r['data'],r.get('operation'),r.get('overwrite',False),r.get('expected_sha256'),r.get('resolved_target'));return {'path':r['path'], 'outcome':'saved'}
+    if r['action']=='recover_write':return recover_write(r['path'],r['data'],r['operation'],r.get('resolved_target'))
     raise ValueError('Unknown file operation')
 if __name__=='__main__':
     try: print(json.dumps({'ok':True,'data':run(json.loads(sys.stdin.readline()))},ensure_ascii=False))

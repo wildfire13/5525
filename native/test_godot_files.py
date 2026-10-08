@@ -128,4 +128,64 @@ class GodotFilesTests(unittest.TestCase):
             self.assertEqual(godot_files.recover_write(path,data,token)['outcome'],'saved')
             self.assertEqual(json.loads(path.read_text()),data)
 
+    def test_target_probe_is_readonly_and_returns_real_parent_pin(self):
+        with tempfile.TemporaryDirectory() as folder:
+            missing=Path(folder)/'not-created'/'save.json'
+            result=godot_files.write_target(missing)
+            self.assertFalse(result['exists']);self.assertFalse(missing.parent.exists())
+            self.assertEqual(result['resolved_target'],str(missing.parent.resolve()/missing.name))
+
+    def test_publication_uses_resolved_siblings_and_logical_receipt(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base=Path(folder);logical=base/'logical';physical=base/'physical'
+            logical.mkdir();physical.mkdir();path=logical/'save.json';real_path=physical/path.name
+            resolve=Path.resolve
+            def redirected(p,*args,**kwargs):
+                return physical if p==logical else resolve(p,*args,**kwargs)
+            with patch.object(Path,'resolve',redirected):
+                target=godot_files.write_target(path)
+                self.assertEqual(target['resolved_target'],str(real_path))
+                result=run({'action':'write','path':str(path),'data':{'first':1},'operation':'a'*32,'resolved_target':target['resolved_target']})
+                self.assertEqual(result['path'],str(path));self.assertFalse(path.exists());self.assertTrue(real_path.exists())
+                target=godot_files.write_target(path);replace=os.replace
+                def publish(temp,destination):
+                    self.assertEqual(Path(temp).parent,physical);self.assertEqual(destination,real_path)
+                    replace(temp,destination)
+                with patch('godot_files.os.replace',side_effect=publish):
+                    run({'action':'write','path':str(path),'data':{'next':'保存'},'operation':'b'*32,'overwrite':True,'expected_sha256':target['sha256'],'resolved_target':target['resolved_target']})
+                self.assertEqual(json.loads(real_path.read_text(encoding='utf-8')),{'next':'保存'})
+                self.assertEqual(list(physical.iterdir()),[real_path]);self.assertEqual(list(logical.iterdir()),[])
+
+    def test_changed_real_parent_rejects_even_identical_old_contents(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base=Path(folder);first=base/'first';second=base/'second';first.mkdir();second.mkdir()
+            path=first/'save.json';other=second/'save.json'
+            write_new(path,{'old':1});write_new(other,{'old':1});old=other.read_bytes();target=godot_files.write_target(path)
+            with self.assertRaisesRegex(ValueError,'実体'):
+                godot_files.write_save(other,{'new':2},'c'*32,True,target['sha256'],target['resolved_target'])
+            self.assertEqual(path.read_bytes(),old);self.assertEqual(other.read_bytes(),old)
+            self.assertEqual(list(second.iterdir()),[other])
+
+    def test_recovery_uses_original_pin_after_logical_parent_changes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base=Path(folder);physical=base/'first';logical=base/'second';physical.mkdir();logical.mkdir()
+            pinned=physical/'save.json';display=logical/'save.json';data={'published':'正しい保存'};token='d'*32
+            write_new(pinned,data);display.write_text('{"unrelated":1}',encoding='utf-8');old=display.read_bytes()
+            own=godot_files.operation_temp(pinned,token);own.write_text('partial')
+            keep=godot_files.operation_temp(display,token);keep.write_text('unrelated')
+            result=run({'action':'recover_write','path':str(display),'data':data,'operation':token,'resolved_target':str(pinned)})
+            self.assertEqual(result['outcome'],'saved');self.assertEqual(result['path'],str(display))
+            self.assertFalse(own.exists());self.assertEqual(keep.read_text(),'unrelated');self.assertEqual(display.read_bytes(),old)
+
+    def test_invalid_real_target_pin_never_writes_or_cleans_other_file(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'save.json'
+            for bad in ['relative/save.json',17]:
+                with self.subTest(pin=bad),self.assertRaises(ValueError):
+                    godot_files.write_save(path,{},resolved_target=bad)
+            other=Path(folder)/'other.json';temp=godot_files.operation_temp(other,'a'*32);temp.write_text('keep')
+            with self.assertRaises(ValueError):godot_files.recover_write(path,{},'a'*32,str(other))
+            self.assertEqual(temp.read_text(),'keep');self.assertFalse(path.exists())
+
+
 if __name__=='__main__':unittest.main()
