@@ -72,7 +72,9 @@ func run():
 	if visual:DirAccess.make_dir_recursive_absolute(directory)
 	root.title="5525 display regression (isolated)";root.size=Vector2i(1280,800)
 	var output=[]
-	var code=OS.execute("C:/Program Files/nodejs/node.exe",PackedStringArray([ProjectSettings.globalize_path("res://tests/display_fixtures.cjs")]),output,false,false)
+	var node=OS.get_environment("NATIVE5525_NODE")
+	if node.is_empty():node="node"
+	var code=OS.execute(node,PackedStringArray([ProjectSettings.globalize_path("res://tests/display_fixtures.cjs")]),output,false,false)
 	var fixture=JSON.parse_string("".join(output))
 	if code!=0 or not fixture is Dictionary:check(false,"fixture generation");quit(1);return
 	game=load("res://main.tscn").instantiate();root.add_child(game)
@@ -145,6 +147,15 @@ func run():
 	for i in range(5):await process_frame
 	var report={"passed":failures.is_empty(),"checks":checks,"failures":failures,"layouts":layouts,"captures":captures,"visual":visual,"input":"Godot viewport mouse/key events; not OS-desktop input"}
 	var path="res://qa/display-"+("visual" if visual else "headless")+"-report.json"
-	var file=FileAccess.open(path,FileAccess.WRITE);file.store_string(JSON.stringify(report,"  "));file.close()
+	var directory_error=DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path).get_base_dir())
+	if directory_error!=OK:
+		push_error("Cannot create display report directory: "+str(directory_error));quit(1);return
+	var file=FileAccess.open(path,FileAccess.WRITE)
+	if file==null:
+		push_error("Cannot open display report: "+str(FileAccess.get_open_error()));quit(1);return
+	file.store_string(JSON.stringify(report,"  "))
+	var write_error=file.get_error();file.close()
+	if write_error!=OK:
+		push_error("Cannot write display report: "+str(write_error));quit(1);return
 	print("DISPLAY CHECKS "+str(checks.size())+" FAILURES "+str(failures.size()))
 	quit(0 if failures.is_empty() else 1)
