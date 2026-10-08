@@ -36,35 +36,53 @@ var view_kind := ""
 var generation := 0
 var retry_button: Button
 var low_hp_font: FontVariation
+var memory
+var hud
+var ui_size_mode := "standard"
+var menu: PopupPanel
+var preview_pending := false
+var preview_ready := false
+var rendering := false
+var layout_queued := false
+var focus_hint := ""
+var swallow_mouse_release := false
+var skip_capture_once := false
 const BG=Color("#0e1e28")
 func _ready():
 	pages=preload("res://campaign_panels.gd").new(self)
+	memory=preload("res://ui_memory.gd").new(self)
+	hud=preload("res://battle_hud.gd").new(self)
 	get_tree().auto_accept_quit=false
 	get_tree().root.gui_embed_subwindows=true
-	var theme_=Theme.new();theme_.default_font_size=17
+	var theme_=Theme.new();theme_.default_font_size=18
 	theme_.set_color("font_color","TooltipLabel",Color.WHITE)
 	var tip=StyleBoxFlat.new();tip.bg_color=Color("#183341");tip.set_content_margin_all(8);theme_.set_stylebox("panel","TooltipPanel",tip)
+	var focus=StyleBoxFlat.new();focus.bg_color=Color(0,0,0,0);focus.set_border_width_all(2);focus.border_color=Color("#78edce")
+	for type_ in ["Button","OptionButton","CheckButton","ItemList","TabBar"]:theme_.set_stylebox("focus",type_,focus)
 	theme=theme_
 	low_hp_font=FontVariation.new();low_hp_font.base_font=ThemeDB.fallback_font;low_hp_font.variation_embolden=1.0
-	var panel=StyleBoxFlat.new();panel.bg_color=BG;add_theme_stylebox_override("panel",panel)
 	base=VBoxContainer.new();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	base.add_theme_constant_override("separation",10)
-	top=HBoxContainer.new();base.add_child(top)
-	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;top.add_child(header)
-	button(top,"保存",save_game);button(top,"読込",load_dialog);button(top,"ログ保存",save_log)
-	button(top,"画像",portrait_dialog);button(top,"全画面 F11",fullscreen)
+	base.add_theme_constant_override("separation",8)
+	top=HBoxContainer.new();top.custom_minimum_size.y=44;base.add_child(top)
+	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
+	local_button(top,"メニュー",open_menu)
 	retry_button=button(top,"再接続",func():confirm("ゲーム接続を再開します。失われた未保存の進行は復元できません。\n再接続後、保存済みファイルを読み込んでください。",reconnect_engine));retry_button.visible=false
-	button(top,"新しい旅",func(): confirm("未保存の進行を終了し、新しい旅を始めます。保存済みファイルは変更しません。",new_game))
-	var mute_row=HBoxContainer.new();base.add_child(mute_row)
 	audio=preload("res://audio.gd").new();add_child(audio)
+	menu=PopupPanel.new();menu.name="CommonMenu";add_child(menu)
+	var menu_body=VBoxContainer.new();menu.add_child(menu_body)
+	for item in [["保存",save_game],["読込",load_dialog],["ログ保存",save_log],["画像",portrait_dialog],["新しい旅",func():confirm("未保存の進行を終了し、新しい旅を始めます。保存済みファイルは変更しません。",new_game)]]:
+		var callback: Callable=item[1]
+		button(menu_body,item[0],func():menu.hide();callback.call())
+	local_button(menu_body,"全画面 F11",func():menu.hide();fullscreen())
 	for pair in [["bgm","BGM"],["voice","ボイス"],["se","SE"]]:
-		var check=CheckButton.new();check.text=pair[1]+"ミュート";mute_row.add_child(check)
+		var check=CheckButton.new();check.text=pair[1]+"ミュート";check.custom_minimum_size.y=40;menu_body.add_child(check)
 		check.toggled.connect(func(value):audio.set_mute(pair[0],value);audio.sync(data))
+	local_button(menu_body,"閉じる",menu.hide)
 	content=VBoxContainer.new();content.size_flags_vertical=Control.SIZE_EXPAND_FILL;base.add_child(content)
-	actor_row=HBoxContainer.new();base.add_child(actor_row)
-	footer=Label.new();footer.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;base.add_child(footer)
+	footer=Label.new();footer.custom_minimum_size.y=24;footer.clip_text=true;footer.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;base.add_child(footer)
 	engine=preload("res://engine_bridge.gd").new();add_child(engine)
-	if not engine.start_engine(): notice=engine.last_error;render();return
+	resized.connect(queue_layout)
+	if not engine.start_engine():notice=engine.last_error;render();return
 	await update({"op":"campaign_start"})
 func campaign() -> Dictionary: return data.get("campaign") if data.get("campaign") is Dictionary else {}
 func state() -> Dictionary: return data.get("state") if data.get("state") is Dictionary else {}
@@ -79,12 +97,17 @@ func emphasize_low_hp(label: Label,unit: Dictionary):
 		label.add_theme_color_override("font_color",Color("#ef4444"))
 		label.add_theme_font_override("font",low_hp_font)
 func row(parent: Node) -> HBoxContainer:
-	var r=HBoxContainer.new();parent.add_child(r);return r
+	var r=HBoxContainer.new();r.add_theme_constant_override("separation",8);parent.add_child(r);return r
 func button(parent: Node,text: String,fn: Callable,disabled:=false) -> Button:
-	var b=Button.new();b.text=text;b.custom_minimum_size.y=38;b.disabled=disabled or (engine!=null and engine.disconnected)
+	var b=Button.new();b.text=text;b.custom_minimum_size.y=40
+	b.set_meta("base_disabled",disabled);b.disabled=disabled or locked or presenting or (engine!=null and engine.disconnected)
 	parent.add_child(b);widgets.append(b)
 	b.pressed.connect(func():
-		if not locked and not presenting and not closing: fn.call())
+		if not closing and (b.get_meta("read_only",false) or (not locked and not presenting and not b.disabled)):fn.call())
+	b.focus_entered.connect(func():
+		focus_hint=b.tooltip_text
+		if is_instance_valid(footer) and notice.is_empty():footer.text=focus_hint)
+	b.focus_exited.connect(func():focus_hint="")
 	return b
 func clear(node: Node):
 	for child in node.get_children():node.remove_child(child);child.queue_free()
@@ -94,7 +117,7 @@ func portrait(parent: Node,u: Dictionary,face:=false,size_:=72) -> TextureRect:
 	parent.add_child(p);return p
 func card(parent: Node) -> VBoxContainer:
 	var p=PanelContainer.new();var style=StyleBoxFlat.new();style.bg_color=Color("#20333f")
-	style.set_corner_radius_all(9);style.content_margin_left=12;style.content_margin_right=12;style.content_margin_top=10;style.content_margin_bottom=10
+	style.set_corner_radius_all(9);style.set_content_margin_all(8)
 	p.add_theme_stylebox_override("panel",style);parent.add_child(p)
 	var v=VBoxContainer.new();p.add_child(v);return v
 func scroller(parent: Node) -> VBoxContainer:
@@ -102,16 +125,26 @@ func scroller(parent: Node) -> VBoxContainer:
 	s.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;parent.add_child(s)
 	var v=VBoxContainer.new();v.size_flags_horizontal=Control.SIZE_EXPAND_FILL;s.add_child(v);return v
 func confirm(text: String,fn: Callable):
+	var origin=get_viewport().gui_get_focus_owner()
+	var origin_key=str(origin.get_meta("ui_key","")) if origin!=null else memory.focus_key
 	var d=ConfirmationDialog.new();d.exclusive=true;d.title="確認";d.dialog_text=text;d.ok_button_text="はい";d.cancel_button_text="戻る"
-	add_child(d);d.confirmed.connect(func():d.queue_free();fn.call());d.canceled.connect(func():audio.ui("cancel");d.queue_free())
-	d.popup_centered(Vector2i(560,230));d.get_cancel_button().grab_focus()
+	add_child(d)
+	d.confirmed.connect(func():
+		if d.get_meta("submitted",false) or locked or presenting:return
+		d.set_meta("submitted",true);d.hide();d.queue_free();fn.call())
+	d.canceled.connect(func():audio.ui("cancel");d.hide();d.queue_free();memory.focus_key=origin_key;memory.restore())
+	d.popup_centered(Vector2i(mini(560,int(size.x)-32),230));d.get_cancel_button().grab_focus()
 	return d
 func fullscreen():
 	get_window().mode=Window.MODE_WINDOWED if get_window().mode==Window.MODE_FULLSCREEN else Window.MODE_FULLSCREEN
 func _unhandled_key_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode==KEY_F11:fullscreen()
-		elif event.keycode==KEY_ESCAPE and not presenting:cancel()
+		if event.keycode==KEY_F11:fullscreen();get_viewport().set_input_as_handled()
+		elif event.keycode==KEY_ESCAPE:
+			if menu.visible:menu.hide()
+			elif hud.close_detail():pass
+			elif not presenting:cancel()
+			get_viewport().set_input_as_handled()
 func _notification(what):
 	if what==NOTIFICATION_WM_CLOSE_REQUEST and not closing:close_game()
 func close_game():
@@ -122,24 +155,25 @@ func close_game():
 	await get_tree().process_frame
 	get_tree().quit()
 func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
-	if locked or closing:return {"ok":false}
+	if locked or closing or engine.busy:return {"ok":false,"error":"処理中です"}
 	locked=true
 	for b in widgets:
-		if is_instance_valid(b):b.disabled=true
+		if is_instance_valid(b) and not b.get_meta("read_only",false):b.disabled=true
+	if footer!=null:footer.text="処理中…"
 	var reply: Dictionary=await engine.request(request)
 	locked=false
 	if request.get("op")=="campaign" and request.get("action") not in ["begin","finishBattle","endTrial","trial","forecast","previewGear"] and reply.get("presentation")==null:
 		audio.ui("confirm" if reply.get("ok",false) else "cancel")
 	if reply.get("ok",false):
 		if reply.has("campaign"):
-			# Successful load commits all frontend metadata before its first render.
 			if frontend.has("images"):
-				portraits.activate(frontend.images);audio.restore(frontend.music);gear_preview={}
+				portraits.activate(frontend.images);audio.restore(frontend.music)
+			if request.get("op") in ["campaign_load","campaign_start"]:pages.reset_context();memory.reset();skip_capture_once=true
 			invalidate_preview();data=reply
 		notice=""
 	else:
 		notice=str(reply.get("error","操作できません"))
-		if reply.get("connection_lost",false):invalidate_preview()
+		if reply.get("connection_lost",false):invalidate_preview();pages.reset_context()
 	if closing:return reply
 	render()
 	if data.get("presentation")!=null and not presenting and not engine.disconnected:await present()
@@ -159,46 +193,57 @@ func present():
 	presenting=false
 	if not closing:render()
 func act(action: String,args: Array=[]):
+	if locked or presenting or closing:return
+	if action=="trial":pages.remember_trial(args)
 	invalidate_preview()
-	await update({"op":"campaign","action":action,"args":args,"presentation":action=="begin"})
+	var response=await update({"op":"campaign","action":action,"args":args,"presentation":action=="begin"})
+	if action=="endTrial" and response.get("ok",false):await pages.restore_trial()
+	return response
 func reconnect_engine():
 	if engine.start_engine():await new_game()
 	else:notice=engine.last_error;render()
 func invalidate_preview():
-	generation+=1;pending=null;chosen=[];preview={}
+	generation+=1;pending=null;chosen=[];preview={};preview_ready=false;preview_pending=false
 func new_game():
 	invalidate_preview()
 	portraits.activate({"version":1,"characters":{}});audio.restore({});gear_preview={};page="board"
 	await update({"op":"campaign_start"})
-func navigate(value: String):invalidate_preview();page=value;gear_preview={};render()
+func navigate(value: String):
+	invalidate_preview();page=value;pages.invalidate_quote(false);memory.focus_key="";render()
 func render():
-	audio.follow_connection(engine.connection_generation)
-	audio.sync(data)
-	widgets=widgets.filter(func(b):return is_instance_valid(b) and b.get_parent()==top)
-	for b in widgets:b.disabled=locked or presenting or (engine.disconnected and b!=retry_button)
+	if rendering:return
+	rendering=true
+	if not skip_capture_once:memory.capture()
+	skip_capture_once=false
+	audio.follow_connection(engine.connection_generation);audio.sync(data)
+	widgets=widgets.filter(func(b):return is_instance_valid(b) and (b.get_parent()==top or menu.is_ancestor_of(b)))
+	for b in widgets:
+		b.disabled=bool(b.get_meta("base_disabled",false)) or ((locked or presenting or (engine.disconnected and b!=retry_button)) and not b.get_meta("read_only",false))
 	retry_button.visible=engine.disconnected
+	var available=get_viewport_rect().size
+	ui_size_mode="narrow" if available.x<960 or available.y<640 else "compact" if available.x<1180 or available.y<760 else "standard"
+	var margin=12 if ui_size_mode=="standard" else 8
+	base.offset_left=margin;base.offset_right=-margin;base.offset_top=margin;base.offset_bottom=-margin
+	theme.default_font_size=18 if ui_size_mode=="standard" else 17
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
-	header.text="5525 / %s  %dG  経験値%d・隊Lv.%d\n編成%d/5人 / 累計%d時間" % [town_name(place),c.get("gold",0),c.get("xp",0),c.get("level",1),c.get("selected",[]).size(),c.get("hours",0)]
+	header.text="5525 / %s  %dG / 経験値%d・隊Lv.%d / 編成%d/5人 / 累計%d時間" % [town_name(place),c.get("gold",0),c.get("xp",0),c.get("level",1),c.get("selected",[]).size(),c.get("hours",0)]
+	header.tooltip_text=header.text+" / 経験値%d" % c.get("xp",0)
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	if battle:
-		if view_kind!="battle":
-			clear(content);battle_row=HBoxContainer.new();battle_row.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(battle_row)
-			board=preload("res://battle_board.gd").new();board.portraits=portraits;battle_row.add_child(board)
-			board.cell_clicked.connect(on_cell);board.deploy_drag.connect(deploy_dragged)
-			var sidebar=VBoxContainer.new();sidebar.name="BattleSidebar";sidebar.custom_minimum_size.x=380;battle_row.add_child(sidebar)
-			battle_header=VBoxContainer.new();battle_header.name="BattleHeader";sidebar.add_child(battle_header)
-			side=scroller(sidebar);side.custom_minimum_size.x=360
-			battle_actions=row(sidebar);battle_actions.name="BattleConfirm"
-			view_kind="battle"
+		if view_kind!="battle":clear(content);hud.mount();view_kind="battle"
 		render_battle()
 	else:
-		board=null;clear(content);view_kind="page"
+		board=null;actor_row=null;clear(content);view_kind="page"
 		var nav=row(content)
-		var tabs=[["board","掲示板"],["map","地図・出発"],["party","仲間・装備"],["shop","商店"],["items","道具"]] if phase=="town" else [["board","旅程"],["items","道具"]]
-		if phase=="town" and c.get("location")=="astaris":tabs.append(["inn","宿屋"])
-		for tab in tabs:button(nav,("● " if page==tab[0] else "")+tab[1],navigate.bind(tab[0]),phase!="town" and tab[0]=="items" and phase!="camp")
-		var body=scroller(content)
+		var tabs_=[["board","掲示板"],["map","地図・出発"],["party","仲間・装備"],["shop","商店"],["items","道具"]] if phase=="town" else [["board","旅程"],["items","道具"]]
+		if phase=="town" and c.get("location")=="astaris":tabs_.append(["inn","宿屋"])
+		for tab in tabs_:
+			var nb=button(nav,("● " if page==tab[0] else "")+tab[1],navigate.bind(tab[0]),phase!="town" and tab[0]=="items" and phase!="camp");memory.key(nb,"nav_"+tab[0])
+		var body: VBoxContainer
+		if phase=="town" and page in ["party","shop"]:
+			body=VBoxContainer.new();body.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(body)
+		else:body=scroller(content);memory.watch(body.get_parent(),"page_"+phase+"_"+page)
 		if phase=="town":
 			match page:
 				"map":pages.map(body)
@@ -209,19 +254,9 @@ func render():
 				_:render_town(body)
 		elif phase=="camp" and page=="items":render_items(body)
 		else:render_journey(body)
-	clear(actor_row)
-	var acting={}
-	for u in s.get("units",[]):
-		if u.id==s.get("actor"):acting=u
-	if data.get("presentation")!=null:
-		for u in s.get("units",[]):
-			if u.id==data.presentation.get("actor_id"):acting=u
-	if not acting.is_empty():
-		portrait(actor_row,acting,true,62)
-		var info=label_(actor_row,"%s  HP %d/%d  MP %d/%d" % [acting.name,acting.hp,acting.max,acting.mp,acting.maxMp])
-		emphasize_low_hp(info,acting)
-	if data.get("presentation")!=null:label_(actor_row,str(data.presentation.label))
-	footer.text=notice if not notice.is_empty() else ("処理中…" if locked else "演出中…" if presenting else "選択 → プレビュー → 確定 / Escで取消")
+	footer.text=notice if not notice.is_empty() else ("処理中…" if locked or preview_pending or pages.quote_pending else "演出中…" if presenting else focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消")
+	footer.tooltip_text=footer.text
+	rendering=false;memory.restore()
 func town_name(id) -> String:
 	for t in campaign().get("towns",[]):
 		if t.id==id:return t.name
@@ -254,87 +289,13 @@ func display_log(line: String) -> String:
 		var x=int(found.get_string(1));var y=int(found.get_string(2))
 		if x>=1 and x<=10 and y>=1 and y<=5:line=line.replace(found.get_string(),"(X%d,Y%d)" % [x-1,5-y])
 	return line
-func select_shop(uid: String):shop_uid=uid;gear_preview={};render()
+func select_shop(uid: String):await pages.select_member(uid)
 func render_shop(body):pages.shop(body)
-func preview_gear(id: String):
-	var r=await update({"op":"campaign","action":"previewGear","args":[shop_uid,id,shop_slot]})
-	if r.get("previewGear")!=null:
-		gear_preview=r.previewGear;render()
-		await get_tree().process_frame;await get_tree().process_frame
-		var quote=content.find_child("GearQuote",true,false)
-		if quote!=null:
-			for scroll in content.find_children("*","ScrollContainer",true,false):scroll.ensure_control_visible(quote)
+func preview_gear(id: String):await pages.request_quote(id)
 func inspect_movement(which: String):
 	if command!="move" or pending==null:return
 	await request_preview(which)
-func render_battle():
-	clear(battle_header);clear(side);clear(battle_actions)
-	var s=state();var deploying=s.get("deploying",false)
-	var order=GridContainer.new();order.name="TurnOrder";order.columns=5;battle_header.add_child(order)
-	for q in data.get("queue",[]):
-		for u in s.units:
-			if u.id==q.id:
-				var p=PanelContainer.new();var bg=StyleBoxFlat.new();bg.bg_color=Color("#27575d") if q.side=="ally" else Color("#623b48");p.add_theme_stylebox_override("panel",bg);order.add_child(p)
-				var face=portrait(p,u,true,44);face.tooltip_text=q.name
-	var cameras=row(battle_header)
-	for mode in range(3):button(cameras,["戦術","低","高"][mode],func():board.set_camera(mode))
-	if deploying:
-		label_(side,"配置 / 味方を選び、自陣マスへ",true)
-		label_(side,"クリックで移動・交換、ドラッグでも配置。時間・HP・MP消費なし。青: 攻撃範囲 / 緑枠: 奇襲対象")
-		if not s.units.any(func(u):return u.id==selected and u.side=="ally" and u.hp>0):
-			for u in s.units:
-				if u.side=="ally" and u.hp>0:selected=u.id;break
-		for u in s.units:
-			if u.side=="ally":button(side,("● " if selected==u.id else "")+"%s HP%d MP%d" % [u.name,u.hp,u.mp],func():selected=u.id;render(),u.hp<=0)
-		button(battle_actions,"配置リセット",act.bind("deployment_reset",[]));button(battle_actions,"戦闘開始",act.bind("begin",[]))
-	elif s.get("result")!=null:
-		label_(side,str(s.result),true)
-		button(battle_actions,"戦闘を終えて街道へ",act.bind("finishBattle",[]),data.get("trial")!=null)
-	else:
-		var actions=GridContainer.new();actions.columns=3;battle_header.add_child(actions)
-		for pair in [["attack","攻撃"],["move","移動"],["skill","スキル"],["item","ポーション"],["ether","エーテル"],["guard","防御"],["return","帰還"]]:
-			var action_button=button(actions,pair[1],choose_command.bind(pair[0]),locked or presenting or (pair[0]!="guard" and data.get("choices",{}).get(pair[0],[]).is_empty()))
-			action_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		for skill in data.get("skillset",[]):
-			var sources=[]
-			for src in skill.get("sources",[]):sources.append(campaign().get("slots",{}).get(src.get("slot",""),src.get("slot",""))+":"+str(src.get("itemName",src.get("itemId",""))))
-			button(side,skill.name+" / "+"・".join(sources),select_skill.bind(skill.id),presenting)
-		label_(side,"通常射程 %d / スキル射程 %d / 移動 %d" % [data.get("normalAttackReach",0),data.get("skillReach",0),data.get("moveReach",2)])
-		label_(side,"所持: ポーション 味方%d / 敵%d\nエーテル%d（ポーター・射程無限）" % [s.get("potions",{}).get("ally",0),s.get("potions",{}).get("enemy",0),s.get("ethers",0)])
-		label_(side,"行動数: %d" % s.get("actions",0))
-		label_(side,command_hint())
-		var names=[]
-		for uid in chosen:names.append(member_name(str(uid)))
-		label_(side,"選択: "+{"attack":"攻撃","skill":"スキル","move":"移動","guard":"防御","item":"ポーション","ether":"エーテル","return":"帰還"}.get(command,command)+" / "+"・".join(names))
-		if command=="move" and pending!=null:
-			var inspect=row(side);button(inspect,"仮位置: 通常",inspect_movement.bind("attack"));button(inspect,"仮位置: スキル",inspect_movement.bind("skill"))
-		if not preview.is_empty():
-			label_(side,("仮位置からの対象: " if command=="move" else "射程内候補: ")+" / ".join(preview.get("targets",[])))
-			label_(side,"着地点への固定予告: "+" / ".join(preview.get("risks",[])))
-			if command=="move":label_(side,"移動後の味方陣形: "+("成立" if preview.get("formationAfter",false) else "未成立"))
-			for hit in preview.get("damagePreview",[]):
-				var contributions=[]
-				for weapon in hit.get("weapons",[]):contributions.append("%s ATK%d" % [weapon.name,weapon.atk])
-				label_(side,"予測: %s → %s HP−%d\n%s / 成長補正+%d" % [hit.get("targetName",hit.recipientName),hit.recipientName,hit.hpLoss," + ".join(contributions),hit.get("bonus",0)])
-		button(battle_actions,"確定",commit,not(pending!=null or command=="guard") or presenting)
-		button(battle_actions,"取消",cancel,presenting)
-	if data.get("trial")!=null:
-		label_(side,str(data.trial.get("notice","木人で試用中")))
-		button(side,"試用を終了",act.bind("endTrial",[]),presenting)
-	else:button(side,"撤退",func():confirm("今回の旅を取り消し、受注／出発前の状態へ戻ります。",act.bind("retreat",[])),presenting)
-	for team in ["ally","enemy"]:
-		var active=data.get("formed",{}).get(team,false);var boost=active and data.get("boosted",{}).get(team,false)
-		var cells=[24,13,33] if team=="ally" else [25,16,36]
-		var occupied=s.units.filter(func(u):return u.side==team and u.hp>0 and cells.has(int(u.pos))).size()
-		label_(side,"%sの条件マス %d/3" % ["味方" if team=="ally" else "敵",occupied])
-		label_(side,("%s陣形 %s / 攻撃%s・被ダメージ%s" % ["味方" if team=="ally" else "敵","発動" if active else "未発動","×1.75" if boost else "×1.5" if active else "×1","×0.65" if boost else "×0.75" if active else "×1"]))
-	label_(side,"陣形条件: 点線の3マスを同陣営の生存者で埋める。陣営全体への補正。防御・かばう・丸めは別。")
-	render_unit_details(side,s)
-	for e in data.get("enemyInfo",[]):
-		label_(side,"%s / 通常%d・%s %s\n%s" % [member_name(e.id),e.normalReach,e.skill,"同横列" if e.skillReach==null else str(int(e.skillReach)),e.reason])
-	label_(side,"戦闘ログ（直近40件）")
-	label_(side,"\n".join(s.get("log",[]).slice(-40).map(display_log)))
-	board.update_state(data,preview,command,selected,chosen)
+func render_battle():hud.render()
 func command_hint() -> String:
 	var a={}
 	for u in state().get("units",[]):
@@ -390,8 +351,9 @@ func deploy_dragged(uid: String,pos: int):
 	if locked or presenting:return
 	await act("deploy",[uid,pos])
 func on_cell(pos: int):
-	if locked or presenting:return
+	if locked or presenting or closing:return
 	var s=state();var u=board.unit_at(pos)
+	if u.get("side")=="enemy":hud.selected_enemy=str(u.id)
 	if s.get("deploying",false):
 		if selected.is_empty():
 			if u.get("side")=="ally":selected=u.id;render()
@@ -401,36 +363,39 @@ func on_cell(pos: int):
 	if command in ["move","return"] or command=="skill" and data.get("skill")=="スタンプ":target=pos
 	elif not u.is_empty():target=u.id
 	if target==null:return
+	generation+=1;preview={};preview_ready=false;preview_pending=false
 	var options=data.get("choices",{}).get(command,[])
-	# JSON numbers arrive as float; clicks are int. Array.has is type-sensitive.
 	if target is int:options=options.map(func(value):return int(value))
 	var paired=command=="skill" and data.get("skillInfo")!=null and data.skillInfo.get("target") in ["pair","upToTwo"]
 	if paired:
 		if chosen.has(target):chosen.erase(target)
 		elif chosen.size()<2:chosen.append(target)
 		target=chosen.duplicate()
-	if paired:
 		for option in options:
 			if option.size()==chosen.size() and option.all(func(id):return chosen.has(id)):target=option;break
 	if not options.has(target):
-		pending=null;preview={}
+		pending=null
 		if not paired:chosen=[]
 		render();return
 	if not paired and target is String:chosen=[target]
 	pending=target
 	await request_preview("attack")
 func request_preview(which: String):
-	generation+=1
+	generation+=1;preview={};preview_ready=false;preview_pending=true
 	var token=generation;var actor=state().get("actor");var action_count=state().get("actions");var kind=command
-	var target=JSON.stringify(pending);var skill=data.get("skill")
+	var target=JSON.stringify(pending);var skill=data.get("skill");var connection=engine.connection_generation
+	render()
 	var reply=await update({"op":"preview","kind":kind,"target":pending,"previewKind":which})
 	if closing:return
-	if reply.get("ok",false) and token==generation and pending!=null and target==JSON.stringify(pending) and command==kind and state().get("actor")==actor and state().get("actions")==action_count and data.get("skill")==skill:
-		preview=reply.preview
+	if token==generation:
+		preview_pending=false
+		if reply.get("ok",false) and pending!=null and target==JSON.stringify(pending) and command==kind and state().get("actor")==actor and state().get("actions")==action_count and data.get("skill")==skill and connection==engine.connection_generation:
+			preview=reply.preview;preview_ready=true
 	render()
 func cancel():
 	invalidate_preview();audio.ui("cancel");render()
 func commit():
+	if not can_commit():return
 	var target=pending;invalidate_preview();audio.ui("confirm")
 	await update({"op":"act","kind":command,"target":target,"presentation":true})
 func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback: Callable, filename: String=""):
@@ -492,3 +457,35 @@ func portrait_dialog():
 func import_portrait(path: String,uid: String):
 	var r=await update({"op":"godot_io","action":"portrait","path":path})
 	if r.get("ok",false):portraits.assign(uid,r.data);notice="画像を変更しました。割当を残すには進行を保存してください。";render()
+
+func can_commit() -> bool:
+	if locked or presenting or closing or engine.disconnected or preview_pending:return false
+	if state().is_empty() or state().get("deploying",false) or state().get("result")!=null:return false
+	if hud.acting().get("side")!="ally":return false
+	return command=="guard" or (pending!=null and preview_ready and not preview.is_empty())
+func local_button(parent: Node,text: String,callback: Callable) -> Button:
+	var control=button(parent,text,callback);control.set_meta("read_only",true);control.disabled=false;return control
+func primary(control: Button) -> Button:
+	control.custom_minimum_size.y=44;control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;return control
+func short_name(control: Label,full: String):
+	control.max_lines_visible=2;control.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;control.tooltip_text=full
+	control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+func open_menu():
+	menu.popup_centered(Vector2i(300,0))
+func modal_open() -> bool:
+	for child in get_children():
+		if child is Window and child.visible:return true
+	return false
+func queue_layout():
+	if layout_queued or engine==null:return
+	layout_queued=true;call_deferred("refresh_layout")
+func refresh_layout():
+	layout_queued=false
+	if not closing:render()
+func _input(event):
+	if event is InputEventKey and event.pressed and event.echo and event.keycode in [KEY_ENTER,KEY_KP_ENTER,KEY_SPACE]:
+		var focus=get_viewport().gui_get_focus_owner()
+		if focus is BaseButton or focus==board:get_viewport().set_input_as_handled()
+	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
+		if event.double_click and event.pressed:swallow_mouse_release=true;get_viewport().set_input_as_handled()
+		elif not event.pressed and swallow_mouse_release:swallow_mouse_release=false;get_viewport().set_input_as_handled()

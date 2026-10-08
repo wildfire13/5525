@@ -16,7 +16,7 @@ func settle():
 	while game.locked or game.presenting:await process_frame
 func button_named(text: String):
 	for b in game.find_children("*","Button",true,false):
-		if b.text==text:return b
+		if b.text.trim_prefix("● ")==text or text=="確定" and (b.text.ends_with("を確定") or b.text=="移動して手番終了"):return b
 	return null
 func click_at(at: Vector2):
 	for pressed in [true,false]:
@@ -53,8 +53,8 @@ func layout(label: String):
 		if b!=null:rects[text]=str(b.get_global_rect())
 	check(fully_visible(game.actor_row),label+" actor face fixed")
 	check(fully_visible(game.battle_header.find_child("TurnOrder",true,false)),label+" queue fixed")
-	check(game.side.get_parent().size.y>80,label+" usable detail scroll")
-	check(game.battle_actions.get_global_rect().position.y>=game.side.get_parent().get_global_rect().end.y,label+" confirm below details")
+	check(game.side.get_parent().size.y>80 if game.ui_size_mode=="standard" else not game.hud.details.visible,label+" usable detail scroll or compact collapsed details")
+	check(game.battle_actions.get_global_rect().position.y>=game.board.get_global_rect().end.y,label+" confirm remains in fixed lower dock")
 	layouts.append({"name":label,"window":str(root.size),"viewport":str(root.get_visible_rect()),"controls":rects})
 func facing(label: String):
 	for u in game.state().units:
@@ -90,11 +90,11 @@ func run():
 	var before_quote=await snapshot()
 	await game.preview_gear("javelin-wood");await settle()
 	var table=game.find_child("GearComparison",true,false)
-	check(table!=null and table.get_child_count()==24,"mixed-reach comparison has three ATK rows")
-	if table!=null and table.get_child_count()==24:
+	check(table!=null and table.get_child_count()==32,"mixed-reach comparison has three ATK rows")
+	if table!=null and table.get_child_count()==32:
 		var expected=[["通常ATK / 距離1","23","44"],["通常ATK / 距離2","23","44"],["通常ATK / 距離3","射程外","21"],["最大通常射程","2","3"]]
 		for i in range(4):
-			check([table.get_child(9+i*3).text,table.get_child(10+i*3).text,table.get_child(11+i*3).text]==expected[i],"offhand table row "+str(i))
+			check([table.get_child(12+i*4).text,table.get_child(13+i*4).text,table.get_child(14+i*4).text]==expected[i],"offhand table row "+str(i))
 	await capture("01-offhand-quote")
 	check(await snapshot()==before_quote,"comparison never mutates campaign")
 	game.pages.cancel_quote()
@@ -110,6 +110,7 @@ func run():
 		root.size=window_size;await settle()
 		for camera in range(3):
 			await click(["戦術","低","高"][camera])
+			if game.ui_size_mode=="standard":game.hud.tabs.current_tab=1;await settle()
 			var label="%dx%d-camera%d" % [window_size.x,window_size.y,camera]
 			check(game.board.camera_mode==camera,label+" camera input")
 			game.side.get_parent().scroll_vertical=0;await settle();layout(label+" top")
