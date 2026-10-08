@@ -13,6 +13,8 @@
 
 再監査F1/F2の音声回帰を修正し、候補の通常ランチャーを仕上げました。最新の差分・回帰・起動証跡は [REAUDIT-FIXES.md](REAUDIT-FIXES.md)。先行する独立監査R1〜R5を修正し、障害注入と終了時の残留確認を追加しました。最新の修正・制約・再監査対象は [AUDIT-FIXES.md](AUDIT-FIXES.md)、全機能照合は [MIGRATION-CHECKLIST.md](MIGRATION-CHECKLIST.md) を参照してください。
 
+旧版との独立比較で見つかった赤太字・行動者の揺れ・同名上書き保存の差は [LEGACY-PARITY-FIXES.md](LEGACY-PARITY-FIXES.md) に修復内容と検証範囲を記録しています。過去のQA記録にある「既存ファイルへの保存拒否」は、この修復後の製品仕様ではありません。
+
 ## 実行環境と起動
 
 確認した実行ファイル:
@@ -56,7 +58,7 @@ python -X utf8 -B 'G:\Apps\CodexProjects\5525-godot-work\godot\check.py' --godot
 
 ## 保存と画像
 
-Godot専用の `user://`（custom user dir名 `5525-godot-prototype`）を使用します。埋込ダイアログで保存先を選び、`5525-godot-<時刻>-<識別値>.json` を初期名にした新規ファイルへ保存します。初期フォルダーは候補専用 `user://` です。既存ファイルに同名で書き込もうとした場合は拒否します。
+Godot専用の `user://`（custom user dir名 `5525-godot-prototype`）を使用します。埋込ダイアログで保存先を選び、`5525-godot-<時刻>-<識別値>.json` を初期名にした新規ファイルへ保存します。初期フォルダーは候補専用 `user://` です。既存ファイルは上書き確認後、完成した一時ファイルとの原子的な置換で保存します。取消・書込失敗・確認後の内容変更では元ファイルを保持します。
 
 旧JSONの読込は読み取りのみで、画像と音楽の付加情報を切り離して既存Nodeの検証・旧装備移行を通した後に反映します。キャラ画像は既存Python正規化を用い、PNGとSHA256をセーブの `nativePortraits` に格納します。現在の画像ファイル群はコピーも上書きもしていません。
 

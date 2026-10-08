@@ -21,7 +21,9 @@ var press_cell := -1
 var press_uid := ""
 var pulse := 0.0
 var hit_tween: Tween
+var low_hp_font: FontVariation
 func _ready():
+	low_hp_font=FontVariation.new();low_hp_font.base_font=ThemeDB.fallback_font;low_hp_font.variation_embolden=1.0
 	custom_minimum_size=Vector2(620,400)
 	size_flags_horizontal=Control.SIZE_EXPAND_FILL;size_flags_vertical=Control.SIZE_EXPAND_FILL
 	right_panel=self
@@ -79,6 +81,7 @@ func input_event(event):
 func set_camera(mode: int):
 	camera_mode=mode%3;world.update_camera();overlay.queue_redraw()
 func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, chosen: Array):
+	reset_animation()
 	data=d;preview=pr;kind=command;selected=uid;targets=chosen
 	var state: Dictionary=d.get("state") if d.get("state") is Dictionary else {}
 	var phase: Dictionary=d.get("presentation") if d.get("presentation") is Dictionary else {}
@@ -102,7 +105,9 @@ func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, c
 		# Enemy PNGs already face left; allies/custom portraits keep their source orientation.
 		nodes.sprite.flip_h=false
 		nodes.label.text="%s\n%d/%d%s" % [u.name,u.hp,u.max," 防" if u.get("guard",false) else ""]
-		nodes.label.modulate=Color("#ff7070") if u.hp*4<u.max else Color("#a9ede0") if u.side=="ally" else Color("#f3b4b4")
+		var low=u.max>0 and u.hp*4<u.max
+		nodes.label.modulate=Color("#ef4444") if low else Color("#a9ede0") if u.side=="ally" else Color("#f3b4b4")
+		nodes.label.font=low_hp_font if low else ThemeDB.fallback_font
 	for uid_ in actors.keys():
 		if not live_ids.has(uid_):actors[uid_].root.queue_free();actors.erase(uid_)
 	ghost.visible=false
@@ -184,19 +189,28 @@ func draw_overlay():
 	var font=ThemeDB.fallback_font
 	for x in range(10):overlay.draw_string(font,project(point(40+x)+Vector3(0,.02,.72)),str(x),HORIZONTAL_ALIGNMENT_CENTER,-1,14,Color.WHITE)
 	for y in range(5):overlay.draw_string(font,project(point(y*10)+Vector3(-.85,.02,0)),str(4-y),HORIZONTAL_ALIGNMENT_CENTER,-1,14,Color.WHITE)
-func animate(p: Dictionary):
-	if not actors.has(p.get("unit_id","")) or p.phase not in ["move","hurt","heal"]:return
+func reset_animation():
 	if hit_tween and hit_tween.is_running():hit_tween.kill()
+	hit_tween=null
+	for nodes in actors.values():
+		nodes.sprite.position=Vector3(0,.75,0);nodes.sprite.modulate=Color.WHITE
+func animate(p: Dictionary) -> float:
+	reset_animation()
+	if not actors.has(p.get("unit_id","")) or p.phase not in ["action","move","hurt","heal"]:return 0.0
 	var root: Node3D=actors[p.unit_id].root
-	var base=root.position
+	var sprite: Sprite3D=actors[p.unit_id].sprite
 	hit_tween=create_tween()
 	if p.phase=="move":
 		root.position=point(int(p.from));hit_tween.tween_property(root,"position",point(int(p.to)),.24)
-	elif p.phase=="hurt":
-		for dx in [.1,-.1,.07,0.0]:hit_tween.tween_property(root,"position",base+Vector3(dx,0,0),.055)
-	elif p.phase=="heal":
-		actors[p.unit_id].sprite.modulate=Color(.6,1,.7)
-		hit_tween.tween_property(actors[p.unit_id].sprite,"modulate",Color.WHITE,.3)
+		return .24
+	if p.phase in ["action","hurt"]:
+		# Legacy portrait-only shake. The caller waits before acknowledging the next phase.
+		for dx in [0,-5,5,-4,4,-3,3,-2,2,0,0,0]:
+			hit_tween.tween_property(sprite,"position",Vector3(0,.75,0)+world.camera.global_basis.x*float(dx)*.018,.03)
+		return .42
+	sprite.modulate=Color(.6,1,.7)
+	hit_tween.tween_property(sprite,"modulate",Color.WHITE,.3)
+	return .3
 func _process(delta):
 	pulse+=delta
 	if overlay:overlay.queue_redraw()

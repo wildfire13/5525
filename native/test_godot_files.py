@@ -6,7 +6,7 @@ from pathlib import Path
 from godot_files import write_new, run, prepare_portraits
 from portraits import read_raster
 class GodotFilesTests(unittest.TestCase):
-    def test_atomic_no_overwrite_and_utf8_json(self):
+    def test_unconfirmed_creation_cannot_replace_existing_utf8_json(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'new.json'; data={'name':'アスタリス'}
             write_new(path,data); self.assertEqual(json.loads(path.read_text(encoding='utf-8')),data)
@@ -79,5 +79,53 @@ class GodotFilesTests(unittest.TestCase):
             self.assertEqual(temp.read_text(),'other')
             with self.assertRaises(ValueError):godot_files.recover_write(path,{},'../bad')
             self.assertTrue(temp.exists())
+
+    def test_confirmed_replace_is_atomic_and_keeps_utf8(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'save.json';write_new(path,{'old':1})
+            original=path.read_bytes();fingerprint=godot_files.write_target(path)['sha256']
+            real=os.replace
+            def replace(temp,destination):
+                self.assertEqual(path.read_bytes(),original)
+                self.assertEqual(json.loads(Path(temp).read_text(encoding='utf-8')),{'new':'アスタリス'})
+                real(temp,destination)
+            with patch('godot_files.os.replace',side_effect=replace):
+                result=run({'action':'write','path':str(path),'data':{'new':'アスタリス'},'overwrite':True,'expected_sha256':fingerprint})
+            self.assertEqual(result['outcome'],'saved')
+            self.assertEqual(json.loads(path.read_text(encoding='utf-8')),{'new':'アスタリス'})
+            self.assertEqual(list(path.parent.iterdir()),[path])
+
+    def test_confirmation_is_required_and_stale_confirmation_preserves_newer_file(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'save.json';write_new(path,{'old':1})
+            original=path.read_bytes();fingerprint=godot_files.write_target(path)['sha256']
+            with self.assertRaises(ValueError):godot_files.write_save(path,{},overwrite=True)
+            self.assertEqual(path.read_bytes(),original)
+            path.write_text('{"external":2}',encoding='utf-8');newer=path.read_bytes()
+            with self.assertRaises(ValueError):godot_files.write_save(path,{},overwrite=True,expected_sha256=fingerprint)
+            self.assertEqual(path.read_bytes(),newer)
+            self.assertEqual(list(path.parent.iterdir()),[path])
+
+    def test_overwrite_permission_disk_and_replace_failures_preserve_original(self):
+        for target,fault in [('godot_files.os.fsync',OSError(errno.ENOSPC,'full')),
+                             ('godot_files.os.replace',PermissionError(errno.EACCES,'denied')),
+                             ('godot_files.os.replace',OSError(errno.EIO,'replace failed'))]:
+            with self.subTest(target=target,fault=fault),tempfile.TemporaryDirectory() as folder:
+                path=Path(folder)/'save.json';write_new(path,{'old':1});original=path.read_bytes()
+                fingerprint=godot_files.write_target(path)['sha256']
+                with patch(target,side_effect=fault),self.assertRaises(OSError):
+                    godot_files.write_save(path,{'new':2},'b'*32,True,fingerprint)
+                self.assertEqual(path.read_bytes(),original)
+                self.assertEqual(list(path.parent.iterdir()),[path])
+
+    def test_overwrite_recovery_distinguishes_old_and_published_contents(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'save.json';write_new(path,{'old':1});original=path.read_bytes()
+            data={'new':2};token='b'*32;temp=godot_files.operation_temp(path,token);temp.write_text('partial')
+            self.assertEqual(godot_files.recover_write(path,data,token)['outcome'],'not_saved')
+            self.assertEqual(path.read_bytes(),original);self.assertFalse(temp.exists())
+            godot_files.write_save(path,data,token,True,godot_files.write_target(path)['sha256'])
+            self.assertEqual(godot_files.recover_write(path,data,token)['outcome'],'saved')
+            self.assertEqual(json.loads(path.read_text()),data)
 
 if __name__=='__main__':unittest.main()
