@@ -14,4 +14,5 @@ extraGear.push(...[
  ['longspear-wood','木製の両手槍','spear',2,34,2,14,140],
  ['javelin-wood','木製の投げ槍','spear',1,21,3,10,100],
 ].map(([id,name,type,hands,atk,reach,str,price])=>({id,name,slot:'weapon',type,hands,atk,reach,str,price,int:0,agi:0,grade:0,material:'wood',note:`比較試作用の仮数値。${hands===2?'両手2枠占有・攻撃力は1回だけ加算。':'片手1枠。'}独自スキルなし。${id==='javelin-wood'?'投擲に弾数・消耗品・MPの消費なし。':''}火力だけでなく射程・占有枠を含めてバランス検証予定。`})));
+extraGear.push({id:'swift-boots',name:'俊足の靴（試作）',slot:'feet',type:'armor',material:'cloth',price:70,grade:0,str:0,int:0,agi:0,hp:0,effect:'swift',note:'移動力+1。先駆けと加算は暫定。価格70Gは試遊用の提案値。'});
 module.exports={slots,storage,canonical,allowed,identity,extraGear};

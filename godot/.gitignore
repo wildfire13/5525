@@ -1,0 +1,6 @@
+.godot/
+*.tmp
+qa/*.json
+qa/*.log
+qa/*.png
+qa/visual/

@@ -6,6 +6,7 @@ const B = require('./campaign-battle.js');
 const J = require('./journey.js');
 const E = require('./equipment-skills.js');
 const S = require('./equipment-slots.js');
+const {isDeepStrictEqual} = require('node:util');
 const Campaign = (() => {
   const INN_PRICE = 30; // Whole active party, provisional playtest price.
   const VERSION = 1, MAX_SAVE_BYTES = 1024 * 1024;
@@ -41,7 +42,7 @@ const Campaign = (() => {
   ];
   gear.push(...['wood','iron-1'].map(suffix=>({id:`guard-shield-${suffix}`,slot:'weapon',name:suffix==='wood'?'木製の護衛盾':'鉄製の護衛盾＋1',type:'shield',material:suffix==='wood'?'wood':'iron',grade:suffix==='wood'?0:1,price:0,atk:0,reach:0,skill:'guard',str:0,int:0,agi:0,note:'かばうの装備源。旧セットの価格・攻撃力は剣へ配分。盾の攻撃力0／価格0は移行用の仮配分。'})));
   const items = [
-    {id:'potion',name:'ポーション',price:20,amount:55,resource:'hp'},
+    {id:'potion',name:'ポーション',price:40,amount:55,resource:'hp'},
     {id:'ether',name:'エーテル',price:30,amount:3,resource:'mp'},
   ];
   const skills = {guard:'かばう',archer:'スナイプ',mage:'ヒール',scout:'奇襲',stamp:'スタンプ',porter:'陣形強化',...Object.fromEntries(Object.entries(E.definitions).map(([id,d])=>[id,d.name]))};
@@ -147,7 +148,7 @@ const Campaign = (() => {
     if(!J.travel(s.journey,route))return false;
     s.hours+=route==='short'?2:4;
     const b=B.create({ally:s.selected,enemy:enemies,formation:j.formation,skillStage:s.level,
-      potions:s.inventory.potion,enemyPotions:j.stage===0?0:1,deployment:true});
+      potions:s.inventory.potion,ethers:s.inventory.ether,enemyPotions:j.stage===0?0:1,deployment:true});
     applyEquipment(s,b);b.campaignToken=j.token;b.campaignStage=j.stage;
     b.deploymentInitial=b.units.filter(u=>u.side==='ally').map(u=>({id:u.id,pos:u.pos}));
     s.battle=b;j.phase='deployment';s.phase='deployment';note(s,`${j.stage+1}区間目：${route==='short'?'近道':'迂回'}で遭遇。`);return true;
@@ -187,7 +188,7 @@ const Campaign = (() => {
     if(b.units.some(u=>u.side==='enemy'&&u.hp>0))return false;
     if(!J.finishBattle(j,b))return false;
     for(const u of allies){s.characters[u.id].hp=u.hp;s.characters[u.id].mp=u.mp;}
-    s.inventory.potion=b.potions.ally;s.hours+=1;
+    s.inventory.potion=b.potions.ally;s.inventory.ether=b.ethers??s.inventory.ether;s.hours+=1;
     const reward={xp:20,gold:8};gainXp(s,reward.xp);s.gold+=reward.gold;
     note(s,`戦闘勝利：戦闘EXP＋${reward.xp}・戦利品${reward.gold}G（配達報酬とは別）。`);
     s.battle=null;s.phase=j.phase==='delivery'?'arrival':j.phase;return true;
@@ -415,6 +416,7 @@ const Campaign = (() => {
       demand(JSON.stringify(b.units.filter(u=>u.side==='ally').map(u=>u.id))===JSON.stringify(s.selected),'味方の一致');
       demand(b.units.some(u=>u.side==='enemy')&&b.units.every(u=>['ally','enemy'].includes(u.side)),'敵味方');
       demand(integer(b.actions)&&record(b.potions)&&integer(b.potions.ally,0,99)&&integer(b.potions.enemy,0,99)&&Array.isArray(b.log)&&b.log.every(line=>typeof line==='string')&&Array.isArray(b.recentEnemies)&&b.recentEnemies.every(e=>record(e)&&typeof e.name==='string'&&typeof e.action==='string'),'戦闘資源');
+      demand(b.ethers===undefined||integer(b.ethers,0,99),'戦闘エーテル');
       demand(b.logDropped===undefined||integer(b.logDropped,0,Number.MAX_SAFE_INTEGER),'省略ログ件数');
       demand(b.victoryEffectsApplied===undefined||typeof b.victoryEffectsApplied==='boolean','勝利効果状態');
       demand(b.skillEventSequence===undefined||integer(b.skillEventSequence,0,Number.MAX_SAFE_INTEGER),'発動連番');
@@ -434,7 +436,7 @@ const Campaign = (() => {
         demand(u.equippedSkill===undefined||u.equippedSkill===null||Object.hasOwn(skills,u.equippedSkill),'装備スキル');
         demand(u.canInvade===undefined||typeof u.canInvade==='boolean','侵入能力');
         for(const key of ['firstMoveUsed','returnUsed'])demand(u[key]===undefined||typeof u[key]==='boolean','一戦の使用状態');
-        demand(u.effects===undefined||Array.isArray(u.effects)&&new Set(u.effects).size===u.effects.length&&u.effects.every(id=>['invasion','returnHome','victoryBreath','loneWolf','firstStride'].includes(id)),'装飾効果');
+        demand(u.effects===undefined||Array.isArray(u.effects)&&new Set(u.effects).size===u.effects.length&&u.effects.every(id=>['invasion','returnHome','victoryBreath','loneWolf','firstStride','swift'].includes(id)),'装飾効果');
         demand(u.covers===undefined||Array.isArray(u.covers)&&u.covers.length<=2&&new Set(u.covers).size===u.covers.length&&u.covers.every(id=>id!==u.id&&b.units.some(t=>t.id===id&&t.side===u.side)),'防衛線');
         demand(integer(u.skillStage,1,100000000),'スキル段階');
         demand(typeof u.guard==='boolean'&&(u.cover===null||typeof u.cover==='string'&&b.units.some(t=>t.id===u.cover&&t.side===u.side))&&(u.boost===undefined||typeof u.boost==='boolean'),'戦闘支援状態');
@@ -460,11 +462,11 @@ const Campaign = (() => {
         if(u.side==='enemy')demand(u.max===base.max&&u.maxMp===base.mp&&u.atk===base.atk&&u.agi===base.agi&&u.reach===base.reach&&u.equippedSkill===undefined&&u.weapon===base.weapon&&u.effects===undefined&&u.activeSkills===undefined&&u.selectedSkill===undefined&&u.skillSources===undefined&&u.attackWeapons===undefined&&u.attackBonus===undefined,'敵の基本能力');
         if(u.side==='ally'){const st=stats(s.characters[u.id]);demand(u.max===st.max&&u.maxMp===st.maxMp&&u.atk===st.atk&&u.agi===st.speed&&u.reach===st.reach&&u.equippedSkill===st.skill,'装備能力の一致');
           demand(s.characters[u.id].equipmentRevision!==2||Array.isArray(u.attackWeapons)&&Array.isArray(u.skillSources)&&Array.isArray(u.activeSkills),'装備計算情報なし');
-          demand(u.attackWeapons===undefined||JSON.stringify(u.attackWeapons?.map(({name,...w})=>w))===JSON.stringify(st.attackWeapons.map(({name,...w})=>w)),'通常攻撃武器');
+          demand(u.attackWeapons===undefined||isDeepStrictEqual(u.attackWeapons?.map(({name,...w})=>w),st.attackWeapons.map(({name,...w})=>w)),'通常攻撃武器');
           demand(u.attackBonus===undefined||u.attackBonus===st.attackBonus,'通常攻撃補正');
           demand((u.attackWeapons===undefined)===(u.attackBonus===undefined),'通常攻撃情報');
           demand(u.activeSkills===undefined||JSON.stringify(u.activeSkills)===JSON.stringify(st.activeSkills),'アクティブ一覧');
-          demand(u.skillSources===undefined||JSON.stringify(u.skillSources)===JSON.stringify(st.skillSources),'スキル装備源');
+          demand(u.skillSources===undefined||isDeepStrictEqual(u.skillSources,st.skillSources),'スキル装備源');
           demand(u.selectedSkill===undefined||st.activeSkills.includes(u.selectedSkill),'選択スキル');
           demand(u.effects===undefined||JSON.stringify(u.effects)===JSON.stringify(st.effects),'装飾能力の一致');
           demand(u.canInvade===undefined||u.canInvade===(u.job!=='porter'&&st.effects.includes('invasion')),'侵入権限の一致');

@@ -50,7 +50,7 @@ function view(ok=true, error=null) {
   if(!state)return {ok,error,state:null,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null}:{})};
   const a=state.units.find(u=>u.id===state.actor);
   const choices={};
-  for(const k of ['move','attack','skill','item']) {
+  for(const k of ['move','attack','skill','item',...(campaign?['ether']:[])]) {
     if(k==='skill'&&a&&B.skillTargets){choices[k]=B.skillTargets(state,a);continue;}
     const targets=k==='move'||(k==='skill'&&a&&B.activeSkill(a)==='stamp')?Array.from({length:50},(_,i)=>i):state.units.map(u=>u.id);
     choices[k]=targets.filter(t=>B.legal(state,k,t));
@@ -60,7 +60,7 @@ function view(ok=true, error=null) {
   if(a)for(const kind of ['attack','skill',...(campaign?['return']:[])])ranges[kind]=Array.from({length:50},(_,p)=>p).filter(p=>{const u=state.units.find(u=>u.hp>0&&u.pos===p),support=kind==='skill'&&['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(B.activeSkill(a));return B.inRange(a,u?.side||(support?'ally':'enemy'),p,kind,state);});
   const deployment=state.deploying?Object.fromEntries(state.units.filter(u=>u.side==='ally'&&u.hp>0).map(u=>[u.id,{ranges:Array.from({length:50},(_,p)=>p).filter(p=>B.inRange(u,p%10<5?'ally':'enemy',p,'attack',state)),ambush:state.units.filter(t=>t.hp>0&&B.ambush(state,u,t)).map(t=>t.pos)}])):{};
   const stampAreas=a&&B.activeSkill(a)==='stamp'?Object.fromEntries(choices.skill.map(p=>[p,B.stampCells(a,p)])):{};
-  return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillReach:a?B.attackReach(a,'skill'):0,normalAttackReach:a?B.attackReach(a,'attack'):0,skillset:a?B.activeSkills(a).map(id=>({id,name:B.skillName({...a,selectedSkill:id}),sources:(a.skillSources||[]).filter(x=>x.id===id).map(x=>({...x,itemName:campaignEngine().gear.find(g=>g.id===x.itemId)?.name||x.itemId}))})):[],skillInfo:a?B.equipmentSkills[B.activeSkill(a)]||null:null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
+  return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillReach:a?B.attackReach(a,'skill'):0,normalAttackReach:a?B.attackReach(a,'attack'):0,skillset:a?B.activeSkills(a).map(id=>({id,name:B.skillName({...a,selectedSkill:id}),sources:(a.skillSources||[]).filter(x=>x.id===id).map(x=>({...x,itemName:campaignEngine().gear.find(g=>g.id===x.itemId)?.name||x.itemId}))})):[],skillInfo:a?B.equipmentSkills[B.activeSkill(a)]||null:null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),enemyInfo:state.units.filter(u=>u.side==='enemy').map(u=>require('./intent-info.cjs').describe(B,state,u)),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
 }
 function preview(kind,target,previewKind='attack') {
   if(!state||!B.legal(state,kind,target))return {ok:false,error:'無効なプレビュー'};
@@ -154,7 +154,7 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
     }
     else if(r.op==='campaign_load') {
       if(trial)throw Error('試用を終了してから読み込んでください');
-      const loaded=campaignEngine().deserialize(typeof r.data==='string'?r.data:JSON.stringify(r.data));campaign=loaded;trial=null;qa=null;syncCampaign();
+      const loaded=campaignEngine().deserialize(typeof r.data==='string'?r.data:JSON.stringify(r.data));if(loaded.battle&&loaded.battle.ethers===undefined)loaded.battle.ethers=loaded.inventory.ether;campaign=loaded;trial=null;qa=null;syncCampaign();
       log=P.create({mode:'campaign'});record('run.started',{reason:'campaign.loaded'});response=view();
     }
     else if(r.op==='campaign') {
@@ -213,6 +213,7 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       response={...view(ok,ok?null:'不正な行動です'),voiceEvents:captured.events};
     }
     else if(r.op==='preview')response=preview(r.kind,r.target,r.previewKind);
+    else if(r.op==='godot_io')response=require('./godot-io.cjs')(r);
     else if(r.op==='record') {record(r.type,r.details);response={ok:true};}
     else if(r.op==='export') {record('log.export.requested');response={ok:true,data:{...log.export(context()),...(campaign?{campaign:campaignSummary()}: {})}};}
     else if(r.op==='view')response=view();

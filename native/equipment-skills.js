@@ -1,6 +1,7 @@
 'use strict';
 // Source: restored proposal, 2026-10-02 11:11 UTC. All numbers are playtest values.
 const definitions = {
+  swift:{name:'俊足',classification:'passive',description:'通常移動力+1。先駆けと加算（暫定）：通常3、初回4。侵入制限・行動数は変更しない。'},
   retreatSlash:{name:'退き斬り',classification:'active',cost:1,reach:1,target:'unit',description:'射程1の敵へ70%攻撃後、自陣側へ1マス後退。退路が塞がる／盤外なら使用不可。MP1。'},
   knockback:{name:'吹き飛ばし',classification:'active',cost:1,reach:1,target:'unit',description:'射程1の敵へ通常攻撃。対象の先が空いていれば1マス押す。盤外・占有時は攻撃のみ。MP1。'},
   splitShot:{name:'分け撃ち',classification:'active',cost:1,reach:3,target:'pair',description:'射程3の異なる敵2体を順に指定し、各60%攻撃。同じ敵への集中不可。MP1。'},

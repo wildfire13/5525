@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "purpose": "asset handoff; merge into game catalog rather than replace existing catalog",
+  "selection": "choose once per quest start, reuse through nonbattle scenes and after battle",
+  "tracks": [
+    {
+      "id": "quest_01_open_road",
+      "name": "道の先へ",
+      "file": "production/delivery/loops/quest_01_open_road_loop_48k24.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "bits_per_sample": 24,
+      "frames": 921730,
+      "loop_start_frame": 0,
+      "loop_end_frame_exclusive": 921730,
+      "bytes": 5530424,
+      "sha256": "7f372ab76b890c7797c8371873d23a343eab19ddcfc4642a8e4474e35b23e422"
+    },
+    {
+      "id": "quest_02_woodland",
+      "name": "木陰の小径",
+      "file": "production/delivery/loops/quest_02_woodland_loop_48k24.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "bits_per_sample": 24,
+      "frames": 1071753,
+      "loop_start_frame": 0,
+      "loop_end_frame_exclusive": 1071753,
+      "bytes": 6430562,
+      "sha256": "b57ab9f37b78c593d9f027ced7a8e5c6741abdbbab9ecb8fad062c19804467e3"
+    },
+    {
+      "id": "quest_03_quiet_horizon",
+      "name": "遠い灯り",
+      "file": "production/delivery/loops/quest_03_quiet_horizon_loop_48k24.wav",
+      "sample_rate": 48000,
+      "channels": 2,
+      "bits_per_sample": 24,
+      "frames": 1212918,
+      "loop_start_frame": 0,
+      "loop_end_frame_exclusive": 1212918,
+      "bytes": 7277552,
+      "sha256": "bfb73c1f5dca7fd3b0b120b7d0a6376e49bf74434d83455ea635e019339e7e30"
+    }
+  ],
+  "game_integration_status": "not performed by this asset-production task"
+}
