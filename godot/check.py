@@ -24,7 +24,7 @@ steps = [
     ("Godot candidate rules", [node, "test_godot_rules.cjs"], ROOT / "native"),
     ("Atomic save and portrait adapter", [sys.executable, "-X", "utf8", "-B", "-m", "unittest", "-v", "test_godot_files"], ROOT / "native"),
 ]
-for name, script in [("Pipe bridge", "bridge_smoke.gd"), ("Frontend controls", "frontend_smoke.gd"), ("UI parity", "ui_parity_smoke.gd"), ("Display and facing regression", "display_regression.gd"), ("Legacy presentation and overwrite parity", "parity_fix_regression.gd"), ("Music state machine", "audio_smoke.gd")]:
+for name, script in [("Pipe bridge", "bridge_smoke.gd"), ("Frontend controls", "frontend_smoke.gd"), ("UI parity", "ui_parity_smoke.gd"), ("Independent review UI fixes", "uiux_review_fixes.gd"), ("Display and facing regression", "display_regression.gd"), ("Legacy presentation and overwrite parity", "parity_fix_regression.gd"), ("Music state machine", "audio_smoke.gd")]:
     steps.append((name, common + ["--script", "res://tests/" + script], BASE))
 steps.append(("Fault handling and shutdown", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/audit_checks.py"), args.godot], BASE))
 steps.append(("Audio reconnect and load regression", common + ["--script", "res://tests/audio_regression.gd"], BASE))

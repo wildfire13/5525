@@ -79,7 +79,11 @@ func _ready():
 		check.toggled.connect(func(value):audio.set_mute(pair[0],value);audio.sync(data))
 	local_button(menu_body,"閉じる",menu.hide)
 	content=VBoxContainer.new();content.size_flags_vertical=Control.SIZE_EXPAND_FILL;base.add_child(content)
-	footer=Label.new();footer.custom_minimum_size.y=24;footer.clip_text=true;footer.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;base.add_child(footer)
+	footer=Label.new();footer.name="StatusFooter";footer.custom_minimum_size.y=24;footer.clip_text=true;footer.max_lines_visible=1;footer.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;base.add_child(footer)
+	footer.focus_mode=Control.FOCUS_ALL;footer.mouse_filter=Control.MOUSE_FILTER_STOP;footer.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND;memory.key(footer,"status_footer")
+	footer.gui_input.connect(func(event):
+		if (event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT) or (event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ENTER,KEY_SPACE]):
+			show_status_details();footer.accept_event())
 	engine=preload("res://engine_bridge.gd").new();add_child(engine)
 	resized.connect(queue_layout)
 	if not engine.start_engine():notice=engine.last_error;render();return
@@ -106,9 +110,21 @@ func button(parent: Node,text: String,fn: Callable,disabled:=false) -> Button:
 		if not closing and (b.get_meta("read_only",false) or (not locked and not presenting and not b.disabled)):fn.call())
 	b.focus_entered.connect(func():
 		focus_hint=b.tooltip_text
-		if is_instance_valid(footer) and notice.is_empty():footer.text=focus_hint)
+		if is_instance_valid(footer) and notice.is_empty():set_status(focus_hint))
 	b.focus_exited.connect(func():focus_hint="")
 	return b
+func set_status(message: String):
+	# Newlines and wrapping must never enlarge the fixed status row.
+	footer.text=message.replace("\r","").replace("\n"," / ")
+	footer.tooltip_text=message;footer.set_meta("full_message",message)
+func show_status_details():
+	if find_child("StatusDetails",true,false)!=null:return
+	var popup=PopupPanel.new();popup.name="StatusDetails";popup.exclusive=true;add_child(popup)
+	var box=VBoxContainer.new();box.custom_minimum_size.x=mini(620,int(size.x)-48);popup.add_child(box)
+	var body=scroller(box);body.get_parent().custom_minimum_size.y=mini(240,int(size.y)-120)
+	label_(body,str(footer.get_meta("full_message",footer.text)))
+	var close=local_button(box,"閉じる",popup.hide)
+	popup.popup_hide.connect(popup.queue_free);popup.popup_centered();close.grab_focus()
 func clear(node: Node):
 	for child in node.get_children():node.remove_child(child);child.queue_free()
 func portrait(parent: Node,u: Dictionary,face:=false,size_:=72) -> TextureRect:
@@ -159,7 +175,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 	locked=true
 	for b in widgets:
 		if is_instance_valid(b) and not b.get_meta("read_only",false):b.disabled=true
-	if footer!=null:footer.text="処理中…"
+	if footer!=null:set_status("処理中…")
 	var reply: Dictionary=await engine.request(request)
 	locked=false
 	if request.get("op")=="campaign" and request.get("action") not in ["begin","finishBattle","endTrial","trial","forecast","previewGear"] and reply.get("presentation")==null:
@@ -254,8 +270,7 @@ func render():
 				_:render_town(body)
 		elif phase=="camp" and page=="items":render_items(body)
 		else:render_journey(body)
-	footer.text=notice if not notice.is_empty() else ("処理中…" if locked or preview_pending or pages.quote_pending else "演出中…" if presenting else focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消")
-	footer.tooltip_text=footer.text
+	set_status(notice if not notice.is_empty() else ("処理中…" if locked or preview_pending or pages.quote_pending else "演出中…" if presenting else focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消"))
 	rendering=false;memory.restore()
 func town_name(id) -> String:
 	for t in campaign().get("towns",[]):

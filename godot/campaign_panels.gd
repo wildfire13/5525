@@ -126,8 +126,10 @@ func journey(parent):
 			b(parent,"川沿いの道: 4時間 / 敵%d人" % (2 if stage==0 else 3),ui.forecast_action.bind("safe","travel",["safe"]))
 		"camp":
 			l(parent,"街道の野営地 / あと一区間",true)
-			var actions=row(parent)
-			b(actions,"休息済み" if journey_.get("rested",false) else "2時間休む: HP+60 / MP+2",ui.forecast_action.bind("rest","rest",[]),journey_.get("rested",false))
+			var actions=row(parent);actions.name="CampActions"
+			var rest=b(actions,"2時間休む: HP+60 / MP+2",ui.forecast_action.bind("rest","rest",[]),journey_.get("rested",false))
+			rest.custom_minimum_size.x=rest.get_combined_minimum_size().x
+			if journey_.get("rested",false):rest.text="休息済み"
 			b(actions,"次の区間へ",ui.act.bind("onward",[]));items(parent)
 		"arrival","delivery":
 			l(parent,town(journey_.get("destination",""))+"に到着しました",true)
@@ -264,11 +266,11 @@ func select_slot(slot: String):
 	if not keep.is_empty():await request_quote(keep)
 func quote(parent,q: Dictionary):
 	var summary=l(parent,ui.member_name(ui.shop_uid)+" / "+str(c().get("slots",{}).get(ui.shop_slot,ui.shop_slot))+(" / " if ui.ui_size_mode=="narrow" else "\n")+str(q.get("current",{}).get("name",q.get("oldGearId","")))+" → "+str(q.gear.name));ui.short_name(summary,summary.text)
+	if ui.ui_size_mode=="narrow":summary.max_lines_visible=1
 	var money=l(parent,("価格%d − 下取り%d = 差額%dG"+(" / " if ui.ui_size_mode=="narrow" else "\n")+"所持金%dG → 購入後%dG") % [q.price,q.tradeIn,q.cost,c().gold,q.afterGold]);money.name="QuoteMoney"
 	var reason=quote_reason(q)
-	if not reason.is_empty():
-		var status=l(parent,reason);ui.short_name(status,reason)
-	var body=ui.scroller(parent);body.get_parent().name="ShopComparisonScroll";ui.memory.watch(body.get_parent(),"shop_compare")
+	var body=ui.scroller(parent);body.get_parent().name="ShopComparisonScroll";body.get_parent().custom_minimum_size.y=64;ui.memory.watch(body.get_parent(),"shop_compare")
+	if not reason.is_empty():l(body,reason)
 	var table=GridContainer.new();table.name="GearComparison";table.columns=4;table.size_flags_horizontal=Control.SIZE_EXPAND_FILL;table.add_theme_constant_override("h_separation",12);body.add_child(table);ui.memory.item(table,"comparison")
 	for title in ["項目","現在","候補","変化"]:l(table,title)
 	for stat in [["max","HP上限"],["maxMp","MP上限"]]:compare_numbers(table,stat[1],int(q.before.get(stat[0],0)),int(q.after.get(stat[0],0)))
@@ -294,15 +296,28 @@ func quote(parent,q: Dictionary):
 			if member.id==ui.shop_uid:equipment(body,member)
 	var actions=row(parent);actions.name="ShopActions"
 	b(actions,"木人で試す",start_trial,not q.eligible or not q.available)
-	ui.memory.key(ui.primary(b(actions,"差額%dGで買い替える" % q.cost,purchase.bind(q.duplicate(true)),not(q.eligible and q.affordable and q.available) or q.same)),"shop_buy")
+	var purchase_button=ui.primary(b(actions,"差額%dGで買い替える" % q.cost,purchase.bind(q.duplicate(true)),not(q.eligible and q.affordable and q.available) or q.same));ui.memory.key(purchase_button,"shop_buy")
+	purchase_button.tooltip_text=reason;purchase_button.disabled=true
+	body.get_parent().resized.connect(refresh_purchase_availability.bind(purchase_button))
+	body.get_parent().visibility_changed.connect(refresh_purchase_availability.bind(purchase_button))
+	refresh_purchase_availability(purchase_button)
 	ui.memory.key(ui.local_button(actions,"比較を閉じる",cancel_quote),"shop_close")
+func comparison_visible() -> bool:
+	var pane=ui.find_child("ShopComparisonScroll",true,false)
+	return pane is ScrollContainer and pane.is_visible_in_tree() and pane.size.y>=64 and ui.get_viewport_rect().grow(1).encloses(pane.get_global_rect())
+func refresh_purchase_availability(control):
+	await ui.get_tree().process_frame
+	if is_instance_valid(control) and control.is_inside_tree():
+		control.disabled=control.get_meta("base_disabled",true) or not quote_valid() or ui.locked or ui.presenting or not comparison_visible()
 func purchase(q: Dictionary):
+	if not comparison_visible():ui.notice="比較欄を表示して性能を確認してください。";ui.render();return
 	if not quote_valid() or q.gearId!=gear_id:return
 	var stamp=quote_stamp;var ticket=quote_generation;var uid=ui.shop_uid;var slot=ui.shop_slot
 	ui.confirm("%s / %s\n価格%d − 下取り%d = 差額%dG\n所持金%dG → 購入後%dG\n現在の同じ枠の装備は下取りされ、予備装備としては残りません。" % [ui.member_name(uid),c().slots[slot],q.price,q.tradeIn,q.cost,c().gold,q.afterGold],func():
 		if stamp!=quote_stamp or ticket!=quote_generation or uid!=ui.shop_uid or slot!=ui.shop_slot or not quote_valid():ui.notice="比較条件が変わりました。最新の見積を確認してください。";ui.render();return
 		buy(str(q.gearId)))
 func buy(id: String):
+	if not comparison_visible():return
 	if not quote_valid() or id!=gear_id:return
 	var uid=ui.shop_uid;var slot=ui.shop_slot
 	invalidate_quote(false)
@@ -354,11 +369,21 @@ func offered() -> Array:
 	return c().get("shop",[]).filter(func(g):
 		var allowed=g.get("allowedSlots",["rightHand"] if g.get("hands",1)==2 else ["rightHand","leftHand"] if g.slot=="weapon" else ["upperBody"] if g.slot=="armor" else ["accessory1","accessory2"] if g.get("type")=="accessory" else [g.slot])
 		return allowed.has(ui.shop_slot))
+func product_effect(g: Dictionary) -> String:
+	if str(g.id).begins_with("empty-"):return "装備なし"
+	var parts=[]
+	if g.slot=="weapon":parts.append("ATK%d 射程%d" % [g.get("atk",0),g.get("reach",0)])
+	if g.get("hp",0)!=0:parts.append("HP%+d" % g.hp)
+	# The catalog already owns the effect description; do not duplicate rules.
+	if g.has("effect") or g.has("skill"):
+		var note=str(g.get("note","")).split("。")[0]
+		if not note.is_empty():parts.append(note)
+	return " / ".join(parts) if not parts.is_empty() else "能力補正なし"
 func product_row(parent,g: Dictionary):
 	var requirements=[]
 	for stat in ["str","int","agi"]:
 		if g.get(stat,0)>0:requirements.append("%s%d" % [stat.to_upper(),g[stat]])
-	var effect="ATK%d 射程%d" % [g.get("atk",0),g.get("reach",0)] if g.slot=="weapon" else "HP+%d" % g.get("hp",0)
+	var effect=product_effect(g)
 	var eligibility="条件未確認"
 	if cached_quotes.has(selection_key(str(g.id))):
 		var cached: Dictionary=cached_quotes[selection_key(str(g.id))];eligibility="装備可" if cached.eligible else "条件不適合"
