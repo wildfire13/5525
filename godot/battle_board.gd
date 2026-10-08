@@ -1,5 +1,6 @@
 extends Control
 signal cell_clicked(pos: int)
+signal enemy_focused(uid: String)
 signal deploy_drag(uid: String, pos: int)
 const CELL = 1.35
 var units: Array = [] # Demo scenery consumes an empty visual roster; gameplay is below.
@@ -22,9 +23,14 @@ var press_uid := ""
 var pulse := 0.0
 var hit_tween: Tween
 var low_hp_font: FontVariation
+var inspected_enemy := ""
+var hover_uid := ""
+var keyboard_cell := 24
+var last_visual_phase := ""
 func _ready():
 	low_hp_font=FontVariation.new();low_hp_font.base_font=ThemeDB.fallback_font;low_hp_font.variation_embolden=1.0
-	custom_minimum_size=Vector2(620,400)
+	custom_minimum_size=Vector2(120,80)
+	focus_mode=Control.FOCUS_ALL;clip_contents=true
 	size_flags_horizontal=Control.SIZE_EXPAND_FILL;size_flags_vertical=Control.SIZE_EXPAND_FILL
 	right_panel=self
 	viewport_container=SubViewportContainer.new()
@@ -61,18 +67,34 @@ func unit_at(p: int) -> Dictionary:
 		if int(u.pos)==p and u.hp>0: return u
 	return {}
 func input_event(event):
+	if event is InputEventKey and event.pressed and not event.echo:
+		var x=keyboard_cell%10;var y=int(keyboard_cell/10)
+		match event.keycode:
+			KEY_LEFT:x=maxi(0,x-1)
+			KEY_RIGHT:x=mini(9,x+1)
+			KEY_UP:y=maxi(0,y-1)
+			KEY_DOWN:y=mini(4,y+1)
+			KEY_ENTER,KEY_KP_ENTER:cell_clicked.emit(keyboard_cell);accept_event();return
+			_:return
+		keyboard_cell=y*10+x;accept_event();overlay.queue_redraw();return
 	if event is InputEventMouseButton:
+		if event.button_index==MOUSE_BUTTON_RIGHT and event.pressed:
+			var inspected=unit_at(cell_at(event.position))
+			if inspected.get("side")=="enemy":enemy_focused.emit(str(inspected.id))
+			accept_event();return
 		if event.button_index==MOUSE_BUTTON_WHEEL_UP or event.button_index==MOUSE_BUTTON_WHEEL_DOWN:
 			world.zoom=clampf(world.zoom+(-.6 if event.button_index==MOUSE_BUTTON_WHEEL_UP else .6),10,24);world.update_camera();return
 		if event.button_index==MOUSE_BUTTON_LEFT:
 			var pos=cell_at(event.position)
 			if event.pressed:
+				grab_focus();keyboard_cell=pos if pos>=0 else keyboard_cell
 				press_cell=pos;press_uid=str(unit_at(pos).get("id",""))
 			elif pos>=0:
 				if pos!=press_cell and not press_uid.is_empty() and data.get("state",{}).get("deploying",false): deploy_drag.emit(press_uid,pos)
 				else: cell_clicked.emit(pos)
 	if event is InputEventMouseMotion:
 		var u=unit_at(cell_at(event.position))
+		hover_uid=str(u.get("id",""))
 		tooltip_text=str(u.get("name",""))
 		if not u.is_empty():
 			tooltip_text+="\nHP %d/%d  MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]
@@ -81,7 +103,9 @@ func input_event(event):
 func set_camera(mode: int):
 	camera_mode=mode%3;world.update_camera();overlay.queue_redraw()
 func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, chosen: Array):
-	reset_animation()
+	var phase_key=JSON.stringify(d.get("presentation"))
+	if phase_key!=last_visual_phase:reset_animation()
+	last_visual_phase=phase_key
 	data=d;preview=pr;kind=command;selected=uid;targets=chosen
 	var state: Dictionary=d.get("state") if d.get("state") is Dictionary else {}
 	var phase: Dictionary=d.get("presentation") if d.get("presentation") is Dictionary else {}
@@ -108,6 +132,7 @@ func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, c
 		var low=u.max>0 and u.hp*4<u.max
 		nodes.label.modulate=Color("#ef4444") if low else Color("#a9ede0") if u.side=="ally" else Color("#f3b4b4")
 		nodes.label.font=low_hp_font if low else ThemeDB.fallback_font
+		nodes.label.visible=false # Fixed-size 2D callouts and bars replace overlapping world labels.
 	for uid_ in actors.keys():
 		if not live_ids.has(uid_):actors[uid_].root.queue_free();actors.erase(uid_)
 	ghost.visible=false
@@ -162,6 +187,8 @@ func draw_overlay():
 			overlay.draw_string(ThemeDB.fallback_font,dest+Vector2(-5,18),"↓",HORIZONTAL_ALIGNMENT_LEFT,-1,22,Color("#fda4af"))
 	for p in threats:
 		cell_outline(p,Color("#fb7185"))
+		var center=project_cell(p)
+		for stripe in [-8,0,8]:overlay.draw_line(center+Vector2(stripe-6,-7),center+Vector2(stripe+6,7),Color(1,.45,.55,.65),1.0,true)
 		overlay.draw_string(ThemeDB.fallback_font,project_cell(p)+Vector2(14,-8),"!%d" % threats[p],HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color.WHITE)
 	for side in ["ally","enemy"]:
 		var slots=[24,13,33] if side=="ally" else [25,16,36]
@@ -180,15 +207,43 @@ func draw_overlay():
 			for e in data.get("enemyInfo",[]):
 				if e.id==u.id:valid=e.valid
 			for p in u.intent.cells:
-				arrow(project_cell(u.pos),project_cell(p),Color(1,.38,.36,.8) if valid else Color(.86,.74,.47,.55))
+				arrow(project_cell(u.pos),project_cell(p),(Color(1,.38,.36,.95) if valid else Color(.86,.74,.47,.85)) if inspected_enemy.is_empty() or inspected_enemy==u.id else Color(.86,.6,.55,.35),3.0 if inspected_enemy==u.id else 1.5)
 	if preview.get("destination")!=null:
 		var actor={}
 		for u in state.get("units",[]):
 			if u.id==state.get("actor"):actor=u
 		if not actor.is_empty():arrow(project_cell(actor.pos),project_cell(preview.destination),Color("#88ffd2"),3)
+		overlay.draw_string(ThemeDB.fallback_font,project_cell(int(preview.destination))+Vector2(-8,-16),"仮",HORIZONTAL_ALIGNMENT_LEFT,-1,18,Color("#88ffd2"))
 	var font=ThemeDB.fallback_font
 	for x in range(10):overlay.draw_string(font,project(point(40+x)+Vector3(0,.02,.72)),str(x),HORIZONTAL_ALIGNMENT_CENTER,-1,14,Color.WHITE)
 	for y in range(5):overlay.draw_string(font,project(point(y*10)+Vector3(-.85,.02,0)),str(4-y),HORIZONTAL_ALIGNMENT_CENTER,-1,14,Color.WHITE)
+	draw_unit_labels(state)
+	if has_focus():
+		cell_outline(keyboard_cell,Color("#78edce"),3.0)
+		overlay.draw_string(ThemeDB.fallback_font,Vector2(8,size.y-10),"フォーカス X%d,Y%d / Enterは候補選択" % [keyboard_cell%10,4-int(keyboard_cell/10)],HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color.WHITE)
+func draw_unit_labels(state: Dictionary):
+	var shown: Array[Rect2]=[]
+	var actor=state.get("actor","")
+	if data.get("presentation") is Dictionary:actor=data.presentation.get("actor_id",actor)
+	for u in state.get("units",[]):
+		var at=project(point(int(u.pos))+Vector3(0,1.25,0))
+		var color=Color("#a9ede0") if u.side=="ally" else Color("#f3b4b4")
+		var low=u.get("max",0)>0 and u.hp*4<u.max
+		if low:color=Color("#ef4444")
+		at.x=clampf(at.x,32,maxf(32,size.x-32));at.y=clampf(at.y,18,maxf(18,size.y-18))
+		overlay.draw_rect(Rect2(at-Vector2(24,0),Vector2(48,5)),Color("#10202b"))
+		overlay.draw_rect(Rect2(at-Vector2(24,0),Vector2(48*clampf(float(u.hp)/maxf(1,u.max),0,1),5)),color)
+		overlay.draw_string(ThemeDB.fallback_font,at+Vector2(-24,-5),("味" if u.side=="ally" else "敵")+(" KO" if u.hp<=0 else " 防" if u.get("guard",false) else ""),HORIZONTAL_ALIGNMENT_LEFT,-1,16,color)
+		if u.id!=actor and u.id!=selected and u.id!=hover_uid and u.id!=inspected_enemy and not targets.has(u.id):continue
+		var per_column=maxi(1,int((size.y-20)/48))
+		var rect=Rect2(Vector2(6 if shown.size()<per_column else maxf(6,size.x-158),8+(shown.size()%per_column)*48),Vector2(152,44))
+		shown.append(rect)
+		overlay.draw_line(project_cell(int(u.pos)),rect.position+rect.size/2,Color(color,.65),1.0,true)
+		overlay.draw_rect(rect,Color(.04,.1,.14,.92));overlay.draw_rect(rect,color,false,1.0)
+		var full=str(u.name);var short=full.left(7)+"…" if full.length()>8 else full
+		var font=low_hp_font if low else ThemeDB.fallback_font
+		overlay.draw_string(font,rect.position+Vector2(5,18),("現在 " if u.id==actor else "")+short,HORIZONTAL_ALIGNMENT_LEFT,142,16,color)
+		overlay.draw_string(font,rect.position+Vector2(5,37),"HP %d/%d" % [u.hp,u.max],HORIZONTAL_ALIGNMENT_LEFT,142,16,color)
 func reset_animation():
 	if hit_tween and hit_tween.is_running():hit_tween.kill()
 	hit_tween=null
