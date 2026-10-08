@@ -27,6 +27,8 @@ var content: VBoxContainer
 var battle_row: HBoxContainer
 var board
 var side: VBoxContainer
+var battle_header: VBoxContainer
+var battle_actions: HBoxContainer
 var footer: Label
 var actor_row: HBoxContainer
 var widgets: Array[Button]=[]
@@ -177,9 +179,10 @@ func render():
 			clear(content);battle_row=HBoxContainer.new();battle_row.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(battle_row)
 			board=preload("res://battle_board.gd").new();board.portraits=portraits;battle_row.add_child(board)
 			board.cell_clicked.connect(on_cell);board.deploy_drag.connect(deploy_dragged)
-			side=scroller(battle_row);side.custom_minimum_size.x=360
-			side.get_parent().size_flags_horizontal=Control.SIZE_FILL
-			side.get_parent().custom_minimum_size.x=380
+			var sidebar=VBoxContainer.new();sidebar.name="BattleSidebar";sidebar.custom_minimum_size.x=380;battle_row.add_child(sidebar)
+			battle_header=VBoxContainer.new();battle_header.name="BattleHeader";sidebar.add_child(battle_header)
+			side=scroller(sidebar);side.custom_minimum_size.x=360
+			battle_actions=row(sidebar);battle_actions.name="BattleConfirm"
 			view_kind="battle"
 		render_battle()
 	else:
@@ -258,15 +261,15 @@ func inspect_movement(which: String):
 	if command!="move" or pending==null:return
 	await request_preview(which)
 func render_battle():
-	clear(side)
+	clear(battle_header);clear(side);clear(battle_actions)
 	var s=state();var deploying=s.get("deploying",false)
-	var order=GridContainer.new();order.columns=5;side.add_child(order)
+	var order=GridContainer.new();order.name="TurnOrder";order.columns=5;battle_header.add_child(order)
 	for q in data.get("queue",[]):
 		for u in s.units:
 			if u.id==q.id:
 				var p=PanelContainer.new();var bg=StyleBoxFlat.new();bg.bg_color=Color("#27575d") if q.side=="ally" else Color("#623b48");p.add_theme_stylebox_override("panel",bg);order.add_child(p)
 				var face=portrait(p,u,true,44);face.tooltip_text=q.name
-	var cameras=row(side)
+	var cameras=row(battle_header)
 	for mode in range(3):button(cameras,["戦術","低","高"][mode],func():board.set_camera(mode))
 	if deploying:
 		label_(side,"配置 / 味方を選び、自陣マスへ",true)
@@ -276,12 +279,12 @@ func render_battle():
 				if u.side=="ally" and u.hp>0:selected=u.id;break
 		for u in s.units:
 			if u.side=="ally":button(side,("● " if selected==u.id else "")+"%s HP%d MP%d" % [u.name,u.hp,u.mp],func():selected=u.id;render(),u.hp<=0)
-		button(side,"配置リセット",act.bind("deployment_reset",[]));button(side,"戦闘開始",act.bind("begin",[]))
+		button(battle_actions,"配置リセット",act.bind("deployment_reset",[]));button(battle_actions,"戦闘開始",act.bind("begin",[]))
 	elif s.get("result")!=null:
 		label_(side,str(s.result),true)
-		button(side,"戦闘を終えて街道へ",act.bind("finishBattle",[]),data.get("trial")!=null)
+		button(battle_actions,"戦闘を終えて街道へ",act.bind("finishBattle",[]),data.get("trial")!=null)
 	else:
-		var actions=GridContainer.new();actions.columns=3;side.add_child(actions)
+		var actions=GridContainer.new();actions.columns=3;battle_header.add_child(actions)
 		for pair in [["attack","攻撃"],["move","移動"],["skill","スキル"],["item","ポーション"],["ether","エーテル"],["guard","防御"],["return","帰還"]]:
 			var action_button=button(actions,pair[1],choose_command.bind(pair[0]),locked or presenting or (pair[0]!="guard" and data.get("choices",{}).get(pair[0],[]).is_empty()))
 			action_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -306,9 +309,8 @@ func render_battle():
 				var contributions=[]
 				for weapon in hit.get("weapons",[]):contributions.append("%s ATK%d" % [weapon.name,weapon.atk])
 				label_(side,"予測: %s → %s HP−%d\n%s / 成長補正+%d" % [hit.get("targetName",hit.recipientName),hit.recipientName,hit.hpLoss," + ".join(contributions),hit.get("bonus",0)])
-		var commands=row(side)
-		button(commands,"確定",commit,not(pending!=null or command=="guard") or presenting)
-		button(commands,"取消",cancel,presenting)
+		button(battle_actions,"確定",commit,not(pending!=null or command=="guard") or presenting)
+		button(battle_actions,"取消",cancel,presenting)
 	if data.get("trial")!=null:
 		label_(side,str(data.trial.get("notice","木人で試用中")))
 		button(side,"試用を終了",act.bind("endTrial",[]),presenting)
