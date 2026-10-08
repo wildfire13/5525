@@ -19,6 +19,7 @@ var intent_versions: Dictionary={}
 var intent_updated: Dictionary={}
 var selected_enemy := ""
 var buttons: Dictionary={}
+var presentation_action: Dictionary={}
 const COMMANDS=[["attack","攻撃"],["move","移動"],["skill","スキル"],["item","ポーション"],["ether","エーテル"],["guard","防御"],["return","帰還"]]
 func _init(frontend):ui=frontend
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
@@ -79,9 +80,10 @@ func render():
 	if not s.get("deploying",false) and s.get("result")==null and not ui.presenting and (a.get("id","")!=last_actor or int(s.get("actions",0))!=last_action_count):
 		ui.memory.request_focus("actor_heading");last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0))
 	render_actor(a)
-	if s.get("deploying",false):render_deployment()
+	if phase is Dictionary:render_presentation(phase)
+	elif s.get("deploying",false):render_deployment()
 	elif s.get("result")!=null:render_result()
-	else:render_commands();render_target()
+	else:presentation_action={};render_commands();render_target()
 	if ui.data.get("trial") is Dictionary:
 		b(tools,"試用を終了",ui.act.bind("endTrial",[]),ui.presenting)
 	elif s.get("result")!=null or not s.get("deploying",false):
@@ -123,6 +125,25 @@ func render_actor(a: Dictionary):
 	l(actor_box,("戦闘不能" if a.hp<=0 else "防御中" if a.get("guard",false) else "味方" if a.side=="ally" else "敵")+" / 行動数 %d" % ui.state().get("actions",0))
 	if ui.data.get("presentation") is Dictionary:
 		var brief=l(actor_box,str(ui.data.presentation.get("label","演出中…")));ui.short_name(brief,brief.text)
+func render_presentation(phase: Dictionary):
+	if phase.get("phase")=="action":presentation_action=phase.duplicate(true)
+	elif presentation_action.get("action_id")!=phase.get("action_id"):presentation_action={}
+	buttons.clear()
+	l(command_box,"実行中 / "+("味方" if acting().get("side")=="ally" else "敵"),true)
+	var action_label=str(presentation_action.get("label","演出中…"))
+	var action=l(command_box,action_label);action.name="PresentationAction";ui.short_name(action,action_label)
+	l(command_box,"演出終了後、次の手番を操作できます。")
+	var body=ui.scroller(target_box);body.get_parent().custom_minimum_size.y=32
+	l(body,"実行結果" if phase.get("phase")!="action" else "実行内容",true)
+	l(body,str(phase.get("label",action_label)))
+	var target=presentation_action.get("target")
+	var names=[]
+	for id_ in (target if target is Array else [target]):
+		if id_ is String:names.append(str(unit(id_).get("name",id_)))
+		elif id_ is int or id_ is float:names.append("マス "+coord(id_))
+	if not names.is_empty():l(body,"指定対象: "+" / ".join(names))
+	ui.battle_actions=ui.row(target_box);ui.battle_actions.name="BattleConfirm"
+	ui.primary(b(ui.battle_actions,"演出中…",func():pass,true))
 func render_deployment():
 	var s=ui.state()
 	if not s.units.any(func(u):return u.id==ui.selected and u.side=="ally" and u.hp>0):
