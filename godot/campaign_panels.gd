@@ -18,7 +18,7 @@ func selected_party() -> Array:
 func party_status(parent):
 	for u in selected_party():
 		var line=l(parent,"%s［%s］ HP %d/%d / MP %d/%d%s" % [u.name,u.get("role",""),u.hp,u.max,u.mp,u.maxMp," 戦闘不能" if u.hp<=0 else ""])
-		if u.hp<=0 or u.hp*4<u.max:line.add_theme_color_override("font_color",Color("#ff8484"))
+		ui.emphasize_low_hp(line,u)
 # Display normal attack power before formation, skills and target defense.
 # Match the battle rule: only reaching weapons, with growth added once.
 func normal_reach(stats: Dictionary) -> int:

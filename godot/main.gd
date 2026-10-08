@@ -35,6 +35,7 @@ var widgets: Array[Button]=[]
 var view_kind := ""
 var generation := 0
 var retry_button: Button
+var low_hp_font: FontVariation
 const BG=Color("#0e1e28")
 func _ready():
 	pages=preload("res://campaign_panels.gd").new(self)
@@ -44,6 +45,7 @@ func _ready():
 	theme_.set_color("font_color","TooltipLabel",Color.WHITE)
 	var tip=StyleBoxFlat.new();tip.bg_color=Color("#183341");tip.set_content_margin_all(8);theme_.set_stylebox("panel","TooltipPanel",tip)
 	theme=theme_
+	low_hp_font=FontVariation.new();low_hp_font.base_font=ThemeDB.fallback_font;low_hp_font.variation_embolden=1.0
 	var panel=StyleBoxFlat.new();panel.bg_color=BG;add_theme_stylebox_override("panel",panel)
 	base=VBoxContainer.new();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base.add_theme_constant_override("separation",10)
@@ -72,6 +74,10 @@ func label_(parent: Node,text: String,large:=false) -> Label:
 	if parent is HBoxContainer:l.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	if large:l.add_theme_font_size_override("font_size",23)
 	parent.add_child(l);return l
+func emphasize_low_hp(label: Label,unit: Dictionary):
+	if unit.get("max",0)>0 and unit.get("hp",0)*4<unit.max:
+		label.add_theme_color_override("font_color",Color("#ef4444"))
+		label.add_theme_font_override("font",low_hp_font)
 func row(parent: Node) -> HBoxContainer:
 	var r=HBoxContainer.new();parent.add_child(r);return r
 func button(parent: Node,text: String,fn: Callable,disabled:=false) -> Button:
@@ -99,6 +105,7 @@ func confirm(text: String,fn: Callable):
 	var d=ConfirmationDialog.new();d.exclusive=true;d.title="確認";d.dialog_text=text;d.ok_button_text="はい";d.cancel_button_text="戻る"
 	add_child(d);d.confirmed.connect(func():d.queue_free();fn.call());d.canceled.connect(func():audio.ui("cancel");d.queue_free())
 	d.popup_centered(Vector2i(560,230));d.get_cancel_button().grab_focus()
+	return d
 func fullscreen():
 	get_window().mode=Window.MODE_WINDOWED if get_window().mode==Window.MODE_FULLSCREEN else Window.MODE_FULLSCREEN
 func _unhandled_key_input(event):
@@ -142,8 +149,8 @@ func present():
 	while data.get("presentation")!=null and not closing:
 		render()
 		var p: Dictionary=data.presentation
-		if board:board.animate(p)
-		var duration=audio.phase(p)
+		var visual_duration=board.animate(p) if board else 0.0
+		var duration=maxf(audio.phase(p),visual_duration)
 		await get_tree().create_timer(0.001 if checks_fast else duration).timeout
 		if closing:break
 		var response: Dictionary=await engine.request({"op":"presentation_next","id":p.id,"index":p.index})
@@ -212,7 +219,7 @@ func render():
 	if not acting.is_empty():
 		portrait(actor_row,acting,true,62)
 		var info=label_(actor_row,"%s  HP %d/%d  MP %d/%d" % [acting.name,acting.hp,acting.max,acting.mp,acting.maxMp])
-		if acting.hp*4<acting.max:info.add_theme_color_override("font_color",Color("#ff6868"))
+		emphasize_low_hp(info,acting)
 	if data.get("presentation")!=null:label_(actor_row,str(data.presentation.label))
 	footer.text=notice if not notice.is_empty() else ("処理中…" if locked else "演出中…" if presenting else "選択 → プレビュー → 確定 / Escで取消")
 func town_name(id) -> String:
@@ -357,7 +364,7 @@ func render_unit_details(parent: Node,s: Dictionary):
 	for u in s.get("units",[]):
 		var status="%s: HP %d/%d MP %d AGI %d%s%s" % [u.name,u.hp,u.max,u.mp,u.agi," 防御" if u.get("guard",false) else ""," 戦闘不能" if u.hp<=0 else ""]
 		var line=label_(parent,status)
-		if u.hp*4<u.max:line.add_theme_color_override("font_color",Color("#ff8484"))
+		emphasize_low_hp(line,u)
 		if u.get("cover")!=null:label_(parent,"かばう → "+member_name(str(u.cover)))
 		if not u.get("covers",[]).is_empty():label_(parent,"防衛線 → "+"・".join(u.covers.map(func(id):return member_name(str(id)))))
 		if u.side=="enemy" and u.hp>0 and u.get("intent") is Dictionary:
@@ -429,7 +436,7 @@ func commit():
 func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback: Callable, filename: String=""):
 	var d=FileDialog.new();d.access=FileDialog.ACCESS_FILESYSTEM;d.file_mode=mode;d.filters=filters
 	d.use_native_dialog=false;d.exclusive=true;add_child(d);d.current_dir=ProjectSettings.globalize_path("user://")
-	if not filename.is_empty():d.current_file=filename;d.title="新規ファイルへ保存（既存ファイルは上書きできません）"
+	if not filename.is_empty():d.current_file=filename;d.title="保存先を選択";d.overwrite_warning_enabled=false
 	d.file_selected.connect(func(path):d.queue_free();callback.call(path));d.canceled.connect(func():d.queue_free())
 	d.popup_centered_ratio(.75)
 func save_game():
@@ -439,8 +446,17 @@ func save_game():
 	envelope.nativePortraits=portraits.metadata.duplicate(true);envelope.godotFrontend=audio.frontend_save()
 	file_dialog(FileDialog.FILE_MODE_SAVE_FILE,PackedStringArray(["*.json ; 5525進行セーブ"]),write_snapshot.bind(envelope,"進行"),"5525-godot-%d-%d.json" % [Time.get_unix_time_from_system(),Time.get_ticks_usec()])
 func write_snapshot(path: String,envelope: Dictionary,kind: String):
-	var written=await update({"op":"godot_io","action":"write","path":path,"data":envelope})
-	if written.get("ok",false):notice=kind+"を新規ファイルへ保存しました: "+path;audio.ui("confirm");render()
+	var target=await update({"op":"godot_io","action":"write_target","path":path})
+	if not target.get("ok",false):return
+	if target.data.exists:
+		var dialog=confirm("既存のファイルを"+kind+"で上書きしますか？\n"+path+"\n確認後に内容が変わった場合は保存を中止します。",publish_snapshot.bind(path,envelope.duplicate(true),kind,str(target.data.sha256)))
+		dialog.name="OverwriteConfirmation"
+	else:await publish_snapshot(path,envelope,kind)
+func publish_snapshot(path: String,envelope: Dictionary,kind: String,expected_sha256: String=""):
+	var request={"op":"godot_io","action":"write","path":path,"data":envelope}
+	if not expected_sha256.is_empty():request.overwrite=true;request.expected_sha256=expected_sha256
+	var written=await update(request)
+	if written.get("ok",false):notice=kind+"を保存しました: "+path;audio.ui("confirm");render()
 func load_dialog():
 	file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray(["*.json ; 5525進行セーブ"]),func(path):confirm("現在の未保存の進行を置き換えて読み込みます。元の保存ファイルは変更しません。",load_game.bind(path)))
 func load_game(path: String):

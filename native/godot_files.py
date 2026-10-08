@@ -1,4 +1,4 @@
-"""Godot-only file adapter. Never opens Tk or overwrites an existing file."""
+"""Godot-only file adapter: atomic creation or explicitly confirmed replacement."""
 import base64, hashlib, json, os, re, sys, tempfile
 from pathlib import Path
 from portraits import read_raster, normalize_raster, MAX_PNG_BYTES
@@ -35,9 +35,26 @@ def publish_new(temp, path):
     else:
         os.link(temp, path)  # POSIX rename overwrites: never use it here.
 
-def write_new(path, data, operation=None):
+def write_target(path):
     path = Path(path)
     if path.suffix.lower() != '.json': raise ValueError('JSONファイル名を指定してください')
+    if not path.exists(): return {'exists': False}
+    if not path.is_file(): raise ValueError('保存先に通常ファイルを指定してください')
+    if path.stat().st_size > MAX_SAVE: raise ValueError('既存ファイルが大きすぎます')
+    return {'exists': True, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+
+def publish_replace(temp, path, expected_sha256):
+    current = write_target(path)
+    if not current['exists'] or current['sha256'] != expected_sha256:
+        raise ValueError('確認後に保存先の内容が変わりました。保存先を選び直してください。')
+    os.replace(temp, path)  # Complete, flushed sibling file becomes visible atomically.
+
+def write_save(path, data, operation=None, overwrite=False, expected_sha256=None):
+    path = Path(path)
+    if path.suffix.lower() != '.json': raise ValueError('JSONファイル名を指定してください')
+    if type(overwrite) is not bool: raise ValueError('上書き確認が不正です')
+    if overwrite and (not isinstance(expected_sha256, str) or not re.fullmatch(r'[0-9a-f]{64}', expected_sha256)):
+        raise ValueError('上書きには保存先の確認が必要です')
     raw = encoded_save(data)
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = None
@@ -51,9 +68,14 @@ def write_new(path, data, operation=None):
             temp = Path(f.name)
         with f:
             f.write(raw); f.flush(); os.fsync(f.fileno())
-        publish_new(temp, path)
+        if overwrite: publish_replace(temp, path, expected_sha256)
+        else: publish_new(temp, path)
     finally:
         if temp is not None: temp.unlink(missing_ok=True)
+
+def write_new(path, data, operation=None):
+    # Low-level creation remains exclusive; UI-confirmed saves use write_save.
+    return write_save(path, data, operation)
 
 def recover_write(path, data, operation):
     path = Path(path)
@@ -64,7 +86,7 @@ def recover_write(path, data, operation):
     if path.exists():
         if path.stat().st_size == len(expected) and path.read_bytes() == expected:
             return {'path':str(path), 'outcome':'saved', 'recovered':True}
-        return {'path':str(path), 'outcome':'not_saved', 'reason':'保存先に別のファイルがあります。上書きしていません。'}
+        return {'path':str(path), 'outcome':'not_saved', 'reason':'保存先には別の内容が残っています。今回の保存完了は確認できません。'}
     return {'path':str(path), 'outcome':'not_saved', 'reason':'保存されていません。別名または別の場所へ保存できます。'}
 
 def run(r):
@@ -78,8 +100,9 @@ def run(r):
         if not isinstance(data,dict): raise ValueError('保存形式が不正です')
         data['nativePortraits']=prepare_portraits(data.get('nativePortraits'),r.get('allowed',[]))
         return data
+    if r['action']=='write_target': return write_target(r['path'])
     if r['action']=='write':
-        write_new(r['path'],r['data'],r.get('operation'));return {'path':r['path'], 'outcome':'saved'}
+        write_save(r['path'],r['data'],r.get('operation'),r.get('overwrite',False),r.get('expected_sha256'));return {'path':r['path'], 'outcome':'saved'}
     if r['action']=='recover_write':return recover_write(r['path'],r['data'],r['operation'])
     raise ValueError('Unknown file operation')
 if __name__=='__main__':
