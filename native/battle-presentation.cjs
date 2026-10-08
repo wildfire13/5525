@@ -26,7 +26,7 @@ function capture(state,engine,run) {
     current=actor;actionNumber++;spoken.clear();
     const cue=kind==='return'?'skill:returnHome':kind==='skill'?'skill:'+eng.activeSkill(actor):'attack';
     add('action',actor,{kind,skill_id:kind==='skill'?eng.activeSkill(actor):kind==='return'?'returnHome':null,target:clone(target??null),label:actor.name+'：'+
-      (kind==='skill'?eng.skillName(actor):({attack:'攻撃',move:'移動',guard:'防御',item:'回復薬',return:'帰還'}[kind]||kind)),
+      (kind==='skill'?eng.skillName(actor):({attack:'攻撃',move:'移動',guard:'防御',item:'回復薬',ether:'エーテル',return:'帰還'}[kind]||kind)),
       voiceEvents:actor.side==='ally'&&['attack','skill','return'].includes(kind)?[{character_id:actor.id,cue}]:[]});
   }};
   observers.set(state,observer);stepping.add(state);

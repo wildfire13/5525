@@ -6,7 +6,7 @@ const Presentation = require('./battle-presentation.cjs');
 const Battle = (() => {
   const {definitions:equipmentSkills}=require('./equipment-skills.js');
   const hasEffect=(a,id)=>(a.effects||[]).includes(id);
-  const moveReach=a=>hasEffect(a,'firstStride')&&!a.firstMoveUsed?3:2;
+  const moveReach=a=>(hasEffect(a,'firstStride')&&!a.firstMoveUsed?3:2)+(hasEffect(a,'swift')?1:0);
   const skillCost=a=>equipmentSkills[activeSkill(a)]?.cost??1;
   function emit(s,a,id,details={}) {
     s.skillEventSequence=(s.skillEventSequence||0)+1;
@@ -144,6 +144,7 @@ const Battle = (() => {
     }
     if(kind==='skill'&&activeSkill(a)==='stamp')return a.mp>0&&stampCells(a,target).length>0;
     const b=alive(s).find(u=>u.id===target);if(!b)return false;
+    if(kind==='ether')return a.side==='ally'&&a.job==='porter'&&(s.ethers||0)>0&&b.side===a.side&&b.mp<b.maxMp;
     if(kind==='item')return s.potions[a.side]>0&&b.side===a.side&&b.hp<b.max;
     if(kind==='attack')return a.job!=='porter'&&b.side!==a.side&&range(a,b)<=attackReach(a,'attack');
     if(kind!=='skill'||a.mp<=0)return false;
@@ -193,6 +194,7 @@ const Battle = (() => {
     if(kind==='move'){const b=swapTarget(s,a,target);if(hasEffect(a,'firstStride')&&!a.firstMoveUsed){a.firstMoveUsed=true;emit(s,a,'firstStride',{target});log(s,`${a.name}の先駆け：最初の移動。`);}if(b){b.pos=a.pos;a.pos=target;log(s,`${a.name}と${b.name}が入れ替わった。`);}else{a.pos=target;log(s,`${a.name}が${boardOf(target)==='ally'?'味方陣':'敵陣'}へ移動。`);}return;}
     if(kind==='guard'){a.guard=true;log(s,`${a.name}は防御。`);return;}
     const b=s.units.find(u=>u.id===target);
+    if(kind==='ether'){s.ethers--;const heal=Math.min(3,b.maxMp-b.mp);b.mp+=heal;log(s,`${a.name}のエーテル：${b.name}のMP＋${heal}`);return;}
     if(kind==='item'){s.potions[a.side]--;const heal=Math.min(55,b.max-b.hp);b.hp+=heal;log(s,`${a.name}の回復薬：${b.name}のHP＋${heal}`);return;}
     if(kind==='skill')a.mp--;
     if(kind==='skill'&&activeSkill(a)==='stamp'){
@@ -292,7 +294,7 @@ const Battle = (() => {
         units.push({...t,id:side==='ally'?t.id:'enemy-'+t.id,side,name:side==='ally'?t.name:'敵'+t.role+(options.enemy?' '+(index+1):''),pos:side==='ally'?t.pos:y(t.pos)*10+9-x(t.pos),hp:old?.hp??t.max,mp:old?.mp??maxMp,maxMp,skillStage:options.skillStage,next:100/t.agi,guard:false,cover:null,tie:roleIndex*4+(side===(roleIndex%2?'ally':'enemy')?0:1)+index*.01});
       });
     }
-    const s={units,actor:null,result:null,potions:{ally:options.potions??3,enemy:options.enemyPotions??3},log:[options.ally?'荷物を守り、街道を切り抜けよう。':'4対4ミラーマッチ。スカウトだけが敵陣へ踏み込める。'],actions:0,recentEnemies:[]};if(options.deployment){s.deploying=true;return s;}units.filter(u=>u.side==='enemy').forEach(u=>plan(s,u));advance(s);return s;
+    const s={units,actor:null,result:null,potions:{ally:options.potions??3,enemy:options.enemyPotions??3},log:[options.ally?'荷物を守り、街道を切り抜けよう。':'4対4ミラーマッチ。スカウトだけが敵陣へ踏み込める。'],actions:0,recentEnemies:[]};if(options.ethers!==undefined)s.ethers=options.ethers;if(options.deployment){s.deploying=true;return s;}units.filter(u=>u.side==='enemy').forEach(u=>plan(s,u));advance(s);return s;
   }
   function deploy(s,id,pos){
     const a=alive(s).find(u=>u.id===id&&u.side==='ally');
