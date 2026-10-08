@@ -109,9 +109,12 @@ func button(parent: Node,text: String,fn: Callable,disabled:=false) -> Button:
 	b.pressed.connect(func():
 		if not closing and (b.get_meta("read_only",false) or (not locked and not presenting and not b.disabled)):fn.call())
 	b.focus_entered.connect(func():
+		# Popup-local controls must not replace the underlying screen explanation.
+		if b.get_window()!=get_window():return
 		focus_hint=b.tooltip_text
 		if is_instance_valid(footer) and notice.is_empty():set_status(focus_hint))
-	b.focus_exited.connect(func():focus_hint="")
+	b.focus_exited.connect(func():
+		if b.get_window()==get_window():focus_hint="")
 	return b
 func set_status(message: String):
 	# Newlines and wrapping must never enlarge the fixed status row.
@@ -119,12 +122,18 @@ func set_status(message: String):
 	footer.tooltip_text=message;footer.set_meta("full_message",message)
 func show_status_details():
 	if find_child("StatusDetails",true,false)!=null:return
+	var message=str(footer.get_meta("full_message",footer.text))
+	var saved_notice=notice;var saved_hint=focus_hint;var epoch=pages.epoch;var generation=engine.connection_generation
 	var popup=PopupPanel.new();popup.name="StatusDetails";popup.exclusive=true;add_child(popup)
 	var box=VBoxContainer.new();box.custom_minimum_size.x=mini(620,int(size.x)-48);popup.add_child(box)
 	var body=scroller(box);body.get_parent().custom_minimum_size.y=mini(240,int(size.y)-120)
-	label_(body,str(footer.get_meta("full_message",footer.text)))
+	label_(body,message)
 	var close=local_button(box,"閉じる",popup.hide)
-	popup.popup_hide.connect(popup.queue_free);popup.popup_centered();close.grab_focus()
+	popup.popup_hide.connect(func():
+		if not closing and pages.epoch==epoch and engine.connection_generation==generation and notice==saved_notice:
+			focus_hint=saved_hint;set_status(message);footer.grab_focus()
+		popup.queue_free())
+	popup.popup_centered();close.grab_focus()
 func clear(node: Node):
 	for child in node.get_children():node.remove_child(child);child.queue_free()
 func portrait(parent: Node,u: Dictionary,face:=false,size_:=72) -> TextureRect:
@@ -141,6 +150,10 @@ func scroller(parent: Node) -> VBoxContainer:
 	s.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;parent.add_child(s)
 	var v=VBoxContainer.new();v.size_flags_horizontal=Control.SIZE_EXPAND_FILL;s.add_child(v);return v
 func confirm(text: String,fn: Callable):
+	# Snapshot immediately before modal focus changes: wheels do not trigger a render.
+	memory.capture()
+	var scroll_state=memory.scrolls.duplicate(true)
+	var epoch=pages.epoch;var generation=engine.connection_generation
 	var origin=get_viewport().gui_get_focus_owner()
 	var origin_key=str(origin.get_meta("ui_key","")) if origin!=null else memory.focus_key
 	var d=ConfirmationDialog.new();d.exclusive=true;d.title="確認";d.dialog_text=text;d.ok_button_text="はい";d.cancel_button_text="戻る"
@@ -148,7 +161,10 @@ func confirm(text: String,fn: Callable):
 	d.confirmed.connect(func():
 		if d.get_meta("submitted",false) or locked or presenting:return
 		d.set_meta("submitted",true);d.hide();d.queue_free();fn.call())
-	d.canceled.connect(func():audio.ui("cancel");d.hide();d.queue_free();memory.focus_key=origin_key;memory.restore())
+	d.canceled.connect(func():
+		audio.ui("cancel");d.hide();d.queue_free()
+		if not closing and pages.epoch==epoch and engine.connection_generation==generation:
+			memory.scrolls.merge(scroll_state,true);memory.request_focus(origin_key);memory.restore())
 	d.popup_centered(Vector2i(mini(560,int(size.x)-32),230));d.get_cancel_button().grab_focus()
 	return d
 func fullscreen():
