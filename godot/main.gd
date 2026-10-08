@@ -414,11 +414,12 @@ func write_snapshot(path: String,envelope: Dictionary,kind: String):
 	var target=await update({"op":"godot_io","action":"write_target","path":path})
 	if not target.get("ok",false):return
 	if target.data.exists:
-		var dialog=confirm("既存のファイルを"+kind+"で上書きしますか？\n"+path+"\n確認後に内容が変わった場合は保存を中止します。",publish_snapshot.bind(path,envelope.duplicate(true),kind,str(target.data.sha256)))
+		var dialog=confirm("既存のファイルを"+kind+"で上書きしますか？\n"+path+"\n確認後に内容が変わった場合は保存を中止します。",publish_snapshot.bind(path,envelope.duplicate(true),kind,str(target.data.sha256),str(target.data.resolved_target)))
 		dialog.name="OverwriteConfirmation"
-	else:await publish_snapshot(path,envelope,kind)
-func publish_snapshot(path: String,envelope: Dictionary,kind: String,expected_sha256: String=""):
+	else:await publish_snapshot(path,envelope,kind,"",str(target.data.resolved_target))
+func publish_snapshot(path: String,envelope: Dictionary,kind: String,expected_sha256: String="",resolved_target: String=""):
 	var request={"op":"godot_io","action":"write","path":path,"data":envelope}
+	if not resolved_target.is_empty():request.resolved_target=resolved_target
 	if not expected_sha256.is_empty():request.overwrite=true;request.expected_sha256=expected_sha256
 	var written=await update(request)
 	if written.get("ok",false):notice=kind+"を保存しました: "+path;audio.ui("confirm");render()
