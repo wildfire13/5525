@@ -19,11 +19,27 @@ func party_status(parent):
 	for u in selected_party():
 		var line=l(parent,"%s［%s］ HP %d/%d / MP %d/%d%s" % [u.name,u.get("role",""),u.hp,u.max,u.mp,u.maxMp," 戦闘不能" if u.hp<=0 else ""])
 		if u.hp<=0 or u.hp*4<u.max:line.add_theme_color_override("font_color",Color("#ff8484"))
+# Display normal attack power before formation, skills and target defense.
+# Match the battle rule: only reaching weapons, with growth added once.
+func normal_reach(stats: Dictionary) -> int:
+	return int(stats.get("normalReach",stats.get("reach",0)))
+func normal_atk(stats: Dictionary,distance: int) -> int:
+	if not stats.has("attackWeapons"):
+		return int(stats.get("atk",0)) if distance<=normal_reach(stats) else 0
+	var power=0;var reaches=false
+	for weapon in stats.attackWeapons:
+		if distance<=int(weapon.reach):power+=int(weapon.atk);reaches=true
+	return power+int(stats.get("attackBonus",0)) if reaches else 0
+func attack_profile(stats: Dictionary) -> String:
+	var parts=[]
+	for distance in range(1,normal_reach(stats)+1):
+		parts.append("距離%d: %d" % [distance,normal_atk(stats,distance)])
+	return "通常ATK "+(" / ".join(parts) if not parts.is_empty() else "なし")+" / 最大通常射程 %d" % normal_reach(stats)
 func stats_text(stats: Dictionary) -> String:
-	return "HP上限 %d / MP上限 %d / ATK %d / 射程 %d / 行動速度 %d" % [stats.get("max",0),stats.get("maxMp",0),stats.get("atk",0),stats.get("reach",0),stats.get("speed",stats.get("agi",0))]
+	return "HP上限 %d / MP上限 %d / %s / 行動速度 %d" % [stats.get("max",0),stats.get("maxMp",0),attack_profile(stats),stats.get("speed",stats.get("agi",0))]
 func member_stats(u: Dictionary) -> String:
 	var s=u.get("stats",u)
-	return "STR %d / INT %d / AGI %d / ATK %d / 射程 %d" % [s.get("str",0),s.get("int",0),s.get("agi",0),s.get("atk",0),s.get("reach",0)]
+	return "STR %d / INT %d / AGI %d\n%s" % [s.get("str",0),s.get("int",0),s.get("agi",0),attack_profile(s)]
 func equipment(parent,u):
 	for e in u.get("equipmentSlots",[]):l(parent,e.label+": "+str(e.name).trim_prefix(e.label+":").trim_prefix(e.label+"：").strip_edges())
 	l(parent,"使用可能: "+" / ".join(u.get("activeSkillNames",[])))
@@ -197,8 +213,15 @@ func quote(parent,q: Dictionary):
 	l(parent,"価格%d − 下取り%d = 差額%dG\n所持金%dG → 購入後%dG" % [q.price,q.tradeIn,q.cost,c().gold,q.afterGold])
 	var table=GridContainer.new();table.name="GearComparison";table.columns=3;table.size_flags_horizontal=Control.SIZE_EXPAND_FILL;table.add_theme_constant_override("h_separation",40);parent.add_child(table)
 	for title in ["能力","変更前","変更後"]:l(table,title)
-	for stat in [["max","HP上限"],["maxMp","MP上限"],["atk","ATK"],["reach","射程"],["speed","行動速度"]]:
+	for stat in [["max","HP上限"],["maxMp","MP上限"]]:
 		l(table,stat[1]);l(table,str(int(q.before.get(stat[0],0))));l(table,str(int(q.after.get(stat[0],0))))
+	for distance in range(1,maxi(1,maxi(normal_reach(q.before),normal_reach(q.after)))+1):
+		l(table,"通常ATK / 距離%d" % distance)
+		for stats in [q.before,q.after]:
+			l(table,str(normal_atk(stats,distance)) if distance<=normal_reach(stats) else "射程外")
+	l(table,"最大通常射程");l(table,str(normal_reach(q.before)));l(table,str(normal_reach(q.after)))
+	l(table,"行動速度");l(table,str(int(q.before.get("speed",0))));l(table,str(int(q.after.get("speed",0))))
+	muted(parent,"通常ATKはその距離に届く武器の合算＋成長補正1回。陣形・スキル倍率・相手の防御は含みません。")
 	for field in table.get_children():
 		field.autowrap_mode=TextServer.AUTOWRAP_OFF;field.custom_minimum_size.x=120;field.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	l(parent,"装備中のスキル: "+q.get("skillName",""))

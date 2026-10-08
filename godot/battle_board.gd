@@ -99,7 +99,8 @@ func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, c
 		nodes.root.visible=u.hp>0 or (phase.get("phase")=="hurt" and phase.get("unit_id")==u.id)
 		nodes.sprite.texture=portraits.texture(u)
 		if nodes.sprite.texture:nodes.sprite.pixel_size=1.55/nodes.sprite.texture.get_height()
-		nodes.sprite.flip_h=u.side=="enemy"
+		# Enemy PNGs already face left; allies/custom portraits keep their source orientation.
+		nodes.sprite.flip_h=false
 		nodes.label.text="%s\n%d/%d%s" % [u.name,u.hp,u.max," 防" if u.get("guard",false) else ""]
 		nodes.label.modulate=Color("#ff7070") if u.hp*4<u.max else Color("#a9ede0") if u.side=="ally" else Color("#f3b4b4")
 	for uid_ in actors.keys():

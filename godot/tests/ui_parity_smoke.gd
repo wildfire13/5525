@@ -102,7 +102,7 @@ func run():
 	var earned=await snapshot()
 	game.navigate("party");await settle()
 	var guard=game.roster().filter(func(u):return u.id=="guard")[0]
-	check(contains("Lv.%d / 能力ポイント %d" % [guard.level,guard.statPoints]) and contains("ATK %d / 射程 %d" % [guard.stats.atk,guard.stats.reach]),"party exposes level, points, ATK and reach")
+	check(contains("Lv.%d / 能力ポイント %d" % [guard.level,guard.statPoints]) and contains(game.pages.attack_profile(guard.stats)),"party exposes level, points, ATK and reach")
 	check(guard.skillPoints==0 or contains("スキルポイント %d（配分は未実装）" % guard.skillPoints),"legacy unimplemented skill allocation is identified")
 	check(contains("装飾:") and contains("編成変更はアスタリス"),"party exposes accessories and guild restriction")
 	game.navigate("shop");await settle()
@@ -114,8 +114,10 @@ func run():
 	if table!=null:
 		check(table.get_children().all(func(field):return field.size.x>=120 and field.get_line_count()==1),"comparison columns remain readable without vertical character wrapping")
 		for i in range(5):
-			var key=["max","maxMp","atk","reach","speed"][i]
-			check(table.get_child(4+i*3).text==str(int(quote.before[key])) and table.get_child(5+i*3).text==str(int(quote.after[key])),"comparison values match rule quote: "+key)
+			var key=["max","maxMp","atk","normalReach","speed"][i]
+			var before=game.pages.normal_atk(quote.before,1) if key=="atk" else int(quote.before[key])
+			var after=game.pages.normal_atk(quote.after,1) if key=="atk" else int(quote.after[key])
+			check(table.get_child(4+i*3).text==str(before) and table.get_child(5+i*3).text==str(after),"comparison values match rule quote: "+key)
 	check(contains(quote.current.name) and contains("購入後%dG" % quote.afterGold) and not contains("<null>"),"comparison shows current gear, trade-in and resulting gold without null placeholders")
 	var before_quote=await snapshot()
 	await press("取消 / 戻る")
