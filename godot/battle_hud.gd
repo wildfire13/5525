@@ -98,7 +98,10 @@ func render():
 	var box=ui.scroller(shell);box.name="DecisionContent";box.get_parent().name="DecisionScroll"
 	decision_footer=VBoxContainer.new();shell.add_child(decision_footer)
 	actor_box=box;command_box=box;target_box=box
-	if phase is Dictionary:render_presentation(phase)
+	if ui.engine.disconnected:
+		ui.battle_actions=null;l(box,"接続が終了しました",true)
+		l(box,ui.notice if not ui.notice.is_empty() else "再接続して保存済みファイルを読み込めます。")
+	elif phase is Dictionary:render_presentation(phase)
 	elif s.get("deploying",false):render_deployment()
 	elif s.get("result")!=null:render_result()
 	elif range_reference:render_reference()
@@ -278,6 +281,7 @@ func request_reference(which: String):
 		if token!=reference_generation:return
 	if ui.closing or token!=reference_generation:return
 	var reply=await ui.engine.request({"op":"preview","kind":"move","target":destination,"previewKind":which})
+	if ui.handle_connection_loss(reply,connection):return
 	# Reference responses own no movement decision or old UI nodes. Closure/reopen,
 	# new/load, actor/skill changes and connection replacement all invalidate them.
 	if ui.closing or token!=reference_generation or not range_reference or generation!=ui.generation or epoch!=ui.pages.epoch or connection!=ui.engine.connection_generation:return
@@ -286,8 +290,6 @@ func request_reference(which: String):
 	if reply.get("ok",false):reference_preview=reply.preview
 	else:
 		reference_error=str(reply.get("error","射程参考を取得できませんでした"))
-		if reply.get("connection_lost",false):
-			var error=reference_error;ui.invalidate_preview();ui.pages.reset_context();ui.notice=error
 	ui.render()
 func render_reference():
 	l(target_box,"仮位置からの射程参考",true)
