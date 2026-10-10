@@ -14,6 +14,7 @@ var portraits
 var data: Dictionary = {}
 var preview: Dictionary = {}
 var kind := "attack"
+var reference_mode := false
 var selected := ""
 var targets: Array = []
 var actors: Dictionary = {}
@@ -72,6 +73,7 @@ func unit_at(p: int) -> Dictionary:
 		if int(u.pos)==p and u.hp>0: return u
 	return {}
 func input_event(event):
+	if reference_mode and (event is InputEventKey and event.keycode in [KEY_ENTER,KEY_KP_ENTER] or event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_LEFT,MOUSE_BUTTON_RIGHT]):accept_event();return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var x=keyboard_cell%10;var y=int(keyboard_cell/10)
 		match event.keycode:
@@ -241,7 +243,8 @@ func draw_overlay():
 		var w=point(int(p));var poly=PackedVector2Array()
 		for offset in [Vector3(-.58,.04,-.58),Vector3(.58,.04,-.58),Vector3(.58,.04,.58),Vector3(-.58,.04,.58)]:poly.append(project(w+offset))
 		overlay.draw_colored_polygon(poly,Color(.25,.65,1,.2))
-	for p in legal_target_cells():cell_outline(int(p),Color(.3,.9,.55,.65))
+	if not reference_mode:
+		for p in legal_target_cells():cell_outline(int(p),Color(.3,.9,.55,.65))
 	for p in preview.get("cells",[]):cell_outline(int(p),Color("#fb923c"),3.0)
 	if preview.get("target") is float or preview.get("target") is int:cell_outline(int(preview.target),Color("#fff0ac"),3.0)
 	var threats={}
@@ -266,7 +269,7 @@ func draw_overlay():
 			overlay.draw_circle(at,5,color)
 	for u in state.get("units",[]):
 		if u.hp<=0:continue
-		if u.id==state.get("actor") or u.id==selected:overlay.draw_arc(project_cell(u.pos),18,0,TAU,40,Color("#fff0ac"),2,true)
+		if u.id==(data.presentation.get("actor_id") if data.get("presentation") is Dictionary else state.get("actor")) or u.id==selected:overlay.draw_arc(project_cell(u.pos),18,0,TAU,40,Color("#fff0ac"),2,true)
 		if targets.has(u.id):overlay.draw_circle(project_cell(u.pos),10,Color(.2,1,.55,.6))
 		if u.side=="enemy" and u.get("intent")!=null:
 			var valid=false
@@ -286,7 +289,7 @@ func draw_overlay():
 	draw_unit_labels(state)
 	if has_focus():
 		cell_outline(keyboard_cell,Color("#78edce"),3.0)
-		overlay.draw_string(ThemeDB.fallback_font,Vector2(8,size.y-10),"フォーカス X%d,Y%d / Enterは候補選択" % [keyboard_cell%10,4-int(keyboard_cell/10)],HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color.WHITE)
+		overlay.draw_string(ThemeDB.fallback_font,Vector2(8,size.y-10),("射程参考 / Escで同じ仮置きに戻る" if reference_mode else "フォーカス X%d,Y%d / Enterは候補選択" % [keyboard_cell%10,4-int(keyboard_cell/10)]),HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color.WHITE)
 func draw_unit_labels(state: Dictionary):
 	var shown: Array[Rect2]=[]
 	var actor=state.get("actor","")

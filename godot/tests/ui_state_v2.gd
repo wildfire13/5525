@@ -101,7 +101,7 @@ func run():
 		check("V2-B03",game.hud.state_id()=="B2" and game.board.ghost.visible and text(game.content).contains("手番終了"),"move ghost and end-turn warning")
 		await geometry("V2-B04")
 		game.hud.open_range_reference();await settle();check("V2-B05",game.hud.state_id()=="B2R" and not game.can_commit(),"range reference cannot execute")
-		game.dialog.close();await settle();check("V2-B05",game.hud.state_id()=="B2" and game.preview_ready,"reference returns to same valid ghost")
+		game.hud.close_reference();await settle();check("V2-B05",game.hud.state_id()=="B2" and game.preview_ready,"reference returns to same valid ghost")
 		game.cancel();await settle();check("V2-B03",game.hud.state_id()=="B1" and JSON.stringify(game.state(),"",true,true)==move_before,"ghost cancellation consumes nothing")
 		game.cancel();await settle();check("V2-B13",game.hud.state_id()=="B0","second cancellation returns action list")
 		game.choose_command("attack");var target=game.data.choices.attack[0]

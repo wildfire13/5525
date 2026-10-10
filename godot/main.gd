@@ -28,7 +28,7 @@ var battle_row: HBoxContainer
 var board
 var side: VBoxContainer
 var battle_header: VBoxContainer
-var battle_actions: HBoxContainer
+var battle_actions: Control
 var footer: Label
 var actor_row: HBoxContainer
 var widgets: Array[Button]=[]
@@ -254,6 +254,7 @@ func reconnect_engine():
 	if engine.start_engine():await new_game()
 	else:notice=engine.last_error;render()
 func invalidate_preview():
+	if hud!=null:hud.discard_reference()
 	generation+=1;pending=null;chosen=[];preview={};preview_ready=false;preview_pending=false
 func new_game():
 	invalidate_preview()
@@ -390,7 +391,7 @@ func render_unit_details(parent: Node,s: Dictionary):
 			label_(parent,"予告: "+str(intent.get("name",""))+target_text+(" → "+", ".join(cells) if not cells.is_empty() else "")+" / "+str(intent.get("reason","")))
 			if intent.get("destination")!=null:label_(parent,"移動予定: X%d,Y%d" % [int(intent.destination)%10,4-int(int(intent.destination)/10)])
 func choose_command(value: String):
-	if locked or presenting or closing:return
+	if locked or presenting or closing or hud.range_reference:return
 	invalidate_preview();command=value;hud.action_menu=false;hud.selected_cell=-1;hud.selected_enemy=""
 	if value=="skill" and data.get("skill")=="陣形強化":
 		confirm("陣形を強化します。MP1・1行動を使用。\n次の本人の番まで攻撃+75%・被害−35%。重複しません。",porter_boost)
@@ -404,7 +405,7 @@ func deploy_dragged(uid: String,pos: int):
 	if locked or presenting:return
 	await act("deploy",[uid,pos])
 func on_cell(pos: int):
-	if locked or presenting or closing:return
+	if locked or presenting or closing or hud.range_reference:return
 	var s=state();var u=board.unit_at(pos)
 	hud.selected_cell=pos
 	if hud.action_menu and not s.get("deploying",false):render();return
@@ -456,6 +457,7 @@ func request_preview(which: String):
 	render()
 func cancel():
 	if locked or presenting or closing:return
+	if hud.range_reference:hud.close_reference();return
 	var had_target=pending!=null or not chosen.is_empty()
 	invalidate_preview();hud.selected_cell=-1;hud.selected_enemy=""
 	if not had_target:hud.action_menu=true

@@ -63,13 +63,14 @@ func reference_case(which: String,exit_mode: String,fail:=false):
 	await fixture();await game.act("depart",["astaris","convoy"]);await game.act("travel",["safe"]);await game.act("begin",[]);await settle()
 	game.choose_command("move");await game.on_cell(int(game.data.choices.move[0]));await settle()
 	var before=await snapshot();var destination=game.pending;var original=game.preview.duplicate(true);var epoch=game.pages.epoch
-	game.hud.open_range_reference();await settle();var old_window=game.dialog.window;var old_body=game.dialog.body
+	game.hud.open_range_reference();await settle();var old_body=game.hud.target_box
 	probe.hold_reply_action="preview";probe.fail_held_reply=fail
 	button("通常攻撃の参考" if which=="attack" else "スキルの参考").pressed.emit();await wait_held()
+	check("D02",game.hud.reference_pending and game.hud.reference_preview.ranges.is_empty() and game.preview==original and game.board.ghost.visible and not game.can_commit(),"pending reference retains ghost, clears obsolete ranges and cannot execute")
 	match exit_mode:
-		"close":game.dialog.close()
+		"close":game.hud.close_reference()
 		"escape":await escape()
-		"reopen":game.dialog.close();game.hud.open_range_reference()
+		"reopen":game.hud.close_reference();game.hud.open_range_reference()
 		"new":game.new_game()
 		"load":game.update({"op":"campaign_load","data":source("west")})
 	for i in range(4):await process_frame
@@ -80,9 +81,11 @@ func reference_case(which: String,exit_mode: String,fail:=false):
 		if exit_mode=="load":check("D02",game.campaign().location=="west","load resumes with the requested canonical campaign")
 	else:
 		check("D02",game.pending==destination and game.preview==original and game.preview_ready,which+" / "+exit_mode+" / "+str(fail)+" preserves original movement decision")
-		check("D02",game.hud.range_reference==(exit_mode=="reopen") and game.can_commit()==(exit_mode!="reopen"),"only the active dialog controls confirmation availability")
+		check("D02",game.hud.range_reference==(exit_mode=="reopen") and game.can_commit()==(exit_mode!="reopen"),"only the active reference controls confirmation availability")
 		check("D02",await snapshot()==before,"abandoned reference never consumes or changes canonical state")
-		if exit_mode=="reopen":game.dialog.close();await settle()
+		if exit_mode=="reopen":
+			check("D02",game.hud.reference_preview==original and not game.hud.reference_pending,"old success or failure cannot change the newly opened reference")
+			game.hud.close_reference();await settle()
 func shop_facts():
 	root.size=Vector2i(1280,800);await fixture();await game.preview_gear("spear-wood");await settle()
 	var chosen=game.find_child("Product_spear-wood",true,false);var other=game.find_child("Product_staff-wood",true,false)
