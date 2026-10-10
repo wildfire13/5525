@@ -11,7 +11,10 @@ var trial_return: Dictionary={}
 var current_equipment_open := false
 var cached_quotes: Dictionary={}
 var party_focus_after := ""
-func _init(frontend):ui=frontend
+var shop_view
+var party_view
+func _init(frontend):
+	ui=frontend;shop_view=preload("res://shop_view.gd").new(self);party_view=preload("res://party_view.gd").new(self)
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func row(parent):return ui.row(parent)
@@ -20,7 +23,7 @@ func c() -> Dictionary:return ui.campaign()
 func roster() -> Array:return ui.roster()
 func town(id) -> String:return ui.town_name(id)
 func muted(parent,text):
-	var label=l(parent,text);label.add_theme_color_override("font_color",Color("#bcc9d3"));return label;return label
+	var label=l(parent,text);label.add_theme_color_override("font_color",Color("#bcc9d3"));return label
 func selected_party() -> Array:
 	var journey=c().get("journey")
 	if journey is Dictionary and journey.get("party") is Array:return journey.party
@@ -135,62 +138,7 @@ func journey(parent):
 			l(parent,town(journey_.get("destination",""))+"に到着しました",true)
 			b(parent,"荷物を渡して報酬を確認" if quest is Dictionary else "町へ入る（配達報酬なし）",ui.act.bind("arrive",[]))
 	l(parent,"\n".join(journey_.get("history",[]).slice(-4)))
-func party(parent):
-	var members=roster();var selected_ids=c().get("selected",[])
-	if not members.any(func(u):return u.id==party_uid):
-		party_uid=str(selected_ids[0]) if not selected_ids.is_empty() else str(members[0].id) if not members.is_empty() else ""
-	var split=VBoxContainer.new() if ui.ui_size_mode=="narrow" else HBoxContainer.new();split.name="PartySplit";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",8);parent.add_child(split)
-	var list_=VBoxContainer.new();list_.name="PartyRoster";split.add_child(list_)
-	if ui.ui_size_mode!="narrow":list_.custom_minimum_size.x=320 if ui.ui_size_mode=="standard" else 280
-	l(list_,"編成 %d/5 / %s" % [selected_ids.size(),"ポーター在籍" if c().get("hasPorter",false) else "ポーター不在"],true)
-	if ui.ui_size_mode=="narrow":
-		for id in selected_ids:
-			for u in members:
-				if u.id==id:
-					var line=l(list_,"%s / HP %d/%d MP %d/%d%s" % [u.name,u.hp,u.max,u.mp,u.maxMp," KO" if u.hp<=0 else ""]);ui.short_name(line,str(u.name));ui.emphasize_low_hp(line,u)
-		var chooser=OptionButton.new();chooser.custom_minimum_size.y=40;chooser.clip_text=true;list_.add_child(chooser)
-		for u in members:
-			chooser.add_item(("編成 / " if selected_ids.has(u.id) else "控え / ")+str(u.name));chooser.set_item_metadata(chooser.item_count-1,u.id)
-			if u.id==party_uid:chooser.select(chooser.item_count-1)
-		chooser.item_selected.connect(func(i):select_party(str(chooser.get_item_metadata(i))));ui.memory.key(chooser,"party_narrow_select")
-	else:
-		for id in selected_ids:
-			for u in members:
-				if u.id==id:party_row(list_,u)
-		l(list_,"控え / 行選択は詳細を見るだけ")
-		var reserve=ui.scroller(list_);reserve.get_parent().custom_minimum_size.y=60;ui.memory.watch(reserve.get_parent(),"party_reserve")
-		for u in members:
-			if not selected_ids.has(u.id):party_row(reserve,u)
-	var detail=VBoxContainer.new();detail.name="PartyDetail";detail.size_flags_horizontal=Control.SIZE_EXPAND_FILL;detail.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(detail)
-	var member={}
-	for u in members:
-		if u.id==party_uid:member=u;break
-	if member.is_empty():l(detail,"仲間がいません");return
-	var hero=row(detail);ui.portrait(hero,member,false,64)
-	var heading=VBoxContainer.new();heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;hero.add_child(heading)
-	var name_=l(heading,str(member.name),true);ui.short_name(name_,str(member.name))
-	l(heading,str(member.get("role",""))+" / "+("編成中" if selected_ids.has(member.id) else "控え"))
-	var active=selected_ids.has(member.id);var guild=c().get("guildAvailable",false)
-	var membership=b(hero,"編成から外す" if active else "編成に加える",change_membership.bind(member.id),not guild or (not active and selected_ids.size()>=5));ui.memory.key(membership,"party_membership")
-	var reason="雇用無料 / 最大5人 / 出発にはポーター必須"
-	if not guild:reason="編成変更はアスタリスのギルドで行います。ここでは閲覧できます。"
-	elif not active and selected_ids.size()>=5:reason="満員です。先に1人外してください。"
-	elif not c().get("hasPorter",false):reason="ポーター不在: 出発にはポーターが必要です。"
-	l(detail,reason)
-	var body=ui.scroller(detail);body.get_parent().name="PartyDetailScroll";ui.memory.watch(body.get_parent(),"party_detail_"+party_uid)
-	var hp=l(body,"HP %d/%d / MP %d/%d%s" % [member.hp,member.max,member.mp,member.maxMp," 戦闘不能" if member.hp<=0 else ""]);ui.emphasize_low_hp(hp,member);ui.memory.item(hp,"hp")
-	ui.memory.item(l(body,"Lv.%d / 能力ポイント %d" % [member.get("level",1),member.get("statPoints",0)]),"level")
-	ui.memory.item(l(body,member_stats(member)),"stats")
-	l(body,stats_text(member.get("stats",member)))
-	var allocate=row(body)
-	for stat in ["str","int","agi"]:
-		var control=b(allocate,stat.to_upper()+"+1",ui.act.bind("allocate",[member.id,stat,1]),c().get("phase")!="town" or member.get("statPoints",0)<=0);ui.memory.key(control,"allocate_"+stat)
-	l(body,"スキルポイント %d（配分は未実装）" % member.get("skillPoints",0))
-	ui.memory.item(l(body,"装備8枠",true),"equipment")
-	equipment(body,member)
-	for source in member.get("stats",member).get("skillSources",[]):
-		l(body,"由来: %s / %s" % [c().get("slots",{}).get(source.get("slot",""),source.get("slot","")),source.get("itemName",source.get("itemId",""))])
-	muted(body,"離脱・再編入しても人物ごとの装備・成長・HP/MPを保持します。装備の買替は対応する店で行います。")
+func party(parent):party_view.render(parent)
 func items(parent):
 	l(parent,"道具 / ポーション %d ・エーテル %d" % [c().inventory.potion,c().inventory.ether],true)
 	if c().phase not in ["town","camp"]:l(parent,"町・野営で使用できます");return
@@ -216,7 +164,7 @@ func stay_inn():
 	ui.confirm("%dGを支払い、編成中の全員のHP・MPを全回復しますか？\n戦闘不能も回復。控えは対象外、時間は経過しません。" % q.get("price",30),ui.act.bind("inn",[]))
 func shop(parent):
 	var location=c().get("location","")
-	l(parent,{"east":"イースの武器屋","west":"ウエスの防具屋","south":"サウスの道具屋"}.get(location,"この拠点にお店はありません")+" / 所持金%dG" % c().get("gold",0),true)
+	if location not in ["east","west"]:l(parent,{"south":"サウスの道具屋"}.get(location,"この拠点にお店はありません")+" / 所持金%dG" % c().get("gold",0),true)
 	if location=="south":
 		var body=ui.scroller(parent);ui.memory.watch(body.get_parent(),"consumable_shop")
 		muted(body,"所持上限は各99個（試作値）。回復量はHP+55 / MP+3です。")
@@ -227,43 +175,8 @@ func shop(parent):
 		items(body);return
 	if location not in ["east","west"]:
 		muted(parent,"ノースの施設は掲示板です。お店や固有施設はまだ設定されていません。" if location=="north" else "武器はイース、防具はウエス、道具はサウスで購入できます。");return
-	var ids=c().get("selected",[])
-	if ids.is_empty():l(parent,"編成中の仲間がいません。ギルドで編成してください。");return
-	if not ids.has(ui.shop_uid):ui.shop_uid=str(ids[0]);invalidate_quote(true)
-	var members=row(parent)
-	for id in ids:
-		for u in roster():
-			if u.id!=id:continue
-			var box=VBoxContainer.new();box.size_flags_horizontal=Control.SIZE_EXPAND_FILL;members.add_child(box)
-			ui.portrait(box,u,true,32)
-			var control=ui.local_button(box,("● " if u.id==ui.shop_uid else "")+str(u.name),ui.select_shop.bind(u.id));control.clip_text=true;control.tooltip_text=str(u.name);ui.memory.key(control,"shop_member_"+str(u.id))
-	var slots=c().get("slots",{})
-	if (location=="east")!=(ui.shop_slot in ["rightHand","leftHand"]):ui.shop_slot="rightHand" if location=="east" else "upperBody";invalidate_quote(true)
-	var choices=row(parent)
-	for slot in slots:
-		if (location=="east")==(slot in ["rightHand","leftHand"]):
-			var control=ui.local_button(choices,("● " if slot==ui.shop_slot else "")+str(slots[slot]),select_slot.bind(slot));ui.memory.key(control,"shop_slot_"+slot)
-	var split=VBoxContainer.new() if ui.ui_size_mode=="narrow" else HBoxContainer.new();split.name="ShopSplit";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",8);parent.add_child(split)
-	var list_scroll=ScrollContainer.new();list_scroll.name="ShopProducts";list_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;list_scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL;list_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;list_scroll.size_flags_stretch_ratio=38 if ui.ui_size_mode=="standard" else 36;split.add_child(list_scroll)
-	if ui.ui_size_mode=="narrow":list_scroll.size_flags_vertical=Control.SIZE_FILL;list_scroll.custom_minimum_size.y=112
-	ui.memory.watch(list_scroll,"shop_products")
-	var products=VBoxContainer.new();products.size_flags_horizontal=Control.SIZE_EXPAND_FILL;list_scroll.add_child(products)
-	for gear in offered():product_row(products,gear)
-	var compare=VBoxContainer.new();compare.name="GearQuote";compare.size_flags_horizontal=Control.SIZE_EXPAND_FILL;compare.size_flags_vertical=Control.SIZE_EXPAND_FILL;compare.size_flags_stretch_ratio=62 if ui.ui_size_mode=="standard" else 64;split.add_child(compare)
-	if quote_valid():quote(compare,ui.gear_preview)
-	else:
-		l(compare,"比較取得中…" if quote_pending else "商品を選んで比較",true)
-		l(compare,ui.member_name(ui.shop_uid)+" / "+str(slots.get(ui.shop_slot,ui.shop_slot)))
-		var body=ui.scroller(compare)
-		muted(body,"商品を選ぶと必要能力・条件と差額を表示します。購入前に木人で試せます。現在品は同じ枠から下取りされ、予備には残りません。")
-		muted(body,"対象に届く各攻撃武器のATK合算＋成長補正1回。スナイプは各武器の射程+1。同スキル効果は重複しません。")
-		b(compare,"木人で試す",func():pass,true);ui.primary(b(compare,"商品を選んでください",func():pass,true))
-func select_slot(slot: String):
-	ui.shop_slot=slot;invalidate_quote(false)
-	var keep=gear_id
-	if not offered().any(func(g):return g.id==keep):gear_id="";keep=""
-	ui.render()
-	if not keep.is_empty():await request_quote(keep)
+	shop_view.render(parent)
+func select_slot(slot: String):await shop_view.select_slot(slot)
 func quote(parent,q: Dictionary):
 	var summary=l(parent,ui.member_name(ui.shop_uid)+" / "+str(c().get("slots",{}).get(ui.shop_slot,ui.shop_slot))+(" / " if ui.ui_size_mode=="narrow" else "\n")+str(q.get("current",{}).get("name",q.get("oldGearId","")))+" → "+str(q.gear.name));ui.short_name(summary,summary.text)
 	if ui.ui_size_mode=="narrow":summary.max_lines_visible=1
@@ -309,24 +222,10 @@ func refresh_purchase_availability(control):
 	await ui.get_tree().process_frame
 	if is_instance_valid(control) and control.is_inside_tree():
 		control.disabled=control.get_meta("base_disabled",true) or not quote_valid() or ui.locked or ui.presenting or not comparison_visible()
-func purchase(q: Dictionary):
-	if not comparison_visible():ui.notice="比較欄を表示して性能を確認してください。";ui.render();return
-	if not quote_valid() or q.gearId!=gear_id:return
-	var stamp=quote_stamp;var ticket=quote_generation;var uid=ui.shop_uid;var slot=ui.shop_slot
-	ui.confirm("%s / %s\n価格%d − 下取り%d = 差額%dG\n所持金%dG → 購入後%dG\n現在の同じ枠の装備は下取りされ、予備装備としては残りません。" % [ui.member_name(uid),c().slots[slot],q.price,q.tradeIn,q.cost,c().gold,q.afterGold],func():
-		if stamp!=quote_stamp or ticket!=quote_generation or uid!=ui.shop_uid or slot!=ui.shop_slot or not quote_valid():ui.notice="比較条件が変わりました。最新の見積を確認してください。";ui.render();return
-		buy(str(q.gearId)))
+func purchase(_q: Dictionary):shop_view.confirm_purchase()
 func buy(id: String):
-	if not comparison_visible():return
-	if not quote_valid() or id!=gear_id:return
-	var uid=ui.shop_uid;var slot=ui.shop_slot
-	invalidate_quote(false)
-	var reply=await ui.act("buyGear",[uid,id,slot])
-	var result_notice="購入済み / 現在装備を再確認しました" if reply is Dictionary and reply.get("ok",false) else ui.notice
-	await request_quote(id)
-	ui.notice=result_notice;ui.render()
-func cancel_quote():
-	invalidate_quote(false);ui.audio.ui("cancel");ui.render()
+	if quote_valid() and id==gear_id:shop_view.stage="S5";await shop_view.buy(ui.gear_preview.duplicate(true))
+func cancel_quote():shop_view.back_list()
 func result(parent):
 	var result_: Dictionary=c().get("result",{});var outcome=result_.get("outcome","")
 	l(parent,{"success":"配達達成","late":"配達達成 / 遅配","failed":"クエスト失敗 / 出発前へ","travel":"目的地に到着"}.get(outcome,"旅の結果"),true)
@@ -411,33 +310,16 @@ func invalidate_quote(clear_id:=false):
 	quote_generation+=1;quote_pending=false;quote_stamp="";ui.gear_preview={}
 	if clear_id:gear_id=""
 func reset_context():
+	if ui.hud!=null:ui.hud.reset_context()
+	shop_view.reset();party_view.tab=0;party_view.highlight_slot=""
 	epoch+=1;invalidate_quote(true);trial_return={};cached_quotes={};current_equipment_open=false
-func request_quote(id: String):
-	gear_id=id;invalidate_quote(false);quote_pending=true
-	var token=quote_generation;var stamp=selection_key(id);var uid=ui.shop_uid;var slot=ui.shop_slot
-	ui.render()
-	while ui.engine.busy and not ui.closing:
-		await ui.get_tree().process_frame
-		if token!=quote_generation or stamp!=selection_key(id):return
-	if ui.closing or token!=quote_generation or stamp!=selection_key(id):return
-	var response=await ui.engine.request({"op":"campaign","action":"previewGear","args":[uid,id,slot]})
-	if token!=quote_generation or stamp!=selection_key(id) or gear_id!=id:return
-	quote_pending=false
-	if response.get("ok",false) and response.get("previewGear") is Dictionary:
-		ui.gear_preview=response.previewGear;quote_stamp=stamp;cached_quotes[stamp]=response.previewGear;ui.notice=""
-	else:
-		ui.notice=str(response.get("error","比較できません"));ui.gear_preview={}
-		if response.get("connection_lost",false):reset_context();ui.invalidate_preview()
-	ui.render()
-func select_member(id: String):
-	ui.shop_uid=id;invalidate_quote(false)
-	var keep=gear_id;ui.render()
-	if not keep.is_empty():await request_quote(keep)
+func request_quote(id: String):await shop_view.select_product(id)
+func select_member(uid: String):await shop_view.select_member(uid)
 func remember_trial(args: Array):
+	shop_view.stage="S8";shop_view.background.clear()
 	ui.memory.capture()
 	trial_return={"epoch":epoch,"location":c().get("location"),"uid":args[0],"gear":args[1],"slot":args[2],"scrolls":ui.memory.scrolls.duplicate(true),"focus":"product_"+str(args[1])}
-func start_trial():
-	if quote_valid():await ui.act("trial",[ui.shop_uid,gear_id,ui.shop_slot])
+func start_trial():await shop_view.start_trial()
 func restore_trial():
 	if trial_return.is_empty() or trial_return.get("epoch")!=epoch:return
 	var previous=trial_return.duplicate(true);trial_return={}
@@ -448,3 +330,22 @@ func restore_trial():
 	ui.memory.scrolls.merge(previous.scrolls,true)
 	await request_quote(str(previous.gear))
 	ui.memory.scrolls.merge(previous.scrolls,true);ui.memory.request_focus(previous.focus);ui.memory.restore()
+
+func gear_type(gear: Dictionary) -> String:
+	return {"empty":"なし（手占有0）","sword":"片手剣","greatsword":"両手剣","spear":"槍","dagger":"短剣","bow":"弓","staff":"杖","hammer":"槌","shield":"盾","book":"魔導書","armor":"防具","accessory":"装飾","boots":"足装備"}.get(gear.get("type",""),str(c().get("slots",{}).get(gear.get("slot",""),"装備")))
+func describe_gear(parent,gear: Dictionary):
+	l(parent,str(gear.get("name","装備")),true)
+	l(parent,gear_type(gear)+" / "+("両手・2枠" if gear.get("hands",1)==2 else "手占有0" if gear.get("type")=="empty" else "片手・1枠" if gear.get("slot") in ["weapon","rightHand","leftHand"] else str(c().get("slots",{}).get(gear.get("slot",""),"装備"))))
+	var fields={"price":"購入価格G","atk":"武器ATK","reach":"武器射程","hp":"追加HP上限","mp":"追加MP上限","agiBonus":"行動速度補正","str":"必要STR","int":"必要INT","agi":"必要AGI"}
+	for field in fields:
+		if gear.has(field):l(parent,fields[field]+": "+str(int(gear[field])))
+	if gear.has("allowedSlots"):l(parent,"装備枠: "+" / ".join(gear.allowedSlots.map(func(slot):return str(c().get("slots",{}).get(slot,slot)))))
+	for field in ["skill","effect"]:
+		if gear.get(field)!=null:
+			l(parent,("スキル: " if field=="skill" else "効果: ")+str(c().get("skillNames",{}).get(gear[field],gear[field])))
+			l(parent,skill_description(str(gear[field])))
+	if gear.has("note"):l(parent,gear.note)
+
+func skill_description(id: String,stage: int=-1) -> String:
+	var definition=c().get("skillDefinitions",{}).get(id,{})
+	return str(definition.description) if definition.has("description") else ui.legacy_skill_description(str(c().get("skillNames",{}).get(id,id)),int(c().get("level",1)) if stage<0 else stage)

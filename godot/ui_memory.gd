@@ -17,6 +17,8 @@ func item(control: Control, value: String):
 func watch(scroll: ScrollContainer, value: String):
 	scroll.set_meta("scroll_key",value)
 	scroll.follow_focus=true
+	scroll.get_v_scroll_bar().value_changed.connect(func(_value):
+		if layout_ready and not ui.layout_queued and scroll.is_inside_tree() and scroll.is_visible_in_tree() and scroll.size==scroll.get_meta("restored_size",Vector2.ZERO):capture_scroll(scroll))
 	return scroll
 func capture():
 	if not layout_ready:return
@@ -25,13 +27,15 @@ func capture():
 	elif not focus_override.is_empty():focus_key=focus_override
 	for scroll in ui.find_children("*","ScrollContainer",true,false):
 		if not scroll.has_meta("scroll_key") or not scroll.is_visible_in_tree() or scroll.get_child_count()==0:continue
-		var children=scroll.get_child(0).get_children()
-		var entry={"id":"","index":0,"offset":scroll.scroll_vertical,"horizontal":scroll.scroll_horizontal}
-		for index in range(children.size()):
-			var node=children[index]
-			if node is Control and node.position.y<=scroll.scroll_vertical:
-				entry.id=str(node.get_meta("anchor_id",node.name));entry.index=index;entry.offset=scroll.scroll_vertical-node.position.y
-		scrolls[str(scroll.get_meta("scroll_key"))]=entry
+		capture_scroll(scroll)
+func capture_scroll(scroll: ScrollContainer):
+	var children=scroll.get_child(0).get_children()
+	var entry={"id":"","index":0,"offset":scroll.scroll_vertical,"horizontal":scroll.scroll_horizontal}
+	for index in range(children.size()):
+		var node=children[index]
+		if node is Control and node.position.y<=scroll.scroll_vertical:
+			entry.id=str(node.get_meta("anchor_id",node.name));entry.index=index;entry.offset=scroll.scroll_vertical-node.position.y
+	scrolls[str(scroll.get_meta("scroll_key"))]=entry
 func restore():
 	revision+=1;layout_ready=false
 	var token=revision
@@ -63,7 +67,7 @@ func restore():
 						ancestor=ancestor.get_parent()
 				focus_override="";reveal_focus=false;break
 	layout_ready=true
-	for scroll in ui.find_children("*","ScrollContainer",true,false):scroll.follow_focus=true
+	for scroll in ui.find_children("*","ScrollContainer",true,false):scroll.set_meta("restored_size",scroll.size);scroll.follow_focus=true
 func request_focus(value: String,reveal:=false):
 	focus_override=value;focus_key=value;reveal_focus=reveal
 func reset():

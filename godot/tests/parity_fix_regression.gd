@@ -14,7 +14,7 @@ func check(ok: bool,label: String):
 	print(("PASS " if ok else "FAIL ")+label)
 func settle():
 	for i in range(5):await process_frame
-	while game.locked or game.engine.busy or game.presenting:await process_frame
+	while game.locked or game.engine.busy or game.presenting or game.pages.shop_view.quote_worker:await process_frame
 func capture(name: String):
 	if not visual:return
 	await RenderingServer.frame_post_draw
@@ -79,19 +79,21 @@ func run():
 	game.checks_fast=true;game.audio.fast_mode=true
 	await restore(fixture.low)
 	var low=game.board.actors.guard.label;var boundary=game.board.actors.archer.label
-	check(low.font is FontVariation and low.font.variation_embolden>0 and low.modulate==Color("#ef4444"),"44/180 board portrait HP is red bold")
-	check(not boundary.font is FontVariation and boundary.modulate!=Color("#ef4444"),"25/100 board HP stays normal")
-	var current=game.actor_row.get_children().filter(func(n):return n is Label)[0]
-	check(current.has_theme_font_override("font") and current.get_theme_color("font_color")==Color("#ef4444"),"current actor low HP is red bold")
+	check(low.font is FontVariation and low.font.variation_embolden>0 and low.modulate==Color("#ff9494"),"44/180 board portrait HP is red bold")
+	check(not boundary.font is FontVariation and boundary.modulate!=Color("#ff9494"),"25/100 board HP stays normal")
+	var current=game.header
+	check(current.has_theme_font_override("font") and current.get_theme_color("font_color")==Color("#ff9494"),"current actor low HP is red bold")
+	game.hud.toggle_details();await settle()
 	var detail=labels_starting("ガロ: HP")[0]
-	check(detail.has_theme_font_override("font") and detail.get_theme_color("font_color")==Color("#ef4444"),"sidebar low HP is red bold")
+	check(detail.has_theme_font_override("font") and detail.get_theme_color("font_color")==Color("#ff9494"),"sidebar low HP is red bold")
 	check(not labels_starting("リノ: HP")[0].has_theme_font_override("font"),"sidebar exact 25 percent remains normal")
 	await capture("low-hp-red-bold")
-	game.side.get_parent().ensure_control_visible(detail);await settle();await capture("low-hp-sidebar")
+	game.dialog.body.get_parent().ensure_control_visible(detail);await settle();await capture("low-hp-sidebar")
+	game.dialog.close();await settle()
 	var exact=fixture.low.duplicate(true);exact.state.battle.units.filter(func(u):return u.id=="guard")[0].hp=45
 	await restore(exact)
 	check(not game.board.actors.guard.label.font is FontVariation,"45/180 restores normal board weight")
-	current=game.actor_row.get_children().filter(func(n):return n is Label)[0]
+	current=game.header
 	check(not current.has_theme_font_override("font"),"45/180 restores normal actor weight")
 	for camera in range(3):
 		game.board.set_camera(camera);await settle()

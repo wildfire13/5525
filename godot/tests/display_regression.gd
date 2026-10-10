@@ -13,7 +13,7 @@ func check(ok: bool,label: String):
 	print(("PASS " if ok else "FAIL ")+label)
 func settle():
 	for i in range(5):await process_frame
-	while game.locked or game.presenting:await process_frame
+	while game.locked or game.presenting or game.engine.busy or game.pages.shop_view.quote_worker:await process_frame
 func button_named(text: String):
 	for b in game.find_children("*","Button",true,false):
 		if b.text.trim_prefix("● ")==text or text=="確定" and (b.text.ends_with("を確定") or b.text=="移動して手番終了"):return b
@@ -26,7 +26,8 @@ func click_at(at: Vector2):
 func click(text: String):
 	var b=button_named(text);check(b!=null and not b.disabled,"enabled input: "+text)
 	if b!=null and not b.disabled:await click_at(b.get_global_rect().get_center())
-func snapshot():return (await game.engine.request({"op":"campaign_save"})).data
+func snapshot():
+	await settle();return (await game.engine.request({"op":"campaign_save"})).data
 func restore(save: Dictionary):
 	game.gear_preview={};await game.update({"op":"campaign_load","data":save});await settle()
 func capture(label: String):
@@ -46,15 +47,15 @@ func fully_visible(control: Control) -> bool:
 		ancestor=ancestor.get_parent()
 	return true
 func layout(label: String):
-	var names=["移動","攻撃","防御","戦術","低","高","確定","取消"]
+	var names=["戦術","低","高","確定","仮置きを取消"]
 	var rects={}
 	for text in names:
 		var b=button_named(text);check(b!=null and fully_visible(b),label+" visible "+text)
 		if b!=null:rects[text]=str(b.get_global_rect())
-	check(fully_visible(game.actor_row),label+" actor face fixed")
+	check(fully_visible(game.actor_face),label+" actor face fixed")
 	check(fully_visible(game.battle_header.find_child("TurnOrder",true,false)),label+" queue fixed")
-	check(game.side.get_parent().size.y>80 if game.ui_size_mode=="standard" else not game.hud.details.visible,label+" usable detail scroll or compact collapsed details")
-	check(game.battle_actions.get_global_rect().position.y>=game.board.get_global_rect().end.y,label+" confirm remains in fixed lower dock")
+	check(fully_visible(game.hud.dock),label+" state-specific decision panel fits")
+	check(game.battle_actions.get_global_rect().position.y>=game.board.get_global_rect().end.y if game.ui_size_mode!="standard" else game.hud.dock.get_global_rect().position.x>=game.board.get_global_rect().end.x,label+" decision below compact board or beside wide board")
 	layouts.append({"name":label,"window":str(root.size),"viewport":str(root.get_visible_rect()),"controls":rects})
 func facing(label: String):
 	for u in game.state().units:
@@ -89,12 +90,9 @@ func run():
 	await restore(fixture.shop);game.shop_uid="guard";game.shop_slot="leftHand";game.navigate("shop")
 	var before_quote=await snapshot()
 	await game.preview_gear("javelin-wood");await settle()
-	var table=game.find_child("GearComparison",true,false)
-	check(table!=null and table.get_child_count()==32,"mixed-reach comparison has three ATK rows")
-	if table!=null and table.get_child_count()==32:
-		var expected=[["通常ATK / 距離1","23","44"],["通常ATK / 距離2","23","44"],["通常ATK / 距離3","射程外","21"],["最大通常射程","2","3"]]
-		for i in range(4):
-			check([table.get_child(12+i*4).text,table.get_child(13+i*4).text,table.get_child(14+i*4).text]==expected[i],"offhand table row "+str(i))
+	var lines=game.pages.shop_view.comparison_lines(game.gear_preview,true)
+	for expected in ["通常ATK・距離1: 23 → 44","通常ATK・距離2: 23 → 44","通常ATK・距離3: 射程外 → 21","通常攻撃の届く距離: 2 → 3"]:
+		check(str(lines).contains(expected),"mixed-reach comparison: "+expected)
 	await capture("01-offhand-quote")
 	check(await snapshot()==before_quote,"comparison never mutates campaign")
 	game.pages.cancel_quote()
@@ -110,21 +108,20 @@ func run():
 		root.size=window_size;await settle()
 		for camera in range(3):
 			await click(["戦術","低","高"][camera])
-			if game.ui_size_mode=="standard":game.hud.tabs.current_tab=1;await settle()
 			var label="%dx%d-camera%d" % [window_size.x,window_size.y,camera]
 			check(game.board.camera_mode==camera,label+" camera input")
-			game.side.get_parent().scroll_vertical=0;await settle();layout(label+" top")
+			await settle();layout(label+" top")
 			facing(label)
 			check(game.board.cell_at(game.board.project_cell(23))==23 and game.board.cell_at(game.board.project_cell(25))==25,label+" selection/ghost cell projection")
 			if window_size.x in [960,1280]:await capture(label+"-top")
-			game.side.get_parent().scroll_vertical=100000;await settle();layout(label+" scrolled")
+			game.hud.toggle_details();await settle();game.dialog.body.get_parent().scroll_vertical=100000;game.dialog.close();await settle();layout(label+" detail-return")
 			if window_size.x==960 and camera==0:await capture(label+"-scrolled")
-	await click("取消")
+	await click("仮置きを取消")
 	check(game.pending==null and not game.board.ghost.visible and await snapshot()==before,"visible cancel keeps exact campaign")
-	await click("攻撃")
+	await click("行動一覧へ");await click("攻撃")
 	await click_at(game.board.global_position+game.board.project_cell(25))
 	check(not game.chosen.is_empty() and game.board.targets==game.chosen,"enemy selection follows rendered position")
-	await click("取消")
+	await click("対象選択を取消");await click("行動一覧へ")
 	await click("移動")
 	await click_at(game.board.global_position+game.board.project_cell(23))
 	var old_actions=int(game.state().actions)
@@ -135,7 +132,8 @@ func run():
 	var source=ProjectSettings.globalize_path("res://../native/assets/knight.png")
 	var source_bytes=FileAccess.get_file_as_bytes(source)
 	game.portraits.assign("guard",{"png":Marshalls.raw_to_base64(source_bytes)})
-	game.render();await click("移動");await click_at(game.board.global_position+game.board.project_cell(23))
+	game.render();await settle();await click("移動");await click_at(game.board.global_position+game.board.project_cell(23))
+	check(game.pending==23,"custom portrait preview selects the real floor cell after layout")
 	for camera in range(3):
 		await click(["戦術","低","高"][camera]);facing("custom camera"+str(camera))
 	check(FileAccess.get_file_as_bytes(source)==source_bytes,"custom source bytes unchanged")
