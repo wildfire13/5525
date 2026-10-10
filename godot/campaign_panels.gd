@@ -13,6 +13,9 @@ var cached_quotes: Dictionary={}
 var party_focus_after := ""
 var shop_view
 var party_view
+var item_stage := "entry"
+var item_id := ""
+const ItemMenu=preload("res://item_menu.gd")
 func _init(frontend):
 	ui=frontend;shop_view=preload("res://shop_view.gd").new(self);party_view=preload("res://party_view.gd").new(self)
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
@@ -120,7 +123,7 @@ func journey(parent):
 	if quest is Dictionary:
 		l(parent,"%s / %d時間経過・納期%d時間" % [quest.name,journey_.get("hours",0),quest.get("deadline",0)])
 	else:l(parent,"自由移動 / %d時間経過 / 配達報酬なし" % journey_.get("hours",0))
-	party_status(card(parent))
+	if phase!="camp":party_status(card(parent))
 	match phase:
 		"road":
 			var stage=int(journey_.get("stage",0))
@@ -139,16 +142,57 @@ func journey(parent):
 			b(parent,"荷物を渡して報酬を確認" if quest is Dictionary else "町へ入る（配達報酬なし）",ui.act.bind("arrive",[]))
 	l(parent,"\n".join(journey_.get("history",[]).slice(-4)))
 func party(parent):party_view.render(parent)
+func reset_items():item_stage="entry";item_id=""
+func show_items(stage: String,id: String=""):
+	if ui.locked or ui.presenting or ui.closing:return
+	var previous=item_id;item_stage=stage;item_id=id
+	if stage=="entry":ui.memory.request_focus("campaign_item_entry",true)
+	elif stage=="list":ui.memory.request_focus("campaign_item_"+(previous if not previous.is_empty() else "potion"),true)
+	else:
+		for item in ItemMenu.definitions(c()):
+			if item.id!=id:continue
+			for u in roster():
+				if c().selected.has(u.id) and ItemMenu.camp_reason(item,u,c().inventory).is_empty():
+					ui.memory.request_focus("item_target_"+str(u.id),true);break
+	ui.render()
+func close_items() -> bool:
+	if c().get("phase") not in ["town","camp"] or item_stage=="entry":return false
+	show_items("list" if item_stage=="target" else "entry");return true
+func use_selected_item(uid: String):
+	if item_stage!="target" or item_id.is_empty():return
+	await ui.act("useItem",[item_id,uid])
 func items(parent):
-	l(parent,"道具 / ポーション %d ・エーテル %d" % [c().inventory.potion,c().inventory.ether],true)
 	if c().phase not in ["town","camp"]:l(parent,"町・野営で使用できます");return
-	muted(parent,"町と野営地で使用可能。HP+55 / MP+3。戦闘不能の仲間には使えません。")
+	var catalog=ItemMenu.definitions(c());var inventory: Dictionary=c().inventory
+	var selected_item={}
+	for item in catalog:
+		if item.id==item_id:selected_item=item
+	if item_stage=="target" and selected_item.is_empty():reset_items()
+	var controls=card(parent);controls.name="CampaignItems"
+	if item_stage=="entry":
+		var entry=b(controls,"アイテム",show_items.bind("list"));entry.name="CampaignItemEntry";ui.memory.key(entry,"campaign_item_entry")
+	elif item_stage=="list":
+		l(controls,"アイテム / 種類を選択",true)
+		var choices=row(controls);choices.name="CampaignItemList"
+		for item in catalog:
+			ui.memory.key(b(choices,"%s %s / %d個" % [item.name,ItemMenu.effect(item),inventory.get(item.id,0)],show_items.bind("target",item.id),int(inventory.get(item.id,0))<=0),"campaign_item_"+str(item.id))
+		b(controls,"戻る",show_items.bind("entry"))
+	else:
+		l(controls,"%s / 対象を選択" % selected_item.name,true)
+		l(controls,"%s / 残り%d個。生存している編成中の仲間に使用します。" % [ItemMenu.effect(selected_item),inventory.get(item_id,0)])
+		b(controls,"アイテム一覧へ",show_items.bind("list"))
+	var members=row(parent);members.name="CampParty" if c().phase=="camp" else "ItemParty"
 	for u in roster():
 		if not c().selected.has(u.id):continue
-		var actions=row(card(parent));ui.portrait(actions,u,true,55)
-		l(actions,"%s HP %d/%d MP %d/%d%s" % [u.name,u.hp,u.max,u.mp,u.maxMp," 戦闘不能" if u.hp<=0 else ""])
-		b(actions,"ポーション HP+55",ui.act.bind("useItem",["potion",u.id]),c().inventory.potion<=0 or u.hp>=u.max or u.hp<=0)
-		b(actions,"エーテル MP+3",ui.act.bind("useItem",["ether",u.id]),c().inventory.ether<=0 or u.mp>=u.maxMp or u.hp<=0)
+		var member=card(members);member.name="ItemMember_"+str(u.id);member.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		var portrait=ui.portrait(member,u,false,64);portrait.name="FullBodyPortrait";portrait.custom_minimum_size=Vector2(64,160 if ui.ui_size_mode=="standard" else 96);portrait.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;ui.short_name(name_label,str(u.name))
+		var hp=l(member,"HP %d/%d" % [u.hp,u.max]);ui.emphasize_low_hp(hp,u)
+		l(member,"MP %d/%d" % [u.mp,u.maxMp])
+		if u.hp<=0:l(member,"戦闘不能")
+		if item_stage=="target":
+			var reason=ItemMenu.camp_reason(selected_item,u,inventory)
+			var target=b(member,"使う" if reason.is_empty() else reason,use_selected_item.bind(u.id),not reason.is_empty());target.name="ItemTarget_"+str(u.id);ui.memory.key(target,"item_target_"+str(u.id))
 func inn(parent):
 	var q: Dictionary=c().get("inn",{})
 	l(parent,"アスタリスの宿屋",true)
@@ -311,7 +355,7 @@ func invalidate_quote(clear_id:=false):
 	if clear_id:gear_id=""
 func reset_context():
 	if ui.hud!=null:ui.hud.reset_context()
-	shop_view.reset();party_view.tab=0;party_view.highlight_slot=""
+	reset_items();shop_view.reset();party_view.tab=0;party_view.highlight_slot=""
 	epoch+=1;invalidate_quote(true);trial_return={};cached_quotes={};current_equipment_open=false
 func request_quote(id: String):await shop_view.select_product(id)
 func select_member(uid: String):await shop_view.select_member(uid)

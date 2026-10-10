@@ -66,7 +66,15 @@ const Battle = (() => {
   const activeSkill = a => activeSkills(a).includes(a.selectedSkill)?a.selectedSkill:(a.activeSkills?activeSkills(a)[0]||null:a.job==='porter'?'porter':(a.equippedSkill || (a.weapon==='hammer'?'stamp':a.job)));
   function selectSkill(s,id){const a=s.units.find(u=>u.id===s.actor);if(s.deploying||s.result||!a||a.hp<=0||!activeSkills(a).includes(id))return false;a.selectedSkill=id;return true;}
   const skillName = a => equipmentSkills[activeSkill(a)]?.name||({guard:"かばう",archer:"スナイプ",mage:"ヒール",scout:"奇襲",porter:"陣形強化",stamp:"スタンプ"})[activeSkill(a)]||'';
-  const attackReach = (a,kind='attack') => (kind==='attack'||kind==='skill'&&activeSkill(a)==='archer')&&a.attackWeapons?Math.max(0,...a.attackWeapons.map(w=>w.reach+(kind==='skill'?1:0))):kind==='skill'&&equipmentSkills[activeSkill(a)]?equipmentSkills[activeSkill(a)].reach:a.reach+(kind==='skill'&&activeSkill(a)==='archer'?1:0);
+  function attackReach(a,kind='attack') {
+    const skill=kind==='skill'?activeSkill(a):null;
+    // Support skills have their own specified reach, independent of hand order.
+    if(skill==='guard')return 1;
+    if(skill==='mage')return 2;
+    if((kind==='attack'||skill==='archer')&&a.attackWeapons)return Math.max(0,...a.attackWeapons.map(w=>w.reach+(skill==='archer'?1:0)));
+    if(skill&&equipmentSkills[skill])return equipmentSkills[skill].reach;
+    return a.reach+(skill==='archer'?1:0);
+  }
   function stampCells(a,center) {
     if(!Number.isInteger(center)||center<0||center>=50||range(a,{pos:center})!==1)return [];
     const dx=x(center)-x(a.pos),dy=y(center)-y(a.pos);

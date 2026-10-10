@@ -42,8 +42,8 @@ const Campaign = (() => {
   ];
   gear.push(...['wood','iron-1'].map(suffix=>({id:`guard-shield-${suffix}`,slot:'weapon',name:suffix==='wood'?'木製の護衛盾':'鉄製の護衛盾＋1',type:'shield',material:suffix==='wood'?'wood':'iron',grade:suffix==='wood'?0:1,price:0,atk:0,reach:0,skill:'guard',str:0,int:0,agi:0,note:'かばうの装備源。旧セットの価格・攻撃力は剣へ配分。盾の攻撃力0／価格0は移行用の仮配分。'})));
   const items = [
-    {id:'potion',name:'ポーション',price:40,amount:55,resource:'hp'},
-    {id:'ether',name:'エーテル',price:30,amount:3,resource:'mp'},
+    {id:'potion',name:'ポーション',price:40,amount:55,resource:'hp',battleKind:'item'},
+    {id:'ether',name:'エーテル',price:30,amount:3,resource:'mp',battleKind:'ether',battleRole:'porter'},
   ];
   const skills = {guard:'かばう',archer:'スナイプ',mage:'ヒール',scout:'奇襲',stamp:'スタンプ',porter:'陣形強化',...Object.fromEntries(Object.entries(E.definitions).map(([id,d])=>[id,d.name]))};
   const provisional = [
@@ -336,7 +336,7 @@ const Campaign = (() => {
     return true;
   }
   function view(s) {
-    return {...clone(s),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),destinations:clone(destinations(s)),board:board(s),shop:shop(s),provisional:[...provisional],
+    return {...clone(s),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),destinations:clone(destinations(s)),board:board(s),shop:shop(s),itemDefinitions:clone(items),provisional:[...provisional],
       slots:S.slots,skillNames:{...skills,invasion:'侵入'},skillDefinitions:clone(E.definitions),roster:B.roster.map(t=>{const c=s.characters[t.id];const st=stats(c);return {...t,...clone(c),max:st.max,maxMp:st.maxMp,atk:st.atk,agi:st.speed,reach:st.reach,stats:st,equipmentDetails:Object.fromEntries(Object.entries(st.equipment).map(([slot,id])=>[slot,clone(getGear(slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?st.equipment.rightHand:id))])),equipmentSlots:Object.entries(st.equipment).map(([slot,id])=>({slot,label:S.slots[slot],id,name:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?getGear(st.equipment.rightHand).name+'（両手装備で使用中）':getGear(id).name,occupiedBy:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?'rightHand':null})),activeSkillNames:st.activeSkills.map(id=>skills[id]),weaponName:getGear(c.weapon).name,armorName:getGear(c.armor).name,accessoryNames:['accessory1','accessory2'].map(slot=>getGear(c[slot]||defaultAccessory(c,slot)).name),skillName:st.activeSkills.map(id=>skills[id]).join(' / '),effectNames:st.effects.map(id=>skills[id]||'侵入')};}),
       guildAvailable:s.phase==='town'&&s.location==='astaris',hasPorter:hasPorter(s)};
   }

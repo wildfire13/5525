@@ -132,7 +132,7 @@ func presentation():
 	await load_fixture("porter-enemy-attack");game.command="skill";game.render();await settle()
 	var before=await snapshot();monitoring=true;process_frame.connect(observe_frame)
 	game.checks_fast=not visual
-	await game.porter_boost();await settle();monitoring=false;process_frame.disconnect(observe_frame);game.checks_fast=true
+	await game.choose_command("skill");await settle();await game.commit();await settle();monitoring=false;process_frame.disconnect(observe_frame);game.checks_fast=true
 	var enemy_frames=frames.filter(func(f):return f.action.get("actor_id")=="enemy-mage-2" and f.action.get("kind")=="attack")
 	check("UI04",enemy_frames.size()>=2,"porter boost is followed by real enemy healer attack frames",{"frames":enemy_frames.size()})
 	var accurate=true;var locked=true
