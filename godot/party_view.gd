@@ -12,17 +12,35 @@ func render(parent):
 	var c=pages.c();var members=ui.roster();var ids=c.get("selected",[])
 	if not members.any(func(u):return u.id==pages.party_uid):pages.party_uid=str(ids[0]) if not ids.is_empty() else str(members[0].id)
 	var split=HBoxContainer.new() if ui.ui_size_mode=="standard" else VBoxContainer.new();split.name="PartySplit";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",12);parent.add_child(split)
+	var active=[];var reserves=[]
+	for id in ids:
+		for u in members:
+			if u.id==id:active.append(u)
+	for u in members:
+		if not ids.has(u.id):reserves.append(u)
 	if ui.ui_size_mode=="standard":
-		var body=ui.scroller(split);body.get_parent().custom_minimum_size.x=280;body.get_parent().name="PartyRoster";ui.memory.watch(body.get_parent(),"party_roster")
-		l(body,"編成 %d/5" % ids.size(),true)
-		for u in members:
-			var r=ui.row(body);ui.portrait(r,u,true,40)
-			var chooser=b(r,("● " if u.id==pages.party_uid else "")+str(u.name)+" / "+str(u.get("role",""))+"\n"+("編成" if ids.has(u.id) else "控え")+" HP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp],pages.select_party.bind(str(u.id)))
-			chooser.custom_minimum_size.y=68;chooser.clip_text=true;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;chooser.tooltip_text=chooser.text;ui.memory.key(chooser,"party_"+str(u.id));ui.memory.item(r,str(u.id))
+		var body=ui.scroller(split);var roster_scroll=body.get_parent();roster_scroll.custom_minimum_size.x=360;roster_scroll.size_flags_horizontal=Control.SIZE_FILL;roster_scroll.name="PartyRoster";ui.memory.watch(roster_scroll,"party_roster")
+		for group in [["編成 %d/5" % ids.size(),active],["控え %d人" % reserves.size(),reserves]]:
+			l(body,group[0],true)
+			for u in group[1]:
+				var r=ui.row(body);r.set_meta("member_id",u.id);r.set_meta("active_member",ids.has(u.id));ui.portrait(r,u,true,40)
+				var chooser=b(r,("● " if u.id==pages.party_uid else "")+str(u.name)+" / "+str(u.get("role",""))+"\nHP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp],pages.select_party.bind(str(u.id)))
+				chooser.custom_minimum_size.y=56;chooser.clip_text=true;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;chooser.tooltip_text=chooser.text;ui.memory.key(chooser,"party_"+str(u.id));ui.memory.item(r,str(u.id))
 	else:
-		var chooser=OptionButton.new();chooser.custom_minimum_size.y=44;chooser.clip_text=true;split.add_child(chooser);ui.memory.key(chooser,"party_narrow_select")
-		for u in members:
-			chooser.add_item(str(u.name)+" / "+str(u.get("role",""))+" / "+("編成" if ids.has(u.id) else "控え")+" HP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]);chooser.set_item_metadata(chooser.item_count-1,u.id)
+		l(split,"編成 %d/5" % ids.size())
+		var lineup=ui.row(split);lineup.name="PartyActiveLineup"
+		for u in active:
+			var chooser=b(lineup,"",pages.select_party.bind(str(u.id)));chooser.custom_minimum_size.y=128;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;chooser.set_meta("member_id",u.id);ui.memory.key(chooser,"party_"+str(u.id))
+			var card=VBoxContainer.new();chooser.add_child(card);card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);card.offset_top=4;card.offset_bottom=-4;card.mouse_filter=Control.MOUSE_FILTER_IGNORE;card.add_theme_constant_override("separation",0)
+			var face=ui.portrait(card,u,true,28);face.mouse_filter=Control.MOUSE_FILTER_IGNORE
+			var caption=l(card,("● " if u.id==pages.party_uid else "")+str(u.name)+"\n"+str(u.get("role",""))+"\nHP%d/%d\nMP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]);caption.add_theme_font_size_override("font_size",16);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;caption.autowrap_mode=TextServer.AUTOWRAP_OFF;caption.clip_text=true;caption.mouse_filter=Control.MOUSE_FILTER_IGNORE;chooser.tooltip_text=caption.text
+			card.minimum_size_changed.connect(func():
+				if is_instance_valid(chooser):chooser.custom_minimum_size.y=maxf(112,card.get_minimum_size().y+8))
+		var reserve_row=ui.row(split);l(reserve_row,"控え %d人" % reserves.size())
+		var chooser=OptionButton.new();chooser.name="PartyReserveSelector";chooser.custom_minimum_size.y=44;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;chooser.clip_text=true;chooser.add_theme_constant_override("icon_max_width",28);reserve_row.add_child(chooser);ui.memory.key(chooser,"party_narrow_select")
+		chooser.add_item("控えの仲間を選択");chooser.set_item_disabled(0,true)
+		for u in reserves:
+			chooser.add_icon_item(ui.portraits.texture(u,true),str(u.name)+" / "+str(u.get("role",""))+" HP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]);chooser.set_item_metadata(chooser.item_count-1,u.id)
 			if u.id==pages.party_uid:chooser.select(chooser.item_count-1)
 		chooser.item_selected.connect(func(i):pages.select_party(str(chooser.get_item_metadata(i))))
 	var detail=VBoxContainer.new();detail.name="PartyDetail";detail.size_flags_horizontal=Control.SIZE_EXPAND_FILL;detail.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(detail)
@@ -49,11 +67,13 @@ func render(parent):
 func equipment(parent,u: Dictionary):
 	var grid=GridContainer.new();grid.name="EquipmentSlots";grid.columns=2;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;grid.add_theme_constant_override("h_separation",8);grid.add_theme_constant_override("v_separation",8);parent.add_child(grid)
 	for e in u.get("equipmentSlots",[]):
-		var title=("● " if highlight_slot==e.slot else "")+str(e.label)+"\n"+("右手の両手武器で使用中" if e.get("occupiedBy")!=null else str(e.name))
+		var title=("● " if highlight_slot==e.slot else "")+str(e.label)+"\n"+("右手の両手武器で使用中" if e.get("occupiedBy")!=null else equipment_name(e))
 		var btn=b(grid,title,open_equipment.bind(u,e));btn.custom_minimum_size.y=56;btn.size_flags_horizontal=Control.SIZE_EXPAND_FILL;btn.clip_text=true;btn.tooltip_text=title;ui.memory.key(btn,"equipment_"+str(e.slot))
+func equipment_name(e: Dictionary) -> String:
+	return str(e.get("name","なし")).trim_prefix(str(e.label)+":").trim_prefix(str(e.label)+"：").strip_edges()
 func open_equipment(u: Dictionary,e: Dictionary):
 	highlight_slot=e.slot;ui.render()
-	ui.dialog.open(str(e.label)+" / "+str(e.name),func(body,actions):
+	ui.dialog.open(str(e.label)+" / "+equipment_name(e),func(body,actions):
 		if e.get("occupiedBy")!=null:l(body,"右手の両手武器で使用中。別の2個目を持っているわけではありません。")
 		var item=u.get("equipmentDetails",{}).get(e.slot,{})
 		pages.describe_gear(body,item)

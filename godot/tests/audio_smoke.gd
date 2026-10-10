@@ -53,6 +53,7 @@ func run():
 		check(audio.current_bgm=="north" and audio.quest.stream_paused,id+" delivery result retains town music")
 		campaign.phase="town";campaign.journey=null;audio.sync({"campaign":campaign})
 		check(audio.quest_id.is_empty() and audio.journey_key.is_empty() and not audio.quest.playing and audio.current_bgm=="north",id+" town clears journey selection")
+		stream=null
 	seed(5525)
 	var sample={"phase":"road","location":"astaris","journey":{"token":100,"origin":"astaris","destination":"east"}}
 	var selections={}
@@ -77,8 +78,9 @@ func run():
 	sample.journey=null;sample.phase="town";audio.sync({"campaign":sample})
 	sample.journey={"token":195,"origin":"astaris","destination":"east"};sample.phase="road";audio.sync({"campaign":sample})
 	check(not audio.quest_id.is_empty() and audio.quest.playing,"repeat route/token after journey end starts a new selection")
-	audio.close_audio()
-	await create_timer(.15).timeout
-	audio.queue_free();await process_frame
+	# Drain actual stream references; a fixed 150ms delay can race AudioServer cleanup.
+	check(await audio.finish_audio(),"stopped audio streams released before test shutdown")
+	audio.queue_free()
+	for i in range(6):await process_frame
 	print(JSON.stringify({"suite":"audio_state_smoke","checks":count,"failures":failures,"audio_driver":"Dummy","new_quest_wavs_tested":true,"subjective_listening":false,"decoded":decoded,"seeded_start_counts":selections}))
 	quit(0 if failures.is_empty() else 1)

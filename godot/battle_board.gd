@@ -27,6 +27,9 @@ var inspected_enemy := ""
 var hover_uid := ""
 var keyboard_cell := 24
 var last_visual_phase := ""
+var projected_pitch := Vector2(64,48)
+var visual_height := 1.55
+var visual_width := 1.55
 func _ready():
 	low_hp_font=FontVariation.new();low_hp_font.base_font=ThemeDB.fallback_font;low_hp_font.variation_embolden=1.0
 	custom_minimum_size=Vector2(120,80)
@@ -46,7 +49,8 @@ func _ready():
 	ghost.no_depth_test=true;ghost.visible=false;world.add_child(ghost)
 	overlay=Control.new();overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(overlay);overlay.draw.connect(draw_overlay)
-	resized.connect(func(): if world: world.update_camera())
+	resized.connect(func():call_deferred("update_camera"))
+	call_deferred("update_camera")
 	gui_input.connect(input_event)
 	mouse_exited.connect(func():hover_uid="";tooltip_text="";overlay.queue_redraw())
 func cell_world(c: Vector2i) -> Vector3:
@@ -84,7 +88,7 @@ func input_event(event):
 			if inspected.get("side")=="enemy":enemy_focused.emit(str(inspected.id))
 			accept_event();return
 		if event.button_index==MOUSE_BUTTON_WHEEL_UP or event.button_index==MOUSE_BUTTON_WHEEL_DOWN:
-			world.zoom=clampf(world.zoom+(-.6 if event.button_index==MOUSE_BUTTON_WHEEL_UP else .6),10,24);world.update_camera();return
+			world.zoom=clampf(world.zoom+(-.6 if event.button_index==MOUSE_BUTTON_WHEEL_UP else .6),10,24);update_camera();return
 		if event.button_index==MOUSE_BUTTON_LEFT:
 			var pos=cell_at(event.position)
 			if event.pressed:
@@ -102,7 +106,67 @@ func input_event(event):
 			for e in data.get("enemyInfo",[]):
 				if e.id==u.id:tooltip_text+="\n通常射程 %d / %s %s\n%s" % [e.normalReach,e.skill,"同横列・経路条件" if e.skillReach==null else str(e.skillReach),e.reason]
 func set_camera(mode: int):
-	camera_mode=mode%3;world.update_camera();overlay.queue_redraw()
+	camera_mode=mode%3;update_camera();overlay.queue_redraw()
+func compact_board() -> bool:return size.y<300
+func framing_bounds() -> Rect2:
+	var result=Rect2();var first=true
+	for x in [-7.2,7.2]:
+		for z in [-3.8,3.8]:
+			for y in [.15,1.15]:
+				var screen=project(Vector3(x,y,z))
+				if first:result=Rect2(screen,Vector2.ZERO);first=false
+				else:result=result.expand(screen)
+	return result
+func update_camera():
+	if world==null or world.camera==null or view.size.x<=0 or view.size.y<=0 or size.y<=0:return
+	world.update_camera()
+	if compact_board():
+		# The standalone comparison demo keeps its scenery framing. Battle fits the grid.
+		var camera: Camera3D=world.camera;var target=Vector3(0,.55,0)
+		var direction=(camera.position-target).normalized()
+		if camera_mode==1:direction=Vector3(sin(world.angle+.16)*20,13.2,cos(world.angle+.16)*20).normalized()
+		camera.look_at(target)
+		if camera.projection==Camera3D.PROJECTION_ORTHOGONAL:
+			camera.size=16.0
+			var bounds=framing_bounds()
+			camera.size*=maxf(bounds.size.x/maxf(1,size.x-40),bounds.size.y/maxf(1,size.y-20))
+			camera.size*=world.zoom/16.5
+		else:
+			var distance=24.0
+			for attempt in range(6):
+				camera.position=target+direction*distance;camera.look_at(target)
+				var bounds=framing_bounds();var ratio=maxf(bounds.size.x/maxf(1,size.x-40),bounds.size.y/maxf(1,size.y-20))
+				distance*=maxf(.7,ratio)
+			camera.position=target+direction*distance*(world.zoom/16.5);camera.look_at(target)
+	projected_pitch=measure_cell_pitch();visual_height=1.55
+	if compact_board():
+		var max_pixels=1.0
+		for pos in range(50):max_pixels=maxf(max_pixels,project(point(pos)+camera_up()).distance_to(project(point(pos))))
+		visual_height=minf(1.55,projected_pitch.y*.78/max_pixels);visual_width=projected_pitch.x*.72/max_pixels
+	refresh_actor_scale()
+	if is_instance_valid(overlay):overlay.queue_redraw()
+func cell_pitch() -> Vector2:return projected_pitch
+func measure_cell_pitch() -> Vector2:
+	var pitch=Vector2(INF,INF)
+	for pos in range(50):
+		if pos%10<9:pitch.x=minf(pitch.x,project_cell(pos).distance_to(project_cell(pos+1)))
+		if pos<40:pitch.y=minf(pitch.y,project_cell(pos).distance_to(project_cell(pos+10)))
+	return pitch
+func sprite_height() -> float:return visual_height
+func camera_up() -> Vector3:return world.camera.global_basis.y
+func sprite_origin(sprite: Sprite3D=null) -> Vector3:
+	if not compact_board():return Vector3(0,.75,0)
+	var height=visual_height if sprite==null or sprite.texture==null else sprite.pixel_size*sprite.texture.get_height()
+	return camera_up()*height*.5
+func texture_pixel_size(texture: Texture2D) -> float:
+	var pixels=visual_height/texture.get_height()
+	return minf(pixels,visual_width/texture.get_width()) if compact_board() else pixels
+func refresh_actor_scale():
+	for nodes in actors.values():
+		if nodes.sprite.texture:nodes.sprite.pixel_size=texture_pixel_size(nodes.sprite.texture)
+		if not hit_tween or not hit_tween.is_running():nodes.sprite.position=sprite_origin(nodes.sprite)
+	if is_instance_valid(ghost) and ghost.visible and ghost.texture and preview.get("destination")!=null:
+		ghost.pixel_size=texture_pixel_size(ghost.texture);ghost.position=point(int(preview.destination))+sprite_origin(ghost)
 func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, chosen: Array):
 	var phase_key=JSON.stringify(d.get("presentation"))
 	if phase_key!=last_visual_phase:reset_animation()
@@ -142,6 +206,7 @@ func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, c
 			if u.id==state.get("actor"):
 				ghost.texture=portraits.texture(u);ghost.pixel_size=1.55/ghost.texture.get_height()
 				ghost.position=point(int(preview.destination))+Vector3(0,.75,0);ghost.visible=true
+	refresh_actor_scale()
 	overlay.queue_redraw()
 func arrow(a: Vector2,b: Vector2,color: Color,width:=2.0):
 	if a.distance_to(b)<4:return
@@ -227,14 +292,21 @@ func draw_unit_labels(state: Dictionary):
 	var actor=state.get("actor","")
 	if data.get("presentation") is Dictionary:actor=data.presentation.get("actor_id",actor)
 	for u in state.get("units",[]):
-		var at=project(point(int(u.pos))+Vector3(0,1.25,0))
+		if u.hp<=0:continue
+		var compact=compact_board();var pitch=cell_pitch() if compact else Vector2(64,48)
+		var width=minf(48,pitch.x*.72);var at=project_cell(int(u.pos))+Vector2(0,3) if compact else project(point(int(u.pos))+Vector3(0,1.25,0))
 		var color=Color("#a9ede0") if u.side=="ally" else Color("#f3b4b4")
 		var low=u.get("max",0)>0 and u.hp*4<u.max
 		if low:color=Color("#ff9494")
-		at.x=clampf(at.x,32,maxf(32,size.x-32));at.y=clampf(at.y,18,maxf(18,size.y-18))
-		overlay.draw_rect(Rect2(at-Vector2(24,0),Vector2(48,5)),Color("#10202b"))
-		overlay.draw_rect(Rect2(at-Vector2(24,0),Vector2(48*clampf(float(u.hp)/maxf(1,u.max),0,1),5)),color)
-		overlay.draw_string(ThemeDB.fallback_font,at+Vector2(-24,-5),("味" if u.side=="ally" else "敵")+(" KO" if u.hp<=0 else " 防" if u.get("guard",false) else ""),HORIZONTAL_ALIGNMENT_LEFT,-1,16,color)
+		at.x=clampf(at.x,width*.5+4,maxf(width*.5+4,size.x-width*.5-4));at.y=clampf(at.y,8,maxf(8,size.y-8))
+		overlay.draw_rect(Rect2(at-Vector2(width*.5,0),Vector2(width,4 if compact else 5)),Color("#10202b"))
+		overlay.draw_rect(Rect2(at-Vector2(width*.5,0),Vector2(width*clampf(float(u.hp)/maxf(1,u.max),0,1),4 if compact else 5)),color)
+		if compact:
+			var badge=at+Vector2(-width*.5-4,2)
+			if u.side=="ally":overlay.draw_circle(badge,3,color)
+			else:overlay.draw_colored_polygon(PackedVector2Array([badge+Vector2(0,-4),badge+Vector2(3,3),badge+Vector2(-3,3)]),color)
+			if u.get("guard",false):overlay.draw_rect(Rect2(at-Vector2(width*.5+1,1),Vector2(width+2,6)),Color("#ffe197"),false,1)
+		else:overlay.draw_string(ThemeDB.fallback_font,at+Vector2(-24,-5),("味" if u.side=="ally" else "敵")+(" 防" if u.get("guard",false) else ""),HORIZONTAL_ALIGNMENT_LEFT,-1,16,color)
 		if u.id!=hover_uid:continue
 		var per_column=maxi(1,int((size.y-20)/48))
 		var rect=Rect2(Vector2(6 if shown.size()<per_column else maxf(6,size.x-158),8+(shown.size()%per_column)*48),Vector2(152,44))
@@ -249,7 +321,7 @@ func reset_animation():
 	if hit_tween and hit_tween.is_running():hit_tween.kill()
 	hit_tween=null
 	for nodes in actors.values():
-		nodes.sprite.position=Vector3(0,.75,0);nodes.sprite.modulate=Color.WHITE
+		nodes.sprite.position=sprite_origin(nodes.sprite);nodes.sprite.modulate=Color.WHITE
 func animate(p: Dictionary) -> float:
 	reset_animation()
 	if not actors.has(p.get("unit_id","")) or p.phase not in ["action","move","hurt","heal"]:return 0.0
@@ -262,7 +334,7 @@ func animate(p: Dictionary) -> float:
 	if p.phase in ["action","hurt"]:
 		# Legacy portrait-only shake. The caller waits before acknowledging the next phase.
 		for dx in [0,-5,5,-4,4,-3,3,-2,2,0,0,0]:
-			hit_tween.tween_property(sprite,"position",Vector3(0,.75,0)+world.camera.global_basis.x*float(dx)*.018,.03)
+			hit_tween.tween_property(sprite,"position",sprite_origin(sprite)+world.camera.global_basis.x*float(dx)*.018,.03)
 		return .42
 	sprite.modulate=Color(.6,1,.7)
 	hit_tween.tween_property(sprite,"modulate",Color.WHITE,.3)

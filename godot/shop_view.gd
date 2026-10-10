@@ -37,6 +37,7 @@ func render(parent):
 	var shop_name={"east":"イースの武器屋","west":"ウエスの防具屋"}.get(c().location,"")
 	l(context,shop_name)
 	if from_party:b(context,"仲間へ戻る",func():pages.party_uid=ui.shop_uid;pages.party_view.highlight_slot=ui.shop_slot;ui.page="party";ui.render(),stage=="S5")
+	var face=ui.portrait(context,member(),true,40);face.name="ShopMemberPortrait"
 	var who=b(context,str(member().get("name",ui.shop_uid))+" ▾",open_members,stage=="S5" or unknown);who.custom_minimum_size.x=96;ui.memory.key(who,"shop_member")
 	var slot=OptionButton.new();slot.custom_minimum_size=Vector2(112,44);context.add_child(slot)
 	for id in slots():
@@ -62,24 +63,30 @@ func render_list(parent):
 	var body=ui.scroller(parent);list_scroll=body.get_parent();list_scroll.name="ShopProductsScroll"
 	list_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	if compact():list_scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	else:list_scroll.custom_minimum_size.x=300
+	else:list_scroll.custom_minimum_size.x=360;list_scroll.size_flags_horizontal=Control.SIZE_FILL
 	ui.memory.watch(list_scroll,"shop_products")
 	for item in pages.offered():
-		var btn=b(body,"",select_product.bind(str(item.id)));btn.custom_minimum_size.y=88;btn.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		var btn=b(body,"",select_product.bind(str(item.id)));btn.custom_minimum_size.y=64;btn.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		btn.name="Product_"+str(item.id);ui.memory.key(btn,"product_"+str(item.id));ui.memory.item(btn,str(item.id))
+		var selected=is_selected_product(str(item.id));btn.set_meta("product_selected",selected)
+		if selected:
+			for state_ in ["normal","hover","pressed"]:
+				var style=btn.get_theme_stylebox(state_).duplicate();style.bg_color=Color("#31545b");style.border_color=Color("#91dacf");style.set_border_width_all(2);btn.add_theme_stylebox_override(state_,style)
 		var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;btn.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,8)
 		var label=l(margin,product_caption(item));label.mouse_filter=Control.MOUSE_FILTER_IGNORE;label.add_theme_font_size_override("font_size",16);row_labels[str(item.id)]=label
 		btn.tooltip_text=str(item.name)+" / "+str(item.get("price","?"))+"G";btn.set_meta("product_id",str(item.id))
 		# A wrapped name or reason increases its row instead of hiding conditions.
 		label.minimum_size_changed.connect(func():
-			if is_instance_valid(btn):btn.custom_minimum_size.y=maxf(88,label.get_minimum_size().y+16))
+			if is_instance_valid(btn):btn.custom_minimum_size.y=maxf(64,label.get_minimum_size().y+16))
 	list_scroll.get_v_scroll_bar().value_changed.connect(func(_v):ui.call_deferred("prefetch_shop_rows"))
+func is_selected_product(id: String) -> bool:
+	return id==pages.gear_id and stage in ["S1","S2","S3","S4","S5","S8"]
 func product_caption(item: Dictionary) -> String:
 	var quote=pages.cached_quotes.get(pages.selection_key(str(item.id)),{})
 	var condition="条件確認中…" if quote.is_empty() else reason(quote)
 	if condition.is_empty():condition="✓ 装備可"+(" / "+str(quote.reason) if quote.get("reason")!=null and not str(quote.reason).is_empty() else "")
-	return "%s  %sG\n%s / %s\n%s" % [item.name,number(item.get("price","?")),pages.gear_type(item),"両手" if item.get("hands",1)==2 else "占有0枠" if item.get("type")=="empty" else "片手" if ui.shop_slot in ["rightHand","leftHand"] else str(c().slots.get(ui.shop_slot,ui.shop_slot)),condition]
+	return "%s  %sG\n%s / %s / %s" % [("▶ 選択中 / " if is_selected_product(str(item.id)) else "")+str(item.name),number(item.get("price","?")),pages.gear_type(item),"両手" if item.get("hands",1)==2 else "占有0枠" if item.get("type")=="empty" else "片手" if ui.shop_slot in ["rightHand","leftHand"] else str(c().slots.get(ui.shop_slot,ui.shop_slot)),condition]
 func can_quote() -> bool:
 	return not ui.closing and not ui.engine.disconnected and ui.page=="shop" and c().get("phase")=="town" and ui.data.get("trial")==null and stage not in ["S5","S6","S7","S8"]
 func prefetch_visible():
@@ -114,18 +121,23 @@ func pump_quotes():
 		if pages.cached_quotes.has(stamp):reply={"ok":true,"previewGear":pages.cached_quotes[stamp]}
 		else:reply=await ui.engine.request({"op":"campaign","action":"previewGear","args":[ui.shop_uid,id,ui.shop_slot]})
 		if ui.closing:break
-		if epoch!=pages.epoch or connection!=ui.engine.connection_generation or stamp!=pages.selection_key(id):continue
+		if epoch!=pages.epoch or connection!=ui.engine.connection_generation:continue
+		# A transport loss applies to the current connection even if this quote was cancelled.
+		if reply.get("connection_lost",false):show_quote_error(reply);break
+		if stamp!=pages.selection_key(id):continue
+		var current=priority and generation==pages.quote_generation and id==pages.gear_id
 		if reply.get("ok",false) and reply.get("previewGear") is Dictionary:
 			pages.cached_quotes[stamp]=reply.previewGear.duplicate(true)
-			if priority and generation==pages.quote_generation and id==pages.gear_id:
+			if current:
 				ui.gear_preview=reply.previewGear;pages.quote_stamp=stamp;pages.quote_pending=false;stage="S2";ui.notice="";ui.render()
 			else:
 				if row_labels.has(id) and is_instance_valid(row_labels[id]):
 					for item in pages.offered():
 						if item.id==id:row_labels[id].text=product_caption(item)
-		elif priority or reply.get("connection_lost",false):
-			pages.quote_pending=false;stage="S7";unknown=false;error_text=str(reply.get("error","見積を取得できませんでした"));ui.render();break
+		elif current:show_quote_error(reply);break
 	quote_worker=false
+func show_quote_error(reply: Dictionary):
+	pages.quote_pending=false;stage="S7";unknown=false;error_text=str(reply.get("error","見積を取得できませんでした"));ui.render()
 func reason(q: Dictionary) -> String:
 	if not c().get("selected",[]).has(ui.shop_uid):return "× 編成中の仲間が購入対象です"
 	if not q.get("available",false):return "× この店では購入できません"
@@ -154,9 +166,9 @@ func comparison_lines(q: Dictionary,all_values:=false) -> Array[String]:
 	for pair in [["activeSkills","スキル"],["effects","効果"]]:
 		var old=before.get(pair[0],[]);var now=after.get(pair[0],[])
 		for name_ in old:
-			if not now.has(name_):losses.append("− 失う"+pair[1]+": "+str(c().get("skillNames",{}).get(name_,name_)))
+			if not now.has(name_):losses.append("− 失う"+pair[1]+": "+change_description(str(name_),pair[0]=="effects"))
 		for name_ in now:
-			if not old.has(name_):gains.append("＋ 得る"+pair[1]+": "+str(c().get("skillNames",{}).get(name_,name_)))
+			if not old.has(name_):gains.append("＋ 得る"+pair[1]+": "+change_description(str(name_),pair[0]=="effects"))
 		if all_values:unchanged.append(pair[1]+": "+" / ".join(old.map(func(id):return str(c().get("skillNames",{}).get(id,id))))+" → "+" / ".join(now.map(func(id):return str(c().get("skillNames",{}).get(id,id)))))
 	# Named source changes are meaningful even if they grant the same skill.
 	if all_values:
@@ -210,7 +222,11 @@ func number(value) -> String:
 	return str(int(value)) if value is float or value is int else str(value)
 func receipt_summary(parent,q: Dictionary):
 	l(parent,str(q.get("gear",{}).get("name","購入品")),true)
-	l(parent,ui.member_name(str(q.get("characterId",ui.shop_uid)))+" / "+str(c().get("slots",{}).get(q.get("slot",ui.shop_slot),ui.shop_slot)))
+	var identity=ui.row(parent)
+	for u in ui.roster():
+		if u.id==q.get("characterId",ui.shop_uid):
+			var face=ui.portrait(identity,u,true,40);face.name="ConfirmationMemberPortrait";break
+	l(identity,ui.member_name(str(q.get("characterId",ui.shop_uid)))+" / "+str(c().get("slots",{}).get(q.get("slot",ui.shop_slot),ui.shop_slot)))
 	l(parent,str(q.get("current",{}).get("name",""))+" → "+str(q.get("gear",{}).get("name","")))
 	l(parent,"価格 %s − 下取 %s = %s" % [number(q.get("price","未確認")),number(q.get("tradeIn","未確認")),payment_text(q.get("cost",0))],true)
 	l(parent,"所持金 %s → %sG" % [number(q.get("goldBefore",c().get("gold","未確認"))),number(q.get("afterGold","未確認"))])
@@ -287,3 +303,8 @@ func source_name(q: Dictionary,source: Dictionary) -> String:
 	for gear in [q.current,q.gear]:
 		if gear.get("id")==source.get("itemId"):return str(gear.name)
 	return str(member().get("equipmentDetails",{}).get(source.slot,{}).get("name","装備"))
+
+func change_description(id: String,is_effect: bool) -> String:
+	var name_=str(c().get("skillNames",{}).get(id,id))
+	var description=str(c().get("skillDefinitions",{}).get(id,{}).get("description","")) if is_effect else ""
+	return name_+(" / "+description if not description.is_empty() else "")
