@@ -191,6 +191,7 @@ func _unhandled_key_input(event):
 			if menu.visible:menu.hide()
 			elif is_instance_valid(dialog.window):dialog.close()
 			elif pages.shop_view.escape():pass
+			elif pages.close_items():pass
 			elif hud.close_detail():pass
 			elif not presenting:cancel()
 			get_viewport().set_input_as_handled()
@@ -268,7 +269,7 @@ func new_game():
 	portraits.activate({"version":1,"characters":{}});audio.restore({});gear_preview={};page="board"
 	await update({"op":"campaign_start"})
 func navigate(value: String):
-	invalidate_preview();page=value;pages.invalidate_quote(false);memory.focus_key="";render()
+	invalidate_preview();page=value;pages.reset_items();pages.invalidate_quote(false);memory.focus_key="";render()
 func render():
 	if rendering:return
 	rendering=true
@@ -378,7 +379,8 @@ func command_hint() -> String:
 		"ether":"エーテル: ポーターのみ、生存味方/自分へ射程無限。MP+3（上限まで）、1個・1行動。",
 		"guard":"防御: 次の本人の番まで被ダメージ半減。MP消費なし。"}
 	var hint=str(hints.get(command,""))
-	if command!="guard" and data.get("choices",{}).get(command,[]).is_empty():hint+="\n今は合法な対象なし。射程・HP/MP・陣形・進路を確認してください。"
+	if not hud.skill_unavailable_reason().is_empty():hint+="\n"+hud.skill_unavailable_reason()
+	elif command!="guard" and data.get("choices",{}).get(command,[]).is_empty():hint+="\n今は合法な対象なし。射程・HP/MP・陣形・進路を確認してください。"
 	return hint
 func render_unit_details(parent: Node,s: Dictionary):
 	label_(parent,"全員の状態",true)
@@ -399,20 +401,25 @@ func render_unit_details(parent: Node,s: Dictionary):
 			if intent.get("destination")!=null:label_(parent,"移動予定: X%d,Y%d" % [int(intent.destination)%10,4-int(int(intent.destination)/10)])
 func choose_command(value: String):
 	if locked or presenting or closing or hud.range_reference:return
-	invalidate_preview();command=value;hud.action_menu=false;hud.selected_cell=-1;hud.selected_enemy=""
-	if value=="skill" and data.get("skill")=="陣形強化":
-		confirm("陣形を強化します。MP1・1行動を使用。\n次の本人の番まで攻撃+75%・被害−35%。重複しません。",porter_boost)
+	if value=="items":hud.open_items();return
+	invalidate_preview();command=value;hud.action_menu=false;hud.item_list=false;hud.selected_cell=-1;hud.selected_enemy=""
+	if value=="skill":await prepare_skill_preview()
 	render()
-func porter_boost():
-	await update({"op":"act","kind":"skill","target":state().actor,"presentation":true})
+func prepare_skill_preview():
+	# The engine requires the porter ID, but the effect belongs to the whole side.
+	if command=="skill" and data.get("skill")=="陣形強化" and data.get("choices",{}).get("skill",[]).has(state().get("actor")):
+		pending=state().actor
+		await request_preview("attack")
 func select_skill(id: String):
 	invalidate_preview();command="skill"
 	await update({"op":"select_skill","skillId":id})
+	await prepare_skill_preview()
 func deploy_dragged(uid: String,pos: int):
 	if locked or presenting:return
 	await act("deploy",[uid,pos])
 func on_cell(pos: int):
-	if locked or presenting or closing or hud.range_reference:return
+	if locked or presenting or closing or hud.range_reference or hud.item_list:return
+	if command=="skill" and data.get("skill")=="陣形強化" and not hud.action_menu:return
 	var s=state();var u=board.unit_at(pos)
 	hud.selected_cell=pos
 	if hud.action_menu and not s.get("deploying",false):render();return
@@ -465,6 +472,8 @@ func request_preview(which: String):
 func cancel():
 	if locked or presenting or closing:return
 	if hud.range_reference:hud.close_reference();return
+	if hud.item_list or command=="skill" and not hud.action_menu:hud.back_to_commands();return
+	if command in ["item","ether"] and not hud.action_menu:hud.open_items();return
 	var had_target=pending!=null or not chosen.is_empty()
 	invalidate_preview();hud.selected_cell=-1;hud.selected_enemy=""
 	if not had_target:hud.action_menu=true
@@ -535,7 +544,7 @@ func import_portrait(path: String,uid: String):
 	if r.get("ok",false):portraits.assign(uid,r.data);notice="画像を変更しました。割当を残すには進行を保存してください。";render()
 
 func can_commit() -> bool:
-	if locked or presenting or closing or engine.disconnected or preview_pending or hud.range_reference or hud.action_menu:return false
+	if locked or presenting or closing or engine.disconnected or preview_pending or hud.range_reference or hud.action_menu or hud.item_list:return false
 	if state().is_empty() or state().get("deploying",false) or state().get("result")!=null:return false
 	if hud.acting().get("side")!="ally":return false
 	return command=="guard" or (pending!=null and preview_ready and not preview.is_empty())
@@ -587,4 +596,4 @@ func legacy_skill_description(name_: String,stage:=2) -> String:
 		"スナイプ":"スナイプ: その一撃だけ各武器の射程+1、届くATK合算。MP1",
 		"スタンプ":"スタンプ: 縦横の隣接中心から3マス。空/味方中心も可。敵のみ通常威力。空振りでもMP1",
 		"奇襲":"奇襲: 同じ横列の"+("前方のみ" if stage==1 else "左右")+"。遮るキャラなしで手前に着地+通常攻撃。MP1",
-		"陣形強化":"陣形強化: 護送陣成立時に確認して実行。次の本人の番まで攻撃+75%/被害-35%。重複なし。MP1"}.get(name_,"")
+		"陣形強化":"陣形強化: 味方全員が対象（陣形の3マス外も含む）。護送陣が成立している間だけ、通常の攻撃×1.5／被ダメージ×0.75を、攻撃×1.75／被ダメージ×0.65に置き換えます。効果は使用者の次の番まで。陣形が崩れている間は適用されず、重ねても倍率は加算されません。MP1・1行動。"}.get(name_,"")

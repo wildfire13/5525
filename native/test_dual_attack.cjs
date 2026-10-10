@@ -20,7 +20,7 @@ test('preview matches cover, guard, formation and loneWolf; passive emits once',
  const hp=protector.hp,ehp=e.hp;assert.ok(C.trialAct(t,'attack',e.id));assert.equal(hp-protector.hp,p.hpLoss);assert.equal(e.hp,ehp);assert.equal(b.skillEvents.filter(x=>x.skillId==='loneWolf').length,1);
 });
 test('legacy summary fields stay stable while contextual power is calculated separately',()=>{
- const {a}=scene();assert.equal(a.atk,27);assert.equal(a.reach,1);assert.equal(B.attackReach(a,'skill'),1);
+ const {a}=scene();assert.equal(a.atk,27);assert.equal(a.reach,1);assert.equal(B.activeSkill(a),'mage');assert.equal(B.attackReach(a,'skill'),2);
 });
 test('porter stays unable to attack with two weapons',()=>{
  const {a,t,e}=scene();a.job='porter';assert.equal(B.legal(t.battle,'attack',e.id),false);assert.equal(B.reachFilteredPower(a,e).base,0);

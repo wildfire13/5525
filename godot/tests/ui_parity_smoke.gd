@@ -80,7 +80,7 @@ func run():
 	check(contains("奇襲対象") and game.board.legal_target_cells()==game.data.deployment.get(game.selected,{}).get("ambush",[]),"deployment shows attack range and ambush indicators")
 	await game.act("begin",[]);await fight()
 	await game.act("finishBattle",[])
-	check(game.campaign().phase=="camp" and contains("あと一区間") and contains("ポーション HP+55"),"camp includes party resources and item controls")
+	check(game.campaign().phase=="camp" and contains("あと一区間") and button_named("アイテム")!=null and game.find_child("CampParty",true,false)!=null,"camp includes party resources and item controls")
 	var before_rest=await snapshot()
 	await game.forecast_action("rest","rest",[]);await settle()
 	var dialog
