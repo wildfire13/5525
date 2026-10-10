@@ -256,6 +256,13 @@ func reconnect_engine():
 func invalidate_preview():
 	if hud!=null:hud.discard_reference()
 	generation+=1;pending=null;chosen=[];preview={};preview_ready=false;preview_pending=false
+func handle_connection_loss(reply: Dictionary,connection: int) -> bool:
+	# Loss belongs to the connection, not to the preview that happened to detect it.
+	# Ignore notifications from a connection already replaced by an explicit reconnect.
+	if closing or connection!=engine.connection_generation or not reply.get("connection_lost",false):return false
+	invalidate_preview();pages.reset_context();status_override=""
+	notice=str(reply.get("error","ゲーム接続が終了しました。再接続してください。"))
+	render();return true
 func new_game():
 	invalidate_preview()
 	portraits.activate({"version":1,"characters":{}});audio.restore({});gear_preview={};page="board"
@@ -447,13 +454,13 @@ func request_preview(which: String):
 		if token!=generation:return
 	if closing or token!=generation:return
 	var reply=await engine.request({"op":"preview","kind":kind,"target":selected_target,"previewKind":which})
+	if handle_connection_loss(reply,connection):return
 	if closing or token!=generation or epoch!=pages.epoch or connection!=engine.connection_generation:return
 	preview_pending=false
 	if reply.get("ok",false) and pending!=null and target==JSON.stringify(pending) and command==kind and state().get("actor")==actor and state().get("actions")==action_count and data.get("skill")==skill:
 		preview=reply.preview;preview_ready=true;notice=""
 	elif not reply.get("ok",false):
 		notice=str(reply.get("error","予測を取得できませんでした"))
-		if reply.get("connection_lost",false):invalidate_preview();pages.reset_context()
 	render()
 func cancel():
 	if locked or presenting or closing:return
