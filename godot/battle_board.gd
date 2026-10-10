@@ -48,6 +48,7 @@ func _ready():
 	overlay.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(overlay);overlay.draw.connect(draw_overlay)
 	resized.connect(func(): if world: world.update_camera())
 	gui_input.connect(input_event)
+	mouse_exited.connect(func():hover_uid="";tooltip_text="";overlay.queue_redraw())
 func cell_world(c: Vector2i) -> Vector3:
 	return Vector3((c.x-4.5)*CELL,.15,(c.y-2.0)*CELL)
 func point(p: int) -> Vector3: return cell_world(Vector2i(p%10,p/10))
@@ -130,7 +131,7 @@ func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, c
 		nodes.sprite.flip_h=false
 		nodes.label.text="%s\n%d/%d%s" % [u.name,u.hp,u.max," 防" if u.get("guard",false) else ""]
 		var low=u.max>0 and u.hp*4<u.max
-		nodes.label.modulate=Color("#ef4444") if low else Color("#a9ede0") if u.side=="ally" else Color("#f3b4b4")
+		nodes.label.modulate=Color("#ff9494") if low else Color("#a9ede0") if u.side=="ally" else Color("#f3b4b4")
 		nodes.label.font=low_hp_font if low else ThemeDB.fallback_font
 		nodes.label.visible=false # Fixed-size 2D callouts and bars replace overlapping world labels.
 	for uid_ in actors.keys():
@@ -229,12 +230,12 @@ func draw_unit_labels(state: Dictionary):
 		var at=project(point(int(u.pos))+Vector3(0,1.25,0))
 		var color=Color("#a9ede0") if u.side=="ally" else Color("#f3b4b4")
 		var low=u.get("max",0)>0 and u.hp*4<u.max
-		if low:color=Color("#ef4444")
+		if low:color=Color("#ff9494")
 		at.x=clampf(at.x,32,maxf(32,size.x-32));at.y=clampf(at.y,18,maxf(18,size.y-18))
 		overlay.draw_rect(Rect2(at-Vector2(24,0),Vector2(48,5)),Color("#10202b"))
 		overlay.draw_rect(Rect2(at-Vector2(24,0),Vector2(48*clampf(float(u.hp)/maxf(1,u.max),0,1),5)),color)
 		overlay.draw_string(ThemeDB.fallback_font,at+Vector2(-24,-5),("味" if u.side=="ally" else "敵")+(" KO" if u.hp<=0 else " 防" if u.get("guard",false) else ""),HORIZONTAL_ALIGNMENT_LEFT,-1,16,color)
-		if u.id!=actor and u.id!=selected and u.id!=hover_uid and u.id!=inspected_enemy and not targets.has(u.id):continue
+		if u.id!=hover_uid:continue
 		var per_column=maxi(1,int((size.y-20)/48))
 		var rect=Rect2(Vector2(6 if shown.size()<per_column else maxf(6,size.x-158),8+(shown.size()%per_column)*48),Vector2(152,44))
 		shown.append(rect)
@@ -242,7 +243,7 @@ func draw_unit_labels(state: Dictionary):
 		overlay.draw_rect(rect,Color(.04,.1,.14,.92));overlay.draw_rect(rect,color,false,1.0)
 		var full=str(u.name);var short=full.left(7)+"…" if full.length()>8 else full
 		var font=low_hp_font if low else ThemeDB.fallback_font
-		overlay.draw_string(font,rect.position+Vector2(5,18),("現在 " if u.id==actor else "")+short,HORIZONTAL_ALIGNMENT_LEFT,142,16,color)
+		overlay.draw_string(font,rect.position+Vector2(5,18),short,HORIZONTAL_ALIGNMENT_LEFT,142,16,color)
 		overlay.draw_string(font,rect.position+Vector2(5,37),"HP %d/%d" % [u.hp,u.max],HORIZONTAL_ALIGNMENT_LEFT,142,16,color)
 func reset_animation():
 	if hit_tween and hit_tween.is_running():hit_tween.kill()

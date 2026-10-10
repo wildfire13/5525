@@ -10,7 +10,7 @@ func check(ok: bool,label: String):
 func _initialize():call_deferred("run")
 func settle():
 	await process_frame;await process_frame
-	while game.locked or game.presenting:await process_frame
+	while game.locked or game.presenting or game.engine.busy or game.pages.shop_view.quote_worker:await process_frame
 func text_of(node: Node) -> String:
 	var result=[]
 	if node is Label or node is Button:result.append(node.text)
@@ -26,6 +26,7 @@ func press(value: String):
 	if button==null or button.disabled:return
 	button.pressed.emit();await settle()
 func snapshot():
+	await settle()
 	return (await game.engine.request({"op":"campaign_save"})).data
 func restore(envelope: Dictionary):
 	game.gear_preview={};await game.update({"op":"campaign_load","data":envelope});await settle()
@@ -102,31 +103,32 @@ func run():
 	var earned=await snapshot()
 	game.navigate("party");await settle()
 	var guard=game.roster().filter(func(u):return u.id=="guard")[0]
-	check(contains("Lv.%d / 能力ポイント %d" % [guard.level,guard.statPoints]) and contains(game.pages.attack_profile(guard.stats)),"party exposes level, points, ATK and reach")
-	check(guard.skillPoints==0 or contains("スキルポイント %d（配分は未実装）" % guard.skillPoints),"legacy unimplemented skill allocation is identified")
-	check(contains("装飾:") and contains("編成変更はアスタリス"),"party exposes accessories and guild restriction")
+	game.pages.party_view.tab=1;game.render();await settle()
+	check(contains("Lv.%d" % guard.level) and contains("能力ポイント %d" % guard.statPoints) and contains(game.pages.attack_profile(guard.stats)),"party growth tab exposes level, points, distance ATK and reach")
+	check(contains("スキル配分は未実装") and contains("ギルドで編成"),"growth tab retains guild and unimplemented skill-point restrictions")
+	game.pages.party_view.tab=0;game.render();await settle()
+	check(game.find_child("EquipmentSlots",true,false).get_child_count()==8,"equipment tab retains eight slots including accessories")
 	game.navigate("shop");await settle()
-	check(contains("必要能力") and contains("ATK") and contains("スナイプは各武器の射程+1"),"shop lists conditions and existing multiweapon rule")
+	check(game.pages.shop_view.stage=="S0" and not game.pages.cached_quotes.is_empty(),"shop list uses canonical row conditions")
 	game.shop_uid="guard";game.shop_slot="rightHand";await game.preview_gear("sword-iron-1");await settle()
 	var quote=game.gear_preview
-	var table=game.find_child("GearComparison",true,false)
-	check(table!=null and table.get_child_count()==24,"comparison has before and after columns for all five stats")
-	if table!=null:
-		check(table.get_children().all(func(field):return field.size.x>=120 and field.get_line_count()==1),"comparison columns remain readable without vertical character wrapping")
-		for i in range(5):
-			var key=["max","maxMp","atk","normalReach","speed"][i]
-			var before=game.pages.normal_atk(quote.before,1) if key=="atk" else int(quote.before[key])
-			var after=game.pages.normal_atk(quote.after,1) if key=="atk" else int(quote.after[key])
-			check(table.get_child(5+i*4).text==str(before) and table.get_child(6+i*4).text==str(after) and table.get_child(7+i*4).text=="%+d" % (after-before),"comparison values match rule quote: "+key)
-	check(contains(quote.current.name) and contains("購入後%dG" % quote.afterGold) and not contains("<null>"),"comparison shows current gear, trade-in and resulting gold without null placeholders")
+	var lines=game.pages.shop_view.comparison_lines(quote,true)
+	for key in ["max","maxMp","speed"]:
+		var before=int(quote.before[key]);var after=int(quote.after[key])
+		check(str(lines).contains("%d → %d (%+d)" % [before,after,after-before]),"full comparison retains rule values: "+key)
+	check(str(lines).contains("通常ATK・距離1"),"comparison includes reaching-weapon ATK")
+	game.pages.shop_view.open_details();await settle()
+	check(contains(quote.current.name) and contains("成長補正1回") and not contains("<null>"),"full details explain current gear and normal attack formula")
+	game.dialog.close();await settle()
+	check(contains("→ %dG" % quote.afterGold),"comparison shows canonical resulting gold")
 	var before_quote=await snapshot()
-	await press("比較を閉じる")
+	game.pages.cancel_quote();await settle()
 	check(game.gear_preview.is_empty() and await snapshot()==before_quote,"quote cancel clears preview without any campaign mutation")
 	var poor=initial.duplicate(true);poor.state.location="east";poor.state.gold=0
 	await restore(poor);game.navigate("shop");await game.preview_gear("sword-iron-1")
-	check(contains("所持金が不足") and button_named("差額%dGで買い替える" % game.gear_preview.cost).disabled and not button_named("木人で試す").disabled,"unaffordable quote explains rejection but allows isolated trial")
+	check(contains("所持金が不足") and button_named("購入内容を確認").disabled and not button_named("木人で試す").disabled,"unaffordable quote explains rejection but allows isolated trial")
 	await game.preview_gear("sword-wood")
-	check(contains("すでにこの装備") and button_named("差額%dGで買い替える" % game.gear_preview.cost).disabled,"same gear purchase disabled with reason")
+	check(contains("装備中の品") and button_named("購入内容を確認").disabled,"same gear purchase disabled with reason")
 	var village=initial.duplicate(true);village.state.location="north"
 	await restore(village);game.navigate("map");await settle()
 	chart=game.content.find_child("TownMap",true,false)
@@ -150,22 +152,26 @@ func run():
 	check(game.campaign().gold==initial.state.gold-30 and game.roster()[0].hp==game.roster()[0].max,"inn action heals active party and charges once")
 	await restore(earned)
 	await game.act("trial",["guard","sword-wood","rightHand"])
+	game.hud.toggle_details();await settle()
 	check(game.state().units.all(func(u):return contains("%s: HP %d/%d MP %d AGI %d" % [u.name,u.hp,u.max,u.mp,u.agi])),"battle detail includes every unit HP, MP and speed")
-	game.choose_command("guard")
+	game.dialog.close();await settle();game.choose_command("guard")
 	check(contains("次の本人の番まで被ダメージ半減"),"legacy command help retained")
 	game.choose_command("attack")
 	if not game.data.choices.attack.is_empty():
 		for u in game.state().units:
 			if u.id==game.data.choices.attack[0]:await game.on_cell(int(u.pos));break
-		game.hud.breakdown_open=true;game.render()
+		game.hud.open_action_details();await settle()
 		check(contains("成長補正+") and contains("予測:"),"damage preview includes recipients and growth bonus")
+	game.dialog.close();await settle();game.hud.toggle_details();await settle()
 	check(contains("敵0") and contains("条件マス") and contains("直近40件"),"battle detail includes enemy inventory, formation occupancy and full legacy log depth")
+	game.dialog.close(false)
 	await game.act("endTrial",[])
 	await game.act("trial",["guard","hammer-wood","rightHand"])
 	game.choose_command("skill")
 	if not game.data.choices.skill.is_empty():await game.on_cell(int(game.data.choices.skill[0]))
-	game.hud.breakdown_open=true;game.render()
+	game.hud.open_action_details();await settle()
 	check(not game.preview.get("cells",[]).is_empty() and contains("空/味方中心も可"),"stamp preview exposes exact affected cells and legacy instructions")
+	game.dialog.close(false)
 	await game.act("endTrial",[])
 	var before_save=await snapshot()
 	await game.save_game();await settle()

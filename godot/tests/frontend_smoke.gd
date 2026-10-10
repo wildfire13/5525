@@ -108,6 +108,7 @@ func run():
 	check(not game.audio.valid_metadata({"version":1,"journey_key":"x","quest_id":"untrusted"}),"invalid saved music rejected without mutation")
 	await game.import_portrait(ProjectSettings.globalize_path("res://../native/assets/knight.png"),"guard")
 	check(game.portraits.metadata.characters.has("guard"),"custom portrait uses existing normalization")
+	while game.engine.busy or game.pages.shop_view.quote_worker:await process_frame
 	var saved=await game.engine.request({"op":"campaign_save"})
 	saved.data.nativePortraits=game.portraits.metadata;saved.data.godotFrontend=game.audio.frontend_save()
 	var file=OS.get_temp_dir().path_join("5525-godot-test-"+str(Time.get_ticks_usec())+".json")
