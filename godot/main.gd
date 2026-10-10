@@ -283,7 +283,7 @@ func render():
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	actor_face.visible=battle
 	town_back.visible=not battle and page in ["shop","party"] and phase=="town"
-	top.custom_minimum_size.y=56 if battle else 44
+	top.custom_minimum_size.y=56 if battle and ui_size_mode=="standard" else 44
 	footer.visible=not battle and page not in ["shop","party"]
 	if battle:
 		if view_kind!="battle":clear(content);hud.mount();view_kind="battle"
