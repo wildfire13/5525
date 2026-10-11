@@ -286,8 +286,13 @@ func result(parent):
 	if result_.get("hours")!=null:l(parent,"所要時間 %d時間" % result_.hours)
 	l(parent,"現在地: "+town(c().location)+"。ここで施設を利用し、次の出発を選べます。")
 	b(parent,town(c().location)+"に留まる / 掲示板へ",acknowledge.bind("board"))
-	if c().location in ["east","west","south"]:b(parent,town(c().location)+"のお店へ",acknowledge.bind("shop"))
-	elif c().location=="astaris":b(parent,"アスタリスの宿屋へ",acknowledge.bind("inn"))
+	var facilities=[]
+	for place in c().get("locations",[]):
+		if place.id==c().location:facilities=place.get("facilities",[]);break
+	if facilities.any(func(id):return id in ["weapon","armor","items","accessory"]):
+		var label=town(c().location)+("の装飾品店へ" if facilities.has("accessory") else "のお店へ")
+		b(parent,label,acknowledge.bind("shop")).name="ResultShop"
+	elif facilities.has("inn"):b(parent,town(c().location)+"の宿屋へ",acknowledge.bind("inn"))
 	l(parent,"\n".join(c().get("history",[]).slice(-5)))
 func acknowledge(page: String):ui.page=page;await ui.act("acknowledge",[])
 
