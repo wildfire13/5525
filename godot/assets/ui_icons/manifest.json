@@ -1,0 +1,1689 @@
+{
+  "schema_version": 1,
+  "package_id": "5525_adopted_icons_CANONICAL_52_v40_20261011",
+  "status": "canonical adopted 52-icon selection",
+  "approved_date": "2026-10-11",
+  "count": 52,
+  "composition": {
+    "prior_approved_ui_and_race": 39,
+    "prior_approved_weapon_types": 8,
+    "additional_icons": 5
+  },
+  "source": {
+    "wiki_version": 40,
+    "git_commit": "5fffd4a9eb290ed7cc0bbef555faea1155c5aaf1",
+    "wiki_index_sha256": "d054edd346aa79be9054cf572ba85fc9d9e4546eb449f4a2b771fe4465fd56ac",
+    "wiki_manifest_sha256": "a61a78af053521bc63e9aa327cf906ef562a7760d53da18179366de21e5a0c88",
+    "source_archive_name": "5525-spec-wiki-formation-skill-v40.tar.gz",
+    "source_archive_sha256": "fff08a823e90acc866641bec93943d32b3439e9f96fcdb2510be00731c80090c"
+  },
+  "generation_in_this_package": false,
+  "pixel_changes_in_this_package": false,
+  "categories": [
+    {
+      "id": "races",
+      "label_ja": "種族",
+      "count": 3,
+      "icon_ids": [
+        "human_blank_face",
+        "elf_blank_face",
+        "dwarf_blank_face"
+      ]
+    },
+    {
+      "id": "jobs",
+      "label_ja": "ジョブ",
+      "count": 4,
+      "icon_ids": [
+        "warrior",
+        "scout",
+        "mage",
+        "porter"
+      ]
+    },
+    {
+      "id": "stats",
+      "label_ja": "能力・状態",
+      "count": 8,
+      "icon_ids": [
+        "strength",
+        "intelligence",
+        "speed",
+        "hp",
+        "mp",
+        "money",
+        "attribute_points",
+        "experience"
+      ]
+    },
+    {
+      "id": "commands",
+      "label_ja": "コマンド",
+      "count": 5,
+      "icon_ids": [
+        "attack",
+        "move",
+        "skill",
+        "items",
+        "defend"
+      ]
+    },
+    {
+      "id": "slots",
+      "label_ja": "装備部位",
+      "count": 7,
+      "icon_ids": [
+        "right_hand",
+        "left_hand",
+        "head",
+        "body",
+        "trousers",
+        "feet",
+        "accessory"
+      ]
+    },
+    {
+      "id": "weapons",
+      "label_ja": "武器種",
+      "count": 12,
+      "icon_ids": [
+        "sheet_one_handed_sword",
+        "sheet_two_handed_sword",
+        "sheet_spear",
+        "sheet_bow",
+        "sheet_hammer",
+        "sheet_staff",
+        "sheet_shield",
+        "sheet_throwing_javelin",
+        "gun",
+        "dagger",
+        "book",
+        "unarmed"
+      ]
+    },
+    {
+      "id": "items",
+      "label_ja": "消耗品",
+      "count": 2,
+      "icon_ids": [
+        "potion",
+        "ether"
+      ]
+    },
+    {
+      "id": "places",
+      "label_ja": "拠点・施設",
+      "count": 7,
+      "icon_ids": [
+        "castle",
+        "village",
+        "inn",
+        "weapon_shop",
+        "armor_shop",
+        "item_shop",
+        "accessory_shop"
+      ]
+    },
+    {
+      "id": "effects",
+      "label_ja": "効果（共通）",
+      "count": 4,
+      "icon_ids": [
+        "healing",
+        "attack_up",
+        "defense_up",
+        "damage"
+      ]
+    }
+  ],
+  "icons": [
+    {
+      "id": "strength",
+      "label_ja": "STR・筋力",
+      "category": "stats",
+      "category_label_ja": "能力・状態",
+      "file": "icons64/strength.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        4,
+        59,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        4,
+        5,
+        4
+      ],
+      "sha256": "ea5ce6efff59c421f6b5cf8ef6378a0427b1d6d9cc5180e7aa0c17fdaca85bfe",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/strength.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/strength.png",
+        "review_code": "A01",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "intelligence",
+      "label_ja": "INT・知力",
+      "category": "stats",
+      "category_label_ja": "能力・状態",
+      "file": "icons64/intelligence.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        6,
+        60,
+        57
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        6,
+        4,
+        7
+      ],
+      "sha256": "cbcb91237b44447c5ba2edcdc9ec7405bea50ec194b07fdc30883c30077df54d",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/intelligence.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/intelligence.png",
+        "review_code": "A02",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "speed",
+      "label_ja": "SPD・速度",
+      "category": "stats",
+      "category_label_ja": "能力・状態",
+      "file": "icons64/speed.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        5,
+        60,
+        59
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        5,
+        4,
+        5
+      ],
+      "sha256": "b16b548a988d9e1b1c3ab7f5f5bf8333cb49553a5cdb46f6783da03071ab9338",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/speed.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/speed.png",
+        "review_code": "A03",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "hp",
+      "label_ja": "HP",
+      "category": "stats",
+      "category_label_ja": "能力・状態",
+      "file": "icons64/hp.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        7,
+        60,
+        57
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        7,
+        4,
+        7
+      ],
+      "sha256": "64da6841c1c890ff9a7e0f21ec43fd0e15cb679c4878c4ce6a843769b6b06cdc",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/hp.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/hp.png",
+        "review_code": "A04",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "mp",
+      "label_ja": "MP",
+      "category": "stats",
+      "category_label_ja": "能力・状態",
+      "file": "icons64/mp.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        12,
+        4,
+        51,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        12,
+        4,
+        13,
+        4
+      ],
+      "sha256": "55cca7585a29437a0a65f1e00c87cbe1292c648ac9bac4d998d16d6d68ecdfdf",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/mp.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/mp.png",
+        "review_code": "A05",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "money",
+      "label_ja": "所持金",
+      "category": "stats",
+      "category_label_ja": "能力・状態",
+      "file": "icons64/money.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        6,
+        60,
+        57
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        6,
+        4,
+        7
+      ],
+      "sha256": "fc1310ee7aa5e7b96f2f8c4cfe8f61a3075366813c21ac6aa8c2791704595ce5",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/money.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/money.png",
+        "review_code": "A06",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "attribute_points",
+      "label_ja": "未使用ポイント",
+      "category": "stats",
+      "category_label_ja": "能力・状態",
+      "file": "icons64/attribute_points.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        8,
+        4,
+        56,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        8,
+        4,
+        8,
+        4
+      ],
+      "sha256": "f76492344efee9a376135b66e4e6a3646a241d0888a8631dcffb6955991d76ae",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/attribute_points.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/attribute_points.png",
+        "review_code": "A07",
+        "previous_processing": "imagegen_revision_then_crop_resize"
+      }
+    },
+    {
+      "id": "attack",
+      "label_ja": "攻撃",
+      "category": "commands",
+      "category_label_ja": "コマンド",
+      "file": "icons64/attack.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        4,
+        60,
+        59
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        4,
+        4,
+        5
+      ],
+      "sha256": "b093951dfd01a8cf15855b6db417f6855ea00bd3eb225e078ab0cd365c680fb4",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/attack.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/attack.png",
+        "review_code": "A08",
+        "previous_processing": "imagegen_revision_then_crop_resize"
+      }
+    },
+    {
+      "id": "move",
+      "label_ja": "移動",
+      "category": "commands",
+      "category_label_ja": "コマンド",
+      "file": "icons64/move.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        9,
+        4,
+        54,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        9,
+        4,
+        10,
+        4
+      ],
+      "sha256": "954302012bb31f6960c9cadc33780ccad4d181921ccbee4f2618fe09c035187e",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/move.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/move.png",
+        "review_code": "A09",
+        "previous_processing": "imagegen_revision_then_crop_resize"
+      }
+    },
+    {
+      "id": "skill",
+      "label_ja": "スキル",
+      "category": "commands",
+      "category_label_ja": "コマンド",
+      "file": "icons64/skill.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        5,
+        60,
+        58
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        5,
+        4,
+        6
+      ],
+      "sha256": "6bbbc0a4228587be56ef00c1a32a2e84c20c852d071105dc3d21496977d6fcf3",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/skill.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/skill.png",
+        "review_code": "A10",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "items",
+      "label_ja": "アイテム",
+      "category": "commands",
+      "category_label_ja": "コマンド",
+      "file": "icons64/items.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        5,
+        4,
+        59,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        5,
+        4,
+        5,
+        4
+      ],
+      "sha256": "bde519f216ec675ef33c6ea5d3e46a8a5667ca701b19bf6d833988bf757687c5",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/items.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/items.png",
+        "review_code": "A11",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "defend",
+      "label_ja": "防御",
+      "category": "commands",
+      "category_label_ja": "コマンド",
+      "file": "icons64/defend.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        7,
+        4,
+        57,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        7,
+        4,
+        7,
+        4
+      ],
+      "sha256": "cfe5f4fabb3dafe28cba5534d05fa3b7f5dded3870cb6aa05cfa8566dbed76a1",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/defend.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/defend.png",
+        "review_code": "A12",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "right_hand",
+      "label_ja": "右手",
+      "category": "slots",
+      "category_label_ja": "装備部位",
+      "file": "icons64/right_hand.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        6,
+        60,
+        57
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        6,
+        4,
+        7
+      ],
+      "sha256": "2363141c08148e52aa371108fd34c8968bcae57e24bfbca4f1ee6426ab654c9b",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/right_hand.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/right_hand.png",
+        "review_code": "B01",
+        "previous_processing": "mapping_swap"
+      }
+    },
+    {
+      "id": "left_hand",
+      "label_ja": "左手",
+      "category": "slots",
+      "category_label_ja": "装備部位",
+      "file": "icons64/left_hand.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        6,
+        60,
+        57
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        6,
+        4,
+        7
+      ],
+      "sha256": "96d23f816017cf9a62b1fc115265be6e756dce75b91663455306e26c75563578",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/left_hand.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/left_hand.png",
+        "review_code": "B02",
+        "previous_processing": "mapping_swap"
+      }
+    },
+    {
+      "id": "head",
+      "label_ja": "頭装備",
+      "category": "slots",
+      "category_label_ja": "装備部位",
+      "file": "icons64/head.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        9,
+        4,
+        54,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        9,
+        4,
+        10,
+        4
+      ],
+      "sha256": "b1c82f742fb39087364f992ceb0f8c7170788af4bc4d8a08454cbcba02c7377f",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/head.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/head.png",
+        "review_code": "B03",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "body",
+      "label_ja": "胴装備",
+      "category": "slots",
+      "category_label_ja": "装備部位",
+      "file": "icons64/body.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        6,
+        60,
+        58
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        6,
+        4,
+        6
+      ],
+      "sha256": "222d1f6efbf3a7e932cbbe1d2f786793cc76acfc54618327c30a21a08c47dfab",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/body.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/body.png",
+        "review_code": "B04",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "feet",
+      "label_ja": "足装備",
+      "category": "slots",
+      "category_label_ja": "装備部位",
+      "file": "icons64/feet.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        4,
+        59,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        4,
+        5,
+        4
+      ],
+      "sha256": "59524dcf846e0f2ef237e0557a505bcf82b9ff2afd468eba5d72a4690f9d8da1",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/feet.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/feet.png",
+        "review_code": "B05",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "accessory",
+      "label_ja": "装飾品",
+      "category": "slots",
+      "category_label_ja": "装備部位",
+      "file": "icons64/accessory.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        9,
+        4,
+        55,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        9,
+        4,
+        9,
+        4
+      ],
+      "sha256": "301d67a125d16a92336cd8fd814139fea1e18046f1e016f9f2d5f8f76b41f33b",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/accessory.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/accessory.png",
+        "review_code": "B06",
+        "previous_processing": "imagegen_revision_then_crop_resize"
+      }
+    },
+    {
+      "id": "potion",
+      "label_ja": "ポーション",
+      "category": "items",
+      "category_label_ja": "消耗品",
+      "file": "icons64/potion.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        12,
+        4,
+        52,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        12,
+        4,
+        12,
+        4
+      ],
+      "sha256": "785554f03236ec755e52ea70113646a2e03129cb2280c4269a9dd05cf73251cc",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/potion.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/potion.png",
+        "review_code": "B07",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "ether",
+      "label_ja": "エーテル",
+      "category": "items",
+      "category_label_ja": "消耗品",
+      "file": "icons64/ether.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        13,
+        4,
+        51,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        13,
+        4,
+        13,
+        4
+      ],
+      "sha256": "7f7c5fdfc2875dfded16d8069ca2eb7a32544aca7f970f98090eac322c531783",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/ether.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/ether.png",
+        "review_code": "B08",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "castle",
+      "label_ja": "城",
+      "category": "places",
+      "category_label_ja": "拠点・施設",
+      "file": "icons64/castle.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        6,
+        60,
+        58
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        6,
+        4,
+        6
+      ],
+      "sha256": "8b675a511abf705fd07b2c835ac97a4df820bf7e17c152017331980f37974bf4",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/castle.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/castle.png",
+        "review_code": "B09",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "village",
+      "label_ja": "村",
+      "category": "places",
+      "category_label_ja": "拠点・施設",
+      "file": "icons64/village.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        7,
+        60,
+        56
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        7,
+        4,
+        8
+      ],
+      "sha256": "9f618a00720ee856d914d76a87b94848dc66fa366cd72555e116be108be4afdd",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/village.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/village.png",
+        "review_code": "B10",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "inn",
+      "label_ja": "宿屋",
+      "category": "places",
+      "category_label_ja": "拠点・施設",
+      "file": "icons64/inn.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        7,
+        60,
+        57
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        7,
+        4,
+        7
+      ],
+      "sha256": "b6398017ba9624a9830a8438daafc07f313b0245521b7d41834517f6fc8134fc",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/inn.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/inn.png",
+        "review_code": "B11",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "weapon_shop",
+      "label_ja": "武器屋",
+      "category": "places",
+      "category_label_ja": "拠点・施設",
+      "file": "icons64/weapon_shop.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        10,
+        60,
+        54
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        10,
+        4,
+        10
+      ],
+      "sha256": "a070af33a1b5992b5422fcb5246d2ae5452e2c3e3a8cd289dd54e36b1ffeb09b",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/weapon_shop.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/weapon_shop.png",
+        "review_code": "B12",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "armor_shop",
+      "label_ja": "防具屋",
+      "category": "places",
+      "category_label_ja": "拠点・施設",
+      "file": "icons64/armor_shop.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        6,
+        4,
+        58,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        6,
+        4,
+        6,
+        4
+      ],
+      "sha256": "5dc4c6c713f123d3cb554e83eea734a0ddd422c84e5a863ed553effc1f5e7108",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/armor_shop.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/armor_shop.png",
+        "review_code": "B13",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "item_shop",
+      "label_ja": "道具屋",
+      "category": "places",
+      "category_label_ja": "拠点・施設",
+      "file": "icons64/item_shop.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        8,
+        4,
+        56,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        8,
+        4,
+        8,
+        4
+      ],
+      "sha256": "aacc9953e99a7bbbe96ce2a0208d1bc26c44266086fee0c4f85ccd4bd3d6286d",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/item_shop.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/item_shop.png",
+        "review_code": "B14",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "accessory_shop",
+      "label_ja": "装飾品屋",
+      "category": "places",
+      "category_label_ja": "拠点・施設",
+      "file": "icons64/accessory_shop.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        6,
+        4,
+        58,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        6,
+        4,
+        6,
+        4
+      ],
+      "sha256": "1dfe49047a43f07d94a56b5bf6b8103c0ee658ff7b592e973f681c86e746bfab",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/accessory_shop.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/accessory_shop.png",
+        "review_code": "B15",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "trousers",
+      "label_ja": "ズボン",
+      "category": "slots",
+      "category_label_ja": "装備部位",
+      "file": "icons64/trousers.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        9,
+        4,
+        55,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        9,
+        4,
+        9,
+        4
+      ],
+      "sha256": "4e68da73400954abdeb1a2796cf7d3e6319b7822f3b4f6b47b32a588f5b651da",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/trousers.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/trousers.png",
+        "review_code": "B16",
+        "previous_processing": "imagegen_revision_then_crop_resize"
+      }
+    },
+    {
+      "id": "warrior",
+      "label_ja": "戦士",
+      "category": "jobs",
+      "category_label_ja": "ジョブ",
+      "file": "icons64/warrior.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        6,
+        60,
+        57
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        6,
+        4,
+        7
+      ],
+      "sha256": "c3dc7d8232ed8c42dbb5d1526e1b60bf1567a260e92fec6de33d6d09714a5384",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/warrior.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/warrior.png",
+        "review_code": "C07",
+        "previous_processing": "imagegen_revision_then_crop_resize"
+      }
+    },
+    {
+      "id": "scout",
+      "label_ja": "スカウト",
+      "category": "jobs",
+      "category_label_ja": "ジョブ",
+      "file": "icons64/scout.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        7,
+        60,
+        57
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        7,
+        4,
+        7
+      ],
+      "sha256": "6af630d2f16d57636b1ade0e9264ae03b116a75f517ef229bc9d3bd495b54860",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/scout.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/scout.png",
+        "review_code": "C08",
+        "previous_processing": "imagegen_revision_then_crop_resize"
+      }
+    },
+    {
+      "id": "mage",
+      "label_ja": "魔法使い",
+      "category": "jobs",
+      "category_label_ja": "ジョブ",
+      "file": "icons64/mage.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        4,
+        60,
+        59
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        4,
+        4,
+        5
+      ],
+      "sha256": "9d3f9832bf6656071c090275996c428e1da82b39492187fc0f695ba96860143b",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/mage.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/mage.png",
+        "review_code": "C04",
+        "previous_processing": "imagegen_revision_then_crop_resize"
+      }
+    },
+    {
+      "id": "porter",
+      "label_ja": "ポーター",
+      "category": "jobs",
+      "category_label_ja": "ジョブ",
+      "file": "icons64/porter.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        5,
+        60,
+        59
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        5,
+        4,
+        5
+      ],
+      "sha256": "432c8d791635197416556e9af3952d3c8f4103fc471637ebf9b46b217094b4ae",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/porter.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/porter.png",
+        "review_code": "C06",
+        "previous_processing": "restored_original_unchanged"
+      }
+    },
+    {
+      "id": "healing",
+      "label_ja": "回復",
+      "category": "effects",
+      "category_label_ja": "効果（共通）",
+      "file": "icons64/healing.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        4,
+        59,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        4,
+        5,
+        4
+      ],
+      "sha256": "8675da39fff88cc835dd3abe5d12b1092fff92c80fafc5553c2fffbf586101df",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/healing.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/healing.png",
+        "review_code": "C09",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "attack_up",
+      "label_ja": "攻撃上昇",
+      "category": "effects",
+      "category_label_ja": "効果（共通）",
+      "file": "icons64/attack_up.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        5,
+        4,
+        59,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        5,
+        4,
+        5,
+        4
+      ],
+      "sha256": "f4e6eb52b8b12f11f4929dd9f4493ac9497cabac0a57ab3d04832e9c24dbe0b7",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/attack_up.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/attack_up.png",
+        "review_code": "C10",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "defense_up",
+      "label_ja": "防御上昇",
+      "category": "effects",
+      "category_label_ja": "効果（共通）",
+      "file": "icons64/defense_up.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        4,
+        59,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        4,
+        5,
+        4
+      ],
+      "sha256": "6128df41403dfca271946924fde6b356fe5f1aa3cb369c7733a2af5272b0b9f9",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/defense_up.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/defense_up.png",
+        "review_code": "C11",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "damage",
+      "label_ja": "ダメージ",
+      "category": "effects",
+      "category_label_ja": "効果（共通）",
+      "file": "icons64/damage.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        4,
+        60,
+        59
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        4,
+        4,
+        5
+      ],
+      "sha256": "c5e73e661f7cf9cd17b0ecabf14a0990bbc3dd3b685b28134f917296e8b3a04c",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/damage.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "icons64/damage.png",
+        "review_code": "C12",
+        "previous_processing": "unchanged"
+      }
+    },
+    {
+      "id": "human_blank_face",
+      "label_ja": "人間｜右向き＋丸い耳",
+      "category": "races",
+      "category_label_ja": "種族",
+      "file": "icons64/human_blank_face.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        8,
+        4,
+        55,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        8,
+        4,
+        9,
+        4
+      ],
+      "sha256": "b7c372e12dcc9a5a23d5786241f183f973d2b0246219fbfec49d18f8fd424c58",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/human_blank_face.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "race_comparison/icons64/human_blank_face.png",
+        "review_code": "D-B01",
+        "previous_processing": "screen_right_profile_revision"
+      }
+    },
+    {
+      "id": "elf_blank_face",
+      "label_ja": "エルフ｜右向き＋尖り耳",
+      "category": "races",
+      "category_label_ja": "種族",
+      "file": "icons64/elf_blank_face.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        5,
+        60,
+        59
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        5,
+        4,
+        5
+      ],
+      "sha256": "b5547acf0d8bc88a05de449a6464c08549dd251813db0d20cd6b4b6b4ed4c8f9",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/elf_blank_face.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "race_comparison/icons64/elf_blank_face.png",
+        "review_code": "D-B02",
+        "previous_processing": "screen_right_profile_revision"
+      }
+    },
+    {
+      "id": "dwarf_blank_face",
+      "label_ja": "ドワーフ｜右向き＋髭",
+      "category": "races",
+      "category_label_ja": "種族",
+      "file": "icons64/dwarf_blank_face.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        9,
+        4,
+        54,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        9,
+        4,
+        10,
+        4
+      ],
+      "sha256": "e07a542a1ca7f252826cfb261217b66bbc90b8633e3b4834d224c6286a37aa8a",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/dwarf_blank_face.png",
+      "provenance": {
+        "source_set": "ui_icon_candidates_round4",
+        "source_asset": "race_comparison/icons64/dwarf_blank_face.png",
+        "review_code": "D-B03",
+        "previous_processing": "screen_right_profile_revision"
+      }
+    },
+    {
+      "id": "sheet_one_handed_sword",
+      "label_ja": "片手剣",
+      "category": "weapons",
+      "category_label_ja": "武器種",
+      "file": "icons64/sheet_one_handed_sword.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        5,
+        4,
+        59,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        5,
+        4,
+        5,
+        4
+      ],
+      "sha256": "16fd419b2556ad53e008366499ae867c86c5fec0da236ff62959f3660a806c00",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/sheet_one_handed_sword.png",
+      "provenance": {
+        "source_set": "weapon_icon_experiment",
+        "source_asset": "icons64/sheet_one_handed_sword.png",
+        "previous_processing": "ImageMagick: exact cell crop, crop to alpha>=16 bounding box with 2 source pixels padding (bounding-box calculation only; alpha values preserved), aspect-preserving Lanczos resize to fit 56x56, transparent center extent 64x64. No retouching or regeneration. Previews are 6x nearest-neighbor enlargements of final 64px assets."
+      }
+    },
+    {
+      "id": "sheet_two_handed_sword",
+      "label_ja": "両手剣",
+      "category": "weapons",
+      "category_label_ja": "武器種",
+      "file": "icons64/sheet_two_handed_sword.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        4,
+        59,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        4,
+        5,
+        4
+      ],
+      "sha256": "ffd4c0806b0a08112416282b7b9bfa5571b0b94143f5fd383bf22f06bddf41ac",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/sheet_two_handed_sword.png",
+      "provenance": {
+        "source_set": "weapon_icon_experiment",
+        "source_asset": "icons64/sheet_two_handed_sword.png",
+        "previous_processing": "ImageMagick: exact cell crop, crop to alpha>=16 bounding box with 2 source pixels padding (bounding-box calculation only; alpha values preserved), aspect-preserving Lanczos resize to fit 56x56, transparent center extent 64x64. No retouching or regeneration. Previews are 6x nearest-neighbor enlargements of final 64px assets."
+      }
+    },
+    {
+      "id": "sheet_spear",
+      "label_ja": "槍",
+      "category": "weapons",
+      "category_label_ja": "武器種",
+      "file": "icons64/sheet_spear.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        5,
+        4,
+        59,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        5,
+        4,
+        5,
+        4
+      ],
+      "sha256": "0b36d0bd65b7dfdc9a8f82a7942aec06107576297c05b2c413fa709c1da0f03c",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/sheet_spear.png",
+      "provenance": {
+        "source_set": "weapon_icon_experiment",
+        "source_asset": "icons64/sheet_spear.png",
+        "previous_processing": "ImageMagick: exact cell crop, crop to alpha>=16 bounding box with 2 source pixels padding (bounding-box calculation only; alpha values preserved), aspect-preserving Lanczos resize to fit 56x56, transparent center extent 64x64. No retouching or regeneration. Previews are 6x nearest-neighbor enlargements of final 64px assets."
+      }
+    },
+    {
+      "id": "sheet_bow",
+      "label_ja": "弓",
+      "category": "weapons",
+      "category_label_ja": "武器種",
+      "file": "icons64/sheet_bow.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        7,
+        4,
+        56,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        7,
+        4,
+        8,
+        4
+      ],
+      "sha256": "b62a62bdb0a819af76ecda1cd7a737d50a67acae63f9b00043a55c13e6145733",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/sheet_bow.png",
+      "provenance": {
+        "source_set": "weapon_icon_experiment",
+        "source_asset": "icons64/sheet_bow.png",
+        "previous_processing": "ImageMagick: exact cell crop, crop to alpha>=16 bounding box with 2 source pixels padding (bounding-box calculation only; alpha values preserved), aspect-preserving Lanczos resize to fit 56x56, transparent center extent 64x64. No retouching or regeneration. Previews are 6x nearest-neighbor enlargements of final 64px assets."
+      }
+    },
+    {
+      "id": "sheet_hammer",
+      "label_ja": "槌",
+      "category": "weapons",
+      "category_label_ja": "武器種",
+      "file": "icons64/sheet_hammer.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        5,
+        4,
+        58,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        5,
+        4,
+        6,
+        4
+      ],
+      "sha256": "1e072a19fd3fe70e28e115e07d81e42a8a42ef9c3024571e0892a5001b0ccf0f",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/sheet_hammer.png",
+      "provenance": {
+        "source_set": "weapon_icon_experiment",
+        "source_asset": "icons64/sheet_hammer.png",
+        "previous_processing": "ImageMagick: exact cell crop, crop to alpha>=16 bounding box with 2 source pixels padding (bounding-box calculation only; alpha values preserved), aspect-preserving Lanczos resize to fit 56x56, transparent center extent 64x64. No retouching or regeneration. Previews are 6x nearest-neighbor enlargements of final 64px assets."
+      }
+    },
+    {
+      "id": "sheet_staff",
+      "label_ja": "杖",
+      "category": "weapons",
+      "category_label_ja": "武器種",
+      "file": "icons64/sheet_staff.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        6,
+        4,
+        58,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        6,
+        4,
+        6,
+        4
+      ],
+      "sha256": "976e5e342ce83a1e9f7121fcf531d99ec2e61638725f2921e691f6043045bc86",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/sheet_staff.png",
+      "provenance": {
+        "source_set": "weapon_icon_experiment",
+        "source_asset": "icons64/sheet_staff.png",
+        "previous_processing": "ImageMagick: exact cell crop, crop to alpha>=16 bounding box with 2 source pixels padding (bounding-box calculation only; alpha values preserved), aspect-preserving Lanczos resize to fit 56x56, transparent center extent 64x64. No retouching or regeneration. Previews are 6x nearest-neighbor enlargements of final 64px assets."
+      }
+    },
+    {
+      "id": "sheet_shield",
+      "label_ja": "盾",
+      "category": "weapons",
+      "category_label_ja": "武器種",
+      "file": "icons64/sheet_shield.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        11,
+        4,
+        52,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        11,
+        4,
+        12,
+        4
+      ],
+      "sha256": "a3d2c3029ffa935b688b009c431f34a5be4c92e67f9201d9c1b7cd07c6081ad5",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/sheet_shield.png",
+      "provenance": {
+        "source_set": "weapon_icon_experiment",
+        "source_asset": "icons64/sheet_shield.png",
+        "previous_processing": "ImageMagick: exact cell crop, crop to alpha>=16 bounding box with 2 source pixels padding (bounding-box calculation only; alpha values preserved), aspect-preserving Lanczos resize to fit 56x56, transparent center extent 64x64. No retouching or regeneration. Previews are 6x nearest-neighbor enlargements of final 64px assets."
+      }
+    },
+    {
+      "id": "sheet_throwing_javelin",
+      "label_ja": "投擲槍",
+      "category": "weapons",
+      "category_label_ja": "武器種",
+      "file": "icons64/sheet_throwing_javelin.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        5,
+        4,
+        58,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        5,
+        4,
+        6,
+        4
+      ],
+      "sha256": "2abc6775320d2be07fc02b03d055cf04140d4075fd9bd9eacb6a9daa47ad5daa",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/sheet_throwing_javelin.png",
+      "provenance": {
+        "source_set": "weapon_icon_experiment",
+        "source_asset": "icons64/sheet_throwing_javelin.png",
+        "previous_processing": "ImageMagick: exact cell crop, crop to alpha>=16 bounding box with 2 source pixels padding (bounding-box calculation only; alpha values preserved), aspect-preserving Lanczos resize to fit 56x56, transparent center extent 64x64. No retouching or regeneration. Previews are 6x nearest-neighbor enlargements of final 64px assets."
+      }
+    },
+    {
+      "id": "gun",
+      "label_ja": "銃",
+      "category": "weapons",
+      "category_label_ja": "武器種",
+      "file": "icons64/gun.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        6,
+        60,
+        58
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        6,
+        4,
+        6
+      ],
+      "sha256": "a63848b50c4b622b229f987b2ec14194fbf8725d5ea93ff0d70e8a86f4173398",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/gun.png",
+      "provenance": {
+        "source_set": "wiki_extra_icons_20261011",
+        "source_asset": "icons64/gun.png",
+        "previous_processing": "Deterministic source-cell crops with one shared adjusted row boundary to avoid clipping the closed book; alpha >=16 used only to locate content, two source pixels added around that bounding box. Original RGBA values preserved. Aspect-preserving Lanczos resize to maximum 56×56, centered on transparent 64×64 canvas. No painting, alpha erasure, synthetic detail, or game integration."
+      }
+    },
+    {
+      "id": "dagger",
+      "label_ja": "短剣",
+      "category": "weapons",
+      "category_label_ja": "武器種",
+      "file": "icons64/dagger.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        5,
+        60,
+        59
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        5,
+        4,
+        5
+      ],
+      "sha256": "1fd69bf7c5ed98d825afa503ac230064247e6e706ed0f997ba4c68f5960edab2",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/dagger.png",
+      "provenance": {
+        "source_set": "wiki_extra_icons_20261011",
+        "source_asset": "icons64/dagger.png",
+        "previous_processing": "Deterministic source-cell crops with one shared adjusted row boundary to avoid clipping the closed book; alpha >=16 used only to locate content, two source pixels added around that bounding box. Original RGBA values preserved. Aspect-preserving Lanczos resize to maximum 56×56, centered on transparent 64×64 canvas. No painting, alpha erasure, synthetic detail, or game integration."
+      }
+    },
+    {
+      "id": "book",
+      "label_ja": "本",
+      "category": "weapons",
+      "category_label_ja": "武器種",
+      "file": "icons64/book.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        4,
+        59,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        4,
+        5,
+        4
+      ],
+      "sha256": "63a357d62f9199e3103acaa9b68bdc0a037da45769ef170fb6aa01040ac7792d",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/book.png",
+      "provenance": {
+        "source_set": "wiki_extra_icons_20261011",
+        "source_asset": "icons64/book.png",
+        "previous_processing": "Deterministic source-cell crops with one shared adjusted row boundary to avoid clipping the closed book; alpha >=16 used only to locate content, two source pixels added around that bounding box. Original RGBA values preserved. Aspect-preserving Lanczos resize to maximum 56×56, centered on transparent 64×64 canvas. No painting, alpha erasure, synthetic detail, or game integration."
+      }
+    },
+    {
+      "id": "unarmed",
+      "label_ja": "武器なし（素手）",
+      "category": "weapons",
+      "category_label_ja": "武器種",
+      "file": "icons64/unarmed.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        5,
+        4,
+        59,
+        60
+      ],
+      "transparent_margins_ltrb": [
+        5,
+        4,
+        5,
+        4
+      ],
+      "sha256": "0cdc1264a230971bf8e82f7eecfe935d6bd6de2f0f1cbc3c31a8396aa76a18f8",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/unarmed.png",
+      "provenance": {
+        "source_set": "wiki_extra_icons_20261011",
+        "source_asset": "icons64/unarmed.png",
+        "previous_processing": "Deterministic source-cell crops with one shared adjusted row boundary to avoid clipping the closed book; alpha >=16 used only to locate content, two source pixels added around that bounding box. Original RGBA values preserved. Aspect-preserving Lanczos resize to maximum 56×56, centered on transparent 64×64 canvas. No painting, alpha erasure, synthetic detail, or game integration."
+      }
+    },
+    {
+      "id": "experience",
+      "label_ja": "EXP・経験値",
+      "category": "stats",
+      "category_label_ja": "能力・状態",
+      "file": "icons64/experience.png",
+      "width": 64,
+      "height": 64,
+      "mode": "RGBA",
+      "alpha_bbox_xyxy": [
+        4,
+        11,
+        60,
+        52
+      ],
+      "transparent_margins_ltrb": [
+        4,
+        11,
+        4,
+        12
+      ],
+      "sha256": "97c9d88ae68d21c25770762d9690223302e39ce34d4326fac209a1bf4816887a",
+      "wiki_source_path": "dist/assets/icons-approved-20261011/experience.png",
+      "provenance": {
+        "source_set": "wiki_exp_logo_20261011_v2",
+        "source_asset": "icons64/experience.png",
+        "previous_processing": "Crop around alpha>=16 bounding box with 2px source padding; preserve source RGBA; Lanczos aspect-preserving resize to fit 56x56; center on transparent 64x64 canvas.",
+        "variant": "EXP three-letter upward-diagonal logo"
+      }
+    }
+  ]
+}

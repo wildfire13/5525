@@ -60,7 +60,7 @@ function view(ok=true, error=null) {
   if(a)for(const kind of ['attack','skill',...(campaign?['return']:[])])ranges[kind]=Array.from({length:50},(_,p)=>p).filter(p=>{const u=state.units.find(u=>u.hp>0&&u.pos===p),support=kind==='skill'&&['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(B.activeSkill(a));return B.inRange(a,u?.side||(support?'ally':'enemy'),p,kind,state);});
   const deployment=state.deploying?Object.fromEntries(state.units.filter(u=>u.side==='ally'&&u.hp>0).map(u=>[u.id,{ranges:Array.from({length:50},(_,p)=>p).filter(p=>B.inRange(u,p%10<5?'ally':'enemy',p,'attack',state)),ambush:state.units.filter(t=>t.hp>0&&B.ambush(state,u,t)).map(t=>t.pos)}])):{};
   const stampAreas=a&&B.activeSkill(a)==='stamp'?Object.fromEntries(choices.skill.map(p=>[p,B.stampCells(a,p)])):{};
-  return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillReach:a?B.attackReach(a,'skill'):0,normalAttackReach:a?B.attackReach(a,'attack'):0,skillset:a?B.activeSkills(a).map(id=>({id,name:B.skillName({...a,selectedSkill:id}),sources:(a.skillSources||[]).filter(x=>x.id===id).map(x=>({...x,itemName:campaignEngine().gear.find(g=>g.id===x.itemId)?.name||x.itemId}))})):[],skillInfo:a?B.equipmentSkills[B.activeSkill(a)]||null:null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),enemyInfo:state.units.filter(u=>u.side==='enemy').map(u=>require('./intent-info.cjs').describe(B,state,u)),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
+  return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillReach:a?B.attackReach(a,'skill'):0,normalAttackReach:a?B.attackReach(a,'attack'):0,skillset:a?B.activeSkills(a).map(id=>({id,name:B.skillName({...a,selectedSkill:id}),sources:(a.skillSources||[]).filter(x=>x.id===id).map(x=>({...x,itemName:campaignEngine().gear.find(g=>g.id===x.itemId)?.name||x.itemId}))})):[],skillInfo:a?B.equipmentSkills[B.activeSkill(a)]||null:null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),formationSlots:B.formationSlots?B.formationSlots(state):B.slots,enemyInfo:state.units.filter(u=>u.side==='enemy').map(u=>require('./intent-info.cjs').describe(B,state,u)),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
 }
 function preview(kind,target,previewKind='attack') {
   if(!state||!B.legal(state,kind,target))return {ok:false,error:'無効なプレビュー'};
@@ -91,7 +91,7 @@ function preview(kind,target,previewKind='attack') {
     return cells.length?cells.includes(p):B.inRange(va,u?.side||(support?'ally':'enemy'),p,inspectKind,v);
   });
   const risks=state.units.filter(u=>u.hp>0&&u.side==='enemy'&&u.intent?.cells.includes(destination)).map(u=>u.name);
-  return {ok:true,preview:{units:v.units,destination,path,swap,cells,ranges,targets,risks,
+  return {ok:true,preview:{units:v.units,destination,path,swap,cells,ranges,targets,risks,effectPreview:B.effectPreview?B.effectPreview(state,a,kind,target):[],
     damagePreview:['attack','skill'].includes(kind)&&B.damagePreview?B.damagePreview(state,a,kind,target):inspectKind==='attack'&&B.attackPreview?v.units.map(u=>B.attackPreview(v,va,u)).filter(Boolean):[],formationBefore:B.formation(state),formationAfter:B.formation(v),kind,target,previewKind}};
 }
 function trip(action,args=[]) {
@@ -165,7 +165,7 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       else if(r.action==='forecast'){response={...view(),forecast:C.forecast(campaign,...args)};}
       else if(r.action==='previewGear'){response={...view(),previewGear:C.previewGear(campaign,...args)};}
       else if(r.action==='trial'){trial=C.trial(campaign,...args);result=!!trial;}
-      else if(['accept','select','depart','travel','deploy','deployment_reset','begin','retreat','finishBattle','rest','onward','arrive','acknowledge','buyGear','buyItem','inn','useItem','allocate'].includes(r.action)) {
+      else if(['accept','select','depart','travel','deploy','chooseFormation','deployment_reset','begin','retreat','finishBattle','rest','onward','arrive','acknowledge','buyGear','buyItem','inn','useItem','allocate','allocateBatch'].includes(r.action)) {
         if(r.action==='begin'&&r.presentation) {
           result=presentation.start(state,B,()=>C.begin(campaign,...args),()=>record('campaign.begin',{args,accepted:true}));
         } else if(r.action==='begin') {
@@ -211,6 +211,16 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       if(ok&&!campaign&&journey&&state.result&&!state.failure&&state.units.some(u=>u.side==='ally'&&u.hp>0))state.result='勝利！ 荷物を守り切った。';
       record(ok?'battle.action':'battle.rejected',{actor,kind:r.kind,target:r.target??null,...(campaign?{skillId:r.kind==='return'?'returnHome':r.kind==='skill'?B.activeSkill(state.units.find(u=>u.id===actor)):null,skillEvents:state.skillEvents||[]}:{}),messages:state?.log.slice(Math.max(0,before-(state?.logDropped||0)))});
       response={...view(ok,ok?null:'不正な行動です'),voiceEvents:captured.events};
+    }
+    else if(r.op==='hover_preview') {
+      const a=state?.units.find(u=>u.id===state.actor),u=state?.units.find(u=>u.id===r.uid);
+      let target=u?.id;
+      const skill=a&&B.activeSkill(a),shape=a&&B.equipmentSkills?.[skill]?.target;
+      if(r.kind==='skill'&&skill==='stamp')target=u?.pos;
+      if(r.kind==='skill'&&['pair','upToTwo'].includes(shape))target=[...new Set([...(Array.isArray(r.chosen)?r.chosen:[]),u?.id].filter(Boolean))];
+      const legal=!!a&&a.side==='ally'&&!!u&&['attack','skill','item','ether'].includes(r.kind)&&B.legal(state,r.kind,target);
+      const support=r.kind!=='attack'&&(r.kind!=='skill'||['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(skill));
+      response={ok:true,hover:{status:legal?'ready':shape==='pair'&&target?.length<2?'needs_targets':'unavailable',accuracy:legal&&!support?100:null,...(legal?preview(r.kind,target).preview:{})}};
     }
     else if(r.op==='preview')response=preview(r.kind,r.target,r.previewKind);
     else if(r.op==='godot_io')response=require('./godot-io.cjs')(r);

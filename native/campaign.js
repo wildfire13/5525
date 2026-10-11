@@ -16,7 +16,7 @@ const Campaign = (() => {
     {id:'east',name:'イース',kind:'village',facilities:['board','weapon']},
     {id:'west',name:'ウエス',kind:'village',facilities:['board','armor']},
     {id:'south',name:'サウス',kind:'village',facilities:['board','items']},
-    {id:'north',name:'ノース',kind:'village',facilities:['board']},
+    {id:'north',name:'ノース',kind:'village',facilities:['board','accessory']},
   ];
   const materials = {
     wood:{name:'木製',metal:false},iron:{name:'鉄製',metal:true},
@@ -48,7 +48,7 @@ const Campaign = (() => {
   const skills = {guard:'かばう',archer:'スナイプ',mage:'ヒール',scout:'奇襲',stamp:'スタンプ',porter:'陣形強化',...Object.fromEntries(Object.entries(E.definitions).map(([id,d])=>[id,d.name]))};
   const provisional = [
     '地名・商品・価格・能力・成長値・依頼・経路は試遊用の仮設定です',
-    '仮の道路はアスタリスと各村を結ぶ星型。村同士は都市経由です',
+    '中央と各村、および隣接する村同士を結ぶ道路。各村から3方向へ移動できます',
     '装備は右手・左手・頭・上半身・下半身・足・装飾2枠。両手剣・両手槍は左右2枠を占有します',
     '防具の保護を最大HP増加で仮表現。武器スキル・材質・要求能力に差があります',
     'C01は保留。ポーターの攻撃不可を維持し、買い替えても攻撃スキルを有効化しません',
@@ -81,7 +81,7 @@ const Campaign = (() => {
     const attackWeapons=t.job==='porter'?[]:entries.filter(e=>['rightHand','leftHand'].includes(e.slot)&&e.gear.type!=='empty'&&(e.gear.atk||0)>0).map(({slot,gear:g})=>({slot,itemId:g.id,name:g.name,atk:g.atk,reach:g.reach,skill:g.skill||null}));
     const attackBonus=t.job==='porter'?0:Math.floor(c.allocations.str/2);
     const sum=key=>entries.reduce((n,e)=>n+(e.gear[key]||0),0);
-    return {str,int,agi,effects,activeSkills,skillSources,attackWeapons,attackBonus,normalReach:Math.max(0,...attackWeapons.map(w=>w.reach)),equipment:eq,weaponType:w.type,max:t.max+sum('hp')+3*c.allocations.str,maxMp:t.mp+Math.floor(c.allocations.int/2)+sum('mp'),
+    return {str,int,agi,attributeBreakdown:{str:{base:base.str,growth:c.allocations.str},int:{base:base.int,growth:c.allocations.int},speed:{agi,equipment:sum('agiBonus')}},effects,activeSkills,skillSources,attackWeapons,attackBonus,normalReach:Math.max(0,...attackWeapons.map(w=>w.reach)),equipment:eq,weaponType:w.type,max:t.max+sum('hp')+3*c.allocations.str,maxMp:t.mp+Math.floor(c.allocations.int/2)+sum('mp'),
       atk:t.job==='porter'?0:(w.atk||0)+Math.floor(c.allocations.str/2),reach:t.job==='porter'?0:w.reach||1,
       speed:Math.max(1,agi+sum('agiBonus')),skill:activeSkills[0]||null};
   }
@@ -98,10 +98,12 @@ const Campaign = (() => {
   }
   function note(s,text) {s.history.push(text);if(s.history.length>200)s.history.splice(0,s.history.length-200);}
   function hasPorter(s) {return s.selected.some(id=>template(id)?.job==='porter');}
-  function destinations(s) {return s.location==='astaris'?locations.filter(p=>p.id!=='astaris'):locations.filter(p=>p.id==='astaris');}
+  // R08: center spokes plus the bidirectional east-north-west-south ring.
+  const routes={astaris:['east','west','south','north'],east:['north','astaris','south'],north:['east','astaris','west'],west:['north','astaris','south'],south:['east','astaris','west']};
+  function destinations(s) {return (routes[s.location]||[]).map(getPlace);}
   function board(s) {
     if(s.phase!=='town'||s.activeQuest)return [];
-    const choices=s.location==='astaris'?[locations[1+s.boardRound%4],locations[1+(s.boardRound+1)%4]]:[locations[0]];
+    const choices=s.location==='astaris'?[locations[1+s.boardRound%4],locations[1+(s.boardRound+1)%4]]:destinations(s);
     return choices.map((p,i)=>{
       const urgent=s.location==='astaris'?i===0:s.boardRound%2===0;
       const flavors={east:['鍛冶職人リタ','鍛冶場の包帯'],west:['仕立屋エマ','染料の小瓶'],south:['薬師イネス','診療所の薬箱'],north:['村の世話役ノア','雪道の灯油'],astaris:['ギルド受付サラ','村からの修理部品']},[client,cargo]=flavors[p.id];
@@ -147,13 +149,20 @@ const Campaign = (() => {
     let enemies;try{enemies=J.randomEnemies(count,()=>{const n=random();if(typeof n!=='number'||!Number.isFinite(n)||n<0||n>=1)throw new Error('Random value out of range');return n;});}catch(e){return false;}
     if(!J.travel(s.journey,route))return false;
     s.hours+=route==='short'?2:4;
-    const b=B.create({ally:s.selected,enemy:enemies,formation:j.formation,skillStage:s.level,
+    const b=B.create({ally:s.selected,enemy:enemies,formation:j.formation,formationVersion:2,skillStage:s.level,
       potions:s.inventory.potion,ethers:s.inventory.ether,enemyPotions:j.stage===0?0:1,deployment:true});
     applyEquipment(s,b);b.campaignToken=j.token;b.campaignStage=j.stage;
     b.deploymentInitial=b.units.filter(u=>u.side==='ally').map(u=>({id:u.id,pos:u.pos}));
     s.battle=b;j.phase='deployment';s.phase='deployment';note(s,`${j.stage+1}区間目：${route==='short'?'近道':'迂回'}で遭遇。`);return true;
   }
   function deploy(s,id,pos) {return s.phase==='deployment'&&!!s.battle&&B.deploy(s.battle,id,pos);}
+  function chooseFormation(s,kind) {
+    if(s.phase!=='deployment'||!s.battle||!['convoy','flank'].includes(kind))return false;
+    const preset=B.create({ally:s.selected,enemy:[],formation:kind,deployment:true});
+    s.battle.formationVersion=2;s.battle.formationKind=kind;s.journey.formation=kind;
+    s.battle.deploymentInitial=preset.units.map(u=>({id:u.id,pos:u.pos}));
+    return deployment_reset(s);
+  }
   function deployment_reset(s) {
     if(s.phase!=='deployment'||!s.battle)return false;
     for(const p of s.battle.deploymentInitial)s.battle.units.find(u=>u.id===p.id).pos=p.pos;return true;
@@ -227,8 +236,8 @@ const Campaign = (() => {
   }
   function shop(s) {
     if(s.phase!=='town')return [];
-    const kind=s.location==='east'?'weapon':s.location==='west'?'armor':null;
-    return kind?clone(gear.filter(g=>(g.slot===kind||kind==='armor'&&(['head','lowerBody','feet'].includes(g.slot)||g.type==='accessory')||kind==='weapon'&&g.slot==='leftHand')&&!g.starterOnly)):s.location==='south'?clone(items):[];
+    const kind=s.location==='east'?'weapon':s.location==='west'?'armor':s.location==='north'?'accessory':null;
+    return kind?clone(gear.filter(g=>(g.slot===kind||kind==='armor'&&['head','lowerBody','feet'].includes(g.slot)||kind==='accessory'&&g.type==='accessory'||kind==='weapon'&&g.slot==='leftHand')&&!g.starterOnly)):s.location==='south'?clone(items):[];
   }
   function quote(s,charId,gearId,slot) {
     const c=s.characters[charId],g=getGear(gearId);if(!c||!g)return null;
@@ -274,6 +283,25 @@ const Campaign = (() => {
     if(s.journey){s.journey.potions=s.inventory.potion;const u=s.journey.party?.find(u=>u.id===charId);if(u)u[item.resource]=c[item.resource];}
     note(s,`${template(charId).name}に${item.name}を使用。`);return true;
   }
+  // R07: session-only state identity prevents stale allocation after load/new game.
+  const allocationStates=new WeakMap();let allocationSerial=0;
+  function allocationToken(s,id) {
+    if(!allocationStates.has(s))allocationStates.set(s,++allocationSerial);
+    const c=s.characters[id];if(!c)return '';
+    return JSON.stringify([allocationStates.get(s),id,s.sequence,s.boardRound,s.phase,s.location,c.xp,c.statPoints,c.allocations.str,c.allocations.int,c.allocations.agi]);
+  }
+  function allocateBatch(s,charId,delta,expectedToken) {
+    const c=s.characters[charId],keys=['str','int','agi'];
+    if(s.phase!=='town'||!c||expectedToken!==allocationToken(s,charId)||!record(delta)||Object.keys(delta).length!==3||!keys.every(k=>Number.isSafeInteger(delta[k])&&delta[k]>=0))return false;
+    const total=keys.reduce((n,k)=>n+delta[k],0);
+    if(!Number.isSafeInteger(total)||total<1||total>c.statPoints)return false;
+    const old=stats(c),next={...c,allocations:{...c.allocations},statPoints:c.statPoints-total};
+    for(const key of keys)next.allocations[key]+=delta[key];
+    const after=stats(next);next.hp+=after.max-old.max;next.mp+=after.maxMp-old.maxMp;
+    s.characters[charId]=next;
+    note(s,`${template(charId).name}：${keys.filter(k=>delta[k]).map(k=>`${k.toUpperCase()}＋${delta[k]}`).join(' / ')}（${total}点を確定、残り${next.statPoints}点）。`);
+    return true;
+  }
   function allocate(s,charId,key,count=1) {
     const c=s.characters[charId];
     if(s.phase!=='town'||!c||!['str','int','agi'].includes(key)||!Number.isInteger(count)||count<1||count>c.statPoints)return false;
@@ -289,13 +317,15 @@ const Campaign = (() => {
     const preview=previewGear(s,charId,gearId,slot);
     if(s.phase!=='town'||!s.selected.includes(charId)||!preview?.eligible||!preview.available)return null;
     const friends=['guard','archer','mage'].filter(id=>id!==charId).slice(0,2);
-    const b=B.create({ally:[charId,...friends],enemy:['guard','archer','mage'],enemyPotions:0,potions:3,deployment:true,skillStage:s.characters[charId].level});
+    const b=B.create({ally:[charId,...friends],enemy:['guard','archer','mage'],enemyPotions:0,potions:3,deployment:true,formationVersion:2,formation:'convoy',skillStage:s.characters[charId].level});
     const copy=clone(s);for(const id of [charId,...friends]){const st=stats(copy.characters[id]);copy.characters[id].hp=st.max;copy.characters[id].mp=st.maxMp;}
     applyEquipment(copy,b,{characterId:charId,gearId,slot:preview.slot});
     const hero=b.units.find(u=>u.id===charId);if(hero.activeSkills.includes(getGear(gearId).skill))hero.selectedSkill=getGear(gearId).skill;hero.hp=hero.max;hero.mp=hero.maxMp;hero.pos=24;hero.next=0;
     for(const [i,u] of b.units.filter(u=>u.side==='ally'&&u.id!==charId).entries()){u.pos=(hero.job==='porter'?[13,33]:[23,33])[i];u.hp=Math.max(1,u.max-60);u.next=1000000;}
     for(const [i,u] of b.units.filter(u=>u.side==='enemy').entries()){u.name=`木人${i+1}`;u.role='木人';u.hp=u.max=9999;u.pos=[25,15,35][i];u.next=1000000;u.atk=0;}
     for(const [i,u] of b.units.filter(u=>u.side==='ally'&&u.id!==charId).entries()){u.pos=(hero.job==='porter'?[13,33]:[14,34])[i];u.mp=Math.max(0,u.maxMp-3);}
+    // R04: porter trials demonstrate the new basic condition, without changing campaign spawns.
+    if(hero.job==='porter'){hero.pos=23;b.units.filter(u=>u.side==='ally'&&u.id!==charId).forEach((u,i)=>u.pos=[12,32][i]);}
     // Passive trials need a reachable dummy even for reach-1 non-invaders.
     let supportActorId=null;
     if(B.hasEffect(hero,'loneWolf'))b.units.filter(u=>u.side==='ally'&&u.id!==charId).forEach((u,i)=>u.pos=[12,32][i]);
@@ -336,8 +366,8 @@ const Campaign = (() => {
     return true;
   }
   function view(s) {
-    return {...clone(s),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),destinations:clone(destinations(s)),board:board(s),shop:shop(s),itemDefinitions:clone(items),provisional:[...provisional],
-      slots:S.slots,skillNames:{...skills,invasion:'侵入'},skillDefinitions:clone(E.definitions),roster:B.roster.map(t=>{const c=s.characters[t.id];const st=stats(c);return {...t,...clone(c),max:st.max,maxMp:st.maxMp,atk:st.atk,agi:st.speed,reach:st.reach,stats:st,equipmentDetails:Object.fromEntries(Object.entries(st.equipment).map(([slot,id])=>[slot,clone(getGear(slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?st.equipment.rightHand:id))])),equipmentSlots:Object.entries(st.equipment).map(([slot,id])=>({slot,label:S.slots[slot],id,name:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?getGear(st.equipment.rightHand).name+'（両手装備で使用中）':getGear(id).name,occupiedBy:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?'rightHand':null})),activeSkillNames:st.activeSkills.map(id=>skills[id]),weaponName:getGear(c.weapon).name,armorName:getGear(c.armor).name,accessoryNames:['accessory1','accessory2'].map(slot=>getGear(c[slot]||defaultAccessory(c,slot)).name),skillName:st.activeSkills.map(id=>skills[id]).join(' / '),effectNames:st.effects.map(id=>skills[id]||'侵入')};}),
+    return {...clone(s),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),routes:clone(routes),destinations:clone(destinations(s)),board:board(s),shop:shop(s),itemDefinitions:clone(items),provisional:[...provisional],
+      slots:S.slots,skillNames:{...skills,invasion:'侵入'},skillDefinitions:clone(E.definitions),roster:B.roster.map(t=>{const c=s.characters[t.id];const st=stats(c);return {...t,...clone(c),allocationToken:allocationToken(s,t.id),max:st.max,maxMp:st.maxMp,atk:st.atk,agi:st.speed,reach:st.reach,stats:st,equipmentDetails:Object.fromEntries(Object.entries(st.equipment).map(([slot,id])=>[slot,clone(getGear(slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?st.equipment.rightHand:id))])),equipmentSlots:Object.entries(st.equipment).map(([slot,id])=>({slot,label:S.slots[slot],id,name:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?getGear(st.equipment.rightHand).name+'（両手装備で使用中）':getGear(id).name,occupiedBy:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?'rightHand':null})),activeSkillNames:st.activeSkills.map(id=>skills[id]),weaponName:getGear(c.weapon).name,armorName:getGear(c.armor).name,accessoryNames:['accessory1','accessory2'].map(slot=>getGear(c[slot]||defaultAccessory(c,slot)).name),skillName:st.activeSkills.map(id=>skills[id]).join(' / '),effectNames:st.effects.map(id=>skills[id]||'侵入')};}),
       guildAvailable:s.phase==='town'&&s.location==='astaris',hasPorter:hasPorter(s)};
   }
   function validate(state) {
@@ -393,7 +423,7 @@ const Campaign = (() => {
     if(s.phase==='town')demand(s.journey===null&&s.battle===null&&s.result===null&&!!s.rollback===!!s.activeQuest,'街の状態');
     if(s.phase==='result')demand(record(s.result)&&['success','late','travel','failed'].includes(s.result.outcome)&&s.activeQuest===null&&s.rollback===null&&s.battle===null,'結果');
     if(s.journey!==null) {
-      const j=s.journey;demand(record(j)&&getPlace(j.origin)&&getPlace(j.destination)&&j.origin!==j.destination&&(j.origin==='astaris'||j.destination==='astaris'),'旅の経路');
+      const j=s.journey;demand(record(j)&&getPlace(j.origin)&&getPlace(j.destination)&&j.origin!==j.destination&&routes[j.origin]?.includes(j.destination),'旅の経路');
       demand(Array.isArray(j.history)&&j.history.every(x=>typeof x==='string')&&validSelection(j.selected)&&JSON.stringify(j.selected)===JSON.stringify(s.selected),'旅の編成');
       demand(integer(j.hours)&&integer(j.stage,0,2)&&j.token===s.sequence&&['convoy','flank'].includes(j.formation)&&typeof j.questless==='boolean','旅の条件');
       demand(s.phase==='result'||j.questless===!s.activeQuest,'依頼の有無');
@@ -412,6 +442,8 @@ const Campaign = (() => {
     } else demand(['town','result'].includes(s.phase),'旅情報なし');
     if(s.battle!==null) {
       const b=s.battle,j=s.journey;demand(record(b)&&['deployment','battle'].includes(s.phase)&&b.campaignToken===j.token&&b.campaignStage===j.stage,'戦闘の対応');
+      demand(b.formationVersion===undefined||[1,2].includes(b.formationVersion)&&['convoy','flank'].includes(b.formationKind)&&b.formationKind===j.formation&&(b.formationVersion===2||s.phase==='battle'),'陣形条件の版');
+      demand(b.formationVersion!==undefined||b.formationKind===undefined,'陣形条件の版なし');
       demand(Array.isArray(b.units)&&b.units.length>=2&&b.units.length<=10&&new Set(b.units.map(u=>u.id)).size===b.units.length,'戦闘人数');
       demand(JSON.stringify(b.units.filter(u=>u.side==='ally').map(u=>u.id))===JSON.stringify(s.selected),'味方の一致');
       demand(b.units.some(u=>u.side==='enemy')&&b.units.every(u=>['ally','enemy'].includes(u.side)),'敵味方');
@@ -515,11 +547,12 @@ const Campaign = (() => {
     // Only normalize an already-valid older save; never truncate before validation.
     const loaded=clone(envelope.state);
     migrateEquipment(loaded);
+    if(loaded.battle&&loaded.battle.formationVersion===undefined){loaded.battle.formationVersion=loaded.phase==='battle'?1:2;loaded.battle.formationKind=loaded.journey.formation;}
     const migrated=validate(loaded);if(!migrated.ok)throw new Error(migrated.error);
     if(loaded.battle)B.trimLog(loaded.battle);return loaded;
   }
   return {VERSION,MAX_SAVE_BYTES,equipment,slots:S.slots,locations,gear,items,materials,provisional,create,view,board,destinations,hasPorter,stats,
-    select,accept,depart,travel,deploy,deployment_reset,begin,act,retreat,finishBattle,rest,onward,forecast,arrive,acknowledge,
-    eligibility,shop,quote,buyGear,buyItem,inn,useItem,allocate,previewGear,trial,trialAct,validate,serialize,deserialize};
+    select,accept,depart,travel,deploy,chooseFormation,deployment_reset,begin,act,retreat,finishBattle,rest,onward,forecast,arrive,acknowledge,
+    eligibility,shop,quote,buyGear,buyItem,inn,useItem,allocate,allocateBatch,allocationToken,previewGear,trial,trialAct,validate,serialize,deserialize};
 })();
 module.exports = Campaign;

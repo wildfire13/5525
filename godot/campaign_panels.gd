@@ -69,7 +69,7 @@ func board(parent):
 	var town_data={}
 	for t in c().get("locations",[]):
 		if t.id==c().location:town_data=t
-	l(parent,town(c().location),true)
+	ui.icons.line(ui,parent,ui.icons.place(str(c().location)),town(c().location),true)
 	muted(parent,town_data.get("description",town_data.get("text","掲示板で依頼を選ぶか、依頼を受けずに次の拠点へ移動できます。")))
 	l(parent,"掲示板 / 同時に受ける依頼は一件",true)
 	var quest=c().get("activeQuest")
@@ -99,8 +99,9 @@ func map(parent):
 		ui.destination=quest.to;l(parent,"受注中: %s → %s" % [quest.name,town(quest.to)])
 	elif not available.has(ui.destination):ui.destination=str(available[0]) if not available.is_empty() else ""
 	muted(parent,"接続・距離・方角は試作用の模式図です。各移動は二つの区間を通ります。")
+	shop_guide(parent)
 	var chart=preload("res://town_map.gd").new();chart.name="TownMap"
-	chart.towns=c().get("locations",[]);chart.current=c().location;chart.selected=ui.destination;chart.available=available
+	chart.towns=c().get("locations",[]);chart.current=c().location;chart.selected=ui.destination;chart.available=available;chart.routes=c().get("routes",{});chart.icons=ui.icons
 	chart.quest_destination=str(quest.to) if quest is Dictionary else ""
 	parent.add_child(chart);chart.destination_selected.connect(select_destination)
 	for id in chart.buttons:ui.widgets.append(chart.buttons[id])
@@ -108,11 +109,12 @@ func map(parent):
 	for id in available:b(choices,("● " if ui.destination==id else "")+town(id),select_destination.bind(id),quest is Dictionary and quest.to!=id)
 	muted(parent,"未受注での移動も戦闘・消耗があります。配達報酬はありません。追加の移動料金はありません。")
 	l(parent,"編成: "+" / ".join(roster().filter(func(u):return c().selected.has(u.id)).map(func(u):return u.name)))
-	var formations=row(parent)
-	for pair in [["convoy","基本配置"],["flank","切り込み配置"]]:
-		b(formations,("● " if ui.formation==pair[0] else "○ ")+pair[1],choose_formation.bind(pair[0]))
-	b(parent,town(ui.destination)+"へ出発" if not ui.destination.is_empty() else "行先がありません",ui.act.bind("depart",[ui.destination,ui.formation]),ui.destination.is_empty() or not c().get("hasPorter",false))
+	b(parent,town(ui.destination)+"へ出発" if not ui.destination.is_empty() else "行先がありません",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not c().get("hasPorter",false))
 func choose_formation(value: String):ui.formation=value;ui.render()
+func shop_guide(parent):
+	l(parent,"武器はイース、防具はウエス、道具はサウス、装飾品はノースで購入できます。")
+	var facilities=row(parent)
+	for item in [["weapon_shop","イース：武器"],["armor_shop","ウエス：防具"],["item_shop","サウス：道具"],["accessory_shop","ノース：装飾品"]]:ui.icons.line(ui,facilities,item[0],item[1])
 func journey(parent):
 	var phase=c().get("phase","");var journey_: Dictionary=c().get("journey") if c().get("journey") is Dictionary else {}
 	if phase=="result":result(parent);return
@@ -123,7 +125,6 @@ func journey(parent):
 	if quest is Dictionary:
 		l(parent,"%s / %d時間経過・納期%d時間" % [quest.name,journey_.get("hours",0),quest.get("deadline",0)])
 	else:l(parent,"自由移動 / %d時間経過 / 配達報酬なし" % journey_.get("hours",0))
-	if phase!="camp":party_status(card(parent))
 	match phase:
 		"road":
 			var stage=int(journey_.get("stage",0))
@@ -170,15 +171,15 @@ func items(parent):
 	if item_stage=="target" and selected_item.is_empty():reset_items()
 	var controls=card(parent);controls.name="CampaignItems"
 	if item_stage=="entry":
-		var entry=b(controls,"アイテム",show_items.bind("list"));entry.name="CampaignItemEntry";ui.memory.key(entry,"campaign_item_entry")
+		var entry=ui.icons.apply(b(controls,"アイテム",show_items.bind("list")),"items");entry.name="CampaignItemEntry";ui.memory.key(entry,"campaign_item_entry")
 	elif item_stage=="list":
 		l(controls,"アイテム / 種類を選択",true)
 		var choices=row(controls);choices.name="CampaignItemList"
 		for item in catalog:
-			ui.memory.key(b(choices,"%s %s / %d個" % [item.name,ItemMenu.effect(item),inventory.get(item.id,0)],show_items.bind("target",item.id),int(inventory.get(item.id,0))<=0),"campaign_item_"+str(item.id))
+			ui.memory.key(ui.icons.apply(b(choices,"%s %s / %d個" % [item.name,ItemMenu.effect(item),inventory.get(item.id,0)],show_items.bind("target",item.id),int(inventory.get(item.id,0))<=0),str(item.id)),"campaign_item_"+str(item.id))
 		b(controls,"戻る",show_items.bind("entry"))
 	else:
-		l(controls,"%s / 対象を選択" % selected_item.name,true)
+		ui.icons.line(ui,controls,str(selected_item.id),"%s / 対象を選択" % selected_item.name,true)
 		l(controls,"%s / 残り%d個。生存している編成中の仲間に使用します。" % [ItemMenu.effect(selected_item),inventory.get(item_id,0)])
 		b(controls,"アイテム一覧へ",show_items.bind("list"))
 	var members=row(parent);members.name="CampParty" if c().phase=="camp" else "ItemParty"
@@ -187,15 +188,15 @@ func items(parent):
 		var member=card(members);member.name="ItemMember_"+str(u.id);member.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		var portrait=ui.portrait(member,u,false,64);portrait.name="FullBodyPortrait";portrait.custom_minimum_size=Vector2(64,160 if ui.ui_size_mode=="standard" else 96);portrait.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;ui.short_name(name_label,str(u.name))
-		var hp=l(member,"HP %d/%d" % [u.hp,u.max]);ui.emphasize_low_hp(hp,u)
-		l(member,"MP %d/%d" % [u.mp,u.maxMp])
+		var hp=ui.icons.line(ui,member,"hp","HP %d/%d" % [u.hp,u.max]);ui.emphasize_low_hp(hp,u)
+		ui.icons.line(ui,member,"mp","MP %d/%d" % [u.mp,u.maxMp])
 		if u.hp<=0:l(member,"戦闘不能")
 		if item_stage=="target":
 			var reason=ItemMenu.camp_reason(selected_item,u,inventory)
 			var target=b(member,"使う" if reason.is_empty() else reason,use_selected_item.bind(u.id),not reason.is_empty());target.name="ItemTarget_"+str(u.id);ui.memory.key(target,"item_target_"+str(u.id))
 func inn(parent):
 	var q: Dictionary=c().get("inn",{})
-	l(parent,"アスタリスの宿屋",true)
+	ui.icons.line(ui,parent,"inn","アスタリスの宿屋",true)
 	if not q.get("available",false):l(parent,"宿屋はアスタリスで利用できます。");return
 	l(parent,"パーティ全員で%dG（仮料金）" % q.price)
 	l(parent,"編成中の全員のHP・MPを上限まで回復します。戦闘不能の仲間も回復します。")
@@ -208,17 +209,17 @@ func stay_inn():
 	ui.confirm("%dGを支払い、編成中の全員のHP・MPを全回復しますか？\n戦闘不能も回復。控えは対象外、時間は経過しません。" % q.get("price",30),ui.act.bind("inn",[]))
 func shop(parent):
 	var location=c().get("location","")
-	if location not in ["east","west"]:l(parent,{"south":"サウスの道具屋"}.get(location,"この拠点にお店はありません")+" / 所持金%dG" % c().get("gold",0),true)
+	if location not in ["east","west","north"]:l(parent,{"south":"サウスの道具屋"}.get(location,"この拠点にお店はありません")+" / 所持金%dG" % c().get("gold",0),true)
 	if location=="south":
 		var body=ui.scroller(parent);ui.memory.watch(body.get_parent(),"consumable_shop")
 		muted(body,"所持上限は各99個（試作値）。回復量はHP+55 / MP+3です。")
 		for item in c().shop:
 			var count=c().inventory[item.id];var actions=row(card(body))
-			l(actions,"%s %dG / 所持%d" % [item.name,item.price,count])
+			ui.icons.line(ui,actions,str(item.id),"%s %dG / 所持%d" % [item.name,item.price,count])
 			for amount in [1,5]:b(actions,"%d個購入" % amount,ui.act.bind("buyItem",[item.id,amount]),count+amount>99 or c().gold<item.price*amount)
 		items(body);return
-	if location not in ["east","west"]:
-		muted(parent,"ノースの施設は掲示板です。お店や固有施設はまだ設定されていません。" if location=="north" else "武器はイース、防具はウエス、道具はサウスで購入できます。");return
+	if location not in ["east","west","north"]:
+		shop_guide(parent);return
 	shop_view.render(parent)
 func select_slot(slot: String):await shop_view.select_slot(slot)
 func quote(parent,q: Dictionary):
@@ -279,10 +280,11 @@ func result(parent):
 		muted(parent,"所持金・装備・編成・HP/MP・道具・経験値・経過時間を復元しています。")
 	elif outcome=="travel":l(parent,"依頼を受けずに移動しました。配達報酬はありません。戦闘の経験値は保持されます。")
 	else:l(parent,"荷物を届けました。報酬と成長を持ち越して、次の依頼や買い物へ進めます。")
-	l(parent,"今回の配達報酬 %dG / 配達経験値 %d" % [result_.get("gold",0),result_.get("xp",0)],true)
-	l(parent,"所持金 %dG / 累計経験値 %d / 隊Lv.%d" % [c().gold,c().xp,c().level])
+	ui.icons.line(ui,parent,"money","今回の配達報酬 %dG" % result_.get("gold",0),true)
+	ui.icons.line(ui,parent,"experience","配達経験値 %d / 累計経験値 %d / 隊Lv.%d" % [result_.get("xp",0),c().xp,c().level])
+	ui.icons.line(ui,parent,"money","所持金 %dG" % c().gold)
 	if result_.get("hours")!=null:l(parent,"所要時間 %d時間" % result_.hours)
-	party_status(card(parent));l(parent,"現在地: "+town(c().location)+"。ここで施設を利用し、次の出発を選べます。")
+	l(parent,"現在地: "+town(c().location)+"。ここで施設を利用し、次の出発を選べます。")
 	b(parent,town(c().location)+"に留まる / 掲示板へ",acknowledge.bind("board"))
 	if c().location in ["east","west","south"]:b(parent,town(c().location)+"のお店へ",acknowledge.bind("shop"))
 	elif c().location=="astaris":b(parent,"アスタリスの宿屋へ",acknowledge.bind("inn"))
@@ -303,6 +305,7 @@ func party_row(parent,u: Dictionary):
 			ui.memory.request_focus("party_"+str(ids[next]),true);select_party(str(ids[next]));control.accept_event())
 	var hp=l(box,"HP%d/%d MP%d/%d%s" % [u.hp,u.max,u.mp,u.maxMp," KO" if u.hp<=0 else ""]);hp.add_theme_font_size_override("font_size",16);ui.emphasize_low_hp(hp,u)
 func select_party(id: String):
+	if id!=party_uid and not party_view.guard_leave(select_party.bind(id)):return
 	party_uid=id;ui.memory.request_focus("party_"+id);ui.render()
 func change_membership(id: String):
 	party_uid=id
@@ -311,7 +314,7 @@ func change_membership(id: String):
 func offered() -> Array:
 	return c().get("shop",[]).filter(func(g):
 		var allowed=g.get("allowedSlots",["rightHand"] if g.get("hands",1)==2 else ["rightHand","leftHand"] if g.slot=="weapon" else ["upperBody"] if g.slot=="armor" else ["accessory1","accessory2"] if g.get("type")=="accessory" else [g.slot])
-		return allowed.has(ui.shop_slot))
+		return allowed.has(ui.shop_slot) and (g.get("type")!="accessory" or g.slot==ui.shop_slot))
 func product_effect(g: Dictionary) -> String:
 	if str(g.id).begins_with("empty-"):return "装備なし"
 	var parts=[]
@@ -355,7 +358,7 @@ func invalidate_quote(clear_id:=false):
 	if clear_id:gear_id=""
 func reset_context():
 	if ui.hud!=null:ui.hud.reset_context()
-	reset_items();shop_view.reset();party_view.tab=0;party_view.highlight_slot=""
+	reset_items();shop_view.reset();party_view.reset();party_view.tab=0;party_view.highlight_slot=""
 	epoch+=1;invalidate_quote(true);trial_return={};cached_quotes={};current_equipment_open=false
 func request_quote(id: String):await shop_view.select_product(id)
 func select_member(uid: String):await shop_view.select_member(uid)
@@ -378,7 +381,7 @@ func restore_trial():
 func gear_type(gear: Dictionary) -> String:
 	return {"empty":"なし（手占有0）","sword":"片手剣","greatsword":"両手剣","spear":"槍","dagger":"短剣","bow":"弓","staff":"杖","hammer":"槌","shield":"盾","book":"魔導書","armor":"防具","accessory":"装飾","boots":"足装備"}.get(gear.get("type",""),str(c().get("slots",{}).get(gear.get("slot",""),"装備")))
 func describe_gear(parent,gear: Dictionary):
-	l(parent,str(gear.get("name","装備")),true)
+	ui.icons.line(ui,parent,ui.icons.gear(gear),str(gear.get("name","装備")),true)
 	l(parent,gear_type(gear)+" / "+("両手・2枠" if gear.get("hands",1)==2 else "手占有0" if gear.get("type")=="empty" else "片手・1枠" if gear.get("slot") in ["weapon","rightHand","leftHand"] else str(c().get("slots",{}).get(gear.get("slot",""),"装備"))))
 	var fields={"price":"購入価格G","atk":"武器ATK","reach":"武器射程","hp":"追加HP上限","mp":"追加MP上限","agiBonus":"行動速度補正","str":"必要STR","int":"必要INT","agi":"必要AGI"}
 	for field in fields:
@@ -386,7 +389,7 @@ func describe_gear(parent,gear: Dictionary):
 	if gear.has("allowedSlots"):l(parent,"装備枠: "+" / ".join(gear.allowedSlots.map(func(slot):return str(c().get("slots",{}).get(slot,slot)))))
 	for field in ["skill","effect"]:
 		if gear.get(field)!=null:
-			l(parent,("スキル: " if field=="skill" else "効果: ")+str(c().get("skillNames",{}).get(gear[field],gear[field])))
+			ui.icons.line(ui,parent,ui.icons.skill(str(gear[field])),("スキル: " if field=="skill" else "効果: ")+str(c().get("skillNames",{}).get(gear[field],gear[field])))
 			l(parent,skill_description(str(gear[field])))
 	if gear.has("note"):l(parent,gear.note)
 

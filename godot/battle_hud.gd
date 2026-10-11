@@ -33,7 +33,13 @@ var reference_generation := 0
 var reference_pending := false
 var reference_error := ""
 var reference_kind := "attack"
-const COMMANDS=[["attack","攻撃"],["move","移動"],["skill","スキル"],["items","アイテム"],["guard","防御"],["return","帰還"]]
+var bottom_commands: HBoxContainer
+var person_box: VBoxContainer
+var inspected_uid := ""
+var hover_generation := 0
+var hover_stamp := ""
+var skill_content_open := false
+const COMMANDS=[["attack","攻撃"],["move","移動"],["skill","スキル"],["items","アイテム"],["guard","防御"]]
 func _init(frontend):ui=frontend
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
@@ -54,6 +60,7 @@ func state_id() -> String:
 	if ui.command=="move":return "B2" if ui.pending!=null else "B1"
 	return "B4" if ui.pending!=null or ui.command=="guard" else "B3"
 func reset_context():
+	inspected_uid="";invalidate_hover();skill_content_open=false
 	discard_reference();item_list=false;action_menu=true;selected_cell=-1;selected_enemy="";last_actor="";last_action_count=-1;presentation_action={};queue_at_start=[];intent_versions.clear();intent_updated.clear()
 func mount():
 	ui.content.add_theme_constant_override("separation",8)
@@ -63,7 +70,9 @@ func mount():
 	tools=HBoxContainer.new();tools.custom_minimum_size.y=32;board_column.add_child(tools)
 	ui.board=preload("res://battle_board.gd").new();ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";board_column.add_child(ui.board)
 	ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deploy_drag.connect(ui.deploy_dragged);ui.board.enemy_focused.connect(inspect_enemy)
+	ui.board.unit_hovered.connect(inspect_hover)
 	intent_strip=HBoxContainer.new();intent_strip.name="FixedIntentStrip";intent_strip.custom_minimum_size.y=42;board_column.add_child(intent_strip)
+	bottom_commands=ui.row(board_column);bottom_commands.name="BottomCommands"
 	dock=Control.new();dock.clip_contents=true;dock.name="BattleDecision";dock.size_flags_vertical=Control.SIZE_EXPAND_FILL;middle.add_child(dock)
 	last_actor="";last_action_count=-1;action_menu=true;item_list=false;selected_cell=-1
 func resize():
@@ -72,12 +81,13 @@ func resize():
 	ui.battle_header.custom_minimum_size.y=32 if compact else 40
 	if compact:
 		if dock.get_parent()!=ui.content:dock.reparent(ui.content)
-		dock.custom_minimum_size=Vector2(0,192);dock.size_flags_vertical=Control.SIZE_FILL
+		dock.custom_minimum_size=Vector2(0,140);dock.size_flags_vertical=Control.SIZE_FILL
 		board_column.custom_minimum_size.y=244
 	else:
 		if dock.get_parent()!=middle:dock.reparent(middle)
-		dock.custom_minimum_size=Vector2(380,0);dock.size_flags_vertical=Control.SIZE_EXPAND_FILL
+		dock.custom_minimum_size=Vector2(504 if ui.size.x>=1800 else 380,0);dock.size_flags_vertical=Control.SIZE_EXPAND_FILL
 		board_column.custom_minimum_size.y=244
+	middle.add_theme_constant_override("separation",24 if ui.size.x>=1800 else 12)
 	ui.content.queue_sort();middle.queue_sort();ui.call_deferred("fit_battle_layout")
 func render():
 	var s=ui.state();var phase=ui.data.get("presentation");var a=acting()
@@ -85,7 +95,7 @@ func render():
 	if not s.get("deploying",false) and s.get("result")==null and not ui.presenting and not phase is Dictionary and (a.get("id","")!=last_actor or int(s.get("actions",0))!=last_action_count):
 		item_list=false;action_menu=true;selected_cell=-1;selected_enemy="";range_reference=false;ui.invalidate_preview();last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0));ui.memory.request_focus("command_attack")
 	update_board()
-	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(intent_strip);ui.clear(dock)
+	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(intent_strip);ui.clear(dock);ui.clear(bottom_commands)
 	render_queue();render_actor(a)
 	for mode in range(3):
 		var cam=local(tools,["戦術","低","高"][mode],func():ui.board.set_camera(mode));cam.custom_minimum_size.y=32;ui.memory.key(cam,"camera_"+str(mode))
@@ -96,10 +106,19 @@ func render():
 	else:
 		var retreat=b(tools,"撤退",func():ui.confirm("旅を中止し、受注・出発前の状態へ戻します。",ui.act.bind("retreat",[])),ui.presenting);retreat.custom_minimum_size.y=32
 	render_intent_strip()
+	render_bottom_commands()
 	# A bounded parent prevents text/button minimum sizes from moving the board.
 	var shell=ui.card(dock);shell.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var box=ui.scroller(shell);box.name="DecisionContent";box.get_parent().name="DecisionScroll"
-	decision_footer=VBoxContainer.new();shell.add_child(decision_footer)
+	var split=ui.row(shell) if ui.ui_size_mode!="standard" else shell;split.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	var person_area=Control.new();person_area.name="BattlePersonArea";person_area.clip_contents=true;split.add_child(person_area)
+	person_area.custom_minimum_size=Vector2(240,0) if ui.ui_size_mode!="standard" else Vector2(0,300 if ui.size.y>=1000 else 210)
+	person_area.size_flags_vertical=Control.SIZE_EXPAND_FILL if ui.ui_size_mode!="standard" else Control.SIZE_FILL
+	person_box=ui.scroller(person_area);person_box.name="BattlePersonInfo";person_box.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	render_person()
+	person_area.visible=not (range_reference and ui.ui_size_mode!="standard")
+	var decision=VBoxContainer.new();decision.name="DecisionArea";decision.size_flags_vertical=Control.SIZE_EXPAND_FILL;decision.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(decision)
+	var box=ui.scroller(decision);box.name="DecisionContent";box.get_parent().name="DecisionScroll"
+	decision_footer=VBoxContainer.new();decision.add_child(decision_footer)
 	actor_box=box;command_box=box;target_box=box
 	if ui.engine.disconnected:
 		ui.battle_actions=null;l(box,"接続が終了しました",true)
@@ -112,6 +131,7 @@ func render():
 	elif item_list:render_items()
 	else:presentation_action={};render_target()
 	update_board();ui.board.inspected_enemy=""
+	refresh_hover()
 	resize()
 func update_board():
 	ui.board.reference_mode=range_reference
@@ -168,12 +188,16 @@ func render_intent_strip():
 	var button=local(intent_strip,"予告・順番の詳細",toggle_details);button.custom_minimum_size.y=40
 func render_commands():
 	l(command_box,"行動を選択",true)
-	var actions=GridContainer.new();actions.columns=3 if ui.ui_size_mode=="standard" else 4;actions.add_theme_constant_override("h_separation",8);actions.add_theme_constant_override("v_separation",8);command_box.add_child(actions);buttons.clear()
+	l(command_box,"下のコマンドから行動を選び、盤面で対象を指定します。")
+	local(command_box,"能力・行動条件の詳細",open_action_details)
+func render_bottom_commands():
+	buttons.clear()
+	var a=acting();var face=ui.portrait(bottom_commands,a,true,48 if ui.ui_size_mode=="standard" else 28);face.name="ActingPortrait";face.tooltip_text=str(a.get("name","配置中"))
 	for pair in COMMANDS:
-		var eligible=pair[0] in ["guard","items"] or not ui.data.get("choices",{}).get(pair[0],[]).is_empty() or pair[0]=="skill" and not ui.data.get("skillset",[]).is_empty()
-		var control=b(actions,pair[1],ui.choose_command.bind(pair[0]),not eligible or acting().get("side")!="ally");control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		var eligible=pair[0] in ["guard","items"] or not ui.data.get("choices",{}).get(pair[0],[]).is_empty() or pair[0]=="skill" and (not ui.data.get("skillset",[]).is_empty() or has_return())
+		var selected=not action_menu and (ui.command==pair[0] or pair[0]=="skill" and ui.command=="return" or pair[0]=="items" and ui.command in ["item","ether"])
+		var control=ui.icons.apply(b(bottom_commands,("● " if selected else "")+pair[1],ui.choose_command.bind(pair[0]),not eligible or a.get("side")!="ally" or ui.state().get("deploying",false) or ui.state().get("result")!=null or ui.data.get("presentation") is Dictionary or range_reference),ui.icons.command(pair[0]),40 if ui.size.x>=1800 else 24);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.y=64 if ui.ui_size_mode=="standard" else 44
 		control.tooltip_text=pair[1]+(" / 今は合法な対象なし。条件を詳細で確認" if not eligible else "");ui.memory.key(control,"command_"+pair[0]);buttons[pair[0]]=control
-	var detail_button=local(command_box if ui.ui_size_mode=="standard" else actions,"能力・行動条件の詳細" if ui.ui_size_mode=="standard" else "行動条件",open_action_details);detail_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 func back_to_commands():
 	if ui.locked or ui.presenting or ui.closing:return
 	ui.invalidate_preview();item_list=false;action_menu=true;selected_cell=-1;selected_enemy="";ui.audio.ui("cancel");ui.render()
@@ -191,11 +215,12 @@ func render_items():
 		elif count<=0:reason="在庫なし"
 		elif ui.data.get("choices",{}).get(kind,[]).is_empty():reason="回復できる生存味方なし"
 		var control=b(target_box,"%s / %d個 / %s" % [item.name,count,ItemMenu.effect(item)]+(" / "+reason if not reason.is_empty() else ""),ui.choose_command.bind(kind),not reason.is_empty())
-		control.name="BattleItem_"+str(item.id)
+		control.name="BattleItem_"+str(item.id);ui.icons.apply(control,str(item.id))
 	l(target_box,"射程無限 / 1個・1行動。アイテムを選んでから盤面の対象を選択します。")
 	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm"
 	ui.memory.key(b(ui.battle_actions,"戻る",back_to_commands),"battle_cancel")
 func skill_unavailable_reason() -> String:
+	if ui.command=="return":return "この戦闘で帰還は使用済みです" if acting().get("returnUsed",false) else ""
 	if ui.command!="skill":return ""
 	var info=ui.data.get("skillInfo");var cost=int(info.get("cost",1)) if info is Dictionary else 1
 	if int(acting().get("mp",0))<cost:return "MP不足（現在%d／必要%d）" % [acting().get("mp",0),cost]
@@ -205,10 +230,12 @@ func render_target():
 	var stage=state_id();var heading=ui.row(target_box) if ui.ui_size_mode!="standard" and ui.command=="skill" else target_box
 	var title=l(heading,"移動先の確認・仮置き" if stage=="B2" else "移動先を選択" if stage=="B1" else command_name()+" / 対象・効果" if stage=="B4" else command_name()+" / 対象を選択",true)
 	title.name="DecisionTitle"
-	if ui.command=="skill":
-		title.text="内容確認 / "+command_name()
+	if ui.command in ["skill","return"]:
+		title.text=command_name()+" / 対象・効果"
 		render_skills(heading)
-		var effect=l(target_box,ui.command_hint());effect.name="SkillEffect"
+		if skill_content_open:
+			var effect=l(target_box,ui.command_hint());effect.name="SkillEffect"
+			render_skill_breakdown(target_box)
 	var split=HBoxContainer.new() if ui.ui_size_mode!="standard" else VBoxContainer.new();split.add_theme_constant_override("separation",12);split.size_flags_vertical=Control.SIZE_EXPAND_FILL;target_box.add_child(split)
 	var main=VBoxContainer.new();main.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(main)
 	var facts=VBoxContainer.new();facts.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(facts)
@@ -222,9 +249,8 @@ func render_target():
 	elif not skill_unavailable_reason().is_empty():l(facts,skill_unavailable_reason())
 	elif not ui.notice.is_empty():l(facts,ui.notice)
 	elif not action_menu:l(facts,"対象未確定 / 射程・条件を確認")
-	if ui.command=="skill":render_skill_breakdown(target_box)
 	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm"
-	if ui.command=="skill":
+	if ui.command in ["skill","return"]:
 		ui.memory.key(ui.primary(b(ui.battle_actions,"実行",ui.commit,not ui.can_commit())),"battle_commit")
 		ui.memory.key(b(ui.battle_actions,"戻る",back_to_commands),"battle_cancel")
 		return
@@ -257,13 +283,21 @@ func render_prediction(main,facts):
 	var target=l(main,summary);target.name="TargetSummary";ui.short_name(target,summary)
 	var hits=ui.preview.get("damagePreview",[])
 	if ui.preview_ready and not hits.is_empty():
-		var hit=hits[0];var prediction=l(main,"予測: HP −%d" % hit.hpLoss,true);prediction.name="PredictionSummary"
+		var hit=hits[0];var prediction=ui.icons.line(ui,main,"damage","予測: HP −%d / 命中100%%" % hit.hpLoss,true);prediction.name="PredictionSummary"
 		if hits.size()==1:l(facts,"予測受領者: "+str(hit.get("recipientName","未確認")))
 		if hits.size()>1:l(facts,"予測 %d件: " % hits.size()+" / ".join(hits.map(func(h):return str(h.get("targetName",h.get("recipientName","未確認")))))+(" / 全対象は下へ" if ui.command=="skill" else " / 全対象は内訳へ" if ui.ui_size_mode=="standard" else ""))
 		for entry in hits:
 			if entry.get("targetName")!=entry.get("recipientName"):l(facts,"⚠ 肩代わり: "+str(entry.get("targetName",""))+" → "+str(entry.get("recipientName","")))
 	elif ui.command!="skill" and (ui.preview_ready or ui.command=="guard"):
 		var hint=l(main,ui.command_hint());hint.max_lines_visible=3;hint.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;hint.tooltip_text=ui.command_hint()
+	if ui.command=="guard":ui.icons.line(ui,main,"defense_up","被ダメージ半減 / 次の本人の番まで")
+	if ui.preview_ready:
+		for effect in ui.preview.get("effectPreview",[]):
+			if effect.get("hp",0)>0:ui.icons.line(ui,main,"healing","%s HP＋%d / 命中：対象外" % [target_name(effect.id),effect.hp])
+			if effect.get("mp",0)>0:ui.icons.line(ui,main,"healing","%s MP＋%d / 命中：対象外" % [target_name(effect.id),effect.mp])
+			if effect.get("boost",false):
+				ui.icons.line(ui,main,"attack_up","陣形中の味方攻撃×1.75")
+				ui.icons.line(ui,main,"defense_up","陣形中の味方被害×0.65")
 	if ui.command=="skill":
 		var info=ui.data.get("skillInfo",{});info=info if info is Dictionary else {}
 		if info.get("target")=="pair" and not ui.preview_ready:l(facts,"異なる2人が必要 / 選択 %d/2" % ui.chosen.size())
@@ -271,6 +305,10 @@ func render_prediction(main,facts):
 		if ui.data.get("skill")=="スタンプ":l(facts,"空振りでもMP1・1行動を消費")
 	if ui.preview_ready and not ui.preview.get("cells",[]).is_empty():l(facts,("影響 %dマス / 全マスは下へ" if ui.command=="skill" else "影響 %dマス / 全マスは内訳へ") % ui.preview.cells.size())
 func render_skill_breakdown(parent):
+	if ui.command=="return":
+		for source in acting().get("skillSources",[]):
+			if source.id=="returnHome":l(parent,"由来: "+str(ui.campaign().get("slots",{}).get(source.slot,source.slot))+" / "+str(ui.campaign().get("roster",[]).filter(func(u):return u.id==acting().id)[0].get("equipmentDetails",{}).get(source.slot,{}).get("name",source.itemId)))
+		return
 	for hit in ui.preview.get("damagePreview",[]):
 		l(parent,"指定: %s → 予測受領者: %s / HP −%d" % [hit.get("targetName",hit.get("recipientName","")),hit.get("recipientName",""),hit.hpLoss])
 		var parts=[]
@@ -285,12 +323,19 @@ func cost_text() -> String:
 	var info=ui.data.get("skillInfo")
 	return "消費: MP%d / 1行動" % (info.get("cost",1) if info is Dictionary else 1) if ui.command=="skill" else "消費: MP0 / 1行動"
 func render_skills(parent):
-	var choose=OptionButton.new();choose.name="SkillSelection";choose.custom_minimum_size=Vector2(160,44);choose.size_flags_horizontal=Control.SIZE_EXPAND_FILL;choose.clip_text=true;parent.add_child(choose)
+	var row=ui.row(parent)
+	var choose=OptionButton.new();choose.name="SkillSelection";choose.custom_minimum_size=Vector2(160,44);choose.size_flags_horizontal=Control.SIZE_EXPAND_FILL;choose.clip_text=true;row.add_child(choose);choose.add_theme_constant_override("icon_max_width",32)
 	for skill in ui.data.get("skillset",[]):
-		choose.add_item(str(skill.name));choose.set_item_metadata(choose.item_count-1,skill.id)
-		if skill.name==ui.data.get("skill"):choose.select(choose.item_count-1)
+		choose.add_icon_item(ui.icons.texture(ui.icons.skill(str(skill.id))),str(skill.name));choose.set_item_metadata(choose.item_count-1,skill.id)
+		if ui.command=="skill" and skill.name==ui.data.get("skill"):choose.select(choose.item_count-1)
+	if has_return():
+		choose.add_icon_item(ui.icons.texture("accessory"),"帰還");choose.set_item_metadata(choose.item_count-1,"returnHome")
+		if ui.command=="return":choose.select(choose.item_count-1)
 	choose.disabled=ui.locked or ui.presenting;choose.item_selected.connect(func(i):ui.select_skill(str(choose.get_item_metadata(i))));ui.memory.key(choose,"skill_selection")
+	var content=b(row,"内容確認を閉じる" if skill_content_open else "内容確認",func():skill_content_open=not skill_content_open;ui.render());content.name="SkillContentToggle"
+func has_return() -> bool:return acting().get("effects",[]).has("returnHome")
 func command_name() -> String:
+	if ui.command=="return":return "帰還"
 	for item in ItemMenu.definitions(ui.campaign()):
 		if item.get("battleKind")==ui.command:return str(item.name)
 	for pair in COMMANDS:
@@ -345,10 +390,13 @@ func request_reference(which: String):
 		reference_error=str(reply.get("error","射程参考を取得できませんでした"))
 	ui.render()
 func render_reference():
-	l(target_box,"仮位置からの射程参考",true)
+	var compact=ui.ui_size_mode!="standard"
+	if compact:target_box.add_theme_constant_override("separation",2)
+	var position_text="仮位置: "+coord(ui.pending)+" / "+("通常攻撃" if reference_kind=="attack" else "スキル")+" / 参考%dマス" % reference_preview.get("ranges",[]).size()
+	l(target_box,"仮位置からの射程参考"+(" / "+position_text if compact else ""),not compact)
 	l(target_box,"移動で手番終了・ここでは攻撃不可。次の本人の番まで状況は変わります。")
 	var values=VBoxContainer.new();values.name="ReferenceValues";target_box.add_child(values)
-	l(values,"仮位置: "+coord(ui.pending)+" / "+("通常攻撃" if reference_kind=="attack" else "スキル")+" / 参考%dマス" % reference_preview.get("ranges",[]).size())
+	if not compact:l(values,position_text)
 	l(values,"対象候補: "+("取得中…" if reference_pending else reference_error if not reference_error.is_empty() else " / ".join(reference_preview.get("targets",[]))))
 	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm"
 	b(ui.battle_actions,"通常攻撃の参考",request_reference.bind("attack"))
@@ -357,21 +405,24 @@ func render_reference():
 func render_presentation(phase: Dictionary):
 	if phase.get("phase")=="action":presentation_action=phase.duplicate(true)
 	elif presentation_action.get("action_id")!=phase.get("action_id"):presentation_action={}
-	buttons.clear();l(target_box,"実行中" if phase.get("phase")=="action" else "実結果",true)
+	l(target_box,"実行中" if phase.get("phase")=="action" else "実結果",true)
 	var action=l(target_box,str(presentation_action.get("label",phase.get("label","演出中…"))));action.name="PresentationAction"
 	l(target_box,str(phase.get("label","")))
 	if phase.get("unit_id")!=null and phase.get("phase") in ["hurt","heal"]:
-		var u=unit(phase.unit_id);l(target_box,"実受領者: "+str(u.get("name","対象不明"))+" / 現在HP%d/%d" % [u.get("hp",0),u.get("max",0)])
+		var u=unit(phase.unit_id);ui.icons.line(ui,target_box,"healing" if phase.phase=="heal" else "damage","実受領者: "+str(u.get("name","対象不明"))+" / 現在HP%d/%d" % [u.get("hp",0),u.get("max",0)])
 	var target=presentation_action.get("target");var names=[]
 	for id in (target if target is Array else [target]):
 		if id is String:names.append(target_name(id))
 		elif id is int or id is float:names.append(coord(id))
 	if presentation_action.get("skill_id")=="porter" or str(presentation_action.get("label","")).contains("陣形強化"):
 		l(target_box,"効果対象: 味方全員 / 陣形成立中のみ")
+		ui.icons.line(ui,target_box,"attack_up","攻撃×1.75");ui.icons.line(ui,target_box,"defense_up","被害×0.65")
 	elif not names.is_empty():l(target_box,"指定対象: "+" / ".join(names))
 	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm";ui.primary(b(ui.battle_actions,"演出中…",func():pass,true))
 func render_deployment():
 	var s=ui.state()
+	var formations=ui.row(target_box)
+	for pair in [["convoy","基本配置"],["flank","切り込み配置"]]:b(formations,("● " if s.get("formationKind","convoy")==pair[0] else "")+pair[1],choose_formation.bind(pair[0]))
 	if not s.units.any(func(u):return u.id==ui.selected and u.side=="ally" and u.hp>0):
 		for u in s.units:
 			if u.side=="ally" and u.hp>0:ui.selected=u.id;break
@@ -383,7 +434,18 @@ func render_deployment():
 			if u.id==ui.selected:choose.select(ids.size()-1)
 	choose.item_selected.connect(func(i):ui.selected=ids[i];ui.render())
 	l(target_box,"クリック・ドラッグで配置と交換。消費なし / 青: 攻撃範囲・緑: 奇襲対象")
-	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm";b(ui.battle_actions,"配置リセット",ui.act.bind("deployment_reset",[]));ui.primary(b(ui.battle_actions,"戦闘開始",ui.act.bind("begin",[])))
+	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm";b(ui.battle_actions,"配置リセット",reset_deployment);ui.primary(b(ui.battle_actions,"戦闘開始",ui.act.bind("begin",[])))
+func deployment_changed() -> bool:
+	for initial in ui.state().get("deploymentInitial",[]):
+		if unit(initial.id).get("pos")!=initial.pos:return true
+	return false
+func choose_formation(kind: String):
+	var action=ui.act.bind("chooseFormation",[kind])
+	if deployment_changed():ui.confirm("手動配置を現在選んだプリセットの位置へ置き直します。よろしいですか？",action)
+	else:action.call()
+func reset_deployment():
+	if deployment_changed():ui.confirm("手動配置を現在のプリセットへ戻します。よろしいですか？",ui.act.bind("deployment_reset",[]))
+	else:ui.act("deployment_reset",[])
 func render_result():
 	l(target_box,"木人の結果" if ui.data.get("trial") is Dictionary else "戦闘結果",true);l(target_box,str(ui.state().result))
 	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm";ui.primary(b(ui.battle_actions,"戦闘を終えて街道へ",ui.act.bind("finishBattle",[]),ui.data.get("trial")!=null))
@@ -418,10 +480,79 @@ func enemy_intents(parent):
 			if e.id==u.id:l(card,"通常射程%d / %s %s\n%s" % [e.normalReach,e.skill,"同横列" if e.skillReach==null else str(int(e.skillReach)),e.reason])
 		l(card,"元の理由: "+str(intent.get("reason","")))
 func formations(parent):
+	if ui.state().get("formationVersion")==1:l(parent,"旧戦闘の陣形条件を継続中（この戦闘が終わるまで）")
 	for team in ["ally","enemy"]:
 		var active=ui.data.get("formed",{}).get(team,false);var boost=active and ui.data.get("boosted",{}).get(team,false)
-		var cells=[24,13,33] if team=="ally" else [25,16,36]
+		var cells=ui.data.get("formationSlots",{}).get(team,[24,13,33] if team=="ally" else [25,16,36])
 		var occupied=ui.state().units.filter(func(u):return u.side==team and u.hp>0 and cells.has(int(u.pos))).size()
 		l(parent,"%sの条件マス %d/3" % ["味方" if team=="ally" else "敵",occupied])
 		l(parent,"%s陣形 %s / 攻撃%s・被ダメージ%s" % ["味方" if team=="ally" else "敵","発動" if active else "未発動","×1.75" if boost else "×1.5" if active else "×1","×0.65" if boost else "×0.75" if active else "×1"])
 	l(parent,"陣形条件: 点線の3マスを同陣営の生存者で埋める。陣営全体への補正。防御・かばう・丸めは別。")
+
+func render_person():
+	if not is_instance_valid(person_box):return
+	ui.clear(person_box)
+	var u=unit(inspected_uid)
+	if u.is_empty() and selected_cell>=0:u=ui.board.unit_at(selected_cell)
+	if u.is_empty() and ui.state().get("deploying",false):
+		u=unit(ui.selected)
+		if u.is_empty():
+			for ally in ui.state().get("units",[]):
+				if ally.side=="ally" and ally.hp>0:u=ally;break
+	if u.is_empty():u=acting()
+	if u.is_empty():l(person_box,"人物にカーソルを合わせると情報を表示します。");return
+	person_box.set_meta("inspected_unit",u.id)
+	var hero=ui.row(person_box);ui.portrait(hero,u,true,64 if ui.ui_size_mode=="standard" else 40);l(hero,str(u.name),true)
+	var character={}
+	for member in ui.roster():
+		if member.id==u.id:character=member;break
+	ui.pages.party_view.identity(person_box,character if not character.is_empty() else u)
+	for resource in ["hp","mp"]:
+		var value=u.get(resource,0);var maximum=u.get("max" if resource=="hp" else "maxMp",0)
+		var number=ui.icons.line(ui,person_box,resource,"%s %d/%d" % [resource.to_upper(),value,maximum]);number.add_theme_color_override("font_color",Color.WHITE)
+		var bar=ProgressBar.new();bar.name="Inspect_"+resource;bar.max_value=maxi(1,int(maximum));bar.value=value;bar.show_percentage=false;bar.custom_minimum_size.y=10;bar.mouse_filter=Control.MOUSE_FILTER_IGNORE;person_box.add_child(bar)
+	var stats=character.get("stats",{});var breakdown=stats.get("attributeBreakdown",{})
+	for pair in [["str","STR","strength"],["int","INT","intelligence"],["speed","SPD（行動速度）","speed"]]:
+		var value=u.get("agi") if pair[0]=="speed" else stats.get(pair[0],u.get(pair[0]))
+		var part=breakdown.get(pair[0],{});var suffix="補正：未取得"
+		if part.has("growth"):suffix="成長＋%d / 基礎%d" % [part.growth,part.base]
+		elif part.has("equipment"):suffix="装備%+d / AGI%d" % [part.equipment,part.agi]
+		ui.icons.line(ui,person_box,pair[2],pair[1]+" "+("未取得" if value==null else str(int(value)))+"（"+suffix+"）")
+	if ui.state().get("formationVersion")==1:l(person_box,"旧戦闘の陣形条件を継続中")
+func inspect_hover(uid: String):
+	inspected_uid=uid;render_person();refresh_hover()
+func invalidate_hover():
+	hover_generation+=1;hover_stamp=""
+	if is_instance_valid(ui.board):ui.board.hover_caption=""
+func refresh_hover():
+	if not is_instance_valid(ui.board):return
+	var uid=ui.board.hover_uid
+	var stamp=JSON.stringify([uid,ui.generation,ui.command,ui.chosen,action_menu,ui.state().get("actions"),ui.state().get("actor"),ui.data.get("skill")])
+	if stamp==hover_stamp:return
+	hover_stamp=stamp;hover_generation+=1
+	if uid.is_empty():ui.board.hover_caption="";return
+	if action_menu or ui.state().get("deploying",false) or ui.presenting or ui.data.get("presentation") is Dictionary or ui.command not in ["attack","skill","item","ether"]:
+		ui.board.hover_caption="行動を選択すると効果を予測" if action_menu else "命中：対象外";return
+	ui.board.hover_caption="予測取得中…"
+	request_hover(uid,hover_generation,ui.generation,ui.engine.connection_generation)
+func request_hover(uid: String,token: int,generation: int,connection: int):
+	while ui.engine.busy and not ui.closing:
+		await ui.get_tree().process_frame
+		if token!=hover_generation:return
+	if ui.closing or token!=hover_generation or ui.engine.disconnected:return
+	var reply=await ui.engine.request({"op":"hover_preview","kind":ui.command,"uid":uid,"chosen":ui.chosen.duplicate()})
+	if ui.handle_connection_loss(reply,connection):return
+	if ui.closing or token!=hover_generation or generation!=ui.generation or connection!=ui.engine.connection_generation or not is_instance_valid(ui.board) or ui.board.hover_uid!=uid:return
+	if not reply.get("ok",false):ui.board.hover_caption="予測：未取得";return
+	var prediction=reply.get("hover",{})
+	if prediction.get("status")!="ready":ui.board.hover_caption="異なる2人の対象を指定" if prediction.get("status")=="needs_targets" else "対象外";return
+	var parts=[]
+	for hit in prediction.get("damagePreview",[]):
+		parts.append("HP −%d" % hit.hpLoss+(" → "+str(hit.recipientName) if hit.get("targetId")!=hit.get("recipientId") else ""))
+	if parts.is_empty():
+		for effect in prediction.get("effectPreview",[]):
+			if effect.get("hp",0)>0:parts.append("HP ＋%d" % effect.hp)
+			if effect.get("mp",0)>0:parts.append("MP ＋%d" % effect.mp)
+			if effect.get("boost",false):parts.append("攻撃×1.75 / 被害×0.65")
+			if effect.get("cover")!=null or not effect.get("covers",[]).is_empty():parts.append("次の本人の番までかばう")
+	ui.board.hover_caption=("予測："+" / ".join(parts) if not parts.is_empty() else "予測：効果なし")+"\n命中："+("100%" if prediction.get("accuracy")==100 else "対象外")

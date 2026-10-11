@@ -25,7 +25,7 @@ func reset():
 	stage="S0";receipt={};error_text="";unknown=false;selected_request="";background.clear();row_labels.clear();return_from_party=false;from_party=false
 	if ui.dialog!=null:ui.dialog.close(false)
 func slots() -> Array:
-	return ["rightHand","leftHand"] if c().get("location")=="east" else ["head","upperBody","lowerBody","feet","accessory1","accessory2"]
+	return ["rightHand","leftHand"] if c().get("location")=="east" else ["accessory1","accessory2"] if c().get("location")=="north" else ["head","upperBody","lowerBody","feet"]
 func member() -> Dictionary:
 	for u in ui.roster():
 		if u.id==ui.shop_uid:return u
@@ -33,19 +33,19 @@ func member() -> Dictionary:
 func render(parent):
 	if not c().get("selected",[]).has(ui.shop_uid):ui.shop_uid=str(c().get("selected",[""])[0])
 	if not slots().has(ui.shop_slot):ui.shop_slot=str(slots()[0])
-	var context=ui.row(parent);context.name="ShopContext";context.custom_minimum_size.y=56
-	var shop_name={"east":"イースの武器屋","west":"ウエスの防具屋"}.get(c().location,"")
-	l(context,shop_name)
+	var context=ui.row(parent);context.name="ShopContext";context.custom_minimum_size.y=44 if compact() else 56
+	var shop_name={"east":"イースの武器屋","west":"ウエスの防具屋","north":"ノースの装飾品店"}.get(c().location,"")
+	ui.icons.line(ui,context,ui.icons.shop(str(c().location)),shop_name)
 	if from_party:b(context,"仲間へ戻る",func():pages.party_uid=ui.shop_uid;pages.party_view.highlight_slot=ui.shop_slot;ui.page="party";ui.render(),stage=="S5")
 	var face=ui.portrait(context,member(),true,40);face.name="ShopMemberPortrait"
 	var who=b(context,str(member().get("name",ui.shop_uid))+" ▾",open_members,stage=="S5" or unknown);who.custom_minimum_size.x=96;ui.memory.key(who,"shop_member")
 	var slot=OptionButton.new();slot.custom_minimum_size=Vector2(112,44);context.add_child(slot)
 	for id in slots():
-		slot.add_item(str(c().get("slots",{}).get(id,id)));slot.set_item_metadata(slot.item_count-1,id)
+		slot.add_icon_item(ui.icons.texture(ui.icons.slot(id)),str(c().get("slots",{}).get(id,id)));slot.add_theme_constant_override("icon_max_width",24);slot.set_item_metadata(slot.item_count-1,id)
 		if ui.shop_slot==id:slot.select(slot.item_count-1)
 	slot.disabled=stage=="S5" or unknown or ui.locked or ui.engine.disconnected
 	slot.item_selected.connect(func(i):select_slot(str(slot.get_item_metadata(i))));ui.memory.key(slot,"shop_slot")
-	var gold=l(context,"所持金 %dG" % c().get("gold",0));gold.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+	var gold=ui.icons.line(ui,context,"money","所持金 %dG" % c().get("gold",0));gold.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
 	if stage=="S6":render_receipt(parent);return
 	if stage=="S7":render_error(parent);return
 	var split=HBoxContainer.new();split.name="ShopSplit";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",12);parent.add_child(split)
@@ -74,7 +74,8 @@ func render_list(parent):
 				var style=btn.get_theme_stylebox(state_).duplicate();style.bg_color=Color("#31545b");style.border_color=Color("#91dacf");style.set_border_width_all(2);btn.add_theme_stylebox_override(state_,style)
 		var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;btn.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,8)
-		var label=l(margin,product_caption(item));label.mouse_filter=Control.MOUSE_FILTER_IGNORE;label.add_theme_font_size_override("font_size",16);row_labels[str(item.id)]=label
+		var product=ui.row(margin);product.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.icons.add(product,ui.icons.gear(item),32)
+		var label=l(product,product_caption(item));label.mouse_filter=Control.MOUSE_FILTER_IGNORE;label.add_theme_font_size_override("font_size",20 if ui.size.x>=1800 else 16);row_labels[str(item.id)]=label
 		btn.tooltip_text=str(item.name)+" / "+str(item.get("price","?"))+"G";btn.set_meta("product_id",str(item.id))
 		# A wrapped name or reason increases its row instead of hiding conditions.
 		label.minimum_size_changed.connect(func():
@@ -176,13 +177,16 @@ func comparison_lines(q: Dictionary,all_values:=false) -> Array[String]:
 			for source in q[side].get("skillSources",[]):unchanged.append(("現在" if side=="before" else "候補")+"の由来: "+str(c().get("skillNames",{}).get(source.id,source.id))+" / "+str(c().slots.get(source.slot,source.slot))+" / "+source_name(q,source))
 	return losses+gains+unchanged
 func render_comparison(parent):
-	var q=ui.gear_preview;var title=ui.row(parent)
+	var q=ui.gear_preview
+	var body=ui.scroller(parent);body.get_parent().name="ShopComparisonScroll";body.get_parent().custom_minimum_size.y=64;ui.memory.watch(body.get_parent(),"shop_compare")
+	if compact():body.add_theme_constant_override("separation",2)
+	var title=ui.row(body)
 	if compact():b(title,"一覧へ",back_list)
 	var heading=l(title,str(q.current.name)+" → "+str(q.gear.name),true);heading.focus_mode=Control.FOCUS_ALL;ui.memory.key(heading,"shop_comparison_heading")
-	l(parent,"%s / %s / %s" % [ui.member_name(ui.shop_uid),c().slots.get(ui.shop_slot,ui.shop_slot),"両手" if q.gear.get("hands",1)==2 else "片手" if ui.shop_slot in ["rightHand","leftHand"] else "装備"])
+	if compact():heading.add_theme_font_size_override("font_size",20)
+	l(body,"%s / %s / %s" % [ui.member_name(ui.shop_uid),c().slots.get(ui.shop_slot,ui.shop_slot),"両手" if q.gear.get("hands",1)==2 else "片手" if ui.shop_slot in ["rightHand","leftHand"] else "装備"])
 	var why=reason(q)
-	if not why.is_empty():var warning=l(parent,why);warning.add_theme_color_override("font_color",Color("#ffc9a8"))
-	var body=ui.scroller(parent);body.get_parent().name="ShopComparisonScroll";body.get_parent().custom_minimum_size.y=64;ui.memory.watch(body.get_parent(),"shop_compare")
+	if not why.is_empty():var warning=l(body,why);warning.add_theme_color_override("font_color",Color("#ffc9a8"))
 	var lines=comparison_lines(q)
 	if lines.is_empty():l(body,"数値・スキル・効果の変更はありません。")
 	for text in lines:l(body,text)

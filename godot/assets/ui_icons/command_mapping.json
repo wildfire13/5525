@@ -1,0 +1,35 @@
+{
+  "display_convention_ja": "C：コマンド欄はアイコン＋文字で表示する",
+  "commands": [
+    {
+      "command_id": "attack",
+      "label_ja": "攻撃",
+      "icon": "icons64/attack.png",
+      "display": "icon + visible text label"
+    },
+    {
+      "command_id": "move",
+      "label_ja": "移動",
+      "icon": "icons64/move.png",
+      "display": "icon + visible text label"
+    },
+    {
+      "command_id": "skill",
+      "label_ja": "スキル",
+      "icon": "icons64/skill.png",
+      "display": "icon + visible text label"
+    },
+    {
+      "command_id": "items",
+      "label_ja": "アイテム",
+      "icon": "icons64/items.png",
+      "display": "icon + visible text label"
+    },
+    {
+      "command_id": "defend",
+      "label_ja": "防御",
+      "icon": "icons64/defend.png",
+      "display": "icon + visible text label"
+    }
+  ]
+}

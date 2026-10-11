@@ -5,6 +5,8 @@ function battle(actor='guard',mp=3,formed=true){
  s.characters.guard.weapon='hammer-wood';s.characters.guard.leftHand='guard-shield-wood';
  assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>.5));assert(C.begin(s));
  const b=s.battle;
+ // R04: this fixed-position regression intentionally resumes the legacy formation.
+ b.formationVersion=1;
  for(const u of b.units){u.hp=u.max;u.next=u.side==='ally'?2:10000;}
  b.actor=actor;const a=b.units.find(u=>u.id===actor);a.next=1;a.mp=mp;
  const guard=b.units.find(u=>u.id==='guard');guard.hp=60;guard.mp=actor==='guard'?mp:0;guard.selectedSkill='guard';

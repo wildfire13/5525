@@ -141,7 +141,7 @@ func run():
 	game.pages.party_view.tab=2;game.render();await settle()
 	check("V2-P03",text(game.content).contains("次の本人の番") and text(game.content).contains("左手"),"legacy skill conditions and source remain available in the skill tab")
 	game.pages.party_view.tab=1;game.render();await settle()
-	check("V2-P05",button("編成から外す").disabled and button("STR+1").disabled,"outside guild and without points membership/allocation remain disabled")
+	check("V2-P05",button("編成から外す").disabled and button("＋1").disabled and node("AllocationConfirm").disabled,"outside guild and without points membership/allocation remain disabled")
 	await fixture("astaris");game.navigate("party");game.pages.party_uid="porter";game.pages.party_view.tab=1;game.render();await settle()
 	check("V2-P05",button("編成から外す").disabled and text(game.content).contains("未実装"),"required porter cannot leave; skill points stay explicitly unimplemented")
 	var dual=JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/uiux-review/synthetic-east.json"));dual.state.characters.guard.weapon="greatsword-wood";dual.state.characters.guard.leftHand="empty-leftHand"

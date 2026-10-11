@@ -1,0 +1,215 @@
+{
+  "source_commit": "5fffd4a9eb290ed7cc0bbef555faea1155c5aaf1",
+  "mapping_rule_ja": "付与装備の武器種・防具部位・装飾品を使う。同種の複数装備は一つにまとめる。陣形強化のみ共通skill.png。",
+  "skills": [
+    {
+      "skill_id": "swift",
+      "label_ja": "俊足",
+      "icon_ids": [
+        "feet"
+      ],
+      "kind_ja": "パッシブ",
+      "granting_equipment_ja": "俊足の靴（試作）",
+      "wiki_anchor": "catalog-skill-swift",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "retreatSlash",
+      "label_ja": "退き斬り",
+      "icon_ids": [
+        "sheet_one_handed_sword"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "引き波の剣",
+      "wiki_anchor": "catalog-skill-retreatSlash",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "knockback",
+      "label_ja": "吹き飛ばし",
+      "icon_ids": [
+        "sheet_hammer"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "突き崩しの槌",
+      "wiki_anchor": "catalog-skill-knockback",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "splitShot",
+      "label_ja": "分け撃ち",
+      "icon_ids": [
+        "sheet_bow"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "双射の弓",
+      "wiki_anchor": "catalog-skill-splitShot",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "pincer",
+      "label_ja": "挟撃",
+      "icon_ids": [
+        "dagger"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "相棒の短剣",
+      "wiki_anchor": "catalog-skill-pincer",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "healingCross",
+      "label_ja": "癒しの輪",
+      "icon_ids": [
+        "sheet_staff"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "憩いの杖",
+      "wiki_anchor": "catalog-skill-healingCross",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "defenseLine",
+      "label_ja": "防衛線",
+      "icon_ids": [
+        "sheet_shield"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "戦列の盾",
+      "wiki_anchor": "catalog-skill-defenseLine",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "manaGift",
+      "label_ja": "魔力譲渡",
+      "icon_ids": [
+        "book"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "分かちの魔導書",
+      "wiki_anchor": "catalog-skill-manaGift",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "returnHome",
+      "label_ja": "帰還",
+      "icon_ids": [
+        "accessory"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "帰り路の指輪［装飾1］ 、 帰り路の指輪［装飾2］",
+      "wiki_anchor": "catalog-skill-returnHome",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "victoryBreath",
+      "label_ja": "一息",
+      "icon_ids": [
+        "accessory"
+      ],
+      "kind_ja": "パッシブ",
+      "granting_equipment_ja": "凱歌の耳飾り［装飾1］ 、 凱歌の耳飾り［装飾2］",
+      "wiki_anchor": "catalog-skill-victoryBreath",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "loneWolf",
+      "label_ja": "孤軍",
+      "icon_ids": [
+        "accessory"
+      ],
+      "kind_ja": "パッシブ",
+      "granting_equipment_ja": "一匹狼の指輪［装飾1］ 、 一匹狼の指輪［装飾2］",
+      "wiki_anchor": "catalog-skill-loneWolf",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "firstStride",
+      "label_ja": "先駆け",
+      "icon_ids": [
+        "accessory"
+      ],
+      "kind_ja": "パッシブ",
+      "granting_equipment_ja": "先駆者の手袋［装飾1］ 、 先駆者の手袋［装飾2］",
+      "wiki_anchor": "catalog-skill-firstStride",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "invasion",
+      "label_ja": "侵入",
+      "icon_ids": [
+        "accessory"
+      ],
+      "kind_ja": "パッシブ",
+      "granting_equipment_ja": "侵入用装飾品（既存効果の仮枠化）［装飾1］ 、 侵入用装飾品（既存効果の仮枠化）［装飾2］",
+      "wiki_anchor": "catalog-skill-invasion",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "archer",
+      "label_ja": "スナイプ",
+      "icon_ids": [
+        "sheet_bow"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "木製の遠見弓 、 木製の遠見弓＋1 、 銀製の遠見弓＋2",
+      "wiki_anchor": "catalog-skill-archer",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "mage",
+      "label_ja": "ヒール",
+      "icon_ids": [
+        "sheet_staff"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "木製の癒し杖 、 銀製の癒し杖＋1",
+      "wiki_anchor": "catalog-skill-mage",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "scout",
+      "label_ja": "奇襲",
+      "icon_ids": [
+        "dagger"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "木製の奇襲短剣",
+      "wiki_anchor": "catalog-skill-scout",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "stamp",
+      "label_ja": "スタンプ",
+      "icon_ids": [
+        "sheet_hammer"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "木製のスタンプ槌 、 鉄製のスタンプ槌＋1",
+      "wiki_anchor": "catalog-skill-stamp",
+      "mapping_basis": "granting equipment type/slot"
+    },
+    {
+      "skill_id": "porter",
+      "label_ja": "陣形強化",
+      "icon_ids": [
+        "skill"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "運搬用の手道具（仮）",
+      "wiki_anchor": "catalog-skill-porter",
+      "mapping_basis": "shared skill icon"
+    },
+    {
+      "skill_id": "guard",
+      "label_ja": "かばう",
+      "icon_ids": [
+        "sheet_shield"
+      ],
+      "kind_ja": "アクティブ",
+      "granting_equipment_ja": "木製の護衛盾 、 鉄製の護衛盾＋1",
+      "wiki_anchor": "catalog-skill-guard",
+      "mapping_basis": "granting equipment type/slot"
+    }
+  ]
+}

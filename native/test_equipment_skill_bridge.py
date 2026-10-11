@@ -81,7 +81,7 @@ class EquipmentSkillBridgeTests(unittest.TestCase):
         self.assertTrue(app.data['ok'])
 
     def test_return_position_zero_mp_kind_and_no_reuse(self):
-        app = self.trial('mage', 'return-ring-1', 'west')
+        app = self.trial('mage', 'return-ring-1', 'north')
         app.mode = 'return'
         before = copy.deepcopy(app.data['state'])
         self.click(app, 3)
@@ -97,7 +97,7 @@ class EquipmentSkillBridgeTests(unittest.TestCase):
         self.assertEqual(len(denied['skillEvents']), event_count)
 
     def test_first_stride_preview_path_and_distance_not_mutated(self):
-        app = self.trial('mage', 'pioneer-gloves-1', 'west')
+        app = self.trial('mage', 'pioneer-gloves-1', 'north')
         app.mode = 'move'
         before = copy.deepcopy(app.data['state'])
         self.assertEqual(app.data['moveReach'], 3)
@@ -122,7 +122,7 @@ class EquipmentSkillBridgeTests(unittest.TestCase):
         self.assertTrue(app.data['ok'])
 
     def test_duplicate_passives_and_save_roundtrip_real_process(self):
-        self.town('west')
+        self.town('north')
         for gear in ['lone-ring-1', 'lone-ring-2']:
             self.assertTrue(self.bridge.call(op='campaign', action='buyGear', args=['mage', gear])['ok'])
         for action, args in [('depart', ['astaris']), ('travel', ['safe']), ('begin', [])]:

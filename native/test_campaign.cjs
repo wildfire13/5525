@@ -34,7 +34,7 @@ function trip(s,destination,{quest=true,route='short',rest=true,seed=5525}={}){
 function town(id){const s=C.create();s.location=id;return s;}
 test('city and four source-map villages, correct facilities',()=>{
   assert.deepEqual(C.locations.map(p=>p.name),['アスタリス','イース','ウエス','サウス','ノース']);
-  assert.deepEqual(C.locations.map(p=>p.facilities),[['board','guild','inn'],['board','weapon'],['board','armor'],['board','items'],['board']]);
+  assert.deepEqual(C.locations.map(p=>p.facilities),[['board','guild','inn'],['board','weapon'],['board','armor'],['board','items'],['board','accessory']]);
   for(const p of C.locations){const s=town(p.id);assert.ok(C.board(s).length);assert.equal(C.view(s).guildAvailable,p.id==='astaris');okay(s);}
 });
 test('guild is city-only, free, max five, unique roster, mandatory porter',()=>{
@@ -64,7 +64,7 @@ test('forecast handles quest and questless without fake reward',()=>{
   const s=C.create();assert.equal(C.forecast(s,'short'),null);C.accept(s,C.board(s)[0].id);C.depart(s,'east');assert.equal(C.forecast(s,'short').hours,6);assert.equal(C.forecast(s,'short').late,false);assert.equal(C.forecast(s,'safe').late,true);
   const t=C.create();C.depart(t,'north');assert.equal(C.forecast(t,'safe').reward,0);assert.equal(C.forecast(t,'safe').questless,true);
 });
-test('star routes prohibit village-to-village and unknown departures',()=>{
+test('R08 ring routes prohibit opposite-village and unknown departures',()=>{
   const s=town('east'),before=clone(s);assert.equal(C.depart(s,'west'),false);assert.equal(C.depart(s,'garbage'),false);assert.deepEqual(s,before);assert.equal(C.depart(s,'astaris'),true);
 });
 test('deployment can reset without rerolling enemies or spending resources',()=>{
@@ -78,9 +78,9 @@ test('questless failure restores departure snapshot',()=>{
   const s=C.create();C.select(s,['porter']);const before=clone(s);C.depart(s,'north');C.travel(s,'short',random());fight(s,true);assert.equal(s.result.outcome,'failed');C.acknowledge(s);
   for(const key of ['gold','xp','level','hours','selected','characters','inventory','sequence','completed','location'])assert.deepEqual(s[key],before[key],key);okay(s);
 });
-test('shops stock only their source-map categories; north board only',()=>{
-  assert.ok(C.shop(town('east')).every(g=>['weapon','leftHand'].includes(g.slot)));assert.ok(C.shop(town('west')).every(g=>['armor','head','lowerBody','feet','accessory1','accessory2'].includes(g.slot)));
-  assert.deepEqual(C.shop(town('south')).map(g=>g.id),['potion','ether']);assert.deepEqual(C.shop(town('north')),[]);assert.deepEqual(C.shop(C.create()),[]);
+test('R09 shops stock their source-map categories; accessories belong to North',()=>{
+  assert.ok(C.shop(town('east')).every(g=>['weapon','leftHand'].includes(g.slot)));assert.ok(C.shop(town('west')).every(g=>['armor','head','lowerBody','feet'].includes(g.slot)));
+  assert.deepEqual(C.shop(town('south')).map(g=>g.id),['potion','ether']);assert(C.shop(town('north')).length>0);assert(C.shop(town('north')).every(g=>g.type==='accessory'));assert.deepEqual(C.shop(C.create()),[]);
 });
 test('trade in old gear at difference, including refunds, with no inventory stockpile',()=>{
   const s=town('east'),before=s.gold;assert.equal(C.buyGear(s,'archer','bow-wood-1'),true);assert.equal(s.gold,before-70);assert.equal(C.buyGear(s,'archer','bow-wood'),true);assert.equal(s.gold,before);assert.deepEqual(Object.keys(s.inventory),['potion','ether']);assert.equal(C.buyGear(s,'archer','bow-wood'),false);okay(s);
@@ -133,7 +133,7 @@ test('invalid battle actor, tokens, duplicate cells and skill payloads rejected'
 });
 test('predeparture purchases also roll back to acceptance snapshot',()=>{
   const s=town('east');s.selected=['porter'];s.characters.porter.hp=1;const before=clone(s);
-  assert.equal(C.accept(s,C.board(s)[0].id),true);assert.equal(C.buyGear(s,'porter','hammer-wood'),true);assert.equal(C.depart(s,'astaris'),true);C.travel(s,'short',random());fight(s,true);C.acknowledge(s);
+  assert.equal(C.accept(s,C.board(s).find(q=>q.to==='astaris').id),true);assert.equal(C.buyGear(s,'porter','hammer-wood'),true);assert.equal(C.depart(s,'astaris'),true);C.travel(s,'short',random());fight(s,true);C.acknowledge(s);
   for(const key of ['gold','characters','inventory','selected','hours','location'])assert.deepEqual(s[key],before[key]);
 });
 test('two-porters any-one failure restores entire expedition',()=>{
@@ -201,11 +201,11 @@ test('normal and questless retreats restore pretrip state and cannot double appl
     okay(s);
   }
 });
-test('reachable porter-only stalemate keeps C01 but can explicitly retreat after save reload',()=>{
+test('R04 retained legacy porter-only stalemate keeps C01 and can retreat after save reload',()=>{
   let s=C.create();const before=clone(s),rng=random(6);
   assert(C.accept(s,C.board(s)[0].id));assert(C.depart(s,'east'));
   for(let leg=0;leg<2;leg++){
-    assert(C.travel(s,'short',rng));assert(C.begin(s));
+    assert(C.travel(s,'short',rng));s.battle.formationVersion=1;assert(C.begin(s));
     for(let n=0;n<200&&!s.battle.result;n++){
       if(s.battle.units.filter(u=>u.side==='ally'&&u.hp>0).every(u=>u.job==='porter'))break;
       const c=clone(s.battle),a=c.units.find(u=>u.id===c.actor);B.plan(c,a);let {kind,target}=a.intent;
@@ -233,8 +233,8 @@ function assertLocalTown(s,id){
   const v=C.view(s);assert.equal(v.town,id);assert.equal(v.location,id);
   assert.equal(v.guildAvailable,id==='astaris');assert.equal(v.inn.available,id==='astaris');
   assert.ok(v.board.length);assert.ok(v.board.every(q=>q.from===id));
-  assert.deepEqual(v.destinations.map(p=>p.id),id==='astaris'?['east','west','south','north']:['astaris']);
-  const categories={astaris:[],east:['weapon','leftHand'],west:['head','armor','lowerBody','feet','accessory1','accessory2'],south:['hp','mp'],north:[]};
+  assert.deepEqual(v.destinations.map(p=>p.id),{astaris:['east','west','south','north'],east:['north','astaris','south'],west:['north','astaris','south'],north:['east','astaris','west'],south:['east','astaris','west']}[id]);
+  const categories={astaris:[],east:['weapon','leftHand'],west:['head','armor','lowerBody','feet'],south:['hp','mp'],north:['accessory1','accessory2']};
   assert.deepEqual([...new Set(v.shop.map(g=>g.slot||g.resource))],categories[id]);
   okay(s);
 }
@@ -259,7 +259,7 @@ test('each village return reaches city, and questless arrivals retain exact vill
 test('village-origin failure and result reload restore origin, not attempted city',()=>{
   for(const quest of [true,false])for(const id of ['east','west','south','north']){
     let s=town(id);s.selected=['porter'];s.characters.porter.hp=1;const before=clone(s);
-    if(quest)assert(C.accept(s,C.board(s)[0].id));
+    if(quest)assert(C.accept(s,C.board(s).find(q=>q.to==='astaris').id));
     assert(C.depart(s,'astaris'));assert(C.travel(s,'short',random()));fight(s,true);
     assert.equal(s.result.outcome,'failed');assert.equal(s.location,id);
     s=C.deserialize(C.serialize(s));assert(C.acknowledge(s));assertLocalTown(s,id);

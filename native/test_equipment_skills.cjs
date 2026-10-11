@@ -57,7 +57,7 @@ test('return: exact home cell, occupancy, 1/battle, zero MP, second slot invasio
  const {s,a,f}=scene();a.effects=['returnHome'];a.mp=0;a.pos=27;
  for(const p of [27,25,f.pos,-1,50,'3'])assert.equal(B.legal(s,'return',p),false);
  once(s,a,'return',3);assert.equal(a.pos,3);assert.equal(a.mp,0);assert.equal(a.returnUsed,true);assert.equal(B.legal(s,'return',4),false);
- const c=C.create();c.location='west';assert.equal(C.buyGear(c,'scout','return-ring-2'),true);assert.deepEqual(C.stats(c.characters.scout).effects,['invasion','returnHome']);
+ const c=C.create();c.location='north';assert.equal(C.buyGear(c,'scout','return-ring-2'),true);assert.deepEqual(C.stats(c.characters.scout).effects,['invasion','returnHome']);
  assert.equal(C.buyGear(c,'scout','empty-accessory1'),true);assert.deepEqual(C.stats(c.characters.scout).effects,['returnHome']);
 });
 test('lone wolf: living orthogonal friend suppresses; duplicate effect no stacking',()=>{
@@ -79,7 +79,7 @@ test('victory breath: once, capped, living only; defeat and retreat have no rewa
 });
 test('passive trial works for melee/ranged and porter keeps attack ban',()=>{
  for(const id of ['guard','warrior','mage','porter']){
-  const s=C.create();s.location='west';s.selected=[id,...['porter','guard'].filter(x=>x!==id)];
+  const s=C.create();s.location='north';s.selected=[id,...['porter','guard'].filter(x=>x!==id)];
   const before=C.serialize(s),t=C.trial(s,id,'victory-earring-1');assert.ok(t,id);
   const hero=t.battle.units.find(u=>u.id===id),dummy=t.battle.units.find(u=>u.side==='enemy');
   assert.equal(t.battle.units.filter(u=>u.side==='enemy').length,1);
@@ -110,7 +110,7 @@ test('purchase and trial all eleven; actual actions isolated from campaign',()=>
  const rows=E.gear.filter(g=>g.slot==='weapon'||g.slot==='accessory1'&&g.effect&&g.effect!=='invasion');
  assert.equal(rows.length,11);
  for(const gear of rows){
-  const s=C.create();s.location=gear.slot==='weapon'?'east':'west';s.gold=500;
+  const s=C.create();s.location=gear.slot==='weapon'?'east':'north';s.gold=500;
   const id=gear.skill==='splitShot'||gear.skill==='pincer'?'archer':'mage';
   const before=C.serialize(s),t=C.trial(s,id,gear.id);assert.ok(t,gear.id);assert.equal(C.serialize(s),before);
   const a=t.battle.units.find(u=>u.id===id),sid=B.activeSkill(a);
@@ -126,7 +126,7 @@ test('purchase and trial all eleven; actual actions isolated from campaign',()=>
  }
 });
 test('save/load battle flags, effects and covers; old saves; malformed extension rejected',()=>{
- const s=C.create();s.location='east';C.buyGear(s,'guard','battleline-shield');s.location='west';C.buyGear(s,'guard','return-ring-1');C.buyGear(s,'guard','pioneer-gloves-2');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
+ const s=C.create();s.location='east';C.buyGear(s,'guard','battleline-shield');s.location='north';C.buyGear(s,'guard','return-ring-1');C.buyGear(s,'guard','pioneer-gloves-2');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
  const a=s.battle.units.find(u=>u.id==='guard');a.returnUsed=true;a.firstMoveUsed=true;a.covers=['archer','mage'];
  const saved=C.serialize(s),loaded=C.deserialize(saved);assert.deepEqual(loaded,clone(s));assert.equal(B.legalFor(loaded.battle,loaded.battle.units.find(u=>u.id==='guard'),'return',0),false);
  for(const change of [u=>u.returnUsed='no',u=>u.firstMoveUsed=1,u=>u.effects=['loneWolf'],u=>u.covers=['missing'],u=>u.covers=['mage','mage']]){const bad=JSON.parse(saved);change(bad.state.battle.units.find(u=>u.id==='guard'));assert.throws(()=>C.deserialize(bad));}
@@ -134,11 +134,11 @@ test('save/load battle flags, effects and covers; old saves; malformed extension
  assert.equal(C.retreat(loaded),true);assert.equal(loaded.result.outcome,'failed');assert.equal(loaded.battle,null);
 });
 test('porter never attacks or gains offensive weapon skill; separate return remains usable',()=>{
- const s=C.create();s.location='east';s.gold=500;C.buyGear(s,'porter','breaker-hammer');s.location='west';C.buyGear(s,'porter','return-ring-1');C.buyGear(s,'porter','invasion-charm-2');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
+ const s=C.create();s.location='east';s.gold=500;C.buyGear(s,'porter','breaker-hammer');s.location='north';C.buyGear(s,'porter','return-ring-1');C.buyGear(s,'porter','invasion-charm-2');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
  const p=s.battle.units.find(u=>u.id==='porter');assert.equal(B.activeSkill(p),'porter');assert.equal(p.atk,0);assert.equal(p.canInvade,false);assert.equal(B.legalFor(s.battle,p,'attack','enemy-guard'),false);assert.equal(B.legalFor(s.battle,p,'return',0),true);
 });
 test('public battle actions save real once-per-battle flags and retreat resets next encounter',()=>{
- const s=C.create();s.location='west';C.buyGear(s,'guard','return-ring-1');C.buyGear(s,'guard','pioneer-gloves-2');
+ const s=C.create();s.location='north';C.buyGear(s,'guard','return-ring-1');C.buyGear(s,'guard','pioneer-gloves-2');
  C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
  function guardTurn(){for(let i=0;i<30&&s.battle.actor!=='guard'&&!s.battle.result;i++)assert.equal(C.act(s,'guard'),true);assert.equal(s.battle.actor,'guard');}
  guardTurn();assert.equal(C.act(s,'return',0),true);guardTurn();assert.equal(C.act(s,'move',1),true);
@@ -148,7 +148,7 @@ test('public battle actions save real once-per-battle flags and retreat resets n
  const fresh=s.battle.units.find(u=>u.id==='guard');assert.equal(fresh.returnUsed,undefined);assert.equal(fresh.firstMoveUsed,undefined);assert.equal(B.moveReach(fresh),3);
 });
 test('victory reward passes into campaign party once and survives reload',()=>{
- const s=C.create();s.location='west';C.buyGear(s,'guard','victory-earring-1');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
+ const s=C.create();s.location='north';C.buyGear(s,'guard','victory-earring-1');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
  for(let i=0;i<250&&!s.battle.result;i++){const copy=clone(s.battle),a=copy.units.find(u=>u.id===copy.actor);B.plan(copy,a);assert.equal(C.act(s,a.intent.kind,a.intent.target),true);}
  assert.ok(s.battle.result);assert.equal(s.battle.failure,undefined);
  const hero=s.battle.units.find(u=>u.id==='guard');assert.ok(hero.hp>0);const mp=hero.mp;

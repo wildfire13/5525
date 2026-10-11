@@ -1,6 +1,7 @@
 extends Control
 var engine
 var portraits=preload("res://portraits.gd").new()
+var icons=preload("res://ui_icons.gd").new()
 var audio
 var data: Dictionary={}
 var preview: Dictionary={}
@@ -23,6 +24,9 @@ var checks_fast := false
 var base: VBoxContainer
 var top: HBoxContainer
 var header: Label
+var resource_header: HBoxContainer
+var gold_header: Label
+var xp_header: Label
 var content: VBoxContainer
 var battle_row: HBoxContainer
 var board
@@ -77,6 +81,7 @@ func _ready():
 	top=HBoxContainer.new();top.custom_minimum_size.y=44;base.add_child(top)
 	actor_face=portrait(top,{},true,40);actor_face.visible=false
 	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
+	resource_header=row(top);gold_header=icons.line(self,resource_header,"money","");xp_header=icons.line(self,resource_header,"experience","")
 	town_back=button(top,"拠点へ",navigate.bind("board"));town_back.visible=false
 	local_button(top,"メニュー",open_menu)
 	retry_button=button(top,"再接続",func():confirm("ゲーム接続を再開します。失われた未保存の進行は復元できません。\n再接続後、保存済みファイルを読み込んでください。",reconnect_engine));retry_button.visible=false
@@ -117,7 +122,7 @@ func emphasize_low_hp(label: Label,unit: Dictionary):
 func row(parent: Node) -> HBoxContainer:
 	var r=HBoxContainer.new();r.add_theme_constant_override("separation",8);parent.add_child(r);return r
 func button(parent: Node,text: String,fn: Callable,disabled:=false) -> Button:
-	var b=Button.new();b.text=text;b.custom_minimum_size.y=44
+	var b=Button.new();b.text=text;b.custom_minimum_size.y=56 if size.x>=1800 and size.y>=1000 else 44
 	b.set_meta("base_disabled",disabled);b.disabled=disabled or locked or presenting or (engine!=null and engine.disconnected)
 	parent.add_child(b);widgets.append(b)
 	b.pressed.connect(func():
@@ -171,7 +176,9 @@ func confirm(text: String,fn: Callable):
 	var origin=get_viewport().gui_get_focus_owner()
 	var origin_key=str(origin.get_meta("ui_key","")) if origin!=null else memory.focus_key
 	var d=ConfirmationDialog.new();d.exclusive=true;d.title="確認";d.dialog_text=text;d.ok_button_text="はい";d.cancel_button_text="戻る"
-	add_child(d)
+	for button_ in [d.get_ok_button(),d.get_cancel_button()]:button_.custom_minimum_size=Vector2(96,56) if size.x>=1800 else Vector2(80,44)
+	if is_instance_valid(dialog.window) and dialog.window.visible:dialog.window.add_child(d)
+	else:add_child(d)
 	d.confirmed.connect(func():
 		if d.get_meta("submitted",false) or locked or presenting:return
 		d.set_meta("submitted",true);d.hide();d.queue_free();fn.call())
@@ -255,7 +262,7 @@ func reconnect_engine():
 	if engine.start_engine():await new_game()
 	else:notice=engine.last_error;render()
 func invalidate_preview():
-	if hud!=null:hud.discard_reference()
+	if hud!=null:hud.discard_reference();hud.invalidate_hover()
 	generation+=1;pending=null;chosen=[];preview={};preview_ready=false;preview_pending=false
 func handle_connection_loss(reply: Dictionary,connection: int) -> bool:
 	# Loss belongs to the connection, not to the preview that happened to detect it.
@@ -269,6 +276,7 @@ func new_game():
 	portraits.activate({"version":1,"characters":{}});audio.restore({});gear_preview={};page="board"
 	await update({"op":"campaign_start"})
 func navigate(value: String):
+	if not pages.party_view.guard_leave(navigate.bind(value)):return
 	invalidate_preview();page=value;pages.reset_items();pages.invalidate_quote(false);memory.focus_key="";render()
 func render():
 	if rendering:return
@@ -281,15 +289,18 @@ func render():
 		b.disabled=bool(b.get_meta("base_disabled",false)) or ((locked or presenting or (engine.disconnected and b!=retry_button)) and not b.get_meta("read_only",false))
 	retry_button.visible=engine.disconnected
 	var available=get_viewport_rect().size
+	content.add_theme_constant_override("separation",8)
 	ui_size_mode="standard" if available.x>=1120 and available.y>=720 else "compact"
-	var margin=12 if ui_size_mode=="standard" else 8
+	var margin=24 if available.x>=1800 and available.y>=1000 else 12 if ui_size_mode=="standard" else 8
 	base.offset_left=margin;base.offset_right=-margin;base.offset_top=margin;base.offset_bottom=-margin
-	theme.default_font_size=16
+	theme.default_font_size=22 if available.x>=1800 and available.y>=1000 else 18 if ui_size_mode=="standard" else 16
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
-	header.text="5525 / %s  %dG / 経験値%d・隊Lv.%d / 編成%d/5人 / 累計%d時間" % [town_name(place),c.get("gold",0),c.get("xp",0),c.get("level",1),c.get("selected",[]).size(),c.get("hours",0)]
+	header.text="5525 / %s / 隊Lv.%d / 編成%d/5人 / 累計%d時間" % [town_name(place),c.get("level",1),c.get("selected",[]).size(),c.get("hours",0)]
+	gold_header.text="%dG" % c.get("gold",0);xp_header.text="経験値%d" % c.get("xp",0)
 	header.tooltip_text=header.text+" / 経験値%d" % c.get("xp",0)
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
+	resource_header.visible=not battle and not (phase=="town" and page in ["party","shop"])
 	actor_face.visible=battle
 	town_back.visible=not battle and page in ["shop","party"] and phase=="town"
 	top.custom_minimum_size.y=56 if battle and ui_size_mode=="standard" else 44
@@ -322,6 +333,8 @@ func render():
 				_:render_town(body)
 		elif phase=="camp" and page=="items":render_items(body)
 		else:render_journey(body)
+		pages.party_view.face_bar(content)
+	pages.party_view.refresh_modal()
 	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else ("処理中…" if locked or preview_pending or pages.quote_pending else "演出中…" if presenting else focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消"))
 	rendering=false;memory.restore()
 func town_name(id) -> String:
@@ -402,6 +415,7 @@ func render_unit_details(parent: Node,s: Dictionary):
 func choose_command(value: String):
 	if locked or presenting or closing or hud.range_reference:return
 	if value=="items":hud.open_items();return
+	if value=="skill" and data.get("skillset",[]).is_empty() and hud.has_return():value="return"
 	invalidate_preview();command=value;hud.action_menu=false;hud.item_list=false;hud.selected_cell=-1;hud.selected_enemy=""
 	if value=="skill":await prepare_skill_preview()
 	render()
@@ -411,6 +425,7 @@ func prepare_skill_preview():
 		pending=state().actor
 		await request_preview("attack")
 func select_skill(id: String):
+	if id=="returnHome":choose_command("return");return
 	invalidate_preview();command="skill"
 	await update({"op":"select_skill","skillId":id})
 	await prepare_skill_preview()
@@ -472,7 +487,7 @@ func request_preview(which: String):
 func cancel():
 	if locked or presenting or closing:return
 	if hud.range_reference:hud.close_reference();return
-	if hud.item_list or command=="skill" and not hud.action_menu:hud.back_to_commands();return
+	if hud.item_list or command in ["skill","return"] and not hud.action_menu:hud.back_to_commands();return
 	if command in ["item","ether"] and not hud.action_menu:hud.open_items();return
 	var had_target=pending!=null or not chosen.is_empty()
 	invalidate_preview();hud.selected_cell=-1;hud.selected_enemy=""

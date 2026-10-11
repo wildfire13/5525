@@ -91,6 +91,8 @@ func run():
 	game.choose_command("guard");await settle()
 	check(game.command=="guard" and game.preview.is_empty() and game.pending==null,"command change invalidates previous request token")
 	await game.act("endTrial",[])
+	# R09: accessory trials now belong to North; armor trial above stays in West.
+	initial=await snapshot(game.engine);initial.state.location="north";await game.update({"op":"campaign_load","data":initial})
 	game.audio.ui_sound_started.connect(func(id):if id in ["victory","failure"]:sounds.append(id))
 	for trial in range(2):
 		await game.act("trial",["guard","victory-earring-1","accessory1"])

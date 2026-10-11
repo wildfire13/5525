@@ -4,3 +4,5 @@ qa/*.json
 qa/*.log
 qa/*.png
 qa/visual/
+qa/feedback-visual/
+reports/

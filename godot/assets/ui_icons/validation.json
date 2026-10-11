@@ -1,0 +1,28 @@
+{
+  "result": "PASS",
+  "png_count": 52,
+  "manifest_id_count": 52,
+  "unique_png_sha256_count": 52,
+  "all_png64_rgba": true,
+  "all_source_manifest_hashes_match": true,
+  "all_original_selected_source_hashes_match": true,
+  "all_copied_bytes_unchanged": true,
+  "minimum_transparent_margin_px": 4,
+  "maximum_content_dimension_px": 56,
+  "race_ids": [
+    "human_blank_face",
+    "elf_blank_face",
+    "dwarf_blank_face"
+  ],
+  "jobs": [
+    "warrior",
+    "scout",
+    "mage",
+    "porter"
+  ],
+  "skill_mapping_count": 19,
+  "formation_skill_icon": "skill",
+  "exp_logo_sha256": "97c9d88ae68d21c25770762d9690223302e39ce34d4326fac209a1bf4816887a",
+  "visual_spot_check": "Three right-facing blank heads and diagonal EXP logo inspected. Dwarf beard retained.",
+  "scope": "Asset bytes and mapping validation only. No game code changes, GPU import, or in-game QA performed."
+}
