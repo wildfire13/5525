@@ -33,6 +33,7 @@ var last_visual_phase := ""
 var projected_pitch := Vector2(64,48)
 var visual_height := 1.55
 var visual_width := 1.55
+var portrait_images: Dictionary = {}
 func _ready():
 	low_hp_font=FontVariation.new();low_hp_font.base_font=ThemeDB.fallback_font;low_hp_font.variation_embolden=1.0
 	custom_minimum_size=Vector2(120,80)
@@ -79,6 +80,41 @@ func unit_at(p: int) -> Dictionary:
 	for u in (data.get("state",{}) as Dictionary).get("units",[]):
 		if int(u.pos)==p and u.hp>0: return u
 	return {}
+func sprite_unit_at(at: Vector2) -> Dictionary:
+	# Inspect the nearest visible billboard pixel, rather than the floor behind it.
+	if not Rect2(Vector2.ZERO,size).has_point(at) or size.x<=0 or size.y<=0:return {}
+	var camera: Camera3D=world.camera
+	var scaled=at*Vector2(view.size)/size
+	var origin=camera.project_ray_origin(scaled);var direction=camera.project_ray_normal(scaled)
+	var normal=camera.global_basis.z;var denominator=direction.dot(normal)
+	if absf(denominator)<.00001:return {}
+	var nearest=INF;var result={}
+	for u in data.get("state",{}).get("units",[]):
+		if u.hp<=0 or not actors.has(u.id):continue
+		var sprite: Sprite3D=actors[u.id].sprite
+		if not sprite.is_visible_in_tree() or sprite.texture==null:continue
+		var distance=(sprite.global_position-origin).dot(normal)/denominator
+		if distance<0 or distance>=nearest:continue
+		var relative=origin+direction*distance-sprite.global_position
+		var scale_=sprite.global_basis.get_scale();var pixel_size=Vector2(scale_.x,scale_.y)*sprite.pixel_size
+		if pixel_size.x<=0 or pixel_size.y<=0:continue
+		var dimensions=Vector2(sprite.texture.get_size())
+		var pixel=Vector2(relative.dot(camera.global_basis.x),-relative.dot(camera.global_basis.y))/pixel_size+dimensions*.5
+		if not Rect2(Vector2.ZERO,dimensions).has_point(pixel):continue
+		var sample=Vector2i(floori(pixel.x),floori(pixel.y))
+		if sprite.flip_h:sample.x=int(dimensions.x)-1-sample.x
+		if sprite.flip_v:sample.y=int(dimensions.y)-1-sample.y
+		if not portrait_images.has(sprite.texture):
+			var image=sprite.texture.get_image()
+			if image==null:continue
+			if image.is_compressed() and image.decompress()!=OK:continue
+			portrait_images[sprite.texture]=image
+		if portrait_images[sprite.texture].get_pixelv(sample).a<sprite.alpha_scissor_threshold:continue
+		nearest=distance;result=u
+	return result
+func hover_unit_at(at: Vector2) -> Dictionary:
+	var u=sprite_unit_at(at)
+	return u if not u.is_empty() else unit_at(cell_at(at))
 func input_event(event):
 	if reference_mode and (event is InputEventKey and event.keycode in [KEY_ENTER,KEY_KP_ENTER] or event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_LEFT,MOUSE_BUTTON_RIGHT]):accept_event();return
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -107,7 +143,7 @@ func input_event(event):
 				if pos!=press_cell and not press_uid.is_empty() and data.get("state",{}).get("deploying",false): deploy_drag.emit(press_uid,pos)
 				else: cell_clicked.emit(pos)
 	if event is InputEventMouseMotion:
-		var u=unit_at(cell_at(event.position))
+		var u=hover_unit_at(event.position)
 		set_hover(str(u.get("id","")))
 func set_camera(mode: int):
 	camera_mode=mode%3;update_camera();overlay.queue_redraw()
@@ -204,6 +240,8 @@ func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, c
 		nodes.label.visible=false # Fixed-size 2D callouts and bars replace overlapping world labels.
 	for uid_ in actors.keys():
 		if not live_ids.has(uid_):actors[uid_].root.queue_free();actors.erase(uid_)
+	for texture in portrait_images.keys():
+		if not actors.values().any(func(nodes):return nodes.sprite.texture==texture):portrait_images.erase(texture)
 	ghost.visible=false
 	if preview.get("destination")!=null:
 		for u in state.get("units",[]):
