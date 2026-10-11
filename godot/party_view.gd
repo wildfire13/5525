@@ -178,9 +178,13 @@ func go_shop(uid: String,slot: String):
 	ui.shop_uid=uid;ui.shop_slot=slot;ui.page="shop";pages.gear_id="";pages.shop_view.from_party=true;pages.shop_view.back_list()
 func face_bar(parent):
 	var row=ui.row(parent);row.name="PartyFaceBar";row.custom_minimum_size.y=96 if ui.ui_size_mode=="standard" else 64
+	# Item target cards own HP/MP; the persistent portraits remain detail entry points.
+	var show_resources=parent.find_child("CampParty",true,false)==null and parent.find_child("ItemParty",true,false)==null
 	for id in pages.c().get("selected",[]):
 		var u=ui.roster().filter(func(member):return member.id==id)[0]
-		var control=b(row,"%s%s\nHP%d/%d MP%d/%d" % [u.name," 戦闘不能" if u.hp<=0 else "",u.hp,u.max,u.mp,u.maxMp],open_detail.bind(str(id)),ui.modal_open() or pages.shop_view.stage in ["S4","S5"] or pages.shop_view.unknown)
+		var caption=str(u.name)+(" 戦闘不能" if u.hp<=0 else "")
+		if show_resources:caption+="\nHP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]
+		var control=b(row,caption,open_detail.bind(str(id)),ui.modal_open() or pages.shop_view.stage in ["S4","S5"] or pages.shop_view.unknown)
 		control.name="PartyFace_"+str(id);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.icon=ui.portraits.texture(u,true);control.expand_icon=true;control.add_theme_constant_override("icon_max_width",48 if ui.ui_size_mode=="standard" else 28);control.clip_text=true;control.tooltip_text=control.text;ui.memory.key(control,"face_"+str(id))
 func open_detail(uid: String):
 	if ui.locked or ui.presenting or ui.modal_open():return
