@@ -70,7 +70,7 @@ func mount():
 	tools=HBoxContainer.new();tools.custom_minimum_size.y=32;board_column.add_child(tools)
 	ui.board=preload("res://battle_board.gd").new();ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";board_column.add_child(ui.board)
 	ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deploy_drag.connect(ui.deploy_dragged);ui.board.enemy_focused.connect(inspect_enemy)
-	ui.board.unit_hovered.connect(inspect_hover)
+	ui.board.unit_hovered.connect(inspect_hover.bind(ui.board))
 	intent_strip=HBoxContainer.new();intent_strip.name="FixedIntentStrip";intent_strip.custom_minimum_size.y=42;board_column.add_child(intent_strip)
 	bottom_commands=ui.row(board_column);bottom_commands.name="BottomCommands"
 	dock=Control.new();dock.clip_contents=true;dock.name="BattleDecision";dock.size_flags_vertical=Control.SIZE_EXPAND_FILL;middle.add_child(dock)
@@ -489,8 +489,10 @@ func formations(parent):
 		l(parent,"%s陣形 %s / 攻撃%s・被ダメージ%s" % ["味方" if team=="ally" else "敵","発動" if active else "未発動","×1.75" if boost else "×1.5" if active else "×1","×0.65" if boost else "×0.75" if active else "×1"])
 	l(parent,"陣形条件: 点線の3マスを同陣営の生存者で埋める。陣営全体への補正。防御・かばう・丸めは別。")
 
+func live_board(source: Node=null) -> bool:
+	return not ui.closing and is_instance_valid(ui.board) and ui.board.is_inside_tree() and not ui.board.is_queued_for_deletion() and (source==null or is_instance_valid(source) and source==ui.board)
 func render_person():
-	if not is_instance_valid(person_box):return
+	if not live_board() or not is_instance_valid(person_box) or not person_box.is_inside_tree() or person_box.is_queued_for_deletion():return
 	ui.clear(person_box)
 	var u=unit(inspected_uid)
 	if u.is_empty() and selected_cell>=0:u=ui.board.unit_at(selected_cell)
@@ -519,13 +521,14 @@ func render_person():
 		elif part.has("equipment"):suffix="装備%+d / AGI%d" % [part.equipment,part.agi]
 		ui.icons.line(ui,person_box,pair[2],pair[1]+" "+("未取得" if value==null else str(int(value)))+"（"+suffix+"）")
 	if ui.state().get("formationVersion")==1:l(person_box,"旧戦闘の陣形条件を継続中")
-func inspect_hover(uid: String):
+func inspect_hover(uid: String,source: Node=null):
+	if not live_board(source):return
 	inspected_uid=uid;render_person();refresh_hover()
 func invalidate_hover():
 	hover_generation+=1;hover_stamp=""
 	if is_instance_valid(ui.board):ui.board.hover_caption=""
 func refresh_hover():
-	if not is_instance_valid(ui.board):return
+	if not live_board():return
 	var uid=ui.board.hover_uid
 	var stamp=JSON.stringify([uid,ui.generation,ui.command,ui.chosen,action_menu,ui.state().get("actions"),ui.state().get("actor"),ui.data.get("skill")])
 	if stamp==hover_stamp:return
@@ -534,15 +537,15 @@ func refresh_hover():
 	if action_menu or ui.state().get("deploying",false) or ui.presenting or ui.data.get("presentation") is Dictionary or ui.command not in ["attack","skill","item","ether"]:
 		ui.board.hover_caption="行動を選択すると効果を予測" if action_menu else "命中：対象外";return
 	ui.board.hover_caption="予測取得中…"
-	request_hover(uid,hover_generation,ui.generation,ui.engine.connection_generation)
-func request_hover(uid: String,token: int,generation: int,connection: int):
+	request_hover(uid,hover_generation,ui.generation,ui.engine.connection_generation,ui.board)
+func request_hover(uid: String,token: int,generation: int,connection: int,source: Node):
 	while ui.engine.busy and not ui.closing:
 		await ui.get_tree().process_frame
-		if token!=hover_generation:return
-	if ui.closing or token!=hover_generation or ui.engine.disconnected:return
+		if token!=hover_generation or not live_board(source):return
+	if not live_board(source) or token!=hover_generation or ui.engine.disconnected:return
 	var reply=await ui.engine.request({"op":"hover_preview","kind":ui.command,"uid":uid,"chosen":ui.chosen.duplicate()})
 	if ui.handle_connection_loss(reply,connection):return
-	if ui.closing or token!=hover_generation or generation!=ui.generation or connection!=ui.engine.connection_generation or not is_instance_valid(ui.board) or ui.board.hover_uid!=uid:return
+	if not live_board(source) or token!=hover_generation or generation!=ui.generation or connection!=ui.engine.connection_generation or ui.board.hover_uid!=uid:return
 	if not reply.get("ok",false):ui.board.hover_caption="予測：未取得";return
 	var prediction=reply.get("hover",{})
 	if prediction.get("status")!="ready":ui.board.hover_caption="異なる2人の対象を指定" if prediction.get("status")=="needs_targets" else "対象外";return
