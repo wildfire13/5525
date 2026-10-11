@@ -31,6 +31,7 @@ steps.append(("Audio reconnect and load regression", common + ["--script", "res:
 steps.append(("October 11 feedback and canonical icons", common + ["--script", "res://tests/ui_feedback_regression.gd"], BASE))
 steps.append(("Independent UI review followup", common + ["--script", "res://tests/ui_review_fixes.gd"], BASE))
 steps.append(("Portrait hover and HUD lifecycle", common + ["--script", "res://tests/hover_regression.gd"], BASE))
+steps.append(("Delayed hover responses after board destruction", common + ["--script", "res://tests/hover_lifetime_regression.gd"], BASE))
 steps.append(("Candidate launcher", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/launcher_checks.py"), args.godot], BASE))
 if args.full:
     steps.append(("Full native regression", [sys.executable, "-X", "utf8", "-B", "check.py"], ROOT / "native"))
