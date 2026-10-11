@@ -2,6 +2,7 @@ extends Control
 signal cell_clicked(pos: int)
 signal enemy_focused(uid: String)
 signal deploy_drag(uid: String, pos: int)
+signal unit_hovered(uid: String)
 const CELL = 1.35
 var units: Array = [] # Demo scenery consumes an empty visual roster; gameplay is below.
 var camera_mode := 0
@@ -26,6 +27,7 @@ var hit_tween: Tween
 var low_hp_font: FontVariation
 var inspected_enemy := ""
 var hover_uid := ""
+var hover_caption := ""
 var keyboard_cell := 24
 var last_visual_phase := ""
 var projected_pitch := Vector2(64,48)
@@ -53,7 +55,12 @@ func _ready():
 	resized.connect(func():call_deferred("update_camera"))
 	call_deferred("update_camera")
 	gui_input.connect(input_event)
-	mouse_exited.connect(func():hover_uid="";tooltip_text="";overlay.queue_redraw())
+	mouse_exited.connect(func():set_hover(""))
+	focus_entered.connect(func():set_hover(str(unit_at(keyboard_cell).get("id",""))))
+	focus_exited.connect(func():set_hover(""))
+func set_hover(uid: String):
+	if uid==hover_uid:return
+	hover_uid=uid;tooltip_text="";hover_caption="";unit_hovered.emit(uid);overlay.queue_redraw()
 func cell_world(c: Vector2i) -> Vector3:
 	return Vector3((c.x-4.5)*CELL,.15,(c.y-2.0)*CELL)
 func point(p: int) -> Vector3: return cell_world(Vector2i(p%10,p/10))
@@ -83,7 +90,7 @@ func input_event(event):
 			KEY_DOWN:y=mini(4,y+1)
 			KEY_ENTER,KEY_KP_ENTER:cell_clicked.emit(keyboard_cell);accept_event();return
 			_:return
-		keyboard_cell=y*10+x;accept_event();overlay.queue_redraw();return
+		keyboard_cell=y*10+x;set_hover(str(unit_at(keyboard_cell).get("id","")));accept_event();overlay.queue_redraw();return
 	if event is InputEventMouseButton:
 		if event.button_index==MOUSE_BUTTON_RIGHT and event.pressed:
 			var inspected=unit_at(cell_at(event.position))
@@ -101,12 +108,7 @@ func input_event(event):
 				else: cell_clicked.emit(pos)
 	if event is InputEventMouseMotion:
 		var u=unit_at(cell_at(event.position))
-		hover_uid=str(u.get("id",""))
-		tooltip_text=str(u.get("name",""))
-		if not u.is_empty():
-			tooltip_text+="\nHP %d/%d  MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]
-			for e in data.get("enemyInfo",[]):
-				if e.id==u.id:tooltip_text+="\n通常射程 %d / %s %s\n%s" % [e.normalReach,e.skill,"同横列・経路条件" if e.skillReach==null else str(e.skillReach),e.reason]
+		set_hover(str(u.get("id","")))
 func set_camera(mode: int):
 	camera_mode=mode%3;update_camera();overlay.queue_redraw()
 func compact_board() -> bool:return size.y<300
@@ -260,7 +262,7 @@ func draw_overlay():
 		for stripe in [-8,0,8]:overlay.draw_line(center+Vector2(stripe-6,-7),center+Vector2(stripe+6,7),Color(1,.45,.55,.65),1.0,true)
 		overlay.draw_string(ThemeDB.fallback_font,project_cell(p)+Vector2(14,-8),"!%d" % threats[p],HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color.WHITE)
 	for side in ["ally","enemy"]:
-		var slots=[24,13,33] if side=="ally" else [25,16,36]
+		var slots=data.get("formationSlots",{}).get(side,[24,13,33] if side=="ally" else [25,16,36])
 		var active=data.get("formed",{}).get(side,false)
 		var color=Color("#ffe197") if active else Color(.82,.8,.62,.6)
 		for i in range(3):
@@ -310,16 +312,13 @@ func draw_unit_labels(state: Dictionary):
 			else:overlay.draw_colored_polygon(PackedVector2Array([badge+Vector2(0,-4),badge+Vector2(3,3),badge+Vector2(-3,3)]),color)
 			if u.get("guard",false):overlay.draw_rect(Rect2(at-Vector2(width*.5+1,1),Vector2(width+2,6)),Color("#ffe197"),false,1)
 		else:overlay.draw_string(ThemeDB.fallback_font,at+Vector2(-24,-5),("味" if u.side=="ally" else "敵")+(" 防" if u.get("guard",false) else ""),HORIZONTAL_ALIGNMENT_LEFT,-1,16,color)
-		if u.id!=hover_uid:continue
-		var per_column=maxi(1,int((size.y-20)/48))
-		var rect=Rect2(Vector2(6 if shown.size()<per_column else maxf(6,size.x-158),8+(shown.size()%per_column)*48),Vector2(152,44))
-		shown.append(rect)
-		overlay.draw_line(project_cell(int(u.pos)),rect.position+rect.size/2,Color(color,.65),1.0,true)
-		overlay.draw_rect(rect,Color(.04,.1,.14,.92));overlay.draw_rect(rect,color,false,1.0)
-		var full=str(u.name);var short=full.left(7)+"…" if full.length()>8 else full
-		var font=low_hp_font if low else ThemeDB.fallback_font
-		overlay.draw_string(font,rect.position+Vector2(5,18),short,HORIZONTAL_ALIGNMENT_LEFT,142,16,color)
-		overlay.draw_string(font,rect.position+Vector2(5,37),"HP %d/%d" % [u.hp,u.max],HORIZONTAL_ALIGNMENT_LEFT,142,16,color)
+		if u.id!=hover_uid or hover_caption.is_empty():continue
+		var lines=hover_caption.split("\n");var width_=minf(330,size.x-12);var height_=lines.size()*24+12
+		var origin=project_cell(int(u.pos))+Vector2(18,-height_-18)
+		origin.x=clampf(origin.x,6,maxf(6,size.x-width_-6));origin.y=clampf(origin.y,6,maxf(6,size.y-height_-6))
+		var rect=Rect2(origin,Vector2(width_,height_))
+		overlay.draw_rect(rect,Color(.04,.1,.14,.95));overlay.draw_rect(rect,color,false,1.0)
+		for i in range(lines.size()):overlay.draw_string(ThemeDB.fallback_font,origin+Vector2(6,23+i*24),lines[i],HORIZONTAL_ALIGNMENT_LEFT,width_-12,18,Color.WHITE)
 func reset_animation():
 	if hit_tween and hit_tween.is_running():hit_tween.kill()
 	hit_tween=null

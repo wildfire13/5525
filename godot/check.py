@@ -28,6 +28,7 @@ for name, script in [("Pipe bridge", "bridge_smoke.gd"), ("Frontend controls", "
     steps.append((name, common + ["--script", "res://tests/" + script], BASE))
 steps.append(("Fault handling and shutdown", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/audit_checks.py"), args.godot], BASE))
 steps.append(("Audio reconnect and load regression", common + ["--script", "res://tests/audio_regression.gd"], BASE))
+steps.append(("October 11 feedback and canonical icons", common + ["--script", "res://tests/ui_feedback_regression.gd"], BASE))
 steps.append(("Candidate launcher", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/launcher_checks.py"), args.godot], BASE))
 if args.full:
     steps.append(("Full native regression", [sys.executable, "-X", "utf8", "-B", "check.py"], ROOT / "native"))
@@ -39,6 +40,8 @@ report = {
     "subjectiveListening": False,
     "steps": [],
 }
+target = BASE / "qa" / "headless-report.json"
+target.parent.mkdir(exist_ok=True)
 for name, command, cwd in steps:
     start = time.monotonic()
     try:
@@ -55,8 +58,12 @@ for name, command, cwd in steps:
                      stdout=decoded(exc.stdout), stderr=decoded(exc.stderr))
     entry["seconds"] = round(time.monotonic() - start, 3)
     report["steps"].append(entry)
+    report["passed"] = False
+    report["complete"] = False
+    target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(("PASS " if entry["passed"] else "FAIL ") + name, flush=True)
 report["passed"] = all(step["passed"] for step in report["steps"])
+report["complete"] = True
 target = BASE / "qa" / "headless-report.json"
 target.parent.mkdir(exist_ok=True)
 target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

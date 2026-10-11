@@ -9,7 +9,7 @@ function stalled(){
   const s=C.create();let seed=6;const rng=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
   assert(C.accept(s,C.board(s)[0].id));assert(C.depart(s,'east'));
   for(let leg=0;leg<2;leg++){
-    assert(C.travel(s,'short',rng));assert(C.begin(s));
+    assert(C.travel(s,'short',rng));s.battle.formationVersion=1;assert(C.begin(s)); // R04 retained seed-6 legacy battle reproduction.
     for(let n=0;n<200&&!s.battle.result;n++){
       if(s.battle.units.filter(u=>u.side==='ally'&&u.hp>0).every(u=>u.job==='porter'))break;
       const copy=clone(s.battle),a=copy.units.find(u=>u.id===copy.actor);B.plan(copy,a);let {kind,target}=a.intent;

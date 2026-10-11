@@ -56,7 +56,7 @@ class CampaignBridgeTests(unittest.TestCase):
         self.assertEqual(self.data['campaign']['completed'],2);xp=self.data['campaign']['xp']
         third=self.journey('north',quest=False);self.assertEqual((third['gold'],third['xp'],third['outcome']),(0,0,'travel'))
         self.assertGreater(self.data['campaign']['xp'],xp);self.assertEqual(self.data['campaign']['completed'],2)
-        saved=self.save();self.action('arrive',ok=False);self.assertEqual(self.save(),saved);self.assertEqual(self.data['campaign']['shop'],[])
+        saved=self.save();self.action('arrive',ok=False);self.assertEqual(self.save(),saved);self.assertTrue(self.data['campaign']['shop']);self.assertTrue(all(g['type']=='accessory' for g in self.data['campaign']['shop']))
     def test_malformed_battle_save_does_not_replace_live_state(self):
         generator = r"""
 const C=require('./campaign.js'); let seed=0;

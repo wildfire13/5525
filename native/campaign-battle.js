@@ -60,7 +60,10 @@ const Battle = (() => {
   const cell = (board,p) => Math.floor(p/5)*10 + p%5 + (board==='enemy'?5:0);
   const screen = (_,p) => ({x:x(p)%5,y:y(p)});
   const slots = {ally:[24,13,33],enemy:[25,16,36]};
-  const formation = (s,side="ally") => slots[side].every(p=>alive(s).some(u=>u.side===side&&u.pos===p));
+  // R04: unversioned standalone fixtures retain their original rules. Product
+  // campaigns explicitly create version 2; loaded running legacy battles use 1.
+  const formationSlots = s => ({ally:s.formationVersion===2&&s.formationKind==='convoy'?[23,12,32]:[...slots.ally],enemy:[...slots.enemy]});
+  const formation = (s,side="ally") => formationSlots(s)[side].every(p=>alive(s).some(u=>u.side===side&&u.pos===p));
   // 仮接続：槌装備でスタンプを試せる。完成版の習得・使用条件は未決定。
   const activeSkills = a => a.activeSkills||[a.job==='porter'?'porter':(a.equippedSkill || (a.weapon==='hammer'?'stamp':a.job))];
   const activeSkill = a => activeSkills(a).includes(a.selectedSkill)?a.selectedSkill:(a.activeSkills?activeSkills(a)[0]||null:a.job==='porter'?'porter':(a.equippedSkill || (a.weapon==='hammer'?'stamp':a.job)));
@@ -222,6 +225,13 @@ const Battle = (() => {
     if(contribution.base>0)receive(s,b,power(s,a,contribution.base),undefined,contribution);
   }
   // Run the exact action on a detached copy; no turn advance or live events.
+  function effectPreview(s,a,kind,target) {
+    if(!legalFor(s,a,kind,target))return [];
+    const copy=JSON.parse(JSON.stringify(s)),actor=copy.units.find(u=>u.id===a.id);
+    const landing=kind==='skill'&&activeSkill(actor)==='scout'?ambush(copy,actor,copy.units.find(u=>u.id===target))?.destination:undefined;
+    apply(copy,actor,kind,target,landing);
+    return copy.units.map(u=>{const old=s.units.find(v=>v.id===u.id);return {id:u.id,hp:u.hp-old.hp,mp:u.mp-old.mp,guard:u.guard&&!old.guard,boost:u.boost&&!old.boost,cover:u.cover!==old.cover?u.cover:null,covers:JSON.stringify(u.covers)!==JSON.stringify(old.covers)?u.covers:[]};}).filter(e=>e.hp||e.mp||e.guard||e.boost||e.cover||e.covers?.length);
+  }
   function damagePreview(s,a,kind,target) {
     if(!['attack','skill'].includes(kind)||!legalFor(s,a,kind,target))return [];
     const copy=JSON.parse(JSON.stringify(s)),actor=copy.units.find(u=>u.id===a.id);
@@ -302,7 +312,7 @@ const Battle = (() => {
         units.push({...t,id:side==='ally'?t.id:'enemy-'+t.id,side,name:side==='ally'?t.name:'敵'+t.role+(options.enemy?' '+(index+1):''),pos:side==='ally'?t.pos:y(t.pos)*10+9-x(t.pos),hp:old?.hp??t.max,mp:old?.mp??maxMp,maxMp,skillStage:options.skillStage,next:100/t.agi,guard:false,cover:null,tie:roleIndex*4+(side===(roleIndex%2?'ally':'enemy')?0:1)+index*.01});
       });
     }
-    const s={units,actor:null,result:null,potions:{ally:options.potions??3,enemy:options.enemyPotions??3},log:[options.ally?'荷物を守り、街道を切り抜けよう。':'4対4ミラーマッチ。スカウトだけが敵陣へ踏み込める。'],actions:0,recentEnemies:[]};if(options.ethers!==undefined)s.ethers=options.ethers;if(options.deployment){s.deploying=true;return s;}units.filter(u=>u.side==='enemy').forEach(u=>plan(s,u));advance(s);return s;
+    const s={...(options.formationVersion?{formationVersion:options.formationVersion,formationKind:options.formation||'convoy'}:{}),units,actor:null,result:null,potions:{ally:options.potions??3,enemy:options.enemyPotions??3},log:[options.ally?'荷物を守り、街道を切り抜けよう。':'4対4ミラーマッチ。スカウトだけが敵陣へ踏み込める。'],actions:0,recentEnemies:[]};if(options.ethers!==undefined)s.ethers=options.ethers;if(options.deployment){s.deploying=true;return s;}units.filter(u=>u.side==='enemy').forEach(u=>plan(s,u));advance(s);return s;
   }
   function deploy(s,id,pos){
     const a=alive(s).find(u=>u.id===id&&u.side==='ally');
@@ -319,6 +329,6 @@ const Battle = (() => {
   }
   function act(s,kind,target){if(!legal(s,kind,target))return false;const a=s.units.find(u=>u.id===s.actor);s.recentEnemies=[];const jump=kind==='skill'&&activeSkill(a)==='scout'?ambush(s,a,s.units.find(u=>u.id===target)):null;apply(s,a,kind,target,jump?.destination);a.next+=100/a.agi;s.actions++;advance(s);return true;}
   function queue(s){const copies=alive(s).map(u=>({...u})),result=[];for(let i=0;i<10&&copies.length;i++){copies.sort(order);result.push({id:copies[0].id,name:copies[0].name,side:copies[0].side});copies[0].next+=100/copies[0].agi;}return result;}
-  return {stepEnemy,damagePreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
+  return {stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
 })();
 if(typeof module!=='undefined')module.exports=Battle;

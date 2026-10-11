@@ -10,6 +10,10 @@ class CampaignFormationTests(unittest.TestCase):
         self.bridge.call(op='campaign_start')
         for action,args in [('depart',['north']),('travel',['safe']),('begin',[])]:
             self.assertTrue(self.bridge.call(op='campaign',action=action,args=args)['ok'])
+        # R04: retained Python label regression resumes an already-started legacy battle.
+        saved=self.bridge.call(op='campaign_save')['data']
+        saved['state']['battle']['formationVersion']=1
+        self.assertTrue(self.bridge.call(op='campaign_load',data=saved)['ok'])
     def test_live_normal_boost_and_broken_formation_are_readonly(self):
         data=self.bridge.call(op='view');before=deepcopy(data)
         text='\n'.join(campaign_formation_info(data))

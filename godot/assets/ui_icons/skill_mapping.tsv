@@ -1,0 +1,20 @@
+﻿skill_id	label_ja	icon_id	kind_ja	granting_equipment_ja
+swift	俊足	feet	パッシブ	俊足の靴（試作）
+retreatSlash	退き斬り	sheet_one_handed_sword	アクティブ	引き波の剣
+knockback	吹き飛ばし	sheet_hammer	アクティブ	突き崩しの槌
+splitShot	分け撃ち	sheet_bow	アクティブ	双射の弓
+pincer	挟撃	dagger	アクティブ	相棒の短剣
+healingCross	癒しの輪	sheet_staff	アクティブ	憩いの杖
+defenseLine	防衛線	sheet_shield	アクティブ	戦列の盾
+manaGift	魔力譲渡	book	アクティブ	分かちの魔導書
+returnHome	帰還	accessory	アクティブ	帰り路の指輪［装飾1］ 、 帰り路の指輪［装飾2］
+victoryBreath	一息	accessory	パッシブ	凱歌の耳飾り［装飾1］ 、 凱歌の耳飾り［装飾2］
+loneWolf	孤軍	accessory	パッシブ	一匹狼の指輪［装飾1］ 、 一匹狼の指輪［装飾2］
+firstStride	先駆け	accessory	パッシブ	先駆者の手袋［装飾1］ 、 先駆者の手袋［装飾2］
+invasion	侵入	accessory	パッシブ	侵入用装飾品（既存効果の仮枠化）［装飾1］ 、 侵入用装飾品（既存効果の仮枠化）［装飾2］
+archer	スナイプ	sheet_bow	アクティブ	木製の遠見弓 、 木製の遠見弓＋1 、 銀製の遠見弓＋2
+mage	ヒール	sheet_staff	アクティブ	木製の癒し杖 、 銀製の癒し杖＋1
+scout	奇襲	dagger	アクティブ	木製の奇襲短剣
+stamp	スタンプ	sheet_hammer	アクティブ	木製のスタンプ槌 、 鉄製のスタンプ槌＋1
+porter	陣形強化	skill	アクティブ	運搬用の手道具（仮）
+guard	かばう	sheet_shield	アクティブ	木製の護衛盾 、 鉄製の護衛盾＋1

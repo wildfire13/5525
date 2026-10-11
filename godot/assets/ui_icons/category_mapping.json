@@ -1,0 +1,117 @@
+[
+  {
+    "id": "races",
+    "label_ja": "種族",
+    "count": 3,
+    "icon_ids": [
+      "human_blank_face",
+      "elf_blank_face",
+      "dwarf_blank_face"
+    ]
+  },
+  {
+    "id": "jobs",
+    "label_ja": "ジョブ",
+    "count": 4,
+    "icon_ids": [
+      "warrior",
+      "scout",
+      "mage",
+      "porter"
+    ]
+  },
+  {
+    "id": "stats",
+    "label_ja": "能力・状態",
+    "count": 8,
+    "icon_ids": [
+      "strength",
+      "intelligence",
+      "speed",
+      "hp",
+      "mp",
+      "money",
+      "attribute_points",
+      "experience"
+    ]
+  },
+  {
+    "id": "commands",
+    "label_ja": "コマンド",
+    "count": 5,
+    "icon_ids": [
+      "attack",
+      "move",
+      "skill",
+      "items",
+      "defend"
+    ]
+  },
+  {
+    "id": "slots",
+    "label_ja": "装備部位",
+    "count": 7,
+    "icon_ids": [
+      "right_hand",
+      "left_hand",
+      "head",
+      "body",
+      "trousers",
+      "feet",
+      "accessory"
+    ]
+  },
+  {
+    "id": "weapons",
+    "label_ja": "武器種",
+    "count": 12,
+    "icon_ids": [
+      "sheet_one_handed_sword",
+      "sheet_two_handed_sword",
+      "sheet_spear",
+      "sheet_bow",
+      "sheet_hammer",
+      "sheet_staff",
+      "sheet_shield",
+      "sheet_throwing_javelin",
+      "gun",
+      "dagger",
+      "book",
+      "unarmed"
+    ]
+  },
+  {
+    "id": "items",
+    "label_ja": "消耗品",
+    "count": 2,
+    "icon_ids": [
+      "potion",
+      "ether"
+    ]
+  },
+  {
+    "id": "places",
+    "label_ja": "拠点・施設",
+    "count": 7,
+    "icon_ids": [
+      "castle",
+      "village",
+      "inn",
+      "weapon_shop",
+      "armor_shop",
+      "item_shop",
+      "accessory_shop"
+    ]
+  },
+  {
+    "id": "effects",
+    "label_ja": "効果（共通）",
+    "count": 4,
+    "icon_ids": [
+      "healing",
+      "attack_up",
+      "defense_up",
+      "damage"
+    ]
+  }
+]

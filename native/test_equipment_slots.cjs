@@ -31,12 +31,12 @@ test('same item and invalid slots rejected atomically; same skill different sour
  roundtrip(s);
 });
 test('passives coexist, legacy duplicate effect copies load without stacking',()=>{
- const s=town('west');assert.ok(C.buyGear(s,'guard','victory-earring-1','accessory1'));assert.ok(C.buyGear(s,'guard','lone-ring-2','accessory2'));
+ const s=town('north');assert.ok(C.buyGear(s,'guard','victory-earring-1','accessory1'));assert.ok(C.buyGear(s,'guard','lone-ring-2','accessory2'));
  assert.deepEqual(C.stats(s.characters.guard).effects,['victoryBreath','loneWolf']);roundtrip(s);
  assert.ok(C.buyGear(s,'guard','victory-earring-2','accessory2'));const st=C.stats(s.characters.guard);assert.deepEqual(st.effects,['victoryBreath']);assert.equal(st.skillSources.filter(x=>x.id==='victoryBreath').length,2);roundtrip(s);
 });
 test('return remains once per battle across selection changes and save reload',()=>{
- const s=town('west');C.buyGear(s,'guard','return-ring-1');s.location='east';C.buyGear(s,'guard','undertow-sword','rightHand');C.buyGear(s,'guard','battleline-shield','leftHand');
+ const s=town('north');C.buyGear(s,'guard','return-ring-1');s.location='east';C.buyGear(s,'guard','undertow-sword','rightHand');C.buyGear(s,'guard','battleline-shield','leftHand');
  const b=battle(s),a=turn(b,'guard');assert.ok(B.selectSkill(b,'defenseLine'));assert.ok(C.act(s,'return',0));turn(b,'guard');assert.ok(B.selectSkill(b,'retreatSlash'));assert.equal(B.legal(b,'return',1),false);
  const loaded=C.deserialize(C.serialize(s));assert.equal(loaded.battle.units.find(u=>u.id==='guard').returnUsed,true);assert.equal(B.legal(loaded.battle,'return',1),false);
 });

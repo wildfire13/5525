@@ -9,9 +9,11 @@ var checkpoint: Dictionary={}
 var origin := ""
 var epoch := -1
 var connection := -1
+var close_guard: Callable
 func _init(frontend):ui=frontend
 func open(title: String, builder: Callable, closed: Callable=Callable()) -> Window:
 	close(false)
+	close_guard=Callable()
 	ui.memory.capture();checkpoint=ui.memory.scrolls.duplicate(true);origin=ui.memory.focus_key
 	epoch=ui.pages.epoch;connection=ui.engine.connection_generation;restore_callback=closed
 	window=Window.new();window.name="StateDetails";window.title=title;window.exclusive=true;window.transient=true;window.unresizable=true
@@ -37,7 +39,11 @@ func resize():
 	window.position=Vector2i((ui.size-Vector2(window.size))/2)
 func close(restore:=true):
 	if not is_instance_valid(window):return
+	if restore and close_guard.is_valid():
+		var finish=func():close_guard=Callable();close(restore)
+		if not close_guard.call(finish):return
 	var old=window;window=null;old.hide();old.queue_free()
+	close_guard=Callable()
 	var valid=restore and not ui.closing and epoch==ui.pages.epoch and connection==ui.engine.connection_generation
 	if valid:
 		if restore_callback.is_valid():restore_callback.call()

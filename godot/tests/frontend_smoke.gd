@@ -117,7 +117,7 @@ func run():
 	await game.new_game();await game.load_game(file)
 	check(game.portraits.metadata.characters.has("guard"),"portrait restored from embedded save")
 	DirAccess.remove_absolute(file)
-	game.audio.close_audio();game.engine.close_engine()
+	game.closing=true;game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine()
 	await create_timer(.15).timeout
 	game.queue_free();await process_frame
 	print(JSON.stringify({"suite":"frontend_smoke","checks":count,"failures":failures,"visual_review":false,"audio_driver":"Dummy"}))

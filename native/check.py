@@ -16,6 +16,7 @@ steps=[
  ('Dual normal attacks',['node','test_dual_attack.cjs']),
  ('Dual skill attacks',['node','test_dual_skills.cjs']),
  ('Support skill reach',['node','test_support_reach.cjs']),
+ ('October 11 feedback rules',['node','test_ui_feedback_rules.cjs']),
  ('Old save equipment migration',['node','test_equipment_migration.cjs']),
  ('Two-handed occupancy',['node','test_two_handed.cjs']),
  ('New weapon variants',['node','test_weapon_variations.cjs']),

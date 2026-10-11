@@ -36,7 +36,7 @@ func shop_party():
 		portrait_check(game,member,"UI2-05","ShopMemberPortrait")
 		game.pages.shop_view.confirm_purchase();await settle();portrait_check(game.dialog.window,member,"UI2-05","ConfirmationMemberPortrait")
 		game.dialog.close();await settle();game.pages.shop_view.back_list();await settle()
-		var row=node("Product_spear-wood");check("UI2-06",row.size.y<=72,"short eligible product row is compact: "+str(row.size))
+		var row=node("Product_spear-wood");check("UI2-06",row.size.y<=(88 if dims.x>=1800 else 72),"R11 short product row fits its canonical icon and readable type: "+str(row.size))
 		var label=game.pages.shop_view.row_labels["spear-wood"];check("UI2-06",label.text.contains("装備可") and label.size.y<=row.size.y-8,"canonical condition remains visible on compact product row")
 		if game.ui_size_mode=="standard":check("UI2-06",node("ShopProductsScroll").size.x<=380 and node("ShopProductsScroll").size.x<node("GearQuote").get_parent().size.x,"wide comparison receives more width than product list")
 		game.navigate("party");game.pages.party_uid="guard";game.pages.party_view.tab=0;game.render();await settle()

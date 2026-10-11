@@ -208,7 +208,7 @@ class VoiceTests(unittest.TestCase):
             with self.subTest(skill=skill):
                 bridge.call(op='campaign_start')
                 saved = bridge.call(op='campaign_save')['data']
-                saved['state']['location'] = 'west' if skill == 'returnHome' else 'east'
+                saved['state']['location'] = 'north' if skill == 'returnHome' else 'east'
                 self.assertTrue(bridge.call(op='campaign_load', data=saved)['ok'])
                 data = bridge.call(op='campaign', action='trial', args=[uid, gear])
                 self.assertTrue(data['ok'], data.get('error'))
@@ -246,7 +246,7 @@ class VoiceTests(unittest.TestCase):
                                     ('pioneer-gloves-1', 'firstStride', 'move')]:
             bridge.call(op='campaign_start')
             saved = bridge.call(op='campaign_save')['data']
-            saved['state']['location'] = 'west'
+            saved['state']['location'] = 'north'
             self.assertTrue(bridge.call(op='campaign_load', data=saved)['ok'])
             data = bridge.call(op='campaign', action='trial', args=['mage', gear])
             self.assertTrue(data['ok'])

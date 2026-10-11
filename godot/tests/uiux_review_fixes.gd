@@ -63,7 +63,7 @@ func run():
 	var result={"passed":failures.is_empty(),"checks":checks,"failures":failures,"frames":frames,"tag":tag,"input":"Godot callbacks with explicit real Control focus","visible_render":visual,"subjective_listening":false,"os_150_percent":false,"fixtures":"Independent review fixtures plus a labeled synthetic porter->enemy-healer attack sequence"}
 	var f=FileAccess.open(evidence.path_join("reports/"+tag+"-results.json"),FileAccess.WRITE);f.store_string(JSON.stringify(result,"  "));f.close()
 	print("REVIEW FIXES ",checks.size()," FAILURES ",failures.size()," FRAMES ",frames.size())
-	await settle();await game.audio.finish_audio();game.engine.close_engine();await create_timer(.2).timeout;game.queue_free()
+	await settle();game.closing=true;game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine();await create_timer(.2).timeout;game.queue_free()
 	for i in range(5):await process_frame
 	quit(0 if failures.is_empty() else 1)
 func shop():

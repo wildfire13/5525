@@ -9,7 +9,7 @@ const definitions = {
   healingCross:{name:'癒しの輪',classification:'active',cost:2,reach:2,target:'unit',description:'射程2の生存味方を中心に、中心＋上下左右の生存味方のHPを各30回復。MP2。'},
   defenseLine:{name:'防衛線',classification:'active',cost:1,reach:1,target:'upToTwo',description:'縦横隣接の味方を1～2人指定。次の本人の番までかばう。同じ対象の重複指定不可。MP1。'},
   manaGift:{name:'魔力譲渡',classification:'active',cost:0,reach:2,target:'unit',description:'射程2の別の生存味方へMPを最大2移譲。自分の残量・相手の空き分まで。総量は増えない。1行動。'},
-  returnHome:{name:'帰還',classification:'active',cost:0,reach:null,target:'cell',description:'1戦1回、自陣の指定空きマスへ帰還。MP0、1行動。装備中は専用「帰還」ボタン。'},
+  returnHome:{name:'帰還',classification:'active',cost:0,reach:null,target:'cell',description:'1戦1回、自陣の指定空きマスへ帰還。MP0、1行動。装備中はスキル一覧から選択。'},
   victoryBreath:{name:'一息',classification:'passive',description:'勝利時、生存している装備者のMPを2回復（上限まで）。重複装備しても1回。'},
   loneWolf:{name:'孤軍',classification:'passive',description:'別の生存味方と縦横隣接していない間、与ダメージ125%。重複装備しても1回。'},
   firstStride:{name:'先駆け',classification:'passive',description:'各戦闘の最初の移動だけ経路3まで。短い移動・入替でも消費。侵入制限は変わらない。'},
