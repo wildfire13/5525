@@ -135,7 +135,7 @@ func run():
 	check(not chart.buttons.astaris.disabled and not chart.buttons.east.disabled and not chart.buttons.west.disabled and chart.buttons.south.disabled,"R08 North has exactly city and adjacent East/West routes")
 	game.navigate("shop")
 	check(contains("ノースの装飾品店") and game.pages.shop_view.slots()==["accessory1","accessory2"],"R09 North opens the canonical accessory shop with both slots")
-	var stock=initial.duplicate(true);stock.state.location="south";stock.state.gold=39;stock.state.inventory.potion=99
+	var stock=initial.duplicate(true);stock.state.location="south";stock.state.gold=39;stock.state.characters.guard.inventory.potion=99
 	await restore(stock);game.navigate("shop")
 	var one=game.find_children("*","Button",true,false).filter(func(v):return v.text=="1個購入")
 	check(one.size()==2 and one[0].disabled and not one[1].disabled,"item purchase respects cap and affordability")

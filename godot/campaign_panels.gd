@@ -164,6 +164,19 @@ func use_selected_item(uid: String):
 	await ui.act("useItem",[item_id,uid])
 func items(parent):
 	if c().phase not in ["town","camp"]:l(parent,"町・野営で使用できます");return
+	if c().has("inventoryByCharacter"):
+		l(parent,"インベントリ / 所持者を選択",true)
+		var members=row(parent);members.name="CampParty" if c().phase=="camp" else "ItemParty"
+		for uid in c().get("selected",[]):
+			var u=roster().filter(func(member):return member.id==uid)[0]
+			var member=card(members);member.name="ItemMember_"+str(uid);member.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
+			var portrait=ui.portrait(member,u,false,64);portrait.name="FullBodyPortrait";portrait.custom_minimum_size=Vector2(64,160 if ui.ui_size_mode=="standard" else 96);portrait.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+			var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;ui.short_name(name_label,str(u.name))
+			var hp=ui.icons.line(ui,member,"hp","HP %d/%d" % [u.hp,u.max]);ui.emphasize_low_hp(hp,u)
+			ui.icons.line(ui,member,"mp","MP %d/%d" % [u.mp,u.maxMp])
+			if u.hp<=0:l(member,"戦闘不能")
+			b(member,"インベントリ",party_view.open_inventory.bind(str(uid))).name="InventoryOwner_"+str(uid)
+		return
 	var catalog=ItemMenu.definitions(c());var inventory: Dictionary=c().inventory
 	var selected_item={}
 	for item in catalog:
@@ -212,11 +225,18 @@ func shop(parent):
 	if location not in ["east","west","north"]:l(parent,{"south":"サウスの道具屋"}.get(location,"この拠点にお店はありません")+" / 所持金%dG" % c().get("gold",0),true)
 	if location=="south":
 		var body=ui.scroller(parent);ui.memory.watch(body.get_parent(),"consumable_shop")
-		muted(body,"所持上限は各99個（試作値）。回復量はHP+55 / MP+3です。")
+		if not c().get("selected",[]).has(ui.shop_uid):ui.shop_uid=str(c().selected[0])
+		var receiving=row(body);l(receiving,"購入品の受取人")
+		var recipient=OptionButton.new();recipient.name="ConsumableRecipient";recipient.custom_minimum_size=Vector2(180,44);receiving.add_child(recipient)
+		for uid in c().get("selected",[]):
+			recipient.add_item(ui.member_name(str(uid)));recipient.set_item_metadata(recipient.item_count-1,uid)
+			if uid==ui.shop_uid:recipient.select(recipient.item_count-1)
+		recipient.item_selected.connect(func(i):ui.shop_uid=str(recipient.get_item_metadata(i));ui.render())
+		muted(body,"購入品は選んだ受取人のインベントリへ入ります。消耗品の合計上限は各99個。回復量はHP+55 / MP+3です。")
 		for item in c().shop:
-			var count=c().inventory[item.id];var actions=row(card(body))
-			ui.icons.line(ui,actions,str(item.id),"%s %dG / 所持%d" % [item.name,item.price,count])
-			for amount in [1,5]:b(actions,"%d個購入" % amount,ui.act.bind("buyItem",[item.id,amount]),count+amount>99 or c().gold<item.price*amount)
+			var count=c().characters[ui.shop_uid].get("inventory",{}).get(item.id,0);var actions=row(card(body))
+			ui.icons.line(ui,actions,str(item.id),"%s %dG / %sの所持%d個" % [item.name,item.price,ui.member_name(ui.shop_uid),count])
+			for amount in [1,5]:b(actions,"%d個購入" % amount,ui.act.bind("buyItem",[item.id,amount,ui.shop_uid,c().get("inventoryToken")]),c().gold<item.price*amount or c().get("inventoryTotals",{}).get(item.id,0)+amount>99)
 		items(body);return
 	if location not in ["east","west","north"]:
 		shop_guide(parent);return
@@ -355,7 +375,9 @@ func quote_reason(q: Dictionary) -> String:
 	if not q.available:reasons.append("この店の取扱外")
 	return " / ".join(reasons)
 func selection_key(id: String) -> String:
-	return JSON.stringify([epoch,ui.engine.connection_generation,c().get("location"),ui.shop_uid,ui.shop_slot,id,c().get("gold"),c().get("characters"),c().get("selected")])
+	var character=c().get("characters",{}).get(ui.shop_uid,{}).duplicate(true)
+	for key in ["inventory","hp","mp"]:character.erase(key)
+	return JSON.stringify([epoch,ui.engine.connection_generation,c().get("location"),ui.shop_uid,ui.shop_slot,id,c().get("gold"),character,c().get("selected")])
 func quote_valid() -> bool:
 	return not quote_pending and not ui.gear_preview.is_empty() and quote_stamp==selection_key(gear_id)
 func invalidate_quote(clear_id:=false):

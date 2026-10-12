@@ -8,6 +8,14 @@ const Battle = (() => {
   const hasEffect=(a,id)=>(a.effects||[]).includes(id);
   const moveReach=a=>(hasEffect(a,'firstStride')&&!a.firstMoveUsed?3:2)+(hasEffect(a,'swift')?1:0);
   const skillCost=a=>equipmentSkills[activeSkill(a)]?.cost??1;
+  function itemCount(s,a,id) {
+    if(a.side==='ally'&&s.itemInventories)return s.itemInventories[a.id]?.[id]||0;
+    return id==='ether'?(s.ethers||0):(s.potions[a.side]||0);
+  }
+  function consumeItem(s,a,id) {
+    if(a.side==='ally'&&s.itemInventories)s.itemInventories[a.id][id]--;
+    if(id==='ether')s.ethers--;else s.potions[a.side]--;
+  }
   function emit(s,a,id,details={}) {
     s.skillEventSequence=(s.skillEventSequence||0)+1;
     (s.skillEvents||(s.skillEvents=[])).push({sequence:s.skillEventSequence,type:'skill.activated',actorId:a.id,skillId:id,classification:equipmentSkills[id].classification,...details});
@@ -155,8 +163,8 @@ const Battle = (() => {
     }
     if(kind==='skill'&&activeSkill(a)==='stamp')return a.mp>0&&stampCells(a,target).length>0;
     const b=alive(s).find(u=>u.id===target);if(!b)return false;
-    if(kind==='ether')return a.side==='ally'&&a.job==='porter'&&(s.ethers||0)>0&&b.side===a.side&&b.mp<b.maxMp;
-    if(kind==='item')return s.potions[a.side]>0&&b.side===a.side&&b.hp<b.max;
+    if(kind==='ether')return a.side==='ally'&&a.job==='porter'&&itemCount(s,a,'ether')>0&&b.side===a.side&&b.mp<b.maxMp;
+    if(kind==='item')return itemCount(s,a,'potion')>0&&b.side===a.side&&b.hp<b.max;
     if(kind==='attack')return a.job!=='porter'&&b.side!==a.side&&range(a,b)<=attackReach(a,'attack');
     if(kind!=='skill'||a.mp<=0)return false;
     if(a.job==='porter')return b.id===a.id&&formation(s,a.side);
@@ -205,8 +213,8 @@ const Battle = (() => {
     if(kind==='move'){const b=swapTarget(s,a,target);if(hasEffect(a,'firstStride')&&!a.firstMoveUsed){a.firstMoveUsed=true;emit(s,a,'firstStride',{target});log(s,`${a.name}の先駆け：最初の移動。`);}if(b){b.pos=a.pos;a.pos=target;log(s,`${a.name}と${b.name}が入れ替わった。`);}else{a.pos=target;log(s,`${a.name}が${boardOf(target)==='ally'?'味方陣':'敵陣'}へ移動。`);}return;}
     if(kind==='guard'){a.guard=true;log(s,`${a.name}は防御。`);return;}
     const b=s.units.find(u=>u.id===target);
-    if(kind==='ether'){s.ethers--;const heal=Math.min(3,b.maxMp-b.mp);b.mp+=heal;log(s,`${a.name}のエーテル：${b.name}のMP＋${heal}`);return;}
-    if(kind==='item'){s.potions[a.side]--;const heal=Math.min(55,b.max-b.hp);b.hp+=heal;log(s,`${a.name}の回復薬：${b.name}のHP＋${heal}`);return;}
+    if(kind==='ether'){consumeItem(s,a,'ether');const heal=Math.min(3,b.maxMp-b.mp);b.mp+=heal;log(s,`${a.name}のエーテル：${b.name}のMP＋${heal}`);return;}
+    if(kind==='item'){consumeItem(s,a,'potion');const heal=Math.min(55,b.max-b.hp);b.hp+=heal;log(s,`${a.name}の回復薬：${b.name}のHP＋${heal}`);return;}
     if(kind==='skill')a.mp--;
     if(kind==='skill'&&activeSkill(a)==='stamp'){
       const cells=fixedCells||stampCells(a,target),targets=alive(s).filter(u=>u.side!==a.side&&cells.includes(u.pos));

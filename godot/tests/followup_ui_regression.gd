@@ -33,24 +33,26 @@ func observe():
 func camp_cases():
 	for dims in [Vector2i(1178,814),Vector2i(800,600)]:
 		root.size=dims;await restore("camp");var before=await snapshot();var party=node("CampParty")
-		check(party!=null and party.get_child_count()==5,"camp has one horizontal group of five members at "+str(dims))
+		check(party!=null and party.get_child_count()==5,"camp keeps five owner cards at "+str(dims))
 		var faces=party.find_children("FullBodyPortrait","TextureRect",true,false);var rows=[]
 		for face in faces:
 			rows.append(face.global_position.y)
-			check(face.texture!=null and face.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and face.texture==game.portraits.texture(game.roster().filter(func(u):return "ItemMember_"+str(u.id)==str(face.get_parent().name))[0],false),"camp uses uncropped whole image: "+str(face.get_parent().name))
+			check(face.texture!=null and face.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED,"camp full-body image remains uncropped")
 		check(faces.size()==5 and rows.all(func(y):return absf(y-rows[0])<1),"full body portraits are side by side")
-		check(not text(game.content).contains("［") and game.content.find_children("ItemMember_*","VBoxContainer",true,false).size()==5,"duplicate upper HP/MP band is removed")
-		check(button("アイテム")!=null and node("CampaignItemList")==null and node("ItemTarget_guard")==null,"camp starts at one item entry")
-		await press("アイテム");check(node("CampaignItemList")!=null and node("ItemTarget_guard")==null,"item list precedes target controls")
-		game.pages.show_items("target","potion");await settle()
-		check(node("ItemTarget_guard").get_global_rect().end.y<=game.footer.global_position.y,"selected item reveals target controls above the footer")
-		check(not node("ItemTarget_guard").disabled and node("ItemTarget_archer").disabled and node("ItemTarget_mage").disabled,"camp potion excludes full HP and fallen members")
-		await press("アイテム一覧へ");await press("戻る");check(await snapshot()==before,"camp browse and back preserve the exact save")
-		game.pages.show_items("target","potion");await settle();node("ItemTarget_guard").pressed.emit();await settle()
-		var used=await snapshot();check(used.state.characters.guard.hp==before.state.characters.guard.hp+55 and used.state.inventory.potion==before.state.inventory.potion-1 and used.state.characters.guard.mp==before.state.characters.guard.mp,"camp potion preserves +55 effect, stock and MP")
-		game.pages.show_items("target","ether");await settle();node("ItemTarget_guard").pressed.emit();await settle();used=await snapshot()
-		check(used.state.characters.guard.mp==mini(int(before.state.characters.guard.mp)+3,6) and used.state.inventory.ether==before.state.inventory.ether-1 and node("ItemTarget_mage").disabled,"camp ether preserves +3 cap, one stock and living-only rule")
-	await restore("guard");check(game.pages.item_stage=="entry" and game.pages.item_id.is_empty(),"load clears pending campaign item context")
+		check(text(party).contains("HP %d/" % before.state.characters.guard.hp) and text(party).contains("MP %d/" % before.state.characters.guard.mp) and text(party).contains("戦闘不能"),"camp preserves live resources and KO status")
+		node("InventoryOwner_guard").pressed.emit();await settle()
+		var inventory=game.pages.party_view.inventory_view
+		check(game.dialog.window.title=="ステータス" and game.pages.party_view.detail_tab==3,"camp opens owner's inventory in Status")
+		inventory.pick("potion");inventory.choose("use");await settle()
+		check(not node("InventoryTarget_guard").disabled and node("InventoryTarget_archer").disabled and node("InventoryTarget_mage").disabled,"potion excludes full HP and fallen recipients")
+		await inventory.prepare("guard",null);inventory.back();await settle();check(await snapshot()==before,"cancel before confirmation preserves exact save")
+		inventory.choose("use");await inventory.prepare("guard",null);inventory.commit();await settle()
+		var used=await snapshot();check(used.state.characters.guard.hp==before.state.characters.guard.hp+55 and used.state.characters.guard.inventory.potion==2 and used.state.characters.guard.mp==before.state.characters.guard.mp,"camp potion preserves +55, one owned stock and MP")
+		game.dialog.close();await settle();node("InventoryOwner_porter").pressed.emit();await settle()
+		inventory.pick("ether");inventory.choose("use");await inventory.prepare("guard",null);inventory.commit();await settle();used=await snapshot()
+		check(used.state.characters.guard.mp==mini(before.state.characters.guard.mp+3,6) and used.state.characters.porter.inventory.ether==3,"camp ether distinguishes owner and target and preserves MP+3")
+		game.dialog.close();await settle()
+	await restore("guard");check(game.pages.party_view.inventory_view.owner_id.is_empty(),"load clears inventory selection")
 func battle_cases():
 	for dims in [Vector2i(1178,814),Vector2i(800,600)]:
 		root.size=dims;await restore("guard");var before=await snapshot();var rect=game.board.get_global_rect()

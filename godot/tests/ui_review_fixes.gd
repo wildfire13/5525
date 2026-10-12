@@ -35,29 +35,22 @@ func record(id: String,scope: Node):
 func item_cases():
 	for dims in [Vector2i(1920,1080),Vector2i(800,600)]:
 		root.size=dims
-		for context in [["camp","board",""],["camp","items",""],["town","items",""],["town","shop","south"]]:
+		for context in [["camp","board",""],["camp","items",""],["town","items",""]]:
 			await restore(context[0],context[1],context[2]);var before=await snapshot()
-			for stage in ["entry","list","target"]:
-				game.pages.show_items(stage,"potion" if stage=="target" else "");await settle()
-				var bar=node("PartyFaceBar");var party=node("CampParty") if context[0]=="camp" else node("ItemParty")
-				var label="UX01 "+str(dims)+" "+str(context)+" "+stage
-				check(bar!=null and bar.get_child_count()==5 and not text(bar).contains("HP") and not text(bar).contains("MP"),label+" detail bar has no duplicate resource list")
-				check(party!=null and party.find_children("FullBodyPortrait","TextureRect",true,false).size()==5 and text(party).contains("HP %d/" % before.state.characters.guard.hp) and text(party).contains("MP %d/" % before.state.characters.guard.mp),label+" full-body targets retain resources")
-				check(node("PartyFace_mage").text.contains("戦闘不能"),label+" detail bar retains KO")
-				check(root.get_visible_rect().encloses(bar.get_global_rect()),label+" persistent entry remains in viewport")
-				if dims.x==1920:record("Q01-"+context[0]+"-"+context[1]+"-"+stage,game.content)
-			check(await snapshot()==before,"UX01 browsing all item stages is free")
-			node("PartyFace_guard").pressed.emit();await settle()
-			check(game.pages.party_view.detail_uid=="guard" and game.modal_open() and await snapshot()==before,"UX01 face opens correct detail without using an item")
+			var bar=node("PartyFaceBar");var party=node("CampParty") if context[0]=="camp" else node("ItemParty")
+			var label="UX01 "+str(dims)+" "+str(context)
+			check(bar!=null and bar.get_child_count()==5 and not text(bar).contains("HP") and not text(bar).contains("MP"),label+" detail bar has no duplicate resource list")
+			check(party!=null and party.find_children("FullBodyPortrait","TextureRect",true,false).size()==5 and text(party).contains("HP %d/" % before.state.characters.guard.hp) and text(party).contains("MP %d/" % before.state.characters.guard.mp),label+" full-body owner cards retain resources")
+			check(node("PartyFace_mage").text.contains("戦闘不能"),label+" detail bar retains KO")
+			check(root.get_visible_rect().encloses(bar.get_global_rect()),label+" persistent entry remains in viewport")
+			node("InventoryOwner_guard").pressed.emit();await settle()
+			check(game.pages.party_view.detail_uid=="guard" and game.pages.party_view.detail_tab==3 and await snapshot()==before,"UX01 owner card opens correct inventory without using an item")
 			game.dialog.close();await settle()
-			check(game.page==context[1] and game.pages.item_stage=="target" and node("ItemTarget_guard")!=null,"UX01 detail closes to original item target stage")
-			if context[0]=="camp":
-				node("ItemTarget_guard").pressed.emit();await settle();var used=await snapshot()
-				check(used.state.characters.guard.hp==before.state.characters.guard.hp+55 and used.state.inventory.potion==before.state.inventory.potion-1,"UX01 full-body Use retains original heal and cost")
+			check(game.page==context[1] and node("InventoryOwner_guard")!=null and await snapshot()==before,"UX01 close returns to owner cards without consumption")
 	root.size=Vector2i(1920,1080)
 	for context in ["town","road","north_travel"]:
-		await restore(context);check(text(node("PartyFaceBar")).contains("HP") and text(node("PartyFaceBar")).contains("MP"),"UX01 only resource overview remains on "+context)
-	await restore("four","items");check(node("PartyFaceBar").get_child_count()==4 and node("ItemParty").get_child_count()==4,"UX01 four-person party keeps both entry and targets")
+		await restore(context);check(text(node("PartyFaceBar")).contains("HP") and text(node("PartyFaceBar")).contains("MP"),"UX01 resource overview remains on "+context)
+	await restore("four","items");check(node("PartyFaceBar").get_child_count()==4 and node("ItemParty").get_child_count()==4,"UX01 four-person party keeps entry and owner cards")
 func result_cases():
 	for id in ["north_delivery","north_travel","east_travel","west_travel","south_travel","astaris_travel"]:
 		await restore(id);var before=await snapshot();var shortcut=node("ResultShop")

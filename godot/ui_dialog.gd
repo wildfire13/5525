@@ -35,7 +35,8 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 	return window
 func resize():
 	if not is_instance_valid(window):return
-	window.size=Vector2i(mini(840,int(ui.size.x)-32),mini(620,int(ui.size.y)-72))
+	var status=window.title=="ステータス"
+	window.size=Vector2i(mini(1040 if status else 840,int(ui.size.x)-32),mini(780 if status else 620,int(ui.size.y)-72))
 	window.position=Vector2i((ui.size-Vector2(window.size))/2)
 func close(restore:=true):
 	if not is_instance_valid(window):return

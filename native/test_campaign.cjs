@@ -50,7 +50,7 @@ test('public-operation delivery accumulates separate battle loot/XP, cannot doub
   assert.equal(C.arrive(s),false);assert.equal(C.finishBattle(s),false);assert.equal(s.completed,1);assert.equal(C.acknowledge(s),true);assert.equal(C.acknowledge(s),false);assert.ok(C.board(s).length);okay(s);
 });
 test('repeated quests retain gold/EXP/gear, recruit and buy again',()=>{
-  const s=C.create();trip(s,'east');assert.equal(C.acknowledge(s),true);const oldGold=s.gold;assert.equal(C.buyGear(s,'archer','bow-wood-1'),true);assert.equal(s.gold,oldGold-70);
+  const s=C.create();trip(s,'east');assert.equal(C.acknowledge(s),true);const oldGold=s.gold;assert.equal(C.buyGear(s,'archer','bow-wood-1'),true);assert.equal(s.gold,oldGold-140);assert.equal(s.characters.archer.inventory['bow-wood'],1);
   trip(s,'astaris',{route:'safe'});assert.equal(C.acknowledge(s),true);assert.equal(s.completed,2);assert.ok(s.xp>=200);assert.equal(s.characters.archer.weapon,'bow-wood-1');
   assert.equal(C.select(s,['guard','mage','scout','porter']),true);assert.equal(C.select(s,['guard','archer','mage','scout','porter']),true);assert.equal(s.characters.archer.weapon,'bow-wood-1');okay(s);
 });
@@ -82,8 +82,9 @@ test('R09 shops stock their source-map categories; accessories belong to North',
   assert.ok(C.shop(town('east')).every(g=>['weapon','leftHand'].includes(g.slot)));assert.ok(C.shop(town('west')).every(g=>['armor','head','lowerBody','feet'].includes(g.slot)));
   assert.deepEqual(C.shop(town('south')).map(g=>g.id),['potion','ether']);assert(C.shop(town('north')).length>0);assert(C.shop(town('north')).every(g=>g.type==='accessory'));assert.deepEqual(C.shop(C.create()),[]);
 });
-test('trade in old gear at difference, including refunds, with no inventory stockpile',()=>{
-  const s=town('east'),before=s.gold;assert.equal(C.buyGear(s,'archer','bow-wood-1'),true);assert.equal(s.gold,before-70);assert.equal(C.buyGear(s,'archer','bow-wood'),true);assert.equal(s.gold,before);assert.deepEqual(Object.keys(s.inventory),['potion','ether']);assert.equal(C.buyGear(s,'archer','bow-wood'),false);okay(s);
+test('buy at catalog price, retain old gear, and re-equip owned gear without charging',()=>{
+  const s=town('east'),before=s.gold;assert.equal(C.buyGear(s,'archer','bow-wood-1'),true);assert.equal(s.gold,before-140);assert.equal(s.characters.archer.inventory['bow-wood'],1);
+  assert(C.inventoryAction(s,'archer','bow-wood','equip',null,1,'rightHand',C.inventoryToken(s)));assert.equal(s.gold,before-140);assert.equal(s.characters.archer.inventory['bow-wood-1'],1);assert.equal(C.buyGear(s,'archer','bow-wood'),false);okay(s);
 });
 test('wrong shop, insufficient gold, unselected character and invalid item rejected atomically',()=>{
   const s=C.create(),before=clone(s);assert.equal(C.buyGear(s,'archer','bow-wood-1'),false);assert.deepEqual(s,before);s.location='east';s.gold=0;const zero=clone(s);
@@ -99,12 +100,13 @@ test('C01 porter retains support/no attack despite meeting hammer equip conditio
   const s=town('east');assert.equal(C.buyGear(s,'porter','hammer-wood'),true);C.depart(s,'astaris');C.travel(s,'safe',random());const p=s.battle.units.find(u=>u.id==='porter');assert.equal(p.equippedSkill,'porter');assert.equal(B.activeSkill(p),'porter');assert.equal(p.atk,0);assert.equal(p.reach,0);C.begin(s);for(const e of s.battle.units.filter(u=>u.side==='enemy'))assert.equal(B.legalFor(s.battle,p,'attack',e.id),false);
 });
 test('armor increases maxHP but swap cycles cannot heal or revive',()=>{
-  const s=town('west');s.characters.guard.hp=28;const before=s.gold;assert.equal(C.buyGear(s,'guard','armor-leather-1'),true);assert.equal(s.characters.guard.hp,28);assert.equal(C.stats(s.characters.guard).max,208);assert.equal(C.buyGear(s,'guard','armor-cloth'),true);assert.equal(C.buyGear(s,'guard','armor-leather-1'),true);assert.equal(s.characters.guard.hp,28);
-  s.characters.guard.hp=0;assert.equal(C.buyGear(s,'guard','armor-cloth'),true);assert.equal(s.characters.guard.hp,0);assert.equal(s.gold,before);
+  const s=town('west');s.characters.guard.hp=28;const before=s.gold;assert.equal(C.buyGear(s,'guard','armor-leather-1'),true);assert.equal(s.characters.guard.hp,28);assert.equal(C.stats(s.characters.guard).max,208);
+  const equip=id=>C.inventoryAction(s,'guard',id,'equip',null,1,'upperBody',C.inventoryToken(s));assert(equip('armor-cloth'));assert(equip('armor-leather-1'));assert.equal(s.characters.guard.hp,28);
+  s.characters.guard.hp=0;assert(equip('armor-cloth'));assert.equal(s.characters.guard.hp,0);assert.equal(s.gold,before-95);
 });
 test('staff MP swap cannot regenerate MP; item restoration is real consumption',()=>{
-  const s=town('east');s.characters.mage.mp=1;assert.equal(C.buyGear(s,'mage','staff-silver-1'),true);assert.equal(s.characters.mage.mp,1);assert.equal(C.buyGear(s,'mage','staff-wood'),true);assert.equal(s.characters.mage.mp,1);
-  s.location='south';assert.equal(C.buyItem(s,'ether'),true);const stock=s.inventory.ether;assert.equal(C.useItem(s,'ether','mage'),true);assert.equal(s.characters.mage.mp,4);assert.equal(s.inventory.ether,stock-1);okay(s);
+  const s=town('east');s.characters.mage.mp=1;assert.equal(C.buyGear(s,'mage','staff-silver-1'),true);assert.equal(s.characters.mage.mp,1);assert(C.inventoryAction(s,'mage','staff-wood','equip',null,1,'rightHand',C.inventoryToken(s)));assert.equal(s.characters.mage.mp,1);
+  s.location='south';assert.equal(C.buyItem(s,'ether',1,'mage',C.inventoryToken(s)),true);const stock=C.inventoryTotals(s).ether;assert.equal(C.useItem(s,'ether','mage','mage',C.inventoryToken(s)),true);assert.equal(s.characters.mage.mp,4);assert.equal(C.inventoryTotals(s).ether,stock-1);okay(s);
 });
 test('trial is isolated, affordable or not, and uses actual controllable stamp damage',()=>{
   const s=town('east');s.gold=0;const before=C.serialize(s),t=C.trial(s,'mage','hammer-wood');assert.ok(t);assert.equal(t.preview.affordable,false);assert.equal(t.battle.actor,'mage');assert.equal(B.activeSkill(t.battle.units.find(u=>u.id==='mage')),'stamp');
@@ -120,11 +122,11 @@ test('JSON export/import restores independent exact current state',()=>{
   const s=C.create();C.accept(s,C.board(s)[0].id);C.depart(s,'east');C.travel(s,'short',random());C.deploy(s,'guard',0);const copy=C.deserialize(C.serialize(s));assert.deepEqual(copy,clone(s));copy.gold++;assert.notEqual(copy.gold,s.gold);assert.deepEqual(C.deserialize(JSON.parse(C.serialize(s))),clone(s));
 });
 test('invalid save types, huge input, versions and prototype payloads rejected',()=>{
-  const good=JSON.parse(C.serialize(C.create()));for(const bad of ['{',null,{},'x'.repeat(C.MAX_SAVE_BYTES+1),JSON.stringify({...good,version:2})])assert.throws(()=>C.deserialize(bad));
+  const good=JSON.parse(C.serialize(C.create()));for(const bad of ['{',null,{},'x'.repeat(C.MAX_SAVE_BYTES+1),JSON.stringify({...good,version:999})])assert.throws(()=>C.deserialize(bad));
   const pollution=JSON.stringify(good).replace('"state":{','"state":{"__proto__":{"polluted":true},');assert.throws(()=>C.deserialize(pollution));assert.equal({}.polluted,undefined);
 });
 test('invalid financial, roster, inventory, gear, resources and allocation saves rejected',()=>{
-  const good=JSON.parse(C.serialize(C.create()));const mutations=[s=>s.gold=-1,s=>s.gold='100',s=>s.selected=['guard'],s=>s.selected=['porter','porter'],s=>s.location='missing',s=>s.inventory.potion=100,s=>s.characters.guard.weapon='missing',s=>s.characters.guard.hp=999999,s=>s.characters.guard.allocations.str=100,s=>s.characters.mage.weapon='hammer-iron-1',s=>s.characters.guard.level=99,s=>s.phase='battle'];
+  const good=JSON.parse(C.serialize(C.create()));const mutations=[s=>s.gold=-1,s=>s.gold='100',s=>s.selected=['guard'],s=>s.selected=['porter','porter'],s=>s.location='missing',s=>s.characters.guard.inventory.potion=100,s=>s.characters.guard.weapon='missing',s=>s.characters.guard.hp=999999,s=>s.characters.guard.allocations.str=100,s=>s.characters.mage.weapon='hammer-iron-1',s=>s.characters.guard.level=99,s=>s.phase='battle'];
   for(const change of mutations){const bad=clone(good);change(bad.state);assert.throws(()=>C.deserialize(bad));}
 });
 test('invalid battle actor, tokens, duplicate cells and skill payloads rejected',()=>{
@@ -202,22 +204,8 @@ test('normal and questless retreats restore pretrip state and cannot double appl
   }
 });
 test('R04 retained legacy porter-only stalemate keeps C01 and can retreat after save reload',()=>{
-  let s=C.create();const before=clone(s),rng=random(6);
-  assert(C.accept(s,C.board(s)[0].id));assert(C.depart(s,'east'));
-  for(let leg=0;leg<2;leg++){
-    assert(C.travel(s,'short',rng));s.battle.formationVersion=1;assert(C.begin(s));
-    for(let n=0;n<200&&!s.battle.result;n++){
-      if(s.battle.units.filter(u=>u.side==='ally'&&u.hp>0).every(u=>u.job==='porter'))break;
-      const c=clone(s.battle),a=c.units.find(u=>u.id===c.actor);B.plan(c,a);let {kind,target}=a.intent;
-      if(a.job==='porter'){
-        const hurt=c.units.filter(u=>u.side==='ally'&&u.hp>0&&u.hp<30).sort((a,b)=>a.hp-b.hp).find(u=>B.legal(c,'item',u.id));
-        if(hurt){kind='item';target=hurt.id;}else{kind=B.legal(c,'skill',a.id)?'skill':'guard';target=kind==='skill'?a.id:null;}
-      }
-      if(kind==='skill'&&['archer','scout'].includes(B.activeSkill(a))&&B.legal(c,'attack',target))kind='attack';
-      assert(C.act(s,kind,target));
-    }
-    if(!leg){assert(C.finishBattle(s));assert(C.onward(s));}
-  }
+  const fixture=JSON.parse(require('node:fs').readFileSync(require.resolve('./test_fixtures/campaign-f736137-stalemate.json'),'utf8'));
+  let s=C.deserialize(fixture);const before=clone(s.rollback);
   assert.equal(s.battle.actions,52);assert.equal(s.battle.result,null);
   assert.deepEqual(s.battle.units.filter(u=>u.side==='ally'&&u.hp>0).map(u=>u.job),['porter']);
   for(let n=0;n<20;n++)assert(C.act(s,'guard',null));

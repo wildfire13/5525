@@ -126,7 +126,7 @@ test('purchase and trial all eleven; actual actions isolated from campaign',()=>
  }
 });
 test('save/load battle flags, effects and covers; old saves; malformed extension rejected',()=>{
- const s=C.create();s.location='east';C.buyGear(s,'guard','battleline-shield');s.location='north';C.buyGear(s,'guard','return-ring-1');C.buyGear(s,'guard','pioneer-gloves-2');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
+ const s=C.create();s.gold=1000;s.location='east';assert(C.buyGear(s,'guard','battleline-shield'));s.location='north';assert(C.buyGear(s,'guard','return-ring-1'));assert(C.buyGear(s,'guard','pioneer-gloves-2'));C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
  const a=s.battle.units.find(u=>u.id==='guard');a.returnUsed=true;a.firstMoveUsed=true;a.covers=['archer','mage'];
  const saved=C.serialize(s),loaded=C.deserialize(saved);assert.deepEqual(loaded,clone(s));assert.equal(B.legalFor(loaded.battle,loaded.battle.units.find(u=>u.id==='guard'),'return',0),false);
  for(const change of [u=>u.returnUsed='no',u=>u.firstMoveUsed=1,u=>u.effects=['loneWolf'],u=>u.covers=['missing'],u=>u.covers=['mage','mage']]){const bad=JSON.parse(saved);change(bad.state.battle.units.find(u=>u.id==='guard'));assert.throws(()=>C.deserialize(bad));}
