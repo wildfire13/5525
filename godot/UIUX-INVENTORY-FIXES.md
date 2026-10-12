@@ -1,5 +1,7 @@
 # 2026-10-12 UIUX読み取りレビュー4点の修正
 
+この文書は固定候補2981a74の記録です。現在の別候補では、下表の「切断・ロード時の購入計画」と「サウスの売却API」を変更しています。現行の動作と暫定仕様は [PLAN-RECONNECT-FIXES.md](PLAN-RECONNECT-FIXES.md) を参照してください。
+
 基点は独立デバッグ用の `c5cb3b9b2f98eab17943b70e6bb226331a71777d`。固定版の作業ツリーには変更せず、別のローカルclone `G:/Apps/Codex/2026-10-07/task/5525-uiux-inventory-work`、ブランチ `codex/uiux-inventory-fixes-20261012` で修正したものです。push・配布・通常版更新・可視UI操作はしていません。
 
 ## 修正内容

@@ -59,4 +59,15 @@ test('actual serialized size and currency bounds reject before any partial mutat
   const s=town();s.gold=100000000;s.characters.mage.inventory['hammer-wood']=1;const before=clone(s);
   assert.equal(C.sellInventory(s,'mage','hammer-wood',1,C.inventoryToken(s)),false);assert.deepEqual(s,before);
 });
+test('sale capability and API agree on exactly the three equipment shops',()=>{
+  for(const location of ['astaris','east','west','north','south'])for(const phase of ['town','camp','battle']){
+    const s=town();s.location=location;s.characters.mage.inventory['hammer-wood']=1;
+    const eligible=phase==='town'&&['east','west','north'].includes(location);
+    // A quote only reads phase; use a detached invalid-phase snapshot to test its gate.
+    s.phase=phase;const before=clone(s),q=C.saleQuote(s,'mage','hammer-wood');
+    assert.equal(C.saleAvailable(s),eligible);assert.equal(C.view(s).saleAvailable,eligible);assert.equal(q.ok,eligible);
+    if(!eligible){assert.equal(C.sellInventory(s,'mage','hammer-wood',1,q.token),false);assert.deepEqual(s,before);}
+    else {assert(C.sellInventory(s,'mage','hammer-wood',1,q.token));assert.equal(s.gold,280);okay(s);}
+  }
+});
 console.log(`PASS ${passed} shop-transaction groups`);
