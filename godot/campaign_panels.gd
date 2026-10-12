@@ -324,15 +324,17 @@ func party_row(parent,u: Dictionary):
 	control.gui_input.connect(func(event):
 		if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_UP,KEY_DOWN]:
 			var ids=c().get("selected",[]).duplicate()
-			for member in roster():
+			for member in ui.visible_roster():
 				if not ids.has(member.id):ids.append(member.id)
 			var index=ids.find(u.id);var next=clampi(index+(-1 if event.keycode==KEY_UP else 1),0,ids.size()-1)
 			ui.memory.request_focus("party_"+str(ids[next]),true);select_party(str(ids[next]));control.accept_event())
 	var hp=l(box,"HP%d/%d MP%d/%d%s" % [u.hp,u.max,u.mp,u.maxMp," KO" if u.hp<=0 else ""]);hp.add_theme_font_size_override("font_size",16);ui.emphasize_low_hp(hp,u)
 func select_party(id: String):
+	if not ui.can_inspect_member(id):return
 	if id!=party_uid and not party_view.guard_leave(select_party.bind(id)):return
 	party_uid=id;ui.memory.request_focus("party_"+id);ui.render()
 func change_membership(id: String):
+	if not c().get("guildAvailable",false):return
 	party_uid=id
 	await ui.toggle_member(id)
 	ui.memory.request_focus("party_"+id,true);ui.memory.restore()

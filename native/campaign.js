@@ -391,11 +391,11 @@ const Campaign = (() => {
   function allocationToken(s,id) {
     if(!allocationStates.has(s))allocationStates.set(s,++allocationSerial);
     const c=s.characters[id];if(!c)return '';
-    return JSON.stringify([allocationStates.get(s),id,s.sequence,s.boardRound,s.phase,s.location,c.xp,c.statPoints,c.allocations.str,c.allocations.int,c.allocations.agi]);
+    return JSON.stringify([allocationStates.get(s),id,s.sequence,s.boardRound,s.phase,s.location,s.selected,c.xp,c.statPoints,c.allocations.str,c.allocations.int,c.allocations.agi]);
   }
   function allocateBatch(s,charId,delta,expectedToken) {
     const c=s.characters[charId],keys=['str','int','agi'];
-    if(s.phase!=='town'||!c||expectedToken!==allocationToken(s,charId)||!record(delta)||Object.keys(delta).length!==3||!keys.every(k=>Number.isSafeInteger(delta[k])&&delta[k]>=0))return false;
+    if(s.phase!=='town'||!c||!s.selected.includes(charId)||expectedToken!==allocationToken(s,charId)||!record(delta)||Object.keys(delta).length!==3||!keys.every(k=>Number.isSafeInteger(delta[k])&&delta[k]>=0))return false;
     const total=keys.reduce((n,k)=>n+delta[k],0);
     if(!Number.isSafeInteger(total)||total<1||total>c.statPoints)return false;
     const old=stats(c),next={...c,allocations:{...c.allocations},statPoints:c.statPoints-total};
@@ -407,7 +407,7 @@ const Campaign = (() => {
   }
   function allocate(s,charId,key,count=1) {
     const c=s.characters[charId];
-    if(s.phase!=='town'||!c||!['str','int','agi'].includes(key)||!Number.isInteger(count)||count<1||count>c.statPoints)return false;
+    if(s.phase!=='town'||!c||!s.selected.includes(charId)||!['str','int','agi'].includes(key)||!Number.isInteger(count)||count<1||count>c.statPoints)return false;
     const old=stats(c);c.allocations[key]+=count;c.statPoints-=count;const after=stats(c);c.hp+=after.max-old.max;c.mp+=after.maxMp-old.maxMp;
     note(s,`${template(charId).name}：${key.toUpperCase()}＋${count}（仮成長値）。`);return true;
   }
@@ -419,7 +419,7 @@ const Campaign = (() => {
   function trial(s,charId,gearId,slot) {
     const preview=previewGear(s,charId,gearId,slot);
     if(s.phase!=='town'||!s.selected.includes(charId)||!preview?.eligible||!preview.available)return null;
-    const friends=['guard','archer','mage'].filter(id=>id!==charId).slice(0,2);
+    const friends=[...new Set(['guard','archer','mage',...s.selected])].filter(id=>id!==charId&&s.selected.includes(id)).slice(0,2);
     const b=B.create({ally:[charId,...friends],enemy:['guard','archer','mage'],enemyPotions:0,potions:3,deployment:true,formationVersion:2,formation:'convoy',skillStage:s.characters[charId].level});
     const copy=clone(s);for(const id of [charId,...friends]){const st=stats(copy.characters[id]);copy.characters[id].hp=st.max;copy.characters[id].mp=st.maxMp;}
     applyEquipment(copy,b,{characterId:charId,gearId,slot:preview.slot});
@@ -437,8 +437,8 @@ const Campaign = (() => {
       b.units=b.units.filter(u=>u.side==='ally'||u===dummy);
       if(hero.job==='porter'){
         // Training only: porters retain their attack ban; a real ally finishes.
-        const helper=b.units.find(u=>u.side==='ally'&&u.id!==charId);hero.pos=23;helper.pos=24;helper.next=1;
-        supportActorId=helper.id;
+        const helper=b.units.find(u=>u.side==='ally'&&u.id!==charId&&u.atk>0);
+        if(helper){hero.pos=23;helper.pos=24;helper.next=1;supportActorId=helper.id;}
       }
     }
     B.begin(b);for(const u of b.units.filter(u=>u.side==='enemy'))u.intent={kind:'guard',target:null,name:'静止',reason:'木人は行動しません',cells:[]};
@@ -454,8 +454,9 @@ const Campaign = (() => {
     if(B.hasEffect(hero,'victoryBreath')){hero.mp=Math.max(0,hero.maxMp-2);for(const u of b.units.filter(u=>u.side==='enemy'))u.hp=1;}
     b.log=['木人試用：資金・装備・HP/MP・EXPに影響しない独立戦闘。'];
     const notice=B.hasEffect(hero,'loneWolf')?(hero.job==='porter'?'ポーターは攻撃禁止のため、孤軍の与ダメージ補正は発動しません。':'孤軍確認用：仲間から離れた初期位置で木人を攻撃できます。'):supportActorId?'一息の木人はHP1・1体。防御などの行動後に仲間が倒し、本人の勝利回復を確認。':B.activeSkill(hero)==='defenseLine'?'防衛線の木人は初回に基礎12の試験打撃。':B.hasEffect(hero,'victoryBreath')?'一息の木人はHP1。倒して勝利回復を確認。':B.activeSkill(hero)==='pincer'?'挟撃確認用：味方陣内の木人に仲間を隣接配置。':'木人は反撃しません。';
-    b.log.push(notice);
-    return {battle:b,metadata:{characterId:charId,gearId,name:getGear(gearId).name,isolated:true,notice:notice+'試着終了で元の状態へ戻ります。'},characterId:charId,gearId,preview,actions:0,lastAction:null,isolated:true,supportActorId};
+    const trialNotice=hero.job==='porter'&&B.hasEffect(hero,'victoryBreath')&&!supportActorId?'ポーターだけでは木人を倒せません。一息の勝利回復を確認するには、攻撃できる仲間を編成してください。':notice;
+    b.log.push(trialNotice);
+    return {battle:b,metadata:{characterId:charId,gearId,name:getGear(gearId).name,isolated:true,notice:trialNotice+'試着終了で元の状態へ戻ります。'},characterId:charId,gearId,preview,actions:0,lastAction:null,isolated:true,supportActorId};
   }
   function trialAct(t,kind,target) {
     if(!t?.isolated||t.actions>=100||!t.battle||t.battle.actor!==t.characterId)return false;
