@@ -191,18 +191,22 @@ func open_detail(uid: String):
 	if ui.locked or ui.presenting or ui.modal_open():return
 	if not guard_leave(open_detail.bind(uid)):return
 	detail_uid=uid;detail_tab=0;detail_gear={};inventory_view.reset()
-	ui.dialog.open("ステータス",func(_body,actions):ui.local_button(actions,"閉じる",ui.dialog.close),func():detail_uid="";detail_gear={};inventory_view.reset();ui.render())
+	ui.dialog.open("ステータス",func(_body,actions):
+		ui.local_button(actions,"戻る",detail_back).name="StatusBack"
+		ui.local_button(actions,"ステータスを閉じる",ui.dialog.close).name="StatusClose",func():detail_uid="";detail_gear={};inventory_view.reset();ui.render())
 	ui.dialog.close_guard=detail_close_guard
 	ui.render()
 func open_inventory(uid: String):
 	open_detail(uid)
 	if detail_uid==uid:detail_tab=3;refresh_modal()
 func detail_close_guard(next: Callable) -> bool:
-	if ui.locked or inventory_view.stage=="pending":return false
-	if detail_tab==3 and inventory_view.back():return false
+	if ui.locked or ui.presenting or inventory_view.stage=="pending":return false
 	return guard_leave(next)
+func detail_back():
+	if detail_tab==3:inventory_view.back()
 func refresh_modal():
 	if detail_uid.is_empty() or modal_refreshing or not is_instance_valid(ui.dialog.window):return
+	if ui.dialog.window.title!="ステータス":return
 	modal_refreshing=true
 	var matches=ui.roster().filter(func(u):return u.id==detail_uid)
 	if matches.is_empty():modal_refreshing=false;return
@@ -226,4 +230,9 @@ func refresh_modal():
 		2:skills(body,u)
 		3:inventory_view.render(body,detail_uid)
 	if not ui.notice.is_empty():l(body,ui.notice)
+	var close_button=ui.dialog.actions.get_node("StatusClose")
+	close_button.disabled=ui.locked or ui.presenting or committing or inventory_view.stage=="pending"
+	var back_button=ui.dialog.actions.get_node("StatusBack")
+	back_button.visible=detail_tab==3
+	back_button.disabled=not inventory_view.available() or inventory_view.stage=="list"
 	scroll.set_deferred("scroll_vertical",old_scroll);modal_refreshing=false

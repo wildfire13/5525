@@ -31,13 +31,24 @@ func reset():
 func show(mode: String):
 	if busy():return
 	shop.view_mode=mode;ui.render()
+func existing(q: Dictionary) -> Dictionary:return draft().get(key(q),{})
+func add_caption(q: Dictionary) -> String:
+	var previous=existing(q)
+	return "購入計画に追加" if previous.is_empty() else "追加済み" if previous.gearId==q.gearId else "予定を更新"
 func add_current():
 	if busy() or not shop.pages.quote_valid():return
 	var q=ui.gear_preview
 	if not q.get("available",false) or q.get("same",false):return
+	var previous=existing(q)
+	if previous.get("gearId")==q.gearId:return
 	if not plans.has(location()):plans[location()]={}
 	var row={"characterId":q.characterId,"gearId":q.gearId,"slot":q.slot,"name":q.gear.name}
-	plans[location()][key(row)]=row;new_rows.append(location()+"/"+key(row));quote_stamp="";message="購入計画に追加しました。";ui.render()
+	plans[location()][key(row)]=row
+	var id=location()+"/"+key(row);acknowledged.erase(id)
+	if not new_rows.has(id):new_rows.append(id)
+	quote_stamp=""
+	message="購入計画に追加しました。" if previous.is_empty() else "予定を更新: %s / %s / %s → %s" % [ui.member_name(row.characterId),c().slots.get(row.slot,row.slot),previous.name,row.name]
+	ui.render()
 func remove_row(id: String):
 	if busy():return
 	if plans.has(location()):plans[location()].erase(id)
@@ -67,7 +78,6 @@ func refresh():
 	else:quoted={};quote_stamp=requested;message=str(reply.get("error","購入計画を確認できませんでした"))
 	ui.render()
 func render(parent,mode: String):
-	if not message.is_empty():l(parent,message)
 	if mode=="sale":render_sale(parent);return
 	l(parent,"購入計画 / %d件" % draft().size(),true)
 	if draft().is_empty():l(parent,"商品を比較して、購入計画に追加してください。");return
@@ -86,7 +96,7 @@ func render(parent,mode: String):
 			if not row.ok:l(box,row.reason)
 			elif acknowledged.get(location()+"/"+key(row))!=row.signature:
 				l(box,"装備条件または比較内容が変わりました。",true)
-				for text in shop.comparison_lines(row):l(box,text)
+				for change in shop.comparison_changes(row):shop.render_change(box,change)
 				b(box,"この変更を確認",func():acknowledged[location()+"/"+key(row)]=row.signature;ui.render(),busy()).name="ReviewPlan_"+key(row).replace("/","_")
 	if current and not quoted.is_empty():
 		var payment=l(parent,"購入合計 %dG / 所持金 %d → %dG" % [quoted.cost,c().gold,quoted.afterGold],true);payment.name="PlanPayment"
@@ -124,6 +134,7 @@ func transaction_error(reply: Dictionary):
 		quote_stamp="";await ui.update({"op":"view"})
 func render_sale(parent):
 	l(parent,"所持品を売却",true)
+	render_sale_budget(parent)
 	if not c().get("selected",[]).has(sale_owner):sale_owner=str(c().get("selected",[""])[0])
 	var who=OptionButton.new();who.name="SaleOwner";who.custom_minimum_size=Vector2(180,48);parent.add_child(who)
 	for uid in c().get("selected",[]):
@@ -142,6 +153,19 @@ func render_sale(parent):
 			quantity.editable=not busy();quantity.value_changed.connect(func(value):sale_count=int(value))
 			b(row,"売却内容を確認",prepare_sale,busy()).name="PrepareSale"
 	b(parent,"購入計画へ戻る",show.bind("plan"),busy()).name="SaleBackToPlan"
+func render_sale_budget(parent):
+	var budget=l(parent,"");budget.name="SalePlanBudget"
+	var current=quote_stamp==stamp() and not quoted.is_empty()
+	if draft().is_empty() or current:
+		var cost=int(quoted.cost) if current and not draft().is_empty() else 0
+		var gold=int(c().gold);var after=gold-cost;var shortfall=maxi(0,-after)
+		budget.text="購入計画 %d件 / 合計 %dG / 所持金 %dG\n不足 %dG / 購入後残金 %dG" % [draft().size(),cost,gold,shortfall,after]
+		budget.set_meta("budget",{"cost":cost,"gold":gold,"shortfall":shortfall,"afterGold":after})
+		if shortfall>0:budget.add_theme_color_override("font_color",Color("#ffd0b8"))
+		if current and not quoted.get("reason","").is_empty() and shortfall==0:l(parent,quoted.reason)
+	else:
+		budget.text="購入計画 %d件 / 合計 確認中 / 所持金 %dG\n不足・購入後残金を確認中…" % [draft().size(),c().gold]
+		if quote_stamp!=stamp():call_deferred("refresh")
 func prepare_sale():
 	if busy() or sale_item.is_empty():return
 	var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation
