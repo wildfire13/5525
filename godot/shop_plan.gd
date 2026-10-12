@@ -102,6 +102,11 @@ func render(parent,mode: String):
 		for candidate in quoted.get("rows",[]):
 			if key(candidate)==key(entry):row=candidate
 		var box=ui.card(body);var heading=ui.row(box)
+		if not ui.can_inspect_member(str(entry.characterId)):
+			l(heading,"同行していない仲間の購入予定",true)
+			b(heading,"予定から外す",remove_row.bind(key(entry)),busy())
+			l(box,"予定は保持しています。アスタリスで編成に加えると、人物と装備を再確認できます。")
+			continue
 		l(heading,"%s / %s / %s" % [ui.member_name(entry.characterId),c().get("slots",{}).get(entry.slot,entry.slot),entry.name],true)
 		b(heading,"予定から外す",remove_row.bind(key(entry)),busy())
 		if not row.is_empty() and current:

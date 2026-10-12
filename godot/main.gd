@@ -111,6 +111,12 @@ func _ready():
 func campaign() -> Dictionary: return data.get("campaign") if data.get("campaign") is Dictionary else {}
 func state() -> Dictionary: return data.get("state") if data.get("state") is Dictionary else {}
 func roster() -> Array: return campaign().get("roster",[])
+func reserves_visible() -> bool:return campaign().get("phase")=="town" and campaign().get("location")=="astaris"
+func active_member(uid: String) -> bool:return campaign().get("selected",[]).has(uid)
+func visible_roster() -> Array:
+	# Preserve the full roster for saves and portrait validation; filter presentation only.
+	return roster() if reserves_visible() else roster().filter(func(u):return active_member(str(u.id)))
+func can_inspect_member(uid: String) -> bool:return visible_roster().any(func(u):return u.id==uid)
 func label_(parent: Node,text: String,large:=false) -> Label:
 	var l=Label.new();l.text=text;l.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	if parent is HBoxContainer:l.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -560,21 +566,26 @@ func save_log():
 		file_dialog(FileDialog.FILE_MODE_SAVE_FILE,PackedStringArray(["*.json ; プレイログ（進行セーブとは別）"]),write_snapshot.bind(r.data,"プレイログ"),"5525-log-%d-%d.json" % [Time.get_unix_time_from_system(),Time.get_ticks_usec()])
 func portrait_dialog():
 	if data.get("trial")!=null or campaign().get("phase") in ["battle","deployment"]:notice="画像変更は戦闘・試用の終了後にできます";render();return
-	var d=Window.new();d.exclusive=true;d.title="キャラ画像";d.size=Vector2i(660,700);add_child(d)
+	var d=Window.new();d.name="PortraitChooser";d.exclusive=true;d.title="キャラ画像";d.size=Vector2i(mini(660,int(size.x)-32),mini(700,int(size.y)-72));add_child(d)
 	var body=scroller(d);body.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	label_(body,"各キャラの画像を変更します。能力・装備は変わりません。")
 	label_(body,"PNG / JPEG / WebP / BMP / GIF（先頭フレーム）、16MiBまで。透過・縦横比を保持し最大256pxに正規化。割当を残すには進行を保存してください。")
 	d.window_input.connect(func(event):
 		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:d.queue_free())
-	for u in roster():
-		var r=row(body);portrait(r,u,false,55);label_(r,u.name)
-		button(r,"画像を選ぶ",func():d.queue_free();file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray(["*.png,*.jpg,*.jpeg,*.webp,*.bmp,*.gif ; キャラ画像"]),import_portrait.bind(u.id)))
-		button(r,"元に戻す",func():portraits.clear_member(u.id);notice="元の画像に戻しました。割当を残すには進行を保存してください。";d.queue_free();render(),not portraits.metadata.get("characters",{}).has(u.id))
+	for u in visible_roster():
+		var r=row(body);r.set_meta("member_id",u.id);portrait(r,u,false,55);label_(r,u.name)
+		button(r,"画像を選ぶ",func():d.queue_free();file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray(["*.png,*.jpg,*.jpeg,*.webp,*.bmp,*.gif ; キャラ画像"]),import_portrait.bind(u.id)),not active_member(str(u.id)))
+		button(r,"元に戻す",func():reset_portrait(str(u.id));d.queue_free(),not active_member(str(u.id)) or not portraits.metadata.get("characters",{}).has(u.id))
+	if reserves_visible():label_(body,"控えの画像を変更するには、先に編成へ加えてください。")
 	button(body,"閉じる",d.queue_free)
 	d.close_requested.connect(d.queue_free);d.popup_centered()
 func import_portrait(path: String,uid: String):
+	if not active_member(uid):return
 	var r=await update({"op":"godot_io","action":"portrait","path":path})
-	if r.get("ok",false):portraits.assign(uid,r.data);notice="画像を変更しました。割当を残すには進行を保存してください。";render()
+	if r.get("ok",false) and active_member(uid):portraits.assign(uid,r.data);notice="画像を変更しました。割当を残すには進行を保存してください。";render()
+func reset_portrait(uid: String):
+	if not active_member(uid):return
+	portraits.clear_member(uid);notice="元の画像に戻しました。割当を残すには進行を保存してください。";render()
 
 func can_commit() -> bool:
 	if locked or presenting or closing or engine.disconnected or preview_pending or hud.range_reference or hud.action_menu or hud.item_list:return false

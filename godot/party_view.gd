@@ -19,7 +19,9 @@ func _init(owner):owner_ref=weakref(owner);ui=owner.ui;inventory_view=preload("r
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func render(parent):
-	var c=pages.c();var members=ui.roster();var ids=c.get("selected",[])
+	var c=pages.c();var members=ui.visible_roster();var ids=c.get("selected",[])
+	if members.is_empty():return
+	if not draft_uid.is_empty() and not ui.active_member(draft_uid):clear_draft()
 	if not members.any(func(u):return u.id==pages.party_uid):pages.party_uid=str(ids[0]) if not ids.is_empty() else str(members[0].id)
 	var split=HBoxContainer.new() if ui.ui_size_mode=="standard" else VBoxContainer.new();split.name="PartySplit";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",12);parent.add_child(split)
 	var active=[];var reserves=[]
@@ -30,7 +32,9 @@ func render(parent):
 		if not ids.has(u.id):reserves.append(u)
 	if ui.ui_size_mode=="standard":
 		var body=ui.scroller(split);var roster_scroll=body.get_parent();roster_scroll.custom_minimum_size.x=360;roster_scroll.size_flags_horizontal=Control.SIZE_FILL;roster_scroll.name="PartyRoster";ui.memory.watch(roster_scroll,"party_roster")
-		for group in [["編成 %d/5" % ids.size(),active],["控え %d人" % reserves.size(),reserves]]:
+		var groups=[["編成 %d/5" % ids.size(),active]]
+		if ui.reserves_visible():groups.append(["控え %d人" % reserves.size(),reserves])
+		for group in groups:
 			l(body,group[0],true)
 			for u in group[1]:
 				var r=ui.row(body);r.set_meta("member_id",u.id);r.set_meta("active_member",ids.has(u.id));ui.portrait(r,u,true,40)
@@ -47,13 +51,14 @@ func render(parent):
 			var caption=l(card,("● " if u.id==pages.party_uid else "")+str(u.name)+" / "+str(u.get("role",""))+"\nHP%d/%d\nMP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]);caption.add_theme_font_size_override("font_size",16);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;caption.autowrap_mode=TextServer.AUTOWRAP_OFF;caption.clip_text=true;caption.mouse_filter=Control.MOUSE_FILTER_IGNORE;chooser.tooltip_text=caption.text
 			card.minimum_size_changed.connect(func():
 				if is_instance_valid(chooser):chooser.custom_minimum_size.y=maxf(108,card.get_minimum_size().y+8))
-		var reserve_row=ui.row(split);l(reserve_row,"控え %d人" % reserves.size())
-		var chooser=OptionButton.new();chooser.name="PartyReserveSelector";chooser.custom_minimum_size.y=44;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;chooser.clip_text=true;chooser.add_theme_constant_override("icon_max_width",28);reserve_row.add_child(chooser);ui.memory.key(chooser,"party_narrow_select")
-		chooser.add_item("控えの仲間を選択");chooser.set_item_disabled(0,true)
-		for u in reserves:
-			chooser.add_icon_item(ui.portraits.texture(u,true),str(u.name)+" / "+str(u.get("role",""))+" HP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]);chooser.set_item_metadata(chooser.item_count-1,u.id)
-			if u.id==pages.party_uid:chooser.select(chooser.item_count-1)
-		chooser.item_selected.connect(func(i):pages.select_party(str(chooser.get_item_metadata(i))))
+		if ui.reserves_visible():
+			var reserve_row=ui.row(split);l(reserve_row,"控え %d人" % reserves.size())
+			var chooser=OptionButton.new();chooser.name="PartyReserveSelector";chooser.custom_minimum_size.y=44;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;chooser.clip_text=true;chooser.add_theme_constant_override("icon_max_width",28);reserve_row.add_child(chooser);ui.memory.key(chooser,"party_narrow_select")
+			chooser.add_item("控えの仲間を選択");chooser.set_item_disabled(0,true)
+			for u in reserves:
+				chooser.add_icon_item(ui.portraits.texture(u,true),str(u.name)+" / "+str(u.get("role",""))+" HP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]);chooser.set_item_metadata(chooser.item_count-1,u.id)
+				if u.id==pages.party_uid:chooser.select(chooser.item_count-1)
+			chooser.item_selected.connect(func(i):pages.select_party(str(chooser.get_item_metadata(i))))
 	var detail=VBoxContainer.new();detail.name="PartyDetail";detail.size_flags_horizontal=Control.SIZE_EXPAND_FILL;detail.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(detail)
 	var member={}
 	for u in members:
@@ -85,6 +90,7 @@ func equipment(parent,u: Dictionary):
 func equipment_name(e: Dictionary) -> String:
 	return str(e.get("name","なし")).trim_prefix(str(e.label)+":").trim_prefix(str(e.label)+"：").strip_edges()
 func open_equipment(u: Dictionary,e: Dictionary):
+	if not ui.can_inspect_member(str(u.id)):return
 	if not detail_uid.is_empty():detail_gear=u.get("equipmentDetails",{}).get(e.slot,{});refresh_modal();return
 	if not guard_leave(open_equipment.bind(u,e)):return
 	highlight_slot=e.slot;ui.render()
@@ -98,7 +104,7 @@ func growth(parent,u: Dictionary):
 	if not detail_uid.is_empty() and str(u.id)!=detail_uid:l(parent,"人物ステータスを別画面で編集中です。");return
 	ensure_draft(u)
 	var stats=u.get("stats",u)
-	var remaining=int(u.get("statPoints",0))-draft_total();var editable=pages.c().get("phase")=="town" and not committing
+	var remaining=int(u.get("statPoints",0))-draft_total();var editable=pages.c().get("phase")=="town" and ui.active_member(str(u.id)) and not committing
 	var points=ui.row(parent)
 	var info=ui.icons.apply(b(points,"ポイント説明",point_help),"attribute_points");info.name="AttributePointHelp"
 	var count=l(points,"割り振り可能な残ポイント：%d" % remaining,true);count.name="AllocationRemaining"
@@ -108,7 +114,7 @@ func growth(parent,u: Dictionary):
 		ui.memory.key(b(row,"＋1",change_draft.bind(u,stat,1),not editable or remaining<=0),"allocate_"+stat)
 		ui.memory.key(b(row,"−1",change_draft.bind(u,stat,-1),not editable or draft[stat]<=0),"allocate_minus_"+stat)
 	var confirm=b(parent,"確定",confirm_allocation.bind(u),not editable or draft_total()==0);confirm.name="AllocationConfirm";ui.memory.key(confirm,"allocation_confirm")
-	if not editable:l(parent,"成長の配分は町にいる時だけ編集できます。" if pages.c().get("phase")!="town" else "確定結果を確認しています。")
+	if not editable:l(parent,"控えは編成してから操作できます。" if not ui.active_member(str(u.id)) else "成長の配分は町にいる時だけ編集できます。" if pages.c().get("phase")!="town" else "確定結果を確認しています。")
 	l(parent,"未確定分だけ修正できます。未使用ポイントは残せます。")
 	ui.icons.line(ui,parent,"experience","Lv.%d / 経験値 %d" % [u.get("level",1),u.get("xp",0)])
 	l(parent,"スキルポイント %d / スキル配分は未実装です。" % u.get("skillPoints",0))
@@ -143,7 +149,7 @@ func ensure_draft(u: Dictionary):
 	if draft_uid!=str(u.id) or draft_token!=str(u.get("allocationToken","")):
 		clear_draft();draft_uid=str(u.id);draft_token=str(u.get("allocationToken",""))
 func change_draft(u: Dictionary,stat: String,amount: int):
-	if ui.locked or committing or pages.c().get("phase")!="town":return
+	if ui.locked or committing or pages.c().get("phase")!="town" or not ui.active_member(str(u.id)):return
 	ensure_draft(u)
 	if amount>0 and draft_total()>=int(u.get("statPoints",0)) or amount<0 and int(draft[stat])<=0:return
 	draft[stat]+=amount;redraw_details()
@@ -154,12 +160,12 @@ func point_help():
 	var dialog=ui.confirm("レベルアップで獲得し、STR・INT・AGIに配分できる未使用ポイントです。\n確定前の＋／−だけを調整できます。",func():pass)
 	dialog.ok_button_text="閉じる";dialog.get_cancel_button().hide();dialog.get_ok_button().grab_focus()
 func confirm_allocation(u: Dictionary):
-	if ui.locked or committing or draft_total()<=0 or pages.c().get("phase")!="town":return
+	if ui.locked or committing or draft_total()<=0 or pages.c().get("phase")!="town" or not ui.active_member(str(u.id)):return
 	var delta=draft.duplicate(true);var token=draft_token;var uid=str(u.id)
 	var text="ステータスポイントの割り振りを確定しますか？\n%s\nSTR＋%d / INT＋%d / AGI＋%d\n使用 %d点 / 確定後の残り %d点" % [u.name,delta.str,delta.int,delta.agi,draft_total(),int(u.statPoints)-draft_total()]
 	var dialog=ui.confirm(text,submit_allocation.bind(uid,delta,token));dialog.name="AllocationConfirmation";dialog.ok_button_text="YES";dialog.cancel_button_text="NO";dialog.get_cancel_button().grab_focus()
 func submit_allocation(uid: String,delta: Dictionary,token: String):
-	if committing or ui.locked or uid!=draft_uid or token!=draft_token:return
+	if committing or ui.locked or uid!=draft_uid or token!=draft_token or not ui.active_member(uid):return
 	committing=true
 	var reply=await ui.act("allocateBatch",[uid,delta,token])
 	committing=false
@@ -175,6 +181,7 @@ func guard_leave(next: Callable) -> bool:
 	dialog.canceled.connect(func():leave_pending=false)
 	return false
 func go_shop(uid: String,slot: String):
+	if not ui.active_member(uid):return
 	if not guard_leave(go_shop.bind(uid,slot)):return
 	ui.shop_uid=uid;ui.shop_slot=slot;ui.page="shop";pages.gear_id="";pages.shop_view.from_party=true;pages.shop_view.back_list()
 func face_bar(parent):
@@ -188,7 +195,7 @@ func face_bar(parent):
 		var control=b(row,caption,open_detail.bind(str(id)),ui.modal_open() or pages.shop_view.stage in ["S4","S5"] or pages.shop_view.unknown)
 		control.name="PartyFace_"+str(id);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.icon=ui.portraits.texture(u,true);control.expand_icon=true;control.add_theme_constant_override("icon_max_width",48 if ui.ui_size_mode=="standard" else 28);control.clip_text=true;control.tooltip_text=control.text+" / ステータスを開く";ui.memory.key(control,"face_"+str(id))
 func open_detail(uid: String):
-	if ui.locked or ui.presenting or ui.modal_open():return
+	if ui.locked or ui.presenting or ui.modal_open() or not ui.can_inspect_member(uid):return
 	if not guard_leave(open_detail.bind(uid)):return
 	detail_uid=uid;detail_tab=0;detail_gear={};inventory_view.reset()
 	ui.dialog.open("ステータス",func(_body,actions):
@@ -208,8 +215,9 @@ func refresh_modal():
 	if detail_uid.is_empty() or modal_refreshing or not is_instance_valid(ui.dialog.window):return
 	if ui.dialog.window.title!="ステータス":return
 	modal_refreshing=true
-	var matches=ui.roster().filter(func(u):return u.id==detail_uid)
-	if matches.is_empty():modal_refreshing=false;return
+	var matches=ui.visible_roster().filter(func(u):return u.id==detail_uid)
+	if matches.is_empty():
+		clear_draft();detail_uid="";detail_gear={};inventory_view.reset();modal_refreshing=false;ui.dialog.close(false);return
 	var u=matches[0];var body=ui.dialog.body
 	var scroll=body.get_parent();var old_scroll=scroll.scroll_vertical
 	ui.clear(body)

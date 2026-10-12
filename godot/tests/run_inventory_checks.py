@@ -84,7 +84,7 @@ if args.suite != 'native':
     for name in ['inventory_regression', 'shop_plan_regression', 'inventory_battle_hud', 'hover_lifetime_regression',
                  'followup_ui_regression', 'ui_review_fixes', 'uiux_inventory_review',
                  'plan_reconnect_regression', 'reference_disconnect_regression', 'audio_regression',
-                 'independent_review_regression']:
+                 'independent_review_regression', 'reserve_policy_regression']:
         run(name, base + ['--log-file', str(out / (name + '-engine.log')), '--script', 'res://tests/' + name + '.gd'], repo)
 print(f"{sum(r['passed'] for r in results)}/{len(results)} commands passed", flush=True)
 raise SystemExit(0 if all(r['passed'] for r in results) else 1)
