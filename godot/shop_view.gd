@@ -51,6 +51,7 @@ func render(parent):
 	var gold=ui.icons.line(ui,context,"money","所持金 %dG" % c().get("gold",0));gold.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
 	if stage=="S6":render_receipt(parent);return
 	if stage=="S7":render_error(parent);return
+	if not plan.message.is_empty():l(parent,plan.message).name="PlanNotice"
 	var modes=ui.row(parent);modes.name="ShopModes"
 	for mode in [["products","商品を比較"],["plan","購入計画 (%d)" % plan.draft().size()],["sale","所持品を売却"]]:
 		var switch=b(modes,("● " if view_mode==mode[0] else "")+mode[1],plan.show.bind(mode[0]),stage in ["S4","S5"] or unknown);switch.name="ShopMode_"+mode[0]
@@ -157,36 +158,47 @@ func reason(q: Dictionary) -> String:
 	if q.get("same",false):return "＝ 装備中の品です"
 	if not q.get("affordable",false):return "× 所持金が不足しています"
 	return ""
-func comparison_lines(q: Dictionary,all_values:=false) -> Array[String]:
-	var losses: Array[String]=[];var gains: Array[String]=[];var unchanged: Array[String]=[]
+const CHANGE_COLORS={"loss":Color("#ffd0b8"),"gain":Color("#b4eedb"),"neutral":Color("#d2dce4")}
+func comparison_changes(q: Dictionary,all_values:=false) -> Array[Dictionary]:
+	var losses: Array[Dictionary]=[];var gains: Array[Dictionary]=[];var unchanged: Array[Dictionary]=[]
 	var before: Dictionary=q.before;var after: Dictionary=q.after
 	for field in [["max","HP上限"],["maxMp","MP上限"],["speed","行動速度"]]:
 		if not before.has(field[0]) or not after.has(field[0]):continue
 		var a=int(before[field[0]]);var z=int(after[field[0]]);var line="%s: %d → %d (%+d)" % [field[1],a,z,z-a]
-		if z<a:losses.append("▼ "+line)
-		elif z>a:gains.append("▲ "+line)
-		elif all_values:unchanged.append("＝ "+line)
+		if z<a:losses.append({"text":"▼ "+line,"direction":"loss"})
+		elif z>a:gains.append({"text":"▲ "+line,"direction":"gain"})
+		elif all_values:unchanged.append({"text":"＝ "+line,"direction":"neutral"})
 	var br=pages.normal_reach(before);var ar=pages.normal_reach(after)
 	for d in range(1,maxi(br,ar)+1):
 		var a=pages.normal_atk(before,d);var z=pages.normal_atk(after,d)
 		var line="通常ATK・距離%d: %s → %s%s" % [d,str(a) if d<=br else "射程外",str(z) if d<=ar else "射程外"," (%+d)" % (z-a) if d<=br and d<=ar else ""]
-		if d>ar or z<a:losses.append("▼ "+line)
-		elif d>br or z>a:gains.append("▲ "+line)
-		elif all_values:unchanged.append("＝ "+line)
-	if br!=ar:(losses if ar<br else gains).append("%s 通常攻撃の届く距離: %d → %d" % ["▼" if ar<br else "▲",br,ar])
-	elif all_values:unchanged.append("＝ 通常攻撃の届く距離: %d" % br)
+		if d>ar or z<a:losses.append({"text":"▼ "+line,"direction":"loss"})
+		elif d>br or z>a:gains.append({"text":"▲ "+line,"direction":"gain"})
+		elif all_values:unchanged.append({"text":"＝ "+line,"direction":"neutral"})
+	if br!=ar:
+		var direction="loss" if ar<br else "gain"
+		(losses if ar<br else gains).append({"text":"%s 通常攻撃の届く距離: %d → %d" % ["▼" if ar<br else "▲",br,ar],"direction":direction})
+	elif all_values:unchanged.append({"text":"＝ 通常攻撃の届く距離: %d" % br,"direction":"neutral"})
 	for pair in [["activeSkills","スキル"],["effects","効果"]]:
 		var old=before.get(pair[0],[]);var now=after.get(pair[0],[])
 		for name_ in old:
-			if not now.has(name_):losses.append("− 失う"+pair[1]+": "+change_description(str(name_),pair[0]=="effects"))
+			if not now.has(name_):losses.append({"text":"− 失う"+pair[1]+": "+change_description(str(name_),pair[0]=="effects"),"direction":"loss"})
 		for name_ in now:
-			if not old.has(name_):gains.append("＋ 得る"+pair[1]+": "+change_description(str(name_),pair[0]=="effects"))
-		if all_values:unchanged.append(pair[1]+": "+" / ".join(old.map(func(id):return str(c().get("skillNames",{}).get(id,id))))+" → "+" / ".join(now.map(func(id):return str(c().get("skillNames",{}).get(id,id)))))
-	# Named source changes are meaningful even if they grant the same skill.
+			if not old.has(name_):gains.append({"text":"＋ 得る"+pair[1]+": "+change_description(str(name_),pair[0]=="effects"),"direction":"gain"})
+		if all_values:unchanged.append({"text":pair[1]+": "+" / ".join(old.map(func(id):return str(c().get("skillNames",{}).get(id,id))))+" → "+" / ".join(now.map(func(id):return str(c().get("skillNames",{}).get(id,id)))),"direction":"neutral"})
 	if all_values:
 		for side in ["before","after"]:
-			for source in q[side].get("skillSources",[]):unchanged.append(("現在" if side=="before" else "候補")+"の由来: "+str(c().get("skillNames",{}).get(source.id,source.id))+" / "+str(c().slots.get(source.slot,source.slot))+" / "+source_name(q,source))
+			for source in q[side].get("skillSources",[]):unchanged.append({"text":("現在" if side=="before" else "候補")+"の由来: "+str(c().get("skillNames",{}).get(source.id,source.id))+" / "+str(c().slots.get(source.slot,source.slot))+" / "+source_name(q,source),"direction":"neutral"})
 	return losses+gains+unchanged
+func comparison_lines(q: Dictionary,all_values:=false) -> Array[String]:
+	var lines: Array[String]=[]
+	for change in comparison_changes(q,all_values):lines.append(change.text)
+	return lines
+func render_change(parent,change: Dictionary,large:=false) -> Label:
+	var label=l(parent,change.text,large)
+	label.set_meta("comparison_direction",change.direction)
+	label.add_theme_color_override("font_color",CHANGE_COLORS.get(change.direction,CHANGE_COLORS.neutral))
+	return label
 func render_comparison(parent):
 	var q=ui.gear_preview
 	var body=ui.scroller(parent);body.get_parent().name="ShopComparisonScroll";body.get_parent().custom_minimum_size.y=64;ui.memory.watch(body.get_parent(),"shop_compare")
@@ -198,17 +210,18 @@ func render_comparison(parent):
 	l(body,"%s / %s / %s" % [ui.member_name(ui.shop_uid),c().slots.get(ui.shop_slot,ui.shop_slot),"両手" if q.gear.get("hands",1)==2 else "片手" if ui.shop_slot in ["rightHand","leftHand"] else "装備"])
 	var why=reason(q)
 	if not why.is_empty():var warning=l(body,why);warning.add_theme_color_override("font_color",Color("#ffc9a8"))
-	var lines=comparison_lines(q)
-	if lines.is_empty():l(body,"数値・スキル・効果の変更はありません。")
-	for text in lines:
-		var change=l(body,text,true);change.add_theme_font_size_override("font_size",26 if ui.size.x>=1800 else 20)
-		change.add_theme_color_override("font_color",Color("#ffd0b8") if text.begins_with("↓") or text.begins_with("−") else Color("#b4eedb"))
+	var changes=comparison_changes(q)
+	if changes.is_empty():render_change(body,{"text":"数値・スキル・効果の変更はありません。","direction":"neutral"})
+	for change in changes:
+		var label=render_change(body,change,true);label.add_theme_font_size_override("font_size",26 if ui.size.x>=1800 else 20)
 	var payment=l(body,"%s    所持金 %d → %dG" % [payment_text(q.cost),c().gold,q.afterGold],true);payment.name="PaymentSummary";payment.add_theme_font_size_override("font_size",30 if ui.size.x>=1800 else 23)
 	var retention=l(body,"購入価格 %dG / %s" % [q.price,"外した "+str(q.current.name)+" は本人のインベントリへ" if q.get("retained",false) else "現在の装備枠は空です"]);retention.add_theme_font_size_override("font_size",18 if ui.size.x>=1800 else 15)
 	var actions=ui.row(parent);actions.name="ShopActions"
 	b(actions,"全性能・説明",open_details);b(actions,"木人で試す",start_trial,not q.get("eligible",false) or not q.get("available",false))
 	var purchase_button=b(actions,"この1件を購入",confirm_purchase,not why.is_empty());ui.memory.key(purchase_button,"purchase")
-	ui.primary(b(parent,"購入計画に追加",plan.add_current,not q.get("available",false) or q.get("same",false))).name="AddPurchasePlan"
+	var planned=plan.existing(q)
+	if not planned.is_empty():l(parent,"現在の予定: "+str(planned.name)+(" → "+str(q.gear.name) if planned.gearId!=q.gearId else "（追加済み）")).name="PlanReplacement"
+	ui.primary(b(parent,plan.add_caption(q),plan.add_current,not q.get("available",false) or q.get("same",false) or planned.get("gearId")==q.gearId)).name="AddPurchasePlan"
 	body.get_parent().resized.connect(pages.refresh_purchase_availability.bind(purchase_button));body.get_parent().visibility_changed.connect(pages.refresh_purchase_availability.bind(purchase_button));pages.refresh_purchase_availability(purchase_button)
 func open_details():
 	if not pages.quote_valid():return
@@ -216,7 +229,7 @@ func open_details():
 	ui.dialog.open("装備の全性能・説明",func(body,actions):
 		l(body,ui.member_name(ui.shop_uid)+" / "+str(c().slots.get(ui.shop_slot,ui.shop_slot)),true)
 		l(body,str(q.current.name)+" → "+str(q.gear.name),true)
-		for line in comparison_lines(q,true):l(body,line)
+		for change in comparison_changes(q,true):render_change(body,change)
 		l(body,"通常ATK = その距離に届く武器のATK合算 + 成長補正1回。陣形・スキル・防御は戦闘予測で確認。")
 		for pair in [["current","現在の装備"],["gear","購入候補"]]:
 			l(body,pair[1],true)
@@ -230,7 +243,7 @@ func confirm_purchase():
 	var q=ui.gear_preview.duplicate(true);var stamp=pages.quote_stamp;var ticket=pages.quote_generation;stage="S4";modal_ticket=ticket
 	ui.dialog.open("購入・装備の確認",func(body,actions):
 		receipt_summary(body,q)
-		for line in comparison_lines(q):l(body,line)
+		for change in comparison_changes(q):render_change(body,change)
 		ui.local_button(actions,"比較に戻る",ui.dialog.close)
 		ui.primary(b(actions,"%dGで購入・装備" % q.cost if q.cost>=0 else "%dGを受け取り購入・装備" % -q.cost,func():
 			if stage!="S4" or ticket!=pages.quote_generation or stamp!=pages.selection_key(str(q.gearId)) or not pages.quote_valid():
