@@ -111,12 +111,13 @@ func render():
 	var shell=ui.card(dock);shell.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var split=ui.row(shell) if ui.ui_size_mode!="standard" else shell;split.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	var person_area=Control.new();person_area.name="BattlePersonArea";person_area.clip_contents=true;split.add_child(person_area)
-	person_area.custom_minimum_size=Vector2(240,0) if ui.ui_size_mode!="standard" else Vector2(0,300 if ui.size.y>=1000 else 210)
+	person_area.custom_minimum_size=Vector2(240,0) if ui.ui_size_mode!="standard" else Vector2(0,180 if ui.size.y>=1000 else 150)
 	person_area.size_flags_vertical=Control.SIZE_EXPAND_FILL if ui.ui_size_mode!="standard" else Control.SIZE_FILL
 	person_box=ui.scroller(person_area);person_box.name="BattlePersonInfo";person_box.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	render_person()
 	person_area.visible=not (range_reference and ui.ui_size_mode!="standard")
 	var decision=VBoxContainer.new();decision.name="DecisionArea";decision.size_flags_vertical=Control.SIZE_EXPAND_FILL;decision.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(decision)
+	if ui.ui_size_mode=="standard" and not action_menu:split.move_child(decision,0)
 	var box=ui.scroller(decision);box.name="DecisionContent";box.get_parent().name="DecisionScroll"
 	decision_footer=VBoxContainer.new();decision.add_child(decision_footer)
 	actor_box=box;command_box=box;target_box=box
@@ -204,12 +205,15 @@ func back_to_commands():
 func open_items():
 	if ui.locked or ui.presenting or ui.closing or range_reference:return
 	ui.invalidate_preview();action_menu=false;item_list=true;selected_cell=-1;selected_enemy="";ui.command="items";ui.render()
+func item_count(id: String) -> int:
+	if ui.state().has("itemInventories"):return int(ui.state().itemInventories.get(acting().get("id",""),{}).get(id,0))
+	return int(ui.state().get("ethers",0)) if id=="ether" else int(ui.state().get("potions",{}).get("ally",0))
 func render_items():
-	l(target_box,"アイテム / 種類を選択",true)
+	l(target_box,str(acting().get("name",""))+"のアイテム",true)
 	for item in ItemMenu.definitions(ui.campaign()):
 		var kind=str(item.get("battleKind",""))
 		if kind.is_empty():continue
-		var count=ui.state().get("ethers",0) if kind=="ether" else ui.state().get("potions",{}).get("ally",0) if kind=="item" else ui.campaign().get("inventory",{}).get(item.id,0)
+		var count=item_count(str(item.id))
 		var reason=""
 		if item.get("battleRole","")=="porter" and acting().get("job")!="porter":reason="ポーター専用"
 		elif count<=0:reason="在庫なし"
@@ -280,11 +284,17 @@ func render_prediction(main,facts):
 		var target=unit(ui.pending);summary=str(target.get("name",ui.pending))+" / "+coord(target.get("pos",0))+" HP%d/%d" % [target.get("hp",0),target.get("max",0)]
 	elif ui.pending is Array or not ui.chosen.is_empty():summary="選択 %d人: " % ui.chosen.size()+" / ".join(ui.chosen.map(func(id):return ui.member_name(str(id))))
 	if ui.command=="skill" and ui.data.get("skill")=="陣形強化":summary="対象: 味方全員（陣形の3マス外も含む）"
-	var target=l(main,summary);target.name="TargetSummary";ui.short_name(target,summary)
+	var target=l(main,summary,true);target.name="TargetSummary";ui.short_name(target,summary)
 	var hits=ui.preview.get("damagePreview",[])
-	if ui.preview_ready and not hits.is_empty():
-		var hit=hits[0];var prediction=ui.icons.line(ui,main,"damage","予測: HP −%d / 命中100%%" % hit.hpLoss,true);prediction.name="PredictionSummary"
-		if hits.size()==1:l(facts,"予測受領者: "+str(hit.get("recipientName","未確認")))
+	var hp_effects=ui.preview.get("effectPreview",[]).filter(func(effect):return effect.get("hp",0)!=0)
+	if ui.preview_ready and not hp_effects.is_empty():
+		for i in range(hp_effects.size()):
+			var effect=hp_effects[i];var recipient=unit(effect.id);var before=int(recipient.get("hp",0));var after=before+int(effect.hp)
+			var prediction=ui.icons.line(ui,main,"damage" if effect.hp<0 else "healing","%s HP %d → %d（%+d）" % [recipient.get("name",effect.id),before,after,effect.hp],true)
+			prediction.name="PredictionSummary" if i==0 else "PredictionSummary_"+str(effect.id);prediction.add_theme_font_size_override("font_size",30 if ui.size.x>=1800 else 25)
+			prediction.add_theme_color_override("font_color",Color("#ffc7b4") if effect.hp<0 else Color("#b6f0db"))
+		if not hits.is_empty():l(facts,"命中100% / 現在の対象・条件での予測")
+		if hits.size()==1:l(facts,"予測受領者: "+str(hits[0].get("recipientName","未確認")))
 		if hits.size()>1:l(facts,"予測 %d件: " % hits.size()+" / ".join(hits.map(func(h):return str(h.get("targetName",h.get("recipientName","未確認")))))+(" / 全対象は下へ" if ui.command=="skill" else " / 全対象は内訳へ" if ui.ui_size_mode=="standard" else ""))
 		for entry in hits:
 			if entry.get("targetName")!=entry.get("recipientName"):l(facts,"⚠ 肩代わり: "+str(entry.get("targetName",""))+" → "+str(entry.get("recipientName","")))
@@ -293,8 +303,8 @@ func render_prediction(main,facts):
 	if ui.command=="guard":ui.icons.line(ui,main,"defense_up","被ダメージ半減 / 次の本人の番まで")
 	if ui.preview_ready:
 		for effect in ui.preview.get("effectPreview",[]):
-			if effect.get("hp",0)>0:ui.icons.line(ui,main,"healing","%s HP＋%d / 命中：対象外" % [target_name(effect.id),effect.hp])
-			if effect.get("mp",0)>0:ui.icons.line(ui,main,"healing","%s MP＋%d / 命中：対象外" % [target_name(effect.id),effect.mp])
+			if effect.get("mp",0)>0:
+				var before=int(unit(effect.id).get("mp",0));ui.icons.line(ui,main,"healing","%s MP %d → %d（＋%d）" % [target_name(effect.id),before,before+int(effect.mp),effect.mp],true)
 			if effect.get("boost",false):
 				ui.icons.line(ui,main,"attack_up","陣形中の味方攻撃×1.75")
 				ui.icons.line(ui,main,"defense_up","陣形中の味方被害×0.65")
@@ -319,7 +329,7 @@ func render_skill_breakdown(parent):
 		if skill.name!=ui.data.get("skill"):continue
 		for source in skill.get("sources",[]):l(parent,"由来: "+str(ui.campaign().get("slots",{}).get(source.slot,source.slot))+" / "+str(source.get("itemName",source.get("itemId",""))))
 func cost_text() -> String:
-	if ui.command in ["item","ether"]:return "消費: 1個・1行動 / 残り%d個" % (ui.state().get("ethers",0) if ui.command=="ether" else ui.state().get("potions",{}).get("ally",0))
+	if ui.command in ["item","ether"]:return "本人の所持品を消費: 1個・1行動 / 残り%d個" % item_count("ether" if ui.command=="ether" else "potion")
 	var info=ui.data.get("skillInfo")
 	return "消費: MP%d / 1行動" % (info.get("cost",1) if info is Dictionary else 1) if ui.command=="skill" else "消費: MP0 / 1行動"
 func render_skills(parent):

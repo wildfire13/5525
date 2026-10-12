@@ -22,7 +22,7 @@ test('one-hand spear works in either hand, duplicate ID rejected, distance-filte
 test('javelin repeats without MP/ammo/item expenditure and combines with sword only in range',()=>{
  const s=town();C.buyGear(s,'mage','javelin-wood','leftHand');const t=C.trial(s,'mage','sword-wood','rightHand'),a=t.battle.units.find(u=>u.id==='mage'),e=t.battle.units.find(u=>u.id==='enemy-guard');const mp=a.mp,stock=clone(t.battle.potions);
  for(const [pos,damage] of [[25,47],[27,21],[27,21]]){e.pos=pos;const hp=e.hp;assert.ok(C.trialAct(t,'attack',e.id));assert.equal(hp-e.hp,damage);assert.equal(a.mp,mp);assert.deepEqual(t.battle.potions,stock);}
- assert.equal(t.battle.actions,3);assert.equal(s.characters.mage.leftHand,'javelin-wood');assert.deepEqual(s.inventory,{potion:3,ether:1});
+ assert.equal(t.battle.actions,3);assert.equal(s.characters.mage.leftHand,'javelin-wood');assert.deepEqual(C.inventoryTotals(s),{potion:3,ether:1});
 });
 test('both two-hand types reject occupied left, release after removal and exchange without loss',()=>{
  for(const id of ['greatsword-wood','longspear-wood']){const s=town(),old=clone(s);assert.equal(C.buyGear(s,'guard',id),false);assert.deepEqual(s,old);assert.ok(C.buyGear(s,'guard','empty-leftHand','leftHand'));const hp=s.characters.guard.hp,mp=s.characters.guard.mp;assert.ok(C.buyGear(s,'guard',id));const occupied=clone(s);assert.equal(C.buyGear(s,'guard','spear-wood','leftHand'),false);assert.deepEqual(s,occupied);assert.ok(C.buyGear(s,'guard','empty-rightHand','rightHand'));assert.ok(C.buyGear(s,'guard','spear-wood','leftHand'));assert.equal(s.characters.guard.hp,hp);assert.equal(s.characters.guard.mp,mp);assert.deepEqual(C.deserialize(C.serialize(s)),s);}

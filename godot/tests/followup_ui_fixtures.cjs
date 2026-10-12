@@ -3,6 +3,8 @@ const C=require('../../native/campaign.js'),B=require('../../native/campaign-bat
 function battle(actor='guard',mp=3,formed=true){
  const s=C.create();
  s.characters.guard.weapon='hammer-wood';s.characters.guard.leftHand='guard-shield-wood';
+ // Synthetic four-ether fixture now has an explicit owner before battle starts.
+ delete s.characters.guard.inventory.ether;s.characters.porter.inventory.ether=4;
  assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>.5));assert(C.begin(s));
  const b=s.battle;
  // R04: this fixed-position regression intentionally resumes the legacy formation.

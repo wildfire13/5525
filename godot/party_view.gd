@@ -14,7 +14,8 @@ var detail_gear: Dictionary={}
 var committing := false
 var leave_pending := false
 var modal_refreshing := false
-func _init(owner):owner_ref=weakref(owner);ui=owner.ui
+var inventory_view
+func _init(owner):owner_ref=weakref(owner);ui=owner.ui;inventory_view=preload("res://inventory_view.gd").new(self)
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func render(parent):
@@ -91,7 +92,7 @@ func open_equipment(u: Dictionary,e: Dictionary):
 		if e.get("occupiedBy")!=null:l(body,"右手の両手武器で使用中。別の2個目を持っているわけではありません。")
 		var item=u.get("equipmentDetails",{}).get(e.slot,{})
 		pages.describe_gear(body,item)
-		l(body,"閲覧専用です。所持品への取り外し・自由な付け替えはありません。")
+		ui.local_button(body,"ステータスで所持品・装備を操作",func():ui.dialog.close();open_detail(str(u.id)))
 		ui.local_button(actions,"装備一覧へ",ui.dialog.close))
 func growth(parent,u: Dictionary):
 	if not detail_uid.is_empty() and str(u.id)!=detail_uid:l(parent,"人物ステータスを別画面で編集中です。");return
@@ -137,7 +138,7 @@ func identity(parent,u: Dictionary):
 	label.autowrap_mode=TextServer.AUTOWRAP_OFF
 func draft_total() -> int:return int(draft.str)+int(draft.int)+int(draft.agi)
 func clear_draft():draft={"str":0,"int":0,"agi":0};draft_uid="";draft_token=""
-func reset():clear_draft();detail_uid="";detail_gear={};committing=false;leave_pending=false
+func reset():clear_draft();detail_uid="";detail_gear={};committing=false;leave_pending=false;inventory_view.reset()
 func ensure_draft(u: Dictionary):
 	if draft_uid!=str(u.id) or draft_token!=str(u.get("allocationToken","")):
 		clear_draft();draft_uid=str(u.id);draft_token=str(u.get("allocationToken",""))
@@ -185,14 +186,21 @@ func face_bar(parent):
 		var caption=str(u.name)+(" 戦闘不能" if u.hp<=0 else "")
 		if show_resources:caption+="\nHP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]
 		var control=b(row,caption,open_detail.bind(str(id)),ui.modal_open() or pages.shop_view.stage in ["S4","S5"] or pages.shop_view.unknown)
-		control.name="PartyFace_"+str(id);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.icon=ui.portraits.texture(u,true);control.expand_icon=true;control.add_theme_constant_override("icon_max_width",48 if ui.ui_size_mode=="standard" else 28);control.clip_text=true;control.tooltip_text=control.text;ui.memory.key(control,"face_"+str(id))
+		control.name="PartyFace_"+str(id);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.icon=ui.portraits.texture(u,true);control.expand_icon=true;control.add_theme_constant_override("icon_max_width",48 if ui.ui_size_mode=="standard" else 28);control.clip_text=true;control.tooltip_text=control.text+" / ステータスを開く";ui.memory.key(control,"face_"+str(id))
 func open_detail(uid: String):
 	if ui.locked or ui.presenting or ui.modal_open():return
 	if not guard_leave(open_detail.bind(uid)):return
-	detail_uid=uid;detail_tab=0;detail_gear={}
-	ui.dialog.open("人物ステータス",func(_body,actions):ui.local_button(actions,"閉じる",ui.dialog.close),func():detail_uid="";detail_gear={};ui.render())
-	ui.dialog.close_guard=guard_leave
+	detail_uid=uid;detail_tab=0;detail_gear={};inventory_view.reset()
+	ui.dialog.open("ステータス",func(_body,actions):ui.local_button(actions,"閉じる",ui.dialog.close),func():detail_uid="";detail_gear={};inventory_view.reset();ui.render())
+	ui.dialog.close_guard=detail_close_guard
 	ui.render()
+func open_inventory(uid: String):
+	open_detail(uid)
+	if detail_uid==uid:detail_tab=3;refresh_modal()
+func detail_close_guard(next: Callable) -> bool:
+	if ui.locked or inventory_view.stage=="pending":return false
+	if detail_tab==3 and inventory_view.back():return false
+	return guard_leave(next)
 func refresh_modal():
 	if detail_uid.is_empty() or modal_refreshing or not is_instance_valid(ui.dialog.window):return
 	modal_refreshing=true
@@ -203,12 +211,19 @@ func refresh_modal():
 	ui.clear(body)
 	var hero=ui.row(body);ui.portrait(hero,u,false,88);l(hero,str(u.name)+" / Lv.%d\nHP%d/%d  MP%d/%d" % [u.level,u.hp,u.max,u.mp,u.maxMp],true);identity(body,u)
 	var tabs=ui.row(body)
-	for i in range(3):b(tabs,("● " if detail_tab==i else "")+["装備","能力・成長","スキル・効果"][i],func():detail_tab=i;detail_gear={};refresh_modal())
+	for i in range(4):
+		var tab_button=b(tabs,("● " if detail_tab==i else "")+["装備","能力・成長","スキル・効果","インベントリ"][i],func():detail_tab=i;detail_gear={};refresh_modal())
+		tab_button.name="StatusTab_"+str(i);tab_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	match detail_tab:
 		0:
 			equipment(body,u)
-			if not detail_gear.is_empty():pages.describe_gear(body,detail_gear)
+			if not detail_gear.is_empty():
+				pages.describe_gear(body,detail_gear)
+				for e in u.get("equipmentSlots",[]):
+					if e.id==detail_gear.get("id") and e.get("occupiedBy")==null and detail_gear.get("type")!="empty":
+						b(body,str(e.label)+"から外して所持品へ",inventory_view.prepare_unequip.bind(detail_uid,str(e.id),str(e.slot)),pages.c().get("phase") not in ["town","camp"] or not pages.c().get("selected",[]).has(detail_uid))
 		1:growth(body,u)
 		2:skills(body,u)
+		3:inventory_view.render(body,detail_uid)
 	if not ui.notice.is_empty():l(body,ui.notice)
 	scroll.set_deferred("scroll_vertical",old_scroll);modal_refreshing=false

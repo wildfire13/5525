@@ -113,7 +113,7 @@ func roster() -> Array: return campaign().get("roster",[])
 func label_(parent: Node,text: String,large:=false) -> Label:
 	var l=Label.new();l.text=text;l.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	if parent is HBoxContainer:l.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	if large:l.add_theme_font_size_override("font_size",23)
+	if large:l.add_theme_font_size_override("font_size",28 if size.x>=1800 else 23)
 	parent.add_child(l);return l
 func emphasize_low_hp(label: Label,unit: Dictionary):
 	if unit.get("max",0)>0 and unit.get("hp",0)*4<unit.max:
@@ -160,7 +160,7 @@ func portrait(parent: Node,u: Dictionary,face:=false,size_:=72) -> TextureRect:
 	p.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;p.texture=portraits.texture(u,face)
 	parent.add_child(p);return p
 func card(parent: Node) -> VBoxContainer:
-	var p=PanelContainer.new();var style=StyleBoxFlat.new();style.bg_color=Color("#20333f")
+	var p=PanelContainer.new();var style=StyleBoxFlat.new();style.bg_color=Color("#172b36");style.border_color=Color("#385260");style.set_border_width_all(1)
 	style.set_corner_radius_all(9);style.set_content_margin_all(8)
 	p.add_theme_stylebox_override("panel",style);parent.add_child(p)
 	var v=VBoxContainer.new();p.add_child(v);return v
@@ -221,7 +221,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 	if footer!=null:set_status("処理中…")
 	var reply: Dictionary=await engine.request(request)
 	locked=false
-	if request.get("op")=="campaign" and request.get("action") not in ["begin","finishBattle","endTrial","trial","forecast","previewGear"] and reply.get("presentation")==null:
+	if request.get("op")=="campaign" and request.get("action") not in ["begin","finishBattle","endTrial","trial","forecast","previewGear","inventoryQuote","purchasePlan","saleQuote"] and reply.get("presentation")==null:
 		audio.ui("confirm" if reply.get("ok",false) else "cancel")
 	if reply.get("ok",false):
 		if reply.has("campaign"):
@@ -315,7 +315,7 @@ func render():
 		if focused_page:
 			header.text="装備を購入" if page=="shop" else "仲間・装備"
 			button(nav,"拠点へ",navigate.bind("board"));nav.visible=false
-		var tabs_=[["board","掲示板"],["map","地図・出発"],["party","仲間・装備"],["shop","商店"],["items","道具"]] if phase=="town" else [["board","旅程"],["items","道具"]]
+		var tabs_=[["board","掲示板"],["map","地図・出発"],["party","仲間・装備"],["shop","商店"]] if phase=="town" else [["board","旅程"],["items","道具"]]
 		if phase=="town" and c.get("location")=="astaris":tabs_.append(["inn","宿屋"])
 		for tab in ([] if focused_page else tabs_):
 			var nb=button(nav,("● " if page==tab[0] else "")+tab[1],navigate.bind(tab[0]),phase!="town" and tab[0]=="items" and phase!="camp");memory.key(nb,"nav_"+tab[0])

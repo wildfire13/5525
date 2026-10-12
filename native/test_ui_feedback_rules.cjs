@@ -15,11 +15,11 @@ check('R08 villages have center plus exactly two adjacent villages; unchanged of
   }
   s.location='astaris';assert.equal(C.board(s).length,2);assert.equal(C.destinations(s).length,4);
 });
-check('R09 shops and negative-cost removal; R10 two slots remain',()=>{
+check('R09 shops and retained unequipped gear; R10 two slots remain',()=>{
   const s=C.create();s.location='west';assert(!C.shop(s).some(g=>g.type==='accessory'));
   s.location='north';assert(C.shop(s).length>0);assert(C.shop(s).every(g=>g.type==='accessory'));
   assert(C.buyGear(s,'guard','return-ring-1','accessory1'));assert(C.buyGear(s,'guard','lone-ring-2','accessory2'));
-  const gold=s.gold;assert.equal(C.quote(s,'guard','empty-accessory1','accessory1').cost,-70);assert(C.buyGear(s,'guard','empty-accessory1','accessory1'));assert.equal(s.gold,gold+70);
+  const gold=s.gold;assert.equal(C.quote(s,'guard','empty-accessory1','accessory1').cost,0);assert(C.buyGear(s,'guard','empty-accessory1','accessory1'));assert.equal(s.gold,gold);assert.equal(s.characters.guard.inventory['return-ring-1'],1);
   assert.equal(C.equipment(s.characters.guard).accessory2,'lone-ring-2');valid(s);
 });
 check('R07 one atomic partial allocation, clamp/replay/stale-load rejection',()=>{
@@ -80,7 +80,7 @@ check('R08 all eight directed ring journeys finish two real battles, reload, del
   }
 });
 check('R02 exact effect prediction does not consume inventory, MP, actions or history',()=>{
-  const s=C.create();C.depart(s,'east');C.travel(s,'safe',()=>0);C.begin(s);
+  const s=C.create();assert(C.inventoryAction(s,'guard','potion','transfer','archer',1,null,C.inventoryToken(s)));C.depart(s,'east');C.travel(s,'safe',()=>0);C.begin(s);
   const a=s.battle.units.find(u=>u.id===s.battle.actor),friend=s.battle.units.find(u=>u.side==='ally'&&u.id!==a.id);friend.hp-=10;
   const before=JSON.stringify(s);const effect=B.effectPreview(s.battle,a,'item',friend.id);assert.equal(effect.find(e=>e.id===friend.id).hp,10);assert.equal(JSON.stringify(s),before);
 });

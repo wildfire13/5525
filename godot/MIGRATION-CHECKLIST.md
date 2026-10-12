@@ -1,5 +1,7 @@
 # 5525 次回更新 — 移行照合と引き継ぎ
 
+2026-10-12 の個人在庫・購入計画候補は [INVENTORY-HANDOFF.md](INVENTORY-HANDOFF.md) に追記しました。以下は初回移行の履歴であり、旧記載の共有在庫・自動下取りは今回の仕様ではありません。
+
 2026-10-07。調査後、親の実装フォローアップで「Godotフロントエンド＋既存Nodeルール」の隔離試作に進みました。その後、親のGUI開始指示を受けて可視確認まで進みました。最新の表示補完は [UI-PARITY.md](UI-PARITY.md)、配布依存は [EXPORT-READINESS.md](EXPORT-READINESS.md) を参照してください。BGM統合結果は [BGM-INTEGRATION.md](BGM-INTEGRATION.md) と `qa/bgm-integration-report.json`、先行する可視確認は [VISUAL-QA.md](VISUAL-QA.md) と `qa/visual-report.json` を参照してください。以下の残項目には、全機能の手動網羅や音声の聴感など、今回のプログラム操作で確認していない事項も含みます。
 
 ## 現状と実現性

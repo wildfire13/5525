@@ -6,7 +6,7 @@ let B = LegacyB;
 const CampaignB = require('./campaign-battle.js');
 let campaign=null,trial=null;
 const campaignEngine=()=>require('./campaign.js');
-const campaignSummary=()=>campaign?{location:campaign.location,phase:campaign.phase,gold:campaign.gold,xp:campaign.xp,level:campaign.level,selected:campaign.selected,inventory:campaign.inventory,activeQuest:campaign.activeQuest,characters:campaign.characters}:null;
+const campaignSummary=()=>campaign?{location:campaign.location,phase:campaign.phase,gold:campaign.gold,xp:campaign.xp,level:campaign.level,selected:campaign.selected,inventory:campaignEngine().inventoryTotals(campaign),activeQuest:campaign.activeQuest,characters:campaign.characters}:null;
 function syncCampaign(){if(campaign){B=CampaignB;state=trial?trial.battle:campaign.battle;journey=campaign.journey;}}
 const readline = require('node:readline');
 const J=require('./journey.js'), P=require('./play-log.js');
@@ -154,7 +154,7 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
     }
     else if(r.op==='campaign_load') {
       if(trial)throw Error('試用を終了してから読み込んでください');
-      const loaded=campaignEngine().deserialize(typeof r.data==='string'?r.data:JSON.stringify(r.data));if(loaded.battle&&loaded.battle.ethers===undefined)loaded.battle.ethers=loaded.inventory.ether;campaign=loaded;trial=null;qa=null;syncCampaign();
+      const loaded=campaignEngine().deserialize(typeof r.data==='string'?r.data:JSON.stringify(r.data));if(loaded.battle&&loaded.battle.ethers===undefined)loaded.battle.ethers=campaignEngine().inventoryTotals(loaded).ether;campaign=loaded;trial=null;qa=null;syncCampaign();
       log=P.create({mode:'campaign'});record('run.started',{reason:'campaign.loaded'});response=view();
     }
     else if(r.op==='campaign') {
@@ -164,8 +164,11 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       else if(trial)throw Error('木人試用を終了してください');
       else if(r.action==='forecast'){response={...view(),forecast:C.forecast(campaign,...args)};}
       else if(r.action==='previewGear'){response={...view(),previewGear:C.previewGear(campaign,...args)};}
+      else if(r.action==='inventoryQuote'){response={...view(),inventoryQuote:C.inventoryQuote(campaign,...args)};}
+      else if(r.action==='purchasePlan'){response={...view(),purchasePlan:C.purchasePlan(campaign,...args)};}
+      else if(r.action==='saleQuote'){response={...view(),saleQuote:C.saleQuote(campaign,...args)};}
       else if(r.action==='trial'){trial=C.trial(campaign,...args);result=!!trial;}
-      else if(['accept','select','depart','travel','deploy','chooseFormation','deployment_reset','begin','retreat','finishBattle','rest','onward','arrive','acknowledge','buyGear','buyItem','inn','useItem','allocate','allocateBatch'].includes(r.action)) {
+      else if(['accept','select','depart','travel','deploy','chooseFormation','deployment_reset','begin','retreat','finishBattle','rest','onward','arrive','acknowledge','buyGear','buyItem','inn','useItem','inventoryAction','buyPlan','sellInventory','allocate','allocateBatch'].includes(r.action)) {
         if(r.action==='begin'&&r.presentation) {
           result=presentation.start(state,B,()=>C.begin(campaign,...args),()=>record('campaign.begin',{args,accepted:true}));
         } else if(r.action==='begin') {

@@ -3,12 +3,12 @@ const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require(
 let checks=0;const test=(name,fn)=>{fn();checks++;console.log('PASS '+name)};
 const clone=x=>JSON.parse(JSON.stringify(x));
 test('potion proposal changes purchase price only, same initial resources and cap',()=>{
- const s=C.create();assert.deepEqual(s.inventory,{potion:3,ether:1});s.location='south';
+ const s=C.create();assert.deepEqual(C.inventoryTotals(s),{potion:3,ether:1});s.location='south';
  const item=C.items.find(i=>i.id==='potion');assert.equal(item.price,40);assert.equal(item.amount,55);
- assert(C.buyItem(s,'potion',2));assert.equal(s.gold,100);assert.equal(s.inventory.potion,5);
- s.inventory.potion=99;assert(!C.buyItem(s,'potion'));assert.equal(s.inventory.potion,99);
+ assert(C.buyItem(s,'potion',2,'guard',C.inventoryToken(s)));assert.equal(s.gold,100);assert.equal(C.inventoryTotals(s).potion,5);
+ s.characters.guard.inventory.potion=99;assert(!C.buyItem(s,'potion',1,'guard',C.inventoryToken(s)));assert.equal(C.inventoryTotals(s).potion,99);
 });
-function battle(){const s=C.create();C.depart(s,'north');C.travel(s,'safe',()=>.2);C.begin(s);const b=s.battle;for(const u of b.units)u.next=1e6;const p=b.units.find(u=>u.job==='porter'&&u.side==='ally');p.next=1;b.actor=p.id;return {s,b,p};}
+function battle(){const s=C.create();assert(C.inventoryAction(s,'guard','ether','transfer','porter',1,null,C.inventoryToken(s)));C.depart(s,'north');C.travel(s,'safe',()=>.2);C.begin(s);const b=s.battle;for(const u of b.units)u.next=1e6;const p=b.units.find(u=>u.job==='porter'&&u.side==='ally');p.next=1;b.actor=p.id;return {s,b,p};}
 test('ether porter only, infinite distance, MP+3 bounded, one item/action',()=>{
  const {s,b,p}=battle(),ally=b.units.find(u=>u.id==='guard'),enemy=b.units.find(u=>u.side==='enemy');
  p.pos=0;ally.pos=49;ally.mp=0;p.mp=4;
@@ -25,12 +25,12 @@ test('ether survives save/load and rolls back on retreat; malformed resource rej
  const {s,b,p}=battle();p.mp=0;assert(C.act(s,'ether',p.id));
  const loaded=C.deserialize(C.serialize(s));assert.equal(loaded.battle.ethers,0);
  const bad=clone(loaded);bad.battle.ethers=-1;assert(!C.validate(bad).ok);
- assert(C.retreat(s));assert.equal(s.inventory.ether,1);
+ assert(C.retreat(s));assert.equal(C.inventoryTotals(s).ether,1);assert.equal(s.characters.porter.inventory.ether,1);
 });
 test('victory transfers remaining ether without duplicating item',()=>{
  const {s,b,p}=battle();p.mp=0;assert(C.act(s,'ether',p.id));
  for(const e of b.units.filter(u=>u.side==='enemy'))e.hp=0;
- b.result='test victory';assert(C.finishBattle(s));assert.equal(s.inventory.ether,0);assert(!C.finishBattle(s));
+ b.result='test victory';assert(C.finishBattle(s));assert.equal(C.inventoryTotals(s).ether,0);assert.equal(s.characters.porter.inventory.ether,undefined);assert(!C.finishBattle(s));
 });
 test('swift feet adds one movement; firstStride adds another only first move',()=>{
  const s=C.create();s.location='west';assert(C.buyGear(s,'porter','swift-boots','feet'));

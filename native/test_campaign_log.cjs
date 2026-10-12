@@ -6,23 +6,9 @@ const C=require('./campaign.js'),B=require('./campaign-battle.js'),P=require('./
 const clone=x=>JSON.parse(JSON.stringify(x));
 const gameplay=b=>{const copy=clone(b);delete copy.log;delete copy.logDropped;return copy;};
 function stalled(){
-  const s=C.create();let seed=6;const rng=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
-  assert(C.accept(s,C.board(s)[0].id));assert(C.depart(s,'east'));
-  for(let leg=0;leg<2;leg++){
-    assert(C.travel(s,'short',rng));s.battle.formationVersion=1;assert(C.begin(s)); // R04 retained seed-6 legacy battle reproduction.
-    for(let n=0;n<200&&!s.battle.result;n++){
-      if(s.battle.units.filter(u=>u.side==='ally'&&u.hp>0).every(u=>u.job==='porter'))break;
-      const copy=clone(s.battle),a=copy.units.find(u=>u.id===copy.actor);B.plan(copy,a);let {kind,target}=a.intent;
-      if(a.job==='porter'){
-        const hurt=copy.units.filter(u=>u.side==='ally'&&u.hp>0&&u.hp<30).sort((a,b)=>a.hp-b.hp).find(u=>B.legal(copy,'item',u.id));
-        if(hurt){kind='item';target=hurt.id;}else{kind=B.legal(copy,'skill',a.id)?'skill':'guard';target=kind==='skill'?a.id:null;}
-      }
-      if(kind==='skill'&&['archer','scout'].includes(B.activeSkill(a))&&B.legal(copy,'attack',target))kind='attack';
-      assert(C.act(s,kind,target));
-    }
-    if(!leg){assert(C.finishBattle(s));assert(C.onward(s));}
-  }
-  assert.equal(s.battle.actions,52);assert.equal(s.battle.log.length,164);return s;
+  // Authentic v1 seed-6 snapshot: legacy shared-item decisions are already complete.
+  const fixture=JSON.parse(fs.readFileSync(require.resolve('./test_fixtures/campaign-f736137-stalemate.json'),'utf8'));
+  const s=C.deserialize(fixture);assert.equal(s.battle.actions,52);assert.equal(s.battle.log.length,164);return s;
 }
 let s=stalled();
 // Same engine with only retention disabled is the control. No unit edits.
