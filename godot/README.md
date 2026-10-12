@@ -1,5 +1,7 @@
 # 5525 Godot prototype
 
+固定候補2981a74に対する購入計画の再接続復元・売却範囲の追補は [PLAN-RECONNECT-FIXES.md](PLAN-RECONNECT-FIXES.md) を参照してください。以下の過去記録にある「切断で計画破棄」「サウスAPI売却可」は、この別候補では修正済みです。
+
 個人在庫候補c5cb3b9に対するUIUXレビュー4点の別コピー修正は [UIUX-INVENTORY-FIXES.md](UIUX-INVENTORY-FIXES.md) を参照してください。
 
 2026-10-12 個人在庫・購入計画の隔離候補については [INVENTORY-HANDOFF.md](INVENTORY-HANDOFF.md) を参照してください。以下は以前の移行記録です。今回の固定ID・非GUI検証・未完事項を過去のQA結果と混同しないでください。

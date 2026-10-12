@@ -1,6 +1,7 @@
 'use strict';
 // Quotes are pure. Every multi-owner mutation validates a complete detached state.
 module.exports=function({I,S,clone,record,integer,getGear,template,shop,equipment,eligibility,stats,syncCharacter,validate,inventoryToken,commitInventory,note,createHash}) {
+  function saleAvailable(s){return s.phase==='town'&&['east','west','north'].includes(s.location);}
   function purchasePlan(s,entries) {
     const plan={ok:false,reason:'',rows:[],cost:0,goldBefore:s.gold,afterGold:s.gold,shortfall:0,token:''};
     if(s.phase!=='town'||!Array.isArray(entries)||entries.length<1||entries.length>s.selected.length*Object.keys(S.slots).length)return {...plan,reason:'この店で購入する装備を計画に追加してください'};
@@ -51,7 +52,7 @@ module.exports=function({I,S,clone,record,integer,getGear,template,shop,equipmen
   function saleQuote(s,ownerId,id,count=1) {
     const g=getGear(id),owner=template(ownerId)&&s.characters[ownerId],amount=owner?I.count(owner.inventory,id):0;
     const q={ok:false,reason:'',ownerId,itemId:id,count,name:g?.name||id,ownerName:template(ownerId)?.name||ownerId,available:amount,price:g?.price||0,proceeds:(g?.price||0)*count,goldBefore:s.gold,afterGold:s.gold+(g?.price||0)*count,token:inventoryToken(s)};
-    if(s.phase!=='town'||!shop(s).length)return {...q,reason:'お店で売却できます'};
+    if(!saleAvailable(s))return {...q,reason:'装備店（イース・ウエス・ノース）で売却できます'};
     if(!owner||!s.selected.includes(ownerId))return {...q,reason:'編成中の所持者を選んでください'};
     if(!g||g.type==='empty')return {...q,reason:'売却できる装備品を選んでください'};
     if(!I.quantity(count)||count>amount)return {...q,reason:'所持数を確認してください。装備中の品は先に外してください'};
@@ -66,5 +67,5 @@ module.exports=function({I,S,clone,record,integer,getGear,template,shop,equipmen
       note(draft,`${q.ownerName}の${q.name} ${count}個を${q.proceeds}Gで売却。`);return true;
     });
   }
-  return {purchasePlan,buyPlan,saleQuote,sellInventory};
+  return {purchasePlan,buyPlan,saleQuote,sellInventory,saleAvailable};
 };

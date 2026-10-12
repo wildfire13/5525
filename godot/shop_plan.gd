@@ -15,6 +15,8 @@ var message := ""
 var sale_owner := ""
 var sale_item := ""
 var sale_count := 1
+var held: Dictionary={}
+var recovery_rows: Dictionary={}
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
 func c() -> Dictionary:return ui.campaign()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
@@ -26,10 +28,20 @@ func entries() -> Array:
 	return draft().values().map(func(row):return {"characterId":row.characterId,"gearId":row.gearId,"slot":row.slot})
 func stamp() -> String:return JSON.stringify([location(),c().get("inventoryToken"),entries()])
 func busy() -> bool:return ui.locked or ui.presenting or ui.closing or ui.engine.disconnected or shop.unknown or shop.stage in ["S4","S5"]
-func reset():
-	plans={};acknowledged={};new_rows=[];quoted={};quote_stamp="";message="";sale_owner="";sale_item="";sale_count=1;generation+=1
+func reset(mode: String="discard",campaign_id: String=""):
+	var restored={}
+	if mode=="disconnect" and not plans.is_empty() and not campaign_id.is_empty():held={"campaignId":campaign_id,"plans":plans.duplicate(true),"acknowledged":acknowledged.duplicate(true)}
+	elif mode=="load" and held.get("campaignId")==campaign_id:restored=held.duplicate(true)
+	if mode not in ["disconnect","reconnect"]:held={}
+	plans={};acknowledged={};new_rows=[];quoted={};quote_stamp="";message="";sale_owner="";sale_item="";sale_count=1;generation+=1;refreshing=false;recovery_rows={}
+	if not restored.is_empty():
+		plans=restored.plans
+		for place in plans:
+			for id in plans[place]:recovery_rows[place+"/"+id]=restored.acknowledged.get(place+"/"+id,"")
+		message="同じ進行の購入計画を復元しました。最新の見積を確認してから購入できます。"
 func show(mode: String):
 	if busy():return
+	if mode=="sale" and not c().get("saleAvailable",false):return
 	shop.view_mode=mode;ui.render()
 func existing(q: Dictionary) -> Dictionary:return draft().get(key(q),{})
 func add_caption(q: Dictionary) -> String:
@@ -44,7 +56,7 @@ func add_current():
 	if not plans.has(location()):plans[location()]={}
 	var row={"characterId":q.characterId,"gearId":q.gearId,"slot":q.slot,"name":q.gear.name}
 	plans[location()][key(row)]=row
-	var id=location()+"/"+key(row);acknowledged.erase(id)
+	var id=location()+"/"+key(row);acknowledged.erase(id);recovery_rows.erase(id)
 	if not new_rows.has(id):new_rows.append(id)
 	quote_stamp=""
 	message="購入計画に追加しました。" if previous.is_empty() else "予定を更新: %s / %s / %s → %s" % [ui.member_name(row.characterId),c().slots.get(row.slot,row.slot),previous.name,row.name]
@@ -52,7 +64,7 @@ func add_current():
 func remove_row(id: String):
 	if busy():return
 	if plans.has(location()):plans[location()].erase(id)
-	acknowledged.erase(location()+"/"+id);quote_stamp="";ui.render()
+	acknowledged.erase(location()+"/"+id);recovery_rows.erase(location()+"/"+id);quote_stamp="";ui.render()
 func cancel_plan():
 	if busy() or draft().is_empty():return
 	ui.confirm("この店の購入予定を取り消します。\n所持品や所持金、すでに確定した売却は変わりません。",func():plans.erase(location());quoted={};quote_stamp="";message="購入予定を取り消しました。";ui.render())
@@ -64,8 +76,10 @@ func refresh():
 	refreshing=true;var ticket=generation;var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation;var requested=stamp();var place=location()
 	while ui.engine.busy or ui.locked:
 		await ui.get_tree().process_frame
-		if ui.closing or ticket!=generation:refreshing=false;return
+		if ticket!=generation:return
+		if ui.closing:refreshing=false;return
 	var reply=await ui.engine.request({"op":"campaign","action":"purchasePlan","args":[entries()]})
+	if ticket!=generation:return
 	refreshing=false
 	if ui.closing or ticket!=generation or epoch!=ui.pages.epoch or connection!=ui.engine.connection_generation:return
 	if reply.get("connection_lost",false):shop.show_quote_error(reply);return
@@ -95,16 +109,18 @@ func render(parent,mode: String):
 			if row.retained:l(box,"外した装備は本人のインベントリへ")
 			if not row.ok:l(box,row.reason)
 			elif acknowledged.get(location()+"/"+key(row))!=row.signature:
-				l(box,"装備条件または比較内容が変わりました。",true)
+				var id=location()+"/"+key(row)
+				var changed=recovery_rows.has(id) and not str(recovery_rows[id]).is_empty() and recovery_rows[id]!=row.signature
+				l(box,"切断前から装備条件・比較内容が変わりました。" if changed else "再接続後の見積を確認してください。" if recovery_rows.has(id) else "装備条件または比較内容が変わりました。",true)
 				for change in shop.comparison_changes(row):shop.render_change(box,change)
-				b(box,"この変更を確認",func():acknowledged[location()+"/"+key(row)]=row.signature;ui.render(),busy()).name="ReviewPlan_"+key(row).replace("/","_")
+				b(box,"この見積を確認" if recovery_rows.has(id) else "この変更を確認",func():acknowledged[id]=row.signature;recovery_rows.erase(id);ui.render(),busy()).name="ReviewPlan_"+key(row).replace("/","_")
 	if current and not quoted.is_empty():
 		var payment=l(parent,"購入合計 %dG / 所持金 %d → %dG" % [quoted.cost,c().gold,quoted.afterGold],true);payment.name="PlanPayment"
 		if quoted.shortfall>0:l(parent,"不足 %dG / 所持品を売却して計画を続けられます" % quoted.shortfall)
 		elif not quoted.reason.is_empty():l(parent,quoted.reason)
 	elif not current:l(parent,"購入計画の条件を更新中…");call_deferred("refresh")
 	var actions=ui.row(parent)
-	b(actions,"所持品を売却",show.bind("sale"),busy()).name="PlanGoSell"
+	b(actions,"所持品を売却",show.bind("sale"),busy() or not c().get("saleAvailable",false)).name="PlanGoSell"
 	b(actions,"購入予定を取消",cancel_plan,busy())
 	ui.primary(b(actions,"まとめて購入を確認",confirm_plan,not ready() or busy())).name="PlanCheckout"
 func confirm_plan():
@@ -133,6 +149,7 @@ func transaction_error(reply: Dictionary):
 	if not shop.unknown:
 		quote_stamp="";await ui.update({"op":"view"})
 func render_sale(parent):
+	if not c().get("saleAvailable",false):l(parent,"売却は装備店で行えます。");return
 	l(parent,"所持品を売却",true)
 	render_sale_budget(parent)
 	if not c().get("selected",[]).has(sale_owner):sale_owner=str(c().get("selected",[""])[0])
@@ -167,7 +184,7 @@ func render_sale_budget(parent):
 		budget.text="購入計画 %d件 / 合計 確認中 / 所持金 %dG\n不足・購入後残金を確認中…" % [draft().size(),c().gold]
 		if quote_stamp!=stamp():call_deferred("refresh")
 func prepare_sale():
-	if busy() or sale_item.is_empty():return
+	if busy() or sale_item.is_empty() or not c().get("saleAvailable",false):return
 	var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation
 	var reply=await ui.update({"op":"campaign","action":"saleQuote","args":[sale_owner,sale_item,sale_count]})
 	if ui.closing or epoch!=ui.pages.epoch or connection!=ui.engine.connection_generation:return

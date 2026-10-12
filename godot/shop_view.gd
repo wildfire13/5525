@@ -23,9 +23,9 @@ func c() -> Dictionary:return pages.c()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func compact() -> bool:return ui.ui_size_mode!="standard"
-func reset():
+func reset(plan_mode: String="discard",campaign_id: String=""):
 	stage="S0";receipt={};error_text="";unknown=false;selected_request="";background.clear();row_labels.clear();return_from_party=false;from_party=false
-	view_mode="products";plan.reset()
+	view_mode="products";plan.reset(plan_mode,campaign_id)
 	if ui.dialog!=null:ui.dialog.close(false)
 func slots() -> Array:
 	return ["rightHand","leftHand"] if c().get("location")=="east" else ["accessory1","accessory2"] if c().get("location")=="north" else ["head","upperBody","lowerBody","feet"]
@@ -53,7 +53,9 @@ func render(parent):
 	if stage=="S7":render_error(parent);return
 	if not plan.message.is_empty():l(parent,plan.message).name="PlanNotice"
 	var modes=ui.row(parent);modes.name="ShopModes"
-	for mode in [["products","商品を比較"],["plan","購入計画 (%d)" % plan.draft().size()],["sale","所持品を売却"]]:
+	var available_modes=[["products","商品を比較"],["plan","購入計画 (%d)" % plan.draft().size()]]
+	if c().get("saleAvailable",false):available_modes.append(["sale","所持品を売却"])
+	for mode in available_modes:
 		var switch=b(modes,("● " if view_mode==mode[0] else "")+mode[1],plan.show.bind(mode[0]),stage in ["S4","S5"] or unknown);switch.name="ShopMode_"+mode[0]
 	if view_mode!="products":plan.render(parent,view_mode);return
 	var split=HBoxContainer.new();split.name="ShopSplit";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",12);parent.add_child(split)
@@ -150,6 +152,7 @@ func pump_quotes():
 		elif current:show_quote_error(reply);break
 	quote_worker=false
 func show_quote_error(reply: Dictionary):
+	if reply.get("connection_lost",false):ui.handle_connection_loss(reply,ui.engine.connection_generation);return
 	pages.quote_pending=false;stage="S7";unknown=false;error_text=str(reply.get("error","見積を取得できませんでした"));ui.render()
 func reason(q: Dictionary) -> String:
 	if not c().get("selected",[]).has(ui.shop_uid):return "× 編成中の仲間が購入対象です"

@@ -4,6 +4,7 @@ var portraits=preload("res://portraits.gd").new()
 var icons=preload("res://ui_icons.gd").new()
 var audio
 var data: Dictionary={}
+var campaign_identity=preload("res://campaign_identity.gd").new()
 var preview: Dictionary={}
 var pending=null
 var chosen: Array=[]
@@ -213,13 +214,20 @@ func close_game():
 	get_tree().quit()
 func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 	if locked or closing:return {"ok":false,"error":"処理中です"}
+	var incoming={}
+	if request.get("op")=="campaign_load":
+		incoming=campaign_identity.prepare_load(request.get("data"),str(frontend.get("source_path","")))
+		if not incoming.ok:notice=incoming.error;render();return {"ok":false,"error":incoming.error}
+		request=request.duplicate(true);request.data=incoming.envelope
 	locked=true;status_override=""
 	while engine.busy and not closing:await get_tree().process_frame
 	if closing:locked=false;return {"ok":false,"error":"終了しています"}
 	for b in widgets:
 		if is_instance_valid(b) and not b.get_meta("read_only",false):b.disabled=true
 	if footer!=null:set_status("処理中…")
+	var connection=engine.connection_generation
 	var reply: Dictionary=await engine.request(request)
+	if connection!=engine.connection_generation:return {"ok":false,"obsolete_connection":true,"error":"古い接続の応答です"}
 	locked=false
 	if request.get("op")=="campaign" and request.get("action") not in ["begin","finishBattle","endTrial","trial","forecast","previewGear","inventoryQuote","purchasePlan","saleQuote"] and reply.get("presentation")==null:
 		audio.ui("confirm" if reply.get("ok",false) else "cancel")
@@ -227,12 +235,18 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		if reply.has("campaign"):
 			if frontend.has("images"):
 				portraits.activate(frontend.images);audio.restore(frontend.music)
-			if request.get("op") in ["campaign_load","campaign_start"]:pages.reset_context();memory.reset();skip_capture_once=true
+			if request.get("op")=="campaign_load":
+				if incoming.identity==campaign_identity.current_id:pages.shop_view.plan.reset("disconnect",campaign_identity.current_id)
+				campaign_identity.accept_load(incoming);pages.reset_context("load",campaign_identity.current_id);memory.reset();skip_capture_once=true
+			elif request.get("op")=="campaign_start":
+				if frontend.get("reconnect_bootstrap",false):campaign_identity.reconnect_bootstrap();pages.reset_context("reconnect")
+				else:campaign_identity.new_campaign();pages.reset_context()
+				memory.reset();skip_capture_once=true
 			invalidate_preview();data=reply
 		notice=""
 	else:
 		notice=str(reply.get("error","操作できません"))
-		if reply.get("connection_lost",false):invalidate_preview();pages.reset_context()
+		if reply.get("connection_lost",false):invalidate_preview();pages.reset_context("disconnect",campaign_identity.current_id)
 	if closing:return reply
 	render()
 	if data.get("presentation")!=null and not presenting and not engine.disconnected:await present()
@@ -259,7 +273,11 @@ func act(action: String,args: Array=[]):
 	if action=="endTrial" and response.get("ok",false):await pages.restore_trial()
 	return response
 func reconnect_engine():
-	if engine.start_engine():await new_game()
+	# Hold intentions before bootstrap; never treat reconnect as an explicit new game.
+	pages.reset_context("disconnect",campaign_identity.current_id)
+	if engine.start_engine():
+		locked=false;await new_game(true)
+		if not pages.shop_view.plan.held.is_empty():notice="接続を再開しました。同じ進行を読み込むと保留した購入計画を再確認できます。";render()
 	else:notice=engine.last_error;render()
 func invalidate_preview():
 	if hud!=null:hud.discard_reference();hud.invalidate_hover()
@@ -268,13 +286,13 @@ func handle_connection_loss(reply: Dictionary,connection: int) -> bool:
 	# Loss belongs to the connection, not to the preview that happened to detect it.
 	# Ignore notifications from a connection already replaced by an explicit reconnect.
 	if closing or connection!=engine.connection_generation or not reply.get("connection_lost",false):return false
-	invalidate_preview();pages.reset_context();status_override=""
+	invalidate_preview();pages.reset_context("disconnect",campaign_identity.current_id);status_override=""
 	notice=str(reply.get("error","ゲーム接続が終了しました。再接続してください。"))
 	render();return true
-func new_game():
+func new_game(reconnect_bootstrap:=false):
 	invalidate_preview()
 	portraits.activate({"version":1,"characters":{}});audio.restore({});gear_preview={};page="board"
-	await update({"op":"campaign_start"})
+	await update({"op":"campaign_start"},{"reconnect_bootstrap":reconnect_bootstrap})
 func navigate(value: String):
 	if not pages.party_view.guard_leave(navigate.bind(value)):return
 	invalidate_preview();page=value;pages.reset_items();pages.invalidate_quote(false);memory.focus_key="";render()
@@ -506,7 +524,7 @@ func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback
 func save_game():
 	var r=await update({"op":"campaign_save"})
 	if not r.get("ok",false):return
-	var envelope: Dictionary=r.data
+	var envelope: Dictionary=campaign_identity.save_metadata(r.data)
 	envelope.nativePortraits=portraits.metadata.duplicate(true);envelope.godotFrontend=audio.frontend_save()
 	file_dialog(FileDialog.FILE_MODE_SAVE_FILE,PackedStringArray(["*.json ; 5525進行セーブ"]),write_snapshot.bind(envelope,"進行"),"5525-godot-%d-%d.json" % [Time.get_unix_time_from_system(),Time.get_ticks_usec()])
 func write_snapshot(path: String,envelope: Dictionary,kind: String):
@@ -535,7 +553,7 @@ func load_game(path: String):
 	var music=envelope.get("godotFrontend",{})
 	if not audio.valid_metadata(music):notice="旅曲の保存情報が不正です";render();return
 	envelope.erase("nativePortraits");envelope.erase("godotFrontend")
-	await update({"op":"campaign_load","data":envelope},{"images":images,"music":music})
+	await update({"op":"campaign_load","data":envelope},{"images":images,"music":music,"source_path":path})
 func save_log():
 	var r=await update({"op":"export"})
 	if r.get("ok",false):
