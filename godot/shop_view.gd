@@ -88,7 +88,7 @@ func render_list(parent):
 		var copy=VBoxContainer.new();copy.mouse_filter=Control.MOUSE_FILTER_IGNORE;copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;product.add_child(copy)
 		var heading=ui.row(copy);heading.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		var name_label=l(heading,("▶ " if selected else "")+str(item.name));name_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;name_label.add_theme_font_size_override("font_size",22 if ui.size.x>=1800 else 18)
-		var price=l(heading,"%dG" % item.price);price.mouse_filter=Control.MOUSE_FILTER_IGNORE;price.size_flags_horizontal=Control.SIZE_FILL;price.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;price.add_theme_color_override("font_color",Color("#c4eee5"))
+		var price=l(heading,"%dG" % item.price);price.name="ProductPrice_"+str(item.id);price.autowrap_mode=TextServer.AUTOWRAP_OFF;price.mouse_filter=Control.MOUSE_FILTER_IGNORE;price.size_flags_horizontal=Control.SIZE_FILL;price.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;price.add_theme_color_override("font_color",Color("#c4eee5"))
 		var label=l(copy,product_caption(item));label.mouse_filter=Control.MOUSE_FILTER_IGNORE;label.add_theme_font_size_override("font_size",18 if ui.size.x>=1800 else 15);label.add_theme_color_override("font_color",Color("#b4c4cf"));row_labels[str(item.id)]=label
 		btn.tooltip_text=str(item.name)+" / "+str(item.get("price","?"))+"G";btn.set_meta("product_id",str(item.id))
 		# A wrapped name or reason increases its row instead of hiding conditions.

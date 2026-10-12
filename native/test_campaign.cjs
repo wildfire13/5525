@@ -80,7 +80,7 @@ test('questless failure restores departure snapshot',()=>{
 });
 test('R09 shops stock their source-map categories; accessories belong to North',()=>{
   assert.ok(C.shop(town('east')).every(g=>['weapon','leftHand'].includes(g.slot)));assert.ok(C.shop(town('west')).every(g=>['armor','head','lowerBody','feet'].includes(g.slot)));
-  assert.deepEqual(C.shop(town('south')).map(g=>g.id),['potion','ether']);assert(C.shop(town('north')).length>0);assert(C.shop(town('north')).every(g=>g.type==='accessory'));assert.deepEqual(C.shop(C.create()),[]);
+  assert.deepEqual(C.shop(town('south')).map(g=>g.id),['potion','ether']);assert(C.shop(town('north')).length>0);assert(C.shop(town('north')).every(g=>['accessory1','accessory2'].includes(g.slot)));assert.deepEqual(C.shop(C.create()),[]);
 });
 test('buy at catalog price, retain old gear, and re-equip owned gear without charging',()=>{
   const s=town('east'),before=s.gold;assert.equal(C.buyGear(s,'archer','bow-wood-1'),true);assert.equal(s.gold,before-140);assert.equal(s.characters.archer.inventory['bow-wood'],1);

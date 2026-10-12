@@ -121,6 +121,42 @@ func sale_cases(seed):
 		if not allowed:
 			var before=await saved();var rejected=await probe.request({"op":"campaign","action":"sellInventory","args":["mage","hammer-wood",1,game.campaign().inventoryToken]})
 			check("SALE-reject-"+place,not rejected.ok and await saved()==before,"hidden/direct sale route cannot mutate stock or gold")
+func fault_mode(action="",kind="",label=""):
+	write_fixture("quote-fault-mode",{"action":action,"kind":kind,"label":label})
+func fault_journal(label):
+	var rows=[]
+	for line in FileAccess.get_file_as_string(evidence.path_join("quote-fault-"+label+".jsonl")).strip_edges().split("\n"):
+		if not line.is_empty():rows.append(JSON.parse_string(line))
+	return rows
+func quote_fault_cases(seed):
+	fault_mode();probe.close_engine();probe.node_script=ProjectSettings.globalize_path("res://tests/plan_quote_faults.cjs");probe.start_engine();owned.append(int(probe.handles.pid))
+	for action in ["inventoryQuote","saleQuote","purchasePlan","previewGear"]:
+		for kind in ["eof_pre","timeout_post"]:
+			var label=action+"-"+kind;await game.new_game();var fixture=seed.duplicate(true);fixture.state.gold=600
+			await game.update({"op":"campaign_load","data":fixture});await settle();await add_plans()
+			var before=await saved();var intended=plan().plans.duplicate(true);var previous_quote=plan().quoted.duplicate(true);var buys=buy_calls()
+			var path=write_fixture("recovery-"+label,game.campaign_identity.save_metadata(before))
+			if action=="inventoryQuote":
+				game.pages.party_view.open_inventory("guard");await settle();var inv=game.pages.party_view.inventory_view;inv.pick("potion");inv.choose("discard");await settle()
+			elif action=="saleQuote":plan().show("sale");plan().sale_owner="mage";plan().sale_item="hammer-wood";await settle()
+			elif action=="previewGear":plan().show("products");await settle();game.pages.cached_quotes.clear()
+			var f=FileAccess.open(evidence.path_join("quote-fault-"+label+".jsonl"),FileAccess.WRITE);f.close()
+			fault_mode(action,kind,label);probe.timeout_ms=450;var pid=int(probe.handles.pid)
+			if action=="inventoryQuote":await game.pages.party_view.inventory_view.prepare(null,null)
+			elif action=="saleQuote":await plan().prepare_sale()
+			elif action=="purchasePlan":plan().quote_stamp="";await plan().refresh()
+			else:await shop().select_product("staff-wood")
+			await settle();var journal=fault_journal(label);var snapshots=journal.filter(func(row):return row.stage=="authoritative_pre_fault_save")
+			check("READ-"+label+"-held",probe.disconnected and not OS.is_process_running(pid) and plan().held.get("plans")==intended and plan().plans.is_empty(),"real read failure holds both stores without attaching stale quotes")
+			check("READ-"+label+"-unchanged",snapshots.size()==1 and snapshots[0].response.data==before and game.campaign().gold==before.state.gold and game.campaign().characters==before.state.characters,"read failure preserves authoritative and displayed resources")
+			check("READ-"+label+"-once",journal.filter(func(row):return row.stage=="request" and row.request.get("action")==action).size()==1 and buy_calls()==buys,"no read retry or automatic purchase")
+			fault_mode("","",label);probe.timeout_ms=15000;await reconnect()
+			check("READ-"+label+"-reconnect",not probe.disconnected and plan().held.get("plans")==intended and plan().plans.is_empty(),"reconnect keeps original intentions separate from bootstrap")
+			await game.load_game(path);await settle();game.navigate("shop");plan().show("plan");await settle()
+			check("READ-"+label+"-review",plan().plans==intended and plan().quoted.goldBefore==600 and plan().quoted.cost==210 and plan().quoted.token!=previous_quote.token and not plan().ready(),"same-campaign recovery obtains a fresh quote and requires all-row review")
+			journal=fault_journal(label)
+			check("READ-"+label+"-no-mutation",await saved()==before and journal.filter(func(row):return row.stage=="request" and row.request.get("action") in ["buyPlan","buyGear","buyItem","inventoryAction","sellInventory","useItem"]).is_empty(),"the complete fault/reconnect/reload sequence performs no economic mutation")
+			fault_mode()
 func run():
 	evidence=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/")
 	if evidence.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(evidence.to_lower()+"/"):push_error("User data must be isolated");quit(2);return
@@ -129,7 +165,7 @@ func run():
 	game.checks_fast=true;game.audio.fast_mode=true;game.engine.close_engine();game.engine.queue_free();await process_frame
 	probe=load("res://tests/plan_reconnect_probe.gd").new();game.add_child(probe);game.engine=probe;probe.start_engine();owned.append(int(probe.handles.pid));await game.new_game();await settle()
 	var seed=await saved();seed.state.location="east";seed.state.gold=120;seed.state.characters.mage.inventory["hammer-wood"]=1
-	await recovery_cases(seed);await legacy_cases(seed);await stale_update_case(seed);await sale_cases(seed)
+	await recovery_cases(seed);await legacy_cases(seed);await stale_update_case(seed);await sale_cases(seed);await quote_fault_cases(seed)
 	game.closing=true;game.dialog.close(false);game.invalidate_preview();await game.audio.finish_audio();probe.close_engine();game.queue_free()
 	for i in range(8):await process_frame
 	check("OWNED-cleanup",owned.all(func(pid):return not OS.is_process_running(pid)),"all reconnect test Node processes exited")

@@ -339,7 +339,7 @@ func change_membership(id: String):
 func offered() -> Array:
 	return c().get("shop",[]).filter(func(g):
 		var allowed=g.get("allowedSlots",["rightHand"] if g.get("hands",1)==2 else ["rightHand","leftHand"] if g.slot=="weapon" else ["upperBody"] if g.slot=="armor" else ["accessory1","accessory2"] if g.get("type")=="accessory" else [g.slot])
-		return allowed.has(ui.shop_slot) and (g.get("type")!="accessory" or g.slot==ui.shop_slot))
+		return allowed.has(ui.shop_slot) and (g.slot not in ["accessory1","accessory2"] or g.slot==ui.shop_slot))
 func product_effect(g: Dictionary) -> String:
 	if str(g.id).begins_with("empty-"):return "装備なし"
 	var parts=[]
@@ -406,10 +406,11 @@ func restore_trial():
 	ui.memory.scrolls.merge(previous.scrolls,true);ui.memory.request_focus(previous.focus);ui.memory.restore()
 
 func gear_type(gear: Dictionary) -> String:
+	if gear.get("type")=="empty" and gear.get("slot") not in ["weapon","rightHand","leftHand"]:return "なし"
 	return {"empty":"なし（手占有0）","sword":"片手剣","greatsword":"両手剣","spear":"槍","dagger":"短剣","bow":"弓","staff":"杖","hammer":"槌","shield":"盾","book":"魔導書","armor":"防具","accessory":"装飾","boots":"足装備"}.get(gear.get("type",""),str(c().get("slots",{}).get(gear.get("slot",""),"装備")))
 func describe_gear(parent,gear: Dictionary):
 	ui.icons.line(ui,parent,ui.icons.gear(gear),str(gear.get("name","装備")),true)
-	l(parent,gear_type(gear)+" / "+("両手・2枠" if gear.get("hands",1)==2 else "手占有0" if gear.get("type")=="empty" else "片手・1枠" if gear.get("slot") in ["weapon","rightHand","leftHand"] else str(c().get("slots",{}).get(gear.get("slot",""),"装備"))))
+	l(parent,gear_type(gear)+" / "+("両手・2枠" if gear.get("hands",1)==2 else "手占有0" if gear.get("type")=="empty" and gear.get("slot") in ["weapon","rightHand","leftHand"] else "片手・1枠" if gear.get("slot") in ["weapon","rightHand","leftHand"] else str(c().get("slots",{}).get(gear.get("slot",""),"装備"))))
 	var fields={"price":"購入価格G","atk":"武器ATK","reach":"武器射程","hp":"追加HP上限","mp":"追加MP上限","agiBonus":"行動速度補正","str":"必要STR","int":"必要INT","agi":"必要AGI"}
 	for field in fields:
 		if gear.has(field):l(parent,fields[field]+": "+str(int(gear[field])))
