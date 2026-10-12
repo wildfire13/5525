@@ -17,7 +17,7 @@ check('R08 villages have center plus exactly two adjacent villages; unchanged of
 });
 check('R09 shops and retained unequipped gear; R10 two slots remain',()=>{
   const s=C.create();s.location='west';assert(!C.shop(s).some(g=>g.type==='accessory'));
-  s.location='north';assert(C.shop(s).length>0);assert(C.shop(s).every(g=>g.type==='accessory'));
+  s.location='north';assert(C.shop(s).length>0);assert(C.shop(s).every(g=>['accessory1','accessory2'].includes(g.slot)));
   assert(C.buyGear(s,'guard','return-ring-1','accessory1'));assert(C.buyGear(s,'guard','lone-ring-2','accessory2'));
   const gold=s.gold;assert.equal(C.quote(s,'guard','empty-accessory1','accessory1').cost,0);assert(C.buyGear(s,'guard','empty-accessory1','accessory1'));assert.equal(s.gold,gold);assert.equal(s.characters.guard.inventory['return-ring-1'],1);
   assert.equal(C.equipment(s.characters.guard).accessory2,'lone-ring-2');valid(s);

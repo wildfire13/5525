@@ -252,7 +252,7 @@ const Campaign = (() => {
   function shop(s) {
     if(s.phase!=='town')return [];
     const kind=s.location==='east'?'weapon':s.location==='west'?'armor':s.location==='north'?'accessory':null;
-    return kind?clone(gear.filter(g=>(g.slot===kind||kind==='armor'&&['head','lowerBody','feet'].includes(g.slot)||kind==='accessory'&&g.type==='accessory'||kind==='weapon'&&g.slot==='leftHand')&&!g.starterOnly)):s.location==='south'?clone(items):[];
+    return kind?clone(gear.filter(g=>(g.slot===kind||kind==='armor'&&['head','lowerBody','feet'].includes(g.slot)||kind==='accessory'&&['accessory1','accessory2'].includes(g.slot)||kind==='weapon'&&g.slot==='leftHand')&&!g.starterOnly)):s.location==='south'?clone(items):[];
   }
   function quote(s,charId,gearId,slot) {
     const c=s.characters[charId],g=getGear(gearId);if(!c||!g)return null;
@@ -503,7 +503,11 @@ const Campaign = (() => {
     demand(record(s.characters)&&Object.keys(s.characters).length===B.roster.length,'キャラ一覧');
     for(const t of B.roster) {
       const c=s.characters[t.id];demand(record(c)&&c.id===t.id&&c.race===bases[t.job].race&&Object.keys(c).every(k=>['id','equipmentRevision','race','weapon','armor','accessory1','accessory2','leftHand','head','lowerBody','feet','hp','mp','xp','level','statPoints','skillPoints','allocations',...(version===2?['inventory']:[])].includes(k)),'キャラ情報');
-      if(version===2)demand(record(c.inventory)&&Object.entries(c.inventory).every(([id,count])=>(items.some(item=>item.id===id)||getGear(id)&&getGear(id).type!=='empty')&&integer(count,1,1e10)),'個人の所持品');
+      if(version===2){
+        demand(record(c.inventory),'個人の所持品');
+        demand(!Object.keys(c.inventory).some(id=>getGear(id)?.type==='empty'),'所持品に空の装備枠が含まれています。元セーブと現在の進行は変更していません。正常な別セーブを選んでください');
+        demand(Object.entries(c.inventory).every(([id,count])=>(items.some(item=>item.id===id)||getGear(id)&&getGear(id).type!=='empty')&&integer(count,1,1e10)),'個人の所持品');
+      }
       demand(c.equipmentRevision===undefined||c.equipmentRevision===2,'装備移行版');
       demand(record(c.allocations)&&Object.keys(c.allocations).length===3&&['str','int','agi'].every(k=>integer(c.allocations[k])),'能力配分');
       demand(integer(c.xp)&&c.level===1+Math.floor(c.xp/100)&&integer(c.statPoints)&&integer(c.skillPoints),'キャラ成長');
