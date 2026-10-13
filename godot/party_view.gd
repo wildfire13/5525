@@ -192,8 +192,8 @@ func face_bar(parent):
 		var u=ui.roster().filter(func(member):return member.id==id)[0]
 		var caption=str(u.name)+(" 戦闘不能" if u.hp<=0 else "")
 		if show_resources:caption+="\nHP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]
-		var control=b(row,caption,open_detail.bind(str(id)),ui.modal_open() or pages.shop_view.stage in ["S4","S5"] or pages.shop_view.unknown)
-		control.name="PartyFace_"+str(id);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.icon=ui.portraits.texture(u,true);control.expand_icon=true;control.add_theme_constant_override("icon_max_width",48 if ui.ui_size_mode=="standard" else 28);control.clip_text=true;control.tooltip_text=control.text+" / ステータスを開く";ui.memory.key(control,"face_"+str(id))
+		var control=b(row,"",open_detail.bind(str(id)),ui.modal_open() or pages.shop_view.stage in ["S4","S5"] or pages.shop_view.unknown)
+		control.name="PartyFace_"+str(id);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.icon=ui.portraits.texture(u,true);control.expand_icon=true;control.add_theme_constant_override("icon_max_width",48 if ui.ui_size_mode=="standard" else 28);control.clip_text=true;control.tooltip_text=caption+" / ステータスを開く";ui.memory.key(control,"face_"+str(id))
 func open_detail(uid: String):
 	if ui.locked or ui.presenting or ui.modal_open() or not ui.can_inspect_member(uid):return
 	if not guard_leave(open_detail.bind(uid)):return
