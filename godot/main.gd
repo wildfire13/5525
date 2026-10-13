@@ -175,6 +175,7 @@ func scroller(parent: Node) -> VBoxContainer:
 	s.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;parent.add_child(s)
 	var v=VBoxContainer.new();v.size_flags_horizontal=Control.SIZE_EXPAND_FILL;s.add_child(v);return v
 func confirm(text: String,fn: Callable):
+	pages.shop_view.cancel_pending()
 	# Snapshot immediately before modal focus changes: wheels do not trigger a render.
 	memory.capture()
 	var scroll_state=memory.scrolls.duplicate(true)
@@ -219,6 +220,7 @@ func close_game():
 	get_tree().quit()
 func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 	if locked or closing:return {"ok":false,"error":"処理中です"}
+	pages.shop_view.cancel_pending()
 	var incoming={}
 	if request.get("op")=="campaign_load":
 		incoming=campaign_identity.prepare_load(request.get("data"),str(frontend.get("source_path","")))
@@ -283,6 +285,7 @@ func reconnect_engine():
 		locked=false;await new_game(true)
 	else:notice=engine.last_error;render()
 func invalidate_preview():
+	if pages!=null:pages.shop_view.cancel_pending()
 	if hud!=null:hud.discard_reference();hud.invalidate_hover()
 	generation+=1;pending=null;chosen=[];preview={};preview_ready=false;preview_pending=false
 func handle_connection_loss(reply: Dictionary,connection: int) -> bool:
@@ -519,6 +522,7 @@ func commit():
 	var target=pending;invalidate_preview();audio.ui("confirm")
 	await update({"op":"act","kind":command,"target":target,"presentation":true})
 func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback: Callable, filename: String=""):
+	pages.shop_view.cancel_pending()
 	var d=FileDialog.new();d.access=FileDialog.ACCESS_FILESYSTEM;d.file_mode=mode;d.filters=filters
 	d.use_native_dialog=false;d.exclusive=true;add_child(d);d.current_dir=ProjectSettings.globalize_path("user://")
 	if not filename.is_empty():d.current_file=filename;d.title="保存先を選択";d.overwrite_warning_enabled=false
@@ -563,6 +567,7 @@ func save_log():
 		file_dialog(FileDialog.FILE_MODE_SAVE_FILE,PackedStringArray(["*.json ; プレイログ（進行セーブとは別）"]),write_snapshot.bind(r.data,"プレイログ"),"5525-log-%d-%d.json" % [Time.get_unix_time_from_system(),Time.get_ticks_usec()])
 func portrait_dialog():
 	if data.get("trial")!=null or campaign().get("phase") in ["battle","deployment"]:notice="画像変更は戦闘・試用の終了後にできます";render();return
+	pages.shop_view.cancel_pending()
 	var d=Window.new();d.name="PortraitChooser";d.exclusive=true;d.title="キャラ画像";d.size=Vector2i(mini(660,int(size.x)-32),mini(700,int(size.y)-72));add_child(d)
 	var body=scroller(d);body.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	label_(body,"各キャラの画像を変更します。能力・装備は変わりません。")

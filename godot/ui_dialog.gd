@@ -12,6 +12,7 @@ var connection := -1
 var close_guard: Callable
 func _init(frontend):ui=frontend
 func open(title: String, builder: Callable, closed: Callable=Callable()) -> Window:
+	ui.pages.shop_view.cancel_pending()
 	close(false)
 	close_guard=Callable()
 	ui.memory.capture();checkpoint=ui.memory.scrolls.duplicate(true);origin=ui.memory.focus_key
