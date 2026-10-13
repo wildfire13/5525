@@ -55,8 +55,32 @@ try{
  }
 }finally{dagger.skillLevel=originalLevel;}
 {
+ const staff=C.gear.find(g=>g.id==='staff-wood'),oldSkill=staff.skill,oldLevel=staff.skillLevel;
+ try{
+  staff.skill='scout';
+  for(const [right,left,expected] of [[1,2,2],[2,3,3],[2,2,2]]){
+   dagger.skillLevel=right;staff.skillLevel=left;
+   const s=C.create();s.location='east';s.gold=2000;
+   check(C.buyGear(s,'mage','dagger-wood','rightHand')&&C.buyGear(s,'mage','staff-wood','leftHand'),'two distinct equipped skill sources');
+   C.depart(s,'astaris');C.travel(s,'safe',()=>.3);
+   const actor=s.battle.units.find(u=>u.id==='mage');
+   check(B.skillLevel(actor)===expected&&B.skillInfo(actor).level===expected,'normal battle/description use maximum');
+   const copy=C.create();copy.location='east';copy.characters.mage.weapon='dagger-wood';copy.characters.mage.leftHand='staff-wood';
+   const trial=C.trial(copy,'mage','dagger-wood','rightHand'),hero=trial.battle.units.find(u=>u.id==='mage');
+   check(B.skillLevel(hero)===expected&&B.skillInfo(hero).level===expected,'trial/description use same maximum');
+  }
+ }finally{
+  dagger.skillLevel=originalLevel;staff.skill=oldSkill;
+  if(oldLevel===undefined)delete staff.skillLevel;else staff.skillLevel=oldLevel;
+ }
+}
+{
  const a=unit('a','ally',22);a.skillSources=[{id:'scout',level:1},{id:'scout',level:1}];check(B.skillLevel(a)===1,'duplicate equal levels do not accumulate');
- a.skillSources[1].level=2;check(B.skillLevel(a)===null,'mixed levels have no invented priority');
+ for(const [left,right,expected] of [[1,2,2],[2,3,3],[2,2,2]]){
+  a.skillSources=[{id:'scout',level:left},{id:'scout',level:right}];
+  check(B.skillLevel(a)===expected,'mixed levels choose maximum, never sum');
+  check(B.skillInfo(a).level===expected,'description agrees with maximum');
+ }
 }
 {
  const s=C.create();check(Object.values(s.characters).every(c=>c.def===0),'all new character DEF zero');
