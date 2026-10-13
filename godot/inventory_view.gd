@@ -32,7 +32,9 @@ func pick(id: String):
 	item_id=id;stage="actions";action="";amount=1;quote={};message="";redraw()
 func back() -> bool:
 	if not available() or stage=="list":return false
-	stage="actions" if stage in ["targets","confirm"] else "list";quote={};message="";generation+=1;redraw();return true
+	if action=="sell" and sale_available() and stage in ["targets","confirm"]:stage="targets" if stage=="confirm" else "list"
+	else:stage="actions" if stage in ["targets","confirm"] else "list"
+	quote={};message="";generation+=1;redraw();return true
 func choose(kind: String):
 	if not available():return
 	action=kind;amount=1;quote={};message=""
@@ -94,7 +96,8 @@ func render(parent,uid: String):
 			target.name="InventoryTarget_"+str(candidate.get("targetId",candidate.get("slot","")))
 	elif action=="sell":b(parent,"売却内容を確認",prepare.bind(null,null),not sale_available()).name="InventoryPrepareSale"
 	else:b(parent,"捨てる内容を確認",prepare.bind(null,null)).name="InventoryPrepareDiscard"
-	b(parent,"操作選択へ",func():stage="actions";redraw())
+	if action=="sell" and sale_available():b(parent,"所持品一覧へ",func():stage="list";quote={};generation+=1;redraw()).name="InventoryList"
+	else:b(parent,"操作選択へ",func():stage="actions";redraw())
 
 func prepare(target,slot):
 	if not available():return
@@ -127,7 +130,8 @@ func render_confirmation(parent):
 	var stale=quote.get("token")!=c().get("inventoryToken")
 	if stale:l(parent,"所持品や対象の状態が変わりました。戻って選び直してください。")
 	var actions=ui.row(parent)
-	b(actions,"取り消す",func():stage="actions";quote={};redraw()).name="InventoryCancel"
+	if quote.get("action")=="sell" and sale_available():b(actions,"個数選択へ戻る",back).name="InventoryCancel"
+	else:b(actions,"取り消す",func():stage="actions";quote={};redraw()).name="InventoryCancel"
 	ui.primary(b(actions,verb,commit,stale)).name="InventoryConfirm"
 
 func commit():
@@ -145,4 +149,7 @@ func commit():
 		if ticket!=generation or epoch!=ui.pages.epoch or connection!=ui.engine.connection_generation or ui.closing:return
 	stage="list" if reply.get("ok",false) else "actions";quote={}
 	message="操作が完了しました。" if reply.get("ok",false) else str(reply.get("error","状態を再確認してください"))
-	redraw()
+	if sale and reply.get("ok",false):
+		message="%s×%dを売却 / 受取%dG" % [confirmed.name,confirmed.count,confirmed.proceeds]
+		ui.pages.shop_view.record_sale(confirmed);ui.render()
+	else:redraw()

@@ -216,6 +216,7 @@ func open_detail(uid: String):
 		ui.local_button(actions,"戻る",detail_back).name="StatusBack"
 		ui.local_button(actions,"ステータスを閉じる",ui.dialog.close).name="StatusClose",func():detail_uid="";detail_gear={};inventory_view.reset();ui.render())
 	ui.dialog.close_guard=detail_close_guard
+	ui.dialog.escape_handler=detail_escape
 	ui.render()
 func open_inventory(uid: String):
 	open_detail(uid)
@@ -223,6 +224,9 @@ func open_inventory(uid: String):
 func detail_close_guard(next: Callable) -> bool:
 	if ui.locked or ui.presenting or inventory_view.stage=="pending":return false
 	return guard_leave(next)
+func detail_escape() -> bool:
+	if detail_tab==3 and inventory_view.stage=="confirm" and inventory_view.action=="sell" and inventory_view.sale_available():return inventory_view.back()
+	return false
 func detail_back():
 	if detail_tab==3:inventory_view.back()
 func refresh_modal():

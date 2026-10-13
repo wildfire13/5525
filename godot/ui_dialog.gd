@@ -10,11 +10,14 @@ var origin := ""
 var epoch := -1
 var connection := -1
 var close_guard: Callable
+var escape_handler: Callable
+var escape_frame := -1
 func _init(frontend):ui=frontend
 func open(title: String, builder: Callable, closed: Callable=Callable()) -> Window:
 	ui.pages.shop_view.cancel_pending()
 	close(false)
 	close_guard=Callable()
+	escape_handler=Callable()
 	ui.memory.capture();checkpoint=ui.memory.scrolls.duplicate(true);origin=ui.memory.focus_key
 	epoch=ui.pages.epoch;connection=ui.engine.connection_generation;restore_callback=closed
 	window=Window.new();window.name="StateDetails";window.title=title;window.exclusive=true;window.transient=true;window.unresizable=true
@@ -30,7 +33,7 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 	window.close_requested.connect(close)
 	window.window_input.connect(func(event):
 		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
-			window.set_input_as_handled();ui.get_viewport().set_input_as_handled();ui.modal_escape_frame=Engine.get_process_frames();close())
+			window.set_input_as_handled();ui.get_viewport().set_input_as_handled();ui.modal_escape_frame=Engine.get_process_frames();escape())
 	resize();window.popup_centered()
 	if actions.get_child_count()>0:actions.get_child(0).grab_focus()
 	return window
@@ -39,6 +42,13 @@ func resize():
 	var status=window.title=="ステータス"
 	window.size=Vector2i(mini(1040 if status else 840,int(ui.size.x)-32),mini(780 if status else 620,int(ui.size.y)-72))
 	window.position=Vector2i((ui.size-Vector2(window.size))/2)
+func escape():
+	# Window and its input margin can both receive the same key event.
+	var frame=Engine.get_process_frames()
+	if escape_frame==frame:return
+	escape_frame=frame
+	if escape_handler.is_valid() and escape_handler.call():return
+	close()
 func close(restore:=true):
 	if not is_instance_valid(window):return
 	if restore and close_guard.is_valid():
@@ -46,6 +56,7 @@ func close(restore:=true):
 		if not close_guard.call(finish):return
 	var old=window;window=null;old.hide();old.queue_free()
 	close_guard=Callable()
+	escape_handler=Callable()
 	var valid=restore and not ui.closing and epoch==ui.pages.epoch and connection==ui.engine.connection_generation
 	if valid:
 		if restore_callback.is_valid():restore_callback.call()
