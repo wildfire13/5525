@@ -301,7 +301,7 @@ func result(parent):
 	elif outcome=="travel":l(parent,"依頼を受けずに移動しました。配達報酬はありません。戦闘の経験値は保持されます。")
 	else:l(parent,"荷物を届けました。報酬と成長を持ち越して、次の依頼や買い物へ進めます。")
 	ui.icons.line(ui,parent,"money","今回の配達報酬 %dG" % result_.get("gold",0),true)
-	ui.icons.line(ui,parent,"experience","配達経験値 %d / 累計経験値 %d / 隊Lv.%d" % [result_.get("xp",0),c().xp,c().level])
+	ui.icons.line(ui,parent,"experience","各同行者の配達経験値 %d" % result_.get("xp",0))
 	ui.icons.line(ui,parent,"money","所持金 %dG" % c().gold)
 	if result_.get("hours")!=null:l(parent,"所要時間 %d時間" % result_.hours)
 	l(parent,"現在地: "+town(c().location)+"。ここで施設を利用し、次の出発を選べます。")

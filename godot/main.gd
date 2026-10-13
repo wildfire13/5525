@@ -27,7 +27,6 @@ var top: HBoxContainer
 var header: Label
 var resource_header: HBoxContainer
 var gold_header: Label
-var xp_header: Label
 var content: VBoxContainer
 var battle_row: HBoxContainer
 var board
@@ -82,7 +81,7 @@ func _ready():
 	top=HBoxContainer.new();top.custom_minimum_size.y=44;base.add_child(top)
 	actor_face=portrait(top,{},true,40);actor_face.visible=false
 	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
-	resource_header=row(top);gold_header=icons.line(self,resource_header,"money","");xp_header=icons.line(self,resource_header,"experience","")
+	resource_header=row(top);gold_header=icons.line(self,resource_header,"money","")
 	town_back=button(top,"拠点へ",navigate.bind("board"));town_back.visible=false
 	local_button(top,"メニュー",open_menu)
 	retry_button=button(top,"再接続",func():confirm("ゲーム接続を再開します。失われた未保存の進行は復元できません。\n再接続後、保存済みファイルを読み込んでください。",reconnect_engine));retry_button.visible=false
@@ -320,9 +319,9 @@ func render():
 	theme.default_font_size=22 if available.x>=1800 and available.y>=1000 else 18 if ui_size_mode=="standard" else 16
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
-	header.text="5525 / %s / 隊Lv.%d / 編成%d/5人 / 累計%d時間" % [town_name(place),c.get("level",1),c.get("selected",[]).size(),c.get("hours",0)]
-	gold_header.text="%dG" % c.get("gold",0);xp_header.text="経験値%d" % c.get("xp",0)
-	header.tooltip_text=header.text+" / 経験値%d" % c.get("xp",0)
+	header.text="5525 / %s / 編成%d/5人 / 累計%d時間" % [town_name(place),c.get("selected",[]).size(),c.get("hours",0)]
+	gold_header.text="%dG" % c.get("gold",0)
+	header.tooltip_text=header.text
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	resource_header.visible=not battle and not (phase=="town" and page in ["party","shop"])
 	actor_face.visible=battle

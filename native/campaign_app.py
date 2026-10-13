@@ -600,7 +600,6 @@ class CampaignApp(JourneyApp):
         self.foot.config(text=self.notice)
         display_town = journey.get('destination') if phase == 'arrival' else self.town_id()
         self.status.config(text=f'{self.town_name(display_town)}  |  所持金 {campaign.get("gold", 0)}G'
-                               f'  |  経験値 {campaign.get("xp", 0)} / 隊Lv.{campaign.get("level", 1)}'
                                f'  |  編成 {len(self.selected_ids())}/5人 / 累計{campaign.get("hours", 0)}時間')
         if not campaign:
             self.label(self.data.get('error', 'キャンペーンを開始できませんでした'), color='#fca5a5')
@@ -1061,7 +1060,7 @@ class CampaignApp(JourneyApp):
         else:
             self.label('荷物を届けました。報酬と成長を持ち越して、次の依頼や買い物へ進めます。')
         self.label(f'今回の配達報酬 {result.get("gold", 0)}G / 配達経験値 {result.get("xp", 0)}', 18)
-        self.label(f'所持金 {self.campaign.get("gold", 0)}G / 累計経験値 {self.campaign.get("xp", 0)} / 隊Lv.{self.campaign.get("level", 1)}', 15)
+        self.label(f'所持金 {self.campaign.get("gold", 0)}G', 15)
         if result.get('hours') is not None:
             self.label(f'所要時間 {result["hours"]}時間')
         self.label(self.party_text(), 12)
