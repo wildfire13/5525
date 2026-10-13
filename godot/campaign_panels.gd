@@ -289,7 +289,7 @@ func refresh_purchase_availability(control):
 		control.disabled=control.get_meta("base_disabled",true) or not quote_valid() or ui.locked or ui.presenting or not comparison_visible()
 func purchase(_q: Dictionary):shop_view.confirm_purchase()
 func buy(id: String):
-	if quote_valid() and id==gear_id:shop_view.stage="S5";await shop_view.buy(ui.gear_preview.duplicate(true))
+	await shop_view.confirm_purchase(id)
 func cancel_quote():shop_view.back_list()
 func result(parent):
 	var result_: Dictionary=c().get("result",{});var outcome=result_.get("outcome","")
@@ -339,9 +339,7 @@ func change_membership(id: String):
 	await ui.toggle_member(id)
 	ui.memory.request_focus("party_"+id,true);ui.memory.restore()
 func offered() -> Array:
-	return c().get("shop",[]).filter(func(g):
-		var allowed=g.get("allowedSlots",["rightHand"] if g.get("hands",1)==2 else ["rightHand","leftHand"] if g.slot=="weapon" else ["upperBody"] if g.slot=="armor" else ["accessory1","accessory2"] if g.get("type")=="accessory" else [g.slot])
-		return allowed.has(ui.shop_slot) and (g.slot not in ["accessory1","accessory2"] or g.slot==ui.shop_slot))
+	return shop_view.offered()
 func product_effect(g: Dictionary) -> String:
 	if str(g.id).begins_with("empty-"):return "装備なし"
 	var parts=[]
@@ -394,17 +392,17 @@ func select_member(uid: String):await shop_view.select_member(uid)
 func remember_trial(args: Array):
 	shop_view.stage="S8";shop_view.background.clear()
 	ui.memory.capture()
-	trial_return={"epoch":epoch,"location":c().get("location"),"uid":args[0],"gear":args[1],"slot":args[2],"scrolls":ui.memory.scrolls.duplicate(true),"focus":"product_"+str(args[1])}
+	trial_return={"epoch":epoch,"location":c().get("location"),"uid":args[0],"gear":args[1],"slot":args[2],"filter":shop_view.filter_slot,"scrolls":ui.memory.scrolls.duplicate(true),"focus":"product_"+str(args[1])}
 func start_trial():await shop_view.start_trial()
 func restore_trial():
 	if trial_return.is_empty() or trial_return.get("epoch")!=epoch:return
 	var previous=trial_return.duplicate(true);trial_return={}
 	if c().get("location")!=previous.location:ui.notice="試用前の店が変わったため選択を解除しました";invalidate_quote(true);return
-	ui.page="shop";ui.shop_uid=previous.uid;ui.shop_slot=previous.slot
+	ui.page="shop";ui.shop_uid=previous.uid;ui.shop_slot=previous.slot;shop_view.filter_slot=previous.get("filter","all")
 	if not c().get("selected",[]).has(ui.shop_uid) or not offered().any(func(g):return g.id==previous.gear):
 		invalidate_quote(true);ui.notice="試用前の人物・商品を確認できないため選択を解除しました";ui.render();return
 	ui.memory.scrolls.merge(previous.scrolls,true)
-	await request_quote(str(previous.gear))
+	shop_view.back_list()
 	ui.memory.scrolls.merge(previous.scrolls,true);ui.memory.request_focus(previous.focus);ui.memory.restore()
 
 func gear_type(gear: Dictionary) -> String:

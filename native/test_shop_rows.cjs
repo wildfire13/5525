@@ -1,0 +1,23 @@
+'use strict';
+const assert=require('node:assert/strict'),C=require('./campaign.js');
+let checks=0;function check(ok,label){assert.ok(ok,label);checks++;console.log('PASS '+label);}
+const snapshot=s=>C.serialize(s),make=()=>{const s=C.create();s.location='east';s.gold=500;return s;};
+let s=make(),before=snapshot(s),q=C.purchaseQuote(s,'javelin-wood');
+check(q.ok&&q.count===1&&q.cost===100&&q.goldBefore===500&&q.afterGold===400,'single-unit consent contains exact payment');
+check(snapshot(s)===before,'quote/consent alone does not change save');
+let equipment=Object.fromEntries(Object.entries(s.characters).map(([id,c])=>[id,C.equipment(c)]));
+check(C.buyInventory(s,'archer',q.gearId,q.token),'recipient commits inventory purchase');
+check(s.gold===400&&s.characters.archer.inventory[q.gearId]===1,'one unit paid once and owned by selected recipient');
+check(Object.keys(s.characters).every(id=>JSON.stringify(C.equipment(s.characters[id]))===JSON.stringify(equipment[id])),'purchase does not auto-equip anyone');
+before=snapshot(s);check(!C.buyInventory(s,'archer',q.gearId,q.token)&&snapshot(s)===before,'duplicate confirmation is rejected without mutation');
+q=C.purchaseQuote(s,'javelin-wood');check(C.buyInventory(s,'archer',q.gearId,q.token)&&s.characters.archer.inventory[q.gearId]===2,'fresh purchase increments same owner by one');
+s=make();q=C.purchaseQuote(s,'javelin-wood');s.gold--;before=snapshot(s);check(!C.buyInventory(s,'archer',q.gearId,q.token)&&snapshot(s)===before,'payment consent cannot silently change');
+s=make();s.gold=0;before=snapshot(s);q=C.purchaseQuote(s,'javelin-wood');check(!q.ok&&!C.buyInventory(s,'archer',q.gearId,q.token)&&snapshot(s)===before,'insufficient funds leaves all resources unchanged');
+s=make();q=C.purchaseQuote(s,'javelin-wood');s.selected=s.selected.filter(id=>id!=='archer');before=snapshot(s);check(!C.buyInventory(s,'archer',q.gearId,q.token)&&snapshot(s)===before,'reserved recipient rejected');
+s=make();before=snapshot(s);check(!C.purchaseQuote(s,'empty-rightHand').ok&&!C.purchaseQuote(s,'armor-cloth').ok&&snapshot(s)===before,'empty slot and goods from other shop are not purchasable');
+s=make();q=C.purchaseQuote(s,'javelin-wood');check(C.buyInventory(s,'mage',q.gearId,q.token),'inventory receipt is independent of equipment requirements');
+let sale=C.saleQuote(s,'mage','javelin-wood',1);check(sale.ok&&C.sellInventory(s,'mage','javelin-wood',1,sale.token)&&s.gold===500&&!s.characters.mage.inventory['javelin-wood'],'existing sale removes one item from its actual owner');
+before=snapshot(s);check(!C.sellInventory(s,'mage','javelin-wood',1,sale.token)&&snapshot(s)===before,'sale repeated token cannot replay');
+s=make();s.characters.archer.inventory['javelin-wood']=1;s.location='astaris';before=snapshot(s);sale=C.saleQuote(s,'archer','javelin-wood',1);check(!sale.ok&&!C.sellInventory(s,'archer','javelin-wood',1,sale.token)&&snapshot(s)===before,'sale outside shop rejected');
+s=make();before=snapshot(s);check(!C.buyInventory(s,'missing','javelin-wood',C.purchaseQuote(s,'javelin-wood').token)&&snapshot(s)===before,'invalid recipient never charges');
+console.log(JSON.stringify({suite:'shop-row-transactions',passed:true,checks}));

@@ -234,14 +234,13 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 	var reply: Dictionary=await engine.request(request)
 	if connection!=engine.connection_generation:return {"ok":false,"obsolete_connection":true,"error":"古い接続の応答です"}
 	locked=false
-	if request.get("op")=="campaign" and request.get("action") not in ["begin","finishBattle","endTrial","trial","forecast","previewGear","inventoryQuote","purchasePlan","saleQuote"] and reply.get("presentation")==null:
+	if request.get("op")=="campaign" and request.get("action") not in ["begin","finishBattle","endTrial","trial","forecast","previewGear","inventoryQuote","purchaseQuote","purchasePlan","saleQuote"] and reply.get("presentation")==null:
 		audio.ui("confirm" if reply.get("ok",false) else "cancel")
 	if reply.get("ok",false):
 		if reply.has("campaign"):
 			if frontend.has("images"):
 				portraits.activate(frontend.images);audio.restore(frontend.music)
 			if request.get("op")=="campaign_load":
-				if incoming.identity==campaign_identity.current_id:pages.shop_view.plan.reset("disconnect",campaign_identity.current_id)
 				campaign_identity.accept_load(incoming);pages.reset_context("load",campaign_identity.current_id);memory.reset();skip_capture_once=true
 			elif request.get("op")=="campaign_start":
 				if frontend.get("reconnect_bootstrap",false):campaign_identity.reconnect_bootstrap();pages.reset_context("reconnect")
@@ -278,11 +277,10 @@ func act(action: String,args: Array=[]):
 	if action=="endTrial" and response.get("ok",false):await pages.restore_trial()
 	return response
 func reconnect_engine():
-	# Hold intentions before bootstrap; never treat reconnect as an explicit new game.
+	# Cancel session confirmations before bootstrap; reconnect is not a new game.
 	pages.reset_context("disconnect",campaign_identity.current_id)
 	if engine.start_engine():
 		locked=false;await new_game(true)
-		if not pages.shop_view.plan.held.is_empty():notice="接続を再開しました。同じ進行を読み込むと保留した購入計画を再確認できます。";render()
 	else:notice=engine.last_error;render()
 func invalidate_preview():
 	if hud!=null:hud.discard_reference();hud.invalidate_hover()

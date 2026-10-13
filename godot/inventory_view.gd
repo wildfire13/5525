@@ -26,6 +26,7 @@ func selected() -> Dictionary:
 		if entry.id==item_id:return entry
 	return {}
 func available() -> bool:return not ui.locked and not ui.presenting and not ui.closing and not ui.engine.disconnected and stage not in ["pending","unknown"]
+func sale_available() -> bool:return ui.page=="shop" and c().get("saleAvailable",false) and c().get("selected",[]).has(owner_id)
 func pick(id: String):
 	if not available():return
 	item_id=id;stage="actions";action="";amount=1;quote={};message="";redraw()
@@ -36,6 +37,9 @@ func choose(kind: String):
 	if not available():return
 	action=kind;amount=1;quote={};message=""
 	stage="targets";redraw()
+func choose_sale(id: String):
+	if not available() or not sale_available():return
+	item_id=id;choose("sell")
 func render(parent,uid: String):
 	if owner_id!=uid:reset();owner_id=uid
 	var title=l(parent,ui.member_name(owner_id)+"のインベントリ",true);title.name="InventoryOwner"
@@ -47,9 +51,12 @@ func render(parent,uid: String):
 	if stage=="list":
 		if data().get("entries",[]).is_empty():l(parent,"所持品はありません。")
 		for item in data().get("entries",[]):
-			var button=b(parent,"%s　%d個" % [item.name,item.count],pick.bind(str(item.id)))
+			var row=ui.row(parent)
+			var button=b(row,"%s　%d個" % [item.name,item.count],pick.bind(str(item.id)))
+			button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 			button.name="InventoryItem_"+str(item.id);button.custom_minimum_size.y=48
 			ui.memory.key(button,"inventory_"+owner_id+"_"+str(item.id))
+			if sale_available() and item.kind=="equipment":b(row,"売却",choose_sale.bind(str(item.id))).name="InventorySell_"+str(item.id)
 		return
 	if stage=="confirm":render_confirmation(parent);return
 	l(parent,"%s / %s / 所持 %d個" % [ui.member_name(owner_id),entry.name,entry.count],true)
@@ -62,6 +69,7 @@ func render(parent,uid: String):
 		b(actions,"使用",choose.bind("use"),not use_reason.is_empty()).name="InventoryUse"
 		b(actions,"他のキャラに渡す",choose.bind("transfer"),not entry.transferTargets.any(func(q):return q.ok)).name="InventoryTransfer"
 		b(actions,"捨てる",choose.bind("discard"),not entry.discard.ok).name="InventoryDiscard"
+		if sale_available() and entry.kind=="equipment":b(actions,"売却",choose.bind("sell")).name="InventorySell"
 		if not use_reason.is_empty():l(parent,"使用できない理由: "+use_reason)
 		if entry.kind=="equipment":
 			var equip_available=entry.equipSlots.any(func(q):return q.ok)
@@ -70,7 +78,7 @@ func render(parent,uid: String):
 		if not entry.discard.ok:l(parent,entry.discard.reason)
 		if entry.transferTargets.is_empty():l(parent,"渡せる編成中の仲間がいません。")
 		b(parent,"所持品一覧へ",func():stage="list";redraw());return
-	if action in ["transfer","discard"]:
+	if action in ["transfer","discard","sell"]:
 		amount=clampi(amount,1,int(entry.count))
 		var row=ui.row(parent);l(row,"個数")
 		var count=SpinBox.new();count.name="InventoryQuantity";count.min_value=1;count.max_value=int(entry.count);count.step=1;count.value=amount;count.custom_minimum_size.x=132;row.add_child(count)
@@ -84,19 +92,22 @@ func render(parent,uid: String):
 			if not candidate.ok:caption+=" / "+str(candidate.reason)
 			var target=b(parent,caption,prepare.bind(candidate.get("targetId"),candidate.get("slot")),not candidate.ok)
 			target.name="InventoryTarget_"+str(candidate.get("targetId",candidate.get("slot","")))
+	elif action=="sell":b(parent,"売却内容を確認",prepare.bind(null,null),not sale_available()).name="InventoryPrepareSale"
 	else:b(parent,"捨てる内容を確認",prepare.bind(null,null)).name="InventoryPrepareDiscard"
 	b(parent,"操作選択へ",func():stage="actions";redraw())
 
 func prepare(target,slot):
 	if not available():return
+	if action=="sell" and not sale_available():return
 	stage="pending";message="";generation+=1
 	var ticket=generation;var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation
 	var args=[owner_id,item_id,action,target,amount,slot]
 	redraw()
-	var reply=await ui.update({"op":"campaign","action":"inventoryQuote","args":args})
+	var reply=await ui.update({"op":"campaign","action":"saleQuote" if action=="sell" else "inventoryQuote","args":[owner_id,item_id,amount] if action=="sell" else args})
 	if ticket!=generation or epoch!=ui.pages.epoch or connection!=ui.engine.connection_generation or ui.closing:return
 	if reply.get("connection_lost",false):stage="unknown";redraw();return
-	quote=reply.get("inventoryQuote",{})
+	quote=reply.get("saleQuote" if action=="sell" else "inventoryQuote",{})
+	if action=="sell":quote.action="sell"
 	if not reply.get("ok",false) or not quote.get("ok",false):stage="actions";message=str(quote.get("reason",reply.get("error","状態を再確認してください")));redraw();return
 	stage="confirm";redraw()
 
@@ -107,10 +118,11 @@ func prepare_unequip(uid: String,id: String,slot: String):
 
 func render_confirmation(parent):
 	l(parent,"%sの %s / %d個" % [quote.get("ownerName",""),quote.get("name",""),quote.get("count",0)],true)
-	var verb={"use":"使用する","transfer":"渡す","discard":"捨てる","equip":"装備する","unequip":"装備を外す"}.get(quote.get("action"),"確定")
+	var verb={"use":"使用する","transfer":"渡す","discard":"捨てる","equip":"装備する","unequip":"装備を外す","sell":"売却する"}.get(quote.get("action"),"確定")
 	if quote.get("action")=="use":l(parent,"対象: %s / %s %d → %d / 消費1個" % [quote.targetName,str(quote.resource).to_upper(),quote.before,quote.after])
 	elif quote.get("action")=="transfer":l(parent,"渡す相手: "+str(quote.targetName))
 	elif quote.get("action")=="discard":l(parent,"この所持品を捨てます。取り消すと個数は変わりません。")
+	elif quote.get("action")=="sell":l(parent,"売却単価 %dG / 受取 %dG / 所持金 %d → %dG" % [quote.price,quote.proceeds,quote.goldBefore,quote.afterGold])
 	elif quote.get("action") in ["equip","unequip"]:l(parent,"装備枠: "+str(c().get("slots",{}).get(quote.slot,quote.slot))+" / 外した装備は本人のインベントリへ入ります。")
 	var stale=quote.get("token")!=c().get("inventoryToken")
 	if stale:l(parent,"所持品や対象の状態が変わりました。戻って選び直してください。")
@@ -120,10 +132,12 @@ func render_confirmation(parent):
 
 func commit():
 	if not available() or stage!="confirm" or quote.get("token")!=c().get("inventoryToken"):return
+	if quote.get("action")=="sell" and not sale_available():return
 	var confirmed=quote.duplicate(true);stage="pending";generation+=1
 	var ticket=generation;var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation
 	redraw()
-	var reply=await ui.update({"op":"campaign","action":"inventoryAction","args":[confirmed.ownerId,confirmed.itemId,confirmed.action,confirmed.targetId,confirmed.count,confirmed.slot,confirmed.token]})
+	var sale=confirmed.action=="sell"
+	var reply=await ui.update({"op":"campaign","action":"sellInventory" if sale else "inventoryAction","args":[confirmed.ownerId,confirmed.itemId,confirmed.count,confirmed.token] if sale else [confirmed.ownerId,confirmed.itemId,confirmed.action,confirmed.targetId,confirmed.count,confirmed.slot,confirmed.token]})
 	if ticket!=generation or epoch!=ui.pages.epoch or connection!=ui.engine.connection_generation or ui.closing:return
 	if reply.get("connection_lost",false):stage="unknown";redraw();return
 	if not reply.get("ok",false):
