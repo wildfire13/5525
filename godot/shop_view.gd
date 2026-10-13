@@ -71,16 +71,23 @@ func configure_tooltip(button,item: Dictionary):
 		var id=str(item[field]);var level=int(item.get("skillLevel",1));levels[id]=level
 		descriptions[id]=pages.skill_description(id,level)
 	button.configure(str(item.name),item,{"names":c().get("skillNames",{}),"definitions":c().get("skillDefinitions",{}),"descriptions":descriptions,"effective_levels":levels,"title_size":24 if ui.size.x>=1800 else 20,"detail_size":18 if ui.size.x>=1800 else 16})
-func valid_ticket(ticket: int,epoch: int,connection: int) -> bool:
-	return ticket==generation and epoch==pages.epoch and connection==ui.engine.connection_generation and not ui.closing
+func cancel_pending():
+	# Quotes are pure; an in-flight committed purchase must not be discarded here.
+	if stage!="S1":return
+	generation+=1;stage="S0";consent={}
+func valid_ticket(ticket: int,epoch: int,connection: int,place: String) -> bool:
+	if ticket!=generation or epoch!=pages.epoch or connection!=ui.engine.connection_generation or ui.closing:return false
+	if ui.page!="shop" or c().get("phase")!="town" or str(c().get("location"))!=place or stage=="S1" and (ui.modal_open() or ui.locked):
+		cancel_pending();return false
+	return true
 func cancel_purchase(ticket: int):
 	if ticket!=generation or stage=="S5":return
 	generation+=1;consent={};stage="S0";ui.render()
 func confirm_purchase(id: String=""):
 	if busy() or id.is_empty():return
-	stage="S1";generation+=1;var ticket=generation;var epoch=pages.epoch;var connection=ui.engine.connection_generation
+	stage="S1";generation+=1;var ticket=generation;var epoch=pages.epoch;var connection=ui.engine.connection_generation;var place=str(c().get("location"))
 	var reply=await ui.engine.request({"op":"campaign","action":"purchaseQuote","args":[id]})
-	if not valid_ticket(ticket,epoch,connection):return
+	if not valid_ticket(ticket,epoch,connection,place):return
 	if reply.get("connection_lost",false):unknown=true;stage="S7";message="接続が失われました。購入は確定していません。";ui.handle_connection_loss(reply,connection);return
 	var q: Dictionary=reply.get("purchaseQuote",{})
 	if not reply.get("ok",false) or not q.get("ok",false):stage="S0";message=str(q.get("reason",reply.get("error","購入できません")));ui.render();return
@@ -107,11 +114,11 @@ func choose_recipient(ticket: int):
 		cancel_purchase.bind(ticket))
 func buy(q: Dictionary,uid: String,ticket: int):
 	if stage!="S9" or ticket!=generation or ui.locked or unknown:return
-	stage="S5";var epoch=pages.epoch;var connection=ui.engine.connection_generation
+	stage="S5";var epoch=pages.epoch;var connection=ui.engine.connection_generation;var place=str(c().get("location"))
 	var before=int(c().get("characters",{}).get(uid,{}).get("inventory",{}).get(q.gearId,0))
 	ui.dialog.close(false);consent={};ui.render()
 	var result=await ui.update({"op":"campaign","action":"buyInventory","args":[uid,q.gearId,q.token]})
-	if not valid_ticket(ticket,epoch,connection):return
+	if not valid_ticket(ticket,epoch,connection,place):return
 	var after=int(c().get("characters",{}).get(uid,{}).get("inventory",{}).get(q.gearId,0))
 	if result.get("ok",false) and after==before+1 and c().get("gold")==q.afterGold:
 		stage="S0";receipt=q.duplicate(true);receipt.characterId=uid;message="%sのインベントリへ %s 1個 / 支払%dG / 残金%dG" % [ui.member_name(uid),q.gear.name,q.cost,c().gold]
@@ -121,7 +128,7 @@ func buy(q: Dictionary,uid: String,ticket: int):
 	ui.render()
 func start_trial(id: String=""):
 	if busy() or id.is_empty():return
-	stage="S1";generation+=1;var ticket=generation;var epoch=pages.epoch;var connection=ui.engine.connection_generation
+	stage="S1";generation+=1;var ticket=generation;var epoch=pages.epoch;var connection=ui.engine.connection_generation;var place=str(c().get("location"))
 	var candidates=[]
 	var item: Dictionary={}
 	for gear in c().get("shop",[]):
@@ -131,7 +138,7 @@ func start_trial(id: String=""):
 	for person in ui.roster():
 		if not c().get("selected",[]).has(person.id):continue
 		var reply=await ui.engine.request({"op":"campaign","action":"previewGear","args":[person.id,id,slot]})
-		if not valid_ticket(ticket,epoch,connection):return
+		if not valid_ticket(ticket,epoch,connection,place):return
 		if reply.get("connection_lost",false):stage="S7";unknown=true;ui.handle_connection_loss(reply,connection);return
 		var q: Dictionary=reply.get("previewGear",{});candidates.append({"id":person.id,"person":person,"ok":reply.get("ok",false) and q.get("eligible",false) and q.get("available",false),"reason":q.get("reason","試用できません")})
 	stage="S4"
