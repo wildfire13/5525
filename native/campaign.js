@@ -36,7 +36,7 @@ const Campaign = (() => {
     {id:'bow-silver-2',slot:'weapon',name:'銀製の遠見弓＋2',type:'bow',hands:2,material:'silver',grade:2,price:215,atk:37,reach:3,skill:'archer',str:14,int:0,agi:13},
     {id:'staff-wood',slot:'weapon',name:'木製の癒し杖',type:'staff',material:'wood',grade:0,price:70,atk:14,reach:2,skill:'mage',str:0,int:8,agi:0},
     {id:'staff-silver-1',slot:'weapon',name:'銀製の癒し杖＋1',type:'staff',material:'silver',grade:1,price:145,atk:21,reach:2,skill:'mage',str:0,int:12,agi:0,mp:2},
-    {id:'dagger-wood',slot:'weapon',name:'木製の奇襲短剣',type:'dagger',material:'wood',grade:0,price:70,atk:23,reach:1,skill:'scout',str:0,int:0,agi:11,note:'敵陣侵入は既存スカウトの仮アクセサリー効果。短剣を買うだけでは付与しない'},
+    {id:'dagger-wood',slot:'weapon',name:'木製の奇襲短剣',type:'dagger',material:'wood',grade:0,price:70,atk:23,reach:1,skill:'scout',skillLevel:1,str:0,int:0,agi:11,note:'敵陣侵入は既存スカウトの仮アクセサリー効果。短剣を買うだけでは付与しない'},
     {id:'hammer-wood',slot:'weapon',name:'木製のスタンプ槌',type:'hammer',material:'wood',grade:0,price:100,atk:29,reach:1,skill:'stamp',str:14,int:0,agi:0},
     {id:'hammer-iron-1',slot:'weapon',name:'鉄製のスタンプ槌＋1',type:'hammer',material:'iron',grade:1,price:190,atk:39,reach:1,skill:'stamp',str:18,int:0,agi:0,agiBonus:-1},
     {id:'porter-kit',slot:'weapon',name:'運搬用の手道具（仮）',type:'other',material:'wood',grade:0,price:0,atk:0,reach:0,skill:'porter',str:0,int:0,agi:0,starterOnly:true},
@@ -80,20 +80,20 @@ const Campaign = (() => {
     const t=template(c.id),base=bases[t.job],eq=equipment(c,replacement),entries=Object.entries(eq).map(([slot,id])=>({slot,gear:c.equipmentRevision===2?getGear(id):{...getGear(id),skill:getGear(id)?.legacySkill||getGear(id)?.skill}}));
     const w=entries.find(e=>['rightHand','leftHand'].includes(e.slot)&&e.gear.type!=='empty'&&(e.gear.atk||0)>0)?.gear||getGear('empty-rightHand');
     const str=base.str+c.allocations.str,int=base.int+c.allocations.int,agi=base.agi+c.allocations.agi;
-    const skillSources=entries.flatMap(({slot,gear:g})=>[g.skill,g.effect].filter(Boolean).map(id=>({id,slot,itemId:g.id,classification:E.definitions[id]?.classification||(id==='invasion'?'passive':'active')})));
+    const skillSources=entries.flatMap(({slot,gear:g})=>[g.skill,g.effect].filter(Boolean).map(id=>({id,slot,itemId:g.id,classification:E.definitions[id]?.classification||(id==='invasion'?'passive':'active'),...(id==='scout'?{level:g.skillLevel??1}:{})})));
     const activeSkills=t.job==='porter'?['porter']:[...new Set(skillSources.filter(x=>x.classification==='active'&&x.id!=='returnHome').map(x=>x.id))];
     const effects=[...new Set(skillSources.filter(x=>x.classification==='passive'||x.id==='returnHome').map(x=>x.id))];
     const attackWeapons=t.job==='porter'?[]:entries.filter(e=>['rightHand','leftHand'].includes(e.slot)&&e.gear.type!=='empty'&&(e.gear.atk||0)>0).map(({slot,gear:g})=>({slot,itemId:g.id,name:g.name,atk:g.atk,reach:g.reach,skill:g.skill||null}));
     const attackBonus=t.job==='porter'?0:Math.floor(c.allocations.str/2);
     const sum=key=>entries.reduce((n,e)=>n+(e.gear[key]||0),0);
     return {str,int,agi,attributeBreakdown:{str:{base:base.str,growth:c.allocations.str},int:{base:base.int,growth:c.allocations.int},speed:{agi,equipment:sum('agiBonus')}},effects,activeSkills,skillSources,attackWeapons,attackBonus,normalReach:Math.max(0,...attackWeapons.map(w=>w.reach)),equipment:eq,weaponType:w.type,max:t.max+sum('hp')+3*c.allocations.str,maxMp:t.mp+Math.floor(c.allocations.int/2)+sum('mp'),
-      atk:t.job==='porter'?0:(w.atk||0)+Math.floor(c.allocations.str/2),reach:t.job==='porter'?0:w.reach||1,
+      atk:t.job==='porter'?0:(w.atk||0)+Math.floor(c.allocations.str/2),def:c.def??0,reach:t.job==='porter'?0:w.reach||1,
       speed:Math.max(1,agi+sum('agiBonus')),skill:activeSkills[0]||null};
   }
   const defaultAccessory=(c,slot)=>slot==='accessory1'&&template(c.id).job==='scout'?'invasion-charm-1':`empty-${slot}`;
   function character(id) {
     const t=template(id),base=bases[t.job];
-    return {id,equipmentRevision:2,inventory:{},...(t.job==='guard'?{leftHand:'guard-shield-wood'}:{}),race:base.race,weapon:base.weapon,armor:'armor-cloth',hp:t.max,mp:t.mp,xp:0,level:1,statPoints:0,skillPoints:0,allocations:{str:0,int:0,agi:0}};
+    return {id,equipmentRevision:2,inventory:{},...(t.job==='guard'?{leftHand:'guard-shield-wood'}:{}),race:base.race,weapon:base.weapon,armor:'armor-cloth',hp:t.max,mp:t.mp,def:0,xp:0,level:1,statPoints:0,skillPoints:0,allocations:{str:0,int:0,agi:0}};
   }
   function create() {
     const state={version:VERSION,phase:'town',location:'astaris',gold:180,xp:0,level:1,hours:0,
@@ -139,7 +139,7 @@ const Campaign = (() => {
     if(s.phase!=='town'||!hasPorter(s)||!destinations(s).some(p=>p.id===destination)||!['convoy','flank'].includes(formation)||s.activeQuest&&s.activeQuest.to!==destination)return false;
     if(s.selected.some(id=>template(id).job==='porter'&&s.characters[id].hp<=0))return false;
     if(!s.activeQuest){s.rollback=snapshot(s);s.sequence++;}
-    const j=J.create();j.phase='road';j.selected=[...s.selected];j.formation=formation;j.level=s.level;j.potions=inventoryTotals(s).potion;j.kit='campaign';
+    const j=J.create();j.phase='road';j.selected=[...s.selected];j.formation=formation;j.potions=inventoryTotals(s).potion;j.kit='campaign';
     j.job=s.activeQuest?clone(s.activeQuest):{name:'未受注の移動',deadline:100000000,reward:0};
     j.origin=s.location;j.destination=destination;j.token=s.sequence;j.questless=!s.activeQuest;j.history=[];
     s.journey=j;s.battle=null;s.result=null;s.phase='road';note(s,`${getPlace(destination).name}へ出発${s.activeQuest?'':'（未受注：配達報酬なし）'}。`);return true;
@@ -149,19 +149,26 @@ const Campaign = (() => {
       const c=s.characters[u.id];if(!c)continue;
       const g=replacement?.characterId===u.id?{...getGear(replacement.gearId),targetSlot:replacement.slot}:null,st=stats(c,g);
       u.max=st.max;u.maxMp=st.maxMp;u.hp=Math.min(st.max,c.hp);u.mp=Math.min(st.maxMp,c.mp);
-      u.atk=st.atk;u.reach=st.reach;u.agi=st.speed;u.next=100/u.agi;u.equippedSkill=st.skill;
+      u.atk=st.atk;u.def=st.def;u.reach=st.reach;u.agi=st.speed;u.next=100/u.agi;u.equippedSkill=st.skill;
       u.attackWeapons=st.attackWeapons;u.attackBonus=st.attackBonus;u.activeSkills=st.activeSkills;u.skillSources=st.skillSources;u.effects=st.effects;u.canInvade=u.job!=='porter'&&st.effects.includes('invasion');
       u.weapon=template(u.id).job==='porter'?undefined:st.weaponType;
       u.race=c.race;u.str=st.str;u.int=st.int;u.equipment=st.equipment;
     }
+    for(const u of b.units.filter(u=>u.side==='enemy'&&u.job==='scout'))u.skillSources=enemySkillSources(u);
   }
+  function enemySkillSources(u) {
+    if(u.job!=='scout')return undefined;
+    const g=getGear(bases.scout.weapon);
+    return [{id:'scout',slot:'rightHand',itemId:g.id,classification:'active',level:g.skillLevel??1}];
+  }
+  const normalizedSkillSources=sources=>sources?.map(source=>source.id==='scout'?{...source,level:source.level??1}:source);
   function travel(s,route,random=Math.random) {
     if(s.phase!=='road'||!s.journey||!['short','safe'].includes(route)||typeof random!=='function')return false;
     const j=s.journey,count=route==='short'?(j.stage===0?3:4):(j.stage===0?2:3);
     let enemies;try{enemies=J.randomEnemies(count,()=>{const n=random();if(typeof n!=='number'||!Number.isFinite(n)||n<0||n>=1)throw new Error('Random value out of range');return n;});}catch(e){return false;}
     if(!J.travel(s.journey,route))return false;
     s.hours+=route==='short'?2:4;
-    const b=B.create({ally:s.selected,enemy:enemies,formation:j.formation,formationVersion:2,skillStage:s.level,
+    const b=B.create({ally:s.selected,enemy:enemies,formation:j.formation,formationVersion:2,
       potions:inventoryTotals(s).potion,ethers:inventoryTotals(s).ether,enemyPotions:j.stage===0?0:1,deployment:true});
     b.itemInventories=Object.fromEntries(s.selected.map(id=>[id,Object.fromEntries(items.map(item=>[item.id,I.count(s.characters[id].inventory,item.id)]))]));
     applyEquipment(s,b);b.campaignToken=j.token;b.campaignStage=j.stage;
@@ -421,7 +428,7 @@ const Campaign = (() => {
     const preview=previewGear(s,charId,gearId,slot);
     if(s.phase!=='town'||!s.selected.includes(charId)||!preview?.eligible||!preview.available)return null;
     const friends=[...new Set(['guard','archer','mage',...s.selected])].filter(id=>id!==charId&&s.selected.includes(id)).slice(0,2);
-    const b=B.create({ally:[charId,...friends],enemy:['guard','archer','mage'],enemyPotions:0,potions:3,deployment:true,formationVersion:2,formation:'convoy',skillStage:s.characters[charId].level});
+    const b=B.create({ally:[charId,...friends],enemy:['guard','archer','mage'],enemyPotions:0,potions:3,deployment:true,formationVersion:2,formation:'convoy'});
     const copy=clone(s);for(const id of [charId,...friends]){const st=stats(copy.characters[id]);copy.characters[id].hp=st.max;copy.characters[id].mp=st.maxMp;}
     applyEquipment(copy,b,{characterId:charId,gearId,slot:preview.slot});
     const hero=b.units.find(u=>u.id===charId);if(hero.activeSkills.includes(getGear(gearId).skill))hero.selectedSkill=getGear(gearId).skill;hero.hp=hero.max;hero.mp=hero.maxMp;hero.pos=24;hero.next=0;
@@ -504,7 +511,8 @@ const Campaign = (() => {
     demand(Array.isArray(s.history)&&s.history.length<=200&&s.history.every(x=>typeof x==='string'),'履歴');
     demand(record(s.characters)&&Object.keys(s.characters).length===B.roster.length,'キャラ一覧');
     for(const t of B.roster) {
-      const c=s.characters[t.id];demand(record(c)&&c.id===t.id&&c.race===bases[t.job].race&&Object.keys(c).every(k=>['id','equipmentRevision','race','weapon','armor','accessory1','accessory2','leftHand','head','lowerBody','feet','hp','mp','xp','level','statPoints','skillPoints','allocations',...(version===2?['inventory']:[])].includes(k)),'キャラ情報');
+      const c=s.characters[t.id];demand(record(c)&&c.id===t.id&&c.race===bases[t.job].race&&Object.keys(c).every(k=>['id','equipmentRevision','race','weapon','armor','accessory1','accessory2','leftHand','head','lowerBody','feet','hp','mp','def','xp','level','statPoints','skillPoints','allocations',...(version===2?['inventory']:[])].includes(k)),'キャラ情報');
+      demand(c.def===undefined||integer(c.def),'キャラDEF');
       if(version===2){
         demand(record(c.inventory),'個人の所持品');
         demand(!Object.keys(c.inventory).some(id=>getGear(id)?.type==='empty'),'所持品に空の装備枠が含まれています。元セーブと現在の進行は変更していません。正常な別セーブを選んでください');
@@ -587,7 +595,8 @@ const Campaign = (() => {
         for(const key of ['firstMoveUsed','returnUsed'])demand(u[key]===undefined||typeof u[key]==='boolean','一戦の使用状態');
         demand(u.effects===undefined||Array.isArray(u.effects)&&new Set(u.effects).size===u.effects.length&&u.effects.every(id=>['invasion','returnHome','victoryBreath','loneWolf','firstStride','swift'].includes(id)),'装飾効果');
         demand(u.covers===undefined||Array.isArray(u.covers)&&u.covers.length<=2&&new Set(u.covers).size===u.covers.length&&u.covers.every(id=>id!==u.id&&b.units.some(t=>t.id===id&&t.side===u.side)),'防衛線');
-        demand(integer(u.skillStage,1,100000000),'スキル段階');
+        demand(u.skillStage===undefined||integer(u.skillStage,1,100000000),'旧スキル段階');
+        demand(integer(u.def??0),'戦闘DEF');
         demand(typeof u.guard==='boolean'&&(u.cover===null||typeof u.cover==='string'&&b.units.some(t=>t.id===u.cover&&t.side===u.side))&&(u.boost===undefined||typeof u.boost==='boolean'),'戦闘支援状態');
         if(u.intent!==undefined){
           const intent=u.intent;demand(record(intent)&&['move','attack','skill','item','guard'].includes(intent.kind)&&Array.isArray(intent.cells)&&intent.cells.every(p=>integer(p,0,49)),'行動予告');
@@ -608,14 +617,15 @@ const Campaign = (() => {
         }
         if(s.phase==='battle'&&u.side==='enemy'&&u.hp>0)demand(record(u.intent),'敵の予告なし');
         if(u.hp>0)alivePositions.push(u.pos);
-        if(u.side==='enemy')demand(u.max===base.max&&u.maxMp===base.mp&&u.atk===base.atk&&u.agi===base.agi&&u.reach===base.reach&&u.equippedSkill===undefined&&u.weapon===base.weapon&&u.effects===undefined&&u.activeSkills===undefined&&u.selectedSkill===undefined&&u.skillSources===undefined&&u.attackWeapons===undefined&&u.attackBonus===undefined,'敵の基本能力');
+        if(u.side==='enemy')demand(u.max===base.max&&u.maxMp===base.mp&&u.atk===base.atk&&u.agi===base.agi&&u.reach===base.reach&&u.equippedSkill===undefined&&u.weapon===base.weapon&&u.effects===undefined&&u.activeSkills===undefined&&u.selectedSkill===undefined&&(u.skillSources===undefined||isDeepStrictEqual(u.skillSources,enemySkillSources(u)))&&u.attackWeapons===undefined&&u.attackBonus===undefined,'敵の基本能力');
         if(u.side==='ally'){const st=stats(s.characters[u.id]);demand(u.max===st.max&&u.maxMp===st.maxMp&&u.atk===st.atk&&u.agi===st.speed&&u.reach===st.reach&&u.equippedSkill===st.skill,'装備能力の一致');
           demand(s.characters[u.id].equipmentRevision!==2||Array.isArray(u.attackWeapons)&&Array.isArray(u.skillSources)&&Array.isArray(u.activeSkills),'装備計算情報なし');
           demand(u.attackWeapons===undefined||isDeepStrictEqual(u.attackWeapons?.map(({name,...w})=>w),st.attackWeapons.map(({name,...w})=>w)),'通常攻撃武器');
           demand(u.attackBonus===undefined||u.attackBonus===st.attackBonus,'通常攻撃補正');
           demand((u.attackWeapons===undefined)===(u.attackBonus===undefined),'通常攻撃情報');
           demand(u.activeSkills===undefined||JSON.stringify(u.activeSkills)===JSON.stringify(st.activeSkills),'アクティブ一覧');
-          demand(u.skillSources===undefined||isDeepStrictEqual(u.skillSources,st.skillSources),'スキル装備源');
+          demand(u.skillSources===undefined||isDeepStrictEqual(normalizedSkillSources(u.skillSources),st.skillSources),'スキル装備源');
+          demand((u.def??0)===st.def,'装備DEFの一致');
           demand(u.selectedSkill===undefined||st.activeSkills.includes(u.selectedSkill),'選択スキル');
           demand(u.effects===undefined||JSON.stringify(u.effects)===JSON.stringify(st.effects),'装飾能力の一致');
           demand(u.canInvade===undefined||u.canInvade===(u.job!=='porter'&&st.effects.includes('invasion')),'侵入権限の一致');
@@ -684,6 +694,16 @@ const Campaign = (() => {
     migrateEquipment(loaded);
     if(envelope.version===1)migrateInventory(loaded);
     if(loaded.battle&&loaded.battle.formationVersion===undefined){loaded.battle.formationVersion=loaded.phase==='battle'?1:2;loaded.battle.formationKind=loaded.journey.formation;}
+    function migrateCombatMetadata(s) {
+      for(const c of Object.values(s.characters))c.def=c.def??0;
+      if(s.rollback)migrateCombatMetadata(s.rollback);
+      if(s.battle)for(const u of s.battle.units){
+        u.def=u.def??0;
+        if(u.side==='ally')u.skillSources=stats(s.characters[u.id]).skillSources;
+        else if(u.job==='scout')u.skillSources=enemySkillSources(u);
+      }
+    }
+    migrateCombatMetadata(loaded);
     const migrated=validate(loaded);if(!migrated.ok)throw new Error(migrated.error);
     if(loaded.battle)B.trimLog(loaded.battle);return loaded;
   }

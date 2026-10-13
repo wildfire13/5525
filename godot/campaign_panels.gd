@@ -52,7 +52,7 @@ func attack_profile(stats: Dictionary) -> String:
 		parts.append("距離%d: %d" % [distance,normal_atk(stats,distance)])
 	return "通常ATK "+(" / ".join(parts) if not parts.is_empty() else "なし")+" / 最大通常射程 %d" % normal_reach(stats)
 func stats_text(stats: Dictionary) -> String:
-	return "HP上限 %d / MP上限 %d / %s / 行動速度 %d" % [stats.get("max",0),stats.get("maxMp",0),attack_profile(stats),stats.get("speed",stats.get("agi",0))]
+	return "HP上限 %d / MP上限 %d / %s / DEF %d / 行動速度 %d" % [stats.get("max",0),stats.get("maxMp",0),attack_profile(stats),stats.get("def",0),stats.get("speed",stats.get("agi",0))]
 func member_stats(u: Dictionary) -> String:
 	var s=u.get("stats",u)
 	return "STR %d / INT %d / AGI %d\n%s" % [s.get("str",0),s.get("int",0),s.get("agi",0),attack_profile(s)]
@@ -420,9 +420,9 @@ func describe_gear(parent,gear: Dictionary):
 	for field in ["skill","effect"]:
 		if gear.get(field)!=null:
 			ui.icons.line(ui,parent,ui.icons.skill(str(gear[field])),("スキル: " if field=="skill" else "効果: ")+str(c().get("skillNames",{}).get(gear[field],gear[field])))
-			l(parent,skill_description(str(gear[field])))
+			l(parent,skill_description(str(gear[field]),int(gear.get("skillLevel",1))))
 	if gear.has("note"):l(parent,gear.note)
 
-func skill_description(id: String,stage: int=-1) -> String:
+func skill_description(id: String,stage: int=1) -> String:
 	var definition=c().get("skillDefinitions",{}).get(id,{})
-	return str(definition.description) if definition.has("description") else ui.legacy_skill_description(str(c().get("skillNames",{}).get(id,id)),int(c().get("level",1)) if stage<0 else stage)
+	return str(definition.description) if definition.has("description") else ui.legacy_skill_description(str(c().get("skillNames",{}).get(id,id)),stage)

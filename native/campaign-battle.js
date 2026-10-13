@@ -77,6 +77,16 @@ const Battle = (() => {
   const activeSkill = a => activeSkills(a).includes(a.selectedSkill)?a.selectedSkill:(a.activeSkills?activeSkills(a)[0]||null:a.job==='porter'?'porter':(a.equippedSkill || (a.weapon==='hammer'?'stamp':a.job)));
   function selectSkill(s,id){const a=s.units.find(u=>u.id===s.actor);if(s.deploying||s.result||!a||a.hp<=0||!activeSkills(a).includes(id))return false;a.selectedSkill=id;return true;}
   const skillName = a => equipmentSkills[activeSkill(a)]?.name||({guard:"かばう",archer:"スナイプ",mage:"ヒール",scout:"奇襲",porter:"陣形強化",stamp:"スタンプ"})[activeSkill(a)]||'';
+  function skillLevel(a,id=activeSkill(a)) {
+    // Mixed equipment levels await a selection rule; never stack or pick a maximum.
+    const levels=[...new Set((a.skillSources||[]).filter(source=>source.id===id).map(source=>source.level??1))];
+    return levels.length>1?null:levels[0]??1;
+  }
+  function skillInfo(a) {
+    if(activeSkill(a)!=='scout')return equipmentSkills[activeSkill(a)]||null;
+    const level=skillLevel(a);
+    return {name:'奇襲',level,cost:1,target:'unit',description:level===null?'奇襲：異なる装備Lvの選択規則は未確定です。':'奇襲Lv'+level+': '+(level===1?'前方のみ（味方は右、敵は左）':level===2?'同じ横列の左右':'上下左右の直線')+'。遮るキャラなしで手前に着地し、距離1の通常攻撃相当。MP1。'};
+  }
   function attackReach(a,kind='attack') {
     const skill=kind==='skill'?activeSkill(a):null;
     // Support skills have their own specified reach, independent of hand order.
@@ -124,13 +134,14 @@ const Battle = (() => {
     return found;
   }
   function ambush(s,a,b) {
-    if(!b||activeSkill(a)!=='scout'||a.side===b.side||b.hp<=0||y(a.pos)!==y(b.pos))return null;
-    const direction=Math.sign(x(b.pos)-x(a.pos));
-    if(!direction)return null;
-    if(a.skillStage===1&&direction!==(a.side==='ally'?1:-1))return null;
-    const destination=b.pos-direction, route=[];
+    if(!b||activeSkill(a)!=='scout'||a.side===b.side||b.hp<=0)return null;
+    const level=skillLevel(a),horizontal=y(a.pos)===y(b.pos),vertical=x(a.pos)===x(b.pos);
+    if(!level||!horizontal&&!(level>=3&&vertical))return null;
+    const direction=horizontal?Math.sign(x(b.pos)-x(a.pos)):Math.sign(y(b.pos)-y(a.pos));
+    if(!direction||level===1&&direction!==(a.side==='ally'?1:-1))return null;
+    const step=direction*(horizontal?1:10),destination=b.pos-step, route=[];
     if(!canEnter(a,destination))return null;
-    for(let p=a.pos+direction;p!==b.pos;p+=direction){
+    for(let p=a.pos+step;p!==b.pos;p+=step){
       if(alive(s).some(u=>u.id!==a.id&&u.pos===p))return null;
       route.push(p);
     }
@@ -176,7 +187,7 @@ const Battle = (() => {
   function damageResult(s,target,power,formed=formation(s,target.side)) {
     const protector=alive(s).find(u=>u.side===target.side&&(u.cover===target.id||u.covers?.includes(target.id)));
     const recipient=protector||target;
-    const hit=Math.max(1,Math.round(power*(formed?(boosted(s,target.side)?.65:.75):1)*(recipient.guard?.5:1)));
+    const hit=Math.max(1,Math.round((power-(recipient.def??0))*(formed?(boosted(s,target.side)?.65:.75):1)*(recipient.guard?.5:1)));
     return {protector,recipient,hit};
   }
   function attackPreview(s,a,target) {
@@ -266,7 +277,7 @@ const Battle = (() => {
       if(centers.length&&count(centers[0])){make('skill',centers[0],'指定した3マスの敵を狙う');return;}
     }
     const skill=enemies.find(b=>legalFor(s,a,'skill',b.id));
-    if(skill){make('skill',skill.id,activeSkill(a)==='scout'?'同じ横列の弱った敵へ奇襲':'射程内の弱った敵を狙う');return;}
+    if(skill){make('skill',skill.id,activeSkill(a)==='scout'?'装備の奇襲Lvの範囲内にいる弱った敵へ奇襲':'射程内の弱った敵を狙う');return;}
     const attack=enemies.find(b=>legalFor(s,a,'attack',b.id));
     if(attack){make('attack',attack.id,'射程内の弱った敵を狙う');return;}
     const goal=activeSkill(a)==='mage'&&hurt[0]?.hp<hurt[0]?.max*.7?hurt[0]:enemies[0];
@@ -283,7 +294,8 @@ const Battle = (() => {
         apply(s,a,i.kind,i.target,undefined,i.cells);return;
       }
       if(i.kind==='skill'&&activeSkill(a)==='scout') {
-        if(a.mp<=0||i.path.some(p=>alive(s).some(u=>u.id!==a.id&&u.pos===p))){log(s,`${a.name}の奇襲経路が塞がれた。`);return;}
+        const reserved=ambush(s,a,{side:a.side==='ally'?'enemy':'ally',pos:i.cells[0],hp:1});
+        if(a.mp<=0||!reserved||reserved.destination!==i.destination||i.path.some(p=>alive(s).some(u=>u.id!==a.id&&u.pos===p))){log(s,`${a.name}の奇襲経路が塞がれた。`);return;}
         a.pos=i.destination;
       }
       const b=alive(s).find(u=>u.side!==a.side&&u.pos===i.cells[0]);
@@ -317,7 +329,7 @@ const Battle = (() => {
       members.forEach((t,index)=>{
         const roleIndex=templates.findIndex(p=>p.job===t.job),old=side==='ally'?options.previous?.find(p=>p.id===t.id):null;
         const maxMp=old?.maxMp??t.mp+(side==='ally'?(options.bonusMp||0):0);
-        units.push({...t,id:side==='ally'?t.id:'enemy-'+t.id,side,name:side==='ally'?t.name:'敵'+t.role+(options.enemy?' '+(index+1):''),pos:side==='ally'?t.pos:y(t.pos)*10+9-x(t.pos),hp:old?.hp??t.max,mp:old?.mp??maxMp,maxMp,skillStage:options.skillStage,next:100/t.agi,guard:false,cover:null,tie:roleIndex*4+(side===(roleIndex%2?'ally':'enemy')?0:1)+index*.01});
+        units.push({...t,id:side==='ally'?t.id:'enemy-'+t.id,side,name:side==='ally'?t.name:'敵'+t.role+(options.enemy?' '+(index+1):''),pos:side==='ally'?t.pos:y(t.pos)*10+9-x(t.pos),hp:old?.hp??t.max,mp:old?.mp??maxMp,maxMp,def:0,...(options.skillStage!==undefined?{skillStage:options.skillStage}:{}),next:100/t.agi,guard:false,cover:null,tie:roleIndex*4+(side===(roleIndex%2?'ally':'enemy')?0:1)+index*.01});
       });
     }
     const s={...(options.formationVersion?{formationVersion:options.formationVersion,formationKind:options.formation||'convoy'}:{}),units,actor:null,result:null,potions:{ally:options.potions??3,enemy:options.enemyPotions??3},log:[options.ally?'荷物を守り、街道を切り抜けよう。':'4対4ミラーマッチ。スカウトだけが敵陣へ踏み込める。'],actions:0,recentEnemies:[]};if(options.ethers!==undefined)s.ethers=options.ethers;if(options.deployment){s.deploying=true;return s;}units.filter(u=>u.side==='enemy').forEach(u=>plan(s,u));advance(s);return s;
@@ -337,6 +349,6 @@ const Battle = (() => {
   }
   function act(s,kind,target){if(!legal(s,kind,target))return false;const a=s.units.find(u=>u.id===s.actor);s.recentEnemies=[];const jump=kind==='skill'&&activeSkill(a)==='scout'?ambush(s,a,s.units.find(u=>u.id===target)):null;apply(s,a,kind,target,jump?.destination);a.next+=100/a.agi;s.actions++;advance(s);return true;}
   function queue(s){const copies=alive(s).map(u=>({...u})),result=[];for(let i=0;i<10&&copies.length;i++){copies.sort(order);result.push({id:copies[0].id,name:copies[0].name,side:copies[0].side});copies[0].next+=100/copies[0].agi;}return result;}
-  return {stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
+  return {skillLevel,skillInfo,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
 })();
 if(typeof module!=='undefined')module.exports=Battle;

@@ -524,6 +524,7 @@ func render_person():
 		var number=ui.icons.line(ui,person_box,resource,"%s %d/%d" % [resource.to_upper(),value,maximum]);number.add_theme_color_override("font_color",Color.WHITE)
 		var bar=ProgressBar.new();bar.name="Inspect_"+resource;bar.max_value=maxi(1,int(maximum));bar.value=value;bar.show_percentage=false;bar.custom_minimum_size.y=10;bar.mouse_filter=Control.MOUSE_FILTER_IGNORE;person_box.add_child(bar)
 	var stats=character.get("stats",{});var breakdown=stats.get("attributeBreakdown",{})
+	l(person_box,"DEF %d" % u.get("def",0))
 	for pair in [["str","STR","strength"],["int","INT","intelligence"],["speed","SPD（行動速度）","speed"]]:
 		var value=u.get("agi") if pair[0]=="speed" else stats.get(pair[0],u.get(pair[0]))
 		var part=breakdown.get(pair[0],{});var suffix="補正：未取得"
