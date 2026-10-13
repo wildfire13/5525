@@ -12,8 +12,8 @@ reference.pos=B.ambush(copy,reference,copy.units.find(u=>u.id===target.id)).dest
 const attack=B.attackPreview(copy,reference,copy.units.find(u=>u.id===target.id));
 assert.equal(prediction[0].damage,attack.damage);assert.equal(prediction[0].base,attack.base);
 const hp=target.hp;assert(C.trialAct(trial,'skill',target.id));assert.equal(hp-target.hp,attack.damage);
-assert(!Object.hasOwn(target,'def'));assert(!Object.hasOwn(C.stats(s.characters.scout),'def'));
-console.log(JSON.stringify({test:'ambush equals ordinary attack from landing',weaponContribution:attack.base,ordinaryDamage:attack.damage,ambushDamage:hp-target.hp,hasDEF:false}));
+assert.equal(target.def,0);assert.equal(C.stats(s.characters.scout).def,0);
+console.log(JSON.stringify({test:'ambush equals ordinary attack from landing',weaponContribution:attack.base,ordinaryDamage:attack.damage,ambushDamage:hp-target.hp,DEF:0}));
 const dual=C.create();dual.location='east';dual.gold=2000;
 assert(C.buyGear(dual,'mage','sword-wood','rightHand'));assert(C.buyGear(dual,'mage','staff-wood','leftHand'));
 const t=C.trial(dual,'mage','dagger-wood','rightHand'),actor=t.battle.units.find(u=>u.id==='mage'),victim=t.battle.units.find(u=>u.side==='enemy');
@@ -26,3 +26,7 @@ assert.equal(preview.base,23+14);assert.equal(preview.weapons.length,2);
 const priorHp=victim.hp;assert(C.trialAct(t,'skill',victim.id));
 assert.equal(priorHp-victim.hp,37);
 console.log(JSON.stringify({test:'mixed reach 1+2 at original distance 3',weaponContribution:preview.base,ambushDamage:priorHp-victim.hp,weapons:preview.weapons.map(w=>w.itemId)}));
+victim.def=5;
+const reduced=B.damagePreview(t.battle,actor,'skill',victim.id)[0],beforeDefHit=victim.hp;
+assert.equal(reduced.damage,32);assert(C.trialAct(t,'skill',victim.id));assert.equal(beforeDefHit-victim.hp,32);
+console.log(JSON.stringify({test:'same mixed-reach ambush with DEF5',base:reduced.base,previewDamage:reduced.damage,actualDamage:beforeDefHit-victim.hp}));

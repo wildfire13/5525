@@ -6,6 +6,8 @@ function describe(B,s,u){
  let actor=u;
  if(i.kind==='skill'&&u.mp<=0)return {...info,reason:'MP不足・実行時は見送り'};
  if(i.kind==='skill'&&skill==='scout'){
+  const jump=B.ambush(s,u,{side:u.side==='ally'?'enemy':'ally',pos:i.cells[0],hp:1});
+  if(!jump||jump.destination!==i.destination)return {...info,reason:'現在の装備スキルLvでは予告方向・着地先が無効'};
   if(i.path.some(p=>s.units.some(t=>t.hp>0&&t.id!==u.id&&t.pos===p)))return {...info,reason:'奇襲経路が塞がっている'};
   actor={...u,pos:i.destination};
  }

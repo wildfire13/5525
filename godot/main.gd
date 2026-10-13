@@ -409,7 +409,7 @@ func command_hint() -> String:
 	var hints={
 		"attack":"通常攻撃: 縦横距離%d以内。対象に届く武器のATKを合算。" % data.get("normalAttackReach",0),
 		"move":"移動: 経路%d以内。キャラを通り抜け不可。侵入用装飾品の権限に従います。" % data.get("moveReach",2)+("味方を選ぶと位置交換。MP消費なし。" if a.get("job")=="porter" else ""),
-		"skill":skill.get("description","") if skill is Dictionary else legacy_skill_description(str(data.get("skill","")),int(a.get("skillStage",2))),
+		"skill":skill.get("description","") if skill is Dictionary else legacy_skill_description(str(data.get("skill","")),1),
 		"return":"帰還: 装備中のみ、1戦1回。自陣の空きマスを指定。MP0・1行動。",
 		"item":"ポーション: 射程無限、傷ついた生存味方のHP+55（上限まで）。共有在庫を1消費。",
 		"ether":"エーテル: ポーターのみ、生存味方/自分へ射程無限。MP+3（上限まで）、1個・1行動。",
@@ -632,11 +632,11 @@ func _input(event):
 		if event.double_click and event.pressed:swallow_mouse_release=true;get_viewport().set_input_as_handled()
 		elif not event.pressed and swallow_mouse_release:swallow_mouse_release=false;get_viewport().set_input_as_handled()
 
-func legacy_skill_description(name_: String,stage:=2) -> String:
+func legacy_skill_description(name_: String,stage:=1) -> String:
 	return {
 		"かばう":"かばう: 隣接する自分以外の味方を、次の本人の番まで肩代わり。MP1",
 		"ヒール":"ヒール: 射程2の傷ついた味方/自分のHPを60回復（最大HPまで）。MP1",
 		"スナイプ":"スナイプ: その一撃だけ各武器の射程+1、届くATK合算。MP1",
 		"スタンプ":"スタンプ: 縦横の隣接中心から3マス。空/味方中心も可。敵のみ通常威力。空振りでもMP1",
-		"奇襲":"奇襲: 同じ横列の"+("前方のみ" if stage==1 else "左右")+"。遮るキャラなしで手前に着地+通常攻撃。MP1",
+		"奇襲":"奇襲Lv%d: " % stage+("前方のみ（味方は右、敵は左）" if stage==1 else "同じ横列の左右" if stage==2 else "上下左右の直線")+"。遮るキャラなしで手前に着地+距離1の通常攻撃。MP1",
 		"陣形強化":"陣形強化: 味方全員が対象（陣形の3マス外も含む）。護送陣が成立している間だけ、通常の攻撃×1.5／被ダメージ×0.75を、攻撃×1.75／被ダメージ×0.65に置き換えます。効果は使用者の次の番まで。陣形が崩れている間は適用されず、重ねても倍率は加算されません。MP1・1行動。"}.get(name_,"")
