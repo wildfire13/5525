@@ -2,6 +2,24 @@
 // Quotes are pure. Every multi-owner mutation validates a complete detached state.
 module.exports=function({I,S,clone,record,integer,getGear,template,shop,equipment,eligibility,stats,syncCharacter,validate,inventoryToken,commitInventory,note,createHash}) {
   function saleAvailable(s){return s.phase==='town'&&['east','west','north'].includes(s.location);}
+  // Consent covers this exact single-item payment, before a recipient is chosen.
+  function purchaseQuote(s,id) {
+    const g=getGear(id),q={ok:false,reason:'',gearId:id,count:1,gear:g?clone(g):null,cost:g?.price||0,goldBefore:s.gold,afterGold:s.gold-(g?.price||0),token:''};
+    if(!saleAvailable(s)||!g||g.type==='empty'||!shop(s).some(item=>item.id===id))return {...q,reason:'この店で購入できる商品を選んでください'};
+    q.token=createHash('sha256').update(JSON.stringify([inventoryToken(s),id,g.price])).digest('hex');
+    if(s.gold<q.cost)return {...q,reason:'所持金が不足しています'};
+    if(!s.selected.some(owner=>I.add(s.characters[owner].inventory,id,1)))return {...q,reason:'受取可能なインベントリがありません'};
+    return {...q,ok:true};
+  }
+  function buyInventory(s,ownerId,id,token) {
+    const q=purchaseQuote(s,id);
+    if(!q.ok||token!==q.token||!template(ownerId)||!s.selected.includes(ownerId))return false;
+    return commitInventory(s,draft=>{
+      const owner=draft.characters[ownerId],bag=I.add(owner.inventory,id,1);if(!bag)return false;
+      owner.inventory=bag;draft.gold=q.afterGold;
+      note(draft,`${template(ownerId).name}が${q.gear.name}を1個、${q.cost}Gで購入。本人のインベントリへ。`);return true;
+    });
+  }
   function purchasePlan(s,entries) {
     const plan={ok:false,reason:'',rows:[],cost:0,goldBefore:s.gold,afterGold:s.gold,shortfall:0,token:''};
     if(s.phase!=='town'||!Array.isArray(entries)||entries.length<1||entries.length>s.selected.length*Object.keys(S.slots).length)return {...plan,reason:'この店で購入する装備を計画に追加してください'};
@@ -67,5 +85,5 @@ module.exports=function({I,S,clone,record,integer,getGear,template,shop,equipmen
       note(draft,`${q.ownerName}の${q.name} ${count}個を${q.proceeds}Gで売却。`);return true;
     });
   }
-  return {purchasePlan,buyPlan,saleQuote,sellInventory,saleAvailable};
+  return {purchaseQuote,buyInventory,purchasePlan,buyPlan,saleQuote,sellInventory,saleAvailable};
 };
