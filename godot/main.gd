@@ -339,7 +339,7 @@ func render():
 		if focused_page:
 			header.text="装備を購入" if page=="shop" else "仲間・装備"
 			button(nav,"拠点へ",navigate.bind("board"));nav.visible=false
-		var tabs_=[["board","掲示板"],["map","地図・出発"],["party","仲間・装備"],["shop","商店"]] if phase=="town" else [["board","旅程"],["items","道具"]]
+		var tabs_=[["board","掲示板"],["map","地図・出発"],["shop","商店"]] if phase=="town" else [["board","旅程"],["items","道具"]]
 		if phase=="town" and c.get("location")=="astaris":tabs_.append(["inn","宿屋"])
 		for tab in ([] if focused_page else tabs_):
 			var nb=button(nav,("● " if page==tab[0] else "")+tab[1],navigate.bind(tab[0]),phase!="town" and tab[0]=="items" and phase!="camp");memory.key(nb,"nav_"+tab[0])
