@@ -16,13 +16,14 @@ var generation := 0
 var message := ""
 var consent: Dictionary={}
 var receipt: Dictionary={}
+var transaction: Dictionary={}
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
 func c() -> Dictionary:return pages.c()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func busy() -> bool:return stage!="S0" or unknown or ui.locked or ui.presenting or ui.closing or ui.engine.disconnected
 func reset(_plan_mode: String="discard",_campaign_id: String=""):
-	stage="S0";unknown=false;consent={};receipt={};message="";generation+=1
+	stage="S0";unknown=false;consent={};receipt={};transaction={};message="";generation+=1
 	filter_slot="all";filter_location="";background.clear();return_from_party=false;from_party=false
 	if ui.dialog!=null:ui.dialog.close(false)
 func slots() -> Array:
@@ -38,7 +39,7 @@ func render(parent):
 	var shop_name={"east":"イースの武器屋","west":"ウエスの防具屋","north":"ノースの装飾品店"}.get(c().location,"")
 	ui.icons.line(ui,context,ui.icons.shop(str(c().location)),shop_name)
 	var gold=ui.icons.line(ui,context,"money","所持金 %dG" % c().get("gold",0));gold.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
-	if not message.is_empty():l(parent,message).name="ShopNotice"
+	render_notice(parent)
 	var filters=ui.row(parent);filters.name="ShopFilters"
 	var filter_label=l(filters,"部位フィルター");filter_label.size_flags_horizontal=Control.SIZE_FILL;filter_label.custom_minimum_size.x=176;filter_label.autowrap_mode=TextServer.AUTOWRAP_OFF
 	var slot=OptionButton.new();slot.name="ShopSlotFilter";slot.custom_minimum_size=Vector2(180,44);filters.add_child(slot)
@@ -52,10 +53,16 @@ func render(parent):
 	var body=ui.scroller(parent);var scroll=body.get_parent();scroll.name="ShopProductsScroll"
 	scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"shop_products")
 	for item in offered():
-		var line=ui.row(body);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=68
-		var info=b(line,str(item.name),func():pass);info.name="Product_"+str(item.id);info.alignment=HORIZONTAL_ALIGNMENT_LEFT
-		info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.clip_text=true;info.custom_minimum_size.y=64
+		var line=ui.row(body);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=80
+		var info=b(line,"",func():pass);info.name="Product_"+str(item.id);info.alignment=HORIZONTAL_ALIGNMENT_LEFT
+		info.size_flags_horizontal=Control.SIZE_FILL;info.clip_text=true;info.custom_minimum_size=Vector2(mini(720,maxi(240,int(ui.size.x)-500)),80)
 		ui.icons.apply(info,ui.icons.gear(item));ui.memory.key(info,"product_"+str(item.id));ui.memory.item(info,str(item.id))
+		var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;info.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,48 if side=="left" else 8)
+		var copy=VBoxContainer.new();copy.mouse_filter=Control.MOUSE_FILTER_IGNORE;copy.add_theme_constant_override("separation",0);margin.add_child(copy)
+		var name_label=l(copy,str(item.name));name_label.name="ProductName_"+str(item.id);name_label.autowrap_mode=TextServer.AUTOWRAP_OFF;name_label.clip_text=true;name_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		var summary=l(copy,product_summary(item));summary.name="ProductSummary_"+str(item.id);summary.autowrap_mode=TextServer.AUTOWRAP_OFF;summary.clip_text=true;summary.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		summary.add_theme_font_size_override("font_size",18);summary.add_theme_color_override("font_color",Color("#c7d6df"))
 		configure_tooltip(info,item)
 		var price=l(line,"%dG" % item.price);price.custom_minimum_size.x=96;price.size_flags_horizontal=Control.SIZE_FILL;price.autowrap_mode=TextServer.AUTOWRAP_OFF;price.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
 		var buy=b(line,"購入",confirm_purchase.bind(str(item.id)),busy() or int(c().gold)<int(item.price));buy.name="ProductBuy_"+str(item.id)
@@ -63,6 +70,30 @@ func render(parent):
 		if int(c().gold)<int(item.price):buy.tooltip_text="所持金が不足しています"
 		var trial_button=b(line,"木人で試す",start_trial.bind(str(item.id)),busy());trial_button.name="ProductTrial_"+str(item.id)
 		ui.memory.key(trial_button,"trial_"+str(item.id));trial_button.custom_minimum_size=Vector2(170,64)
+func product_summary(item: Dictionary) -> String:
+	var parts=[]
+	if item.get("atk",0)>0:parts.append("ATK %d / 通常射程%d" % [item.atk,item.get("reach",0)])
+	for pair in [["hp","HP"],["mp","MP"],["agiBonus","行動速度"]]:
+		if item.get(pair[0],0)!=0:parts.append("%s %+d" % [pair[1],item[pair[0]]])
+	var names=[]
+	for field in ["skill","effect"]:
+		if item.get(field)==null:continue
+		var name_=str(c().get("skillNames",{}).get(item[field],item[field]))
+		if item[field]=="scout":name_+="Lv%d" % int(item.get("skillLevel",1))
+		if not names.has(name_):names.append(name_)
+	if not names.is_empty():parts.append("付与："+"/".join(names))
+	return " / ".join(parts) if not parts.is_empty() else "補正なし"
+func render_notice(parent):
+	var region=Control.new();region.name="ShopNoticeRegion";region.custom_minimum_size.y=56;region.clip_contents=true;parent.add_child(region)
+	var row=ui.row(region);row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var text=message if not message.is_empty() else "直近の取引："+str(transaction.text) if not transaction.is_empty() else ""
+	var notice=l(row,text);notice.name="ShopNotice";notice.autowrap_mode=TextServer.AUTOWRAP_OFF;notice.clip_text=true;notice.add_theme_font_size_override("font_size",18);notice.tooltip_text=text
+	if not message.is_empty():notice.add_theme_color_override("font_color",Color("#ffd0b8"))
+	if message.is_empty() and not unknown and transaction.get("kind")=="buy":
+		var uid=str(transaction.ownerId)
+		b(row,ui.member_name(uid)+"の所持品を見る",ui.pages.party_view.open_inventory.bind(uid),busy() or not ui.can_inspect_member(uid)).name="PurchasedInventory"
+func record_sale(q: Dictionary):
+	transaction={"kind":"sell","ownerId":q.ownerId,"text":"%sの%s×%dを売却 / 受取%dG" % [q.ownerName,q.name,q.count,q.proceeds]};message=""
 func configure_tooltip(button,item: Dictionary):
 	button.set_script(preload("res://equipment_tooltip.gd"))
 	var descriptions={};var levels={}
@@ -121,7 +152,8 @@ func buy(q: Dictionary,uid: String,ticket: int):
 	if not valid_ticket(ticket,epoch,connection,place):return
 	var after=int(c().get("characters",{}).get(uid,{}).get("inventory",{}).get(q.gearId,0))
 	if result.get("ok",false) and after==before+1 and c().get("gold")==q.afterGold:
-		stage="S0";receipt=q.duplicate(true);receipt.characterId=uid;message="%sのインベントリへ %s 1個 / 支払%dG / 残金%dG" % [ui.member_name(uid),q.gear.name,q.cost,c().gold]
+		stage="S0";receipt=q.duplicate(true);receipt.characterId=uid;message=""
+		transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×1 / 支払%dG" % [ui.member_name(uid),q.gear.name,q.cost]}
 	else:
 		unknown=result.get("connection_lost",false) or result.get("ok",false);stage="S7" if unknown else "S0"
 		message="購入結果を確認できません。再送せず保存済みの進行を読み込んで確認してください。" if unknown else "購入を確定できませんでした。所持金・在庫を確認して選び直してください。"
