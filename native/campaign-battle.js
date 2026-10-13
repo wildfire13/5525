@@ -78,14 +78,13 @@ const Battle = (() => {
   function selectSkill(s,id){const a=s.units.find(u=>u.id===s.actor);if(s.deploying||s.result||!a||a.hp<=0||!activeSkills(a).includes(id))return false;a.selectedSkill=id;return true;}
   const skillName = a => equipmentSkills[activeSkill(a)]?.name||({guard:"かばう",archer:"スナイプ",mage:"ヒール",scout:"奇襲",porter:"陣形強化",stamp:"スタンプ"})[activeSkill(a)]||'';
   function skillLevel(a,id=activeSkill(a)) {
-    // Mixed equipment levels await a selection rule; never stack or pick a maximum.
-    const levels=[...new Set((a.skillSources||[]).filter(source=>source.id===id).map(source=>source.level??1))];
-    return levels.length>1?null:levels[0]??1;
+    // Higher equipment levels include lower-level directions; never add levels.
+    return Math.max(1,...(a.skillSources||[]).filter(source=>source.id===id).map(source=>source.level??1));
   }
   function skillInfo(a) {
     if(activeSkill(a)!=='scout')return equipmentSkills[activeSkill(a)]||null;
     const level=skillLevel(a);
-    return {name:'奇襲',level,cost:1,target:'unit',description:level===null?'奇襲：異なる装備Lvの選択規則は未確定です。':'奇襲Lv'+level+': '+(level===1?'前方のみ（味方は右、敵は左）':level===2?'同じ横列の左右':'上下左右の直線')+'。遮るキャラなしで手前に着地し、距離1の通常攻撃相当。MP1。'};
+    return {name:'奇襲',level,cost:1,target:'unit',description:'奇襲Lv'+level+': '+(level===1?'前方のみ（味方は右、敵は左）':level===2?'同じ横列の左右':'上下左右の直線')+'。遮るキャラなしで手前に着地し、距離1の通常攻撃相当。MP1。'};
   }
   function attackReach(a,kind='attack') {
     const skill=kind==='skill'?activeSkill(a):null;
