@@ -80,10 +80,13 @@ func configure(title: String,gear: Dictionary,context: Dictionary):
 	tooltip_text=heading+"\n"+"\n".join(plain_details)
 func _make_custom_tooltip(_for_text: String) -> Object:
 	var box=VBoxContainer.new();box.name="EquipmentTooltip";box.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	var width=mini(520,maxi(240,int(get_viewport_rect().size.x)-32));box.custom_minimum_size.x=width
-	var title=Label.new();title.name="EquipmentTooltipName";title.text=heading;title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	title.add_theme_font_size_override("font_size",title_size);title.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(title)
+	# Native tooltip windows measure this tree before its first container layout.
+	# Seed the wrapping width and final heading font before that measurement.
+	var width=mini(520,maxi(240,int(get_viewport_rect().size.x)-32));box.custom_minimum_size.x=width;box.size.x=width
+	var title=Label.new();title.name="EquipmentTooltipName";title.size.x=width;title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_font_override("font",get_theme_font("font"));title.add_theme_font_size_override("font_size",title_size)
+	title.text=heading;title.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(title)
 	var body=RichTextLabel.new();body.name="EquipmentTooltipDetails";body.bbcode_enabled=true;body.fit_content=true;body.scroll_active=false
-	body.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.custom_minimum_size.x=width;body.add_theme_font_size_override("normal_font_size",detail_size)
+	body.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.custom_minimum_size.x=width;body.size.x=width;body.add_theme_font_size_override("normal_font_size",detail_size)
 	body.add_theme_font_override("normal_font",get_theme_font("font"));body.text="\n".join(details);body.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(body)
 	return box
