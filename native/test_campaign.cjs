@@ -46,16 +46,16 @@ test('boards expose real deadline/reward tradeoff and refresh after trip',()=>{
   assert.equal(C.accept(s,offers[0].id),true);assert.deepEqual(C.board(s),[]);assert.equal(C.accept(s,offers[1].id),false);assert.equal(C.depart(s,offers[1].to),false);
 });
 test('public-operation delivery accumulates separate battle loot/XP, cannot double claim',()=>{
-  const s=C.create();trip(s,'east',{rest:false});assert.equal(s.result.outcome,'success');assert.equal(s.result.gold,180);assert.equal(s.gold,180+16+180);assert.equal(s.xp,40+100);
+  const s=C.create();trip(s,'east',{rest:false});assert.equal(s.result.outcome,'success');assert.equal(s.result.gold,180);assert.equal(s.gold,180+16+180);assert.equal(s.characters.guard.xp,40+100);assert.equal(s.xp,0);
   assert.equal(C.arrive(s),false);assert.equal(C.finishBattle(s),false);assert.equal(s.completed,1);assert.equal(C.acknowledge(s),true);assert.equal(C.acknowledge(s),false);assert.ok(C.board(s).length);okay(s);
 });
 test('repeated quests retain gold/EXP/gear, recruit and buy again',()=>{
   const s=C.create();trip(s,'east');assert.equal(C.acknowledge(s),true);const oldGold=s.gold;assert.equal(C.buyGear(s,'archer','bow-wood-1'),true);assert.equal(s.gold,oldGold-140);assert.equal(s.characters.archer.inventory['bow-wood'],1);
-  trip(s,'astaris',{route:'safe'});assert.equal(C.acknowledge(s),true);assert.equal(s.completed,2);assert.ok(s.xp>=200);assert.equal(s.characters.archer.weapon,'bow-wood-1');
+  trip(s,'astaris',{route:'safe'});assert.equal(C.acknowledge(s),true);assert.equal(s.completed,2);assert.ok(s.characters.guard.xp>=200);assert.equal(s.xp,0);assert.equal(s.characters.archer.weapon,'bow-wood-1');
   assert.equal(C.select(s,['guard','mage','scout','porter']),true);assert.equal(C.select(s,['guard','archer','mage','scout','porter']),true);assert.equal(s.characters.archer.weapon,'bow-wood-1');okay(s);
 });
 test('questless travel grants normal fight rewards but no delivery bonus',()=>{
-  const s=C.create(),start=s.gold;trip(s,'south',{quest:false,route:'safe'});assert.equal(s.result.outcome,'travel');assert.equal(s.result.gold,0);assert.equal(s.result.xp,0);assert.equal(s.gold,start+16);assert.equal(s.xp,40);assert.equal(s.completed,0);assert.equal(s.location,'south');
+  const s=C.create(),start=s.gold;trip(s,'south',{quest:false,route:'safe'});assert.equal(s.result.outcome,'travel');assert.equal(s.result.gold,0);assert.equal(s.result.xp,0);assert.equal(s.gold,start+16);assert.equal(s.characters.guard.xp,40);assert.equal(s.xp,0);assert.equal(s.completed,0);assert.equal(s.location,'south');
 });
 test('six-hour deadline is on time, rest produces late payout',()=>{
   const s=C.create();trip(s,'east',{rest:true});assert.equal(s.result.hours,8);assert.equal(s.result.outcome,'late');assert.equal(s.result.gold,117);assert.equal(s.result.xp,60);
@@ -193,7 +193,7 @@ test('normal and questless retreats restore pretrip state and cannot double appl
     const s=C.create(),before=clone(s);
     if(quest)assert(C.accept(s,C.board(s)[0].id));
     assert(C.depart(s,quest?'east':'north'));assert(C.travel(s,'safe',random()));fight(s);
-    assert.equal(s.gold,before.gold+8);assert.equal(s.xp,before.xp+20);
+    assert.equal(s.gold,before.gold+8);assert.equal(s.characters.guard.xp,before.characters.guard.xp+20);assert.equal(s.xp,before.xp);
     assert(C.onward(s));assert(C.travel(s,'safe',random()));assert(C.begin(s));
     assert(C.retreat(s));assert.equal(s.result.outcome,'failed');assert.equal(s.result.restored,true);
     assert.equal(s.result.gold,0);assert.equal(s.result.xp,0);okay(s);

@@ -188,7 +188,8 @@ const Campaign = (() => {
     return accepted;
   }
   function gainXp(s,amount) {
-    s.xp+=amount;s.level=1+Math.floor(s.xp/100);
+    // Legacy team xp/level fields are retained only for save compatibility.
+    // Rewards apply exactly once to the current travelling characters.
     for(const id of s.selected){const c=s.characters[id],old=c.level;c.xp+=amount;c.level=1+Math.floor(c.xp/100);c.statPoints+=(c.level-old)*2;c.skillPoints+=c.level-old;}
   }
   function rollbackFailure(s,reason) {
@@ -497,7 +498,7 @@ const Campaign = (() => {
     demand(['town','road','deployment','battle','camp','arrival','result'].includes(s.phase),'進行段階');
     demand(!!getPlace(s.location),'拠点');
     for(const key of ['gold','xp','hours','sequence','boardRound','completed'])demand(integer(s[key]),key);
-    demand(s.level===1+Math.floor(s.xp/100),'隊レベル');demand(validSelection(s.selected),'編成');
+    demand(integer(s.level,1),'旧隊レベル');demand(validSelection(s.selected),'編成');
     if(version===1)demand(record(s.inventory)&&Object.keys(s.inventory).length===2&&integer(s.inventory.potion,0,99)&&integer(s.inventory.ether,0,99),'アイテム');
     else demand(!Object.hasOwn(s,'inventory'),'旧共通在庫と個人所持の重複');
     demand(Array.isArray(s.history)&&s.history.length<=200&&s.history.every(x=>typeof x==='string'),'履歴');
