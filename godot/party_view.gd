@@ -19,6 +19,7 @@ func _init(owner):owner_ref=weakref(owner);ui=owner.ui;inventory_view=preload("r
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func render(parent):
+	if pages.c().get("guildAvailable",false):pages.guild_view.render(parent);return
 	var c=pages.c();var members=ui.visible_roster();var ids=c.get("selected",[])
 	if members.is_empty():return
 	if not draft_uid.is_empty() and not ui.active_member(draft_uid):clear_draft()
@@ -129,9 +130,7 @@ func growth(parent,u: Dictionary):
 	ui.icons.line(ui,parent,"experience","Lv.%d / 経験値 %d" % [u.get("level",1),u.get("xp",0)])
 	l(parent,"スキルポイント %d / スキル配分は未実装です。" % u.get("skillPoints",0))
 	l(parent,pages.stats_text(stats));l(parent,"SPD（行動速度）はAGIと装備補正から算出します。")
-	var ids=pages.c().get("selected",[]);var active=ids.has(u.id);var guild=pages.c().get("guildAvailable",false)
-	ui.memory.key(b(parent,"編成から外す" if active else "編成に加える",pages.change_membership.bind(u.id),not guild or not active and ids.size()>=5 or active and u.get("job")=="porter"),"party_membership")
-	l(parent,"ギルドで編成 / 雇用無料・最大5人 / 出発にはポーター必須。人物の装備・HP/MP・成長を保持します。")
+	l(parent,"編成はアスタリスのギルドで変更できます。人物の装備・HP/MP・成長は保持します。")
 func skills(parent,u: Dictionary):
 	var s=u.get("stats",u);var names=pages.c().get("skillNames",{})
 	l(parent,"使用可能: "+" / ".join(u.get("activeSkillNames",[])));l(parent,"効果: "+" / ".join(u.get("effectNames",[])))

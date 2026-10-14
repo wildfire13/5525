@@ -205,6 +205,7 @@ func _unhandled_key_input(event):
 			if menu.visible:menu.hide()
 			elif is_instance_valid(dialog.window):dialog.close()
 			elif pages.shop_view.escape():pass
+			elif pages.guild_view.escape():pass
 			elif pages.close_items():pass
 			elif hud.close_detail():pass
 			elif not presenting:cancel()
@@ -301,6 +302,7 @@ func new_game(reconnect_bootstrap:=false):
 	await update({"op":"campaign_start"},{"reconnect_bootstrap":reconnect_bootstrap})
 func navigate(value: String):
 	if not pages.party_view.guard_leave(navigate.bind(value)):return
+	if page=="party" and not pages.guild_view.guard_leave():return
 	invalidate_preview();page=value;pages.reset_items();pages.invalidate_quote(false);memory.focus_key="";render()
 func render():
 	if rendering:return
@@ -327,6 +329,7 @@ func render():
 	resource_header.visible=not battle and not (phase=="town" and page in ["party","shop"])
 	actor_face.visible=battle
 	town_back.visible=not battle and page in ["shop","party"] and phase=="town"
+	town_back.text="アスタリスへ戻る" if page=="party" and c.get("guildAvailable",false) else "拠点へ"
 	top.custom_minimum_size.y=56 if battle and ui_size_mode=="standard" else 44
 	footer.visible=not battle and page not in ["shop","party"]
 	if battle:
@@ -337,10 +340,10 @@ func render():
 		var nav=row(content)
 		var focused_page=phase=="town" and page in ["shop","party"]
 		if focused_page:
-			header.text="装備を購入" if page=="shop" else "仲間・装備"
+			header.text="装備を購入" if page=="shop" else "ギルド / パーティー編成" if c.get("guildAvailable",false) else "仲間・装備"
 			button(nav,"拠点へ",navigate.bind("board"));nav.visible=false
 		var tabs_=[["board","掲示板"],["map","地図・出発"],["shop","商店"]] if phase=="town" else [["board","旅程"],["items","道具"]]
-		if phase=="town" and c.get("location")=="astaris":tabs_.append(["inn","宿屋"])
+		if phase=="town" and c.get("location")=="astaris":tabs_.append(["inn","宿屋"]);tabs_.append(["party","ギルド"])
 		for tab in ([] if focused_page else tabs_):
 			var nb=button(nav,("● " if page==tab[0] else "")+tab[1],navigate.bind(tab[0]),phase!="town" and tab[0]=="items" and phase!="camp");memory.key(nb,"nav_"+tab[0])
 		var body: VBoxContainer
