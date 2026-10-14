@@ -41,7 +41,10 @@ var hover_stamp := ""
 var skill_content_open := false
 const COMMANDS=[["attack","攻撃"],["move","移動"],["skill","スキル"],["items","アイテム"],["guard","防御"]]
 func _init(frontend):ui=frontend
-func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
+func l(parent,text,large:=false):
+	var label=ui.label_(parent,str(text),large)
+	if large:label.add_theme_color_override("font_color",Color("#f0dfbb"))
+	return label
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func local(parent,text,fn):return ui.local_button(parent,text,fn)
 func unit(id) -> Dictionary:
@@ -111,12 +114,13 @@ func render():
 	var shell=ui.card(dock);shell.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var split=ui.row(shell) if ui.ui_size_mode!="standard" else shell;split.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	var person_area=Control.new();person_area.name="BattlePersonArea";person_area.clip_contents=true;split.add_child(person_area)
-	person_area.custom_minimum_size=Vector2(240,0) if ui.ui_size_mode!="standard" else Vector2(0,180 if ui.size.y>=1000 else 150)
+	person_area.custom_minimum_size=Vector2(240,0) if ui.ui_size_mode!="standard" else Vector2(0,240 if ui.size.y>=1000 else 210)
 	person_area.size_flags_vertical=Control.SIZE_EXPAND_FILL if ui.ui_size_mode!="standard" else Control.SIZE_FILL
 	person_box=ui.scroller(person_area);person_box.name="BattlePersonInfo";person_box.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	render_person()
 	person_area.visible=not (range_reference and ui.ui_size_mode!="standard")
 	var decision=VBoxContainer.new();decision.name="DecisionArea";decision.size_flags_vertical=Control.SIZE_EXPAND_FILL;decision.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(decision)
+	decision.add_theme_constant_override("separation",10 if ui.ui_size_mode=="standard" else 4)
 	if ui.ui_size_mode=="standard" and not action_menu:split.move_child(decision,0)
 	var box=ui.scroller(decision);box.name="DecisionContent";box.get_parent().name="DecisionScroll"
 	decision_footer=VBoxContainer.new();decision.add_child(decision_footer)
@@ -155,7 +159,7 @@ func render_queue():
 		var entry=entries[index];var u=entry.unit
 		if u.is_empty():continue
 		var panel=PanelContainer.new();panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;band.add_child(panel)
-		var style=StyleBoxFlat.new();style.bg_color=Color("#27575d") if u.side=="ally" else Color("#623b48");style.set_content_margin_all(2)
+		var style=StyleBoxFlat.new();style.bg_color=Color("#344b50") if u.side=="ally" else Color("#594049");style.set_content_margin_all(2);style.set_corner_radius_all(4)
 		if index==0:style.set_border_width_all(1);style.border_color=Color("#ffe197")
 		panel.add_theme_stylebox_override("panel",style);panel.tooltip_text=str(u.name)
 		var row=ui.row(panel);ui.portrait(row,u,true,32 if ui.ui_size_mode=="standard" else 24)
@@ -199,6 +203,14 @@ func render_bottom_commands():
 		var selected=not action_menu and (ui.command==pair[0] or pair[0]=="skill" and ui.command=="return" or pair[0]=="items" and ui.command in ["item","ether"])
 		var control=ui.icons.apply(b(bottom_commands,("● " if selected else "")+pair[1],ui.choose_command.bind(pair[0]),not eligible or a.get("side")!="ally" or ui.state().get("deploying",false) or ui.state().get("result")!=null or ui.data.get("presentation") is Dictionary or range_reference),ui.icons.command(pair[0]),40 if ui.size.x>=1800 else 24);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.y=64 if ui.ui_size_mode=="standard" else 44
 		control.tooltip_text=pair[1]+(" / 今は合法な対象なし。条件を詳細で確認" if not eligible else "");ui.memory.key(control,"command_"+pair[0]);buttons[pair[0]]=control
+		control.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
+		control.add_theme_constant_override("h_separation",8)
+		if selected:
+			for state_ in ["normal","hover","pressed"]:
+				var style=control.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
+				style.bg_color=Color("#615640" if state_=="hover" else "#494336");style.border_color=Color("#d8bd86");style.border_width_bottom=3
+				control.add_theme_stylebox_override(state_,style)
+			for color_ in ["font_color","font_hover_color","font_pressed_color"]:control.add_theme_color_override(color_,Color("#f5dfae"))
 func back_to_commands():
 	if ui.locked or ui.presenting or ui.closing:return
 	ui.invalidate_preview();item_list=false;action_menu=true;selected_cell=-1;selected_enemy="";ui.audio.ui("cancel");ui.render()
@@ -243,6 +255,7 @@ func render_target():
 	var split=HBoxContainer.new() if ui.ui_size_mode!="standard" else VBoxContainer.new();split.add_theme_constant_override("separation",12);split.size_flags_vertical=Control.SIZE_EXPAND_FILL;target_box.add_child(split)
 	var main=VBoxContainer.new();main.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(main)
 	var facts=VBoxContainer.new();facts.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(facts)
+	facts.add_theme_constant_override("separation",6 if ui.ui_size_mode=="standard" else 4)
 	if ui.command=="move":render_move(main,facts)
 	else:render_prediction(main,facts)
 	var cost=l(facts,cost_text());cost.name="ActionCost"
@@ -253,6 +266,8 @@ func render_target():
 	elif not skill_unavailable_reason().is_empty():l(facts,skill_unavailable_reason())
 	elif not ui.notice.is_empty():l(facts,ui.notice)
 	elif not action_menu:l(facts,"対象未確定 / 射程・条件を確認")
+	for fact in facts.get_children():
+		if fact is Label:fact.add_theme_color_override("font_color",Color("#bdc5d0"))
 	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm"
 	if ui.command in ["skill","return"]:
 		ui.memory.key(ui.primary(b(ui.battle_actions,"実行",ui.commit,not ui.can_commit())),"battle_commit")
@@ -519,10 +534,16 @@ func render_person():
 	for member in ui.roster():
 		if member.id==u.id:character=member;break
 	ui.pages.party_view.identity(person_box,character if not character.is_empty() else u)
+	var resources=ui.row(person_box) if ui.ui_size_mode!="standard" else person_box
 	for resource in ["hp","mp"]:
+		var resource_box=VBoxContainer.new();resource_box.size_flags_horizontal=Control.SIZE_EXPAND_FILL;resources.add_child(resource_box)
 		var value=u.get(resource,0);var maximum=u.get("max" if resource=="hp" else "maxMp",0)
-		var number=ui.icons.line(ui,person_box,resource,"%s %d/%d" % [resource.to_upper(),value,maximum]);number.add_theme_color_override("font_color",Color.WHITE)
-		var bar=ProgressBar.new();bar.name="Inspect_"+resource;bar.max_value=maxi(1,int(maximum));bar.value=value;bar.show_percentage=false;bar.custom_minimum_size.y=10;bar.mouse_filter=Control.MOUSE_FILTER_IGNORE;person_box.add_child(bar)
+		var number=ui.icons.line(ui,resource_box,resource,"%s %d/%d" % [resource.to_upper(),value,maximum]);number.add_theme_color_override("font_color",Color("#eeeae2"))
+		if ui.ui_size_mode!="standard":number.text="%d/%d" % [value,maximum];number.tooltip_text=resource.to_upper();number.autowrap_mode=TextServer.AUTOWRAP_OFF
+		var bar=ProgressBar.new();bar.name="Inspect_"+resource;bar.max_value=maxi(1,int(maximum));bar.value=value;bar.show_percentage=false;bar.custom_minimum_size.y=8;bar.mouse_filter=Control.MOUSE_FILTER_IGNORE;resource_box.add_child(bar)
+		var track=StyleBoxFlat.new();track.bg_color=Color("#11171e");track.set_corner_radius_all(3)
+		var fill=StyleBoxFlat.new();fill.bg_color=Color("#df958b") if resource=="hp" and value*4<maximum else Color("#8dc9af") if resource=="hp" else Color("#93b6df");fill.set_corner_radius_all(3)
+		bar.add_theme_stylebox_override("background",track);bar.add_theme_stylebox_override("fill",fill)
 	var stats=character.get("stats",{});var breakdown=stats.get("attributeBreakdown",{})
 	l(person_box,"DEF %d" % u.get("def",0))
 	for pair in [["str","STR","strength"],["int","INT","intelligence"],["speed","SPD（行動速度）","speed"]]:
