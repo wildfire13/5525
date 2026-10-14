@@ -127,7 +127,7 @@ const Campaign = (() => {
   }
   function snapshot(s) {const saved=clone(s);saved.rollback=null;saved.battle=null;saved.journey=null;saved.result=null;return saved;}
   function select(s,ids) {
-    if(s.phase!=='town'||s.location!=='astaris'||!Array.isArray(ids)||ids.length<1||ids.length>5||new Set(ids).size!==ids.length||ids.some(id=>!template(id))||!ids.some(id=>template(id).job==='porter'))return false;
+    if(s.phase!=='town'||s.location!=='astaris'||!Array.isArray(ids)||ids.length<1||ids.length>5||new Set(ids).size!==ids.length||ids.some(id=>!template(id)))return false;
     s.selected=[...ids];invalidateInventory(s);note(s,'ギルドで無償編成。キャラ別の装備は保持。');return true;
   }
   function accept(s,id) {
@@ -136,7 +136,7 @@ const Campaign = (() => {
     s.rollback=snapshot(s);s.sequence++;s.activeQuest={...quest,token:s.sequence};note(s,quest.name+'を受注。');return true;
   }
   function depart(s,destination,formation='convoy') {
-    if(s.phase!=='town'||!hasPorter(s)||!destinations(s).some(p=>p.id===destination)||!['convoy','flank'].includes(formation)||s.activeQuest&&s.activeQuest.to!==destination)return false;
+    if(s.phase!=='town'||!destinations(s).some(p=>p.id===destination)||!['convoy','flank'].includes(formation)||s.activeQuest&&s.activeQuest.to!==destination)return false;
     if(s.selected.some(id=>template(id).job==='porter'&&s.characters[id].hp<=0))return false;
     if(!s.activeQuest){s.rollback=snapshot(s);s.sequence++;}
     const j=J.create();j.phase='road';j.selected=[...s.selected];j.formation=formation;j.potions=inventoryTotals(s).potion;j.kit='campaign';
@@ -498,7 +498,7 @@ const Campaign = (() => {
     demand(record(v),'オブジェクト形式');demand(Object.keys(v).length<=100,'項目数');
     for(const key of Object.keys(v)){demand(!['__proto__','constructor','prototype'].includes(key),'禁止されたキー');if(v[key]!==undefined)safeTree(v[key],depth+1);}
   }
-  function validSelection(ids) {return Array.isArray(ids)&&ids.length>0&&ids.length<=5&&new Set(ids).size===ids.length&&ids.every(id=>!!template(id))&&ids.some(id=>template(id).job==='porter');}
+  function validSelection(ids) {return Array.isArray(ids)&&ids.length>0&&ids.length<=5&&new Set(ids).size===ids.length&&ids.every(id=>!!template(id));}
   function validateState(s,depth,version=VERSION) {
     if(depth===0)safeTree(s);
     demand(record(s)&&s.version===version,'バージョン');

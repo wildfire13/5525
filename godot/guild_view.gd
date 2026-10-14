@@ -24,11 +24,11 @@ func person(id: String) -> Dictionary:
 		if member.id==id:return member
 	return {}
 func active(id: String) -> bool:return c().get("selected",[]).has(id)
-func fixed(id: String) -> bool:return active(id) and person(id).get("job")=="porter"
+func porter_count() -> int:return c().get("selected",[]).filter(func(id):return person(str(id)).get("job")=="porter").size()
 func stamp() -> String:return JSON.stringify([pages.epoch,ui.engine.connection_generation,c().get("inventoryToken"),c().get("selected")])
 func swap_possible() -> bool:
 	var lists=groups()
-	return not lists[0].is_empty() and lists[1].any(func(u):return u.get("job")!="porter")
+	return not lists[0].is_empty() and not lists[1].is_empty()
 func groups() -> Array:
 	var current=[];var reserves=[]
 	for id in c().get("selected",[]):
@@ -40,7 +40,7 @@ func groups() -> Array:
 func render(parent):
 	var header=Control.new();header.name="GuildRules";header.custom_minimum_size.y=64;parent.add_child(header)
 	var rules=VBoxContainer.new();header.add_child(rules);rules.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	l(rules,"最大%d人 / 編成中のポーターは固定 / 編成変更は無料" % LIMIT)
+	l(rules,"最大%d人 / ポーター%d人（クエスト受注時は最低1人） / 編成変更は無料" % [LIMIT,porter_count()])
 	var hint=l(rules,"人物を選択 → 入替相手を選択 → 確認。人物詳細・所持品は既存画面で確認できます。");hint.add_theme_font_size_override("font_size",18)
 	var split=HBoxContainer.new();split.name="GuildColumns";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",24);parent.add_child(split)
 	var lists=groups();var buttons={}
@@ -52,7 +52,7 @@ func render(parent):
 		if lists[side].is_empty():l(body,"控えの人物はいません。" if side==0 else "編成中の人物はいません。")
 		for u in lists[side]:
 			var id=str(u.id);var selected=id==chosen_id or stage in ["pick","confirm"] and id==origin_id
-			var disabled=busy() or stage=="confirm" or stage=="pick" and side==1 and fixed(id)
+			var disabled=busy() or stage=="confirm"
 			var button=b(body,"",choose.bind(id),disabled);button.name="GuildMember_"+id;button.custom_minimum_size.y=104;button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;buttons[id]=button
 			button.set_meta("member_id",id);button.set_meta("guild_active",side==1);ui.memory.key(button,"guild_member_"+id);ui.memory.item(button,id)
 			if selected:
@@ -65,7 +65,7 @@ func render(parent):
 			var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;copy.mouse_filter=Control.MOUSE_FILTER_IGNORE;copy.add_theme_constant_override("separation",0);row.add_child(copy)
 			var name_=l(copy,str(u.name)+" / "+str(u.get("role",u.get("job",""))));name_.name="GuildName_"+id;name_.add_theme_font_size_override("font_size",22);name_.autowrap_mode=TextServer.AUTOWRAP_OFF;name_.clip_text=true;name_.mouse_filter=Control.MOUSE_FILTER_IGNORE
 			var stats=l(copy,"Lv.%d   HP %d/%d   MP %d/%d" % [u.get("level",1),u.hp,u.max,u.mp,u.maxMp]);stats.name="GuildVitals_"+id;stats.add_theme_font_size_override("font_size",20);stats.autowrap_mode=TextServer.AUTOWRAP_OFF;stats.clip_text=true;stats.mouse_filter=Control.MOUSE_FILTER_IGNORE
-			var status=l(copy,("選択中 / " if selected else "")+("編成固定：ポーター" if fixed(id) else "現在のパーティー" if side==1 else "控え"));status.name="GuildStatus_"+id;status.add_theme_font_size_override("font_size",18);status.mouse_filter=Control.MOUSE_FILTER_IGNORE
+			var status=l(copy,("選択中 / " if selected else "")+("現在のパーティー" if side==1 else "控え"));status.name="GuildStatus_"+id;status.add_theme_font_size_override("font_size",18);status.mouse_filter=Control.MOUSE_FILTER_IGNORE
 			button.tooltip_text=name_.text+"\n"+stats.text+"\n"+status.text
 	for side in range(2):
 		for i in range(lists[side].size()):
@@ -81,14 +81,14 @@ func render(parent):
 	var u=person(chosen_id)
 	var instruction="人物を選択してください。" if u.is_empty() else "選択中：%s / %s" % [u.name,"現在のパーティー" if active(chosen_id) else "控え"]
 	if stage=="pick":instruction+=" / "+("控えの相手を選んでください。" if active(origin_id) else "現在のパーティーから相手を選んでください。")
-	if fixed(chosen_id):instruction+=" / 編成固定：ポーターは外す・交換ができません。"
+	if not u.is_empty() and active(chosen_id) and c().selected.size()==1:instruction+=" / パーティーは最低1人です。控えの人物と入れ替えできます。"
 	elif not u.is_empty() and not active(chosen_id) and c().selected.size()>=LIMIT:instruction+=" / %d/%d人。入れ替える人物を選んでください。" % [LIMIT,LIMIT]
 	var description=l(controls,instruction);description.name="GuildSelection";description.autowrap_mode=TextServer.AUTOWRAP_OFF;description.clip_text=true;description.add_theme_font_size_override("font_size",20)
 	var result=l(controls,notice);result.name="GuildNotice";result.autowrap_mode=TextServer.AUTOWRAP_OFF;result.clip_text=true;result.add_theme_font_size_override("font_size",18)
 	var actions=ui.row(controls);actions.name="GuildActions"
 	if stage=="idle":
-		b(actions,"控えと入れ替える" if active(chosen_id) else "現パーティーと入れ替える",begin_swap,u.is_empty() or fixed(chosen_id) or not swap_possible() or busy()).name="GuildSwap"
-		if active(chosen_id):b(actions,"控えへ戻す",prepare.bind("remove",chosen_id,""),u.is_empty() or fixed(chosen_id) or busy()).name="GuildRemove"
+		b(actions,"控えと入れ替える" if active(chosen_id) else "現パーティーと入れ替える",begin_swap,u.is_empty() or not swap_possible() or busy()).name="GuildSwap"
+		if active(chosen_id):b(actions,"控えへ戻す",prepare.bind("remove",chosen_id,""),u.is_empty() or c().selected.size()==1 or busy()).name="GuildRemove"
 		else:b(actions,"編成に加える",prepare.bind("add","",chosen_id),u.is_empty() or c().selected.size()>=LIMIT or busy()).name="GuildAdd"
 	b(actions,"人物詳細",pages.party_view.open_detail.bind(chosen_id),u.is_empty() or busy() or stage=="confirm").name="GuildDetails"
 	b(actions,"選択を取り消す",cancel_selection,chosen_id.is_empty() or busy() or stage=="confirm").name="GuildCancel"
@@ -97,12 +97,12 @@ func choose(id: String):
 	if not available() or busy() or ui.modal_open() or person(id).is_empty():return
 	if stage=="pick":
 		if active(origin_id) and not active(id):prepare("swap",origin_id,id)
-		elif not active(origin_id) and active(id) and not fixed(id):prepare("swap",id,origin_id)
+		elif not active(origin_id) and active(id):prepare("swap",id,origin_id)
 		return
 	if stage!="idle":return
 	chosen_id=id;notice="";ui.memory.request_focus("guild_member_"+id);ui.render()
 func begin_swap():
-	if not available() or busy() or chosen_id.is_empty() or fixed(chosen_id) or not swap_possible() or stage!="idle":return
+	if not available() or busy() or chosen_id.is_empty() or not swap_possible() or stage!="idle":return
 	origin_id=chosen_id;mode="swap";stage="pick";generation+=1;notice="";ui.render()
 func cancel_selection():
 	if busy():return
@@ -110,7 +110,7 @@ func cancel_selection():
 func candidate(kind: String,outgoing: String,incoming: String) -> Array:
 	if not available():return []
 	var ids=c().get("selected",[]).duplicate()
-	if kind in ["swap","remove"] and (not ids.has(outgoing) or fixed(outgoing)):return []
+	if kind in ["swap","remove"] and not ids.has(outgoing):return []
 	if kind in ["swap","add"] and (person(incoming).is_empty() or ids.has(incoming)):return []
 	if kind=="swap":ids[ids.find(outgoing)]=incoming
 	elif kind=="add":
@@ -121,7 +121,7 @@ func candidate(kind: String,outgoing: String,incoming: String) -> Array:
 	if ids.is_empty() or ids.size()>LIMIT or ids.any(func(id):return person(str(id)).is_empty()):return []
 	var unique={}
 	for id in ids:unique[id]=true
-	if unique.size()!=ids.size() or not ids.any(func(id):return person(str(id)).get("job")=="porter"):return []
+	if unique.size()!=ids.size():return []
 	return ids
 func prepare(kind: String,outgoing: String,incoming: String):
 	if busy() or ui.modal_open():return

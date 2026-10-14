@@ -90,7 +90,7 @@ class JourneyApp:
             self.button('QA: 納期内配達直前（実戦2回から生成）',lambda:self.qa_fixture('ontime_delivery'))
             self.button('QA: ポーター失敗結果（実戦から生成）',lambda:self.qa_fixture('failed_result'))
         elif p=='prepare':
-            self.label(f'護送隊を編成 {len(j["selected"])}/5人（候補11人・ポーター最低1人）',18)
+            self.label(f'護送隊を編成 {len(j["selected"])}/5人（候補11人・受注時にポーター最低1人）',18)
             grid=tk.Frame(self.panel,bg=BG);grid.pack(anchor='w')
             for n,u in enumerate(self.data['roster']):
                 checked=u['id'] in j['selected'];v=tk.BooleanVar(value=checked)
@@ -104,9 +104,9 @@ class JourneyApp:
             opts2=tk.Frame(self.panel,bg=BG);opts2.pack(anchor='w')
             for text,value in [('基本配置','convoy'),('切り込み配置','flank')]:
                 tk.Radiobutton(opts2,text=text,variable=self.formation,value=value,bg=BG,fg=FG,selectcolor='#334155').pack(side='left',padx=5)
-            has=any(id.startswith('porter') for id in j['selected'])
-            self.label('ポーター編成済み: 出発できます' if has else '出発にはポーターを最低1人選んでください',12,color='#86efac' if has else '#fca5a5')
-            self.button('この編成で出発',lambda:self.act('depart',self.kit.get(),self.formation.get()),disabled=not has)
+            populated=bool(j['selected'])
+            self.label('この編成で出発できます' if populated else 'パーティーを最低1人選んでください',12,color='#86efac' if populated else '#fca5a5')
+            self.button('この編成で出発',lambda:self.act('depart',self.kit.get(),self.formation.get()),disabled=not populated)
         elif p=='road':
             self.label(f'第{j["stage"]+1}区間: 次の道を選ぶ',20);self.label(self.party_text())
             self.button(f'峠の近道: 2時間 / 敵{3 if j["stage"]==0 else 4}人',lambda:self.deadline('short'))
