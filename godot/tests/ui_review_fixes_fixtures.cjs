@@ -14,7 +14,7 @@ function result(destination,accepted=false){
   s.battle.result='勝利！ ミラーマッチを制した。';assert(C.finishBattle(s));
   if(stage===0)assert(C.onward(s));
  }
- assert(C.arrive(s));return save(s);
+ assert(C.arrive(s));if(accepted)assert(C.completeQuest(s));return save(s);
 }
 const town=C.create();town.characters.guard.hp=60;town.characters.guard.mp=0;town.characters.mage.hp=0;
 const four=C.create();assert(C.select(four,['guard','mage','scout','porter']));

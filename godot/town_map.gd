@@ -23,8 +23,8 @@ func _ready():
 			if facility in ["weapon","armor","items","accessory","inn","guild"]:facilities.append({"weapon":"武器屋","armor":"防具屋","items":"道具屋","accessory":"装飾品店","inn":"宿屋","guild":"ギルド"}[facility])
 		b.text+="\n"+" / ".join(facilities)
 		if icons!=null:icons.apply(b,icons.place(id),32)
-		b.disabled=not available.has(id) or (not quest_destination.is_empty() and quest_destination!=id)
-		b.tooltip_text="現在地" if id==current else "受注中の行先は変更できません" if not quest_destination.is_empty() and quest_destination!=id else "この拠点へは直接移動できません" if not available.has(id) else "行先に選ぶ"
+		b.disabled=not available.has(id)
+		b.tooltip_text="現在地" if id==current else "この拠点へは直接移動できません" if not available.has(id) else "行先に選ぶ"
 		var style=StyleBoxFlat.new();style.bg_color=Color("#1d4a4b") if id==current else Color("#243c58")
 		style.border_color=Color("#fbbf24") if id==selected else Color("#64748b");style.set_border_width_all(3 if id==selected else 1);style.set_corner_radius_all(8)
 		for state_ in ["normal","disabled","hover","focus"]:b.add_theme_stylebox_override(state_,style)

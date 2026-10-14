@@ -732,10 +732,7 @@ class CampaignApp(JourneyApp):
             self.row_button(row, '先へ進む', lambda: self.act('onward'))
         else:
             self.label(f'{self.town_name(journey.get("destination"))}に到着しました', 17, color='#86efac')
-            missing = bool(job) and not self.campaign.get('cargoAboard', False)
-            if missing:
-                self.label('同行メンバーがこの依頼の「荷物」を持っていないため、納品できません。')
-            self.button('荷物を渡して報酬を確認' if job else '町へ入る（配達報酬なし）', lambda: self.act('arrive'), disabled=missing)
+            self.button('町へ入る（依頼は未完了）' if job else '町へ入る（配達報酬なし）', lambda: self.act('arrive'))
         if phase == 'camp':
             self.render_items()
         if journey.get('history'):
@@ -746,6 +743,11 @@ class CampaignApp(JourneyApp):
         self.label('掲示板 / 同時に受ける依頼は一件', 17)
         if quest:
             frame = self.card()
+            if self.town_id() == quest['to']:
+                missing = not self.campaign.get('cargoAboard', False)
+                if missing:
+                    self.label('同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。', parent=frame)
+                self.button('クエスト完了', lambda: self.act('completeQuest'), parent=frame, disabled=missing)
             self.label('受注中: ' + quest['name'], 16, parent=frame, color='#86efac')
             self.label(f'行先 {self.town_name(quest["to"])} / 納期 {quest["deadline"]}時間 / 報酬 {quest["reward"]}G', parent=frame)
             self.button('地図で出発を準備', lambda: self.set_page('map'), parent=frame)
@@ -803,9 +805,8 @@ class CampaignApp(JourneyApp):
         available = self.campaign.get('destinations', [])
         available_ids = [place['id'] if isinstance(place, dict) else place for place in available]
         if quest:
-            self.destination = quest['to']
             self.label(f'受注中: {quest["name"]} → {self.town_name(quest["to"])}', color='#86efac')
-        elif self.destination not in available_ids:
+        if self.destination not in available_ids:
             self.destination = available_ids[0] if available_ids else None
         self.label('接続・距離・方角は試作用の模式図です。各移動は二つの区間を通ります。', 10, color=MUTED)
         canvas = tk.Canvas(self.panel, width=950, height=255, bg=CARD, highlightthickness=0)
@@ -830,14 +831,14 @@ class CampaignApp(JourneyApp):
                                font=('sans-serif', 13, 'bold'), tags=tag)
             canvas.create_text(x, y + 13, text='現在地' if current else '選択中' if chosen else '目的地',
                                fill='#86efac' if current else MUTED, font=('sans-serif', 10), tags=tag)
-            if place['id'] in available_ids and (not quest or quest['to'] == place['id']):
+            if place['id'] in available_ids:
                 canvas.tag_bind(tag, '<Button-1>', lambda _, uid=place['id']: self.select_destination(uid))
         choices = tk.Frame(self.panel, bg=BG)
         choices.pack(anchor='w')
         for place in available:
             uid = place['id'] if isinstance(place, dict) else place
             button = self.row_button(choices, self.town_name(uid), lambda key=uid: self.select_destination(key),
-                                     disabled=bool(quest and quest['to'] != uid))
+                                     disabled=False)
             button.config(relief='sunken' if uid == self.destination else 'raised')
         self.label('未受注での移動も戦闘・消耗があります。配達報酬はありません。追加の移動料金はありません。', 11, color=MUTED)
         self.label('編成: ' + ' / '.join(member['name'] for member in self.roster() if member['id'] in self.selected_ids()))

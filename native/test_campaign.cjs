@@ -31,6 +31,7 @@ function trip(s,destination,{quest=true,route='short',rest=true,seed=5525}={}){
     if(i===0){if(rest)assert.equal(C.rest(s),true);assert.equal(C.onward(s),true);}
   }
   assert.equal(s.phase,'arrival');assert.equal(C.arrive(s),true);okay(s);
+  if(quest){assert.equal(s.phase,'town');assert.equal(C.completeQuest(s),true);okay(s);}
 }
 function town(id){const s=C.create();s.location=id;return s;}
 test('city and four source-map villages, correct facilities',()=>{
@@ -45,7 +46,7 @@ test('guild is city-only, free, max five, unique roster; porter required only at
 });
 test('boards expose real deadline/reward tradeoff and refresh after trip',()=>{
   const s=C.create(),offers=C.board(s);assert.equal(offers[0].deadline,6);assert.equal(offers[0].reward,180);assert.equal(offers[1].deadline,10);assert.equal(offers[1].reward,150);
-  assert.equal(acceptWithPorter(s,offers[0].id),true);assert.deepEqual(C.board(s),[]);assert.equal(acceptWithPorter(s,offers[1].id),false);assert.equal(C.depart(s,offers[1].to),false);
+  assert.equal(acceptWithPorter(s,offers[0].id),true);assert.deepEqual(C.board(s),[]);assert.equal(acceptWithPorter(s,offers[1].id),false);assert.equal(C.depart(s,offers[1].to),true);
 });
 test('public-operation delivery accumulates separate battle loot/XP, cannot double claim',()=>{
   const s=C.create();trip(s,'east',{rest:false});assert.equal(s.result.outcome,'success');assert.equal(s.result.gold,180);assert.equal(s.gold,180+16+180);assert.equal(s.characters.guard.xp,40+100);assert.equal(s.xp,0);
