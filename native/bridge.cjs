@@ -169,7 +169,7 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       else if(r.action==='saleQuote'){response={...view(),saleQuote:C.saleQuote(campaign,...args)};}
       else if(r.action==='purchaseQuote'){response={...view(),purchaseQuote:C.purchaseQuote(campaign,...args)};}
       else if(r.action==='trial'){trial=C.trial(campaign,...args);result=!!trial;}
-      else if(['accept','select','depart','travel','deploy','chooseFormation','deployment_reset','begin','retreat','finishBattle','rest','onward','arrive','acknowledge','buyGear','buyInventory','buyItem','inn','useItem','inventoryAction','buyPlan','sellInventory','allocate','allocateBatch'].includes(r.action)) {
+      else if(['accept','select','depart','travel','deploy','chooseFormation','deployment_reset','begin','retreat','finishBattle','rest','onward','arrive','completeQuest','acknowledge','buyGear','buyInventory','buyItem','inn','useItem','inventoryAction','buyPlan','sellInventory','allocate','allocateBatch'].includes(r.action)) {
         if(r.action==='begin'&&r.presentation) {
           result=presentation.start(state,B,()=>C.begin(campaign,...args),()=>record('campaign.begin',{args,accepted:true}));
         } else if(r.action==='begin') {

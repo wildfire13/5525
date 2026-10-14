@@ -76,6 +76,10 @@ func board(parent):
 	var quest=c().get("activeQuest")
 	if quest is Dictionary:
 		var box=card(parent);l(box,"受注中: "+quest.name,true);quest_info(box,quest)
+		if c().location==quest.to:
+			var missing=not c().get("cargoAboard",false)
+			if missing:l(box,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
+			b(box,"クエスト完了",ui.act.bind("completeQuest",[]),missing).name="QuestComplete"
 		b(box,"地図で出発を準備",ui.navigate.bind("map"))
 	else:
 		muted(parent,"依頼文・期限・報酬は、繰り返し試遊のための仮設定です。")
@@ -108,8 +112,8 @@ func map(parent):
 	for place in c().get("destinations",[]):available.append(place.id if place is Dictionary else place)
 	var quest=c().get("activeQuest")
 	if quest is Dictionary:
-		ui.destination=quest.to;l(parent,"受注中: %s → %s" % [quest.name,town(quest.to)])
-	elif not available.has(ui.destination):ui.destination=str(available[0]) if not available.is_empty() else ""
+		l(parent,"受注中: %s → %s" % [quest.name,town(quest.to)])
+	if not available.has(ui.destination):ui.destination=str(available[0]) if not available.is_empty() else ""
 	muted(parent,"接続・距離・方角は試作用の模式図です。各移動は二つの区間を通ります。")
 	shop_guide(parent)
 	var chart=preload("res://town_map.gd").new();chart.name="TownMap"
@@ -118,7 +122,7 @@ func map(parent):
 	parent.add_child(chart);chart.destination_selected.connect(select_destination)
 	for id in chart.buttons:ui.widgets.append(chart.buttons[id])
 	var choices=row(parent)
-	for id in available:b(choices,("● " if ui.destination==id else "")+town(id),select_destination.bind(id),quest is Dictionary and quest.to!=id)
+	for id in available:b(choices,("● " if ui.destination==id else "")+town(id),select_destination.bind(id))
 	muted(parent,"未受注での移動も戦闘・消耗があります。配達報酬はありません。追加の移動料金はありません。")
 	l(parent,"編成: "+" / ".join(roster().filter(func(u):return c().selected.has(u.id)).map(func(u):return u.name)))
 	b(parent,town(ui.destination)+"へ出発" if not ui.destination.is_empty() else "行先がありません",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty())
@@ -152,9 +156,7 @@ func journey(parent):
 			b(actions,"次の区間へ",ui.act.bind("onward",[]));items(parent)
 		"arrival","delivery":
 			l(parent,town(journey_.get("destination",""))+"に到着しました",true)
-			var missing=quest is Dictionary and not c().get("cargoAboard",false)
-			if missing:l(parent,"同行メンバーがこの依頼の「荷物」を持っていないため、納品できません。")
-			b(parent,"荷物を渡して報酬を確認" if quest is Dictionary else "町へ入る（配達報酬なし）",ui.act.bind("arrive",[]),missing)
+			b(parent,"町へ入る（依頼は未完了）" if quest is Dictionary else "町へ入る（配達報酬なし）",ui.act.bind("arrive",[]))
 	l(parent,"\n".join(journey_.get("history",[]).slice(-4)))
 func party(parent):party_view.render(parent)
 func reset_items():item_stage="entry";item_id=""

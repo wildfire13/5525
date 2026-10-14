@@ -101,7 +101,7 @@ const Campaign = (() => {
       selected:['guard','archer','mage','scout','porter'],characters:Object.fromEntries(B.roster.map(t=>[t.id,character(t.id)])),
       activeQuest:null,journey:null,battle:null,rollback:null,
       sequence:0,boardRound:0,completed:0,result:null,history:['アスタリスに到着。繰り返し遊べる試作を開始。']};
-    state.characters[state.selected[0]].inventory={potion:3,ether:1};return state;
+    state.cargoRevision=1;state.characters[state.selected[0]].inventory={potion:3,ether:1};return state;
   }
   function inventoryTotals(s,ids=s.selected) {
     return Object.fromEntries(items.map(item=>[item.id,ids.reduce((n,id)=>n+I.count(s.characters[id]?.inventory,item.id),0)]));
@@ -138,7 +138,7 @@ const Campaign = (() => {
     s.rollback=snapshot(s);s.sequence++;s.activeQuest={...quest,token:s.sequence};Cargo.issue(s,ownerId);invalidateInventory(s);note(s,quest.name+'を受注。'+template(ownerId).name+'が「荷物」を受け取りました。');return true;
   }
   function depart(s,destination,formation='convoy') {
-    if(s.phase!=='town'||!destinations(s).some(p=>p.id===destination)||!['convoy','flank'].includes(formation)||s.activeQuest&&s.activeQuest.to!==destination)return false;
+    if(s.phase!=='town'||!destinations(s).some(p=>p.id===destination)||!['convoy','flank'].includes(formation))return false;
     if(s.selected.some(id=>template(id).job==='porter'&&s.characters[id].hp<=0))return false;
     if(!s.activeQuest){s.rollback=snapshot(s);s.sequence++;}
     const j=J.create();j.phase='road';j.selected=[...s.selected];j.formation=formation;j.potions=inventoryTotals(s).potion;j.kit='campaign';
@@ -236,17 +236,30 @@ const Campaign = (() => {
   function onward(s) {if(s.phase!=='camp'||!J.onward(s.journey))return false;s.phase='road';return true;}
   function forecast(s,choice) {
     if(!s.journey||!['road','camp'].includes(s.phase)||!['short','safe','rest'].includes(choice))return null;
-    const f=J.forecast(s.journey,choice);return {...f,late:s.activeQuest?f.late:false,over:s.activeQuest?f.over:0,reward:s.activeQuest?Math.floor(s.activeQuest.reward*(f.late?.65:1)):0,questless:!s.activeQuest};
+    const f=J.forecast(s.journey,choice),hours=f.hours+(s.activeQuest?.elapsedHours||0),late=!!s.activeQuest&&hours>s.activeQuest.deadline;
+    return {...f,hours,late,over:s.activeQuest?Math.max(0,hours-s.activeQuest.deadline):0,reward:s.activeQuest?Math.floor(s.activeQuest.reward*(late?.65:1)):0,questless:!s.activeQuest};
   }
   function arrive(s) {
     const j=s.journey;if(s.phase!=='arrival'||!j||j.stage!==2)return false;
-    if(s.activeQuest&&!Cargo.aboard(s))return false;
-    const q=s.activeQuest,late=!!q&&j.hours>q.deadline,gold=q?Math.floor(q.reward*(late?.65:1)):0,xp=q?(late?60:q.xp):0;
-    if(q){if(!Cargo.consume(s))return false;invalidateInventory(s);note(s,'「荷物」を渡しました。'+q.cargo+'を引き渡しました。');}
-    s.location=j.destination;s.gold+=gold;if(xp)gainXp(s,xp);if(q)s.completed++;
-    s.boardRound++;s.phase='result';s.result={outcome:q?(late?'late':'success'):'travel',gold,xp,hours:j.hours,location:s.location,quest:q?.name||null,restored:false};
-    note(s,q?`配達完了：${gold}G・依頼EXP＋${xp}${late?'（遅配）':''}。`:'未受注の移動で到着。配達報酬なし。');
-    s.activeQuest=null;s.rollback=null;s.battle=null;j.phase='result';return true;
+    s.location=j.destination;
+    if(s.activeQuest){
+      s.activeQuest.elapsedHours=(s.activeQuest.elapsedHours||0)+j.hours;
+      s.journey=null;s.battle=null;s.result=null;s.phase='town';
+      note(s,getPlace(s.location).name+'に到着。依頼は未完了です。');return true;
+    }
+    s.boardRound++;s.phase='result';s.result={outcome:'travel',gold:0,xp:0,hours:j.hours,location:s.location,quest:null,restored:false};
+    note(s,'未受注の移動で到着。配達報酬なし。');s.rollback=null;s.battle=null;j.phase='result';return true;
+  }
+  function completeQuest(s){
+    const q=s.activeQuest;
+    if(s.phase!=='town'||!q||s.location!==q.to||!Cargo.aboard(s))return false;
+    const hours=q.elapsedHours||0,late=hours>q.deadline,gold=Math.floor(q.reward*(late?.65:1)),xp=late?60:q.xp;
+    if(!Cargo.consume(s))return false;
+    invalidateInventory(s);s.gold+=gold;if(xp)gainXp(s,xp);s.completed++;s.boardRound++;
+    note(s,'「荷物」を渡しました。'+q.cargo+'を引き渡しました。');
+    note(s,`配達完了：${gold}G・依頼EXP＋${xp}${late?'（遅配）':''}。`);
+    s.phase='result';s.result={outcome:late?'late':'success',gold,xp,hours,location:s.location,quest:q.name,restored:false};
+    s.activeQuest=null;s.rollback=null;s.journey=null;s.battle=null;return true;
   }
   function acknowledge(s) {
     if(s.phase!=='result')return false;
@@ -547,7 +560,9 @@ const Campaign = (() => {
     if(s.activeQuest) {
       const q=s.activeQuest;demand(typeof q.id==='string'&&typeof q.name==='string'&&typeof q.client==='string'&&typeof q.cargo==='string'&&typeof q.text==='string','依頼内容');
       if(Object.hasOwn(q,'cargoItemId')||Object.hasOwn(q,'cargoOwnerId'))demand(q.cargoItemId===Cargo.key(q.token)&&template(q.cargoOwnerId)?.job==='porter'&&Cargo.carriers(s).length===1&&Cargo.carriers(s)[0]===q.cargoOwnerId,'依頼荷物と所持者');
-      demand(q.from===s.location&&destinations(s).some(p=>p.id===q.to)&&integer(q.reward,0,10000)&&integer(q.xp,0,1000)&&integer(q.deadline,1,100)&&integer(q.weight,1,100)&&q.token===s.sequence,'依頼条件');
+      demand((s.cargoRevision===1?getPlace(q.from)&&getPlace(q.to)&&routes[q.from]?.includes(q.to):q.from===s.location&&destinations(s).some(p=>p.id===q.to))&&integer(q.reward,0,10000)&&integer(q.xp,0,1000)&&integer(q.deadline,1,100)&&integer(q.weight,1,100)&&q.token===s.sequence,'依頼条件');
+      if(q.elapsedHours!==undefined)demand(integer(q.elapsedHours),'依頼経過時間');
+      if(s.cargoRevision===1)demand(q.cargoItemId===Cargo.key(q.token)&&Cargo.carriers(s).length===1,'荷物形式');
       demand(s.phase!=='result','報酬の二重取得');
     }
     if(version===2)demand(Object.values(inventoryTotals(s,Object.keys(s.characters))).every(count=>integer(count,0,99)),'消耗品合計（従来の99個上限）');
@@ -565,7 +580,7 @@ const Campaign = (() => {
       demand(s.phase==='result'||s.location===j.origin,'出発地点');
       demand(j.phase===(s.phase==='arrival'?'delivery':s.phase),'旅の段階');
       demand(integer(j.potions,0,99)&&record(j.job)&&typeof j.job.name==='string'&&integer(j.job.deadline,1,100000000)&&integer(j.job.reward),'旅の荷物');
-      if(s.activeQuest)demand(j.job.id===s.activeQuest.id&&j.job.name===s.activeQuest.name&&j.job.deadline===s.activeQuest.deadline&&j.job.reward===s.activeQuest.reward&&j.destination===s.activeQuest.to,'旅と依頼の一致');
+      if(s.activeQuest)demand(j.job.id===s.activeQuest.id&&j.job.name===s.activeQuest.name&&j.job.deadline===s.activeQuest.deadline&&j.job.reward===s.activeQuest.reward&&(s.cargoRevision===1||j.destination===s.activeQuest.to),'旅と依頼の一致');
       if(j.questless)demand(j.job.name==='未受注の移動'&&j.job.deadline===100000000&&j.job.reward===0&&Object.keys(j.job).length===3,'未受注の旅情報');
       demand(typeof j.rested==='boolean','休息状態');
       if(j.party!==null){
@@ -658,7 +673,7 @@ const Campaign = (() => {
   }
   function serialize(s) {
     const checked=validate(s);if(!checked.ok)throw new Error(checked.error);
-    const data=JSON.stringify({format:'5525-native-campaign',version:VERSION,state:s},null,2);
+    const data=JSON.stringify({format:'5525-native-campaign',version:VERSION,cargoRevision:1,state:s},null,2);
     demand(Buffer.byteLength(data,'utf8')<=MAX_SAVE_BYTES,'保存サイズ');return data;
   }
   function migrateEquipment(s) {
@@ -702,12 +717,25 @@ const Campaign = (() => {
     if(typeof input==='string'){demand(Buffer.byteLength(input,'utf8')<=MAX_SAVE_BYTES,'保存サイズ');try{envelope=JSON.parse(input);}catch(e){throw new Error('セーブJSONを読み取れません');}}
     else {safeTree(input);demand(Buffer.byteLength(JSON.stringify(input),'utf8')<=MAX_SAVE_BYTES,'保存サイズ');envelope=clone(input);}
     safeTree(envelope);
+    if(envelope.cargoRevision!==undefined)demand(envelope.cargoRevision===1&&envelope.state?.cargoRevision===1,'荷物移行マーカー');
     demand(record(envelope)&&envelope.format==='5525-native-campaign'&&[1,VERSION].includes(envelope.version),'保存形式');
     validateState(envelope.state,0,envelope.version);
     // Only normalize an already-valid older save; never truncate before validation.
     const loaded=clone(envelope.state);
     migrateEquipment(loaded);
     if(envelope.version===1)migrateInventory(loaded);
+    if(envelope.cargoRevision===undefined&&loaded.cargoRevision===undefined){
+      function upgradeCargo(s){
+        if(s.rollback)upgradeCargo(s.rollback);
+        if(s.activeQuest&&!s.activeQuest.cargoItemId){
+          const owner=B.roster.filter(t=>t.job==='porter'&&s.characters[t.id]).sort((a,b)=>(a.id==='porter'?1:Number(a.id.split('-').pop()))-(b.id==='porter'?1:Number(b.id.split('-').pop())))[0];
+          demand(owner,'旧依頼の荷物を持つポーターが存在しません。元セーブは変更していません。');
+          Cargo.issue(s,owner.id);
+        }
+        s.cargoRevision=1;
+      }
+      upgradeCargo(loaded);
+    }
     if(loaded.battle&&loaded.battle.formationVersion===undefined){loaded.battle.formationVersion=loaded.phase==='battle'?1:2;loaded.battle.formationKind=loaded.journey.formation;}
     function migrateCombatMetadata(s) {
       for(const c of Object.values(s.characters))c.def=c.def??0;
@@ -725,6 +753,6 @@ const Campaign = (() => {
   const {purchaseQuote,buyInventory,purchasePlan,buyPlan,saleQuote,sellInventory,saleAvailable}=require('./shop-transactions.js')({I,S,clone,record,integer,getGear,template,shop,equipment,eligibility,stats,syncCharacter,validate,inventoryToken,commitInventory,note,createHash});
   return {VERSION,MAX_SAVE_BYTES,equipment,slots:S.slots,locations,gear,items,materials,provisional,create,view,board,destinations,hasPorter,stats,
     select,accept,depart,travel,deploy,chooseFormation,deployment_reset,begin,act,retreat,finishBattle,rest,onward,forecast,arrive,acknowledge,
-    eligibility,shop,quote,buyGear,buyItem,inn,useItem,inventoryTotals,inventoryToken,inventoryQuote,inventoryAction,inventoryView,purchaseQuote,buyInventory,purchasePlan,buyPlan,saleQuote,sellInventory,saleAvailable,allocate,allocateBatch,allocationToken,previewGear,trial,trialAct,validate,serialize,deserialize};
+    completeQuest,eligibility,shop,quote,buyGear,buyItem,inn,useItem,inventoryTotals,inventoryToken,inventoryQuote,inventoryAction,inventoryView,purchaseQuote,buyInventory,purchasePlan,buyPlan,saleQuote,sellInventory,saleAvailable,allocate,allocateBatch,allocationToken,previewGear,trial,trialAct,validate,serialize,deserialize};
 })();
 module.exports = Campaign;
