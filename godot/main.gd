@@ -40,6 +40,7 @@ var view_kind := ""
 var generation := 0
 var retry_button: Button
 var low_hp_font: FontVariation
+var heading_font: FontVariation
 var memory
 var hud
 var dialog
@@ -56,7 +57,7 @@ var layout_queued := false
 var focus_hint := ""
 var swallow_mouse_release := false
 var skip_capture_once := false
-const BG=Color("#0e1e28")
+const BG=Color("#191d23")
 func _ready():
 	pages=preload("res://campaign_panels.gd").new(self)
 	memory=preload("res://ui_memory.gd").new(self)
@@ -65,17 +66,25 @@ func _ready():
 	get_tree().auto_accept_quit=false
 	get_tree().root.gui_embed_subwindows=true
 	var theme_=Theme.new();theme_.default_font_size=18
+	var weight_axis=TextServerManager.get_primary_interface().name_to_tag("wght")
+	var ui_font=FontVariation.new();ui_font.base_font=preload("res://assets/fonts/NotoSansJP.ttf");ui_font.variation_opentype={weight_axis:450}
+	heading_font=FontVariation.new();heading_font.base_font=ui_font.base_font;heading_font.variation_opentype={weight_axis:650}
+	var button_font=FontVariation.new();button_font.base_font=ui_font.base_font;button_font.variation_opentype={weight_axis:550}
+	theme_.default_font=ui_font
+	for type_ in ["Button","OptionButton","CheckButton"]:theme_.set_font("font",type_,button_font)
+	for type_ in ["Label","Button","OptionButton","CheckButton"]:
+		theme_.set_color("font_color",type_,Color("#eeeae2"))
 	theme_.set_color("font_color","TooltipLabel",Color.WHITE)
-	var tip=StyleBoxFlat.new();tip.bg_color=Color("#183341");tip.set_content_margin_all(8);theme_.set_stylebox("panel","TooltipPanel",tip)
-	var focus=StyleBoxFlat.new();focus.bg_color=Color(0,0,0,0);focus.set_border_width_all(2);focus.border_color=Color("#78edce")
+	var tip=StyleBoxFlat.new();tip.bg_color=Color("#20242bf5");tip.set_content_margin_all(8);tip.set_border_width_all(1);tip.border_color=Color("#7f8996");theme_.set_stylebox("panel","TooltipPanel",tip)
+	var focus=StyleBoxFlat.new();focus.bg_color=Color(0,0,0,0);focus.set_border_width_all(2);focus.border_color=Color("#a8c9ed");focus.set_corner_radius_all(5)
 	for type_ in ["Button","OptionButton","CheckButton","ItemList","TabBar"]:theme_.set_stylebox("focus",type_,focus)
 	for type_ in ["Button","OptionButton"]:
 		for state_ in ["normal","hover","pressed","disabled"]:
-			var style=StyleBoxFlat.new();style.bg_color=Color("#2b4355" if state_=="hover" else "#244b51" if state_=="pressed" else "#20333f");style.border_color=Color("#5a7486");style.set_border_width_all(1);style.set_corner_radius_all(4)
+			var style=StyleBoxFlat.new();style.bg_color=Color("#424a56" if state_=="hover" else "#514b3c" if state_=="pressed" else "#23262d" if state_=="disabled" else "#303640");style.border_color=Color("#e3c487" if state_=="pressed" else "#a4adba" if state_=="hover" else "#3d424c" if state_=="disabled" else "#626b78");style.set_border_width_all(1);style.set_corner_radius_all(5)
 			style.content_margin_left=8;style.content_margin_right=8;style.content_margin_top=4;style.content_margin_bottom=4;theme_.set_stylebox(state_,type_,style)
-		theme_.set_color("font_disabled_color",type_,Color("#b0bfc9"))
+		theme_.set_color("font_disabled_color",type_,Color("#9299a3"))
 	theme=theme_
-	low_hp_font=FontVariation.new();low_hp_font.base_font=ThemeDB.fallback_font;low_hp_font.variation_embolden=1.0
+	low_hp_font=FontVariation.new();low_hp_font.base_font=ui_font.base_font;low_hp_font.variation_opentype={weight_axis:700}
 	base=VBoxContainer.new();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base.add_theme_constant_override("separation",8)
 	top=HBoxContainer.new();top.custom_minimum_size.y=44;base.add_child(top)
@@ -119,7 +128,9 @@ func can_inspect_member(uid: String) -> bool:return visible_roster().any(func(u)
 func label_(parent: Node,text: String,large:=false) -> Label:
 	var l=Label.new();l.text=text;l.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	if parent is HBoxContainer:l.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	if large:l.add_theme_font_size_override("font_size",28 if size.x>=1800 else 23)
+	if large:
+		l.add_theme_font_size_override("font_size",28 if size.x>=1800 else 23)
+		l.add_theme_font_override("font",heading_font)
 	parent.add_child(l);return l
 func emphasize_low_hp(label: Label,unit: Dictionary):
 	if unit.get("max",0)>0 and unit.get("hp",0)*4<unit.max:
@@ -166,8 +177,8 @@ func portrait(parent: Node,u: Dictionary,face:=false,size_:=72) -> TextureRect:
 	p.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;p.texture=portraits.texture(u,face)
 	parent.add_child(p);return p
 func card(parent: Node) -> VBoxContainer:
-	var p=PanelContainer.new();var style=StyleBoxFlat.new();style.bg_color=Color("#172b36");style.border_color=Color("#385260");style.set_border_width_all(1)
-	style.set_corner_radius_all(9);style.set_content_margin_all(8)
+	var p=PanelContainer.new();var style=StyleBoxFlat.new();style.bg_color=Color("#20242bed");style.border_color=Color("#626976");style.set_border_width_all(1)
+	style.set_corner_radius_all(5);style.set_content_margin_all(8)
 	p.add_theme_stylebox_override("panel",style);parent.add_child(p)
 	var v=VBoxContainer.new();p.add_child(v);return v
 func scroller(parent: Node) -> VBoxContainer:
@@ -601,8 +612,11 @@ func local_button(parent: Node,text: String,callback: Callable) -> Button:
 	var control=button(parent,text,callback);control.set_meta("read_only",true);control.disabled=false;return control
 func primary(control: Button) -> Button:
 	control.custom_minimum_size.y=44;control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	var style=StyleBoxFlat.new();style.bg_color=Color("#91dacf");style.set_corner_radius_all(4);style.set_content_margin_all(8)
-	control.add_theme_stylebox_override("normal",style);control.add_theme_color_override("font_color",Color("#102d38"));return control
+	for state_ in ["normal","hover","pressed"]:
+		var style=StyleBoxFlat.new();style.bg_color=Color("#ecd4a1" if state_=="hover" else "#bca16c" if state_=="pressed" else "#d8bd86");style.border_color=Color("#f2dcae");style.set_border_width_all(1);style.set_corner_radius_all(5);style.set_content_margin_all(8)
+		control.add_theme_stylebox_override(state_,style)
+	for color_ in ["font_color","font_hover_color","font_pressed_color"]:control.add_theme_color_override(color_,Color("#252830"))
+	return control
 func short_name(control: Label,full: String):
 	control.max_lines_visible=2;control.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;control.tooltip_text=full
 	control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
