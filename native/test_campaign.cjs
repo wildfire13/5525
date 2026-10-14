@@ -2,6 +2,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const C=require('./campaign.js');
+function acceptWithPorter(s,id){return C.accept(s,id,s.selected.find(uid=>C.view(s).roster.find(u=>u.id===uid)?.job==='porter'));}
 const B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 let passed=0;
@@ -23,7 +24,7 @@ function fight(s,guardOnly=false){
   assert.equal(C.finishBattle(s),true);okay(s);
 }
 function trip(s,destination,{quest=true,route='short',rest=true,seed=5525}={}){
-  if(quest){const q=C.board(s).find(q=>q.to===destination);assert.ok(q,'offered destination');assert.equal(C.accept(s,q.id),true);}
+  if(quest){const q=C.board(s).find(q=>q.to===destination);assert.ok(q,'offered destination');assert.equal(acceptWithPorter(s,q.id),true);}
   assert.equal(C.depart(s,destination),true);okay(s);const rng=random(seed);
   for(let i=0;i<2;i++){
     assert.equal(C.travel(s,route,rng),true);okay(s);fight(s);assert.notEqual(s.result?.outcome,'failed','trip won');
@@ -39,12 +40,12 @@ test('city and four source-map villages, correct facilities',()=>{
 });
 test('guild is city-only, free, max five, unique roster; porter required only at acceptance',()=>{
   const s=C.create(),gold=s.gold;for(const ids of [[],['porter','porter'],['bogus','porter'],['porter','guard','archer','mage','scout','warrior']])assert.equal(C.select(s,ids),false);
-  assert.equal(C.select(s,['guard']),true);okay(s);assert.equal(C.accept(s,C.board(s)[0].id),false);
+  assert.equal(C.select(s,['guard']),true);okay(s);assert.equal(acceptWithPorter(s,C.board(s)[0].id),false);
   assert.equal(C.select(s,['porter','warrior']),true);assert.equal(s.gold,gold);s.location='east';assert.equal(C.select(s,['porter']),false);
 });
 test('boards expose real deadline/reward tradeoff and refresh after trip',()=>{
   const s=C.create(),offers=C.board(s);assert.equal(offers[0].deadline,6);assert.equal(offers[0].reward,180);assert.equal(offers[1].deadline,10);assert.equal(offers[1].reward,150);
-  assert.equal(C.accept(s,offers[0].id),true);assert.deepEqual(C.board(s),[]);assert.equal(C.accept(s,offers[1].id),false);assert.equal(C.depart(s,offers[1].to),false);
+  assert.equal(acceptWithPorter(s,offers[0].id),true);assert.deepEqual(C.board(s),[]);assert.equal(acceptWithPorter(s,offers[1].id),false);assert.equal(C.depart(s,offers[1].to),false);
 });
 test('public-operation delivery accumulates separate battle loot/XP, cannot double claim',()=>{
   const s=C.create();trip(s,'east',{rest:false});assert.equal(s.result.outcome,'success');assert.equal(s.result.gold,180);assert.equal(s.gold,180+16+180);assert.equal(s.characters.guard.xp,40+100);assert.equal(s.xp,0);
@@ -62,7 +63,7 @@ test('six-hour deadline is on time, rest produces late payout',()=>{
   const s=C.create();trip(s,'east',{rest:true});assert.equal(s.result.hours,8);assert.equal(s.result.outcome,'late');assert.equal(s.result.gold,117);assert.equal(s.result.xp,60);
 });
 test('forecast handles quest and questless without fake reward',()=>{
-  const s=C.create();assert.equal(C.forecast(s,'short'),null);C.accept(s,C.board(s)[0].id);C.depart(s,'east');assert.equal(C.forecast(s,'short').hours,6);assert.equal(C.forecast(s,'short').late,false);assert.equal(C.forecast(s,'safe').late,true);
+  const s=C.create();assert.equal(C.forecast(s,'short'),null);acceptWithPorter(s,C.board(s)[0].id);C.depart(s,'east');assert.equal(C.forecast(s,'short').hours,6);assert.equal(C.forecast(s,'short').late,false);assert.equal(C.forecast(s,'safe').late,true);
   const t=C.create();C.depart(t,'north');assert.equal(C.forecast(t,'safe').reward,0);assert.equal(C.forecast(t,'safe').questless,true);
 });
 test('R08 ring routes prohibit opposite-village and unknown departures',()=>{
@@ -72,7 +73,7 @@ test('deployment can reset without rerolling enemies or spending resources',()=>
   const s=C.create();C.depart(s,'north');C.travel(s,'safe',random());const initial=clone(s.battle),enemy=clone(initial.units.filter(u=>u.side==='enemy'));assert.equal(C.deploy(s,'guard',0),true);assert.equal(C.deployment_reset(s),true);assert.deepEqual(clone(s.battle),initial);assert.deepEqual(s.battle.units.filter(u=>u.side==='enemy'),enemy);assert.equal(C.begin(s),true);assert.equal(C.deployment_reset(s),false);
 });
 test('quest failure restores snapshot from immediately before acceptance',()=>{
-  const s=C.create();C.select(s,['porter']);const before=clone(s);C.accept(s,C.board(s)[0].id);C.depart(s,'east');C.travel(s,'short',random());fight(s,true);assert.equal(s.result.outcome,'failed');assert.equal(s.result.restored,true);C.acknowledge(s);
+  const s=C.create();C.select(s,['porter']);const before=clone(s);acceptWithPorter(s,C.board(s)[0].id);C.depart(s,'east');C.travel(s,'short',random());fight(s,true);assert.equal(s.result.outcome,'failed');assert.equal(s.result.restored,true);C.acknowledge(s);
   for(const key of ['gold','xp','level','hours','selected','characters','inventory','sequence','completed','boardRound','location'])assert.deepEqual(s[key],before[key],key);okay(s);
 });
 test('questless failure restores departure snapshot',()=>{
@@ -120,7 +121,7 @@ test('growth points can wait and later change stats within available budget',()=
   const s=C.create();trip(s,'east',{rest:false});C.acknowledge(s);const c=s.characters.mage;assert.equal(c.statPoints,2);assert.equal(C.allocate(s,'mage','str',2),true);assert.equal(C.stats(c).str,16);assert.equal(c.statPoints,0);assert.equal(c.skillPoints,1);assert.equal(C.allocate(s,'mage','str',1),false);assert.equal(C.allocate(s,'mage','__proto__',1),false);okay(s);
 });
 test('JSON export/import restores independent exact current state',()=>{
-  const s=C.create();C.accept(s,C.board(s)[0].id);C.depart(s,'east');C.travel(s,'short',random());C.deploy(s,'guard',0);const copy=C.deserialize(C.serialize(s));assert.deepEqual(copy,clone(s));copy.gold++;assert.notEqual(copy.gold,s.gold);assert.deepEqual(C.deserialize(JSON.parse(C.serialize(s))),clone(s));
+  const s=C.create();acceptWithPorter(s,C.board(s)[0].id);C.depart(s,'east');C.travel(s,'short',random());C.deploy(s,'guard',0);const copy=C.deserialize(C.serialize(s));assert.deepEqual(copy,clone(s));copy.gold++;assert.notEqual(copy.gold,s.gold);assert.deepEqual(C.deserialize(JSON.parse(C.serialize(s))),clone(s));
 });
 test('invalid save types, huge input, versions and prototype payloads rejected',()=>{
   const good=JSON.parse(C.serialize(C.create()));for(const bad of ['{',null,{},'x'.repeat(C.MAX_SAVE_BYTES+1),JSON.stringify({...good,version:999})])assert.throws(()=>C.deserialize(bad));
@@ -136,11 +137,11 @@ test('invalid battle actor, tokens, duplicate cells and skill payloads rejected'
 });
 test('predeparture purchases also roll back to acceptance snapshot',()=>{
   const s=town('east');s.selected=['porter'];s.characters.porter.hp=1;const before=clone(s);
-  assert.equal(C.accept(s,C.board(s).find(q=>q.to==='astaris').id),true);assert.equal(C.buyGear(s,'porter','hammer-wood'),true);assert.equal(C.depart(s,'astaris'),true);C.travel(s,'short',random());fight(s,true);C.acknowledge(s);
+  assert.equal(acceptWithPorter(s,C.board(s).find(q=>q.to==='astaris').id),true);assert.equal(C.buyGear(s,'porter','hammer-wood'),true);assert.equal(C.depart(s,'astaris'),true);C.travel(s,'short',random());fight(s,true);C.acknowledge(s);
   for(const key of ['gold','characters','inventory','selected','hours','location'])assert.deepEqual(s[key],before[key]);
 });
 test('two-porters any-one failure restores entire expedition',()=>{
-  const s=C.create();assert.equal(C.select(s,['guard','archer','mage','porter','porter-2']),true);s.characters['porter-2'].hp=1;const before=clone(s);C.accept(s,C.board(s)[0].id);C.depart(s,'east');C.travel(s,'short',random());
+  const s=C.create();assert.equal(C.select(s,['guard','archer','mage','porter','porter-2']),true);s.characters['porter-2'].hp=1;const before=clone(s);acceptWithPorter(s,C.board(s)[0].id);C.depart(s,'east');C.travel(s,'short',random());
   const p=s.battle.units.find(u=>u.id==='porter-2');assert.equal(C.deploy(s,p.id,24),true);fight(s,true);assert.equal(s.result.outcome,'failed');C.acknowledge(s);assert.deepEqual(s.characters,before.characters);assert.equal(s.gold,before.gold);
 });
 test('bad encounter generator arguments leave trip untouched',()=>{
@@ -170,7 +171,7 @@ test('cover references and camp roster display cannot crash loaded UI',()=>{
   const injected=JSON.parse(C.serialize(C.create()));injected.state.characters.guard.name=null;assert.throws(()=>C.deserialize(injected));
 });
 test('journey deadlines and rewards have safe types and match accepted quest',()=>{
-  for(const quest of [false,true]){const s=C.create();if(quest)C.accept(s,C.board(s)[0].id);C.depart(s,quest?'east':'north');const good=JSON.parse(C.serialize(s));
+  for(const quest of [false,true]){const s=C.create();if(quest)acceptWithPorter(s,C.board(s)[0].id);C.depart(s,quest?'east':'north');const good=JSON.parse(C.serialize(s));
     for(const [key,value] of [['deadline','oops'],['deadline',null],['reward',{}],['name',null],['deadline',99],['reward',9999]]){const bad=clone(good);bad.state.journey.job[key]=value;assert.throws(()=>C.deserialize(bad));}
   }
 });
@@ -192,7 +193,7 @@ test('retreat rejects nonbattle/finished/stale battles without mutation',()=>{
 test('normal and questless retreats restore pretrip state and cannot double apply',()=>{
   for(const quest of [false,true]){
     const s=C.create(),before=clone(s);
-    if(quest)assert(C.accept(s,C.board(s)[0].id));
+    if(quest)assert(acceptWithPorter(s,C.board(s)[0].id));
     assert(C.depart(s,quest?'east':'north'));assert(C.travel(s,'safe',random()));fight(s);
     assert.equal(s.gold,before.gold+8);assert.equal(s.characters.guard.xp,before.characters.guard.xp+20);assert.equal(s.xp,before.xp);
     assert(C.onward(s));assert(C.travel(s,'safe',random()));assert(C.begin(s));
@@ -248,7 +249,7 @@ test('each village return reaches city, and questless arrivals retain exact vill
 test('village-origin failure and result reload restore origin, not attempted city',()=>{
   for(const quest of [true,false])for(const id of ['east','west','south','north']){
     let s=town(id);s.selected=['porter'];s.characters.porter.hp=1;const before=clone(s);
-    if(quest)assert(C.accept(s,C.board(s).find(q=>q.to==='astaris').id));
+    if(quest)assert(acceptWithPorter(s,C.board(s).find(q=>q.to==='astaris').id));
     assert(C.depart(s,'astaris'));assert(C.travel(s,'short',random()));fight(s,true);
     assert.equal(s.result.outcome,'failed');assert.equal(s.location,id);
     s=C.deserialize(C.serialize(s));assert(C.acknowledge(s));assertLocalTown(s,id);
@@ -305,7 +306,7 @@ test('inn rejects every active journey and result phase without mutation',()=>{
 });
 test('accepted quest inn cost and recovery roll back exactly on expedition failure',()=>{
   let s=C.create();assert(C.select(s,['porter']));s.characters.porter.hp=1;s.characters.porter.mp=0;
-  const before=clone(s);assert(C.accept(s,C.board(s)[0].id));const accepted=clone(s);
+  const before=clone(s);assert(acceptWithPorter(s,C.board(s)[0].id));const accepted=clone(s);
   assert(C.inn(s));assert.equal(s.gold,before.gold-30);assert.equal(s.characters.porter.hp,C.stats(s.characters.porter).max);
   assert.deepEqual(s.rollback,accepted.rollback);assert.deepEqual(s.activeQuest,accepted.activeQuest);okay(s);
   s=C.deserialize(C.serialize(s));assert(C.depart(s,'east'));assert(C.travel(s,'short',random()));fight(s,true);

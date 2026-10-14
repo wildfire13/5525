@@ -578,6 +578,11 @@ class CampaignApp(JourneyApp):
     def choose(self, uid):
         ids = self.selected_ids()[:]
         if uid in ids:
+            quest = self.campaign.get('activeQuest') or {}
+            if quest.get('cargoOwnerId') == uid and not messagebox.askyesno(
+                    '荷物を持つポーター', 'そのポーター、荷物を持っていますが、控えに戻してよいですか？\n荷物は本人が持ち続けます。控えのままでは納品できません。',
+                    parent=self.root, default=messagebox.NO):
+                return
             ids.remove(uid)
         else:
             ids.append(uid)
@@ -727,7 +732,10 @@ class CampaignApp(JourneyApp):
             self.row_button(row, '先へ進む', lambda: self.act('onward'))
         else:
             self.label(f'{self.town_name(journey.get("destination"))}に到着しました', 17, color='#86efac')
-            self.button('荷物を渡して報酬を確認' if job else '町へ入る（配達報酬なし）', lambda: self.act('arrive'))
+            missing = bool(job) and not self.campaign.get('cargoAboard', False)
+            if missing:
+                self.label('同行メンバーがこの依頼の「荷物」を持っていないため、納品できません。')
+            self.button('荷物を渡して報酬を確認' if job else '町へ入る（配達報酬なし）', lambda: self.act('arrive'), disabled=missing)
         if phase == 'camp':
             self.render_items()
         if journey.get('history'):
@@ -759,7 +767,28 @@ class CampaignApp(JourneyApp):
             self.label('クエスト受注には最低1人のポーターが必要です。ギルドで編成してください。自由移動は可能です。', color='#fca5a5')
 
     def accept_quest(self, quest_id):
-        result = self.act('accept', quest_id)
+        dialog = tk.Toplevel(self.root)
+        dialog.title('荷物を持つポーターを選択')
+        dialog.transient(self.root)
+        dialog.grab_set()
+        body = tk.Frame(dialog, bg=BG, padx=20, pady=16)
+        body.pack(fill='both', expand=True)
+        tk.Label(body, text='この依頼の「荷物」を受け取るポーターを選んでください。', bg=BG, fg=FG).pack()
+        token = self.campaign.get('inventoryToken')
+        def choose_owner(uid):
+            if token != self.campaign.get('inventoryToken'):
+                dialog.destroy()
+                return
+            dialog.destroy()
+            self.accept_with_owner(quest_id, uid)
+        for member in self.roster():
+            if member['id'] in self.selected_ids() and member.get('job') == 'porter':
+                tk.Button(body, text=member['name'], command=lambda uid=member['id']: choose_owner(uid)).pack(fill='x')
+        tk.Button(body, text='キャンセル', command=dialog.destroy).pack()
+        dialog.bind('<Escape>', lambda _: dialog.destroy())
+
+    def accept_with_owner(self, quest_id, owner_id):
+        result = self.act('accept', quest_id, owner_id)
         if result.get('ok'):
             self.destination = self.campaign['activeQuest']['to']
             self.set_page('map')

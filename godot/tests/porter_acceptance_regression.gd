@@ -27,7 +27,7 @@ func run():
 	reply=await game.engine.request({"op":"campaign","action":"accept","args":[qid]})
 	check(not reply.get("ok",true) and str(reply.get("error","")).contains("最低1人"),"zero porter acceptance explains required count")
 	await game.act("select",[["guard","porter-2"]]);await settle()
-	reply=await game.update({"op":"campaign","action":"accept","args":[qid]});await settle()
+	reply=await game.update({"op":"campaign","action":"accept","args":[qid,"porter-2"]});await settle()
 	check(reply.get("ok",false) and game.campaign().activeQuest is Dictionary,"one porter acceptance succeeds")
 	check(game.campaign().phase=="town","accept does not depart")
 	await game.act("select",[["guard"]]);await settle()

@@ -48,6 +48,7 @@ func run():
 	await capture("07-swift")
 	await game.update({"op":"campaign_load","data":original});game.navigate("board")
 	await game.pages.accept(game.campaign().board[0].id)
+	game.find_child("QuestCargoOwner_porter",true,false).pressed.emit()
 	await game.act("depart",[game.campaign().activeQuest.to,"convoy"]);await capture("08-road")
 	await game.act("travel",["safe"]);await capture("09-deployment")
 	await game.act("begin",[]);game.choose_command("guard");await capture("10-battle-commands")

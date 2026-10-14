@@ -1,11 +1,12 @@
 'use strict';
 // Synthetic review states only: victories are forced to reach result UI, not a combat proof.
 const C=require('../../native/campaign.js'),assert=require('node:assert/strict');
+function acceptWithPorter(s,id){return C.accept(s,id,s.selected.find(uid=>C.view(s).roster.find(u=>u.id===uid)?.job==='porter'));}
 const followup=require('./followup_ui_fixtures.cjs');
 function save(s){assert(C.validate(s).ok,C.validate(s).error);return JSON.parse(C.serialize(s));}
 function result(destination,accepted=false){
  const s=C.create();s.location=['east','west'].includes(destination)?'north':'east';
- if(accepted)assert(C.accept(s,C.board(s).find(q=>q.to===destination).id));
+ if(accepted)assert(acceptWithPorter(s,C.board(s).find(q=>q.to===destination).id));
  assert(C.depart(s,destination));
  for(let stage=0;stage<2;stage++){
   assert(C.travel(s,'safe',()=>0));assert(C.begin(s));

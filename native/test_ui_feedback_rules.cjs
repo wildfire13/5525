@@ -2,6 +2,7 @@
 // R04/R07/R08/R09: behavior checks, including rejection without partial writes.
 const assert=require('node:assert/strict');
 const C=require('./campaign.js'),B=require('./campaign-battle.js');
+function acceptWithPorter(s,id){return C.accept(s,id,s.selected.find(uid=>C.view(s).roster.find(u=>u.id===uid)?.job==='porter'));}
 let checks=0;
 function check(name,fn){fn();checks++;console.log('PASS '+name);}
 const copy=x=>JSON.parse(JSON.stringify(x));
@@ -50,14 +51,14 @@ check('R04 started legacy save preserves old conditions and intents; deployment 
 check('R08 every ring route supports accepted and questless saves and rollback',()=>{
   for(const origin of ['east','north','west','south'])for(const destination of C.destinations({location:origin}).map(p=>p.id).filter(id=>id!=='astaris'))for(const accepted of [false,true]){
     const s=C.create();s.location=origin;const before=copy(s);
-    if(accepted)assert(C.accept(s,C.board(s).find(q=>q.to===destination).id));
+    if(accepted)assert(acceptWithPorter(s,C.board(s).find(q=>q.to===destination).id));
     assert(C.depart(s,destination));valid(C.deserialize(C.serialize(s)));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));assert(C.retreat(s));assert.equal(s.result.restored,true);assert.deepEqual(s.characters,before.characters);assert.equal(s.location,origin);valid(s);
   }
 });
 check('R08 all eight directed ring journeys finish two real battles, reload, deliver once; R04 formation persists',()=>{
   for(const origin of ['east','north','west','south'])for(const destination of C.destinations({location:origin}).map(p=>p.id).filter(id=>id!=='astaris'))for(const accepted of [false,true]){
     let s=C.create();s.location=origin;
-    if(accepted)assert(C.accept(s,C.board(s).find(q=>q.to===destination).id));
+    if(accepted)assert(acceptWithPorter(s,C.board(s).find(q=>q.to===destination).id));
     assert(C.depart(s,destination));
     for(let stage=0;stage<2;stage++){
       assert(C.travel(s,'safe',()=>0));
