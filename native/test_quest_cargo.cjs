@@ -19,4 +19,30 @@ test('arrival with reserve cargo gives no reward or mutation',()=>{assert(C.depa
 s=make();C.accept(s,C.board(s)[0].id,'porter');const delivered=s.activeQuest.cargoItemId;C.depart(s,'east');s.journey.stage=2;s.journey.phase='delivery';s.journey.hours=4;s.phase='arrival';const gold=s.gold;
 test('delivery consumes actual cargo and records handover',()=>{assert(C.arrive(s));assert.equal(s.gold,gold+180);assert(!Object.hasOwn(s.characters.porter.inventory,delivered));assert(s.history.some(line=>line.includes('「荷物」を渡しました')));assert.equal(s.activeQuest,null);round(s);});
 test('second delivery cannot pay twice',()=>{before=C.serialize(s);assert(!C.arrive(s)&&C.serialize(s)===before);});
+test('porter KO restores preaccept inventory and allows fresh acceptance',()=>{
+ s=make();const original=JSON.parse(C.serialize(s)).state;
+ assert(C.accept(s,C.board(s)[0].id,'porter'));
+ const failedCargo=s.activeQuest.cargoItemId;
+ const q=C.inventoryQuote(s,'porter',failedCargo,'transfer','porter-2');
+ assert(C.inventoryAction(s,'porter',failedCargo,'transfer','porter-2',1,null,q.token));
+ assert(C.select(s,['porter-2']));
+ let seed=5525;const rng=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+ assert(C.depart(s,'east')&&C.travel(s,'short',rng)&&C.begin(s));
+ for(let turn=0;turn<300&&!s.battle.result;turn++)assert(C.act(s,'guard'));
+ assert(s.battle.result);assert(C.finishBattle(s));assert.equal(s.result.outcome,'failed');
+ assert.deepEqual(s.characters,original.characters);assert.equal(s.activeQuest,null);
+ assert(Object.values(s.characters).every(c=>!Object.keys(c.inventory).some(id=>id.startsWith('quest-cargo:'))));
+ round(s);assert(C.acknowledge(s));
+ assert(C.accept(s,C.board(s)[0].id,'porter-2'));
+ assert.equal(s.characters['porter-2'].inventory[s.activeQuest.cargoItemId],1);
+ assert(Object.values(s.characters).flatMap(c=>Object.keys(c.inventory)).filter(id=>id.startsWith('quest-cargo:')).length===1);
+ round(s);
+});
+test('retreat after moving cargo to reserve removes all issued cargo',()=>{
+ s=make();assert(C.accept(s,C.board(s)[0].id,'porter'));const issued=s.activeQuest.cargoItemId;
+ assert(C.select(s,['guard','porter-2'])&&C.depart(s,'east')&&C.travel(s,'short',()=>.5)&&C.begin(s));
+ assert(C.retreat(s));assert.equal(s.result.outcome,'failed');assert(!s.characters.porter.inventory[issued]);
+ round(s);assert(C.acknowledge(s)&&C.accept(s,C.board(s)[0].id,'porter'));
+ assert.equal(s.characters.porter.inventory[s.activeQuest.cargoItemId],1);round(s);
+});
 console.log(JSON.stringify({passed:true,checks,arrivalFixtures:'controlled stage-2 boundary; not a full battle playthrough'}));
