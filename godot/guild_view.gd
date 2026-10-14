@@ -131,6 +131,10 @@ func prepare(kind: String,outgoing: String,incoming: String):
 	mode=kind;generation+=1;var ticket=generation;var context=stamp();stage="confirm"
 	var text="%sを控えに戻し、%sを編成します。" % [ui.member_name(outgoing),ui.member_name(incoming)] if kind=="swap" else "%sを編成の末尾へ加えます。" % ui.member_name(incoming) if kind=="add" else "%sを控えへ戻します。人物・装備・所持品は保持します。" % ui.member_name(outgoing)
 	ui.dialog.open("編成変更の確認",func(body,actions):
+		var quest=c().get("activeQuest")
+		if kind in ["swap","remove"] and quest is Dictionary and quest.get("cargoOwnerId")==outgoing:
+			l(body,"そのポーター、荷物を持っていますが、控えに戻してよいですか？",true)
+			l(body,"荷物は本人が持ち続けます。控えのままでは納品できません。")
 		l(body,text,true);l(body,"編成変更は無料です。自動装備や所持品の移動は行いません。")
 		b(actions,"取り消す",ui.dialog.close).name="GuildConfirmCancel"
 		ui.primary(b(actions,"入れ替える" if kind=="swap" else "編成に加える" if kind=="add" else "控えへ戻す",commit.bind(kind,outgoing,incoming,ids,context,ticket))).name="GuildConfirm",

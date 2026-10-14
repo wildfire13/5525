@@ -7,6 +7,7 @@ const J = require('./journey.js');
 const E = require('./equipment-skills.js');
 const S = require('./equipment-slots.js');
 const I = require('./character-inventory.js');
+const Cargo = require('./quest-cargo.js');
 const {createHash,randomUUID} = require('node:crypto');
 const {isDeepStrictEqual} = require('node:util');
 const Campaign = (() => {
@@ -130,10 +131,11 @@ const Campaign = (() => {
     if(s.phase!=='town'||s.location!=='astaris'||!Array.isArray(ids)||ids.length<1||ids.length>5||new Set(ids).size!==ids.length||ids.some(id=>!template(id)))return false;
     s.selected=[...ids];invalidateInventory(s);note(s,'ギルドで無償編成。キャラ別の装備は保持。');return true;
   }
-  function accept(s,id) {
+  function accept(s,id,ownerId) {
     if(s.phase!=='town'||s.activeQuest||!hasPorter(s))return false;
     const quest=board(s).find(q=>q.id===id);if(!quest)return false;
-    s.rollback=snapshot(s);s.sequence++;s.activeQuest={...quest,token:s.sequence};note(s,quest.name+'を受注。');return true;
+    if(!s.selected.includes(ownerId)||template(ownerId)?.job!=='porter')return false;
+    s.rollback=snapshot(s);s.sequence++;s.activeQuest={...quest,token:s.sequence};Cargo.issue(s,ownerId);invalidateInventory(s);note(s,quest.name+'を受注。'+template(ownerId).name+'が「荷物」を受け取りました。');return true;
   }
   function depart(s,destination,formation='convoy') {
     if(s.phase!=='town'||!destinations(s).some(p=>p.id===destination)||!['convoy','flank'].includes(formation)||s.activeQuest&&s.activeQuest.to!==destination)return false;
@@ -238,7 +240,9 @@ const Campaign = (() => {
   }
   function arrive(s) {
     const j=s.journey;if(s.phase!=='arrival'||!j||j.stage!==2)return false;
+    if(s.activeQuest&&!Cargo.aboard(s))return false;
     const q=s.activeQuest,late=!!q&&j.hours>q.deadline,gold=q?Math.floor(q.reward*(late?.65:1)):0,xp=q?(late?60:q.xp):0;
+    if(q){if(!Cargo.consume(s))return false;invalidateInventory(s);note(s,'「荷物」を渡しました。'+q.cargo+'を引き渡しました。');}
     s.location=j.destination;s.gold+=gold;if(xp)gainXp(s,xp);if(q)s.completed++;
     s.boardRound++;s.phase='result';s.result={outcome:q?(late?'late':'success'):'travel',gold,xp,hours:j.hours,location:s.location,quest:q?.name||null,restored:false};
     note(s,q?`配達完了：${gold}G・依頼EXP＋${xp}${late?'（遅配）':''}。`:'未受注の移動で到着。配達報酬なし。');
@@ -327,6 +331,13 @@ const Campaign = (() => {
     const owner=template(ownerId)&&s.characters[ownerId],item=items.find(i=>i.id===id),g=getGear(id),definition=item||g;
     const q={ownerId,itemId:id,action,targetId,count,slot,token:inventoryToken(s),ok:false,reason:'',name:definition?.name||id,ownerName:template(ownerId)?.name||ownerId,targetName:template(targetId)?.name||targetId,available:owner?I.count(owner.inventory,id):0};
     const fail=reason=>({...q,reason});
+    if(Cargo.isKey(id)){
+      if(action!=='transfer')return fail('クエストの荷物です。使用・売却・廃棄はできません。');
+      if(!Cargo.validEntry(s,ownerId,id,count))return fail('荷物の所持者が変わりました。');
+      if(!['town','camp'].includes(s.phase)||!s.selected.includes(ownerId)||!s.selected.includes(targetId))return fail('町・野営で同行中のポーターに渡せます。');
+      if(targetId===ownerId||template(targetId)?.job!=='porter')return fail('荷物を持てるのはポーターだけです。');
+      return {...q,name:'荷物',ok:true};
+    }
     if(!owner||!definition||g?.type==='empty')return fail('所持品が見つかりません');
     if(!['town','camp'].includes(s.phase))return fail('町・野営で操作できます');
     if(!s.selected.includes(ownerId))return fail('編成中の仲間の所持品を操作できます');
@@ -364,6 +375,7 @@ const Campaign = (() => {
       if(action==='transfer'){
         const moved=I.transfer(owner.inventory,draft.characters[targetId].inventory,id,count);if(!moved)return false;
         owner.inventory=moved.source;draft.characters[targetId].inventory=moved.target;
+        if(Cargo.isKey(id))draft.activeQuest.cargoOwnerId=targetId;
       } else if(action==='unequip'){
         owner.inventory=I.add(owner.inventory,id,1);if(!owner.inventory)return false;
         owner[S.storage(slot)]=`empty-${slot}`;
@@ -386,6 +398,8 @@ const Campaign = (() => {
   function inventoryView(s,ownerId) {
     const owner=s.characters[ownerId];
     return {ownerId,token:inventoryToken(s),entries:Object.entries(owner.inventory).map(([id,count])=>{
+      const cargo=Cargo.definition(s,id);
+      if(cargo)return {id,name:'荷物',count,kind:'quest',definition:clone(cargo),useTargets:[],transferTargets:s.selected.filter(target=>target!==ownerId).map(target=>inventoryQuote(s,ownerId,id,'transfer',target)),discard:inventoryQuote(s,ownerId,id,'discard'),equipSlots:[]};
       const item=items.find(i=>i.id===id),g=getGear(id);
       return {id,name:(item||g).name,count,kind:item?'consumable':'equipment',definition:clone(item||g),
         useTargets:s.selected.map(target=>inventoryQuote(s,ownerId,id,'use',target)),
@@ -478,7 +492,7 @@ const Campaign = (() => {
     return true;
   }
   function view(s) {
-    return {...clone(s),inventory:inventoryTotals(s),inventoryTotals:inventoryTotals(s,Object.keys(s.characters)),inventoryToken:inventoryToken(s),saleAvailable:saleAvailable(s),inventoryByCharacter:Object.fromEntries(Object.keys(s.characters).map(id=>[id,inventoryView(s,id)])),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),routes:clone(routes),destinations:clone(destinations(s)),board:board(s),shop:shop(s),itemDefinitions:clone(items),provisional:[...provisional],
+    return {...clone(s),cargoAboard:Cargo.aboard(s),cargoCarriers:Cargo.carriers(s),inventory:inventoryTotals(s),inventoryTotals:inventoryTotals(s,Object.keys(s.characters)),inventoryToken:inventoryToken(s),saleAvailable:saleAvailable(s),inventoryByCharacter:Object.fromEntries(Object.keys(s.characters).map(id=>[id,inventoryView(s,id)])),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),routes:clone(routes),destinations:clone(destinations(s)),board:board(s),shop:shop(s),itemDefinitions:clone(items),provisional:[...provisional],
       slots:S.slots,skillNames:{...skills,invasion:'侵入'},skillDefinitions:clone(E.definitions),roster:B.roster.map(t=>{const c=s.characters[t.id];const st=stats(c);return {...t,...clone(c),allocationToken:allocationToken(s,t.id),max:st.max,maxMp:st.maxMp,atk:st.atk,agi:st.speed,reach:st.reach,stats:st,equipmentDetails:Object.fromEntries(Object.entries(st.equipment).map(([slot,id])=>[slot,clone(getGear(slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?st.equipment.rightHand:id))])),equipmentSlots:Object.entries(st.equipment).map(([slot,id])=>({slot,label:S.slots[slot],id,name:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?getGear(st.equipment.rightHand).name+'（両手装備で使用中）':getGear(id).name,occupiedBy:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?'rightHand':null})),activeSkillNames:st.activeSkills.map(id=>skills[id]),weaponName:getGear(c.weapon).name,armorName:getGear(c.armor).name,accessoryNames:['accessory1','accessory2'].map(slot=>getGear(c[slot]||defaultAccessory(c,slot)).name),skillName:st.activeSkills.map(id=>skills[id]).join(' / '),effectNames:st.effects.map(id=>skills[id]||'侵入')};}),
       guildAvailable:s.phase==='town'&&s.location==='astaris',hasPorter:hasPorter(s)};
   }
@@ -516,7 +530,7 @@ const Campaign = (() => {
       if(version===2){
         demand(record(c.inventory),'個人の所持品');
         demand(!Object.keys(c.inventory).some(id=>getGear(id)?.type==='empty'),'所持品に空の装備枠が含まれています。元セーブと現在の進行は変更していません。正常な別セーブを選んでください');
-        demand(Object.entries(c.inventory).every(([id,count])=>(items.some(item=>item.id===id)||getGear(id)&&getGear(id).type!=='empty')&&integer(count,1,1e10)),'個人の所持品');
+        demand(Object.entries(c.inventory).every(([id,count])=>Cargo.isKey(id)?Cargo.validEntry(s,t.id,id,count):(items.some(item=>item.id===id)||getGear(id)&&getGear(id).type!=='empty')&&integer(count,1,1e10)),'個人の所持品');
       }
       demand(c.equipmentRevision===undefined||c.equipmentRevision===2,'装備移行版');
       demand(record(c.allocations)&&Object.keys(c.allocations).length===3&&['str','int','agi'].every(k=>integer(c.allocations[k])),'能力配分');
@@ -532,6 +546,7 @@ const Campaign = (() => {
     demand(s.activeQuest===null||record(s.activeQuest),'依頼');
     if(s.activeQuest) {
       const q=s.activeQuest;demand(typeof q.id==='string'&&typeof q.name==='string'&&typeof q.client==='string'&&typeof q.cargo==='string'&&typeof q.text==='string','依頼内容');
+      if(Object.hasOwn(q,'cargoItemId')||Object.hasOwn(q,'cargoOwnerId'))demand(q.cargoItemId===Cargo.key(q.token)&&template(q.cargoOwnerId)?.job==='porter'&&Cargo.carriers(s).length===1&&Cargo.carriers(s)[0]===q.cargoOwnerId,'依頼荷物と所持者');
       demand(q.from===s.location&&destinations(s).some(p=>p.id===q.to)&&integer(q.reward,0,10000)&&integer(q.xp,0,1000)&&integer(q.deadline,1,100)&&integer(q.weight,1,100)&&q.token===s.sequence,'依頼条件');
       demand(s.phase!=='result','報酬の二重取得');
     }

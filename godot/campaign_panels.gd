@@ -87,7 +87,18 @@ func board(parent):
 	if not c().get("hasPorter",false):l(parent,"クエスト受注には最低1人のポーターが必要です。ギルドで編成してください。自由移動は可能です。")
 	l(parent,"直近の記録");l(parent,"\n".join(c().get("history",[]).slice(-6)))
 func accept(id: String):
-	await ui.act("accept",[id])
+	if ui.locked or ui.modal_open():return
+	var token=c().get("inventoryToken");var epoch=ui.pages.epoch
+	ui.dialog.open("荷物を持つポーターを選択",func(body,actions):
+		l(body,"この依頼の「荷物」を受け取るポーターを選んでください。")
+		for member in roster():
+			if c().selected.has(member.id) and member.job=="porter":
+				b(body,member.name,accept_with_owner.bind(id,member.id,token,epoch)).name="QuestCargoOwner_"+member.id
+		b(actions,"キャンセル",ui.dialog.close).name="QuestCargoCancel")
+func accept_with_owner(id: String,owner_id: String,token,epoch):
+	if ui.locked or epoch!=ui.pages.epoch or token!=c().get("inventoryToken"):return
+	ui.dialog.close(false)
+	await ui.act("accept",[id,owner_id])
 	if c().get("activeQuest") is Dictionary:ui.destination=c().activeQuest.to;ui.navigate("map")
 func select_destination(id: String):
 	ui.destination=id;ui.render()
@@ -141,7 +152,9 @@ func journey(parent):
 			b(actions,"次の区間へ",ui.act.bind("onward",[]));items(parent)
 		"arrival","delivery":
 			l(parent,town(journey_.get("destination",""))+"に到着しました",true)
-			b(parent,"荷物を渡して報酬を確認" if quest is Dictionary else "町へ入る（配達報酬なし）",ui.act.bind("arrive",[]))
+			var missing=quest is Dictionary and not c().get("cargoAboard",false)
+			if missing:l(parent,"同行メンバーがこの依頼の「荷物」を持っていないため、納品できません。")
+			b(parent,"荷物を渡して報酬を確認" if quest is Dictionary else "町へ入る（配達報酬なし）",ui.act.bind("arrive",[]),missing)
 	l(parent,"\n".join(journey_.get("history",[]).slice(-4)))
 func party(parent):party_view.render(parent)
 func reset_items():item_stage="entry";item_id=""

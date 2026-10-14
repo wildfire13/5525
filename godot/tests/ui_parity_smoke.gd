@@ -68,6 +68,7 @@ func run():
 	check(await snapshot()==initial,"map selection does not depart or consume resources")
 	var quest=game.campaign().board[0]
 	await game.pages.accept(quest.id);await settle()
+	game.find_child("QuestCargoOwner_porter",true,false).pressed.emit();await settle()
 	check(game.page=="map" and game.destination==quest.to,"accept goes to map with quest destination")
 	chart=game.content.find_child("TownMap",true,false)
 	check(chart.buttons.values().filter(func(v):return not v.disabled).size()==1,"active quest locks all other destinations")
