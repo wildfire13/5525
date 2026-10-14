@@ -529,6 +529,8 @@ const Campaign = (() => {
   function validateState(s,depth,version=VERSION) {
     if(depth===0)safeTree(s);
     demand(record(s)&&s.version===version,'バージョン');
+    demand(!Object.hasOwn(s,'cargoRevision')||s.cargoRevision===1,'未対応の荷物形式');
+    if(s.rollback)demand((s.cargoRevision===1)===(s.rollback.cargoRevision===1),'荷物形式と復元スナップショット');
     demand(['town','road','deployment','battle','camp','arrival','result'].includes(s.phase),'進行段階');
     demand(!!getPlace(s.location),'拠点');
     for(const key of ['gold','xp','hours','sequence','boardRound','completed'])demand(integer(s[key]),key);
@@ -672,6 +674,7 @@ const Campaign = (() => {
     } else demand(!['deployment','battle'].includes(s.phase),'戦闘情報なし');
   }
   function serialize(s) {
+    demand(s.cargoRevision===1,'保存前に旧形式の読込・移行が必要です');
     const checked=validate(s);if(!checked.ok)throw new Error(checked.error);
     const data=JSON.stringify({format:'5525-native-campaign',version:VERSION,cargoRevision:1,state:s},null,2);
     demand(Buffer.byteLength(data,'utf8')<=MAX_SAVE_BYTES,'保存サイズ');return data;
