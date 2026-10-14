@@ -15,11 +15,12 @@ func run():
 	game.audio.fast_mode=true;game.checks_fast=true
 	var seed=(await game.engine.request({"op":"campaign_save"})).data;seed.state.selected=["porter"]
 	var reply=await game.update({"op":"campaign_load","data":seed});game.navigate("party");await settle()
-	check(reply.get("ok",false) and game.campaign().selected==["porter"],"single fixed porter remains valid minimum composition")
+	check(reply.get("ok",false) and game.campaign().selected==["porter"],"single porter remains valid minimum composition")
 	await tap("GuildMember_guard")
-	check(game.find_child("GuildSwap",true,false).disabled and not game.find_child("GuildAdd",true,false).disabled,"no swappable member disables exchange but permits append")
+	check(not game.find_child("GuildSwap",true,false).disabled and not game.find_child("GuildAdd",true,false).disabled,"single porter can exchange with any reserve or append")
 	var guild=game.pages.guild_view;guild.begin_swap();await settle()
-	check(guild.stage=="idle" and not game.modal_open(),"unfulfillable counterpart picker cannot start")
+	check(guild.stage=="pick" and not game.modal_open(),"single porter counterpart picker is available")
+	guild.cancel_selection();await settle()
 	await tap("GuildAdd");await tap("GuildConfirm")
 	check(game.campaign().selected==["porter","guard"] and game.campaign().characters==seed.state.characters,"append to minimum party keeps order and all owner fields")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()

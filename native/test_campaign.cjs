@@ -37,8 +37,9 @@ test('city and four source-map villages, correct facilities',()=>{
   assert.deepEqual(C.locations.map(p=>p.facilities),[['board','guild','inn'],['board','weapon'],['board','armor'],['board','items'],['board','accessory']]);
   for(const p of C.locations){const s=town(p.id);assert.ok(C.board(s).length);assert.equal(C.view(s).guildAvailable,p.id==='astaris');okay(s);}
 });
-test('guild is city-only, free, max five, unique roster, mandatory porter',()=>{
-  const s=C.create(),gold=s.gold;for(const ids of [[],['guard'],['porter','porter'],['bogus','porter'],['porter','guard','archer','mage','scout','warrior']])assert.equal(C.select(s,ids),false);
+test('guild is city-only, free, max five, unique roster; porter required only at acceptance',()=>{
+  const s=C.create(),gold=s.gold;for(const ids of [[],['porter','porter'],['bogus','porter'],['porter','guard','archer','mage','scout','warrior']])assert.equal(C.select(s,ids),false);
+  assert.equal(C.select(s,['guard']),true);okay(s);assert.equal(C.accept(s,C.board(s)[0].id),false);
   assert.equal(C.select(s,['porter','warrior']),true);assert.equal(s.gold,gold);s.location='east';assert.equal(C.select(s,['porter']),false);
 });
 test('boards expose real deadline/reward tradeoff and refresh after trip',()=>{
@@ -126,7 +127,7 @@ test('invalid save types, huge input, versions and prototype payloads rejected',
   const pollution=JSON.stringify(good).replace('"state":{','"state":{"__proto__":{"polluted":true},');assert.throws(()=>C.deserialize(pollution));assert.equal({}.polluted,undefined);
 });
 test('invalid financial, roster, inventory, gear, resources and allocation saves rejected',()=>{
-  const good=JSON.parse(C.serialize(C.create()));const mutations=[s=>s.gold=-1,s=>s.gold='100',s=>s.selected=['guard'],s=>s.selected=['porter','porter'],s=>s.location='missing',s=>s.characters.guard.inventory.potion=100,s=>s.characters.guard.weapon='missing',s=>s.characters.guard.hp=999999,s=>s.characters.guard.allocations.str=100,s=>s.characters.mage.weapon='hammer-iron-1',s=>s.characters.guard.level=99,s=>s.phase='battle'];
+  const good=JSON.parse(C.serialize(C.create()));const mutations=[s=>s.gold=-1,s=>s.gold='100',s=>s.selected=[],s=>s.selected=['porter','porter'],s=>s.location='missing',s=>s.characters.guard.inventory.potion=100,s=>s.characters.guard.weapon='missing',s=>s.characters.guard.hp=999999,s=>s.characters.guard.allocations.str=100,s=>s.characters.mage.weapon='hammer-iron-1',s=>s.characters.guard.level=99,s=>s.phase='battle'];
   for(const change of mutations){const bad=clone(good);change(bad.state);assert.throws(()=>C.deserialize(bad));}
 });
 test('invalid battle actor, tokens, duplicate cells and skill payloads rejected',()=>{

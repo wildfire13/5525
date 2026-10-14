@@ -19,7 +19,7 @@ for(const id of ['porter','porter-2']){
  B.act(s,'guard');assert.equal(s.failure,'porter');assert.equal(s.actor,null);assert.equal(B.act(s,'guard'),false);assert.ok(s.units.some(u=>u.side==='ally'&&u.hp>0));
  const j=J.create();J.accept(j,'parts');J.depart(j,'medicine','convoy');J.travel(j,'short');assert.ok(J.finishBattle(j,s));assert.equal(j.outcome,'failed');assert.equal(j.stage,0);
 }
-const j=J.create();j.selected=['guard'];assert.equal(J.accept(j,'parts'),false);j.selected=['porter'];J.accept(j,'parts');J.select(j,['guard']);assert.equal(J.depart(j,'medicine','convoy'),false);J.select(j,['porter','porter-2','guard','archer','mage']);assert.ok(J.depart(j,'medicine','convoy'));
+const j=J.create();j.selected=['guard'];assert.equal(J.accept(j,'parts'),false);j.selected=['porter'];J.accept(j,'parts');J.select(j,['guard']);assert.equal(J.depart(j,'medicine','convoy'),true);const multiple=J.create();J.accept(multiple,'parts');J.select(multiple,['porter','porter-2','guard','archer','mage']);assert.ok(J.depart(multiple,'medicine','convoy'));
 s=make();turn(s,'porter');unit(s,'mage').pos=43;assert.equal(B.act(s,'skill','porter'),false);assert.equal(unit(s,'porter').mp,6,'invalid formation consumes no MP');
 const ids=B.roster.map(u=>u.id);let count=0;
 for(let a=0;a<ids.length-4;a++)for(let b=a+1;b<ids.length-3;b++)for(let c=b+1;c<ids.length-2;c++)for(let d=c+1;d<ids.length-1;d++)for(let e=d+1;e<ids.length;e++){

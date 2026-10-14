@@ -581,10 +581,6 @@ class CampaignApp(JourneyApp):
             ids.remove(uid)
         else:
             ids.append(uid)
-        if not any(member['id'] in ids and member.get('job') == 'porter' for member in self.roster()):
-            self.notice = 'ポーターは最低1人必要です。別のポーターを加えてから外してください'
-            self.render()
-            return
         self.act('select', ids)
 
     def render(self, reset_scroll=False):
@@ -760,7 +756,7 @@ class CampaignApp(JourneyApp):
             self.button('この依頼を引き受ける', lambda qid=quest['id']: self.accept_quest(qid), parent=frame,
                         disabled=not self.campaign.get('hasPorter'))
         if not self.campaign.get('hasPorter'):
-            self.label('受注・出発にはポーターが必要です。ギルドで編成してください。', color='#fca5a5')
+            self.label('クエスト受注には最低1人のポーターが必要です。ギルドで編成してください。自由移動は可能です。', color='#fca5a5')
 
     def accept_quest(self, quest_id):
         result = self.act('accept', quest_id)
@@ -823,7 +819,7 @@ class CampaignApp(JourneyApp):
                            bg=BG, fg=FG, selectcolor='#334155', activebackground=BG).pack(side='left', padx=(0, 18))
         self.button(f'{self.town_name(self.destination)}へ出発' if self.destination else '行先がありません',
                     lambda: self.act('depart', self.destination, self.formation.get()),
-                    disabled=not self.destination or not self.campaign.get('hasPorter'))
+                    disabled=not self.destination)
 
     def member_stats(self, member):
         stats = member.get('stats') or member
@@ -833,7 +829,7 @@ class CampaignApp(JourneyApp):
     def render_party(self):
         guild = self.campaign.get('guildAvailable', False)
         self.label('アスタリスのギルド' if guild else '仲間と装備', 18)
-        self.label('候補11人・最大5人 / 雇用無料 / 出発にはポーター必須' if guild else
+        self.label('候補11人・最大5人 / 編成変更無料 / ポーターはクエスト受注時に最低1人' if guild else
                    '編成変更はアスタリスのギルドで行います。装備はキャラクターごとに保持されます。', 11, color=MUTED)
         selected = self.selected_ids()
         grid = tk.Frame(self.panel, bg=BG)

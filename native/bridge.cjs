@@ -177,7 +177,7 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
           result=captured.ok;openingVoices=captured.events;
         } else result=C[r.action](campaign,...args);
       } else throw Error('Unknown campaign action');
-      if(!response){syncCampaign();if(!(r.action==='begin'&&r.presentation&&result))record('campaign.'+r.action,{args,accepted:!!result});response=view(!!result,result?null:campaign.error||'現在の状態では実行できません');}
+      if(!response){syncCampaign();if(!(r.action==='begin'&&r.presentation&&result))record('campaign.'+r.action,{args,accepted:!!result});response=view(!!result,result?null:r.action==='accept'&&!C.view(campaign).hasPorter?'クエスト受注には最低1人のポーターが必要です。':campaign.error||'現在の状態では実行できません');}
       if(openingVoices)response.voiceEvents=openingVoices;
     }
     else if(r.op==='journey') {

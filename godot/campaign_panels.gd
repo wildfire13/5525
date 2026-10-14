@@ -84,7 +84,7 @@ func board(parent):
 			var box=card(parent);l(box,q.name,true);quest_info(box,q)
 			b(box,"この依頼を引き受ける",accept.bind(q.id),not c().get("hasPorter",false))
 		b(parent,"地図・出発 / 自由移動",ui.navigate.bind("map"))
-	if not c().get("hasPorter",false):l(parent,"受注・出発にはポーターが必要です。ギルドで編成してください。")
+	if not c().get("hasPorter",false):l(parent,"クエスト受注には最低1人のポーターが必要です。ギルドで編成してください。自由移動は可能です。")
 	l(parent,"直近の記録");l(parent,"\n".join(c().get("history",[]).slice(-6)))
 func accept(id: String):
 	await ui.act("accept",[id])
@@ -110,7 +110,7 @@ func map(parent):
 	for id in available:b(choices,("● " if ui.destination==id else "")+town(id),select_destination.bind(id),quest is Dictionary and quest.to!=id)
 	muted(parent,"未受注での移動も戦闘・消耗があります。配達報酬はありません。追加の移動料金はありません。")
 	l(parent,"編成: "+" / ".join(roster().filter(func(u):return c().selected.has(u.id)).map(func(u):return u.name)))
-	b(parent,town(ui.destination)+"へ出発" if not ui.destination.is_empty() else "行先がありません",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not c().get("hasPorter",false))
+	b(parent,town(ui.destination)+"へ出発" if not ui.destination.is_empty() else "行先がありません",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty())
 func choose_formation(value: String):ui.formation=value;ui.render()
 func shop_guide(parent):
 	l(parent,"武器はイース、防具はウエス、道具はサウス、装飾品はノースで購入できます。")
