@@ -8,7 +8,6 @@ var quote_generation := 0
 var quote_pending := false
 var quote_stamp := ""
 var trial_return: Dictionary={}
-var current_equipment_open := false
 var cached_quotes: Dictionary={}
 var party_focus_after := ""
 var shop_view
@@ -258,51 +257,6 @@ func shop(parent):
 		shop_guide(parent);return
 	shop_view.render(parent)
 func select_slot(slot: String):await shop_view.select_slot(slot)
-func quote(parent,q: Dictionary):
-	var summary=l(parent,ui.member_name(ui.shop_uid)+" / "+str(c().get("slots",{}).get(ui.shop_slot,ui.shop_slot))+(" / " if ui.ui_size_mode=="narrow" else "\n")+str(q.get("current",{}).get("name",q.get("oldGearId","")))+" → "+str(q.gear.name));ui.short_name(summary,summary.text)
-	if ui.ui_size_mode=="narrow":summary.max_lines_visible=1
-	var money=l(parent,("価格%d − 下取り%d = 差額%dG"+(" / " if ui.ui_size_mode=="narrow" else "\n")+"所持金%dG → 購入後%dG") % [q.price,q.tradeIn,q.cost,c().gold,q.afterGold]);money.name="QuoteMoney"
-	var reason=quote_reason(q)
-	var body=ui.scroller(parent);body.get_parent().name="ShopComparisonScroll";body.get_parent().custom_minimum_size.y=64;ui.memory.watch(body.get_parent(),"shop_compare")
-	if not reason.is_empty():l(body,reason)
-	var table=GridContainer.new();table.name="GearComparison";table.columns=4;table.size_flags_horizontal=Control.SIZE_EXPAND_FILL;table.add_theme_constant_override("h_separation",12);body.add_child(table);ui.memory.item(table,"comparison")
-	for title in ["項目","現在","候補","変化"]:l(table,title)
-	for stat in [["max","HP上限"],["maxMp","MP上限"]]:compare_numbers(table,stat[1],int(q.before.get(stat[0],0)),int(q.after.get(stat[0],0)))
-	for distance in range(1,maxi(1,maxi(normal_reach(q.before),normal_reach(q.after)))+1):
-		l(table,"通常ATK / 距離%d" % distance)
-		var old_reaches=distance<=normal_reach(q.before);var new_reaches=distance<=normal_reach(q.after)
-		var before_=normal_atk(q.before,distance);var after_=normal_atk(q.after,distance)
-		l(table,str(before_) if old_reaches else "射程外");l(table,str(after_) if new_reaches else "射程外")
-		l(table,"%+d" % (after_-before_) if old_reaches and new_reaches else "届く" if new_reaches else "届かない" if old_reaches else "—")
-	compare_numbers(table,"最大通常射程",normal_reach(q.before),normal_reach(q.after))
-	compare_numbers(table,"行動速度",int(q.before.get("speed",0)),int(q.after.get("speed",0)))
-	for field in table.get_children():
-		field.autowrap_mode=TextServer.AUTOWRAP_OFF;field.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	ui.memory.item(muted(body,"通常ATKはその距離に届く武器の合算＋成長補正1回。陣形・スキル倍率・相手の防御は含みません。"),"attack_explanation")
-	ui.memory.item(l(body,"装備中のスキル: "+q.get("skillName","")),"skills")
-	ui.memory.item(l(body,str(q.get("effectDescription",""))),"effects")
-	if q.get("reason") is String and not q.reason.is_empty():l(body,q.reason)
-	muted(body,"購入すると現在の同じ枠の装備は下取りされます。予備装備としては残りません。")
-	muted(body,q.get("warning","試着と取消では所持金・装備は変わりません"))
-	ui.local_button(body,"現在装備8枠を閉じる" if current_equipment_open else "現在装備8枠を見る",func():current_equipment_open=not current_equipment_open;ui.render())
-	if current_equipment_open:
-		for member in roster():
-			if member.id==ui.shop_uid:equipment(body,member)
-	var actions=row(parent);actions.name="ShopActions"
-	b(actions,"木人で試す",start_trial,not q.eligible or not q.available)
-	var purchase_button=ui.primary(b(actions,"差額%dGで買い替える" % q.cost,purchase.bind(q.duplicate(true)),not(q.eligible and q.affordable and q.available) or q.same));ui.memory.key(purchase_button,"shop_buy")
-	purchase_button.tooltip_text=reason;purchase_button.disabled=true
-	body.get_parent().resized.connect(refresh_purchase_availability.bind(purchase_button))
-	body.get_parent().visibility_changed.connect(refresh_purchase_availability.bind(purchase_button))
-	refresh_purchase_availability(purchase_button)
-	ui.memory.key(ui.local_button(actions,"比較を閉じる",cancel_quote),"shop_close")
-func comparison_visible() -> bool:
-	var pane=ui.find_child("ShopComparisonScroll",true,false)
-	return pane is ScrollContainer and pane.is_visible_in_tree() and pane.size.y>=64 and ui.get_viewport_rect().grow(1).encloses(pane.get_global_rect())
-func refresh_purchase_availability(control):
-	await ui.get_tree().process_frame
-	if is_instance_valid(control) and control.is_inside_tree():
-		control.disabled=control.get_meta("base_disabled",true) or not quote_valid() or ui.locked or ui.presenting or not comparison_visible()
 func purchase(_q: Dictionary):shop_view.confirm_purchase()
 func buy(id: String):
 	await shop_view.confirm_purchase(id)
@@ -332,19 +286,6 @@ func result(parent):
 	l(parent,"\n".join(c().get("history",[]).slice(-5)))
 func acknowledge(page: String):ui.page=page;await ui.act("acknowledge",[])
 
-func party_row(parent,u: Dictionary):
-	var r=row(parent);ui.memory.item(r,str(u.id));ui.portrait(r,u,true,36)
-	var box=VBoxContainer.new();box.size_flags_horizontal=Control.SIZE_EXPAND_FILL;r.add_child(box)
-	var control=ui.local_button(box,("● " if u.id==party_uid else "")+str(u.name)+" / "+str(u.get("role","")),select_party.bind(str(u.id)))
-	control.clip_text=true;control.alignment=HORIZONTAL_ALIGNMENT_LEFT;control.tooltip_text=str(u.name)+" / "+str(u.get("role",""));ui.memory.key(control,"party_"+str(u.id))
-	control.gui_input.connect(func(event):
-		if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_UP,KEY_DOWN]:
-			var ids=c().get("selected",[]).duplicate()
-			for member in ui.visible_roster():
-				if not ids.has(member.id):ids.append(member.id)
-			var index=ids.find(u.id);var next=clampi(index+(-1 if event.keycode==KEY_UP else 1),0,ids.size()-1)
-			ui.memory.request_focus("party_"+str(ids[next]),true);select_party(str(ids[next]));control.accept_event())
-	var hp=l(box,"HP%d/%d MP%d/%d%s" % [u.hp,u.max,u.mp,u.maxMp," KO" if u.hp<=0 else ""]);hp.add_theme_font_size_override("font_size",16);ui.emphasize_low_hp(hp,u)
 func select_party(id: String):
 	if not ui.can_inspect_member(id):return
 	if id!=party_uid and not party_view.guard_leave(select_party.bind(id)):return
@@ -356,40 +297,6 @@ func change_membership(id: String):
 	ui.memory.request_focus("party_"+id,true);ui.memory.restore()
 func offered() -> Array:
 	return shop_view.offered()
-func product_effect(g: Dictionary) -> String:
-	if str(g.id).begins_with("empty-"):return "装備なし"
-	var parts=[]
-	if g.slot=="weapon":parts.append("ATK%d 射程%d" % [g.get("atk",0),g.get("reach",0)])
-	if g.get("hp",0)!=0:parts.append("HP%+d" % g.hp)
-	# The catalog already owns the effect description; do not duplicate rules.
-	if g.has("effect") or g.has("skill"):
-		var note=str(g.get("note","")).split("。")[0]
-		if not note.is_empty():parts.append(note)
-	return " / ".join(parts) if not parts.is_empty() else "能力補正なし"
-func product_row(parent,g: Dictionary):
-	var requirements=[]
-	for stat in ["str","int","agi"]:
-		if g.get(stat,0)>0:requirements.append("%s%d" % [stat.to_upper(),g[stat]])
-	var effect=product_effect(g)
-	var eligibility="条件未確認"
-	if cached_quotes.has(selection_key(str(g.id))):
-		var cached: Dictionary=cached_quotes[selection_key(str(g.id))];eligibility="装備可" if cached.eligible else "条件不適合"
-	var caption=("● " if gear_id==g.id else "")+str(g.name)+" / %dG" % g.price+"\n"+effect+" / "+("・".join(requirements) if not requirements.is_empty() else "条件なし")+" / "+eligibility
-	var control=ui.local_button(parent,caption,ui.preview_gear.bind(str(g.id)));control.name="Product_"+str(g.id);control.custom_minimum_size.y=52;control.alignment=HORIZONTAL_ALIGNMENT_LEFT;control.clip_text=true
-	control.tooltip_text=str(g.name)+"\n"+str(g.get("note",""))+"\n"+caption;ui.memory.key(control,"product_"+str(g.id));ui.memory.item(control,str(g.id))
-	control.gui_input.connect(func(event):
-		if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_UP,KEY_DOWN]:
-			var list=offered();var index=list.find(g);var next=clampi(index+(-1 if event.keycode==KEY_UP else 1),0,list.size()-1)
-			ui.memory.request_focus("product_"+str(list[next].id),true);ui.preview_gear(str(list[next].id));control.accept_event())
-func compare_numbers(parent,title: String,before_: int,after_: int):
-	l(parent,title);l(parent,str(before_));l(parent,str(after_));l(parent,"%+d" % (after_-before_))
-func quote_reason(q: Dictionary) -> String:
-	var reasons=[]
-	if not q.eligible:reasons.append(str(q.get("reason","装備条件を満たしていません")))
-	if not q.affordable:reasons.append("所持金が不足 / 木人は試用可能" if q.eligible and q.available else "所持金が不足")
-	if q.same:reasons.append("現在装備 / すでにこの装備を装備しています")
-	if not q.available:reasons.append("この店の取扱外")
-	return " / ".join(reasons)
 func selection_key(id: String) -> String:
 	var character=c().get("characters",{}).get(ui.shop_uid,{}).duplicate(true)
 	for key in ["inventory","hp","mp"]:character.erase(key)
@@ -402,7 +309,7 @@ func invalidate_quote(clear_id:=false):
 func reset_context(plan_mode: String="discard",campaign_id: String=""):
 	if ui.hud!=null:ui.hud.reset_context()
 	reset_items();shop_view.reset(plan_mode,campaign_id);guild_view.reset();party_view.reset();party_view.tab=0;party_view.highlight_slot=""
-	epoch+=1;invalidate_quote(true);trial_return={};cached_quotes={};current_equipment_open=false
+	epoch+=1;invalidate_quote(true);trial_return={};cached_quotes={}
 func request_quote(id: String):await shop_view.select_product(id)
 func select_member(uid: String):await shop_view.select_member(uid)
 func remember_trial(args: Array):
