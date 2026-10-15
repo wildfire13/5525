@@ -15,7 +15,8 @@ var committing := false
 var leave_pending := false
 var modal_refreshing := false
 var inventory_view
-func _init(owner):owner_ref=weakref(owner);ui=owner.ui;inventory_view=preload("res://inventory_view.gd").new(self)
+var owned_equipment_view
+func _init(owner):owner_ref=weakref(owner);ui=owner.ui;inventory_view=preload("res://inventory_view.gd").new(self);owned_equipment_view=preload("res://owned_equipment_view.gd").new(self)
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func render(parent):
@@ -102,7 +103,7 @@ func equipment_name(e: Dictionary) -> String:
 	return str(e.get("name","なし")).trim_prefix(str(e.label)+":").trim_prefix(str(e.label)+"：").strip_edges()
 func open_equipment(u: Dictionary,e: Dictionary):
 	if not ui.can_inspect_member(str(u.id)):return
-	if not detail_uid.is_empty():detail_gear=u.get("equipmentDetails",{}).get(e.slot,{});refresh_modal();return
+	if not detail_uid.is_empty():detail_gear=u.get("equipmentDetails",{}).get(e.slot,{});owned_equipment_view.slot=str(e.slot);refresh_modal();return
 	if not guard_leave(open_equipment.bind(u,e)):return
 	highlight_slot=e.slot;ui.render()
 	ui.dialog.open(str(e.label)+" / "+equipment_name(e),func(body,actions):
@@ -157,7 +158,7 @@ func identity(parent,u: Dictionary):
 	label.autowrap_mode=TextServer.AUTOWRAP_OFF
 func draft_total() -> int:return int(draft.str)+int(draft.int)+int(draft.agi)
 func clear_draft():draft={"str":0,"int":0,"agi":0};draft_uid="";draft_token=""
-func reset():clear_draft();detail_uid="";detail_gear={};committing=false;leave_pending=false;inventory_view.reset()
+func reset():clear_draft();detail_uid="";detail_gear={};committing=false;leave_pending=false;inventory_view.reset();owned_equipment_view.reset()
 func ensure_draft(u: Dictionary):
 	if draft_uid!=str(u.id) or draft_token!=str(u.get("allocationToken","")):
 		clear_draft();draft_uid=str(u.id);draft_token=str(u.get("allocationToken",""))
@@ -210,7 +211,7 @@ func face_bar(parent):
 func open_detail(uid: String):
 	if ui.locked or ui.presenting or ui.modal_open() or not ui.can_inspect_member(uid):return
 	if not guard_leave(open_detail.bind(uid)):return
-	detail_uid=uid;detail_tab=0;detail_gear={};inventory_view.reset()
+	detail_uid=uid;detail_tab=0;detail_gear={};inventory_view.reset();owned_equipment_view.reset()
 	ui.dialog.open("ステータス",func(_body,actions):
 		ui.local_button(actions,"戻る",detail_back).name="StatusBack"
 		ui.local_button(actions,"ステータスを閉じる",ui.dialog.close).name="StatusClose",func():detail_uid="";detail_gear={};inventory_view.reset();ui.render())
@@ -251,6 +252,7 @@ func refresh_modal():
 				for e in u.get("equipmentSlots",[]):
 					if e.id==detail_gear.get("id") and e.get("occupiedBy")==null and detail_gear.get("type")!="empty":
 						b(body,str(e.label)+"から外して所持品へ",inventory_view.prepare_unequip.bind(detail_uid,str(e.id),str(e.slot)),pages.c().get("phase") not in ["town","camp"] or not pages.c().get("selected",[]).has(detail_uid))
+			owned_equipment_view.render(body,u)
 		1:growth(body,u)
 		2:skills(body,u)
 		3:inventory_view.render(body,detail_uid)

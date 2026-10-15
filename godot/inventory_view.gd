@@ -12,6 +12,7 @@ var amount := 1
 var quote: Dictionary={}
 var message := ""
 var generation := 0
+var equipment_comparison := ""
 
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
 func c() -> Dictionary:return ui.campaign()
@@ -19,6 +20,7 @@ func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func redraw():party.refresh_modal()
 func reset():
+	equipment_comparison=""
 	owner_id="";item_id="";action="";stage="list";amount=1;quote={};message="";generation+=1
 func data() -> Dictionary:return c().get("inventoryByCharacter",{}).get(owner_id,{})
 func selected() -> Dictionary:
@@ -29,6 +31,7 @@ func available() -> bool:return not ui.locked and not ui.presenting and not ui.c
 func sale_available() -> bool:return ui.page=="shop" and c().get("saleAvailable",false) and c().get("selected",[]).has(owner_id)
 func pick(id: String):
 	if not available():return
+	equipment_comparison=""
 	item_id=id;stage="actions";action="";amount=1;quote={};message="";redraw()
 func back() -> bool:
 	if not available() or stage=="list":return false
@@ -37,6 +40,7 @@ func back() -> bool:
 	quote={};message="";generation+=1;redraw();return true
 func choose(kind: String):
 	if not available():return
+	equipment_comparison=""
 	action=kind;amount=1;quote={};message=""
 	stage="targets";redraw()
 func choose_sale(id: String):
@@ -120,6 +124,8 @@ func prepare_unequip(uid: String,id: String,slot: String):
 	party.detail_tab=3;await prepare(null,slot)
 
 func render_confirmation(parent):
+	if quote.get("action")=="equip" and not equipment_comparison.is_empty():
+		var comparison=RichTextLabel.new();comparison.name="OwnedEquipmentConfirmedComparison";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;comparison.text=equipment_comparison;parent.add_child(comparison)
 	l(parent,"%sの %s / %d個" % [quote.get("ownerName",""),quote.get("name",""),quote.get("count",0)],true)
 	var verb={"use":"使用する","transfer":"渡す","discard":"捨てる","equip":"装備する","unequip":"装備を外す","sell":"売却する"}.get(quote.get("action"),"確定")
 	if quote.get("action")=="use":l(parent,"対象: %s / %s %d → %d / 消費1個" % [quote.targetName,str(quote.resource).to_upper(),quote.before,quote.after])
