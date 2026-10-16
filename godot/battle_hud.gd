@@ -74,9 +74,9 @@ func mount():
 	ui.board=preload("res://battle_board.gd").new();ui.board.preferences=ui.preferences;ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";ui.add_child(ui.board);ui.move_child(ui.board,0);ui.board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deploy_drag.connect(ui.deploy_dragged);ui.board.enemy_focused.connect(inspect_enemy);ui.board.unit_hovered.connect(inspect_hover.bind(ui.board))
 	left_panel=preload("res://floating_panel.gd").new();middle.add_child(left_panel)
-	left_panel.configure(ui.preferences,"battle_actor","行動者 / コマンド",Rect2(0,50,320,650))
+	left_panel.configure(ui.preferences,"battle_actor","行動者 / コマンド",Rect2(0,76,320,650))
 	right_panel=preload("res://floating_panel.gd").new();middle.add_child(right_panel)
-	right_panel.configure(ui.preferences,"battle_target","対象 / 効果",Rect2(maxf(0,ui.size.x-380),50,330,620))
+	right_panel.configure(ui.preferences,"battle_target","対象 / 効果",Rect2(maxf(0,ui.size.x-380),76,330,620))
 	dock=left_panel
 	tools=HBoxContainer.new();tools.name="BattleTools";middle.add_child(tools)
 	intent_strip=HBoxContainer.new();intent_strip.name="FixedIntentStrip";intent_strip.visible=false;middle.add_child(intent_strip)
@@ -86,7 +86,8 @@ func mount():
 	resize()
 func resize():
 	if not is_instance_valid(left_panel) or middle.size.x<100:return
-	left_panel.constrain();right_panel.constrain();tools.size=Vector2(middle.size.x,52)
+	left_panel.reserved_top=76;right_panel.reserved_top=76
+	left_panel.constrain();right_panel.constrain();tools.size=Vector2(middle.size.x,56)
 	ui.battle_header.position.y=maxf(0,middle.size.y-64);ui.battle_header.size.x=middle.size.x
 func render():
 	var s=ui.state();var phase=ui.data.get("presentation");var a=acting()
@@ -94,13 +95,14 @@ func render():
 	if not s.get("deploying",false) and s.get("result")==null and not ui.presenting and not phase is Dictionary and (a.get("id","")!=last_actor or int(s.get("actions",0))!=last_action_count):
 		item_list=false;action_menu=true;selected_cell=-1;selected_enemy="";inspected_uid="";range_reference=false;ui.invalidate_preview();last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0));ui.memory.request_focus("command_attack")
 	update_board()
-	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(left_panel.body);ui.clear(right_panel.body)
+	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(left_panel.body);ui.clear(right_panel.body);ui.clear(right_panel.footer)
 	render_queue();render_actor(a)
 	local(tools,"行動履歴",open_history).name="BattleHistory"
 	local(tools,"予告・全順番",toggle_details)
 	if ui.data.get("trial") is Dictionary:
 		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.name="EndTrial";end.custom_minimum_size=Vector2(160,52)
-	else:b(tools,"撤退",func():ui.confirm("旅を中止し、受注・出発前の状態へ戻します。",ui.act.bind("retreat",[])),ui.presenting)
+	else:
+		var retreat=b(tools,"撤退",func():ui.confirm("旅を中止し、受注・出発前の状態へ戻します。",ui.act.bind("retreat",[])),ui.presenting);retreat.name="Retreat";retreat.custom_minimum_size=Vector2(160,52)
 	tools.tooltip_text="右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小"
 	var hint=l(tools,tools.tooltip_text);hint.add_theme_font_size_override("font_size",16);hint.autowrap_mode=TextServer.AUTOWRAP_OFF;hint.clip_text=true;hint.max_lines_visible=1
 	left_panel.visible=(a.get("side")=="ally" and not s.get("deploying",false) and s.get("result")==null) or ui.engine.disconnected
@@ -113,7 +115,7 @@ func render():
 	actor_box=left_info;command_box=left_info
 	person_box=VBoxContainer.new();person_box.name="BattlePersonInfo";right_panel.body.add_child(person_box);render_person()
 	target_box=VBoxContainer.new();target_box.name="DecisionContent";right_panel.body.add_child(target_box)
-	decision_footer=VBoxContainer.new();right_panel.body.add_child(decision_footer)
+	decision_footer=right_panel.footer
 	if ui.engine.disconnected:l(command_box,"接続が終了しました",true)
 	elif phase is Dictionary:render_presentation(phase)
 	elif s.get("deploying",false):render_deployment()
@@ -148,12 +150,12 @@ func render_queue():
 		if index>0:l(band,"←")
 		var entry=entries[index];var u=entry.unit
 		if u.is_empty():continue
-		var panel=PanelContainer.new();panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;band.add_child(panel)
+		var panel=PanelContainer.new();panel.custom_minimum_size.x=180;band.add_child(panel)
 		var style=StyleBoxFlat.new();style.bg_color=Color("#344b50") if u.side=="ally" else Color("#594049");style.set_content_margin_all(2);style.set_corner_radius_all(4)
 		if index==0:style.set_border_width_all(1);style.border_color=Color("#ffe197")
 		panel.add_theme_stylebox_override("panel",style);panel.tooltip_text=str(u.name)
 		var row=ui.row(panel);ui.portrait(row,u,true,32 if ui.ui_size_mode=="standard" else 24)
-		var label=l(row,("● " if index==0 else "")+str(u.name));label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size.y=20;label.clip_text=true;label.max_lines_visible=1
+		var label=l(row,("● " if index==0 else "")+str(u.name));label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size=Vector2(132,24);label.clip_text=true;label.max_lines_visible=1;label.tooltip_text=str(u.name)
 	var all_=local(band,"全順番",toggle_details);all_.custom_minimum_size.y=40 if ui.ui_size_mode=="standard" else 32
 func target_name(id) -> String:
 	return str(unit(id).get("name","対象不明"))
@@ -522,33 +524,40 @@ func render_person():
 
 	if u.is_empty():l(person_box,"人物にカーソルを合わせると情報を表示します。");return
 	person_box.set_meta("inspected_unit",u.id)
-	var hero=ui.row(person_box);ui.portrait(hero,u,true,64 if ui.ui_size_mode=="standard" else 40);l(hero,str(u.name),true)
+	render_person_content(person_box,u)
+func render_person_content(parent,u: Dictionary,expanded:=false):
+	var hero=ui.row(parent);ui.portrait(hero,u,true,64 if ui.ui_size_mode=="standard" else 40);l(hero,str(u.name),true)
 	var character={}
 	for member in ui.roster():
 		if member.id==u.id:character=member;break
-	ui.pages.party_view.identity(person_box,character if not character.is_empty() else u)
-	var resources=ui.row(person_box) if ui.ui_size_mode!="standard" else person_box
+	if expanded:ui.pages.party_view.identity(parent,character if not character.is_empty() else u)
+	var resources=ui.row(parent) if ui.ui_size_mode!="standard" else parent
 	for resource in ["hp","mp"]:
 		var resource_box=VBoxContainer.new();resource_box.size_flags_horizontal=Control.SIZE_EXPAND_FILL;resources.add_child(resource_box)
 		var value=u.get(resource,0);var maximum=u.get("max" if resource=="hp" else "maxMp",0)
 		var number=ui.icons.line(ui,resource_box,resource,"%s %d/%d" % [resource.to_upper(),value,maximum]);number.add_theme_color_override("font_color",Color("#eeeae2"))
 		if ui.ui_size_mode!="standard":number.text="%d/%d" % [value,maximum];number.tooltip_text=resource.to_upper();number.autowrap_mode=TextServer.AUTOWRAP_OFF
+		if not expanded:continue
 		var bar=ProgressBar.new();bar.name="Inspect_"+resource;bar.max_value=maxi(1,int(maximum));bar.value=value;bar.show_percentage=false;bar.custom_minimum_size.y=8;bar.mouse_filter=Control.MOUSE_FILTER_IGNORE;resource_box.add_child(bar)
 		var track=StyleBoxFlat.new();track.bg_color=Color("#11171e");track.set_corner_radius_all(3)
 		var fill=StyleBoxFlat.new();fill.bg_color=Color("#df958b") if resource=="hp" and value*4<maximum else Color("#8dc9af") if resource=="hp" else Color("#93b6df");fill.set_corner_radius_all(3)
 		bar.add_theme_stylebox_override("background",track);bar.add_theme_stylebox_override("fill",fill)
 	if u.get("intent") is Dictionary:
-		l(person_box,"予告："+str(u.intent.get("name","")))
-		l(person_box,intent_target_text(u.intent))
+		l(parent,"予告："+str(u.intent.get("name","")))
+		l(parent,intent_target_text(u.intent))
+	if not expanded:
+		local(parent,"能力・詳細",func():ui.dialog.open("対象の能力",func(body,actions):
+			render_person_content(body,u,true);local(actions,"閉じる",ui.dialog.close)))
+		return
 	var stats=character.get("stats",{});var breakdown=stats.get("attributeBreakdown",{})
-	l(person_box,"DEF %d" % u.get("def",0))
+	l(parent,"DEF %d" % u.get("def",0))
 	for pair in [["str","STR","strength"],["int","INT","intelligence"],["speed","SPD（行動速度）","speed"]]:
 		var value=u.get("agi") if pair[0]=="speed" else stats.get(pair[0],u.get(pair[0]))
 		var part=breakdown.get(pair[0],{});var suffix="補正：未取得"
 		if part.has("growth"):suffix="成長＋%d / 基礎%d" % [part.growth,part.base]
 		elif part.has("equipment"):suffix="装備%+d / AGI%d" % [part.equipment,part.agi]
-		ui.icons.line(ui,person_box,pair[2],pair[1]+" "+("未取得" if value==null else str(int(value)))+"（"+suffix+"）")
-	if ui.state().get("formationVersion")==1:l(person_box,"旧戦闘の陣形条件を継続中")
+		ui.icons.line(ui,parent,pair[2],pair[1]+" "+("未取得" if value==null else str(int(value)))+"（"+suffix+"）")
+	if ui.state().get("formationVersion")==1:l(parent,"旧戦闘の陣形条件を継続中")
 func inspect_hover(uid: String,source=null):
 	# A queued callback may carry an already freed Node. Validate this Variant
 	# before calling any method or passing it through an Object-typed argument.

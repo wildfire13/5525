@@ -634,6 +634,8 @@ func refresh_layout():
 	if not closing:
 		dialog.remember();render();dialog.resize()
 func _process(_delta):
+	for child in find_children("*","Window",true,false):
+		if child.get_meta("managed_layout",false):preferences.keep_visible(child,size)
 	fit_battle_layout()
 func fit_battle_layout():
 	if closing or view_kind!="battle" or not is_instance_valid(hud.middle):return
