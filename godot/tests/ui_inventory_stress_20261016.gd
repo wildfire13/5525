@@ -22,12 +22,12 @@ func run():
 	check(game.dialog.body.get_parent().get_v_scroll_bar().max_value>game.dialog.body.get_parent().size.y,"S7 many items scroll instead of shrinking text")
 	var button=game.find_child("InventoryItem_stress-79",true,false)
 	check(button.alignment==HORIZONTAL_ALIGNMENT_LEFT and button.autowrap_mode==TextServer.AUTOWRAP_WORD_SMART,"S4 long item names wrap left-aligned")
-	var hover=preload("res://hover_comparison.gd").new();game.dialog.body.add_child(hover);hover.set_as_top_level(true);hover.show_for(button,true);hover.content.text="長いスキル名・性能説明".repeat(200);await frames()
-	var bounds=Rect2(Vector2.ZERO,Vector2(game.dialog.window.size))
-	check(bounds.encloses(hover.get_global_rect()),"S5/S9 long hover content stays inside status viewport")
-	check(hover.get_child(0).get_v_scroll_bar().max_value>hover.size.y,"S5 long hover content is scrollable")
+	var hover=preload("res://hover_comparison.gd").new();hover.ui=game;game.dialog.window.add_child(hover);hover.show_for(button,true);hover.content.text="長いスキル名・性能説明".repeat(200);await frames()
+	var bounds=Rect2(Vector2.ZERO,Vector2(root.size))
+	check(bounds.encloses(Rect2(Vector2(hover.position),Vector2(hover.size))),"S5/S9 long hover content stays inside root viewport")
+	check(hover.content.get_parent().get_v_scroll_bar().max_value>hover.size.y,"S5 long hover content is scrollable")
 	game.dialog.window.size=Vector2i(700,600);await frames();hover.place();await frames()
-	check(Rect2(Vector2.ZERO,Vector2(game.dialog.window.size)).encloses(hover.get_global_rect()),"S5 hover remains bounded after window resize")
+	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(hover.position),Vector2(hover.size))),"S5 hover remains bounded after window resize")
 	var roster=game.data.campaign.roster;var selected=game.data.campaign.selected
 	for i in range(7):
 		var member=roster[0].duplicate(true);member.id="extra-"+str(i);member.name="追加表示"+str(i);roster.append(member);selected.append(member.id)

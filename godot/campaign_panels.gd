@@ -124,7 +124,10 @@ func map(parent):
 	for id in available:b(choices,("● " if ui.destination==id else "")+town(id),select_destination.bind(id))
 	muted(parent,"未受注での移動も戦闘・消耗があります。配達報酬はありません。追加の移動料金はありません。")
 	l(parent,"編成: "+" / ".join(roster().filter(func(u):return c().selected.has(u.id)).map(func(u):return u.name)))
-	b(parent,town(ui.destination)+"へ出発" if not ui.destination.is_empty() else "行先がありません",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty())
+	var depart=b(parent,town(ui.destination)+"へ出発" if not ui.destination.is_empty() else "行先がありません",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty());depart.name="DepartButton"
+	depart.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;depart.custom_minimum_size=Vector2(280,44)
+	for state_ in ["normal","hover","pressed"]:
+		var style=depart.get_theme_stylebox(state_).duplicate();style.bg_color=Color("#2f7652") if state_=="hover" else Color("#236044");depart.add_theme_stylebox_override(state_,style)
 func choose_formation(value: String):ui.formation=value;ui.render()
 func shop_guide(parent):
 	l(parent,"武器はイース、防具はウエス、道具はサウス、装飾品はノースで購入できます。")

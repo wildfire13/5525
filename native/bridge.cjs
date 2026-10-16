@@ -224,7 +224,9 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       if(r.kind==='skill'&&['pair','upToTwo'].includes(shape))target=[...new Set([...(Array.isArray(r.chosen)?r.chosen:[]),u?.id].filter(Boolean))];
       const legal=!!a&&a.side==='ally'&&!!u&&['attack','skill','item','ether'].includes(r.kind)&&B.legal(state,r.kind,target);
       const support=r.kind!=='attack'&&(r.kind!=='skill'||['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(skill));
-      response={ok:true,hover:{status:legal?'ready':shape==='pair'&&target?.length<2?'needs_targets':'unavailable',accuracy:legal&&!support?100:null,...(legal?preview(r.kind,target).preview:{})}};
+      const recovery=r.kind==='item'||r.kind==='ether'||r.kind==='skill'&&['mage','healingCross','manaGift'].includes(skill);
+      const fullHealth=!!a&&a===u&&a.side==='ally'&&a.hp>0&&a.hp===a.max&&a.mp>0&&!state.deploying&&!state.result&&r.kind==='skill'&&skill==='mage';
+      response={ok:true,hover:{status:legal||fullHealth?'ready':shape==='pair'&&target?.length<2?'needs_targets':'unavailable',fullHealth,accuracy:legal&&(!support||recovery)||fullHealth?100:null,...(legal?preview(r.kind,target).preview:{})}};
     }
     else if(r.op==='preview')response=preview(r.kind,r.target,r.previewKind);
     else if(r.op==='godot_io')response=require('./godot-io.cjs')(r);

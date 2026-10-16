@@ -17,7 +17,7 @@ func _ready():
 		var id=str(town.id)
 		if not POS.has(id):continue
 		var b=Button.new();b.name="Town_"+id
-		b.text=town.name+"\n"+("現在地" if id==current else "選択中" if id==selected else "目的地")
+		b.text=town.name+("\n現在地" if id==current else "\n目的地" if id==selected else "")
 		var facilities=[]
 		for facility in town.get("facilities",[]):
 			if facility in ["weapon","armor","items","accessory","inn","guild"]:facilities.append({"weapon":"武器屋","armor":"防具屋","items":"道具屋","accessory":"装飾品店","inn":"宿屋","guild":"ギルド"}[facility])
@@ -25,7 +25,7 @@ func _ready():
 		if icons!=null:icons.apply(b,icons.place(id),32)
 		b.disabled=not available.has(id)
 		b.tooltip_text="現在地" if id==current else "この拠点へは直接移動できません" if not available.has(id) else "行先に選ぶ"
-		var style=StyleBoxFlat.new();style.bg_color=Color("#1d4a4b") if id==current else Color("#243c58")
+		var style=StyleBoxFlat.new();style.bg_color=Color("#243c58") if id==current else Color("#236044") if id==selected else Color("#41464e")
 		style.border_color=Color("#fbbf24") if id==selected else Color("#64748b");style.set_border_width_all(3 if id==selected else 1);style.set_corner_radius_all(8)
 		for state_ in ["normal","disabled","hover","focus"]:b.add_theme_stylebox_override(state_,style)
 		b.add_theme_color_override("font_disabled_color",Color("#b8c7d2"))

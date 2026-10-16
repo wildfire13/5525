@@ -25,9 +25,9 @@ func run():
 	check(game.state().units.filter(func(u):return u.side=="ally").all(func(u):return u.has("attackWeapons")),"legacy equipment migration")
 	check(game.board!=null,"battle uses same root window")
 	await process_frame;await process_frame
-	for camera in range(3):
-		game.board.set_camera(camera);await process_frame
-		check(game.board.cell_at(game.board.project_cell(24))==24,"camera %d click/world conversion" % camera)
+	for turn in [0.0,0.4,-0.4]:
+		game.board.camera_yaw+=turn;game.board.update_camera();await process_frame
+		check(game.board.cell_at(game.board.project_cell(24))==24,"camera orbit click/world conversion")
 	await game.act("retreat",[])
 	await game.new_game()
 	ui_events.clear()
@@ -66,9 +66,8 @@ func run():
 	copy.data.state.location="west"
 	await game.update({"op":"campaign_load","data":copy.data})
 	game.navigate("shop");await process_frame
-	await game.preview_gear("swift-boots") # Selected slot is upperBody; rejected preview is safe.
-	game.shop_slot="feet";await game.preview_gear("swift-boots")
-	check(game.gear_preview.get("eligible",false),"eight-slot shop quote")
+	var shop_quote=await game.engine.request({"op":"campaign","action":"purchaseQuote","args":["swift-boots"]})
+	check(shop_quote.get("purchaseQuote",{}).get("ok",false),"current shop purchase quote")
 	var before=await game.engine.request({"op":"campaign_save"})
 	await game.act("trial",["guard","swift-boots","feet"])
 	check(game.data.get("trial")!=null,"trial uses same root window: "+game.notice)

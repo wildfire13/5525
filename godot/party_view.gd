@@ -225,7 +225,7 @@ func detail_close_guard(next: Callable) -> bool:
 	if ui.locked or ui.presenting or inventory_view.stage=="pending":return false
 	return guard_leave(next)
 func detail_escape() -> bool:
-	if detail_tab==3 and inventory_view.stage=="confirm" and inventory_view.return_to_equipment:return inventory_view.back()
+	if inventory_view.stage=="confirm":inventory_view.cancel_confirmation();return true
 	if detail_tab==3 and inventory_view.stage=="confirm" and inventory_view.action=="sell" and inventory_view.sale_available():return inventory_view.back()
 	return false
 func detail_back():
