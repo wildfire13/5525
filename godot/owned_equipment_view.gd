@@ -89,5 +89,5 @@ func equip(u: Dictionary,entry: Dictionary,panel):
 	if chosen.is_empty() or text.is_empty() or not party.inventory_view.available():return
 	for candidate in entry.equipSlots:
 		if candidate.slot==chosen and candidate.ok:
-			var inv=party.inventory_view;inv.reset();inv.owner_id=str(u.id);inv.item_id=str(entry.id);inv.action="equip";inv.equipment_comparison=text;inv.return_to_equipment=true
+			var inv=party.inventory_view;inv.reset();inv.owner_id=str(u.id);inv.item_id=str(entry.id);inv.action="equip";inv.equipment_comparison=text;inv.return_to_equipment=true;inv.capture_equipment_context(str(u.id),str(entry.id))
 			party.detail_tab=3;await inv.prepare(null,chosen);return

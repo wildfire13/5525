@@ -4,6 +4,8 @@ var preferences
 var layout_key := ""
 var minimum := Vector2(280,240)
 var body: VBoxContainer
+var footer: VBoxContainer
+var reserved_top := 0.0
 var drag_edges := Vector2.ZERO
 var dragging := false
 var moving := false
@@ -18,12 +20,15 @@ func configure(prefs,key: String,title: String,fallback: Rect2):
 	header.gui_input.connect(func(event):handle(event,true))
 	var scroll=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;box.add_child(scroll)
 	body=VBoxContainer.new();body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(body)
+	footer=VBoxContainer.new();footer.name="PinnedActions";box.add_child(footer)
 	var rect=preferences.rect_for(layout_key,fallback,get_parent_control().size,minimum);position=rect.position;size=rect.size
 	gui_input.connect(func(event):handle(event,false))
 func edges(at: Vector2) -> Vector2:
 	return Vector2(-1 if at.x<9 else 1 if at.x>size.x-9 else 0,-1 if at.y<9 else 1 if at.y>size.y-9 else 0)
 func constrain():
-	var rect=preferences.bounded(Rect2(position,size),get_parent_control().size,minimum);position=rect.position;size=rect.size
+	var rect=preferences.bounded(Rect2(position,size),get_parent_control().size,minimum);rect.position.y=maxf(reserved_top,rect.position.y)
+	rect.size.y=minf(rect.size.y,maxf(minimum.y,get_parent_control().size.y-rect.position.y))
+	position=rect.position;size=rect.size
 func persist():preferences.store_rect(layout_key,Rect2(position,size))
 func handle(event,header: bool):
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:

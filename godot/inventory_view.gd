@@ -14,6 +14,7 @@ var message := ""
 var generation := 0
 var equipment_comparison := ""
 var return_to_equipment := false
+var equipment_context: Dictionary={}
 
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
 func c() -> Dictionary:return ui.campaign()
@@ -21,7 +22,7 @@ func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func redraw():party.refresh_modal()
 func reset():
-	equipment_comparison="";return_to_equipment=false
+	equipment_comparison="";return_to_equipment=false;equipment_context={}
 	owner_id="";item_id="";action="";stage="list";amount=1;quote={};message="";generation+=1
 func data() -> Dictionary:return c().get("inventoryByCharacter",{}).get(owner_id,{})
 func selected() -> Dictionary:
@@ -128,12 +129,27 @@ func prepare(target,slot):
 func prepare_unequip(uid: String,id: String,slot: String):
 	if not available():return
 	owner_id=uid;item_id=id;action="unequip";amount=1;return_to_equipment=party.detail_tab==0
+	if return_to_equipment:capture_equipment_context(uid,id)
 	party.detail_tab=3;await prepare(null,slot)
 
+func capture_equipment_context(uid: String,id: String):
+	equipment_context={"window":ui.dialog.window.get_instance_id(),"owner":uid,"item":id,"slot":party.owned_equipment_view.slot,"scroll":ui.dialog.body.get_parent().scroll_vertical}
+func restore_equipment_context():
+	var context=equipment_context.duplicate();equipment_context={}
+	if context.is_empty():return
+	await ui.get_tree().process_frame
+	await ui.get_tree().process_frame
+	if not is_instance_valid(ui.dialog.window) or party.detail_tab!=0 or party.detail_uid!=context.owner or ui.dialog.window.get_instance_id()!=context.window:return
+	var scroll=ui.dialog.body.get_parent()
+	var button=ui.dialog.body.find_child("OwnedEquipmentActions_"+str(context.item),true,false)
+	if button!=null:button.grab_focus()
+	scroll.scroll_vertical=int(context.scroll)
 func cancel_confirmation():
+	var restore=return_to_equipment
 	stage="list" if return_to_equipment else "actions";quote={};generation+=1
 	if return_to_equipment:party.detail_tab=0;return_to_equipment=false
 	redraw()
+	if restore:restore_equipment_context()
 
 func render_confirmation(parent):
 	if quote.get("action")=="equip":l(parent,"装備しますか",true)
