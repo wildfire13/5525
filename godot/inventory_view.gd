@@ -13,6 +13,7 @@ var quote: Dictionary={}
 var message := ""
 var generation := 0
 var equipment_comparison := ""
+var return_to_equipment := false
 
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
 func c() -> Dictionary:return ui.campaign()
@@ -20,7 +21,7 @@ func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func redraw():party.refresh_modal()
 func reset():
-	equipment_comparison=""
+	equipment_comparison="";return_to_equipment=false
 	owner_id="";item_id="";action="";stage="list";amount=1;quote={};message="";generation+=1
 func data() -> Dictionary:return c().get("inventoryByCharacter",{}).get(owner_id,{})
 func selected() -> Dictionary:
@@ -34,6 +35,7 @@ func pick(id: String):
 	equipment_comparison=""
 	item_id=id;stage="actions";action="";amount=1;quote={};message="";redraw()
 func back() -> bool:
+	if return_to_equipment and stage=="confirm":cancel_confirmation();return true
 	if not available() or stage=="list":return false
 	if action=="sell" and sale_available() and stage in ["targets","confirm"]:stage="targets" if stage=="confirm" else "list"
 	else:stage="actions" if stage in ["targets","confirm"] else "list"
@@ -60,6 +62,11 @@ func render(parent,uid: String):
 			var row=ui.row(parent)
 			var button=b(row,"%s　%d個" % [item.name,item.count],pick.bind(str(item.id)))
 			button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+			button.alignment=HORIZONTAL_ALIGNMENT_LEFT;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+			button.set_script(preload("res://equipment_tooltip.gd"));button.configure_entry(item,c())
+			var icon=ui.icons.gear(item.definition) if item.kind=="equipment" else str(item.id) if item.id in ["potion","ether"] else "items"
+			if not ResourceLoader.exists(ui.icons.ROOT+icon+".png"):icon="items"
+			ui.icons.apply(button,icon);button.set_meta("placeholder_item_icon",true)
 			button.name="InventoryItem_"+str(item.id);button.custom_minimum_size.y=48
 			ui.memory.key(button,"inventory_"+owner_id+"_"+str(item.id))
 			if sale_available() and item.kind=="equipment":b(row,"売却",choose_sale.bind(str(item.id))).name="InventorySell_"+str(item.id)
@@ -120,12 +127,16 @@ func prepare(target,slot):
 
 func prepare_unequip(uid: String,id: String,slot: String):
 	if not available():return
-	owner_id=uid;item_id=id;action="unequip";amount=1
+	owner_id=uid;item_id=id;action="unequip";amount=1;return_to_equipment=party.detail_tab==0
 	party.detail_tab=3;await prepare(null,slot)
 
+func cancel_confirmation():
+	stage="list" if return_to_equipment else "actions";quote={};generation+=1
+	if return_to_equipment:party.detail_tab=0;return_to_equipment=false
+	redraw()
+
 func render_confirmation(parent):
-	if quote.get("action")=="equip" and not equipment_comparison.is_empty():
-		var comparison=RichTextLabel.new();comparison.name="OwnedEquipmentConfirmedComparison";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;comparison.text=equipment_comparison;parent.add_child(comparison)
+	if quote.get("action")=="equip":l(parent,"装備しますか",true)
 	l(parent,"%sの %s / %d個" % [quote.get("ownerName",""),quote.get("name",""),quote.get("count",0)],true)
 	var verb={"use":"使用する","transfer":"渡す","discard":"捨てる","equip":"装備する","unequip":"装備を外す","sell":"売却する"}.get(quote.get("action"),"確定")
 	if quote.get("action")=="use":l(parent,"対象: %s / %s %d → %d / 消費1個" % [quote.targetName,str(quote.resource).to_upper(),quote.before,quote.after])
@@ -137,8 +148,8 @@ func render_confirmation(parent):
 	if stale:l(parent,"所持品や対象の状態が変わりました。戻って選び直してください。")
 	var actions=ui.row(parent)
 	if quote.get("action")=="sell" and sale_available():b(actions,"個数選択へ戻る",back).name="InventoryCancel"
-	else:b(actions,"取り消す",func():stage="actions";quote={};redraw()).name="InventoryCancel"
-	ui.primary(b(actions,verb,commit,stale)).name="InventoryConfirm"
+	else:b(actions,"NO" if quote.get("action")=="equip" else "取り消す",cancel_confirmation).name="InventoryCancel"
+	ui.primary(b(actions,"YES" if quote.get("action")=="equip" else verb,commit,stale)).name="InventoryConfirm"
 
 func commit():
 	if not available() or stage!="confirm" or quote.get("token")!=c().get("inventoryToken"):return
@@ -158,4 +169,6 @@ func commit():
 	if sale and reply.get("ok",false):
 		message="%s×%dを売却 / 受取%dG" % [confirmed.name,confirmed.count,confirmed.proceeds]
 		ui.pages.shop_view.record_sale(confirmed);ui.render()
-	else:redraw()
+	else:
+		if return_to_equipment:party.detail_tab=0;return_to_equipment=false
+		redraw()

@@ -1,0 +1,48 @@
+extends PanelContainer
+## Draggable header and all eight resize edges. Children never pass input to board.
+var preferences
+var layout_key := ""
+var minimum := Vector2(280,240)
+var body: VBoxContainer
+var drag_edges := Vector2.ZERO
+var dragging := false
+var moving := false
+var origin := Rect2()
+var pointer := Vector2.ZERO
+func configure(prefs,key: String,title: String,fallback: Rect2):
+	preferences=prefs;layout_key=key;name=key
+	mouse_filter=Control.MOUSE_FILTER_STOP
+	var style=StyleBoxFlat.new();style.bg_color=Color("#18212aef");style.border_color=Color("#63717f");style.set_border_width_all(1);style.set_corner_radius_all(5);style.set_content_margin_all(10);add_theme_stylebox_override("panel",style)
+	var box=VBoxContainer.new();add_child(box)
+	var header=Label.new();header.name="DragHandle";header.text=title+"  ⋮";header.custom_minimum_size.y=30;header.mouse_filter=Control.MOUSE_FILTER_STOP;header.mouse_default_cursor_shape=Control.CURSOR_MOVE;box.add_child(header)
+	header.gui_input.connect(func(event):handle(event,true))
+	var scroll=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;box.add_child(scroll)
+	body=VBoxContainer.new();body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(body)
+	var rect=preferences.rect_for(layout_key,fallback,get_parent_control().size,minimum);position=rect.position;size=rect.size
+	gui_input.connect(func(event):handle(event,false))
+func edges(at: Vector2) -> Vector2:
+	return Vector2(-1 if at.x<9 else 1 if at.x>size.x-9 else 0,-1 if at.y<9 else 1 if at.y>size.y-9 else 0)
+func constrain():
+	var rect=preferences.bounded(Rect2(position,size),get_parent_control().size,minimum);position=rect.position;size=rect.size
+func persist():preferences.store_rect(layout_key,Rect2(position,size))
+func handle(event,header: bool):
+	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			drag_edges=edges(event.global_position-global_position);moving=header and drag_edges==Vector2.ZERO
+			dragging=moving or drag_edges!=Vector2.ZERO;origin=Rect2(position,size);pointer=event.global_position
+			if dragging:accept_event()
+		elif dragging:dragging=false;persist();accept_event()
+func _input(event):
+	if not dragging:return
+	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed:
+		dragging=false;persist()
+	if event is InputEventMouseMotion:
+		var delta=event.global_position-pointer
+		var rect=origin
+		if moving:rect.position+=delta
+		else:
+			for axis in range(2):
+				if drag_edges[axis]<0:
+					var shift=minf(delta[axis],origin.size[axis]-minimum[axis]);rect.position[axis]+=shift;rect.size[axis]-=shift
+				elif drag_edges[axis]>0:rect.size[axis]=maxf(minimum[axis],origin.size[axis]+delta[axis])
+		rect=preferences.bounded(rect,get_parent_control().size,minimum);position=rect.position;size=rect.size;get_viewport().set_input_as_handled()

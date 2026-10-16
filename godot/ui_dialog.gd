@@ -20,7 +20,7 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 	escape_handler=Callable()
 	ui.memory.capture();checkpoint=ui.memory.scrolls.duplicate(true);origin=ui.memory.focus_key
 	epoch=ui.pages.epoch;connection=ui.engine.connection_generation;restore_callback=closed
-	window=Window.new();window.name="StateDetails";window.title=title;window.exclusive=true;window.transient=true;window.unresizable=true
+	window=Window.new();window.name="StateDetails";window.title=title;window.exclusive=true;window.transient=true;window.unresizable=false;window.min_size=Vector2i(420,300)
 	ui.add_child(window)
 	var margin=preload("res://modal_input.gd").new();margin.owner_ref=weakref(self);window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,12)
@@ -34,14 +34,19 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 	window.window_input.connect(func(event):
 		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
 			window.set_input_as_handled();ui.get_viewport().set_input_as_handled();ui.modal_escape_frame=Engine.get_process_frames();escape())
-	resize();window.popup_centered()
+	resize();window.popup()
 	if actions.get_child_count()>0:actions.get_child(0).grab_focus()
 	return window
+func layout_key() -> String:
+	return "status" if window.title=="ステータス" else "dialog:"+window.title.get_slice(" / ",0)
+func remember():
+	if is_instance_valid(window):ui.preferences.store_rect(layout_key(),Rect2(Vector2(window.position),Vector2(window.size)))
 func resize():
 	if not is_instance_valid(window):return
 	var status=window.title=="ステータス"
-	window.size=Vector2i(mini(1040 if status else 840,int(ui.size.x)-32),mini(780 if status else 620,int(ui.size.y)-72))
-	window.position=Vector2i((ui.size-Vector2(window.size))/2)
+	var extent=Vector2(1040,780) if status else Vector2(840,620)
+	var rect=ui.preferences.rect_for(layout_key(),Rect2((ui.size-extent)/2,extent),ui.size-Vector2(0,36),Vector2(420,300))
+	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position.max(Vector2(0,36)))
 func escape():
 	# Window and its input margin can both receive the same key event.
 	var frame=Engine.get_process_frames()
@@ -54,6 +59,7 @@ func close(restore:=true):
 	if restore and close_guard.is_valid():
 		var finish=func():close_guard=Callable();close(restore)
 		if not close_guard.call(finish):return
+	remember()
 	var old=window;window=null;old.hide();old.queue_free()
 	close_guard=Callable()
 	escape_handler=Callable()
