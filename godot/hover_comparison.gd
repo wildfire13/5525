@@ -1,5 +1,9 @@
 extends Window
-## A non-focus-taking comparison beside the status window, in root coordinates.
+## A compact comparison beside the status window; it never takes keyboard focus.
+const FONT_SIZE := 18
+const PADDING := 10
+const MIN_WIDTH := 200.0
+const MAX_WIDTH := 420.0
 var ui
 var source: Control
 var content: RichTextLabel
@@ -8,19 +12,40 @@ var keyboard_focus := false
 func _ready():
 	name="EquipmentHover";visible=false;borderless=true;unresizable=true;transient=true;unfocusable=true
 	var panel=PanelContainer.new();add_child(panel);panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var style=StyleBoxFlat.new();style.bg_color=Color("#18212a");style.border_color=Color("#a8c9ed");style.set_border_width_all(1);style.set_content_margin_all(12);panel.add_theme_stylebox_override("panel",style)
+	var style=StyleBoxFlat.new();style.bg_color=Color("#18212a");style.border_color=Color("#a8c9ed");style.set_border_width_all(1);style.set_content_margin_all(PADDING);panel.add_theme_stylebox_override("panel",style)
 	var scroll=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;panel.add_child(scroll)
-	content=RichTextLabel.new();content.name="OwnedEquipmentComparison";content.bbcode_enabled=true;content.fit_content=true;content.scroll_active=false;content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(content)
+	content=RichTextLabel.new();content.name="OwnedEquipmentComparison";content.bbcode_enabled=true;content.fit_content=true;content.scroll_active=false;content.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	for font_size in ["normal_font_size","bold_font_size","italics_font_size","bold_italics_font_size","mono_font_size"]:content.add_theme_font_size_override(font_size,FONT_SIZE)
+	scroll.add_child(content)
 func show_for(control: Control,keyboard:=false):
 	source=control;keyboard_focus=keyboard;idle=0;place();show()
 func place():
 	if not is_instance_valid(source):hide();return
 	var status=source.get_window();var bounds=ui.size
-	var width=minf(520,maxf(220,bounds.x-16));size=Vector2i(width,minf(480,maxf(180,bounds.y-72)))
+	var font=content.get_theme_font("normal_font")
+	var plain=content.get_parsed_text();var natural=0.0
+	for line in plain.split("\n"):natural=maxf(natural,font.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,FONT_SIZE).x)
+	# Reserve scrollbar width even for short content so wrapping never oscillates.
+	var width=clampf(natural+PADDING*2+16,MIN_WIDTH,MAX_WIDTH)
 	var right=float(status.position.x+status.size.x)+8
-	var left=float(status.position.x)-width-8
-	var x=right if right+width<=bounds.x-8 else left if left>=8 else bounds.x-width-8
-	position=Vector2i(Vector2(x,float(status.position.y)+180).clamp(Vector2(8,36),(bounds-Vector2(size)-Vector2(8,8)).max(Vector2(8,36))))
+	var left_space=float(status.position.x)-16
+	var right_space=bounds.x-8-right
+	var anchor=Vector2(status.position)+source.get_global_rect().position
+	var x: float
+	if right_space>=MIN_WIDTH:
+		width=minf(width,right_space);x=right
+	elif left_space>=MIN_WIDTH:
+		width=minf(width,left_space);x=float(status.position.x)-width-8
+	else:
+		# A maximized status window has no outside strip. Keep the right-hand
+		# equipment actions uncovered by using the space to the left of them.
+		width=minf(width,maxf(120,anchor.x-24));x=8
+	width=minf(width,maxf(120,bounds.x-16))
+	var height=font.get_multiline_string_size(plain,HORIZONTAL_ALIGNMENT_LEFT,width-PADDING*2-16,FONT_SIZE).y+PADDING*2+4
+	# Use the final RichText layout after a width change has settled as well.
+	if absf(float(size.x)-width)<1:height=maxf(height,float(content.get_content_height())+PADDING*2+4)
+	size=Vector2i(ceili(width),ceili(clampf(height,48,minf(360,bounds.y-72))))
+	position=Vector2i(Vector2(x,anchor.y).clamp(Vector2(8,36),(bounds-Vector2(size)-Vector2(8,8)).max(Vector2(8,36))))
 func _process(delta):
 	if not visible:return
 	if not is_instance_valid(source) or not source.is_visible_in_tree():hide();return
