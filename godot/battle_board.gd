@@ -6,6 +6,11 @@ signal unit_hovered(uid: String)
 const CELL = 1.35
 var units: Array = [] # Demo scenery consumes an empty visual roster; gameplay is below.
 var camera_mode := 0
+var preferences
+var camera_pan := Vector2.ZERO
+var camera_yaw := 0.0
+var camera_pitch := 0.7
+var camera_drag := 0
 var right_panel: Control
 var world
 var view: SubViewport
@@ -49,6 +54,8 @@ func _ready():
 	viewport_container.add_child(view)
 	world=load("res://demo_courtyard.gd").new();world.lab=self;view.add_child(world)
 	world.selection.visible=false
+	if preferences!=null:
+		var saved=preferences.camera();camera_pan=saved.get("pan",Vector2.ZERO);camera_yaw=float(saved.get("yaw",0.0));camera_pitch=clampf(float(saved.get("pitch",0.7)),0.2,1.4);world.zoom=clampf(float(saved.get("zoom",16.5)),10,24)
 	ghost=Sprite3D.new();ghost.billboard=BaseMaterial3D.BILLBOARD_ENABLED;ghost.modulate=Color(1,1,1,.4)
 	ghost.no_depth_test=true;ghost.visible=false;world.add_child(ghost)
 	overlay=Control.new();overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -116,7 +123,7 @@ func hover_unit_at(at: Vector2) -> Dictionary:
 	var u=sprite_unit_at(at)
 	return u if not u.is_empty() else unit_at(cell_at(at))
 func input_event(event):
-	if reference_mode and (event is InputEventKey and event.keycode in [KEY_ENTER,KEY_KP_ENTER] or event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_LEFT,MOUSE_BUTTON_RIGHT]):accept_event();return
+	if reference_mode and (event is InputEventKey and event.keycode in [KEY_ENTER,KEY_KP_ENTER] or event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT):accept_event();return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var x=keyboard_cell%10;var y=int(keyboard_cell/10)
 		match event.keycode:
@@ -128,12 +135,12 @@ func input_event(event):
 			_:return
 		keyboard_cell=y*10+x;set_hover(str(unit_at(keyboard_cell).get("id","")));accept_event();overlay.queue_redraw();return
 	if event is InputEventMouseButton:
-		if event.button_index==MOUSE_BUTTON_RIGHT and event.pressed:
-			var inspected=unit_at(cell_at(event.position))
-			if inspected.get("side")=="enemy":enemy_focused.emit(str(inspected.id))
+		if event.button_index in [MOUSE_BUTTON_RIGHT,MOUSE_BUTTON_MIDDLE]:
+			camera_drag=event.button_index if event.pressed else 0
+			if not event.pressed:persist_camera()
 			accept_event();return
-		if event.button_index==MOUSE_BUTTON_WHEEL_UP or event.button_index==MOUSE_BUTTON_WHEEL_DOWN:
-			world.zoom=clampf(world.zoom+(-.6 if event.button_index==MOUSE_BUTTON_WHEEL_UP else .6),10,24);update_camera();return
+		if event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+			world.zoom=clampf(world.zoom+(-.6 if event.button_index==MOUSE_BUTTON_WHEEL_UP else .6),10,24);update_camera();persist_camera();accept_event();return
 		if event.button_index==MOUSE_BUTTON_LEFT:
 			var pos=cell_at(event.position)
 			if event.pressed:
@@ -143,10 +150,17 @@ func input_event(event):
 				if pos!=press_cell and not press_uid.is_empty() and data.get("state",{}).get("deploying",false): deploy_drag.emit(press_uid,pos)
 				else: cell_clicked.emit(pos)
 	if event is InputEventMouseMotion:
+		if camera_drag!=0:
+			if camera_drag==MOUSE_BUTTON_RIGHT:camera_pan=(camera_pan+event.relative*world.zoom/maxf(1,size.x)).clamp(Vector2(-12,-8),Vector2(12,8))
+			else:camera_yaw-=event.relative.x*.008;camera_pitch=clampf(camera_pitch+event.relative.y*.008,0.2,1.4)
+			update_camera();accept_event();return
 		var u=hover_unit_at(event.position)
 		set_hover(str(u.get("id","")))
-func set_camera(mode: int):
-	camera_mode=mode%3;update_camera();overlay.queue_redraw()
+func persist_camera():
+	if preferences!=null and world!=null:preferences.store_camera({"pan":camera_pan,"yaw":camera_yaw,"pitch":camera_pitch,"zoom":world.zoom})
+func _input(event):
+	if camera_drag!=0 and event is InputEventMouseButton and not event.pressed and event.button_index==camera_drag:
+		camera_drag=0;persist_camera()
 func compact_board() -> bool:return size.y<300
 func framing_bounds() -> Rect2:
 	var result=Rect2();var first=true
@@ -159,25 +173,12 @@ func framing_bounds() -> Rect2:
 	return result
 func update_camera():
 	if world==null or world.camera==null or view.size.x<=0 or view.size.y<=0 or size.y<=0:return
-	world.update_camera()
-	if compact_board():
-		# The standalone comparison demo keeps its scenery framing. Battle fits the grid.
-		var camera: Camera3D=world.camera;var target=Vector3(0,.55,0)
-		var direction=(camera.position-target).normalized()
-		if camera_mode==1:direction=Vector3(sin(world.angle+.16)*20,13.2,cos(world.angle+.16)*20).normalized()
-		camera.look_at(target)
-		if camera.projection==Camera3D.PROJECTION_ORTHOGONAL:
-			camera.size=16.0
-			var bounds=framing_bounds()
-			camera.size*=maxf(bounds.size.x/maxf(1,size.x-40),bounds.size.y/maxf(1,size.y-20))
-			camera.size*=world.zoom/16.5
-		else:
-			var distance=24.0
-			for attempt in range(6):
-				camera.position=target+direction*distance;camera.look_at(target)
-				var bounds=framing_bounds();var ratio=maxf(bounds.size.x/maxf(1,size.x-40),bounds.size.y/maxf(1,size.y-20))
-				distance*=maxf(.7,ratio)
-			camera.position=target+direction*distance*(world.zoom/16.5);camera.look_at(target)
+	var camera: Camera3D=world.camera
+	var target=Vector3(0,.6,-1.1)+Vector3(-camera_pan.x,0,-camera_pan.y).rotated(Vector3.UP,camera_yaw)
+	camera.projection=Camera3D.PROJECTION_ORTHOGONAL;camera.keep_aspect=Camera3D.KEEP_WIDTH
+	camera.size=world.zoom*maxf(1.0,size.x/maxf(1,size.y)/1.62)
+	camera.position=target+Vector3(sin(camera_yaw)*cos(camera_pitch),sin(camera_pitch),cos(camera_yaw)*cos(camera_pitch))*22
+	camera.look_at(target)
 	projected_pitch=measure_cell_pitch();visual_height=1.55
 	if compact_board():
 		var max_pixels=1.0

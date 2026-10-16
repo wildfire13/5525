@@ -24,13 +24,19 @@ func render(parent,u: Dictionary):
 		if slot==e.slot:chooser.select(chooser.item_count-1)
 	chooser.item_selected.connect(func(i):slot=str(chooser.get_item_metadata(i));party.refresh_modal())
 	var list=VBoxContainer.new();list.name="OwnedEquipmentList";parent.add_child(list)
-	var panel=RichTextLabel.new();panel.name="OwnedEquipmentComparison";panel.bbcode_enabled=true;panel.fit_content=true;panel.custom_minimum_size.y=150;panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;panel.text="装備にカーソルを合わせるか、キーボードで選択すると比較できます。";parent.add_child(panel)
+	var hover=preload("res://hover_comparison.gd").new();parent.add_child(hover);hover.set_as_top_level(true)
+	var panel=hover.content
 	for entry in entries(str(u.id)):
 		if not slot.is_empty() and not entry.equipSlots.any(func(q):return q.slot==slot):continue
 		var row=ui.row(list)
-		var button=ui.button(row,"%s　%d個" % [entry.name,entry.count],equip.bind(u,entry,panel));button.name="OwnedEquipment_"+str(entry.id);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+		var button=ui.button(row,"%s　%d個" % [entry.name,entry.count],func():pass);button.name="OwnedEquipment_"+str(entry.id);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;button.alignment=HORIZONTAL_ALIGNMENT_LEFT
+		button.set_script(preload("res://equipment_tooltip.gd"));button.configure_entry(entry,ui.campaign())
+		ui.icons.apply(button,ui.icons.gear(entry.definition));button.set_meta("placeholder_item_icon",true)
+		button.tooltip_text=""
+		button.mouse_entered.connect(func():hover.show_for(button));button.focus_entered.connect(func():hover.show_for(button,true))
 		button.mouse_entered.connect(inspect.bind(u,entry,panel));button.focus_entered.connect(inspect.bind(u,entry,panel))
-		ui.button(row,"操作",actions.bind(str(u.id),str(entry.id))).name="OwnedEquipmentActions_"+str(entry.id)
+		var chosen=target(entry);var allowed=entry.equipSlots.any(func(q):return q.slot==chosen and q.ok)
+		ui.button(row,"装備",equip.bind(u,entry,panel),not allowed).name="OwnedEquipmentActions_"+str(entry.id)
 	if list.get_child_count()==0:ui.label_(list,"この枠に装備できる所持装備はありません。" if not slot.is_empty() else "所持装備はありません。")
 func actions(uid: String,id: String):
 	var inv=party.inventory_view
@@ -40,7 +46,8 @@ func current(ticket: int,panel,epoch,connection,token) -> bool:
 	return ticket==generation and is_instance_valid(panel) and panel.is_inside_tree() and not panel.is_queued_for_deletion() and not ui.closing and party.detail_tab==0 and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and token==ui.campaign().get("inventoryToken")
 func inspect(u: Dictionary,entry: Dictionary,panel) -> String:
 	generation+=1;var ticket=generation;var chosen=target(entry)
-	if chosen.is_empty():panel.text=str(u.name)+" / "+str(entry.name)+"\n比較する装備枠を選択してください。";return ""
+	if chosen.is_empty():
+		var tip=preload("res://equipment_tooltip.gd").new();tip.configure_entry(entry,ui.campaign());panel.text=str(u.name)+" / "+str(entry.name)+"\n"+"\n".join(tip.details)+"\n比較する装備枠を選択してください。";tip.free();return ""
 	var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation;var token=ui.campaign().get("inventoryToken")
 	panel.text=str(u.name)+" / "+str(ui.campaign().slots.get(chosen,chosen))+"\n比較を読み込み中…"
 	while ui.engine.busy:
@@ -52,14 +59,16 @@ func inspect(u: Dictionary,entry: Dictionary,panel) -> String:
 	var preview=reply.get("previewGear",{})
 	if not preview is Dictionary or not preview.has("before"):
 		panel.text="比較を取得できませんでした。もう一度選択してください。";return ""
-	var result=comparison(u,entry,chosen,preview);panel.text=result;return result
+	var tip=preload("res://equipment_tooltip.gd").new();tip.configure_entry(entry,ui.campaign())
+	var result="[b]"+escaped(entry.name)+"[/b]\n"+"\n".join(tip.details)+"\n\n"+comparison(u,entry,chosen,preview);tip.free();panel.text=result;return result
 func escaped(value) -> String:return str(value).replace("[","[lb]")
 func change(title: String,before,after) -> String:
 	var delta=int(after)-int(before);var color="#8ee6ab" if delta>0 else "#ffb1a6" if delta<0 else "#d5dbe2"
 	return "%s: %d → %d [color=%s](%+d)[/color]" % [title,before,after,color,delta]
 func comparison(u: Dictionary,entry: Dictionary,chosen: String,q: Dictionary) -> String:
 	var a: Dictionary=q.before;var z: Dictionary=q.after;var g: Dictionary=q.gear;var old: Dictionary=q.current
-	var lines=["[b]%s / %s[/b]" % [escaped(u.name),escaped(ui.campaign().slots.get(chosen,chosen))],escaped(old.get("name","なし"))+" → "+escaped(g.name),"[b]単品性能[/b]",change("武器ATK",old.get("atk",0),g.get("atk",0)),change("通常射程",old.get("reach",0),g.get("reach",0)),"[b]人物全体の実効値[/b]"]
+	var lines=["[b]%s / %s[/b]" % [escaped(u.name),escaped(ui.campaign().slots.get(chosen,chosen))],escaped(old.get("name","なし"))+" → "+escaped(g.name),"[b]単品性能[/b]",change("武器ATK",old.get("atk",0),g.get("atk",0)),"[b]人物全体の実効値[/b]"]
+	if int(old.get("atk",0))>0 or int(g.get("atk",0))>0:lines.insert(4,change("通常射程",old.get("reach",0),g.get("reach",0)))
 	for pair in [["HP上限","max"],["MP上限","maxMp"],["行動速度","speed"],["DEF","def"]]:lines.append(change(pair[0],a.get(pair[1],0),z.get(pair[1],0)))
 	for distance in range(1,maxi(party.pages.normal_reach(a),party.pages.normal_reach(z))+1):lines.append(change("通常ATK 距離%d" % distance,party.pages.normal_atk(a,distance),party.pages.normal_atk(z,distance)))
 	lines.append("現在HP %d → %d / MP %d → %d（上限増加では回復しません）" % [u.hp,mini(int(u.hp),int(z.max)),u.mp,mini(int(u.mp),int(z.maxMp))])
@@ -80,5 +89,5 @@ func equip(u: Dictionary,entry: Dictionary,panel):
 	if chosen.is_empty() or text.is_empty() or not party.inventory_view.available():return
 	for candidate in entry.equipSlots:
 		if candidate.slot==chosen and candidate.ok:
-			var inv=party.inventory_view;inv.reset();inv.owner_id=str(u.id);inv.item_id=str(entry.id);inv.action="equip";inv.equipment_comparison=text
+			var inv=party.inventory_view;inv.reset();inv.owner_id=str(u.id);inv.item_id=str(entry.id);inv.action="equip";inv.equipment_comparison=text;inv.return_to_equipment=true
 			party.detail_tab=3;await inv.prepare(null,chosen);return

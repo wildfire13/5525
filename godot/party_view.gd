@@ -247,12 +247,14 @@ func refresh_modal():
 	match detail_tab:
 		0:
 			equipment(body,u)
-			if not detail_gear.is_empty():
-				pages.describe_gear(body,detail_gear)
-				for e in u.get("equipmentSlots",[]):
-					if e.id==detail_gear.get("id") and e.get("occupiedBy")==null and detail_gear.get("type")!="empty":
-						b(body,str(e.label)+"から外して所持品へ",inventory_view.prepare_unequip.bind(detail_uid,str(e.id),str(e.slot)),pages.c().get("phase") not in ["town","camp"] or not pages.c().get("selected",[]).has(detail_uid))
 			owned_equipment_view.render(body,u)
+			for e in u.get("equipmentSlots",[]):
+				if e.slot==owned_equipment_view.slot and e.get("occupiedBy")==null and e.get("id","")!="" and u.get("equipmentDetails",{}).get(e.slot,{}).get("type")=="empty":continue
+				if e.slot==owned_equipment_view.slot and e.get("occupiedBy")==null and u.get("equipmentDetails",{}).get(e.slot,{}).get("type")!="empty":
+					var row=ui.row(body)
+					var remove=b(row,"装備を外す",inventory_view.prepare_unequip.bind(detail_uid,str(e.id),str(e.slot)),pages.c().get("phase") not in ["town","camp"] or not pages.c().get("selected",[]).has(detail_uid));remove.name="UnequipSelected";remove.custom_minimum_size=Vector2(160,40)
+					l(row,str(e.label))
+
 		1:growth(body,u)
 		2:skills(body,u)
 		3:inventory_view.render(body,detail_uid)

@@ -1,7 +1,7 @@
 extends RefCounted
 ## State-focused display. Choices, predictions and results remain engine-owned.
 var ui
-var middle: HBoxContainer
+var middle: Control
 var board_column: VBoxContainer
 var dock: Control
 var decision_footer: VBoxContainer
@@ -33,7 +33,10 @@ var reference_generation := 0
 var reference_pending := false
 var reference_error := ""
 var reference_kind := "attack"
-var bottom_commands: HBoxContainer
+var bottom_commands: VBoxContainer
+var left_panel
+var right_panel
+var left_info: VBoxContainer
 var person_box: VBoxContainer
 var inspected_uid := ""
 var hover_generation := 0
@@ -45,7 +48,8 @@ func l(parent,text,large:=false):
 	var label=ui.label_(parent,str(text),large)
 	if large:label.add_theme_color_override("font_color",Color("#f0dfbb"))
 	return label
-func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
+func b(parent,text,fn,disabled:=false):
+	var control=ui.button(parent,text,fn,disabled);control.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;return control
 func local(parent,text,fn):return ui.local_button(parent,text,fn)
 func unit(id) -> Dictionary:
 	for u in ui.state().get("units",[]):
@@ -66,68 +70,51 @@ func reset_context():
 	inspected_uid="";invalidate_hover();skill_content_open=false
 	discard_reference();item_list=false;action_menu=true;selected_cell=-1;selected_enemy="";last_actor="";last_action_count=-1;presentation_action={};queue_at_start=[];intent_versions.clear();intent_updated.clear()
 func mount():
-	ui.content.add_theme_constant_override("separation",8)
-	ui.battle_header=VBoxContainer.new();ui.battle_header.custom_minimum_size.y=40;ui.content.add_child(ui.battle_header)
-	middle=HBoxContainer.new();middle.add_theme_constant_override("separation",12);middle.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.content.add_child(middle);ui.battle_row=middle
-	board_column=VBoxContainer.new();board_column.name="BattleBoardColumn";board_column.add_theme_constant_override("separation",0);board_column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;board_column.size_flags_vertical=Control.SIZE_EXPAND_FILL;middle.add_child(board_column)
-	tools=HBoxContainer.new();tools.custom_minimum_size.y=32;board_column.add_child(tools)
-	ui.board=preload("res://battle_board.gd").new();ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";board_column.add_child(ui.board)
-	ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deploy_drag.connect(ui.deploy_dragged);ui.board.enemy_focused.connect(inspect_enemy)
-	ui.board.unit_hovered.connect(inspect_hover.bind(ui.board))
-	intent_strip=HBoxContainer.new();intent_strip.name="FixedIntentStrip";intent_strip.custom_minimum_size.y=42;board_column.add_child(intent_strip)
-	bottom_commands=ui.row(board_column);bottom_commands.name="BottomCommands"
-	dock=Control.new();dock.clip_contents=true;dock.name="BattleDecision";dock.size_flags_vertical=Control.SIZE_EXPAND_FILL;middle.add_child(dock)
+	middle=Control.new();middle.name="BattleOverlay";middle.mouse_filter=Control.MOUSE_FILTER_IGNORE;middle.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.content.add_child(middle);middle.size=Vector2(ui.size.x-48,ui.size.y-130);ui.battle_row=middle
+	ui.board=preload("res://battle_board.gd").new();ui.board.preferences=ui.preferences;ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";ui.add_child(ui.board);ui.move_child(ui.board,0);ui.board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deploy_drag.connect(ui.deploy_dragged);ui.board.enemy_focused.connect(inspect_enemy);ui.board.unit_hovered.connect(inspect_hover.bind(ui.board))
+	left_panel=preload("res://floating_panel.gd").new();middle.add_child(left_panel)
+	left_panel.configure(ui.preferences,"battle_actor","行動者 / コマンド",Rect2(0,50,320,650))
+	right_panel=preload("res://floating_panel.gd").new();middle.add_child(right_panel)
+	right_panel.configure(ui.preferences,"battle_target","対象 / 効果",Rect2(maxf(0,ui.size.x-380),50,330,620))
+	dock=left_panel
+	tools=HBoxContainer.new();tools.name="BattleTools";middle.add_child(tools)
+	intent_strip=HBoxContainer.new();intent_strip.name="FixedIntentStrip";intent_strip.visible=false;middle.add_child(intent_strip)
+	ui.battle_header=VBoxContainer.new();middle.add_child(ui.battle_header)
+	ui.battle_header.size=Vector2(middle.size.x,64)
 	last_actor="";last_action_count=-1;action_menu=true;item_list=false;selected_cell=-1
+	resize()
 func resize():
-	if not is_instance_valid(dock):return
-	var compact=ui.ui_size_mode!="standard"
-	ui.battle_header.custom_minimum_size.y=32 if compact else 40
-	if compact:
-		if dock.get_parent()!=ui.content:dock.reparent(ui.content)
-		dock.custom_minimum_size=Vector2(0,140);dock.size_flags_vertical=Control.SIZE_FILL
-		board_column.custom_minimum_size.y=244
-	else:
-		if dock.get_parent()!=middle:dock.reparent(middle)
-		dock.custom_minimum_size=Vector2(504 if ui.size.x>=1800 else 380,0);dock.size_flags_vertical=Control.SIZE_EXPAND_FILL
-		board_column.custom_minimum_size.y=244
-	middle.add_theme_constant_override("separation",24 if ui.size.x>=1800 else 12)
-	ui.content.queue_sort();middle.queue_sort();ui.call_deferred("fit_battle_layout")
+	if not is_instance_valid(left_panel) or middle.size.x<100:return
+	left_panel.constrain();right_panel.constrain();tools.size=Vector2(middle.size.x,52)
+	ui.battle_header.position.y=maxf(0,middle.size.y-64);ui.battle_header.size.x=middle.size.x
 func render():
 	var s=ui.state();var phase=ui.data.get("presentation");var a=acting()
 	if not (phase is Dictionary) and not ui.presenting:queue_at_start=ui.data.get("queue",[]).duplicate(true)
 	if not s.get("deploying",false) and s.get("result")==null and not ui.presenting and not phase is Dictionary and (a.get("id","")!=last_actor or int(s.get("actions",0))!=last_action_count):
-		item_list=false;action_menu=true;selected_cell=-1;selected_enemy="";range_reference=false;ui.invalidate_preview();last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0));ui.memory.request_focus("command_attack")
+		item_list=false;action_menu=true;selected_cell=-1;selected_enemy="";inspected_uid="";range_reference=false;ui.invalidate_preview();last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0));ui.memory.request_focus("command_attack")
 	update_board()
-	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(intent_strip);ui.clear(dock);ui.clear(bottom_commands)
+	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(left_panel.body);ui.clear(right_panel.body)
 	render_queue();render_actor(a)
-	for mode in range(3):
-		var cam=local(tools,["戦術","低","高"][mode],func():ui.board.set_camera(mode));cam.custom_minimum_size.y=32;ui.memory.key(cam,"camera_"+str(mode))
-	var tile=l(tools,"選択: "+coord(selected_cell)+" / 足元のマス" if selected_cell>=0 else "X0〜4: 味方 / X5〜9: 敵 / Y下端0");tile.autowrap_mode=TextServer.AUTOWRAP_OFF;tile.custom_minimum_size.y=20;tile.clip_text=true;tile.max_lines_visible=1;tile.tooltip_text=tile.text
-	var details_button=local(tools,"詳細",toggle_details);details_button.custom_minimum_size.y=32
+	local(tools,"行動履歴",open_history).name="BattleHistory"
+	local(tools,"予告・全順番",toggle_details)
 	if ui.data.get("trial") is Dictionary:
-		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.custom_minimum_size.y=32
-	else:
-		var retreat=b(tools,"撤退",func():ui.confirm("旅を中止し、受注・出発前の状態へ戻します。",ui.act.bind("retreat",[])),ui.presenting);retreat.custom_minimum_size.y=32
-	render_intent_strip()
-	render_bottom_commands()
-	# A bounded parent prevents text/button minimum sizes from moving the board.
-	var shell=ui.card(dock);shell.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var split=ui.row(shell) if ui.ui_size_mode!="standard" else shell;split.size_flags_vertical=Control.SIZE_EXPAND_FILL
-	var person_area=Control.new();person_area.name="BattlePersonArea";person_area.clip_contents=true;split.add_child(person_area)
-	person_area.custom_minimum_size=Vector2(240,0) if ui.ui_size_mode!="standard" else Vector2(0,240 if ui.size.y>=1000 else 210)
-	person_area.size_flags_vertical=Control.SIZE_EXPAND_FILL if ui.ui_size_mode!="standard" else Control.SIZE_FILL
-	person_box=ui.scroller(person_area);person_box.name="BattlePersonInfo";person_box.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	render_person()
-	person_area.visible=not (range_reference and ui.ui_size_mode!="standard")
-	var decision=VBoxContainer.new();decision.name="DecisionArea";decision.size_flags_vertical=Control.SIZE_EXPAND_FILL;decision.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(decision)
-	decision.add_theme_constant_override("separation",10 if ui.ui_size_mode=="standard" else 4)
-	if ui.ui_size_mode=="standard" and not action_menu:split.move_child(decision,0)
-	var box=ui.scroller(decision);box.name="DecisionContent";box.get_parent().name="DecisionScroll"
-	decision_footer=VBoxContainer.new();decision.add_child(decision_footer)
-	actor_box=box;command_box=box;target_box=box
-	if ui.engine.disconnected:
-		ui.battle_actions=null;l(box,"接続が終了しました",true)
-		l(box,ui.notice if not ui.notice.is_empty() else "再接続して保存済みファイルを読み込めます。")
+		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.name="EndTrial";end.custom_minimum_size=Vector2(160,52)
+	else:b(tools,"撤退",func():ui.confirm("旅を中止し、受注・出発前の状態へ戻します。",ui.act.bind("retreat",[])),ui.presenting)
+	tools.tooltip_text="右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小"
+	var hint=l(tools,tools.tooltip_text);hint.add_theme_font_size_override("font_size",16);hint.autowrap_mode=TextServer.AUTOWRAP_OFF;hint.clip_text=true;hint.max_lines_visible=1
+	left_panel.visible=(a.get("side")=="ally" and not s.get("deploying",false) and s.get("result")==null) or ui.engine.disconnected
+	left_info=left_panel.body
+	if a.get("side")=="ally":
+		var hero=ui.row(left_info);ui.portrait(hero,a,true,48);l(hero,str(a.name),true)
+		var health=l(left_info,"HP %d/%d   MP %d/%d" % [a.hp,a.max,a.mp,a.maxMp]);ui.emphasize_low_hp(health,a)
+		l(left_info,"DEF %d / 行動速度 %s" % [a.get("def",0),a.get("agi",0)])
+	bottom_commands=VBoxContainer.new();bottom_commands.name="ActorCommands";left_info.add_child(bottom_commands);render_bottom_commands()
+	actor_box=left_info;command_box=left_info
+	person_box=VBoxContainer.new();person_box.name="BattlePersonInfo";right_panel.body.add_child(person_box);render_person()
+	target_box=VBoxContainer.new();target_box.name="DecisionContent";right_panel.body.add_child(target_box)
+	decision_footer=VBoxContainer.new();right_panel.body.add_child(decision_footer)
+	if ui.engine.disconnected:l(command_box,"接続が終了しました",true)
 	elif phase is Dictionary:render_presentation(phase)
 	elif s.get("deploying",false):render_deployment()
 	elif s.get("result")!=null:render_result()
@@ -135,27 +122,30 @@ func render():
 	elif action_menu:render_commands()
 	elif item_list:render_items()
 	else:presentation_action={};render_target()
-	update_board();ui.board.inspected_enemy=""
-	refresh_hover()
-	resize()
+	update_board();ui.board.inspected_enemy="";refresh_hover();resize()
+func open_history():
+	ui.dialog.open("行動履歴",func(body,actions):
+		l(body,"実際に起きた行動・結果",true)
+		for entry in ui.state().get("log",[]):l(body,ui.display_log(str(entry)))
+		ui.local_button(actions,"閉じる",ui.dialog.close))
 func update_board():
 	ui.board.reference_mode=range_reference
 	ui.board.update_state(ui.data,reference_preview if range_reference else ui.preview,ui.command,ui.selected if ui.state().get("deploying",false) else "",ui.chosen)
-func render_actor(a: Dictionary):
-	if a.is_empty():ui.header.text="配置対象を選択" if ui.state().get("deploying",false) else "戦闘終了";return
-	ui.header.text="現在: %s   HP %d/%d   MP %d/%d\n%s" % [a.name,a.hp,a.max,a.mp,a.maxMp,{"B0":"行動を選択","B1":"移動先を選択","B2":"移動先を確認・仮置き","B3":"対象を選択","B3I":"アイテムを選択","B4":"対象・効果を確認","B5":"実行中","B6":"実結果","B2R":"仮位置からの射程参考"}.get(state_id(),"")]
-	ui.header.tooltip_text=ui.header.text;ui.header.remove_theme_color_override("font_color");ui.header.remove_theme_font_override("font");ui.emphasize_low_hp(ui.header,a)
-	ui.actor_face.texture=ui.portraits.texture(a,true)
+func render_actor(_a: Dictionary):
+	ui.header.text="配置" if ui.state().get("deploying",false) else "戦闘"
+	ui.header.tooltip_text="右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小"
 func render_queue():
-	var band=ui.row(ui.battle_header);band.name="TurnOrder";band.custom_minimum_size.y=40 if ui.ui_size_mode=="standard" else 32
+	var queue_scroll=ScrollContainer.new();queue_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;queue_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;ui.battle_header.add_child(queue_scroll)
+	var band=ui.row(queue_scroll);band.name="TurnOrder";band.custom_minimum_size.y=40 if ui.ui_size_mode=="standard" else 32
 	if ui.state().get("deploying",false) or ui.state().get("result")!=null and not ui.data.get("presentation") is Dictionary:l(band,"行動順は戦闘開始後" if ui.state().get("deploying",false) else "戦闘終了");return
 	var presenting=ui.data.get("presentation") is Dictionary or ui.presenting
 	var queue_=queue_at_start if presenting else ui.data.get("queue",[])
 	var entries=[]
 	if presenting and not acting().is_empty():entries.append({"unit":acting(),"label":"実行中"})
-	for index in range(mini(queue_.size(),(6 if ui.ui_size_mode=="standard" else 4)-entries.size())):
-		entries.append({"unit":unit(queue_[index].id),"label":("開始時"+str(index+1)) if presenting else ("現在" if index==0 else "次" if index==1 else str(index)+"手先")})
+	for index in range(queue_.size()):
+		entries.append({"unit":unit(queue_[index].id),"label":""})
 	for index in range(entries.size()):
+		if index>0:l(band,"←")
 		var entry=entries[index];var u=entry.unit
 		if u.is_empty():continue
 		var panel=PanelContainer.new();panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;band.add_child(panel)
@@ -163,7 +153,7 @@ func render_queue():
 		if index==0:style.set_border_width_all(1);style.border_color=Color("#ffe197")
 		panel.add_theme_stylebox_override("panel",style);panel.tooltip_text=str(u.name)
 		var row=ui.row(panel);ui.portrait(row,u,true,32 if ui.ui_size_mode=="standard" else 24)
-		var label=l(row,str(entry.label)+" "+("味" if u.side=="ally" else "敵"));label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size.y=20;label.clip_text=true;label.max_lines_visible=1
+		var label=l(row,("● " if index==0 else "")+str(u.name));label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size.y=20;label.clip_text=true;label.max_lines_visible=1
 	var all_=local(band,"全順番",toggle_details);all_.custom_minimum_size.y=40 if ui.ui_size_mode=="standard" else 32
 func target_name(id) -> String:
 	return str(unit(id).get("name","対象不明"))
@@ -193,11 +183,11 @@ func render_intent_strip():
 	var button=local(intent_strip,"予告・順番の詳細",toggle_details);button.custom_minimum_size.y=40
 func render_commands():
 	l(command_box,"行動を選択",true)
-	l(command_box,"下のコマンドから行動を選び、盤面で対象を指定します。")
+	l(command_box,"左のコマンドから行動を選び、盤面で対象を指定します。")
 	local(command_box,"能力・行動条件の詳細",open_action_details)
 func render_bottom_commands():
 	buttons.clear()
-	var a=acting();var face=ui.portrait(bottom_commands,a,true,48 if ui.ui_size_mode=="standard" else 28);face.name="ActingPortrait";face.tooltip_text=str(a.get("name","配置中"))
+	var a=acting()
 	for pair in COMMANDS:
 		var eligible=pair[0] in ["guard","items"] or not ui.data.get("choices",{}).get(pair[0],[]).is_empty() or pair[0]=="skill" and (not ui.data.get("skillset",[]).is_empty() or has_return())
 		var selected=not action_menu and (ui.command==pair[0] or pair[0]=="skill" and ui.command=="return" or pair[0]=="items" and ui.command in ["item","ether"])
@@ -233,7 +223,7 @@ func render_items():
 		var control=b(target_box,"%s / %d個 / %s" % [item.name,count,ItemMenu.effect(item)]+(" / "+reason if not reason.is_empty() else ""),ui.choose_command.bind(kind),not reason.is_empty())
 		control.name="BattleItem_"+str(item.id);ui.icons.apply(control,str(item.id))
 	l(target_box,"射程無限 / 1個・1行動。アイテムを選んでから盤面の対象を選択します。")
-	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm"
+	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
 	ui.memory.key(b(ui.battle_actions,"戻る",back_to_commands),"battle_cancel")
 func skill_unavailable_reason() -> String:
 	if ui.command=="return":return "この戦闘で帰還は使用済みです" if acting().get("returnUsed",false) else ""
@@ -252,7 +242,7 @@ func render_target():
 		if skill_content_open:
 			var effect=l(target_box,ui.command_hint());effect.name="SkillEffect"
 			render_skill_breakdown(target_box)
-	var split=HBoxContainer.new() if ui.ui_size_mode!="standard" else VBoxContainer.new();split.add_theme_constant_override("separation",12);split.size_flags_vertical=Control.SIZE_EXPAND_FILL;target_box.add_child(split)
+	var split=VBoxContainer.new();split.add_theme_constant_override("separation",12);split.size_flags_vertical=Control.SIZE_EXPAND_FILL;target_box.add_child(split)
 	var main=VBoxContainer.new();main.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(main)
 	var facts=VBoxContainer.new();facts.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(facts)
 	facts.add_theme_constant_override("separation",6 if ui.ui_size_mode=="standard" else 4)
@@ -268,7 +258,7 @@ func render_target():
 	elif not action_menu:l(facts,"対象未確定 / 射程・条件を確認")
 	for fact in facts.get_children():
 		if fact is Label:fact.add_theme_color_override("font_color",Color("#bdc5d0"))
-	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm"
+	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
 	if ui.command in ["skill","return"]:
 		ui.memory.key(ui.primary(b(ui.battle_actions,"実行",ui.commit,not ui.can_commit())),"battle_commit")
 		ui.memory.key(b(ui.battle_actions,"戻る",back_to_commands),"battle_cancel")
@@ -423,7 +413,7 @@ func render_reference():
 	var values=VBoxContainer.new();values.name="ReferenceValues";target_box.add_child(values)
 	if not compact:l(values,position_text)
 	l(values,"対象候補: "+("取得中…" if reference_pending else reference_error if not reference_error.is_empty() else " / ".join(reference_preview.get("targets",[]))))
-	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm"
+	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
 	b(ui.battle_actions,"通常攻撃の参考",request_reference.bind("attack"))
 	b(ui.battle_actions,"スキルの参考",request_reference.bind("skill"))
 	ui.memory.key(local(decision_footer if ui.ui_size_mode=="standard" else ui.battle_actions,"仮置きに戻る",close_reference),"reference_back")
@@ -443,7 +433,7 @@ func render_presentation(phase: Dictionary):
 		l(target_box,"効果対象: 味方全員 / 陣形成立中のみ")
 		ui.icons.line(ui,target_box,"attack_up","攻撃×1.75");ui.icons.line(ui,target_box,"defense_up","被害×0.65")
 	elif not names.is_empty():l(target_box,"指定対象: "+" / ".join(names))
-	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm";ui.primary(b(ui.battle_actions,"演出中…",func():pass,true))
+	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";ui.primary(b(ui.battle_actions,"演出中…",func():pass,true))
 func render_deployment():
 	var s=ui.state()
 	var formations=ui.row(target_box)
@@ -459,7 +449,7 @@ func render_deployment():
 			if u.id==ui.selected:choose.select(ids.size()-1)
 	choose.item_selected.connect(func(i):ui.selected=ids[i];ui.render())
 	l(target_box,"クリック・ドラッグで配置と交換。消費なし / 青: 攻撃範囲・緑: 奇襲対象")
-	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm";b(ui.battle_actions,"配置リセット",reset_deployment);ui.primary(b(ui.battle_actions,"戦闘開始",ui.act.bind("begin",[])))
+	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";b(ui.battle_actions,"配置リセット",reset_deployment);ui.primary(b(ui.battle_actions,"戦闘開始",ui.act.bind("begin",[])))
 func deployment_changed() -> bool:
 	for initial in ui.state().get("deploymentInitial",[]):
 		if unit(initial.id).get("pos")!=initial.pos:return true
@@ -473,7 +463,7 @@ func reset_deployment():
 	else:ui.act("deployment_reset",[])
 func render_result():
 	l(target_box,"木人の結果" if ui.data.get("trial") is Dictionary else "戦闘結果",true);l(target_box,str(ui.state().result))
-	ui.battle_actions=ui.row(decision_footer);ui.battle_actions.name="BattleConfirm";ui.primary(b(ui.battle_actions,"戦闘を終えて街道へ",ui.act.bind("finishBattle",[]),ui.data.get("trial")!=null))
+	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";ui.primary(b(ui.battle_actions,"戦闘を終えて街道へ",ui.act.bind("finishBattle",[]),ui.data.get("trial")!=null))
 func toggle_details():
 	details_open=true
 	ui.dialog.open("戦闘の詳細",func(body,actions):
@@ -519,14 +509,17 @@ func live_board(source_id: int=0) -> bool:
 func render_person():
 	if not live_board() or not is_instance_valid(person_box) or not person_box.is_inside_tree() or person_box.is_queued_for_deletion():return
 	ui.clear(person_box)
-	var u=unit(inspected_uid)
+	person_box.remove_meta("inspected_unit")
+	var u=unit(str(ui.pending)) if ui.pending is String else unit(inspected_uid)
+	var phase=ui.data.get("presentation")
+	if phase is Dictionary and phase.get("unit_id") is String:u=unit(phase.unit_id)
 	if u.is_empty() and selected_cell>=0:u=ui.board.unit_at(selected_cell)
 	if u.is_empty() and ui.state().get("deploying",false):
 		u=unit(ui.selected)
 		if u.is_empty():
 			for ally in ui.state().get("units",[]):
 				if ally.side=="ally" and ally.hp>0:u=ally;break
-	if u.is_empty():u=acting()
+
 	if u.is_empty():l(person_box,"人物にカーソルを合わせると情報を表示します。");return
 	person_box.set_meta("inspected_unit",u.id)
 	var hero=ui.row(person_box);ui.portrait(hero,u,true,64 if ui.ui_size_mode=="standard" else 40);l(hero,str(u.name),true)
@@ -544,6 +537,9 @@ func render_person():
 		var track=StyleBoxFlat.new();track.bg_color=Color("#11171e");track.set_corner_radius_all(3)
 		var fill=StyleBoxFlat.new();fill.bg_color=Color("#df958b") if resource=="hp" and value*4<maximum else Color("#8dc9af") if resource=="hp" else Color("#93b6df");fill.set_corner_radius_all(3)
 		bar.add_theme_stylebox_override("background",track);bar.add_theme_stylebox_override("fill",fill)
+	if u.get("intent") is Dictionary:
+		l(person_box,"予告："+str(u.intent.get("name","")))
+		l(person_box,intent_target_text(u.intent))
 	var stats=character.get("stats",{});var breakdown=stats.get("attributeBreakdown",{})
 	l(person_box,"DEF %d" % u.get("def",0))
 	for pair in [["str","STR","strength"],["int","INT","intelligence"],["speed","SPD（行動速度）","speed"]]:

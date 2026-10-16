@@ -28,7 +28,7 @@ var header: Label
 var resource_header: HBoxContainer
 var gold_header: Label
 var content: VBoxContainer
-var battle_row: HBoxContainer
+var battle_row: Control
 var board
 var side: VBoxContainer
 var battle_header: VBoxContainer
@@ -42,6 +42,7 @@ var retry_button: Button
 var low_hp_font: FontVariation
 var heading_font: FontVariation
 var memory
+var preferences=preload("res://ui_preferences.gd").new()
 var hud
 var dialog
 var actor_face: TextureRect
@@ -87,6 +88,7 @@ func _ready():
 	low_hp_font=FontVariation.new();low_hp_font.base_font=ui_font.base_font;low_hp_font.variation_opentype={weight_axis:700}
 	base=VBoxContainer.new();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base.add_theme_constant_override("separation",8)
+	base.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	top=HBoxContainer.new();top.custom_minimum_size.y=44;base.add_child(top)
 	actor_face=portrait(top,{},true,40);actor_face.visible=false
 	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
@@ -106,7 +108,7 @@ func _ready():
 		var check=CheckButton.new();check.text=pair[1]+"ミュート";check.custom_minimum_size.y=40;menu_body.add_child(check)
 		check.toggled.connect(func(value):audio.set_mute(pair[0],value);audio.sync(data))
 	local_button(menu_body,"閉じる",menu.hide)
-	content=VBoxContainer.new();content.size_flags_vertical=Control.SIZE_EXPAND_FILL;base.add_child(content)
+	content=VBoxContainer.new();content.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.size_flags_vertical=Control.SIZE_EXPAND_FILL;base.add_child(content)
 	footer=Label.new();footer.name="StatusFooter";footer.custom_minimum_size.y=24;footer.clip_text=true;footer.max_lines_visible=1;footer.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;base.add_child(footer)
 	footer.focus_mode=Control.FOCUS_ALL;footer.mouse_filter=Control.MOUSE_FILTER_STOP;footer.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND;memory.key(footer,"status_footer")
 	footer.gui_input.connect(func(event):
@@ -157,19 +159,13 @@ func set_status(message: String):
 	footer.text=message.replace("\r","").replace("\n"," / ")
 	footer.tooltip_text=message;footer.set_meta("full_message",message)
 func show_status_details():
-	if find_child("StatusDetails",true,false)!=null:return
 	var message=str(footer.get_meta("full_message",footer.text))
 	var saved_notice=notice;var saved_hint=focus_hint;var epoch=pages.epoch;var generation=engine.connection_generation
-	var popup=PopupPanel.new();popup.name="StatusDetails";popup.exclusive=true;add_child(popup)
-	var box=VBoxContainer.new();box.custom_minimum_size.x=mini(620,int(size.x)-48);popup.add_child(box)
-	var body=scroller(box);body.get_parent().custom_minimum_size.y=mini(240,int(size.y)-120)
-	label_(body,message)
-	var close=local_button(box,"閉じる",popup.hide)
-	popup.popup_hide.connect(func():
+	dialog.open("操作説明",func(body,actions):
+		label_(body,message)
+		local_button(actions,"閉じる",dialog.close),func():
 		if not closing and pages.epoch==epoch and engine.connection_generation==generation and notice==saved_notice:
-			focus_hint=saved_hint;status_override=message;set_status(message);footer.grab_focus()
-		popup.queue_free())
-	popup.popup_centered();close.grab_focus()
+			focus_hint=saved_hint;status_override=message;set_status(message);footer.grab_focus())
 func clear(node: Node):
 	for child in node.get_children():node.remove_child(child);child.queue_free()
 func portrait(parent: Node,u: Dictionary,face:=false,size_:=72) -> TextureRect:
@@ -204,7 +200,7 @@ func confirm(text: String,fn: Callable):
 		audio.ui("cancel");d.hide();d.queue_free()
 		if not closing and pages.epoch==epoch and engine.connection_generation==generation:
 			memory.scrolls.merge(scroll_state,true);memory.request_focus(origin_key);memory.restore())
-	d.popup_centered(Vector2i(mini(560,int(size.x)-32),230));d.get_cancel_button().grab_focus()
+	preferences.bind_window(d,"confirmation",size,Vector2(560,300));d.popup();d.get_cancel_button().grab_focus()
 	return d
 func fullscreen():
 	get_window().mode=Window.MODE_WINDOWED if get_window().mode==Window.MODE_FULLSCREEN else Window.MODE_FULLSCREEN
@@ -224,6 +220,8 @@ func _unhandled_key_input(event):
 func _notification(what):
 	if what==NOTIFICATION_WM_CLOSE_REQUEST and not closing:close_game()
 func close_game():
+	if is_instance_valid(board):board.persist_camera()
+	if is_instance_valid(dialog.window):dialog.remember()
 	closing=true;invalidate_preview()
 	while engine.busy:await get_tree().process_frame
 	if data.get("presentation")!=null:await engine.request({"op":"presentation_finish","id":data.presentation.id})
@@ -330,15 +328,15 @@ func render():
 	ui_size_mode="standard" if available.x>=1120 and available.y>=720 else "compact"
 	var margin=24 if available.x>=1800 and available.y>=1000 else 12 if ui_size_mode=="standard" else 8
 	base.offset_left=margin;base.offset_right=-margin;base.offset_top=margin;base.offset_bottom=-margin
-	theme.default_font_size=22 if available.x>=1800 and available.y>=1000 else 18 if ui_size_mode=="standard" else 16
+	theme.default_font_size=22 # Resize via wrapping and scrolling, never global text shrinking.
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
-	header.text="5525 / %s / 編成%d/5人 / 累計%d時間" % [town_name(place),c.get("selected",[]).size(),c.get("hours",0)]
+	header.text="5525 / %s / 編成%d人 / 累計%d時間" % [town_name(place),c.get("selected",[]).size(),c.get("hours",0)]
 	gold_header.text="%dG" % c.get("gold",0)
 	header.tooltip_text=header.text
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	resource_header.visible=not battle and not (phase=="town" and page in ["party","shop"])
-	actor_face.visible=battle
+	actor_face.visible=false
 	town_back.visible=not battle and page in ["shop","party"] and phase=="town"
 	town_back.text="アスタリスへ戻る" if page=="party" and c.get("guildAvailable",false) else "拠点へ"
 	top.custom_minimum_size.y=56 if battle and ui_size_mode=="standard" else 44
@@ -347,6 +345,7 @@ func render():
 		if view_kind!="battle":clear(content);hud.mount();view_kind="battle"
 		render_battle()
 	else:
+		if is_instance_valid(board):board.persist_camera();board.queue_free()
 		board=null;actor_row=null;clear(content);view_kind="page"
 		var nav=row(content)
 		var focused_page=phase=="town" and page in ["shop","party"]
@@ -541,7 +540,7 @@ func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback
 	d.use_native_dialog=false;d.exclusive=true;add_child(d);d.current_dir=ProjectSettings.globalize_path("user://")
 	if not filename.is_empty():d.current_file=filename;d.title="保存先を選択";d.overwrite_warning_enabled=false
 	d.file_selected.connect(func(path):d.queue_free();callback.call(path));d.canceled.connect(func():d.queue_free())
-	d.popup_centered_ratio(.75)
+	preferences.bind_window(d,"file_dialog",size,size*.75);d.popup()
 func save_game():
 	var r=await update({"op":"campaign_save"})
 	if not r.get("ok",false):return
@@ -594,7 +593,7 @@ func portrait_dialog():
 		button(r,"元に戻す",func():reset_portrait(str(u.id));d.queue_free(),not active_member(str(u.id)) or not portraits.metadata.get("characters",{}).has(u.id))
 	if reserves_visible():label_(body,"控えの画像を変更するには、先に編成へ加えてください。")
 	button(body,"閉じる",d.queue_free)
-	d.close_requested.connect(d.queue_free);d.popup_centered()
+	d.close_requested.connect(d.queue_free);preferences.bind_window(d,"portrait",size,Vector2(660,700));d.popup()
 func import_portrait(path: String,uid: String):
 	if not active_member(uid):return
 	var r=await update({"op":"godot_io","action":"portrait","path":path})
@@ -632,16 +631,13 @@ func queue_layout():
 	layout_queued=true;call_deferred("refresh_layout")
 func refresh_layout():
 	layout_queued=false
-	if not closing:render();dialog.resize()
+	if not closing:
+		dialog.remember();render();dialog.resize()
 func _process(_delta):
 	fit_battle_layout()
 func fit_battle_layout():
 	if closing or view_kind!="battle" or not is_instance_valid(hud.middle):return
-	# Keep the container within the available viewport after dock reparenting.
-	var available_height=content.size.y-battle_header.size.y-8
-	if ui_size_mode!="standard":available_height-=hud.dock.size.y+8
-	var height=maxf(hud.middle.get_combined_minimum_size().y,available_height)
-	if absf(hud.middle.size.y-height)>0.5:hud.middle.size.y=height;hud.middle.queue_sort()
+	hud.resize()
 func prefetch_shop_rows():
 	if pages!=null:pages.shop_view.prefetch_visible()
 func _input(event):

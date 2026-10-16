@@ -46,7 +46,7 @@ func configure(title: String,gear: Dictionary,context: Dictionary):
 	heading=title;title_size=context.get("title_size",24);detail_size=context.get("detail_size",18)
 	details.clear();plain_details.clear()
 	var attacks=gear.get("type")!="empty" and int(gear.get("atk",0))>0
-	line("通常攻撃射程："+(str(int(gear.get("reach",1))) if attacks else "該当なし"))
+	if attacks:line("通常攻撃射程："+str(int(gear.get("reach",1))))
 	var modifiers={"atk":"武器ATK","hp":"HP上限","mp":"MP上限","agiBonus":"行動速度"}
 	var count=0
 	if gear.get("type")!="empty":
@@ -78,6 +78,16 @@ func configure(title: String,gear: Dictionary,context: Dictionary):
 	if context.get("occupied",false):line("両手装備で使用中（独立した追加装備ではありません）")
 	if context.get("job")=="porter" and attacks:line("この人物は通常攻撃不可（ポーター）")
 	tooltip_text=heading+"\n"+"\n".join(plain_details)
+func configure_entry(entry: Dictionary,campaign: Dictionary):
+	var gear: Dictionary=entry.get("definition",{})
+	if entry.get("kind")=="equipment":
+		configure(str(entry.name),gear,{"names":campaign.get("skillNames",{}),"definitions":campaign.get("skillDefinitions",{}),"descriptions":campaign.get("skillDescriptions",{})})
+	else:
+		heading=str(entry.name);details.clear();plain_details.clear()
+		if gear.has("resource"):line(preload("res://item_menu.gd").effect(gear))
+		if gear.has("battleRole"):line("戦闘での使用条件："+str(gear.battleRole))
+		line(str(gear.get("note",gear.get("description","依頼に関わる所持品" if entry.get("kind")=="quest" else "使用時に1個消費"))))
+		tooltip_text=heading+"\n"+"\n".join(plain_details)
 func _make_custom_tooltip(_for_text: String) -> Object:
 	var box=VBoxContainer.new();box.name="EquipmentTooltip";box.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	# Native tooltip windows measure this tree before its first container layout.
