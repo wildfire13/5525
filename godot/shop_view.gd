@@ -52,9 +52,9 @@ func render(parent):
 	var body=ui.scroller(parent);var scroll=body.get_parent();scroll.name="ShopProductsScroll"
 	scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"shop_products")
 	for item in offered():
-		var line=ui.row(body);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=80
+		var line=ui.row(body);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=64
 		var info=b(line,"",func():pass);info.name="Product_"+str(item.id);info.alignment=HORIZONTAL_ALIGNMENT_LEFT
-		info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.custom_minimum_size=Vector2(240,80)
+		info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.custom_minimum_size=Vector2(240,64)
 		ui.icons.apply(info,ui.icons.gear(item));ui.memory.key(info,"product_"+str(item.id));ui.memory.item(info,str(item.id))
 		var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;info.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,48 if side=="left" else 8)
@@ -62,8 +62,12 @@ func render(parent):
 		var name_label=l(copy,str(item.name));name_label.name="ProductName_"+str(item.id);name_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;name_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;name_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		configure_tooltip(info,item)
 		var price=l(copy,"%dG" % item.price);price.name="ProductPrice_"+str(item.id);price.custom_minimum_size.x=96;price.size_flags_horizontal=Control.SIZE_FILL;price.autowrap_mode=TextServer.AUTOWRAP_OFF;price.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;price.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		# The overlay does not participate in Button minimum sizing; measure wrapped names explicitly.
-		copy.resized.connect(func():info.custom_minimum_size.y=maxf(80,copy.get_combined_minimum_size().y+16))
+		# Wrapping changes minimum height after the parent has already resized.
+		# Defer measurement and listen for that change, including shrinkage.
+		var fit=func():
+			if is_instance_valid(info) and not info.is_queued_for_deletion():info.custom_minimum_size.y=maxf(64,copy.get_combined_minimum_size().y+16)
+		copy.resized.connect(fit,CONNECT_DEFERRED)
+		copy.minimum_size_changed.connect(fit,CONNECT_DEFERRED)
 		var buy=b(line,"購入",confirm_purchase.bind(str(item.id)),busy() or int(c().gold)<int(item.price));buy.name="ProductBuy_"+str(item.id)
 		ui.memory.key(buy,"buy_"+str(item.id));buy.custom_minimum_size=Vector2(130,64)
 		if int(c().gold)<int(item.price):buy.tooltip_text="所持金が不足しています"

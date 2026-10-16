@@ -24,7 +24,7 @@ def run(name,script,scope,phase=''):
  results.append(dict(name=name,exit_code=code,passed=code==0 and not errors,errors=errors,checks=sum(line.startswith('PASS ') for line in text.splitlines())))
  (out/'results.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8')
  print(json.dumps(results[-1],ensure_ascii=False),flush=True)
-for script in ['launcher_smoke','ui_feedback_20261016','ui_feedback2_20261016','frontend_smoke','ui_input_layout_20261016','ui_inventory_stress_20261016','owned_equipment_regression','ui_review_finish']:
+for script in ['launcher_smoke','ui_feedback_20261016','ui_feedback2_20261016','ui_compact_review','frontend_smoke','ui_input_layout_20261016','ui_inventory_stress_20261016','owned_equipment_regression','ui_review_finish']:
  run(script,script,script)
 run('restart-write','ui_preferences_restart','restart','write')
 run('restart-read','ui_preferences_restart','restart','read')

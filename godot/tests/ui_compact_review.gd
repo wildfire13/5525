@@ -1,0 +1,60 @@
+extends "res://tests/ui_feedback_20261016.gd"
+func hover_rect(hover) -> Rect2:return Rect2(Vector2(hover.position),Vector2(hover.size))
+func status_rect(status) -> Rect2:return Rect2(Vector2(status.position)-Vector2(8,32),Vector2(status.size)+Vector2(16,40))
+func run():
+	create_timer(50).timeout.connect(func():print("FAIL compact review watchdog");quit(2))
+	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
+	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
+	while game.data.is_empty():await process_frame
+	game.checks_fast=true;game.audio.fast_mode=true
+	var seed=await saved();seed.state.characters.guard.inventory={"swift-boots":1,"armor-iron-2":1}
+	await game.update({"op":"campaign_load","data":seed});await settle()
+	var before_status=await saved()
+	game.pages.party_view.open_detail("guard");await settle()
+	var status=game.dialog.window;status.position=Vector2i(440,90);status.size=Vector2i(1040,780)
+	var action=node("OwnedEquipmentActions_swift-boots");action.grab_focus();await settle()
+	var hover=node("EquipmentHover");hover.show_for(action,true);await settle()
+	var one=hover_rect(hover)
+	check(hover.content.get_theme_font_size("normal_font_size")==18,"Q01 comparison font reduced to 18px")
+	check(one.size.x<=420 and one.size.y<=72,"Q01 one-line comparison fits compact content height")
+	check(one.position.x>=status_rect(status).end.x and not one.intersects(status_rect(status)),"Q01 centered FHD status has nonoverlapping right-side comparison")
+	check(hover.content.get_content_height()+20<=hover.size.y,"Q01 single line text not vertically clipped")
+	action=node("OwnedEquipmentActions_armor-iron-2");action.grab_focus();await settle();hover.show_for(action,true);await settle()
+	var two=hover_rect(hover)
+	check(hover.content.text.contains("55") and hover.content.text.contains("-1") and two.size.y>one.size.y and two.size.y<=120,"Q01 HP and speed differences grow to two lines without blank area")
+	check(not two.intersects(status_rect(status)),"Q01 two-line comparison avoids all equipment buttons in centered window")
+	var original=hover.content.text
+	hover.content.text="長い差分説明の折り返し確認".repeat(120);await frames(20)
+	check(hover.size.x<=420 and hover.size.y<=360 and hover.content.get_parent().get_v_scroll_bar().max_value>hover.size.y,"Q01 long comparisons bounded with scroll")
+	hover.content.text=original;await frames(20)
+	check(hover.size.y<=120,"Q01 comparison shrinks after long content")
+	status.position.x=860;await frames();hover.place();await frames()
+	check(hover_rect(hover).end.x<=status_rect(status).position.x and not hover_rect(hover).intersects(status_rect(status)),"Q01 right-edge status uses free left side")
+	status.position=Vector2i(8,60);status.size=Vector2i(1900,980);await frames(20);action.grab_focus();hover.show_for(action,true);await frames(20)
+	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(hover_rect(hover)),"Q01 no outside strip fallback remains on screen")
+	var uncovered=true
+	for button in game.find_children("OwnedEquipmentActions_*","Button",true,false):
+		var rect=button.get_global_rect();rect.position+=Vector2(status.position)
+		uncovered=uncovered and not rect.intersects(hover_rect(hover))
+	check(uncovered,"Q01 maximized fallback leaves equipment action column uncovered")
+	game.dialog.close();await settle();check((await saved())==before_status,"Q01 comparison inspection leaves campaign untouched")
+	seed.state.location="west";await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle()
+	var before_shop=await saved()
+	var rows=game.find_children("ProductRow_*","HBoxContainer",true,false)
+	check(rows.size()==8 and rows.all(func(row):return row.size.y==64),"Q02 all eight standard products settle at 64px")
+	var viewport=node("ShopProductsScroll").get_global_rect()
+	check(rows.all(func(row):return viewport.encloses(row.get_global_rect())),"Q02 FHD displays all eight standard products completely")
+	game.pages.shop_view.select_slot("feet");await settle();rows=game.find_children("ProductRow_*","HBoxContainer",true,false)
+	check(rows.size()==2 and rows.all(func(row):return row.size.y==64),"Q02 feet filter retains compact two rows")
+	var item=game.data.campaign.shop.filter(func(g):return g.id=="swift-boots")[0];item.name="長い商品名の必要な折り返し".repeat(20);game.render();await settle()
+	var row=node("ProductRow_swift-boots");var name_label=node("ProductName_swift-boots");var price=node("ProductPrice_swift-boots");var product=node("Product_swift-boots")
+	var tall=row.size.y
+	check(tall>64 and product.get_global_rect().encloses(name_label.get_global_rect()) and product.get_global_rect().encloses(price.get_global_rect()),"Q02 long product name wraps without clipping name or price")
+	name_label.text="俊足の靴";await frames(20)
+	check(row.size.y==64,"Q02 row shrinks after wrapped label becomes short")
+	name_label.text="長い商品名の必要な折り返し".repeat(20);await frames(20);var wide=row.size.y
+	root.size=Vector2i(1280,800);await settle();row=node("ProductRow_swift-boots");check(row.size.y>wide,"Q02 narrower viewport remeasures long product")
+	root.size=Vector2i(1920,1080);await settle();row=node("ProductRow_swift-boots");check(absf(row.size.y-wide)<=2,"Q02 widening viewport removes obsolete minimum height")
+	check((await saved())==before_shop,"Q01/Q02 presentation changes leave campaign untouched")
+	var f=FileAccess.open(evidence.path_join("compact-review.json"),FileAccess.WRITE);f.store_string(JSON.stringify({"checks":checks,"one_line":str(one),"two_lines":str(two),"font_px":18,"standard_shop_row_px":64},"\t"));f.close()
+	game.closing=true;game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)
