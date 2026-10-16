@@ -38,9 +38,9 @@ func render(parent):
 	var context=ui.row(parent);context.name="ShopContext"
 	var shop_name={"east":"イースの武器屋","west":"ウエスの防具屋","north":"ノースの装飾品店"}.get(c().location,"")
 	ui.icons.line(ui,context,ui.icons.shop(str(c().location)),shop_name)
-	var gold=ui.icons.line(ui,context,"money","所持金 %dG" % c().get("gold",0));gold.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
 	render_notice(parent)
 	var filters=ui.row(parent);filters.name="ShopFilters"
+	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;filters.add_child(spacer)
 	var filter_label=l(filters,"部位フィルター");filter_label.size_flags_horizontal=Control.SIZE_FILL;filter_label.custom_minimum_size.x=176;filter_label.autowrap_mode=TextServer.AUTOWRAP_OFF
 	var slot=OptionButton.new();slot.name="ShopSlotFilter";slot.custom_minimum_size=Vector2(180,44);filters.add_child(slot)
 	slot.add_item("すべて");slot.set_item_metadata(0,"all")
@@ -49,22 +49,21 @@ func render(parent):
 		if filter_slot==id:slot.select(slot.item_count-1)
 	slot.add_theme_constant_override("icon_max_width",24);slot.disabled=busy()
 	slot.item_selected.connect(func(i):select_slot(str(slot.get_item_metadata(i))));ui.memory.key(slot,"shop_filter")
-	l(filters,"購入した品は選んだ人物のインベントリへ入ります。")
 	var body=ui.scroller(parent);var scroll=body.get_parent();scroll.name="ShopProductsScroll"
 	scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"shop_products")
 	for item in offered():
 		var line=ui.row(body);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=80
 		var info=b(line,"",func():pass);info.name="Product_"+str(item.id);info.alignment=HORIZONTAL_ALIGNMENT_LEFT
-		info.size_flags_horizontal=Control.SIZE_FILL;info.clip_text=true;info.custom_minimum_size=Vector2(mini(720,maxi(240,int(ui.size.x)-500)),80)
+		info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.custom_minimum_size=Vector2(240,80)
 		ui.icons.apply(info,ui.icons.gear(item));ui.memory.key(info,"product_"+str(item.id));ui.memory.item(info,str(item.id))
 		var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;info.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,48 if side=="left" else 8)
-		var copy=VBoxContainer.new();copy.mouse_filter=Control.MOUSE_FILTER_IGNORE;copy.add_theme_constant_override("separation",0);margin.add_child(copy)
-		var name_label=l(copy,str(item.name));name_label.name="ProductName_"+str(item.id);name_label.autowrap_mode=TextServer.AUTOWRAP_OFF;name_label.clip_text=true;name_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		var summary=l(copy,product_summary(item));summary.name="ProductSummary_"+str(item.id);summary.autowrap_mode=TextServer.AUTOWRAP_OFF;summary.clip_text=true;summary.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		summary.add_theme_font_size_override("font_size",18);summary.add_theme_color_override("font_color",Color("#c7d6df"))
+		var copy=HBoxContainer.new();copy.mouse_filter=Control.MOUSE_FILTER_IGNORE;copy.add_theme_constant_override("separation",0);margin.add_child(copy)
+		var name_label=l(copy,str(item.name));name_label.name="ProductName_"+str(item.id);name_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;name_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;name_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		configure_tooltip(info,item)
-		var price=l(line,"%dG" % item.price);price.custom_minimum_size.x=96;price.size_flags_horizontal=Control.SIZE_FILL;price.autowrap_mode=TextServer.AUTOWRAP_OFF;price.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+		var price=l(copy,"%dG" % item.price);price.name="ProductPrice_"+str(item.id);price.custom_minimum_size.x=96;price.size_flags_horizontal=Control.SIZE_FILL;price.autowrap_mode=TextServer.AUTOWRAP_OFF;price.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;price.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		# The overlay does not participate in Button minimum sizing; measure wrapped names explicitly.
+		copy.resized.connect(func():info.custom_minimum_size.y=maxf(80,copy.get_combined_minimum_size().y+16))
 		var buy=b(line,"購入",confirm_purchase.bind(str(item.id)),busy() or int(c().gold)<int(item.price));buy.name="ProductBuy_"+str(item.id)
 		ui.memory.key(buy,"buy_"+str(item.id));buy.custom_minimum_size=Vector2(130,64)
 		if int(c().gold)<int(item.price):buy.tooltip_text="所持金が不足しています"

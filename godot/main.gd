@@ -335,7 +335,7 @@ func render():
 	gold_header.text="%dG" % c.get("gold",0)
 	header.tooltip_text=header.text
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
-	resource_header.visible=not battle and not (phase=="town" and page in ["party","shop"])
+	resource_header.visible=not battle and not (phase=="town" and page=="party")
 	actor_face.visible=false
 	town_back.visible=not battle and page in ["shop","party"] and phase=="town"
 	town_back.text="アスタリスへ戻る" if page=="party" and c.get("guildAvailable",false) else "拠点へ"
@@ -453,7 +453,7 @@ func choose_command(value: String):
 	if locked or presenting or closing or hud.range_reference:return
 	if value=="items":hud.open_items();return
 	if value=="skill" and data.get("skillset",[]).is_empty() and hud.has_return():value="return"
-	invalidate_preview();command=value;hud.action_menu=false;hud.item_list=false;hud.selected_cell=-1;hud.selected_enemy=""
+	invalidate_preview();command=value;hud.action_menu=false;hud.item_list=false;hud.skill_list=false;hud.selected_cell=-1;hud.selected_enemy=""
 	if value=="skill":await prepare_skill_preview()
 	render()
 func prepare_skill_preview():
@@ -463,15 +463,13 @@ func prepare_skill_preview():
 		await request_preview("attack")
 func select_skill(id: String):
 	if id=="returnHome":choose_command("return");return
-	invalidate_preview();command="skill"
+	invalidate_preview();command="skill";hud.action_menu=false;hud.item_list=false;hud.skill_list=false
 	await update({"op":"select_skill","skillId":id})
-	await prepare_skill_preview()
 func deploy_dragged(uid: String,pos: int):
 	if locked or presenting:return
 	await act("deploy",[uid,pos])
 func on_cell(pos: int):
-	if locked or presenting or closing or hud.range_reference or hud.item_list:return
-	if command=="skill" and data.get("skill")=="陣形強化" and not hud.action_menu:return
+	if locked or presenting or closing or hud.range_reference or hud.item_list or hud.skill_list:return
 	var s=state();var u=board.unit_at(pos)
 	hud.selected_cell=pos
 	if hud.action_menu and not s.get("deploying",false):render();return
@@ -524,7 +522,11 @@ func request_preview(which: String):
 func cancel():
 	if locked or presenting or closing:return
 	if hud.range_reference:hud.close_reference();return
-	if hud.item_list or command in ["skill","return"] and not hud.action_menu:hud.back_to_commands();return
+	if hud.item_list or hud.skill_list:hud.back_to_commands();return
+	if command in ["skill","return"] and not hud.action_menu:
+		if pending!=null or not chosen.is_empty():invalidate_preview();hud.selected_cell=-1;audio.ui("cancel");render()
+		else:hud.open_skills()
+		return
 	if command in ["item","ether"] and not hud.action_menu:hud.open_items();return
 	var had_target=pending!=null or not chosen.is_empty()
 	invalidate_preview();hud.selected_cell=-1;hud.selected_enemy=""
@@ -603,7 +605,7 @@ func reset_portrait(uid: String):
 	portraits.clear_member(uid);notice="元の画像に戻しました。割当を残すには進行を保存してください。";render()
 
 func can_commit() -> bool:
-	if locked or presenting or closing or engine.disconnected or preview_pending or hud.range_reference or hud.action_menu or hud.item_list:return false
+	if locked or presenting or closing or engine.disconnected or preview_pending or hud.range_reference or hud.action_menu or hud.item_list or hud.skill_list:return false
 	if state().is_empty() or state().get("deploying",false) or state().get("result")!=null:return false
 	if hud.acting().get("side")!="ally":return false
 	return command=="guard" or (pending!=null and preview_ready and not preview.is_empty())

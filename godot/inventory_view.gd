@@ -15,6 +15,10 @@ var generation := 0
 var equipment_comparison := ""
 var return_to_equipment := false
 var equipment_context: Dictionary={}
+var confirmation: ConfirmationDialog
+func close_confirmation():
+	if is_instance_valid(confirmation):confirmation.hide();confirmation.queue_free()
+	confirmation=null
 
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
 func c() -> Dictionary:return ui.campaign()
@@ -22,6 +26,7 @@ func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func redraw():party.refresh_modal()
 func reset():
+	close_confirmation()
 	equipment_comparison="";return_to_equipment=false;equipment_context={}
 	owner_id="";item_id="";action="";stage="list";amount=1;quote={};message="";generation+=1
 func data() -> Dictionary:return c().get("inventoryByCharacter",{}).get(owner_id,{})
@@ -72,7 +77,7 @@ func render(parent,uid: String):
 			ui.memory.key(button,"inventory_"+owner_id+"_"+str(item.id))
 			if sale_available() and item.kind=="equipment":b(row,"売却",choose_sale.bind(str(item.id))).name="InventorySell_"+str(item.id)
 		return
-	if stage=="confirm":render_confirmation(parent);return
+	if stage=="confirm":l(parent,"確認ダイアログで操作を選択してください。");return
 	l(parent,"%s / %s / 所持 %d個" % [ui.member_name(owner_id),entry.name,entry.count],true)
 	if stage=="actions":
 		var use_reason=""
@@ -124,13 +129,13 @@ func prepare(target,slot):
 	quote=reply.get("saleQuote" if action=="sell" else "inventoryQuote",{})
 	if action=="sell":quote.action="sell"
 	if not reply.get("ok",false) or not quote.get("ok",false):stage="actions";message=str(quote.get("reason",reply.get("error","状態を再確認してください")));redraw();return
-	stage="confirm";redraw()
+	stage="confirm";redraw();show_confirmation()
 
 func prepare_unequip(uid: String,id: String,slot: String):
 	if not available():return
 	owner_id=uid;item_id=id;action="unequip";amount=1;return_to_equipment=party.detail_tab==0
 	if return_to_equipment:capture_equipment_context(uid,id)
-	party.detail_tab=3;await prepare(null,slot)
+	await prepare(null,slot)
 
 func capture_equipment_context(uid: String,id: String):
 	equipment_context={"window":ui.dialog.window.get_instance_id(),"owner":uid,"item":id,"slot":party.owned_equipment_view.slot,"scroll":ui.dialog.body.get_parent().scroll_vertical}
@@ -145,31 +150,36 @@ func restore_equipment_context():
 	if button!=null:button.grab_focus()
 	scroll.scroll_vertical=int(context.scroll)
 func cancel_confirmation():
+	close_confirmation()
 	var restore=return_to_equipment
 	stage="list" if return_to_equipment else "actions";quote={};generation+=1
 	if return_to_equipment:party.detail_tab=0;return_to_equipment=false
 	redraw()
 	if restore:restore_equipment_context()
 
-func render_confirmation(parent):
-	if quote.get("action")=="equip":l(parent,"装備しますか",true)
-	l(parent,"%sの %s / %d個" % [quote.get("ownerName",""),quote.get("name",""),quote.get("count",0)],true)
-	var verb={"use":"使用する","transfer":"渡す","discard":"捨てる","equip":"装備する","unequip":"装備を外す","sell":"売却する"}.get(quote.get("action"),"確定")
-	if quote.get("action")=="use":l(parent,"対象: %s / %s %d → %d / 消費1個" % [quote.targetName,str(quote.resource).to_upper(),quote.before,quote.after])
-	elif quote.get("action")=="transfer":l(parent,"渡す相手: "+str(quote.targetName))
-	elif quote.get("action")=="discard":l(parent,"この所持品を捨てます。取り消すと個数は変わりません。")
-	elif quote.get("action")=="sell":l(parent,"売却単価 %dG / 受取 %dG / 所持金 %d → %dG" % [quote.price,quote.proceeds,quote.goldBefore,quote.afterGold])
-	elif quote.get("action") in ["equip","unequip"]:l(parent,"装備枠: "+str(c().get("slots",{}).get(quote.slot,quote.slot))+" / 外した装備は本人のインベントリへ入ります。")
-	var stale=quote.get("token")!=c().get("inventoryToken")
-	if stale:l(parent,"所持品や対象の状態が変わりました。戻って選び直してください。")
-	var actions=ui.row(parent)
-	if quote.get("action")=="sell" and sale_available():b(actions,"個数選択へ戻る",back).name="InventoryCancel"
-	else:b(actions,"NO" if quote.get("action")=="equip" else "取り消す",cancel_confirmation).name="InventoryCancel"
-	ui.primary(b(actions,"YES" if quote.get("action")=="equip" else verb,commit,stale)).name="InventoryConfirm"
+func show_confirmation():
+	close_confirmation()
+	var verb={"use":"使用","transfer":"譲渡","discard":"破棄","equip":"装備","unequip":"装備解除","sell":"売却"}.get(quote.get("action"),"操作")
+	var text="%sしますか？\n%sの %s / %d個" % [verb,quote.get("ownerName",""),quote.get("name",""),quote.get("count",0)]
+	if quote.get("action")=="use":text+="\n対象: %s / %s %d → %d / 消費1個" % [quote.targetName,str(quote.resource).to_upper(),quote.before,quote.after]
+	elif quote.get("action")=="transfer":text+="\n渡す相手: "+str(quote.targetName)
+	elif quote.get("action")=="sell":text+="\n受取 %dG / 所持金 %d → %dG" % [quote.proceeds,quote.goldBefore,quote.afterGold]
+	elif quote.get("action") in ["equip","unequip"]:text+="\n装備枠: "+str(c().get("slots",{}).get(quote.slot,quote.slot))
+	var ticket=generation;var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation
+	confirmation=ui.confirm(text,func():
+		if ticket==generation and epoch==ui.pages.epoch and connection==ui.engine.connection_generation:commit())
+	confirmation.name="InventoryConfirmation";confirmation.ok_button_text="YES";confirmation.cancel_button_text="NO"
+	confirmation.get_ok_button().name="InventoryConfirm";confirmation.get_cancel_button().name="InventoryCancel"
+	var cancel=func():
+		if ticket==generation and epoch==ui.pages.epoch and connection==ui.engine.connection_generation:cancel_confirmation()
+	confirmation.canceled.connect(cancel)
+	confirmation.close_requested.connect(cancel)
+	confirmation.get_cancel_button().grab_focus()
 
 func commit():
 	if not available() or stage!="confirm" or quote.get("token")!=c().get("inventoryToken"):return
 	if quote.get("action")=="sell" and not sale_available():return
+	close_confirmation()
 	var confirmed=quote.duplicate(true);stage="pending";generation+=1
 	var ticket=generation;var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation
 	redraw()
