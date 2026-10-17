@@ -85,6 +85,7 @@ func render(parent,uid: String):
 	if stage=="actions":
 		var use_reason=""
 		if entry.kind=="equipment":use_reason="装備品です。装備枠を選んで装備できます。"
+		elif entry.kind=="quest":use_reason="依頼の荷物は使用できません。目的地の掲示板で「クエスト完了」を選んで納品してください。"
 		elif not entry.useTargets.any(func(q):return q.ok):
 			use_reason=str(entry.useTargets[0].reason) if not entry.useTargets.is_empty() else "回復対象がいません"
 		var actions=ui.row(parent)

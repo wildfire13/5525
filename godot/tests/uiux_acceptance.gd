@@ -185,7 +185,7 @@ func battle_checks():
 	await load_fixture(fixtures.low);game.hud.detail_tab=1;game.render();await settle()
 	check("AC-B15",game.board.actors.guard.label.font==game.board.low_hp_font and game.board.actors.archer.label.font!=game.board.low_hp_font,"below-quarter and exact-quarter fonts retain old boundary")
 	var queue_=game.data.queue.duplicate(true);var repeated=queue_.map(func(q):return q.id)
-	check("AC-B13",game.hud.queue_at_start==queue_ and node("TurnOrder").get_child(1).get_child(0).get_child_count()==queue_.size()-1,"queue keeps every original entry including repeated IDs in one horizontal row")
+	check("AC-B13",game.hud.queue_at_start==queue_ and node("TurnOrder").get_children().filter(func(c):return c is PanelContainer).size()==mini(5,queue_.size()),"queue retains full engine order while displaying only its first five cards")
 	game.hud.detail_tab=0;game.hud.details_open=true;game.render();await settle()
 	for enemy in game.state().units:
 		if enemy.side=="enemy" and enemy.get("intent") is Dictionary:game.hud.inspect_enemy(enemy.id);break

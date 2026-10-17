@@ -9,7 +9,7 @@ var preview: Dictionary={}
 var pending=null
 var chosen: Array=[]
 var command := "attack"
-var page := "board"
+var page := "hub"
 var selected := ""
 var shop_uid := "guard"
 var shop_slot := "rightHand"
@@ -18,6 +18,7 @@ var destination := ""
 var pages
 var gear_preview: Dictionary={}
 var notice := ""
+var save_notice
 var locked := false
 var presenting := false
 var closing := false
@@ -93,13 +94,14 @@ func _ready():
 	actor_face=portrait(top,{},true,40);actor_face.visible=false
 	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
 	resource_header=row(top);gold_header=icons.line(self,resource_header,"money","")
-	town_back=button(top,"拠点へ",navigate.bind("board"));town_back.visible=false
+	town_back=button(top,"拠点へ",navigate.bind("hub"));town_back.visible=false
 	local_button(top,"メニュー",open_menu)
 	retry_button=button(top,"再接続",func():confirm("ゲーム接続を再開します。失われた未保存の進行は復元できません。\n再接続後、保存済みファイルを読み込んでください。",reconnect_engine));retry_button.visible=false
 	audio=preload("res://audio.gd").new();add_child(audio)
+	save_notice=preload("res://save_notice.gd").new();save_notice.name="SaveNotice";add_child(save_notice)
 	menu=PopupPanel.new();menu.name="CommonMenu";add_child(menu)
 	var menu_body=VBoxContainer.new();menu.add_child(menu_body)
-	for item in [["拠点・旅程へ",func():navigate("board")],["保存",save_game],["読込",load_dialog],["ログ保存",save_log],["画像",portrait_dialog],["新しい旅",func():confirm("未保存の進行を終了し、新しい旅を始めます。保存済みファイルは変更しません。",new_game)]]:
+	for item in [["拠点・旅程へ",func():navigate("hub")],["保存",save_game],["読込",load_dialog],["ログ保存",save_log],["画像",portrait_dialog],["新しい旅",func():confirm("未保存の進行を終了し、新しい旅を始めます。保存済みファイルは変更しません。",new_game)]]:
 		var callback: Callable=item[1]
 		button(menu_body,item[0],func():menu.hide();callback.call())
 	local_button(menu_body,"操作説明",func():menu.hide();show_status_details())
@@ -258,6 +260,8 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 				if frontend.get("reconnect_bootstrap",false):campaign_identity.reconnect_bootstrap();pages.reset_context("reconnect")
 				else:campaign_identity.new_campaign();pages.reset_context()
 				memory.reset();skip_capture_once=true
+			if request.get("action")=="arrive":
+				pages.hub_view.reset();page="hub"
 			invalidate_preview();data=reply
 		notice=""
 	else:
@@ -309,7 +313,7 @@ func handle_connection_loss(reply: Dictionary,connection: int) -> bool:
 	render();return true
 func new_game(reconnect_bootstrap:=false):
 	invalidate_preview()
-	portraits.activate({"version":1,"characters":{}});audio.restore({});gear_preview={};page="board"
+	portraits.activate({"version":1,"characters":{}});audio.restore({});gear_preview={};page="hub"
 	await update({"op":"campaign_start"},{"reconnect_bootstrap":reconnect_bootstrap})
 func navigate(value: String):
 	if not pages.party_view.guard_leave(navigate.bind(value)):return
@@ -339,7 +343,7 @@ func render():
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	resource_header.visible=not battle and not (phase=="town" and page=="party")
 	actor_face.visible=false
-	town_back.visible=not battle and page in ["shop","party"] and phase=="town"
+	town_back.visible=not battle and page!="hub" and phase=="town"
 	town_back.text="アスタリスへ戻る" if page=="party" and c.get("guildAvailable",false) else "拠点へ"
 	top.custom_minimum_size.y=56 if battle and ui_size_mode=="standard" else 44
 	footer.visible=not battle and page not in ["shop","party"]
@@ -353,10 +357,10 @@ func render():
 		var focused_page=phase=="town" and page in ["shop","party"]
 		if focused_page:
 			header.text="装備を購入" if page=="shop" else "ギルド / パーティー編成" if c.get("guildAvailable",false) else "仲間・装備"
-			button(nav,"拠点へ",navigate.bind("board"));nav.visible=false
+			button(nav,"拠点へ",navigate.bind("hub"));nav.visible=false
 		var tabs_=[["board","掲示板"],["map","地図・出発"],["shop","商店"]] if phase=="town" else [["board","旅程"],["items","道具"]]
 		if phase=="town" and c.get("location")=="astaris":tabs_.append(["inn","宿屋"]);tabs_.append(["party","ギルド"])
-		for tab in ([] if focused_page else tabs_):
+		for tab in ([] if focused_page or phase=="town" else tabs_):
 			var nb=button(nav,("● " if page==tab[0] else "")+tab[1],navigate.bind(tab[0]),phase!="town" and tab[0]=="items" and phase!="camp");memory.key(nb,"nav_"+tab[0])
 		var body: VBoxContainer
 		if phase=="town" and page in ["party","shop"]:
@@ -364,6 +368,7 @@ func render():
 		else:body=scroller(content);memory.watch(body.get_parent(),"page_"+phase+"_"+page)
 		if phase=="town":
 			match page:
+				"hub":pages.hub(body)
 				"map":pages.map(body)
 				"inn":pages.inn(body)
 				"party":render_party(body)
@@ -573,7 +578,8 @@ func publish_snapshot(path: String,envelope: Dictionary,kind: String,expected_sh
 	if not resolved_target.is_empty():request.resolved_target=resolved_target
 	if not expected_sha256.is_empty():request.overwrite=true;request.expected_sha256=expected_sha256
 	var written=await update(request)
-	if written.get("ok",false):notice=kind+"を保存しました: "+path;audio.ui("confirm");render()
+	if written.get("ok",false):
+		notice="";save_notice.display(kind+"を保存しました",path);audio.ui("confirm");render()
 func load_dialog():
 	file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray(["*.json ; 5525進行セーブ"]),func(path):confirm("現在の未保存の進行を置き換えて読み込みます。元の保存ファイルは変更しません。",load_game.bind(path)))
 func load_game(path: String):

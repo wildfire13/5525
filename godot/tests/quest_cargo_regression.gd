@@ -4,7 +4,7 @@ var checks=[]
 func _initialize():call_deferred("run")
 func settle():
 	for i in range(12):await process_frame
-	while game.locked or game.engine.busy or game.presenting:await process_frame
+	while game.locked or game.engine.busy or game.presenting or game.pages.guild_view.stage in ["pending","animating"]:await process_frame
 func check(ok,label):checks.append({"passed":bool(ok),"label":label});print(("PASS " if ok else "FAIL ")+label)
 func tap(n):game.find_child(n,true,false).pressed.emit();await settle()
 func saved():return (await game.engine.request({"op":"campaign_save"})).data
@@ -46,9 +46,9 @@ func run():
 	var seed=await saved()
 	reply=await game.update({"op":"campaign_load","data":seed});await settle()
 	check(reply.ok and game.campaign().activeQuest.cargoOwnerId=="porter-2","reserve carrier save reload")
-	game.navigate("party");await settle();await tap("GuildMember_porter-2");await tap("GuildAdd");await tap("GuildConfirm")
+	game.navigate("party");await settle();await tap("GuildMember_porter-2");await tap("GuildAdd")
 	check(game.campaign().cargoAboard,"readding carrier restores aboard cargo")
-	await tap("GuildMember_porter-2");await tap("GuildSwap");await tap("GuildMember_archer")
+	await tap("GuildMember_porter-2");await tap("GuildMember_archer")
 	check(contains("そのポーター、荷物を持っています"),"current carrier swap warns")
 	await tap("GuildConfirmCancel");check(game.campaign().selected.has("porter-2"),"swap warning cancel preserves carrier")
 	reply=await game.update({"op":"campaign_load","data":seed});await settle()
@@ -59,7 +59,7 @@ func run():
 	game.navigate("map");await settle()
 	check(not game.find_child("TownMap",true,false).buttons.astaris.disabled,"ordinary road back to city available")
 	await arrive_fixture("astaris");game.navigate("party");await settle()
-	await tap("GuildMember_porter-2");await tap("GuildAdd");await tap("GuildConfirm")
+	await tap("GuildMember_porter-2");await tap("GuildAdd")
 	cash=game.campaign().gold
 	await arrive_fixture("east")
 	check(game.campaign().gold==cash and game.campaign().characters["porter-2"].inventory.get(cargo)==1,"arrival with cargo does not deliver automatically")
