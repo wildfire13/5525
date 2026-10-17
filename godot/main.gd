@@ -638,7 +638,8 @@ func refresh_layout():
 		dialog.remember();render();dialog.resize()
 func _process(_delta):
 	for child in find_children("*","Window",true,false):
-		if child.get_meta("managed_layout",false):preferences.keep_visible(child,size)
+		if child==dialog.window:dialog.keep_visible()
+		elif child.get_meta("managed_layout",false):preferences.keep_visible(child,size)
 	fit_battle_layout()
 func fit_battle_layout():
 	if closing or view_kind!="battle" or not is_instance_valid(hud.middle):return
@@ -646,6 +647,14 @@ func fit_battle_layout():
 func prefetch_shop_rows():
 	if pages!=null:pages.shop_view.prefetch_visible()
 func _input(event):
+	# Status is nonexclusive only for portrait switching; root shortcuts must
+	# never activate a background button after an outside click moves focus.
+	if event is InputEventKey and is_instance_valid(dialog.window) and dialog.window.title=="ステータス" and event.keycode not in [KEY_ESCAPE,KEY_F11]:
+		dialog.window.grab_focus();get_viewport().set_input_as_handled();return
+	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed:
+		if pages!=null and pages.party_view.outside_press(event.position):
+			swallow_mouse_release=true;get_viewport().set_input_as_handled();return
+		if pages!=null:pages.guild_view.outside_press(event.position)
 	if event is InputEventKey and event.pressed and event.echo and event.keycode in [KEY_ENTER,KEY_KP_ENTER,KEY_SPACE]:
 		var focus=get_viewport().gui_get_focus_owner()
 		if focus is BaseButton or focus==board:get_viewport().set_input_as_handled()

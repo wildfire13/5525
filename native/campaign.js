@@ -412,9 +412,9 @@ const Campaign = (() => {
     const owner=s.characters[ownerId];
     return {ownerId,token:inventoryToken(s),entries:Object.entries(owner.inventory).map(([id,count])=>{
       const cargo=Cargo.definition(s,id);
-      if(cargo)return {id,name:'荷物',count,kind:'quest',definition:clone(cargo),useTargets:[],transferTargets:s.selected.filter(target=>target!==ownerId).map(target=>inventoryQuote(s,ownerId,id,'transfer',target)),discard:inventoryQuote(s,ownerId,id,'discard'),equipSlots:[]};
+      if(cargo)return {sale:saleQuote(s,ownerId,id),id,name:'荷物',count,kind:'quest',definition:clone(cargo),useTargets:[],transferTargets:s.selected.filter(target=>target!==ownerId).map(target=>inventoryQuote(s,ownerId,id,'transfer',target)),discard:inventoryQuote(s,ownerId,id,'discard'),equipSlots:[]};
       const item=items.find(i=>i.id===id),g=getGear(id);
-      return {id,name:(item||g).name,count,kind:item?'consumable':'equipment',definition:clone(item||g),
+      return {sale:saleQuote(s,ownerId,id),id,name:(item||g).name,count,kind:item?'consumable':'equipment',definition:clone(item||g),
         useTargets:s.selected.map(target=>inventoryQuote(s,ownerId,id,'use',target)),
         transferTargets:s.selected.filter(target=>target!==ownerId).map(target=>inventoryQuote(s,ownerId,id,'transfer',target)),
         discard:inventoryQuote(s,ownerId,id,'discard'),

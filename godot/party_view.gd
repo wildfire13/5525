@@ -122,16 +122,15 @@ func growth(parent,u: Dictionary):
 	var count=l(points,"割り振り可能な残ポイント：%d" % remaining,true);count.name="AllocationRemaining"
 	for stat in ["str","int","agi"]:
 		var row=ui.row(parent);ui.icons.add(row,{"str":"strength","int":"intelligence","agi":"speed"}[stat],24)
-		l(row,"%s  %d → %d（仮＋%d）" % [stat.to_upper(),stats.get(stat,0),stats.get(stat,0)+draft[stat],draft[stat]])
+		var value=l(row,"%s  %d → %d（＋%d）" % [stat.to_upper(),stats.get(stat,0),stats.get(stat,0)+draft[stat],draft[stat]])
+		value.size_flags_horizontal=Control.SIZE_FILL;value.custom_minimum_size.x=260
 		ui.memory.key(b(row,"＋1",change_draft.bind(u,stat,1),not editable or remaining<=0),"allocate_"+stat)
 		ui.memory.key(b(row,"−1",change_draft.bind(u,stat,-1),not editable or draft[stat]<=0),"allocate_minus_"+stat)
-	var confirm=b(parent,"確定",confirm_allocation.bind(u),not editable or draft_total()==0);confirm.name="AllocationConfirm";ui.memory.key(confirm,"allocation_confirm")
+	var confirm=b(parent,"確定",confirm_allocation.bind(u),not editable or draft_total()==0);confirm.name="AllocationConfirm";confirm.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;confirm.custom_minimum_size.x=180;ui.memory.key(confirm,"allocation_confirm")
+	if draft_total()>0:tint(confirm,Color("#236044"))
 	if not editable:l(parent,"控えは編成してから操作できます。" if not ui.active_member(str(u.id)) else "成長の配分は町にいる時だけ編集できます。" if pages.c().get("phase")!="town" else "確定結果を確認しています。")
-	l(parent,"未確定分だけ修正できます。未使用ポイントは残せます。")
-	ui.icons.line(ui,parent,"experience","Lv.%d / 経験値 %d" % [u.get("level",1),u.get("xp",0)])
-	l(parent,"スキルポイント %d / スキル配分は未実装です。" % u.get("skillPoints",0))
 	l(parent,pages.stats_text(stats));l(parent,"SPD（行動速度）はAGIと装備補正から算出します。")
-	l(parent,"編成はアスタリスのギルドで変更できます。人物の装備・HP/MP・成長は保持します。")
+	l(parent,"編成はアスタリスのギルドで変更できます。")
 func skills(parent,u: Dictionary):
 	var s=u.get("stats",u);var names=pages.c().get("skillNames",{})
 	l(parent,"使用可能: "+" / ".join(u.get("activeSkillNames",[])));l(parent,"効果: "+" / ".join(u.get("effectNames",[])))
@@ -206,15 +205,17 @@ func face_bar(parent):
 		var u=ui.roster().filter(func(member):return member.id==id)[0]
 		var caption=str(u.name)+(" 戦闘不能" if u.hp<=0 else "")
 		if show_resources:caption+="\nHP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]
-		var control=b(row,"",open_detail.bind(str(id)),ui.modal_open() or pages.shop_view.stage in ["S4","S5"] or pages.shop_view.unknown)
+		var control=b(row,"",portrait_pressed.bind(str(id)),(ui.modal_open() and detail_uid.is_empty()) or (pages.guild_view.available() and pages.guild_view.busy()) or pages.shop_view.stage in ["S4","S5"] or pages.shop_view.unknown)
+		if str(id)==detail_uid:tint(control,Color("#243c58"))
+		elif pages.guild_view.available() and str(id)==pages.guild_view.chosen_id:tint(control,Color("#236044"))
 		control.name="PartyFace_"+str(id);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.icon=ui.portraits.texture(u,true);control.expand_icon=true;control.add_theme_constant_override("icon_max_width",48 if ui.ui_size_mode=="standard" else 28);control.clip_text=true;control.tooltip_text=caption+" / ステータスを開く";ui.memory.key(control,"face_"+str(id))
 func open_detail(uid: String):
 	if ui.locked or ui.presenting or ui.modal_open() or not ui.can_inspect_member(uid):return
 	if not guard_leave(open_detail.bind(uid)):return
 	detail_uid=uid;detail_tab=0;detail_gear={};inventory_view.reset();owned_equipment_view.reset()
 	ui.dialog.open("ステータス",func(_body,actions):
-		ui.local_button(actions,"戻る",detail_back).name="StatusBack"
-		ui.local_button(actions,"ステータスを閉じる",ui.dialog.close).name="StatusClose",func():detail_uid="";detail_gear={};inventory_view.reset();ui.render())
+		ui.local_button(actions,"戻る",detail_back).name="StatusBack",
+		func():detail_uid="";detail_gear={};inventory_view.reset();ui.render())
 	ui.dialog.close_guard=detail_close_guard
 	ui.dialog.escape_handler=detail_escape
 	ui.render()
@@ -240,7 +241,7 @@ func refresh_modal():
 	var u=matches[0];var body=ui.dialog.body
 	var scroll=body.get_parent();var old_scroll=scroll.scroll_vertical
 	ui.clear(body)
-	var hero=ui.row(body);ui.portrait(hero,u,false,88);l(hero,str(u.name)+" / Lv.%d\nHP%d/%d  MP%d/%d" % [u.level,u.hp,u.max,u.mp,u.maxMp],true);identity(body,u)
+	var hero=ui.row(body);ui.portrait(hero,u,false,88);l(hero,str(u.name)+" / Lv.%d / 経験値 %d\nHP%d/%d  MP%d/%d" % [u.level,u.get("xp",0),u.hp,u.max,u.mp,u.maxMp],true);identity(body,u)
 	var tabs=ui.row(body)
 	for i in range(4):
 		var tab_button=b(tabs,("● " if detail_tab==i else "")+["装備","能力・成長","スキル・効果","インベントリ"][i],func():detail_tab=i;detail_gear={};refresh_modal())
@@ -260,9 +261,30 @@ func refresh_modal():
 		2:skills(body,u)
 		3:inventory_view.render(body,detail_uid)
 	if not ui.notice.is_empty():l(body,ui.notice)
-	var close_button=ui.dialog.actions.get_node("StatusClose")
-	close_button.disabled=ui.locked or ui.presenting or committing or inventory_view.stage=="pending"
 	var back_button=ui.dialog.actions.get_node("StatusBack")
 	back_button.visible=detail_tab==3
 	back_button.disabled=not inventory_view.available() or inventory_view.stage=="list"
 	scroll.set_deferred("scroll_vertical",old_scroll);modal_refreshing=false
+
+func tint(control: Button,color: Color):
+	for state_ in ["normal","hover","pressed"]:
+		var style=control.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
+		style.bg_color=color.lightened(.12) if state_=="hover" else color
+		control.add_theme_stylebox_override(state_,style)
+func portrait_pressed(uid: String):
+	if detail_uid.is_empty():open_detail(uid);return
+	if uid==detail_uid or ui.locked or ui.presenting or committing or leave_pending or inventory_view.stage in ["pending","unknown","confirm"]:return
+	if not ui.can_inspect_member(uid) or not guard_leave(portrait_pressed.bind(uid)):return
+	detail_uid=uid;detail_gear={};inventory_view.reset();owned_equipment_view.reset();clear_draft();ui.render();ui.dialog.window.grab_focus()
+func outside_press(point: Vector2) -> bool:
+	if detail_uid.is_empty() or not is_instance_valid(ui.dialog.window) or ui.dialog.window.title!="ステータス":return false
+	var window=ui.dialog.window
+	var rect=Rect2(Vector2(window.position)-Vector2(0,32),Vector2(window.size)+Vector2(0,32))
+	if rect.has_point(point):return false
+	# Child confirmations and other popups retain their exclusive input/consent.
+	for child in ui.find_children("*","Window",true,false):
+		if child!=window and child.visible and child.exclusive:return true
+	for id in pages.c().get("selected",[]):
+		var face=ui.find_child("PartyFace_"+str(id),true,false)
+		if face!=null and face.is_visible_in_tree() and face.get_global_rect().has_point(point):portrait_pressed(str(id));return true
+	ui.dialog.close();return true

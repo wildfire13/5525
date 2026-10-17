@@ -4,6 +4,15 @@ const row=(characterId,gearId,slot='rightHand')=>({characterId,gearId,slot});
 let passed=0;const test=(name,fn)=>{fn();passed++;console.log('PASS '+name);};
 function town(){const s=C.create();s.location='east';return s;}
 function okay(s){assert.equal(C.validate(s).ok,true,C.validate(s).error);assert.deepEqual(C.deserialize(C.serialize(s)),s);}
+test('inventory sale display uses the same quote and price as the transaction',()=>{
+  const s=town();s.characters.guard.inventory={'sword-wood':2,potion:3};
+  const before=clone(s),entries=C.view(s).inventoryByCharacter.guard.entries;
+  for(const entry of entries)assert.deepEqual(entry.sale,C.saleQuote(s,'guard',entry.id,1));
+  assert(entries.find(e=>e.id==='sword-wood').sale.ok);
+  assert.equal(entries.find(e=>e.id==='potion').sale.ok,false);
+  assert.deepEqual(s,before,'display quote must not mutate inventory or money');
+  s.location='astaris';assert(C.view(s).inventoryByCharacter.guard.entries.every(e=>!e.sale.ok));
+});
 test('multiple-member plan retains real stock until one atomic checkout',()=>{
   const s=town();s.gold=400;const entries=[row('guard','staff-wood'),row('archer','bow-wood-1')],before=clone(s),q=C.purchasePlan(s,entries);
   assert(q.ok);assert.equal(q.cost,210);assert.equal(q.afterGold,190);assert.deepEqual(s,before);

@@ -20,7 +20,7 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 	escape_handler=Callable()
 	ui.memory.capture();checkpoint=ui.memory.scrolls.duplicate(true);origin=ui.memory.focus_key
 	epoch=ui.pages.epoch;connection=ui.engine.connection_generation;restore_callback=closed
-	window=Window.new();window.set_meta("managed_layout",true);window.name="StateDetails";window.title=title;window.exclusive=true;window.transient=true;window.unresizable=false;window.min_size=Vector2i(420,300)
+	window=Window.new();window.set_meta("managed_layout",true);window.name="StateDetails";window.title=title;window.exclusive=title!="ステータス";window.transient=true;window.unresizable=false;window.min_size=Vector2i(420,300)
 	ui.add_child(window)
 	var margin=preload("res://modal_input.gd").new();margin.owner_ref=weakref(self);window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,12)
@@ -40,7 +40,14 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 func layout_key() -> String:
 	return "status" if window.title=="ステータス" else "dialog:"+window.title.get_slice(" / ",0)
 func remember():
-	if is_instance_valid(window):ui.preferences.keep_visible(window,ui.size);ui.preferences.store_rect(layout_key(),Rect2(Vector2(window.position),Vector2(window.size)))
+	if is_instance_valid(window):keep_visible();ui.preferences.store_rect(layout_key(),Rect2(Vector2(window.position),Vector2(window.size)))
+func keep_visible():
+	if not is_instance_valid(window):return
+	var available=ui.size
+	if window.title=="ステータス":
+		var faces=ui.find_child("PartyFaceBar",true,false)
+		if faces!=null and faces.is_visible_in_tree():available.y=minf(available.y,faces.global_position.y-8)
+	ui.preferences.keep_visible(window,available)
 func resize():
 	if not is_instance_valid(window):return
 	var status=window.title=="ステータス"
