@@ -130,9 +130,8 @@ func map(parent):
 		var style=depart.get_theme_stylebox(state_).duplicate();style.bg_color=Color("#2f7652") if state_=="hover" else Color("#236044");depart.add_theme_stylebox_override(state_,style)
 func choose_formation(value: String):ui.formation=value;ui.render()
 func shop_guide(parent):
-	l(parent,"武器はイース、防具はウエス、道具はサウス、装飾品はノースで購入できます。")
 	var facilities=row(parent)
-	for item in [["weapon_shop","イース：武器"],["armor_shop","ウエス：防具"],["item_shop","サウス：道具"],["accessory_shop","ノース：装飾品"]]:ui.icons.line(ui,facilities,item[0],item[1])
+	for item in [["weapon_shop","武器店"],["armor_shop","防具店"],["item_shop","道具店"],["accessory_shop","装飾品店"]]:ui.icons.line(ui,facilities,item[0],item[1])
 func journey(parent):
 	var phase=c().get("phase","");var journey_: Dictionary=c().get("journey") if c().get("journey") is Dictionary else {}
 	if phase=="result":result(parent);return
@@ -335,7 +334,7 @@ func gear_type(gear: Dictionary) -> String:
 	if gear.get("type")=="empty" and gear.get("slot") not in ["weapon","rightHand","leftHand"]:return "なし"
 	return {"empty":"なし（手占有0）","sword":"片手剣","greatsword":"両手剣","spear":"槍","dagger":"短剣","bow":"弓","staff":"杖","hammer":"槌","shield":"盾","book":"魔導書","armor":"防具","accessory":"装飾","boots":"足装備"}.get(gear.get("type",""),str(c().get("slots",{}).get(gear.get("slot",""),"装備")))
 func describe_gear(parent,gear: Dictionary):
-	ui.icons.line(ui,parent,ui.icons.gear(gear),str(gear.get("name","装備")),true)
+	ui.icons.line(ui,parent,ui.icons.equipment(gear),str(gear.get("name","装備")),true)
 	l(parent,gear_type(gear)+" / "+("両手・2枠" if gear.get("hands",1)==2 else "手占有0" if gear.get("type")=="empty" and gear.get("slot") in ["weapon","rightHand","leftHand"] else "片手・1枠" if gear.get("slot") in ["weapon","rightHand","leftHand"] else str(c().get("slots",{}).get(gear.get("slot",""),"装備"))))
 	var fields={"price":"購入価格G","atk":"武器ATK","reach":"武器射程","hp":"追加HP上限","mp":"追加MP上限","agiBonus":"行動速度補正","str":"必要STR","int":"必要INT","agi":"必要AGI"}
 	for field in fields:

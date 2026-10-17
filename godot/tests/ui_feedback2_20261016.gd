@@ -47,7 +47,7 @@ func run():
 	var map=node("TownMap")
 	check(map.buttons[map.current].get_theme_stylebox("normal").bg_color==Color("#243c58"),"S5 current location is blue")
 	check(map.buttons[map.selected].get_theme_stylebox("normal").bg_color==Color("#236044"),"S5 selected destination is green")
-	check(map.buttons.values().filter(func(b):return b.text.contains("目的地")).size()==1,"S5 only selected destination has destination label")
+	check(map.buttons.values().filter(func(b):return b.text.contains("目的地") or b.text.contains("現在地")).is_empty(),"S5 map uses color without redundant location labels")
 	check(map.buttons.values().filter(func(b):return b.name not in ["Town_"+map.current,"Town_"+map.selected]).all(func(b):return b.get_theme_stylebox("normal").bg_color==Color("#41464e")),"S5 all other towns gray")
 	check(node("DepartButton").size.x<600 and node("DepartButton").get_theme_stylebox("normal").bg_color==Color("#236044"),"S5 departure button narrow and green")
 	seed.state.location="west";await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle()
@@ -66,7 +66,7 @@ func run():
 	game.data.campaign.shop=original_shop
 	var fixture=battle_fixture();await game.update({"op":"campaign_load","data":fixture.guard});await settle()
 	var hud=game.hud;hud.open_items();await settle()
-	var list=node("BattleItemList");check(list.get_parent()==hud.bottom_commands and list.get_index()>hud.buttons.items.get_index() and list.get_index()<hud.buttons.guard.get_index(),"S9 item list between item and guard commands")
+	var list=node("BattleItemList");check(list.get_parent().get_parent()==hud.bottom_commands and list.get_parent().get_index()>hud.buttons.items.get_index() and list.get_parent().get_index()<hud.buttons.guard.get_index(),"S9 item list between item and guard commands")
 	before=await saved();await click("BattleItem_potion");await game.on_cell(int(hud.acting().pos));await settle()
 	check(node("BattleConsent")!=null and game.can_commit() and node("PredictionSummary")!=null,"S8/9 self item target shows prediction and execute consent")
 	game.cancel();await settle();check(await saved()==before and not game.can_commit(),"S9 item cancellation consumes no stock or action")
@@ -76,7 +76,7 @@ func run():
 		u.next=1000
 		if u.id=="mage":u.next=1;u.hp=20
 	check((await game.update({"op":"campaign_load","data":heal})).get("ok",false),"valid healer fixture");await settle();hud.open_skills();await settle()
-	list=node("BattleSkillList");check(list.get_parent()==hud.bottom_commands and list.get_index()>hud.buttons.skill.get_index() and list.get_index()<hud.buttons.items.get_index(),"S9 skill list between skill and item commands")
+	list=node("BattleSkillList");check(list.get_parent().get_parent()==hud.bottom_commands and list.get_parent().get_index()>hud.buttons.skill.get_index() and list.get_parent().get_index()<hud.buttons.items.get_index(),"S9 skill list between skill and item commands")
 	check(not node("BattleSkill_mage").tooltip_text.is_empty(),"S9 skill descriptions on hover")
 	var original_skills=game.data.skillset.duplicate(true)
 	for i in range(40):game.data.skillset.append({"id":"long-"+str(i),"name":"長いスキル名".repeat(12)})

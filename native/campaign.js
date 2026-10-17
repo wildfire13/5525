@@ -183,7 +183,7 @@ const Campaign = (() => {
     const preset=B.create({ally:s.selected,enemy:[],formation:kind,deployment:true});
     s.battle.formationVersion=2;s.battle.formationKind=kind;s.journey.formation=kind;
     s.battle.deploymentInitial=preset.units.map(u=>({id:u.id,pos:u.pos}));
-    return deployment_reset(s);
+    return true;
   }
   function deployment_reset(s) {
     if(s.phase!=='deployment'||!s.battle)return false;

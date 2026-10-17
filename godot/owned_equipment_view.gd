@@ -33,7 +33,7 @@ func render(parent,u: Dictionary):
 		var row=ui.row(list)
 		var button=ui.button(row,"%s　%d個" % [entry.name,entry.count],func():pass);button.name="OwnedEquipment_"+str(entry.id);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;button.alignment=HORIZONTAL_ALIGNMENT_LEFT
 		button.set_script(preload("res://equipment_tooltip.gd"));button.configure_entry(entry,ui.campaign())
-		ui.icons.apply(button,ui.icons.gear(entry.definition));button.set_meta("placeholder_item_icon",true)
+		ui.icons.apply(button,ui.icons.equipment(entry.definition));button.set_meta("placeholder_item_icon",true)
 
 		var chosen=target(entry);var allowed=entry.equipSlots.any(func(q):return q.slot==chosen and q.ok)
 		var action_button=ui.button(row,"装備",equip.bind(u,entry,panel),not allowed);action_button.name="OwnedEquipmentActions_"+str(entry.id)

@@ -272,6 +272,8 @@ func present():
 	while data.get("presentation")!=null and not closing:
 		render()
 		var p: Dictionary=data.presentation
+		await hud.prepare_action(p)
+		if closing:break
 		var visual_duration=board.animate(p) if board else 0.0
 		var duration=maxf(audio.phase(p),visual_duration)
 		await get_tree().create_timer(0.001 if checks_fast else duration).timeout
@@ -450,7 +452,8 @@ func render_unit_details(parent: Node,s: Dictionary):
 			label_(parent,"予告: "+str(intent.get("name",""))+target_text+(" → "+", ".join(cells) if not cells.is_empty() else "")+" / "+str(intent.get("reason","")))
 			if intent.get("destination")!=null:label_(parent,"移動予定: X%d,Y%d" % [int(intent.destination)%10,4-int(int(intent.destination)/10)])
 func choose_command(value: String):
-	if locked or presenting or closing or hud.range_reference:return
+	if locked or presenting or closing or hud.range_reference or hud.menu_transition:return
+	if value not in ["skill","items","item","ether","return"]:hud.expanded_menu=""
 	if value=="items":hud.open_items();return
 	if value=="skill" and data.get("skillset",[]).is_empty() and hud.has_return():value="return"
 	invalidate_preview();command=value;hud.action_menu=false;hud.item_list=false;hud.skill_list=false;hud.selected_cell=-1;hud.selected_enemy=""
@@ -462,9 +465,13 @@ func prepare_skill_preview():
 		pending=state().actor
 		await request_preview("attack")
 func select_skill(id: String):
+	if locked or presenting or closing or hud.menu_transition:return
 	if id=="returnHome":choose_command("return");return
 	invalidate_preview();command="skill";hud.action_menu=false;hud.item_list=false;hud.skill_list=false
 	await update({"op":"select_skill","skillId":id})
+	if data.get("skill")=="陣形強化" or (data.get("skillInfo") is Dictionary and data.skillInfo.get("target")=="self"):
+		if data.get("choices",{}).get("skill",[]).has(state().get("actor")):
+			pending=state().actor;await request_preview("attack")
 func deploy_dragged(uid: String,pos: int):
 	if locked or presenting:return
 	selected=uid
@@ -525,7 +532,9 @@ func cancel():
 	if hud.range_reference:hud.close_reference();return
 	if hud.item_list or hud.skill_list:hud.back_to_commands();return
 	if command in ["skill","return"] and not hud.action_menu:
-		if pending!=null or not chosen.is_empty():invalidate_preview();hud.selected_cell=-1;audio.ui("cancel");render()
+		if pending!=null or not chosen.is_empty():
+			if data.get("skill")=="陣形強化" or (data.get("skillInfo") is Dictionary and data.skillInfo.get("target")=="self"):hud.open_skills()
+			else:invalidate_preview();hud.selected_cell=-1;audio.ui("cancel");render()
 		else:hud.open_skills()
 		return
 	if command in ["item","ether"] and not hud.action_menu:hud.open_items();return
@@ -535,8 +544,10 @@ func cancel():
 	audio.ui("cancel");render()
 func commit():
 	if not can_commit():return
+	hud.capture_action_visual()
 	var target=pending;invalidate_preview();audio.ui("confirm")
 	await update({"op":"act","kind":command,"target":target,"presentation":true})
+	hud.clear_action_visual()
 func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback: Callable, filename: String=""):
 	pages.shop_view.cancel_pending()
 	var d=FileDialog.new();d.access=FileDialog.ACCESS_FILESYSTEM;d.file_mode=mode;d.filters=filters
