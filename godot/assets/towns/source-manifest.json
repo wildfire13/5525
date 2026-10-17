@@ -1,0 +1,107 @@
+{
+  "provisional": true,
+  "generator": "built-in image_gen",
+  "notes": "Visual experiments, not definitive world lore. Near 16:9 original generated resolutions; not upscaled. A/B preserve basic scene geography. Some boards have faint non-readable decorative paper markings.",
+  "towns": {
+    "astaris": [
+      {
+        "file": "astaris_a.png",
+        "variant": "a",
+        "style": "hand-painted anime background",
+        "width": 1672,
+        "height": 941,
+        "bytes": 3021102,
+        "sha256": "76150910c2dc591f91e56262a3cb88517b26371642ee46507145f706a2b1b231"
+      },
+      {
+        "file": "astaris_b.png",
+        "variant": "b",
+        "style": "oil painting",
+        "width": 1672,
+        "height": 941,
+        "bytes": 3298175,
+        "sha256": "3fe7a2871e9aa8b8d3c67ba6a574188094d1964a3cc96053215cd17335274a05"
+      }
+    ],
+    "east": [
+      {
+        "file": "east_a.png",
+        "variant": "a",
+        "style": "gouache storybook",
+        "width": 1672,
+        "height": 941,
+        "bytes": 2996614,
+        "sha256": "bc9ceb67344d86a8ec3d8beac2ba73e117cd19c7a7e32f1f06e8208c5a1f0cea"
+      },
+      {
+        "file": "east_b.png",
+        "variant": "b",
+        "style": "colored woodcut illustration",
+        "width": 1672,
+        "height": 941,
+        "bytes": 3843596,
+        "sha256": "8b9209547c6b5c58030c616cefd22b1d104f79b58dcca64780c2af20ad373f5f"
+      }
+    ],
+    "west": [
+      {
+        "file": "west_a.png",
+        "variant": "a",
+        "style": "watercolor and fine ink",
+        "width": 1672,
+        "height": 941,
+        "bytes": 3457586,
+        "sha256": "61e18febcfa4b19b17c8d246481e6931df5b93ac22acd65dcf377f2346ea60d1"
+      },
+      {
+        "file": "west_b.png",
+        "variant": "b",
+        "style": "layered cut-paper collage",
+        "width": 1672,
+        "height": 941,
+        "bytes": 3072113,
+        "sha256": "b034cbcc242c251a9eccc4c4a92bfa16c68718b2ddd03a74e7ad1c291f3407d5"
+      }
+    ],
+    "south": [
+      {
+        "file": "south_a.png",
+        "variant": "a",
+        "style": "soft digital painting",
+        "width": 1672,
+        "height": 941,
+        "bytes": 2622285,
+        "sha256": "b01ec00873efe45acda86a7bf4b61393cacc1e689fd68958d72cc26d496a7bdd"
+      },
+      {
+        "file": "south_b.png",
+        "variant": "b",
+        "style": "stylized matte 3D full environment",
+        "width": 1672,
+        "height": 941,
+        "bytes": 2430424,
+        "sha256": "4abb16ae5ca6cd62a94767b4328f026c73bb285e2619fe85e83f2d3e7d368e40"
+      }
+    ],
+    "north": [
+      {
+        "file": "north_a.png",
+        "variant": "a",
+        "style": "colored pencil and wash",
+        "width": 1672,
+        "height": 941,
+        "bytes": 3636252,
+        "sha256": "835c92421e8637b05ff6ff93197accb1060e07ca091ecbb4c65b97b32d8108d2"
+      },
+      {
+        "file": "north_b.png",
+        "variant": "b",
+        "style": "retro game painted background",
+        "width": 1672,
+        "height": 941,
+        "bytes": 3485540,
+        "sha256": "a530a3e9c3cb842ce6bdaaed44c82ea8b924ff4d28446a32df62805100572385"
+      }
+    ]
+  }
+}
