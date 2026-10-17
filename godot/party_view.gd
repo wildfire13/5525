@@ -241,9 +241,9 @@ func refresh_modal():
 	var u=matches[0];var body=ui.dialog.body
 	var scroll=body.get_parent();var old_scroll=scroll.scroll_vertical
 	ui.clear(body)
-	var hero=ui.row(body);var face=ui.portrait(hero,u,false,88);face.name="StatusPortrait";face.tooltip_text="クリックで画像変更";face.mouse_filter=Control.MOUSE_FILTER_STOP
+	var hero=ui.row(body);var face=ui.portrait(hero,u,false,88);face.set_script(preload("res://portrait_hover_hint.gd"));face.name="StatusPortrait";face.tooltip_text="クリックで画像変更";face.mouse_filter=Control.MOUSE_FILTER_STOP;face.configure_hint()
 	face.gui_input.connect(func(event):
-		if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed:open_portrait_preview(u))
+		if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed:face.hide_hint();open_portrait_preview(u))
 	l(hero,str(u.name)+" / Lv.%d / 経験値 %d\nHP%d/%d  MP%d/%d" % [u.level,u.get("xp",0),u.hp,u.max,u.mp,u.maxMp],true);identity(body,u)
 	var tabs=ui.row(body)
 	for i in range(4):
