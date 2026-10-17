@@ -37,6 +37,10 @@ var reference_kind := "attack"
 var bottom_commands: VBoxContainer
 var left_panel
 var right_panel
+var deployment_bar: PanelContainer
+var deployment_options: VBoxContainer
+var deployment_actions: VBoxContainer
+var deployment_layout := false
 var left_info: VBoxContainer
 var person_box: VBoxContainer
 var inspected_uid := ""
@@ -71,6 +75,7 @@ func reset_context():
 	inspected_uid="";invalidate_hover();skill_content_open=false
 	discard_reference();item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";last_actor="";last_action_count=-1;presentation_action={};queue_at_start=[];intent_versions.clear();intent_updated.clear()
 func mount():
+	deployment_layout=false
 	middle=Control.new();middle.name="BattleOverlay";middle.mouse_filter=Control.MOUSE_FILTER_IGNORE;middle.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.content.add_child(middle);middle.size=Vector2(ui.size.x-48,ui.size.y-130);ui.battle_row=middle
 	ui.board=preload("res://battle_board.gd").new();ui.board.preferences=ui.preferences;ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";ui.add_child(ui.board);ui.move_child(ui.board,0);ui.board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deploy_drag.connect(ui.deploy_dragged);ui.board.enemy_focused.connect(inspect_enemy);ui.board.unit_hovered.connect(inspect_hover.bind(ui.board))
@@ -84,17 +89,40 @@ func mount():
 	ui.battle_header=VBoxContainer.new();middle.add_child(ui.battle_header)
 	ui.battle_header.size=Vector2(middle.size.x,64)
 	last_actor="";last_action_count=-1;action_menu=true;item_list=false;selected_cell=-1
+	deployment_bar=PanelContainer.new();deployment_bar.name="DeploymentFormationWindow";middle.add_child(deployment_bar)
+	var formation_style=StyleBoxFlat.new();formation_style.bg_color=Color("#18212aef");formation_style.border_color=Color("#63717f");formation_style.set_border_width_all(1);formation_style.set_corner_radius_all(5);formation_style.set_content_margin_all(10);deployment_bar.add_theme_stylebox_override("panel",formation_style)
+	deployment_options=VBoxContainer.new();deployment_bar.add_child(deployment_options)
+	deployment_actions=VBoxContainer.new();deployment_actions.name="DeploymentActions";middle.add_child(deployment_actions)
 	resize()
 func resize():
 	if not is_instance_valid(left_panel) or middle.size.x<100:return
 	left_panel.reserved_top=76;right_panel.reserved_top=76
+	if deployment_layout:
+		var height=maxf(240,middle.size.y-240)
+		var width=minf(420,middle.size.x*.32)
+		left_panel.layout_bounds=Rect2(0,76,width,height)
+		right_panel.layout_bounds=Rect2(middle.size.x-width,76,width,height)
+	else:
+		left_panel.layout_bounds=Rect2();right_panel.layout_bounds=Rect2()
 	left_panel.constrain();right_panel.constrain();tools.size=Vector2(middle.size.x,56)
+	deployment_bar.position=Vector2(0,middle.size.y-152);deployment_bar.size=Vector2(maxf(280,middle.size.x-350),144)
+	deployment_actions.position=Vector2(middle.size.x-330,middle.size.y-132);deployment_actions.size=Vector2(330,124)
 	ui.battle_header.position.y=maxf(0,middle.size.y-64);ui.battle_header.size.x=middle.size.x
 func render():
 	var s=ui.state();var phase=ui.data.get("presentation");var a=acting()
 	if not (phase is Dictionary) and not ui.presenting:queue_at_start=ui.data.get("queue",[]).duplicate(true)
 	if not s.get("deploying",false) and s.get("result")==null and not ui.presenting and not phase is Dictionary and (a.get("id","")!=last_actor or int(s.get("actions",0))!=last_action_count):
 		item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";inspected_uid="";range_reference=false;ui.invalidate_preview();last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0));ui.memory.request_focus("command_attack")
+	var deploying=bool(s.get("deploying",false))
+	if deploying!=deployment_layout:
+		deployment_layout=deploying
+		for pair in [[left_panel,"deployment_ally" if deploying else "battle_actor",Rect2(0,76,320,650)], [right_panel,"deployment_enemy" if deploying else "battle_target",Rect2(maxf(0,middle.size.x-330),76,330,620)]]:
+			var panel=pair[0];panel.layout_key=pair[1]
+			var rect=ui.preferences.rect_for(pair[1],pair[2],middle.size,panel.minimum);panel.position=rect.position;panel.size=rect.size
+	left_panel.find_child("DragHandle",true,false).text="配置する味方  ⋮" if deploying else "行動者 / コマンド  ⋮"
+	right_panel.find_child("DragHandle",true,false).text="敵の情報  ⋮" if deploying else "対象 / 効果  ⋮"
+	deployment_bar.visible=deploying;deployment_actions.visible=deploying;ui.battle_header.visible=not deploying
+	ui.clear(deployment_options);ui.clear(deployment_actions)
 	update_board()
 	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(left_panel.body);ui.clear(right_panel.body);ui.clear(right_panel.footer)
 	render_queue();render_actor(a)
@@ -106,13 +134,14 @@ func render():
 		var retreat=b(tools,"撤退",func():ui.confirm("旅を中止し、受注・出発前の状態へ戻します。",ui.act.bind("retreat",[])),ui.presenting);retreat.name="Retreat";retreat.custom_minimum_size=Vector2(160,52)
 	tools.tooltip_text="右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小"
 	var hint=l(tools,tools.tooltip_text);hint.add_theme_font_size_override("font_size",16);hint.autowrap_mode=TextServer.AUTOWRAP_OFF;hint.clip_text=true;hint.max_lines_visible=1
-	left_panel.visible=(a.get("side")=="ally" and not s.get("deploying",false) and s.get("result")==null) or ui.engine.disconnected
+	left_panel.visible=deploying or (a.get("side")=="ally" and not s.get("deploying",false) and s.get("result")==null) or ui.engine.disconnected
 	left_info=left_panel.body
 	if a.get("side")=="ally":
 		var hero=ui.row(left_info);ui.portrait(hero,a,true,48);l(hero,str(a.name),true)
 		var health=l(left_info,"HP %d/%d   MP %d/%d" % [a.hp,a.max,a.mp,a.maxMp]);ui.emphasize_low_hp(health,a)
 		l(left_info,"DEF %d / 行動速度 %s" % [a.get("def",0),a.get("agi",0)])
-	bottom_commands=VBoxContainer.new();bottom_commands.name="ActorCommands";left_info.add_child(bottom_commands);render_bottom_commands()
+	bottom_commands=VBoxContainer.new();bottom_commands.name="ActorCommands";left_info.add_child(bottom_commands);
+	if not deploying:render_bottom_commands()
 	actor_box=left_info;command_box=left_info
 	person_box=VBoxContainer.new();person_box.name="BattlePersonInfo";right_panel.body.add_child(person_box);render_person()
 	target_box=VBoxContainer.new();target_box.name="DecisionContent";right_panel.body.add_child(target_box)
@@ -447,20 +476,27 @@ func render_presentation(phase: Dictionary):
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";ui.primary(b(ui.battle_actions,"演出中…",func():pass,true))
 func render_deployment():
 	var s=ui.state()
-	var formations=ui.row(target_box)
-	for pair in [["convoy","基本配置"],["flank","切り込み配置"]]:b(formations,("● " if s.get("formationKind","convoy")==pair[0] else "")+pair[1],choose_formation.bind(pair[0]))
+	l(deployment_options,"陣形を選択",true)
+	var formations=ui.row(deployment_options)
+	for pair in [["convoy","基本配置"],["flank","切り込み配置"]]:
+		var control=b(formations,("● " if s.get("formationKind","convoy")==pair[0] else "")+pair[1],choose_formation.bind(pair[0]))
+		control.name="DeploymentFormation_"+pair[0];control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.x=140
 	if not s.units.any(func(u):return u.id==ui.selected and u.side=="ally" and u.hp>0):
 		for u in s.units:
 			if u.side=="ally" and u.hp>0:ui.selected=u.id;break
-	l(target_box,"配置: 味方を選び、自陣の足元マスへ")
-	var choose=OptionButton.new();choose.custom_minimum_size.y=44;choose.clip_text=true;target_box.add_child(choose);var ids=[]
+	left_info.set_meta("inspected_unit",ui.selected)
+	render_person_content(left_info,unit(ui.selected))
+	l(left_info,"位置を調整する味方")
+	var choose=OptionButton.new();choose.name="DeploymentAllySelection";choose.custom_minimum_size.y=44;choose.clip_text=true;left_info.add_child(choose);var ids=[]
 	for u in s.units:
 		if u.side=="ally":
 			ids.append(u.id);choose.add_item(str(u.name));choose.set_item_disabled(ids.size()-1,u.hp<=0)
 			if u.id==ui.selected:choose.select(ids.size()-1)
 	choose.item_selected.connect(func(i):ui.selected=ids[i];ui.render())
-	l(target_box,"クリック・ドラッグで配置と交換。消費なし / 青: 攻撃範囲・緑: 奇襲対象")
-	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";b(ui.battle_actions,"配置リセット",reset_deployment);ui.primary(b(ui.battle_actions,"戦闘開始",ui.act.bind("begin",[])))
+	l(left_info,"味方クリックで選択。空きマスをクリック、またはドラッグで配置・交換。消費なし。")
+	ui.battle_actions=deployment_actions
+	b(deployment_actions,"配置リセット",reset_deployment).name="DeploymentReset"
+	ui.primary(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]))).name="DeploymentBegin"
 func deployment_changed() -> bool:
 	for initial in ui.state().get("deploymentInitial",[]):
 		if unit(initial.id).get("pos")!=initial.pos:return true
@@ -486,7 +522,9 @@ func toggle_details():
 		for entry in ui.state().get("log",[]).slice(-40):l(body,ui.display_log(str(entry)))
 		ui.local_button(actions,"戻る",ui.dialog.close),func():details_open=false)
 func inspect_enemy(id: String):
-	selected_enemy=id;toggle_details()
+	selected_enemy=id
+	if ui.state().get("deploying",false):render_person()
+	else:toggle_details()
 func close_detail() -> bool:
 	if range_reference:close_reference();return true
 	if is_instance_valid(ui.dialog.window):ui.dialog.close();return true
@@ -521,6 +559,12 @@ func render_person():
 	if not live_board() or not is_instance_valid(person_box) or not person_box.is_inside_tree() or person_box.is_queued_for_deletion():return
 	ui.clear(person_box)
 	person_box.remove_meta("inspected_unit")
+	if ui.state().get("deploying",false):
+		var enemy=unit(selected_enemy)
+		if enemy.get("side")=="enemy":
+			person_box.set_meta("inspected_unit",enemy.id);render_person_content(person_box,enemy)
+		else:l(person_box,"敵をクリックすると情報を表示します。")
+		return
 	var u=unit(str(ui.pending)) if ui.pending is String else unit(inspected_uid)
 	var phase=ui.data.get("presentation")
 	if phase is Dictionary and phase.get("unit_id") is String:u=unit(phase.unit_id)
