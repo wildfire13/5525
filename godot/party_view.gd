@@ -241,7 +241,10 @@ func refresh_modal():
 	var u=matches[0];var body=ui.dialog.body
 	var scroll=body.get_parent();var old_scroll=scroll.scroll_vertical
 	ui.clear(body)
-	var hero=ui.row(body);ui.portrait(hero,u,false,88);l(hero,str(u.name)+" / Lv.%d / 経験値 %d\nHP%d/%d  MP%d/%d" % [u.level,u.get("xp",0),u.hp,u.max,u.mp,u.maxMp],true);identity(body,u)
+	var hero=ui.row(body);var face=ui.portrait(hero,u,false,88);face.name="StatusPortrait";face.tooltip_text="クリックで画像変更";face.mouse_filter=Control.MOUSE_FILTER_STOP
+	face.gui_input.connect(func(event):
+		if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed:open_portrait_preview(u))
+	l(hero,str(u.name)+" / Lv.%d / 経験値 %d\nHP%d/%d  MP%d/%d" % [u.level,u.get("xp",0),u.hp,u.max,u.mp,u.maxMp],true);identity(body,u)
 	var tabs=ui.row(body)
 	for i in range(4):
 		var tab_button=b(tabs,("● " if detail_tab==i else "")+["装備","能力・成長","スキル・効果","インベントリ"][i],func():detail_tab=i;detail_gear={};refresh_modal())
@@ -288,3 +291,19 @@ func outside_press(point: Vector2) -> bool:
 		var face=ui.find_child("PartyFace_"+str(id),true,false)
 		if face!=null and face.is_visible_in_tree() and face.get_global_rect().has_point(point):portrait_pressed(str(id));return true
 	ui.dialog.close();return true
+
+func open_portrait_preview(u: Dictionary):
+	if not is_instance_valid(ui.dialog.window):return
+	var window=Window.new();window.name="StatusPortraitPreview";window.title=str(u.name)+"の画像";window.exclusive=true;ui.dialog.window.add_child(window)
+	var box=VBoxContainer.new();window.add_child(box);box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var picture=ui.portrait(box,u,false,160);picture.name="StatusFullPortrait";picture.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	var change=b(box,"画像変更",func():
+		window.hide();window.queue_free()
+		ui.file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray(["*.png,*.jpg,*.jpeg,*.webp,*.bmp,*.gif ; キャラ画像"]),ui.import_portrait.bind(str(u.id))),not ui.active_member(str(u.id)))
+	change.name="StatusChangePortrait"
+	if not ui.active_member(str(u.id)):change.tooltip_text="画像変更は編成中のキャラが対象です"
+	ui.local_button(box,"閉じる",window.queue_free)
+	window.close_requested.connect(window.queue_free)
+	window.window_input.connect(func(event):
+		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:window.set_input_as_handled();window.queue_free())
+	ui.preferences.bind_window(window,"portrait_preview",ui.size,Vector2(420,320),Vector2(320,300));window.popup()

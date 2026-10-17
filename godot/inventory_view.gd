@@ -71,8 +71,8 @@ func render(parent,uid: String):
 			button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 			button.alignment=HORIZONTAL_ALIGNMENT_LEFT;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 			button.set_script(preload("res://equipment_tooltip.gd"));button.configure_entry(item,c())
-			var icon=ui.icons.gear(item.definition) if item.kind=="equipment" else str(item.id) if item.id in ["potion","ether"] else "items"
-			if not ResourceLoader.exists(ui.icons.ROOT+icon+".png"):icon="items"
+			var icon=ui.icons.equipment(item.definition) if item.kind=="equipment" else str(item.id) if item.id in ["potion","ether"] else "items"
+			if not ResourceLoader.exists(ui.icons.path_for(icon)):icon="items"
 			ui.icons.apply(button,icon);button.set_meta("placeholder_item_icon",true)
 			button.name="InventoryItem_"+str(item.id);button.custom_minimum_size.y=48
 			ui.memory.key(button,"inventory_"+owner_id+"_"+str(item.id))

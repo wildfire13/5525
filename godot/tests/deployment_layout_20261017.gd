@@ -38,14 +38,14 @@ func run():
 		if pos%10<5 and not game.state().units.any(func(u):return int(u.pos)==pos):empty=pos;break
 	await game.on_cell(empty);await settle()
 	check(game.hud.unit(game.selected).pos==empty and game.hud.deployment_changed(),"empty cell moves selected ally")
+	var moved=positions()
 	await click("DeploymentFormation_flank")
-	var confirmation=game.find_children("*","ConfirmationDialog",true,false)[0]
-	var moved=positions();confirmation.canceled.emit();await settle()
-	check(positions()==moved and game.state().formationKind=="convoy","cancel formation replacement preserves positions")
+	check(game.find_children("*","ConfirmationDialog",true,false).is_empty() and positions()==moved and game.state().formationKind=="flank","formation changes without consent or moving units")
+	await click("DeploymentReset");var confirmation=game.find_children("*","ConfirmationDialog",true,false)[0];confirmation.canceled.emit();await settle()
+	check(positions()==moved,"reset cancellation preserves manual positions")
 	await click("DeploymentReset");confirmation=game.find_children("*","ConfirmationDialog",true,false)[0];confirmation.confirmed.emit();confirmation.confirmed.emit();await settle()
-	check(positions()==initial,"reset restores preset; repeated confirmation safe")
-	await click("DeploymentFormation_flank")
-	check(game.state().formationKind=="flank" and game.data.formationSlots.ally.map(func(x):return int(x))==[24,13,33],"formation button applies flank")
+	check(not game.hud.deployment_changed(),"reset restores selected preset; repeated confirmation safe")
+	check(game.state().formationKind=="flank" and game.data.formationSlots.ally.map(func(x):return int(x))==[24,13,33],"formation button applies flank rules")
 	var first=game.state().units.filter(func(u):return u.side=="ally")[0];var second=game.state().units.filter(func(u):return u.side=="ally")[1]
 	var oldpos=first.pos;var otherpos=second.pos
 	await game.deploy_dragged(first.id,int(otherpos));await settle()

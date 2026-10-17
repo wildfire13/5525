@@ -36,7 +36,7 @@ check('R04 condition cells, independent positions, preset/reset, phase restricti
   const s=C.create();assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>0));valid(s);
   assert.deepEqual(B.formationSlots(s.battle),{ally:[23,12,32],enemy:[25,16,36]});
   assert.equal(s.battle.units.find(u=>u.id==='guard').pos,24);const positions=copy(s.battle.units.map(u=>u.pos));B.formation(s.battle);assert.deepEqual(s.battle.units.map(u=>u.pos),positions);
-  assert(C.chooseFormation(s,'flank'));assert.equal(s.journey.formation,'flank');assert.deepEqual(B.formationSlots(s.battle).ally,[24,13,33]);assert.equal(s.battle.units.find(u=>u.id==='scout').pos,14);
+  assert(C.chooseFormation(s,'flank'));assert.equal(s.journey.formation,'flank');assert.deepEqual(B.formationSlots(s.battle).ally,[24,13,33]);assert.deepEqual(s.battle.units.map(u=>u.pos),positions);assert(C.deployment_reset(s));assert.equal(s.battle.units.find(u=>u.id==='scout').pos,14);
   assert(C.deploy(s,'guard',2));assert(C.deployment_reset(s));assert.equal(s.battle.units.find(u=>u.id==='guard').pos,24);
   assert(C.begin(s));assert(!C.chooseFormation(s,'convoy'));valid(s);
 });

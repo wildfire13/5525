@@ -12,6 +12,10 @@ var command_box: VBoxContainer
 var target_box: VBoxContainer
 var details: PanelContainer
 var tabs: TabContainer
+var action_visual: Control
+var shifted_action := ""
+var queue_distance := 0
+var animation_trace: Array=[]
 var queue_at_start: Array=[]
 var last_actor := ""
 var last_action_count := -1
@@ -23,6 +27,10 @@ var intent_updated: Dictionary={}
 var selected_enemy := ""
 var buttons: Dictionary={}
 var presentation_action: Dictionary={}
+var expanded_menu := ""
+var animate_menu := false
+var menu_transition := false
+var menu_ticket := 0
 var action_menu := true
 var item_list := false
 var skill_list := false
@@ -72,6 +80,7 @@ func state_id() -> String:
 	if ui.command=="move":return "B2" if ui.pending!=null else "B1"
 	return "B4" if ui.pending!=null or ui.command=="guard" else "B3"
 func reset_context():
+	expanded_menu="";menu_transition=false;menu_ticket+=1;clear_action_visual();shifted_action="";queue_distance=0;animation_trace.clear()
 	inspected_uid="";invalidate_hover();skill_content_open=false
 	discard_reference();item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";last_actor="";last_action_count=-1;presentation_action={};queue_at_start=[];intent_versions.clear();intent_updated.clear()
 func mount():
@@ -112,7 +121,7 @@ func render():
 	var s=ui.state();var phase=ui.data.get("presentation");var a=acting()
 	if not (phase is Dictionary) and not ui.presenting:queue_at_start=ui.data.get("queue",[]).duplicate(true)
 	if not s.get("deploying",false) and s.get("result")==null and not ui.presenting and not phase is Dictionary and (a.get("id","")!=last_actor or int(s.get("actions",0))!=last_action_count):
-		item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";inspected_uid="";range_reference=false;ui.invalidate_preview();last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0));ui.memory.request_focus("command_attack")
+		expanded_menu="";item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";inspected_uid="";range_reference=false;ui.invalidate_preview();last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0));ui.memory.request_focus("command_attack")
 	var deploying=bool(s.get("deploying",false))
 	if deploying!=deployment_layout:
 		deployment_layout=deploying
@@ -135,6 +144,7 @@ func render():
 	tools.tooltip_text="右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小"
 	var hint=l(tools,tools.tooltip_text);hint.add_theme_font_size_override("font_size",16);hint.autowrap_mode=TextServer.AUTOWRAP_OFF;hint.clip_text=true;hint.max_lines_visible=1
 	left_panel.visible=deploying or (a.get("side")=="ally" and not s.get("deploying",false) and s.get("result")==null) or ui.engine.disconnected
+	if phase is Dictionary and (is_instance_valid(action_visual) or str(phase.get("action_id",""))==shifted_action):left_panel.hide()
 	left_info=left_panel.body
 	if a.get("side")=="ally":
 		var hero=ui.row(left_info);ui.portrait(hero,a,true,48);l(hero,str(a.name),true)
@@ -172,22 +182,24 @@ func render_queue():
 	var band=ui.row(queue_scroll);band.name="TurnOrder";band.custom_minimum_size.y=40 if ui.ui_size_mode=="standard" else 32
 	if ui.state().get("deploying",false) or ui.state().get("result")!=null and not ui.data.get("presentation") is Dictionary:l(band,"行動順は戦闘開始後" if ui.state().get("deploying",false) else "戦闘終了");return
 	var presenting=ui.data.get("presentation") is Dictionary or ui.presenting
-	var queue_=queue_at_start if presenting else ui.data.get("queue",[])
+	var queue_=ui.data.get("queue",[])
 	var entries=[]
 	if presenting and not acting().is_empty():entries.append({"unit":acting(),"label":"実行中"})
 	for index in range(queue_.size()):
+		if presenting and index==0 and queue_[index].id==acting().get("id"):continue
 		entries.append({"unit":unit(queue_[index].id),"label":""})
 	for index in range(entries.size()):
 		if index>0:l(band,"←")
 		var entry=entries[index];var u=entry.unit
 		if u.is_empty():continue
-		var panel=PanelContainer.new();panel.custom_minimum_size.x=180;band.add_child(panel)
+		var panel=PanelContainer.new();panel.custom_minimum_size.x=180;panel.name="TurnCard_"+str(index);band.add_child(panel)
 		var style=StyleBoxFlat.new();style.bg_color=Color("#344b50") if u.side=="ally" else Color("#594049");style.set_content_margin_all(2);style.set_corner_radius_all(4)
 		if index==0:style.set_border_width_all(1);style.border_color=Color("#ffe197")
 		panel.add_theme_stylebox_override("panel",style);panel.tooltip_text=str(u.name)
 		var row=ui.row(panel);ui.portrait(row,u,true,32 if ui.ui_size_mode=="standard" else 24)
 		var label=l(row,("● " if index==0 else "")+str(u.name));label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size=Vector2(132,24);label.clip_text=true;label.max_lines_visible=1;label.tooltip_text=str(u.name)
 	var all_=local(band,"全順番",toggle_details);all_.custom_minimum_size.y=40 if ui.ui_size_mode=="standard" else 32
+	if presenting and str(ui.data.presentation.get("action_id",""))==shifted_action:queue_scroll.set_deferred("scroll_horizontal",queue_distance)
 func target_name(id) -> String:
 	return str(unit(id).get("name","対象不明"))
 func selected_target_text(target) -> String:
@@ -234,25 +246,33 @@ func render_bottom_commands():
 				style.bg_color=Color("#615640" if state_=="hover" else "#494336");style.border_color=Color("#d8bd86");style.border_width_bottom=3
 				control.add_theme_stylebox_override(state_,style)
 			for color_ in ["font_color","font_hover_color","font_pressed_color"]:control.add_theme_color_override(color_,Color("#f5dfae"))
-		if pair[0]=="skill" and ui.command in ["skill","return"] and not action_menu:render_skills(bottom_commands)
-		if pair[0]=="items" and ui.command in ["items","item","ether"] and not action_menu:render_items()
+		if pair[0]=="skill" and expanded_menu=="skill" and ui.command in ["skill","return"] and not action_menu:render_skills(bottom_commands)
+		if pair[0]=="items" and expanded_menu=="items" and ui.command in ["items","item","ether"] and not action_menu:render_items()
 func choose_command(kind: String):
+	if menu_transition:return
+	if kind in ["skill","items"] and expanded_menu==kind:
+		close_menu();return
+	if kind not in ["skill","items"]:expanded_menu=""
 	if kind=="skill":open_skills()
 	else:ui.choose_command(kind)
 func open_skills():
+	if menu_transition:return
+	expanded_menu="skill";animate_menu=true
 	if ui.locked or ui.presenting or ui.closing or range_reference:return
 	ui.invalidate_preview();action_menu=false;item_list=false;skill_list=true;selected_cell=-1;selected_enemy="";ui.command="skill";ui.render()
 func back_to_commands():
 	if ui.locked or ui.presenting or ui.closing:return
-	ui.invalidate_preview();item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";ui.audio.ui("cancel");ui.render()
+	ui.invalidate_preview();expanded_menu="";item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";ui.audio.ui("cancel");ui.render()
 func open_items():
+	if menu_transition:return
+	expanded_menu="items";animate_menu=true
 	if ui.locked or ui.presenting or ui.closing or range_reference:return
 	ui.invalidate_preview();action_menu=false;skill_list=false;item_list=true;selected_cell=-1;selected_enemy="";ui.command="items";ui.render()
 func item_count(id: String) -> int:
 	if ui.state().has("itemInventories"):return int(ui.state().itemInventories.get(acting().get("id",""),{}).get(id,0))
 	return int(ui.state().get("ethers",0)) if id=="ether" else int(ui.state().get("potions",{}).get("ally",0))
 func render_items():
-	var list=VBoxContainer.new();list.name="BattleItemList";bottom_commands.add_child(list)
+	var list=menu_content(bottom_commands,"BattleItemList")
 	for item in ItemMenu.definitions(ui.campaign()):
 		var kind=str(item.get("battleKind",""))
 		if kind.is_empty():continue
@@ -375,19 +395,17 @@ func cost_text() -> String:
 	var info=ui.data.get("skillInfo")
 	return "消費: MP%d / 1行動" % (info.get("cost",1) if info is Dictionary else 1) if ui.command=="skill" else "消費: MP0 / 1行動"
 func render_skills(parent):
-	var list=VBoxContainer.new();list.name="BattleSkillList";parent.add_child(list)
+	var list=menu_content(parent,"BattleSkillList")
 	for skill in ui.data.get("skillset",[]):
 		var control=b(list,str(skill.name),ui.select_skill.bind(str(skill.id)))
 		control.name="BattleSkill_"+str(skill.id);ui.icons.apply(control,ui.icons.skill(str(skill.id)),24)
 		var level=1
 		for source in skill.get("sources",[]):level=maxi(level,int(source.get("level",1)))
-		control.tooltip_text=ui.pages.skill_description(str(skill.id),level)
-		var definition=ui.campaign().get("skillDefinitions",{}).get(skill.id,{})
-		control.tooltip_text+="\n消費MP：%d" % int(definition.get("cost",1))
+		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip(str(skill.id),str(skill.name),level)
 		ui.memory.key(control,"battle_skill_"+str(skill.id))
 	if has_return():
 		var control=b(list,"帰還",ui.select_skill.bind("returnHome"));control.name="BattleSkill_returnHome"
-		control.tooltip_text=ui.pages.skill_description("returnHome")
+		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip("returnHome","帰還",1)
 func has_return() -> bool:return acting().get("effects",[]).has("returnHome")
 func command_name() -> String:
 	if ui.command=="return":return "帰還"
@@ -495,9 +513,7 @@ func deployment_changed() -> bool:
 		if unit(initial.id).get("pos")!=initial.pos:return true
 	return false
 func choose_formation(kind: String):
-	var action=ui.act.bind("chooseFormation",[kind])
-	if deployment_changed():ui.confirm("手動配置を現在選んだプリセットの位置へ置き直します。よろしいですか？",action)
-	else:action.call()
+	ui.act("chooseFormation",[kind])
 func reset_deployment():
 	if deployment_changed():ui.confirm("手動配置を現在のプリセットへ戻します。よろしいですか？",ui.act.bind("deployment_reset",[]))
 	else:ui.act("deployment_reset",[])
@@ -555,7 +571,7 @@ func render_person():
 	if ui.state().get("deploying",false):
 		var enemy=unit(selected_enemy)
 		if enemy.get("side")=="enemy":
-			person_box.set_meta("inspected_unit",enemy.id);render_person_content(person_box,enemy)
+			person_box.set_meta("inspected_unit",enemy.id);render_person_content(person_box,enemy,true)
 		else:l(person_box,"敵をクリックすると情報を表示します。")
 		return
 	var u=unit(str(ui.pending)) if ui.pending is String else unit(inspected_uid)
@@ -649,3 +665,57 @@ func request_hover(uid: String,token: int,generation: int,connection: int,source
 			if effect.get("boost",false):parts.append("攻撃×1.75 / 被害×0.65")
 			if effect.get("cover")!=null or not effect.get("covers",[]).is_empty():parts.append("次の本人の番までかばう")
 	ui.board.hover_caption=("予測："+" / ".join(parts) if not parts.is_empty() else "予測：効果なし")+"\n命中："+("100%" if prediction.get("accuracy")==100 else "対象外")
+
+func menu_content(parent,kind: String) -> VBoxContainer:
+	var wrapper=preload("res://sliding_menu.gd").new();wrapper.name=kind+"Slide";wrapper.opening=animate_menu;wrapper.fast=ui.checks_fast;animate_menu=false
+	parent.add_child(wrapper);wrapper.content.name=kind;return wrapper.content
+func close_menu():
+	if ui.locked or ui.presenting or ui.closing or menu_transition:return
+	menu_transition=true;menu_ticket+=1;var ticket=menu_ticket
+	var wrapper=bottom_commands.find_child("BattleSkillListSlide" if expanded_menu=="skill" else "BattleItemListSlide",true,false)
+	if wrapper!=null:wrapper.retract()
+	await ui.get_tree().create_timer(.001 if ui.checks_fast else .2).timeout
+	if ticket!=menu_ticket or ui.closing:return
+	menu_transition=false;expanded_menu="";ui.invalidate_preview();item_list=false;skill_list=false;action_menu=true;ui.render()
+func skill_tooltip(id: String,title: String,level: int) -> String:
+	var definition=ui.campaign().get("skillDefinitions",{}).get(id,{})
+	var target={"guard":"隣接する味方1人","archer":"射程内の敵1人","mage":"射程内の味方1人（自身を含む）","scout":"条件を満たす敵1人","stamp":"指定マスと範囲内の人物","porter":"特殊（使用者自身を指定・陣形中の味方全員）","returnHome":"自陣の空きマス","retreatSlash":"射程内の敵1人","knockback":"射程内の敵1人","pincer":"射程内の敵1人","healingCross":"味方1人を中心とする十字範囲の味方","manaGift":"射程内の味方1人"}.get(id,"")
+	if target.is_empty():target={"pair":"異なる敵2人","upToTwo":"隣接する味方1～2人","cell":"指定マス","self":"自身"}.get(definition.get("target"),"射程・条件を満たす人物")
+	return "["+title+"]\n消費MP: %d\n対象: %s\nスキル効果:\n%s" % [int(definition.get("cost",0 if id=="returnHome" else 1)),target,ui.pages.skill_description(id,level)]
+
+func clear_action_visual():
+	if is_instance_valid(action_visual):action_visual.queue_free()
+	action_visual=null
+func capture_action_visual():
+	clear_action_visual()
+	if not is_instance_valid(left_panel) or not left_panel.visible:return
+	action_visual=left_panel.duplicate(0);action_visual.name="CommandActionFlight"
+	middle.add_child(action_visual);action_visual.position=left_panel.position;action_visual.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	ui.battle_header.z_index=1
+func prepare_action(phase: Dictionary):
+	var id=str(phase.get("action_id",""))
+	if phase.get("phase")!="action" or id==shifted_action:return
+	await ui.get_tree().process_frame
+	if ui.closing or not live_board():clear_action_visual();return
+	var band=ui.battle_header.find_child("TurnOrder",true,false)
+	if band==null:return
+	var first=band.find_child("TurnCard_0",false,false);var second=band.find_child("TurnCard_1",false,false)
+	if first==null:return
+	var scroll=band.get_parent();scroll.scroll_horizontal=0
+	queue_distance=int(second.position.x-first.position.x) if second!=null else int(first.size.x+8)
+	animation_trace.append({"action":id,"stage":"command_shrink"})
+	if is_instance_valid(action_visual):
+		left_panel.hide()
+		var destination=first.global_position-middle.global_position
+		var tween=ui.create_tween();tween.set_parallel(true)
+		tween.tween_property(action_visual,"position",destination,.001 if ui.checks_fast else .32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		tween.tween_property(action_visual,"scale",first.size/action_visual.size,.001 if ui.checks_fast else .32)
+		await tween.finished
+		clear_action_visual()
+	if ui.closing or not is_instance_valid(scroll):return
+	animation_trace.append({"action":id,"stage":"queue_slide","distance":queue_distance})
+	var slide=ui.create_tween();slide.tween_property(scroll,"scroll_horizontal",queue_distance,.001 if ui.checks_fast else .28).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	await slide.finished
+	if ui.closing:return
+	shifted_action=id;animation_trace.append({"action":id,"stage":"character_action"})
+	if animation_trace.size()>90:animation_trace=animation_trace.slice(-90)

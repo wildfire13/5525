@@ -1,6 +1,7 @@
 extends RefCounted
 ## R11: canonical adopted artwork; semantic namespaces never change action IDs.
 var cache: Dictionary={}
+var equipment_paths: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://assets/equipment_icons_placeholder/mapping.json"))
 const ROOT="res://assets/ui_icons/icons64/"
 const SLOTS={"rightHand":"right_hand","leftHand":"left_hand","head":"head","upperBody":"body","lowerBody":"trousers","feet":"feet","accessory1":"accessory","accessory2":"accessory"}
 const JOBS={"guard":"warrior","warrior":"warrior","archer":"scout","scout":"scout","mage":"mage","porter":"porter"}
@@ -10,10 +11,15 @@ const FACILITIES={"weapon":"weapon_shop","armor":"armor_shop","items":"item_shop
 func texture(id: String) -> Texture2D:
 	if id.is_empty():return null
 	if not cache.has(id):
-		var path=ROOT+id+".png"
+		var path=path_for(id)
 		if not ResourceLoader.exists(path):push_error("Unknown adopted UI icon: "+id);return null
 		cache[id]=load(path)
 	return cache[id]
+func path_for(id: String) -> String:
+	return str(equipment_paths.get(id.trim_prefix("equipment:"),"")) if id.begins_with("equipment:") else ROOT+id+".png"
+func equipment(item: Dictionary) -> String:
+	var id=str(item.get("id",""))
+	return "equipment:"+id if equipment_paths.has(id) else gear(item)
 func add(parent: Node,id: String,pixels:=32) -> TextureRect:
 	var image=TextureRect.new();image.name="Icon_"+id;image.set_meta("ui_icon_id",id)
 	image.texture=texture(id);image.custom_minimum_size=Vector2(pixels,pixels)
