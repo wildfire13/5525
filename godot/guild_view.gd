@@ -16,7 +16,7 @@ func c() -> Dictionary:return pages.c()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func available() -> bool:return ui.page=="party" and c().get("guildAvailable",false) and c().get("phase")=="town" and c().get("location")=="astaris"
-func busy() -> bool:return ui.locked or ui.presenting or ui.closing or ui.engine.disconnected or stage in ["pending","unknown"]
+func busy() -> bool:return ui.locked or ui.presenting or ui.closing or ui.engine.disconnected or stage in ["pending","unknown","animating"]
 func reset():
 	generation+=1;chosen_id="";origin_id="";mode="";stage="idle";notice=""
 func person(id: String) -> Dictionary:
@@ -26,9 +26,6 @@ func person(id: String) -> Dictionary:
 func active(id: String) -> bool:return c().get("selected",[]).has(id)
 func porter_count() -> int:return c().get("selected",[]).filter(func(id):return person(str(id)).get("job")=="porter").size()
 func stamp() -> String:return JSON.stringify([pages.epoch,ui.engine.connection_generation,c().get("inventoryToken"),c().get("selected")])
-func swap_possible() -> bool:
-	var lists=groups()
-	return not lists[0].is_empty() and not lists[1].is_empty()
 func groups() -> Array:
 	var current=[];var reserves=[]
 	for id in c().get("selected",[]):
@@ -41,7 +38,7 @@ func render(parent):
 	var header=Control.new();header.name="GuildRules";header.custom_minimum_size.y=64;parent.add_child(header)
 	var rules=VBoxContainer.new();header.add_child(rules);rules.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	l(rules,"最大%d人 / ポーター%d人（クエスト受注時は最低1人） / 編成変更は無料" % [LIMIT,porter_count()])
-	var hint=l(rules,"人物を選択 → 入替相手を選択 → 確認。人物詳細・所持品は既存画面で確認できます。");hint.add_theme_font_size_override("font_size",18)
+	var hint=l(rules,"人物を選択 → 入替相手を選択。パーティー内の並び順も変更できます。");hint.add_theme_font_size_override("font_size",18)
 	var split=HBoxContainer.new();split.name="GuildColumns";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",24);parent.add_child(split)
 	var lists=groups();var buttons={}
 	for side in range(2):
@@ -51,7 +48,7 @@ func render(parent):
 		body.add_theme_constant_override("separation",6)
 		if lists[side].is_empty():l(body,"控えの人物はいません。" if side==0 else "編成中の人物はいません。")
 		for u in lists[side]:
-			var id=str(u.id);var selected=id==chosen_id or stage in ["pick","confirm"] and id==origin_id
+			var id=str(u.id);var selected=id==chosen_id or stage=="confirm" and id==origin_id
 			var disabled=busy() or stage=="confirm"
 			var button=b(body,"",choose.bind(id),disabled);button.name="GuildMember_"+id;button.custom_minimum_size.y=104;button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;buttons[id]=button
 			button.set_meta("member_id",id);button.set_meta("guild_active",side==1);ui.memory.key(button,"guild_member_"+id);ui.memory.item(button,id)
@@ -80,36 +77,41 @@ func render(parent):
 	var controls=VBoxContainer.new();footer.add_child(controls);controls.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);controls.add_theme_constant_override("separation",8)
 	var u=person(chosen_id)
 	var instruction="人物を選択してください。" if u.is_empty() else "選択中：%s / %s" % [u.name,"現在のパーティー" if active(chosen_id) else "控え"]
-	if stage=="pick":instruction+=" / "+("控えの相手を選んでください。" if active(origin_id) else "現在のパーティーから相手を選んでください。")
 	if not u.is_empty() and active(chosen_id) and c().selected.size()==1:instruction+=" / パーティーは最低1人です。控えの人物と入れ替えできます。"
 	elif not u.is_empty() and not active(chosen_id) and c().selected.size()>=LIMIT:instruction+=" / %d/%d人。入れ替える人物を選んでください。" % [LIMIT,LIMIT]
 	var description=l(controls,instruction);description.name="GuildSelection";description.autowrap_mode=TextServer.AUTOWRAP_OFF;description.clip_text=true;description.add_theme_font_size_override("font_size",20)
 	var result=l(controls,notice);result.name="GuildNotice";result.autowrap_mode=TextServer.AUTOWRAP_OFF;result.clip_text=true;result.add_theme_font_size_override("font_size",18)
 	var actions=ui.row(controls);actions.name="GuildActions"
 	if stage=="idle":
-		b(actions,"控えと入れ替える" if active(chosen_id) else "現パーティーと入れ替える",begin_swap,u.is_empty() or not swap_possible() or busy()).name="GuildSwap"
 		if active(chosen_id):b(actions,"控えへ戻す",prepare.bind("remove",chosen_id,""),u.is_empty() or c().selected.size()==1 or busy()).name="GuildRemove"
 		else:b(actions,"編成に加える",prepare.bind("add","",chosen_id),u.is_empty() or c().selected.size()>=LIMIT or busy()).name="GuildAdd"
 	b(actions,"人物詳細",pages.party_view.open_detail.bind(chosen_id),u.is_empty() or busy() or stage=="confirm").name="GuildDetails"
-	b(actions,"選択を取り消す",cancel_selection,chosen_id.is_empty() or busy() or stage=="confirm").name="GuildCancel"
 	b(actions,"アスタリスへ戻る",ui.navigate.bind("board"),busy()).name="GuildReturn"
 func choose(id: String):
 	if not available() or busy() or ui.modal_open() or person(id).is_empty():return
-	if stage=="pick":
-		if active(origin_id) and not active(id):prepare("swap",origin_id,id)
-		elif not active(origin_id) and active(id):prepare("swap",id,origin_id)
-		return
 	if stage!="idle":return
+	if not chosen_id.is_empty() and chosen_id!=id:
+		origin_id=chosen_id
+		if active(chosen_id) and active(id):prepare("reorder",chosen_id,id);return
+		if active(chosen_id):prepare("swap",chosen_id,id);return
+		if active(id):prepare("swap",id,chosen_id);return
 	chosen_id=id;notice="";ui.memory.request_focus("guild_member_"+id);ui.render()
-func begin_swap():
-	if not available() or busy() or chosen_id.is_empty() or not swap_possible() or stage!="idle":return
-	origin_id=chosen_id;mode="swap";stage="pick";generation+=1;notice="";ui.render()
 func cancel_selection():
 	if busy():return
-	generation+=1;stage="idle";mode="";origin_id="";notice="選択を取り消しました。";ui.render()
+	generation+=1;stage="idle";mode="";origin_id="";chosen_id="";notice="";ui.render()
+func outside_press(point: Vector2):
+	if not available() or busy() or ui.modal_open() or chosen_id.is_empty():return
+	for name_ in ["GuildReserveScroll","GuildCurrentScroll","GuildActions","PartyFaceBar"]:
+		var area=ui.find_child(name_,true,false)
+		if area!=null and area.get_global_rect().has_point(point):return
+	cancel_selection()
 func candidate(kind: String,outgoing: String,incoming: String) -> Array:
 	if not available():return []
 	var ids=c().get("selected",[]).duplicate()
+	if kind=="reorder":
+		if outgoing==incoming or not ids.has(outgoing) or not ids.has(incoming):return []
+		var first=ids.find(outgoing);var second=ids.find(incoming)
+		ids[first]=incoming;ids[second]=outgoing;return ids
 	if kind in ["swap","remove"] and not ids.has(outgoing):return []
 	if kind in ["swap","add"] and (person(incoming).is_empty() or ids.has(incoming)):return []
 	if kind=="swap":ids[ids.find(outgoing)]=incoming
@@ -125,13 +127,15 @@ func candidate(kind: String,outgoing: String,incoming: String) -> Array:
 	return ids
 func prepare(kind: String,outgoing: String,incoming: String):
 	if busy() or ui.modal_open():return
-	if kind=="swap" and stage!="pick" or kind in ["add","remove"] and stage!="idle":return
+	if stage!="idle":return
 	var ids=candidate(kind,outgoing,incoming)
 	if ids.is_empty():notice="人数・所属・固定条件を確認してください。";ui.render();return
 	mode=kind;generation+=1;var ticket=generation;var context=stamp();stage="confirm"
+	var quest=c().get("activeQuest")
+	var cargo_warning=kind in ["swap","remove"] and quest is Dictionary and quest.get("cargoOwnerId")==outgoing
+	if not cargo_warning:commit(kind,outgoing,incoming,ids,context,ticket);return
 	var text="%sを控えに戻し、%sを編成します。" % [ui.member_name(outgoing),ui.member_name(incoming)] if kind=="swap" else "%sを編成の末尾へ加えます。" % ui.member_name(incoming) if kind=="add" else "%sを控えへ戻します。人物・装備・所持品は保持します。" % ui.member_name(outgoing)
 	ui.dialog.open("編成変更の確認",func(body,actions):
-		var quest=c().get("activeQuest")
 		if kind in ["swap","remove"] and quest is Dictionary and quest.get("cargoOwnerId")==outgoing:
 			l(body,"そのポーター、荷物を持っていますが、控えに戻してよいですか？",true)
 			l(body,"荷物は本人が持ち続けます。控えのままでは納品できません。")
@@ -140,26 +144,50 @@ func prepare(kind: String,outgoing: String,incoming: String):
 		ui.primary(b(actions,"入れ替える" if kind=="swap" else "編成に加える" if kind=="add" else "控えへ戻す",commit.bind(kind,outgoing,incoming,ids,context,ticket))).name="GuildConfirm",
 		func():
 			if ticket!=generation or stage!="confirm":return
-			generation+=1;stage="pick" if kind=="swap" else "idle";notice="確認を取り消しました。";ui.render())
+			generation+=1;stage="idle";notice="確認を取り消しました。";ui.render())
 func commit(kind: String,outgoing: String,incoming: String,ids: Array,context: String,ticket: int):
 	if busy() or stage!="confirm" or ticket!=generation:return
 	if context!=stamp() or ids!=candidate(kind,outgoing,incoming):
 		ui.dialog.close(false);stage="idle";notice="編成の状態が変わりました。最新の一覧から選び直してください。";ui.render();return
+	var old_rects={}
+	for control in ui.find_children("GuildMember_*","Button",true,false):old_rects[str(control.get_meta("member_id"))]=control.get_global_rect()
 	stage="pending";ui.dialog.close(false);var epoch=pages.epoch;var connection=ui.engine.connection_generation;ui.render()
 	var reply=await ui.act("select",[ids])
 	if ticket!=generation or epoch!=pages.epoch or connection!=ui.engine.connection_generation or ui.closing:return
 	if reply.get("connection_lost",false):stage="unknown";notice="編成結果を確認できません。再送せず、保存済み進行を読み込んで確認してください。"
 	elif reply.get("ok",false) and c().get("selected")==ids:
-		stage="idle";chosen_id=incoming if kind!="remove" else outgoing;origin_id=""
-		notice="%s → %s 入替完了" % [ui.member_name(outgoing),ui.member_name(incoming)] if kind=="swap" else "%sを編成に加えました。" % ui.member_name(incoming) if kind=="add" else "%sを控えへ戻しました。" % ui.member_name(outgoing)
+		stage="animating";chosen_id="";origin_id=""
+		notice="%s → %s 入替完了" % [ui.member_name(outgoing),ui.member_name(incoming)] if kind in ["swap","reorder"] else "%sを編成に加えました。" % ui.member_name(incoming) if kind=="add" else "%sを控えへ戻しました。" % ui.member_name(outgoing)
 	else:stage="idle";notice=str(reply.get("error","編成を変更できませんでした。最新の一覧から選び直してください。"))
 	ui.render()
+	if stage=="animating":await animate_swap(old_rects,ticket)
+func animate_swap(old_rects: Dictionary,ticket: int):
+	await ui.get_tree().process_frame
+	await ui.get_tree().process_frame
+	if generation!=ticket or ui.closing:return
+	var ghosts=[];var hidden=[];var tween=ui.create_tween().set_parallel(true)
+	for control in ui.find_children("GuildMember_*","Button",true,false):
+		var id=str(control.get_meta("member_id"));var target=control.get_global_rect()
+		if not old_rects.has(id) or old_rects[id].position.distance_to(target.position)<1:continue
+		var ghost=control.duplicate(0) as Button
+		ui.add_child(ghost);ghost.name="GuildSlide_"+id;ghost.mouse_filter=Control.MOUSE_FILTER_IGNORE;ghost.focus_mode=Control.FOCUS_NONE;ghost.z_index=100
+		ghost.position=old_rects[id].position;ghost.size=old_rects[id].size;ghost.modulate=Color.WHITE
+		ghosts.append(ghost);hidden.append(control);control.modulate.a=0
+		tween.tween_property(ghost,"position",target.position,.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		tween.tween_property(ghost,"size",target.size,.32)
+	if ghosts.is_empty():tween.kill()
+	else:await tween.finished
+	for ghost in ghosts:
+		if is_instance_valid(ghost):ghost.queue_free()
+	for control in hidden:
+		if is_instance_valid(control):control.modulate.a=1
+	if generation==ticket and not ui.closing:stage="idle";ui.render()
 func guard_leave() -> bool:
 	if busy():return false
 	generation+=1;stage="idle";origin_id="";chosen_id="";mode="";return true
 func escape() -> bool:
 	if ui.page!="party" or not c().get("guildAvailable",false):return false
 	if busy():return true
-	if stage=="pick":cancel_selection()
+	if not chosen_id.is_empty():cancel_selection()
 	else:ui.navigate("board")
 	return true

@@ -224,7 +224,7 @@ func render_bottom_commands():
 	for pair in COMMANDS:
 		var eligible=pair[0] in ["guard","items"] or not ui.data.get("choices",{}).get(pair[0],[]).is_empty() or pair[0]=="skill" and (not ui.data.get("skillset",[]).is_empty() or has_return())
 		var selected=not action_menu and (ui.command==pair[0] or pair[0]=="skill" and ui.command=="return" or pair[0]=="items" and ui.command in ["item","ether"])
-		var control=ui.icons.apply(b(bottom_commands,("● " if selected else "")+pair[1],choose_command.bind(pair[0]),not eligible or a.get("side")!="ally" or ui.state().get("deploying",false) or ui.state().get("result")!=null or ui.data.get("presentation") is Dictionary or range_reference),ui.icons.command(pair[0]),40 if ui.size.x>=1800 else 24);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.y=64 if ui.ui_size_mode=="standard" else 44
+		var control=ui.icons.apply(b(bottom_commands,("● " if selected else "")+pair[1],choose_command.bind(pair[0]),a.get("side")!="ally" or ui.state().get("deploying",false) or ui.state().get("result")!=null or ui.data.get("presentation") is Dictionary or range_reference),ui.icons.command(pair[0]),40 if ui.size.x>=1800 else 24);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.y=64 if ui.ui_size_mode=="standard" else 44
 		control.tooltip_text=pair[1]+(" / 今は合法な対象なし。条件を詳細で確認" if not eligible else "");ui.memory.key(control,"command_"+pair[0]);buttons[pair[0]]=control
 		control.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
 		control.add_theme_constant_override("h_separation",8)
@@ -234,8 +234,8 @@ func render_bottom_commands():
 				style.bg_color=Color("#615640" if state_=="hover" else "#494336");style.border_color=Color("#d8bd86");style.border_width_bottom=3
 				control.add_theme_stylebox_override(state_,style)
 			for color_ in ["font_color","font_hover_color","font_pressed_color"]:control.add_theme_color_override(color_,Color("#f5dfae"))
-		if pair[0]=="skill" and (skill_list or not action_menu and ui.command in ["skill","return"]):render_skills(bottom_commands)
-		if pair[0]=="items" and (item_list or not action_menu and ui.command in ["item","ether"]):render_items()
+		if pair[0]=="skill" and ui.command in ["skill","return"] and not action_menu:render_skills(bottom_commands)
+		if pair[0]=="items" and ui.command in ["items","item","ether"] and not action_menu:render_items()
 func choose_command(kind: String):
 	if kind=="skill":open_skills()
 	else:ui.choose_command(kind)
@@ -480,20 +480,13 @@ func render_deployment():
 	var formations=ui.row(deployment_options)
 	for pair in [["convoy","基本配置"],["flank","切り込み配置"]]:
 		var control=b(formations,("● " if s.get("formationKind","convoy")==pair[0] else "")+pair[1],choose_formation.bind(pair[0]))
+		control.tooltip_text="点線の3マスを味方の生存者で埋めると発動。\n味方全員の攻撃×1.5・被ダメージ×0.75。\n陣形強化中は攻撃×1.75・被ダメージ×0.65（使用者の次の番まで）。\n陣形が崩れている間は無効。"
 		control.name="DeploymentFormation_"+pair[0];control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.x=140
 	if not s.units.any(func(u):return u.id==ui.selected and u.side=="ally" and u.hp>0):
 		for u in s.units:
 			if u.side=="ally" and u.hp>0:ui.selected=u.id;break
 	left_info.set_meta("inspected_unit",ui.selected)
 	render_person_content(left_info,unit(ui.selected))
-	l(left_info,"位置を調整する味方")
-	var choose=OptionButton.new();choose.name="DeploymentAllySelection";choose.custom_minimum_size.y=44;choose.clip_text=true;left_info.add_child(choose);var ids=[]
-	for u in s.units:
-		if u.side=="ally":
-			ids.append(u.id);choose.add_item(str(u.name));choose.set_item_disabled(ids.size()-1,u.hp<=0)
-			if u.id==ui.selected:choose.select(ids.size()-1)
-	choose.item_selected.connect(func(i):ui.selected=ids[i];ui.render())
-	l(left_info,"味方クリックで選択。空きマスをクリック、またはドラッグで配置・交換。消費なし。")
 	ui.battle_actions=deployment_actions
 	b(deployment_actions,"配置リセット",reset_deployment).name="DeploymentReset"
 	ui.primary(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]))).name="DeploymentBegin"
@@ -629,7 +622,7 @@ func refresh_hover():
 	hover_stamp=stamp;hover_generation+=1
 	if uid.is_empty():ui.board.hover_caption="";return
 	if action_menu or item_list or skill_list or ui.state().get("deploying",false) or ui.presenting or ui.data.get("presentation") is Dictionary or ui.command not in ["attack","skill","item","ether"]:
-		ui.board.hover_caption="行動を選択すると効果を予測" if action_menu else "命中：対象外";return
+		ui.board.hover_caption="" if ui.state().get("deploying",false) else "行動を選択すると効果を予測" if action_menu else "命中：対象外";return
 	ui.board.hover_caption="予測取得中…"
 	request_hover(uid,hover_generation,ui.generation,ui.engine.connection_generation,ui.board.get_instance_id())
 func request_hover(uid: String,token: int,generation: int,connection: int,source_id: int):

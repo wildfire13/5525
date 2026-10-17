@@ -19,7 +19,7 @@ func run():
 	game.dialog.window.position=Vector2i(1850,1020);await frames()
 	var window_rect=Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size))
 	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(window_rect) and window_rect.position.y>=36,"R6 moved/resized status immediately recovers inside viewport")
-	check(Rect2(Vector2.ZERO,Vector2(game.dialog.window.size)).encloses(node("StatusClose").get_global_rect()),"R6 status close action remains inside recovered window")
+	check(node("StatusClose")==null and not game.dialog.window.borderless,"R6 recovered status retains window X without redundant footer close")
 	var recovered=window_rect;game.dialog.close();await frames();p.open_detail("guard");await settle()
 	check(Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size))==recovered,"R6 reopening retains recovered geometry")
 	game.dialog.close();await settle()
