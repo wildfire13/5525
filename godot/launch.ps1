@@ -96,6 +96,28 @@ try {
     $env:NATIVE5525_PYTHON=$pythonPath
     $env:PYTHONUTF8='1'
     $env:PYTHONDONTWRITEBYTECODE='1'
+    # Source checkouts contain import recipes, not the generated .godot cache.
+    # Run the incremental importer on every launch, including after a Git pull.
+    $importLog = [System.IO.Path]::GetTempFileName()
+    $importArgs=@('--headless','--path',(Join-Path $projectRoot 'godot'),'--editor','--import')
+    $savedErrorPreference = $ErrorActionPreference
+    try {
+        # Windows PowerShell represents native stderr as error records. Capture
+        # them without aborting before Godot finishes and supplies its exit code.
+        $ErrorActionPreference = 'Continue'
+        & $godotPath @importArgs > $importLog 2>&1
+        $importExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $savedErrorPreference
+    }
+    $importOutput = Get-Content -LiteralPath $importLog -Raw
+    if ($importExit -ne 0 -or $importOutput -match '(?m)(^|\s)(SCRIPT ERROR:|ERROR:)') {
+        [Console]::Error.WriteLine('[5525] Asset import failed. Log: '+$importLog)
+        [Console]::Error.WriteLine($importOutput)
+        if ($importExit -ne 0) { exit $importExit }
+        exit 1
+    }
+    Remove-Item -LiteralPath $importLog
     $godotArgs=@('--path',(Join-Path $projectRoot 'godot'))
     if ($SmokeTest) { $godotArgs+=@('--headless','--audio-driver','Dummy','--script','res://tests/launcher_smoke.gd') }
     & $godotPath @godotArgs
