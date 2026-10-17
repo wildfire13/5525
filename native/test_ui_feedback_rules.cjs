@@ -76,8 +76,39 @@ check('R08 all eight directed ring journeys finish two real battles, reload, del
       assert(s.battle.result);assert(!s.battle.failure);assert(C.finishBattle(s));valid(s);
       s=C.deserialize(C.serialize(s));if(stage===0)assert(C.onward(s));
     }
-    assert.equal(s.phase,'arrival');assert(C.arrive(s));assert.equal(s.location,destination);assert.equal(s.result.hours,10); // Existing departure/delivery time plus two safe legs.
-    assert.equal(s.result.gold,accepted?117:0);assert.equal(s.completed,accepted?1:0);assert(!C.arrive(s));valid(s);
+    assert.equal(s.phase,'arrival');
+    const goldBefore=s.gold,completedBefore=s.completed,quest=copy(s.activeQuest);
+    const xpBefore=Object.fromEntries(s.selected.map(id=>[id,s.characters[id].xp]));
+    assert(C.arrive(s));assert.equal(s.location,destination);
+    if(accepted){
+      const {cargoItemId,cargoOwnerId}=quest,party=[...s.selected];
+      assert.equal(s.phase,'town');assert.equal(s.result,null);assert.equal(s.journey,null);
+      assert.equal(s.gold,goldBefore);assert.equal(s.completed,completedBefore);
+      assert.equal(s.activeQuest.id,quest.id);assert.equal(s.activeQuest.elapsedHours,10);
+      assert(party.includes(cargoOwnerId));assert.equal(C.view(s).roster.find(u=>u.id===cargoOwnerId).job,'porter');
+      assert.equal(s.characters[cargoOwnerId].inventory[cargoItemId],1);
+      for(const id of party)assert.equal(s.characters[id].xp,xpBefore[id]);
+      // Arrival and reloading must not implicitly hand over the cargo or award rewards.
+      s=C.deserialize(C.serialize(s));valid(s);
+      let before=C.serialize(s);assert(!C.arrive(s));assert.equal(C.serialize(s),before);
+      assert(C.view(s).cargoAboard);
+      assert(C.completeQuest(s));assert.equal(s.phase,'result');assert.equal(s.activeQuest,null);
+      assert.equal(s.result.outcome,'late');assert.equal(s.result.hours,10);
+      assert.equal(s.result.gold,117);assert.equal(s.result.xp,60);
+      assert.equal(s.gold,goldBefore+117);assert.equal(s.completed,completedBefore+1);
+      for(const id of party)assert.equal(s.characters[id].xp,xpBefore[id]+60);
+      assert(Object.values(s.characters).every(c=>!Object.hasOwn(c.inventory,cargoItemId)));
+    }else{
+      assert.equal(s.phase,'result');assert.equal(s.result.outcome,'travel');assert.equal(s.result.hours,10);
+      assert.equal(s.result.gold,0);assert.equal(s.result.xp,0);assert.equal(s.activeQuest,null);
+      assert.equal(s.gold,goldBefore);assert.equal(s.completed,completedBefore);
+      for(const id of s.selected)assert.equal(s.characters[id].xp,xpBefore[id]);
+    }
+    // Repeated delivery/arrival, including after reload and acknowledgement, is inert.
+    s=C.deserialize(C.serialize(s));valid(s);
+    let completed=C.serialize(s);assert(!C.completeQuest(s));assert(!C.arrive(s));assert.equal(C.serialize(s),completed);
+    assert(C.acknowledge(s));s=C.deserialize(C.serialize(s));valid(s);
+    completed=C.serialize(s);assert(!C.completeQuest(s));assert(!C.arrive(s));assert.equal(C.serialize(s),completed);
   }
 });
 check('R02 exact effect prediction does not consume inventory, MP, actions or history',()=>{
