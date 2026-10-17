@@ -54,11 +54,15 @@ func _draw():
 			drawn[key]=true;draw_dashed_line(POS[origin]*size,POS[dest]*size,Color("#65778c"),3,8)
 
 			var start=POS[origin]*size;var end=POS[dest]*size;var delta=end-start
-			var half=buttons[origin].size*.5+Vector2(8,8)
+			var half=buttons[origin].size*.5
 			var edge=minf(half.x/maxf(absf(delta.x),.001),half.y/maxf(absf(delta.y),.001))
 			var from=start+delta*edge;var to=end-delta*edge
+			# Use the actual edge-to-edge gap. Short vertical routes must still
+			# show two separate circles, with equal endpoint/center intervals.
+			var spacing=from.distance_to(to)/3.0
+			var radius=minf(7.0,spacing*.375)
 			var events=route_events.get(key,["danger","danger"])
 			for i in range(2):
 				var kind=str(events[i]) if i<events.size() else "unknown"
 				var at=from.lerp(to,float(i+1)/3.0);var color=EVENT_COLORS.get(kind,EVENT_COLORS.unknown)
-				draw_circle(at,7,color);event_markers.append({"route":key,"index":i,"position":at,"kind":kind,"color":color})
+				draw_circle(at,radius,color);event_markers.append({"route":key,"index":i,"position":at,"kind":kind,"color":color,"radius":radius,"from":from,"to":to})
