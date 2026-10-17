@@ -6,6 +6,7 @@ var minimum := Vector2(280,240)
 var body: VBoxContainer
 var footer: VBoxContainer
 var reserved_top := 0.0
+var layout_bounds := Rect2()
 var drag_edges := Vector2.ZERO
 var dragging := false
 var moving := false
@@ -28,6 +29,9 @@ func edges(at: Vector2) -> Vector2:
 func constrain():
 	var rect=preferences.bounded(Rect2(position,size),get_parent_control().size,minimum);rect.position.y=maxf(reserved_top,rect.position.y)
 	rect.size.y=minf(rect.size.y,maxf(minimum.y,get_parent_control().size.y-rect.position.y))
+	if layout_bounds.has_area():
+		rect=preferences.bounded(Rect2(rect.position-layout_bounds.position,rect.size),layout_bounds.size,minimum)
+		rect.position+=layout_bounds.position
 	position=rect.position;size=rect.size
 func persist():preferences.store_rect(layout_key,Rect2(position,size))
 func handle(event,header: bool):
@@ -50,4 +54,6 @@ func _input(event):
 				if drag_edges[axis]<0:
 					var shift=minf(delta[axis],origin.size[axis]-minimum[axis]);rect.position[axis]+=shift;rect.size[axis]-=shift
 				elif drag_edges[axis]>0:rect.size[axis]=maxf(minimum[axis],origin.size[axis]+delta[axis])
-		rect=preferences.bounded(rect,get_parent_control().size,minimum);position=rect.position;size=rect.size;get_viewport().set_input_as_handled()
+		rect=preferences.bounded(rect,get_parent_control().size,minimum);position=rect.position;size=rect.size
+		if layout_bounds.has_area():constrain()
+		get_viewport().set_input_as_handled()

@@ -467,6 +467,7 @@ func select_skill(id: String):
 	await update({"op":"select_skill","skillId":id})
 func deploy_dragged(uid: String,pos: int):
 	if locked or presenting:return
+	selected=uid
 	await act("deploy",[uid,pos])
 func on_cell(pos: int):
 	if locked or presenting or closing or hud.range_reference or hud.item_list or hud.skill_list:return
@@ -475,9 +476,9 @@ func on_cell(pos: int):
 	if hud.action_menu and not s.get("deploying",false):render();return
 	if u.get("side")=="enemy":hud.selected_enemy=str(u.id)
 	if s.get("deploying",false):
-		if selected.is_empty():
-			if u.get("side")=="ally":selected=u.id;render()
-		else:await act("deploy",[selected,pos])
+		if u.get("side")=="enemy":hud.render_person();return
+		if u.get("side")=="ally" and u.get("hp",0)>0:selected=u.id;render()
+		elif not selected.is_empty():await act("deploy",[selected,pos])
 		return
 	var target=null
 	if command in ["move","return"] or command=="skill" and data.get("skill")=="スタンプ":target=pos
