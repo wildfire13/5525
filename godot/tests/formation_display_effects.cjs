@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const B=require('../../native/campaign-battle.js');
+const unit=(id,side,pos)=>({id,name:id,side,pos,hp:200,max:200,mp:5,maxMp:5,atk:40,def:0,agi:10,reach:1,job:'warrior',effects:[]});
+const s={units:[unit('a','ally',24),unit('e0','enemy',25),unit('e1','enemy',16),unit('e2','enemy',36)],actor:'e0',formationVersion:2,formationKind:'convoy',log:[],actions:0};
+assert.equal(B.formation(s,'enemy'),true);
+assert.equal(B.formation(s,'ally'),false);
+let hits=B.damagePreview(s,s.units[1],'attack','a');
+assert.equal(hits[0].damage,60,'formed enemy attack is 40 x 1.5');
+const copy=structuredClone(s);B.receive(copy,copy.units[1],80);
+assert.equal(copy.units[1].hp,140,'formed enemy receives 80 x .75');
+s.units[3].hp=0;
+assert.equal(B.formation(s,'enemy'),false);
+hits=B.damagePreview(s,s.units[1],'attack','a');assert.equal(hits[0].damage,40);
+const unformed=structuredClone(s);B.receive(unformed,unformed.units[1],80);assert.equal(unformed.units[1].hp,120);
+console.log('PASS seven formation/actual damage checks; engine formulas unchanged');

@@ -13,10 +13,12 @@ var party_focus_after := ""
 var shop_view
 var party_view
 var guild_view
+var hub_view
 var item_stage := "entry"
 var item_id := ""
 const ItemMenu=preload("res://item_menu.gd")
 func _init(frontend):
+	hub_view=preload("res://town_hub.gd").new(frontend)
 	ui=frontend;shop_view=preload("res://shop_view.gd").new(self);party_view=preload("res://party_view.gd").new(self);guild_view=preload("res://guild_view.gd").new(self)
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
@@ -65,6 +67,7 @@ func quest_info(parent,q: Dictionary):
 	l(parent,"行先 %s / 依頼主 %s" % [town(q.to),q.get("client","")])
 	l(parent,q.get("text",""))
 	l(parent,"荷物 %s / %d枠 / 納期 %d時間 / 報酬 %dG" % [q.get("cargo",""),q.get("weight",0),q.get("deadline",0),q.get("reward",0)])
+func hub(parent):hub_view.render(parent)
 func board(parent):
 	var town_data={}
 	for t in c().get("locations",[]):
@@ -277,7 +280,7 @@ func result(parent):
 	ui.icons.line(ui,parent,"money","所持金 %dG" % c().gold)
 	if result_.get("hours")!=null:l(parent,"所要時間 %d時間" % result_.hours)
 	l(parent,"現在地: "+town(c().location)+"。ここで施設を利用し、次の出発を選べます。")
-	b(parent,town(c().location)+"に留まる / 掲示板へ",acknowledge.bind("board"))
+	b(parent,town(c().location)+"に留まる / 拠点へ",acknowledge.bind("hub"))
 	var facilities=[]
 	for place in c().get("locations",[]):
 		if place.id==c().location:facilities=place.get("facilities",[]);break
@@ -309,6 +312,7 @@ func invalidate_quote(clear_id:=false):
 	quote_generation+=1;quote_pending=false;quote_stamp="";ui.gear_preview={}
 	if clear_id:gear_id=""
 func reset_context(plan_mode: String="discard",campaign_id: String=""):
+	hub_view.reset()
 	if ui.hud!=null:ui.hud.reset_context()
 	reset_items();shop_view.reset(plan_mode,campaign_id);guild_view.reset();party_view.reset();party_view.tab=0;party_view.highlight_slot=""
 	epoch+=1;invalidate_quote(true);trial_return={};cached_quotes={}

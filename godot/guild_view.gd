@@ -86,7 +86,7 @@ func render(parent):
 		if active(chosen_id):b(actions,"控えへ戻す",prepare.bind("remove",chosen_id,""),u.is_empty() or c().selected.size()==1 or busy()).name="GuildRemove"
 		else:b(actions,"編成に加える",prepare.bind("add","",chosen_id),u.is_empty() or c().selected.size()>=LIMIT or busy()).name="GuildAdd"
 	b(actions,"人物詳細",pages.party_view.open_detail.bind(chosen_id),u.is_empty() or busy() or stage=="confirm").name="GuildDetails"
-	b(actions,"アスタリスへ戻る",ui.navigate.bind("board"),busy()).name="GuildReturn"
+	b(actions,"アスタリスへ戻る",ui.navigate.bind("hub"),busy()).name="GuildReturn"
 func choose(id: String):
 	if not available() or busy() or ui.modal_open() or person(id).is_empty():return
 	if stage!="idle":return
@@ -189,5 +189,5 @@ func escape() -> bool:
 	if ui.page!="party" or not c().get("guildAvailable",false):return false
 	if busy():return true
 	if not chosen_id.is_empty():cancel_selection()
-	else:ui.navigate("board")
+	else:ui.navigate("hub")
 	return true

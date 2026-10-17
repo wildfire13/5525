@@ -55,6 +55,11 @@ var inspected_uid := ""
 var hover_generation := 0
 var hover_stamp := ""
 var skill_content_open := false
+const QUEUE_VISIBLE=5
+const QUEUE_CARD_WIDTH=180
+const QUEUE_ARROW_WIDTH=24
+const QUEUE_GAP=8
+const QUEUE_PITCH=QUEUE_CARD_WIDTH+QUEUE_ARROW_WIDTH+QUEUE_GAP*2
 const COMMANDS=[["attack","攻撃"],["move","移動"],["skill","スキル"],["items","アイテム"],["guard","防御"]]
 func _init(frontend):ui=frontend
 func l(parent,text,large:=false):
@@ -116,7 +121,7 @@ func resize():
 	left_panel.constrain();right_panel.constrain();tools.size=Vector2(middle.size.x,56)
 	deployment_bar.position=Vector2(0,middle.size.y-152);deployment_bar.size=Vector2(maxf(280,middle.size.x-350),144)
 	deployment_actions.position=Vector2(middle.size.x-330,middle.size.y-132);deployment_actions.size=Vector2(330,124)
-	ui.battle_header.position.y=maxf(0,middle.size.y-64);ui.battle_header.size.x=middle.size.x
+	ui.battle_header.position.y=maxf(0,middle.size.y-108);ui.battle_header.size.x=middle.size.x
 func render():
 	var s=ui.state();var phase=ui.data.get("presentation");var a=acting()
 	if not (phase is Dictionary) and not ui.presenting:queue_at_start=ui.data.get("queue",[]).duplicate(true)
@@ -135,8 +140,7 @@ func render():
 	update_board()
 	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(left_panel.body);ui.clear(right_panel.body);ui.clear(right_panel.footer)
 	render_queue();render_actor(a)
-	local(tools,"行動履歴",open_history).name="BattleHistory"
-	local(tools,"予告・全順番",toggle_details)
+	local(tools,"戦闘の詳細",toggle_details)
 	if ui.data.get("trial") is Dictionary:
 		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.name="EndTrial";end.custom_minimum_size=Vector2(160,52)
 	else:
@@ -154,7 +158,7 @@ func render():
 	if not deploying:render_bottom_commands()
 	actor_box=left_info;command_box=left_info
 	person_box=VBoxContainer.new();person_box.name="BattlePersonInfo";right_panel.body.add_child(person_box);render_person()
-	target_box=VBoxContainer.new();target_box.name="DecisionContent";right_panel.body.add_child(target_box)
+	target_box=VBoxContainer.new();target_box.name="DecisionContent";right_panel.body.add_child(target_box);right_panel.body.move_child(target_box,0)
 	decision_footer=right_panel.footer
 	if ui.engine.disconnected:l(command_box,"接続が終了しました",true)
 	elif phase is Dictionary:render_presentation(phase)
@@ -167,9 +171,9 @@ func render():
 	else:presentation_action={};render_target()
 	update_board();ui.board.inspected_enemy="";refresh_hover();resize()
 func open_history():
-	ui.dialog.open("行動履歴",func(body,actions):
-		l(body,"実際に起きた行動・結果",true)
-		for entry in ui.state().get("log",[]):l(body,ui.display_log(str(entry)))
+	ui.dialog.open("戦闘履歴",func(body,actions):
+		l(body,"ログ（実結果・直近40件）",true)
+		for entry in ui.state().get("log",[]).slice(-40):l(body,ui.display_log(str(entry)))
 		ui.local_button(actions,"閉じる",ui.dialog.close))
 func update_board():
 	ui.board.reference_mode=range_reference
@@ -177,28 +181,50 @@ func update_board():
 func render_actor(_a: Dictionary):
 	ui.header.text="配置" if ui.state().get("deploying",false) else "戦闘"
 	ui.header.tooltip_text="右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小"
-func render_queue():
-	var queue_scroll=ScrollContainer.new();queue_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;queue_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;ui.battle_header.add_child(queue_scroll)
-	var band=ui.row(queue_scroll);band.name="TurnOrder";band.custom_minimum_size.y=40 if ui.ui_size_mode=="standard" else 32
-	if ui.state().get("deploying",false) or ui.state().get("result")!=null and not ui.data.get("presentation") is Dictionary:l(band,"行動順は戦闘開始後" if ui.state().get("deploying",false) else "戦闘終了");return
-	var presenting=ui.data.get("presentation") is Dictionary or ui.presenting
-	var queue_=ui.data.get("queue",[])
+func queue_entries() -> Array:
 	var entries=[]
+	var presenting=ui.data.get("presentation") is Dictionary or ui.presenting
 	if presenting and not acting().is_empty():entries.append({"unit":acting(),"label":"実行中"})
+	var queue_=ui.data.get("queue",[])
 	for index in range(queue_.size()):
 		if presenting and index==0 and queue_[index].id==acting().get("id"):continue
-		entries.append({"unit":unit(queue_[index].id),"label":""})
-	for index in range(entries.size()):
-		if index>0:l(band,"←")
-		var entry=entries[index];var u=entry.unit
-		if u.is_empty():continue
-		var panel=PanelContainer.new();panel.custom_minimum_size.x=180;panel.name="TurnCard_"+str(index);band.add_child(panel)
+		var u=unit(queue_[index].id)
+		if not u.is_empty() and u.get("hp",0)>0:entries.append({"unit":u,"label":""})
+	return entries
+func open_order_details():
+	ui.dialog.open("順番詳細",func(body,actions):
+		l(body,"行動順（現在の予測）",true)
+		for index in range(queue_entries().size()):
+			var entry=queue_entries()[index];var u=entry.unit
+			var line=l(body,"%d. %s / %s%s" % [index+1,str(u.name),"味方" if u.side=="ally" else "敵"," / "+entry.label if not entry.label.is_empty() else ""])
+			line.name="OrderDetail_"+str(index)
+		local(actions,"閉じる",ui.dialog.close))
+func render_queue():
+	var line=ui.row(ui.battle_header);line.name="TurnOrderControls";line.add_theme_constant_override("separation",QUEUE_ARROW_WIDTH+QUEUE_GAP*2)
+	var queue_scroll=ScrollContainer.new();queue_scroll.name="TurnOrderViewport";queue_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER;queue_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+	queue_scroll.custom_minimum_size=Vector2(QUEUE_PITCH*QUEUE_VISIBLE-QUEUE_ARROW_WIDTH-QUEUE_GAP*2,40 if ui.ui_size_mode=="standard" else 32)
+	queue_scroll.mouse_filter=Control.MOUSE_FILTER_IGNORE;line.add_child(queue_scroll)
+	var band=ui.row(queue_scroll);band.name="TurnOrder";band.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var available=not ui.state().get("deploying",false) and (ui.state().get("result")==null or ui.data.get("presentation") is Dictionary)
+	var entries=queue_entries() if available else []
+	var presenting=ui.data.get("presentation") is Dictionary
+	# A sixth card exists only behind the clipping boundary during the one-card
+	# slide. Controls remain outside that viewport and never slide with it.
+	for index in range(QUEUE_VISIBLE+1 if presenting else QUEUE_VISIBLE):
+		if index>0:
+			var arrow=l(band,"←" if index<entries.size() else "")
+			arrow.custom_minimum_size.x=QUEUE_ARROW_WIDTH;arrow.size_flags_horizontal=Control.SIZE_FILL;arrow.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+		if index>=entries.size():
+			var space=Control.new();space.custom_minimum_size.x=QUEUE_CARD_WIDTH;space.mouse_filter=Control.MOUSE_FILTER_IGNORE;band.add_child(space);continue
+		var u=entries[index].unit
+		var panel=PanelContainer.new();panel.custom_minimum_size.x=QUEUE_CARD_WIDTH;panel.name="TurnCard_"+str(index);panel.set_meta("unit_id",u.id);panel.mouse_filter=Control.MOUSE_FILTER_IGNORE;band.add_child(panel)
 		var style=StyleBoxFlat.new();style.bg_color=Color("#344b50") if u.side=="ally" else Color("#594049");style.set_content_margin_all(2);style.set_corner_radius_all(4)
 		if index==0:style.set_border_width_all(1);style.border_color=Color("#ffe197")
 		panel.add_theme_stylebox_override("panel",style);panel.tooltip_text=str(u.name)
 		var row=ui.row(panel);ui.portrait(row,u,true,32 if ui.ui_size_mode=="standard" else 24)
 		var label=l(row,("● " if index==0 else "")+str(u.name));label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size=Vector2(132,24);label.clip_text=true;label.max_lines_visible=1;label.tooltip_text=str(u.name)
-	var all_=local(band,"全順番",toggle_details);all_.custom_minimum_size.y=40 if ui.ui_size_mode=="standard" else 32
+	var all_=local(line,"順番詳細",open_order_details);all_.name="BattleOrderDetails";all_.custom_minimum_size=Vector2(QUEUE_CARD_WIDTH,40);all_.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+	var history=local(ui.battle_header,"戦闘履歴",open_history);history.name="BattleHistory";history.custom_minimum_size=Vector2(QUEUE_CARD_WIDTH,40);history.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 	if presenting and str(ui.data.presentation.get("action_id",""))==shifted_action:queue_scroll.set_deferred("scroll_horizontal",queue_distance)
 func target_name(id) -> String:
 	return str(unit(id).get("name","対象不明"))
@@ -302,14 +328,13 @@ func render_target():
 	facts.add_theme_constant_override("separation",6 if ui.ui_size_mode=="standard" else 4)
 	if ui.command=="move":render_move(main,facts)
 	else:render_prediction(main,facts)
-	var cost=l(facts,cost_text());cost.name="ActionCost"
-	if ui.preview_pending:l(facts,"予測を取得中…")
-	elif ui.can_commit():
-		if ui.ui_size_mode!="standard":cost.text+=" / ✓ 実行可能"
-		else:l(facts,"✓ 実行可能")
-	elif not skill_unavailable_reason().is_empty():l(facts,skill_unavailable_reason())
-	elif not ui.notice.is_empty():l(facts,ui.notice)
-	elif not action_menu:l(facts,"対象未確定 / 射程・条件を確認")
+	var cost=l(main,cost_text());cost.name="ActionCost"
+	var availability=l(main,"");availability.name="ActionAvailability"
+	if ui.preview_pending:availability.text="予測を取得中…"
+	elif ui.can_commit():availability.text="✓ 実行可能"
+	elif not skill_unavailable_reason().is_empty():availability.text=skill_unavailable_reason()
+	elif not ui.notice.is_empty():availability.text=ui.notice
+	elif not action_menu:availability.text="対象未確定 / 射程・条件を確認"
 	for fact in facts.get_children():
 		if fact is Label:fact.add_theme_color_override("font_color",Color("#bdc5d0"))
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
@@ -527,8 +552,6 @@ func toggle_details():
 		for q in (queue_at_start if ui.presenting else ui.data.get("queue",[])):l(body,str(q.name)+" / "+("味方" if q.side=="ally" else "敵"))
 		l(body,"所持: ポーション 味方%d / 敵%d / エーテル%d（ポーター専用・射程無限）" % [ui.state().get("potions",{}).get("ally",0),ui.state().get("potions",{}).get("enemy",0),ui.state().get("ethers",0)])
 		enemy_intents(body);ui.render_unit_details(body,ui.state());formations(body)
-		l(body,"ログ（実結果・直近40件）",true)
-		for entry in ui.state().get("log",[]).slice(-40):l(body,ui.display_log(str(entry)))
 		ui.local_button(actions,"戻る",ui.dialog.close),func():details_open=false)
 func inspect_enemy(id: String):
 	selected_enemy=id
@@ -556,7 +579,7 @@ func formations(parent):
 	if ui.state().get("formationVersion")==1:l(parent,"旧戦闘の陣形条件を継続中（この戦闘が終わるまで）")
 	for team in ["ally","enemy"]:
 		var active=ui.data.get("formed",{}).get(team,false);var boost=active and ui.data.get("boosted",{}).get(team,false)
-		var cells=ui.data.get("formationSlots",{}).get(team,[24,13,33] if team=="ally" else [25,16,36])
+		var cells=ui.data.get("formationSlots",{}).get(team,[24,13,33] if team=="ally" else [25,16,36]).map(func(cell):return int(cell))
 		var occupied=ui.state().units.filter(func(u):return u.side==team and u.hp>0 and cells.has(int(u.pos))).size()
 		l(parent,"%sの条件マス %d/3" % ["味方" if team=="ally" else "敵",occupied])
 		l(parent,"%s陣形 %s / 攻撃%s・被ダメージ%s" % ["味方" if team=="ally" else "敵","発動" if active else "未発動","×1.75" if boost else "×1.5" if active else "×1","×0.65" if boost else "×0.75" if active else "×1"])
@@ -574,7 +597,9 @@ func render_person():
 			person_box.set_meta("inspected_unit",enemy.id);render_person_content(person_box,enemy,true)
 		else:l(person_box,"敵をクリックすると情報を表示します。")
 		return
-	var u=unit(str(ui.pending)) if ui.pending is String else unit(inspected_uid)
+	var u=unit(inspected_uid)
+	var reference=not u.is_empty()
+	if u.is_empty() and ui.pending is String:u=unit(str(ui.pending))
 	var phase=ui.data.get("presentation")
 	if phase is Dictionary and phase.get("unit_id") is String:u=unit(phase.unit_id)
 	if u.is_empty() and selected_cell>=0:u=ui.board.unit_at(selected_cell)
@@ -586,6 +611,7 @@ func render_person():
 
 	if u.is_empty():l(person_box,"人物にカーソルを合わせると情報を表示します。");return
 	person_box.set_meta("inspected_unit",u.id)
+	l(person_box,("参照：" if reference else "対象の詳細：")+str(u.name)).name="InspectedPersonHeading"
 	render_person_content(person_box,u)
 func render_person_content(parent,u: Dictionary,expanded:=false):
 	var hero=ui.row(parent);ui.portrait(hero,u,true,64 if ui.ui_size_mode=="standard" else 40);l(hero,str(u.name),true)

@@ -85,7 +85,7 @@ func configure_entry(entry: Dictionary,campaign: Dictionary):
 	else:
 		heading=str(entry.name);details.clear();plain_details.clear()
 		if gear.has("resource"):line(preload("res://item_menu.gd").effect(gear))
-		if gear.has("battleRole"):line("戦闘での使用条件："+str(gear.battleRole))
+		if gear.has("battleRole"):line("戦闘での使用条件："+("ポーター" if gear.battleRole=="porter" else str(gear.battleRole)))
 		line(str(gear.get("note",gear.get("description","依頼に関わる所持品" if entry.get("kind")=="quest" else "使用時に1個消費"))))
 		tooltip_text=heading+"\n"+"\n".join(plain_details)
 func _make_custom_tooltip(_for_text: String) -> Object:

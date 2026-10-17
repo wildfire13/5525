@@ -50,7 +50,7 @@ func run():
 	check(code==0,"battle fixture generator")
 	var fixtures=JSON.parse_string("".join(output));await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
 	check(game.board.get_global_rect()==Rect2(Vector2.ZERO,Vector2(1920,1080)),"S1 board spans FHD viewport beneath overlays")
-	check(node("BattleHistory")!=null and game.battle_header.global_position.y>900,"S1 history and bottom turn order")
+	check(node("BattleHistory")!=null and game.battle_header.global_position.y>850 and node("BattleHistory").global_position.y>node("TurnOrder").global_position.y,"S1 history and bottom turn order")
 	check(game.hud.left_panel.visible and game.hud.buttons.size()==5 and not game.actor_face.visible and not game.header.text.contains("HP"),"S2 ally and commands left; no duplicate top actor")
 	check(not game.find_children("*","Button",true,false).any(func(b):return b.text in ["戦術","低","高"]),"S3 preset camera controls removed")
 	var left=game.hud.left_panel;left.position=Vector2(40,90);left.size=Vector2(360,630);left.persist();var rect=Rect2(left.position,left.size)
