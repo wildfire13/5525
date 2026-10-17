@@ -1,7 +1,62 @@
 {
-  "astaris": [],
-  "east": [],
-  "west": [],
-  "south": [],
-  "north": []
+  "astaris": [
+    {
+      "id": "astaris_a",
+      "path": "res://assets/towns/astaris_a.png",
+      "style": "アニメ背景"
+    },
+    {
+      "id": "astaris_b",
+      "path": "res://assets/towns/astaris_b.png",
+      "style": "油彩"
+    }
+  ],
+  "east": [
+    {
+      "id": "east_a",
+      "path": "res://assets/towns/east_a.png",
+      "style": "ガッシュ"
+    },
+    {
+      "id": "east_b",
+      "path": "res://assets/towns/east_b.png",
+      "style": "版画"
+    }
+  ],
+  "west": [
+    {
+      "id": "west_a",
+      "path": "res://assets/towns/west_a.png",
+      "style": "水彩・ペン"
+    },
+    {
+      "id": "west_b",
+      "path": "res://assets/towns/west_b.png",
+      "style": "切り紙"
+    }
+  ],
+  "south": [
+    {
+      "id": "south_a",
+      "path": "res://assets/towns/south_a.png",
+      "style": "デジタルペイント"
+    },
+    {
+      "id": "south_b",
+      "path": "res://assets/towns/south_b.png",
+      "style": "模型風3D"
+    }
+  ],
+  "north": [
+    {
+      "id": "north_a",
+      "path": "res://assets/towns/north_a.png",
+      "style": "色鉛筆・淡彩"
+    },
+    {
+      "id": "north_b",
+      "path": "res://assets/towns/north_b.png",
+      "style": "レトロゲーム背景"
+    }
+  ]
 }
