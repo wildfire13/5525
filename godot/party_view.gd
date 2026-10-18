@@ -213,7 +213,7 @@ func open_detail(uid: String):
 	if ui.locked or ui.presenting or ui.modal_open() or not ui.can_inspect_member(uid):return
 	if not guard_leave(open_detail.bind(uid)):return
 	detail_uid=uid;detail_tab=0;detail_gear={};inventory_view.reset();owned_equipment_view.reset()
-	ui.dialog.open("ステータス",func(_body,actions):
+	ui.dialog.open(ui.dialog.STATUS_TITLE,func(_body,actions):
 		ui.local_button(actions,"戻る",detail_back).name="StatusBack",
 		func():detail_uid="";detail_gear={};inventory_view.reset();ui.render())
 	ui.dialog.close_guard=detail_close_guard
@@ -233,7 +233,7 @@ func detail_back():
 	if detail_tab==3:inventory_view.back()
 func refresh_modal():
 	if detail_uid.is_empty() or modal_refreshing or not is_instance_valid(ui.dialog.window):return
-	if ui.dialog.window.title!="ステータス":return
+	if ui.dialog.window.title!=ui.dialog.STATUS_TITLE:return
 	modal_refreshing=true
 	var matches=ui.visible_roster().filter(func(u):return u.id==detail_uid)
 	if matches.is_empty():
@@ -245,13 +245,15 @@ func refresh_modal():
 	face.gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed:face.hide_hint();open_portrait_preview(u))
 	l(hero,str(u.name)+" / Lv.%d / 経験値 %d\nHP%d/%d  MP%d/%d" % [u.level,u.get("xp",0),u.hp,u.max,u.mp,u.maxMp],true);identity(body,u)
-	var tabs=ui.row(body)
+	# Shared grid columns align the tab boundaries with the equipment/inventory below.
+	var split=GridContainer.new();split.columns=2;split.name="StatusEquipmentSplit";split.add_theme_constant_override("h_separation",16);body.add_child(split)
+	var left_tabs=ui.row(split);left_tabs.name="StatusLeftTabs";left_tabs.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	var right_tabs=ui.row(split);right_tabs.name="StatusRightTabs";right_tabs.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	for i in range(4):
-		var tab_button=b(tabs,("● " if detail_tab==i else "")+["装備","能力・成長","スキル・効果","インベントリ"][i],func():detail_tab=i;detail_gear={};refresh_modal())
+		var tab_button=b(left_tabs if i<3 else right_tabs,("● " if detail_tab==i else "")+["装備","能力・成長","スキル・効果","インベントリ"][i],func():detail_tab=i;detail_gear={};refresh_modal())
 		tab_button.name="StatusTab_"+str(i);tab_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	match detail_tab:
 		0:
-			var split=HBoxContainer.new();split.name="StatusEquipmentSplit";split.add_theme_constant_override("separation",16);body.add_child(split)
 			var equipped=VBoxContainer.new();equipped.name="StatusEquipped";equipped.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(equipped)
 			var owned=VBoxContainer.new();owned.name="StatusOwnedInventory";owned.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(owned)
 			equipment(equipped,u)
@@ -283,7 +285,7 @@ func portrait_pressed(uid: String):
 	if not ui.can_inspect_member(uid) or not guard_leave(portrait_pressed.bind(uid)):return
 	detail_uid=uid;detail_gear={};inventory_view.reset();owned_equipment_view.reset();clear_draft();ui.render();ui.dialog.window.grab_focus()
 func outside_press(point: Vector2) -> bool:
-	if detail_uid.is_empty() or not is_instance_valid(ui.dialog.window) or ui.dialog.window.title!="ステータス":return false
+	if detail_uid.is_empty() or not is_instance_valid(ui.dialog.window) or ui.dialog.window.title!=ui.dialog.STATUS_TITLE:return false
 	var window=ui.dialog.window
 	var rect=Rect2(Vector2(window.position)-Vector2(0,32),Vector2(window.size)+Vector2(0,32))
 	if rect.has_point(point):return false

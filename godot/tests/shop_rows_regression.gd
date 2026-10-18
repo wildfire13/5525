@@ -58,7 +58,7 @@ func run():
 	check(after.state.characters.mage.weapon==before.state.characters.mage.weapon and after.state.characters.guard==before.state.characters.guard,"no automatic equipment or other owner's inventory mutation")
 	check(shop.stage=="S0" and not game.modal_open(),"successful receipt returns safely to product list")
 	await tap("PartyFace_mage")
-	check(game.dialog.window.title=="ステータス" and game.pages.party_view.detail_uid=="mage","shop lower face still opens personal status")
+	check(game.dialog.window.title=="キャラクターステータス" and game.pages.party_view.detail_uid=="mage","shop lower face still opens personal status")
 	await tap("StatusTab_3")
 	check(exists("InventorySell_javelin-wood"),"shop inventory exposes per-item sale")
 	await tap("InventorySell_javelin-wood");await tap("InventoryPrepareSale")

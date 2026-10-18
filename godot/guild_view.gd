@@ -86,10 +86,11 @@ func render(parent):
 		if active(chosen_id):b(actions,"控えへ戻す",prepare.bind("remove",chosen_id,""),u.is_empty() or c().selected.size()==1 or busy()).name="GuildRemove"
 		else:b(actions,"編成に加える",prepare.bind("add","",chosen_id),u.is_empty() or c().selected.size()>=LIMIT or busy()).name="GuildAdd"
 	b(actions,"人物詳細",pages.party_view.open_detail.bind(chosen_id),u.is_empty() or busy() or stage=="confirm").name="GuildDetails"
-	b(actions,"アスタリスへ戻る",ui.navigate.bind("hub"),busy()).name="GuildReturn"
 func choose(id: String):
 	if not available() or busy() or ui.modal_open() or person(id).is_empty():return
 	if stage!="idle":return
+	if chosen_id==id:
+		pages.party_view.open_detail(id);return
 	if not chosen_id.is_empty() and chosen_id!=id:
 		origin_id=chosen_id
 		if active(chosen_id) and active(id):prepare("reorder",chosen_id,id);return
@@ -101,7 +102,7 @@ func cancel_selection():
 	generation+=1;stage="idle";mode="";origin_id="";chosen_id="";notice="";ui.render()
 func outside_press(point: Vector2):
 	if not available() or busy() or ui.modal_open() or chosen_id.is_empty():return
-	for name_ in ["GuildReserveScroll","GuildCurrentScroll","GuildActions","PartyFaceBar"]:
+	for name_ in ["GuildReserveScroll","GuildCurrentScroll","GuildActions","TownReturnRow","PartyFaceBar"]:
 		var area=ui.find_child(name_,true,false)
 		if area!=null and area.get_global_rect().has_point(point):return
 	cancel_selection()

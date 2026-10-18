@@ -42,7 +42,7 @@ func camp_cases():
 		check(text(party).contains("HP %d/" % before.state.characters.guard.hp) and text(party).contains("MP %d/" % before.state.characters.guard.mp) and text(party).contains("戦闘不能"),"camp preserves live resources and KO status")
 		node("InventoryOwner_guard").pressed.emit();await settle()
 		var inventory=game.pages.party_view.inventory_view
-		check(game.dialog.window.title=="ステータス" and game.pages.party_view.detail_tab==3,"camp opens owner's inventory in Status")
+		check(game.dialog.window.title=="キャラクターステータス" and game.pages.party_view.detail_tab==3,"camp opens owner's inventory in Status")
 		inventory.pick("potion");inventory.choose("use");await settle()
 		check(not node("InventoryTarget_guard").disabled and node("InventoryTarget_archer").disabled and node("InventoryTarget_mage").disabled,"potion excludes full HP and fallen recipients")
 		await inventory.prepare("guard",null);inventory.back();await settle();check(await snapshot()==before,"cancel before confirmation preserves exact save")

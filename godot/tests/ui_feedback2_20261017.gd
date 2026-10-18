@@ -28,7 +28,7 @@ func run():
 	var file_dialog=game.find_children("*","FileDialog",true,false)[0]
 	check(file_dialog.file_mode==FileDialog.FILE_MODE_OPEN_FILE and file_dialog.filters[0].contains("*.png"),"image change opens existing image file picker")
 	file_dialog.canceled.emit();await settle()
-	check(await saved()==before and game.dialog.window.title=="ステータス","portrait close preserves save and status context")
+	check(await saved()==before and game.dialog.window.title=="キャラクターステータス","portrait close preserves save and status context")
 	await click("StatusTab_3");await settle()
 	check(node("InventoryItem_sword-wood").get_meta("ui_icon_id")=="equipment:sword-wood","personal inventory uses individual equipment reference")
 	game.dialog.close();await settle()

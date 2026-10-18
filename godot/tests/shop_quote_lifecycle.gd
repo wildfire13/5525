@@ -69,7 +69,7 @@ func run():
 	game.dialog.close();await frames()
 	await hold("previewGear","ProductTrial_javelin-wood")
 	game.pages.party_view.open_detail("mage");await frames()
-	check(game.modal_open() and game.dialog.window.title=="ステータス" and shop.stage=="S0","new personal detail cancels pending trial preview")
+	check(game.modal_open() and game.dialog.window.title=="キャラクターステータス" and shop.stage=="S0","new personal detail cancels pending trial preview")
 	game.dialog.close();await frames();gate.release=true;await settle()
 	check(not game.modal_open() and shop.stage=="S0","closed newer detail does not revive old trial selection")
 	await hold("purchaseQuote","ProductBuy_javelin-wood")
