@@ -1,4 +1,5 @@
 extends RefCounted
+const STATUS_TITLE := "キャラクターステータス"
 ## One exclusive session-only detail window, with context-checked restoration.
 var ui
 var window: Window
@@ -20,13 +21,14 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 	escape_handler=Callable()
 	ui.memory.capture();checkpoint=ui.memory.scrolls.duplicate(true);origin=ui.memory.focus_key
 	epoch=ui.pages.epoch;connection=ui.engine.connection_generation;restore_callback=closed
-	window=Window.new();window.set_meta("managed_layout",true);window.name="StateDetails";window.title=title;window.exclusive=title!="ステータス";window.transient=true;window.unresizable=false;window.min_size=Vector2i(420,300)
+	window=Window.new();window.set_meta("managed_layout",true);window.name="StateDetails";window.title=title;window.exclusive=title!=STATUS_TITLE;window.transient=true;window.unresizable=false;window.min_size=Vector2i(420,300)
 	ui.add_child(window)
 	var margin=preload("res://modal_input.gd").new();margin.owner_ref=weakref(self);window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,12)
 	var box=VBoxContainer.new();box.add_theme_constant_override("separation",8);margin.add_child(box)
 	ui.label_(box,title,true)
 	body=ui.scroller(box);body.get_parent().name="ModalDetailScroll";body.get_parent().custom_minimum_size.y=80
+	if title==STATUS_TITLE:body.get_parent().horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
 	actions=ui.row(box);actions.name="ModalActions"
 	builder.call(body,actions)
 	if actions.get_child_count()==0:ui.local_button(actions,"閉じる",close)
@@ -38,20 +40,20 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 	if actions.get_child_count()>0:actions.get_child(0).grab_focus()
 	return window
 func layout_key() -> String:
-	return "status" if window.title=="ステータス" else "dialog:"+window.title.get_slice(" / ",0)
+	return "status" if window.title==STATUS_TITLE else "dialog:"+window.title.get_slice(" / ",0)
 func remember():
 	if is_instance_valid(window):keep_visible();ui.preferences.store_rect(layout_key(),Rect2(Vector2(window.position),Vector2(window.size)))
 func keep_visible():
 	if not is_instance_valid(window):return
 	var available=ui.size
-	if window.title=="ステータス":
+	if window.title==STATUS_TITLE:
 		var faces=ui.find_child("PartyFaceBar",true,false)
 		if faces!=null and faces.is_visible_in_tree():available.y=minf(available.y,faces.global_position.y-8)
 	ui.preferences.keep_visible(window,available)
 func resize():
 	if not is_instance_valid(window):return
-	var status=window.title=="ステータス"
-	var extent=Vector2(1040,780) if status else Vector2(840,620)
+	var status=window.title==STATUS_TITLE
+	var extent=Vector2(2080,780) if status else Vector2(840,620)
 	var rect=ui.preferences.rect_for(layout_key(),Rect2((ui.size-extent)/2,extent),ui.size,Vector2(420,300))
 	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position.max(Vector2(0,36)))
 func escape():

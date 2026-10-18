@@ -32,7 +32,7 @@ func run():
 	await game.pages.shop_view.select_product("staff-wood");await settle()
 	var selected=game.pages.gear_id;var shop_slot=game.shop_slot
 	await open_inventory("mage")
-	check("INV-UI-01",game.dialog.window.title=="ステータス" and button("InventoryOwner").text.contains(game.member_name("mage")),"status names its inventory owner")
+	check("INV-UI-01",game.dialog.window.title=="キャラクターステータス" and button("InventoryOwner").text.contains(game.member_name("mage")),"status names its inventory owner")
 	check("INV-UI-02",game.shop_uid=="guard" and game.pages.gear_id==selected and game.shop_slot==shop_slot,"face/status opening preserves purchase recipient, product and equipment slot")
 	check("INV-UI-03",button("InventoryItem_potion")==null,"another character's and planned items are absent")
 	await open_inventory("guard");inventory().pick("potion");inventory().choose("use")

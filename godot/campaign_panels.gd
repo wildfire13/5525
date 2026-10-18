@@ -233,10 +233,24 @@ func inn(parent):
 	if not q.get("available",false):l(parent,"宿屋はアスタリスで利用できます。");return
 	l(parent,"パーティ全員で%dG（仮料金）" % q.price)
 	l(parent,"編成中の全員のHP・MPを上限まで回復します。戦闘不能の仲間も回復します。")
-	muted(parent,"控えの仲間は対象外。時間は経過しません（試作仕様）。");party_status(card(parent))
+	muted(parent,"控えの仲間は対象外。時間は経過しません（試作仕様）。");inn_cards(parent)
 	if not q.get("needsRecovery",false):l(parent,"全員が全回復しています。料金はかかりません。")
 	elif not q.get("affordable",false):l(parent,"所持金が足りません。宿泊には%dG必要です。" % q.price)
-	b(parent,"%dGで宿泊する / 確認" % q.price,stay_inn,not q.get("needsRecovery",false) or not q.get("affordable",false))
+	var actions=row(parent);actions.alignment=BoxContainer.ALIGNMENT_CENTER
+	ui.green_button(b(actions,"%dGで宿泊する / 確認" % q.price,stay_inn,not q.get("needsRecovery",false) or not q.get("affordable",false))).name="InnStay"
+func inn_cards(parent):
+	var scroll=ScrollContainer.new();scroll.name="InnPartyScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;parent.add_child(scroll)
+	var members=row(scroll);members.name="InnParty";members.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	for id in c().get("selected",[]):
+		var matches=roster().filter(func(u):return u.id==id)
+		if matches.is_empty():continue
+		var u=matches[0];var member=card(members);member.name="InnMember_"+str(id)
+		member.get_parent().custom_minimum_size.x=180;member.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		var face=ui.portrait(member,u,false,64);face.name="InnPortrait_"+str(id);face.custom_minimum_size.y=160;face.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		var name_label=l(member,u.name);name_label.name="InnName_"+str(id);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;ui.short_name(name_label,str(u.name))
+		var hp=ui.icons.line(ui,member,"hp","HP %d/%d" % [u.hp,u.max]);hp.name="InnHP_"+str(id);ui.emphasize_low_hp(hp,u)
+		ui.icons.line(ui,member,"mp","MP %d/%d" % [u.mp,u.maxMp]).name="InnMP_"+str(id)
+		if u.hp<=0:l(member,"戦闘不能")
 func stay_inn():
 	var q=c().get("inn",{})
 	ui.confirm("%dGを支払い、編成中の全員のHP・MPを全回復しますか？\n戦闘不能も回復。控えは対象外、時間は経過しません。" % q.get("price",30),ui.act.bind("inn",[]))

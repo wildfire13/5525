@@ -353,7 +353,8 @@ func render():
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	resource_header.visible=not battle and not (phase=="town" and page=="party")
 	actor_face.visible=false
-	town_back.visible=not battle and page!="hub" and phase=="town"
+	var lower_return=phase=="town" and (page=="inn" or page=="party" and c.get("guildAvailable",false))
+	town_back.visible=not battle and page!="hub" and phase=="town" and not lower_return
 	town_back.text="アスタリスへ戻る" if page=="party" and c.get("guildAvailable",false) else "拠点へ"
 	top.custom_minimum_size.y=56 if battle and ui_size_mode=="standard" else 44
 	footer.visible=not battle and page not in ["shop","party"]
@@ -387,6 +388,9 @@ func render():
 				_:render_town(body)
 		elif phase=="camp" and page=="items":render_items(body)
 		else:render_journey(body)
+		if lower_return:
+			var return_row=row(content);return_row.name="TownReturnRow";return_row.alignment=BoxContainer.ALIGNMENT_END
+			var back=green_button(button(return_row,"広場へ移動",navigate.bind("hub"),pages.guild_view.busy() if page=="party" else false));back.name="GuildReturn" if page=="party" else "InnReturn"
 		pages.party_view.face_bar(content)
 	pages.party_view.refresh_modal()
 	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else ("処理中…" if locked or preview_pending or pages.quote_pending else "演出中…" if presenting else focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消"))
@@ -640,6 +644,11 @@ func can_commit() -> bool:
 	return command=="guard" or (pending!=null and preview_ready and not preview.is_empty())
 func local_button(parent: Node,text: String,callback: Callable) -> Button:
 	var control=button(parent,text,callback);control.set_meta("read_only",true);control.disabled=false;return control
+func green_button(control: Button) -> Button:
+	control.custom_minimum_size.y=44
+	for state_ in ["normal","hover","pressed"]:
+		var style=control.get_theme_stylebox(state_).duplicate();style.bg_color=Color("#2f7652") if state_=="hover" else Color("#236044");control.add_theme_stylebox_override(state_,style)
+	return control
 func primary(control: Button) -> Button:
 	control.custom_minimum_size.y=44;control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	for state_ in ["normal","hover","pressed"]:
@@ -677,7 +686,7 @@ func prefetch_shop_rows():
 func _input(event):
 	# Status is nonexclusive only for portrait switching; root shortcuts must
 	# never activate a background button after an outside click moves focus.
-	if event is InputEventKey and is_instance_valid(dialog.window) and dialog.window.title=="ステータス" and event.keycode not in [KEY_ESCAPE,KEY_F11]:
+	if event is InputEventKey and is_instance_valid(dialog.window) and dialog.window.title==dialog.STATUS_TITLE and event.keycode not in [KEY_ESCAPE,KEY_F11]:
 		dialog.window.grab_focus();get_viewport().set_input_as_handled();return
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed:
 		if pages!=null and pages.party_view.outside_press(event.position):

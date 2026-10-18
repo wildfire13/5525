@@ -128,7 +128,7 @@ func run():
 	await tap("ProductBuy_undertow-sword")
 	check(game.dialog.window.title=="購入の確認" and node("PurchaseAgree")!=null and node("PurchaseRecipient_guard")==null,"G10 shop payment still precedes recipient")
 	await tap("PurchaseDecline");await tap("PartyFace_archer")
-	check(game.dialog.window.title=="ステータス" and game.pages.party_view.detail_uid=="archer","G10 lower face still opens existing status")
+	check(game.dialog.window.title=="キャラクターステータス" and game.pages.party_view.detail_uid=="archer","G10 lower face still opens existing status")
 	game.dialog.close(false);game.engine=actual;recorder.queue_free();game.closing=true;await game.audio.finish_audio();actual.close_engine();game.queue_free();await frames()
 	var f=FileAccess.open(OS.get_environment("INVENTORY_QA_ROOT").path_join("guild-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
 	quit(0 if checks.all(func(row):return row.passed) else 1)
