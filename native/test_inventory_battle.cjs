@@ -3,9 +3,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),C=require('./ca
 const clone=x=>JSON.parse(JSON.stringify(x));let passed=0;const test=(name,fn)=>{fn();passed++;console.log('PASS '+name);};
 const transfer=(s,id,target,n=1)=>C.inventoryAction(s,'guard',id,'transfer',target,n,null,C.inventoryToken(s));
 function battle(){
-  const s=C.create();assert(transfer(s,'potion','archer'));assert(transfer(s,'ether','porter'));assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));return s;
+  const s=C.create();s.characters.archer.weapon='fist-1';assert(transfer(s,'potion','archer'));assert(transfer(s,'ether','porter'));assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));return s;
 }
-function choose(s,id){for(const u of s.battle.units)u.next=100000;const a=s.battle.units.find(u=>u.id===id);a.next=1;s.battle.actor=id;return a;}
+function choose(s,id){for(const u of s.battle.units)u.next=100000;const a=s.battle.units.find(u=>u.id===id);a.next=1;s.battle.actor=id;if(id==='archer'){const g=s.battle.units.find(u=>u.id==='guard');a.pos=23;g.pos=24;}return a;}
 function okay(s){assert.equal(C.validate(s).ok,true,C.validate(s).error);assert.deepEqual(C.deserialize(C.serialize(s)),clone(s));}
 test('only actor-owned stock makes item legal; another owner and reserves cannot provide it',()=>{
   const s=battle(),b=s.battle,mage=choose(s,'mage'),guard=b.units.find(u=>u.id==='guard');guard.hp-=20;

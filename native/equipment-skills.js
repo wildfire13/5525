@@ -1,6 +1,10 @@
 'use strict';
 // Source: restored proposal, 2026-10-02 11:11 UTC. All numbers are playtest values.
 const definitions = {
+  itemUse:{name:'アイテム使用',classification:'active',cost:0,target:'item',description:'本人の所持品を1個使用。Lv1は自身のみ、Lv2は自身と隣接する味方、Lv3は距離制限なし。MP0。'},
+  legSweep:{name:'足払い',classification:'active',cost:1,reach:1.5,target:'self',description:'周囲8マスの敵それぞれに足払い判定。Lv1:50%、Lv2:75%、Lv3:100%。ダメージ0、成功時は次の1手番をスキップ（重複なし）。MP1。'},
+  grapple:{name:'引き寄せ',classification:'active',cost:1,reach:2,target:'unit',description:'右2マス先の敵味方を1マス引き寄せる。途中が占有されている場合もMP1と行動を消費するが移動しない。'},
+  poleVault:{name:'ポールヴォールト',classification:'active',cost:1,reach:2,target:'cell',description:'上下左右2マス先へ跳躍。途中の空き・人物を問わず、盤内の移動可能な空きマスに着地。MP1。'},
   swift:{name:'俊足',classification:'passive',description:'通常移動力+1。先駆けと加算（暫定）：通常3、初回4。侵入制限・行動数は変更しない。'},
   retreatSlash:{name:'退き斬り',classification:'active',cost:1,reach:1,target:'unit',description:'射程1の敵へ70%攻撃後、自陣側へ1マス後退。退路が塞がる／盤外なら使用不可。MP1。'},
   knockback:{name:'吹き飛ばし',classification:'active',cost:1,reach:1,target:'unit',description:'射程1の敵へ通常攻撃。対象の先が空いていれば1マス押す。盤外・占有時は攻撃のみ。MP1。'},

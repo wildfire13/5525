@@ -60,7 +60,7 @@ function view(ok=true, error=null) {
   if(a)for(const kind of ['attack','skill',...(campaign?['return']:[])])ranges[kind]=Array.from({length:50},(_,p)=>p).filter(p=>{const u=state.units.find(u=>u.hp>0&&u.pos===p),support=kind==='skill'&&['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(B.activeSkill(a));return B.inRange(a,u?.side||(support?'ally':'enemy'),p,kind,state);});
   const deployment=state.deploying?Object.fromEntries(state.units.filter(u=>u.side==='ally'&&u.hp>0).map(u=>[u.id,{ranges:Array.from({length:50},(_,p)=>p).filter(p=>B.inRange(u,p%10<5?'ally':'enemy',p,'attack',state)),ambush:state.units.filter(t=>t.hp>0&&B.ambush(state,u,t)).map(t=>t.pos)}])):{};
   const stampAreas=a&&B.activeSkill(a)==='stamp'?Object.fromEntries(choices.skill.map(p=>[p,B.stampCells(a,p)])):{};
-  return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillReach:a?B.attackReach(a,'skill'):0,normalAttackReach:a?B.attackReach(a,'attack'):0,skillset:a?B.activeSkills(a).map(id=>({id,name:B.skillName({...a,selectedSkill:id}),sources:(a.skillSources||[]).filter(x=>x.id===id).map(x=>({...x,itemName:campaignEngine().gear.find(g=>g.id===x.itemId)?.name||x.itemId}))})):[],skillInfo:a?B.skillInfo(a):null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),formationSlots:B.formationSlots?B.formationSlots(state):B.slots,enemyInfo:state.units.filter(u=>u.side==='enemy').map(u=>require('./intent-info.cjs').describe(B,state,u)),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
+  return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillReach:a?B.attackReach(a,'skill'):0,normalAttackReach:a?B.attackReach(a,'attack'):0,skillset:a?B.activeSkills(a).map(id=>({id,name:B.skillName({...a,selectedSkill:id}),sources:(a.skillSources||[]).filter(x=>x.id===id).map(x=>({...x,itemName:x.id==='itemUse'&&x.itemId.startsWith('empty-')?(a.job==='porter'?'拳＋2':'拳'):campaignEngine().gear.find(g=>g.id===x.itemId)?.name||x.itemId}))})):[],skillInfo:a?B.skillInfo(a):null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),formationSlots:B.formationSlots?B.formationSlots(state):B.slots,enemyInfo:state.units.filter(u=>u.side==='enemy').map(u=>require('./intent-info.cjs').describe(B,state,u)),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
 }
 function preview(kind,target,previewKind='attack') {
   if(!state||!B.legal(state,kind,target))return {ok:false,error:'無効なプレビュー'};
@@ -76,16 +76,20 @@ function preview(kind,target,previewKind='attack') {
     const jump=B.ambush(state,a,state.units.find(u=>u.id===target));
     destination=jump.destination;path=jump.path;va.pos=destination;
   } else if(kind==='skill'&&B.activeSkill(a)==='stamp')cells=B.stampCells(a,target);
+  else if(kind==='skill'&&B.activeSkill(a)==='legSweep')cells=B.sweepCells(a);
+  else if(kind==='skill'&&B.activeSkill(a)==='poleVault'){destination=target;path=[target];cells=[target];va.pos=target;}
   else if(kind==='return'){destination=target;va.pos=target;cells=[target];}
   else if(kind==='skill'&&B.equipmentSkills?.[B.activeSkill(a)]){
     const id=B.activeSkill(a),selected=(Array.isArray(target)?target:[target]).map(id=>v.units.find(u=>u.id===id));
     cells=id==='healingCross'?B.crossCells(selected[0].pos):selected.map(u=>u.pos);
     if(id==='retreatSlash'){destination=B.retreatCell(state,a);va.pos=destination;}
+    if(id==='grapple'){const p=B.grappleCell(a,selected[0]);if(!v.units.some(u=>u.hp>0&&u.pos===p))selected[0].pos=p;}
   }
   const inspectKind=kind==='move'?previewKind:kind==='skill'&&B.activeSkill(a)==='scout'?'attack':kind;
   const multiTargets=B.skillTargets&&inspectKind==='skill'?new Set(B.skillTargets(v,va).flat()):null;
-  const supportSkill=['healingCross','defenseLine','manaGift'].includes(B.activeSkill(va));
-  const targets=v.units.filter(u=>cells.length?u.hp>0&&(supportSkill?u.side===a.side:u.side!==a.side)&&cells.includes(u.pos):inspectKind==='skill'&&B.activeSkill(va)==='stamp'?u.hp>0&&u.side!==a.side&&Array.from({length:50},(_,p)=>p).some(p=>B.legalFor(v,va,'skill',p)&&B.stampCells(va,p).includes(u.pos)):multiTargets?multiTargets.has(u.id):B.legalFor(v,va,inspectKind,u.id)).map(u=>u.name);
+  const supportSkill=['healingCross','defenseLine','manaGift','grapple'].includes(B.activeSkill(va));
+  let targets=v.units.filter(u=>cells.length?u.hp>0&&(supportSkill?u.side===a.side:u.side!==a.side)&&cells.includes(u.pos):inspectKind==='skill'&&B.activeSkill(va)==='stamp'?u.hp>0&&u.side!==a.side&&Array.from({length:50},(_,p)=>p).some(p=>B.legalFor(v,va,'skill',p)&&B.stampCells(va,p).includes(u.pos)):multiTargets?multiTargets.has(u.id):B.legalFor(v,va,inspectKind,u.id)).map(u=>u.name);
+  if(kind==='skill'&&B.activeSkill(a)==='grapple')targets=[state.units.find(u=>u.id===target).name];
   const ranges=Array.from({length:50},(_,p)=>p).filter(p=>{
     const u=v.units.find(u=>u.hp>0&&u.pos===p),support=inspectKind==='skill'&&['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(B.activeSkill(va));
     return cells.length?cells.includes(p):B.inRange(va,u?.side||(support?'ally':'enemy'),p,inspectKind,v);
@@ -220,13 +224,14 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       const a=state?.units.find(u=>u.id===state.actor),u=state?.units.find(u=>u.id===r.uid);
       let target=u?.id;
       const skill=a&&B.activeSkill(a),shape=a&&B.equipmentSkills?.[skill]?.target;
-      if(r.kind==='skill'&&skill==='stamp')target=u?.pos;
+      if(r.kind==='skill'&&(skill==='stamp'||shape==='cell'))target=u?.pos;
+      if(r.kind==='skill'&&skill==='legSweep'&&(u?.id===a.id||B.sweepTargets(state,a).some(t=>t.id===u?.id)))target=a.id;
       if(r.kind==='skill'&&['pair','upToTwo'].includes(shape))target=[...new Set([...(Array.isArray(r.chosen)?r.chosen:[]),u?.id].filter(Boolean))];
       const legal=!!a&&a.side==='ally'&&!!u&&['attack','skill','item','ether'].includes(r.kind)&&B.legal(state,r.kind,target);
       const support=r.kind!=='attack'&&(r.kind!=='skill'||['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(skill));
       const recovery=r.kind==='item'||r.kind==='ether'||r.kind==='skill'&&['mage','healingCross','manaGift'].includes(skill);
       const fullHealth=!!a&&a===u&&a.side==='ally'&&a.hp>0&&a.hp===a.max&&a.mp>0&&!state.deploying&&!state.result&&r.kind==='skill'&&skill==='mage';
-      response={ok:true,hover:{status:legal||fullHealth?'ready':shape==='pair'&&target?.length<2?'needs_targets':'unavailable',fullHealth,accuracy:legal&&(!support||recovery)||fullHealth?100:null,...(legal?preview(r.kind,target).preview:{})}};
+      response={ok:true,hover:{status:legal||fullHealth?'ready':shape==='pair'&&target?.length<2?'needs_targets':'unavailable',fullHealth,accuracy:legal&&r.kind==='skill'&&skill==='legSweep'?B.sweepChance(a)*100:legal&&(!support||recovery)||fullHealth?100:null,...(legal?preview(r.kind,target).preview:{})}};
     }
     else if(r.op==='preview')response=preview(r.kind,r.target,r.previewKind);
     else if(r.op==='godot_io')response=require('./godot-io.cjs')(r);

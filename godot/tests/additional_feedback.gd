@@ -40,10 +40,9 @@ func run():
 	await game.act("depart",[q.to]);var arrival=await saved()
 	arrival.state.phase="arrival";arrival.state.journey.phase="delivery";arrival.state.journey.stage=2;arrival.state.journey.hours=4
 	arrival.state.journey.party=game.roster().filter(func(u):return game.campaign().selected.has(u.id)).duplicate(true)
-	await game.update({"op":"campaign_load","data":arrival});await game.act("arrive");await settle()
+	await game.update({"op":"campaign_load","data":arrival});await settle()
 	check(game.page=="hub" and game.campaign().activeQuest!=null and node("TownHub")!=null,"arrival opens hub without auto-delivering cargo")
-	await click("HubFacility_board")
-	check(node("QuestComplete")!=null and not node("QuestComplete").disabled,"explicit delivery remains available on board")
+	check(node("HubDeliverCargo")!=null and not node("HubDeliverCargo").disabled,"explicit delivery remains available at destination hub")
 	var fixtures=battle_fixture();await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
 	await game.choose_command("item");await game.on_cell(int(game.hud.acting().pos));await settle()
 	var names=["TargetSummary","PredictionSummary","ActionCost","ActionAvailability"]

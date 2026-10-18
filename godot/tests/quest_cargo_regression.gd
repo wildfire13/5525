@@ -15,7 +15,7 @@ func arrive_fixture(to):
 	fixture.state.journey.party=game.roster().filter(func(u):return game.campaign().selected.has(u.id)).duplicate(true)
 	var reply=await game.update({"op":"campaign_load","data":fixture});await settle()
 	check(reply.ok,"controlled arrival fixture accepted")
-	await game.act("arrive");await settle();game.navigate("board");await settle()
+	game.navigate("hub");await settle()
 func contains(text):return game.find_children("*","Label",true,false).any(func(n):return n.text.contains(text))
 func run():
 	var qa=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/").to_lower()
@@ -55,7 +55,7 @@ func run():
 	var cash=game.campaign().gold
 	await arrive_fixture("east")
 	check(game.campaign().phase=="town" and game.campaign().activeQuest is Dictionary and game.campaign().gold==cash,"arrival with reserve cargo enters town without reward")
-	check(game.find_child("QuestComplete",true,false).disabled and contains("依頼は未完了"),"missing cargo completion disabled with reason")
+	check(game.find_child("HubDeliverCargo",true,false).disabled and contains("依頼は未完了"),"missing cargo completion disabled with reason")
 	game.navigate("map");await settle()
 	check(not game.find_child("TownMap",true,false).buttons.astaris.disabled,"ordinary road back to city available")
 	await arrive_fixture("astaris");game.navigate("party");await settle()
@@ -63,8 +63,8 @@ func run():
 	cash=game.campaign().gold
 	await arrive_fixture("east")
 	check(game.campaign().gold==cash and game.campaign().characters["porter-2"].inventory.get(cargo)==1,"arrival with cargo does not deliver automatically")
-	check(not game.find_child("QuestComplete",true,false).disabled,"delivery button enabled with actual cargo")
-	await tap("QuestComplete")
+	check(not game.find_child("HubDeliverCargo",true,false).disabled,"delivery button enabled with actual cargo")
+	await tap("HubDeliverCargo")
 	check(game.campaign().activeQuest==null and not game.campaign().characters["porter-2"].inventory.has(cargo) and game.campaign().history.any(func(line):return line.contains("「荷物」を渡しました")),"completion button hands over cargo exactly once")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame

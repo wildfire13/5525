@@ -33,7 +33,7 @@ const Battle = (() => {
       for(let i=0;i<candidates.length;i++)for(let j=i+1;j<candidates.length;j++)targets.push([candidates[i].id,candidates[j].id]);
       return targets.filter(t=>legalFor(s,a,'skill',t));
     }
-    const targets=id==='stamp'?Array.from({length:50},(_,p)=>p):s.units.map(u=>u.id);
+    const targets=id==='stamp'||d?.target==='cell'?Array.from({length:50},(_,p)=>p):s.units.map(u=>u.id);
     return targets.filter(t=>legalFor(s,a,'skill',t));
   }
   // Weapon ATK excludes template ATK and growth; growth is added once after filtering.
@@ -81,8 +81,27 @@ const Battle = (() => {
     // Higher equipment levels include lower-level directions; never add levels.
     return Math.max(1,...(a.skillSources||[]).filter(source=>source.id===id).map(source=>source.level??1));
   }
+  function itemUseLevel(a) {
+    // Standalone legacy battles keep their original rules; campaign units supply sources.
+    return a.side!=='ally'||a.skillSources===undefined?3:activeSkills(a).includes('itemUse')?skillLevel(a,'itemUse'):0;
+  }
+  function itemInRange(a,b) {
+    const level=itemUseLevel(a);
+    return b.side===a.side&&(level>=3||level===2&&range(a,b)<=1||level===1&&a.id===b.id);
+  }
+  function grappleCell(a,b) {
+    return b.hp>0&&y(b.pos)===y(a.pos)&&x(b.pos)-x(a.pos)===2?b.pos-1:null;
+  }
+  function sweepCells(a) {
+    return Array.from({length:50},(_,p)=>p).filter(p=>p!==a.pos&&Math.abs(x(p)-x(a.pos))<=1&&Math.abs(y(p)-y(a.pos))<=1);
+  }
+  const sweepChance=a=>[.5,.75,1][Math.min(3,skillLevel(a,'legSweep'))-1];
+  const sweepTargets=(s,a)=>alive(s).filter(u=>u.side!==a.side&&sweepCells(a).includes(u.pos));
+  function vaultCell(s,a,p) {
+    return canEnter(a,p)&&range(a,{pos:p})===2&&(x(a.pos)===x(p)||y(a.pos)===y(p))&&freeCell(s,p);
+  }
   function skillInfo(a) {
-    if(activeSkill(a)!=='scout')return equipmentSkills[activeSkill(a)]||null;
+    if(activeSkill(a)!=='scout'){const d=equipmentSkills[activeSkill(a)];return d?{...d,level:skillLevel(a)}:null;}
     const level=skillLevel(a);
     return {name:'奇襲',level,cost:1,target:'unit',description:'奇襲Lv'+level+': '+(level===1?'前方のみ（味方は右、敵は左）':level===2?'同じ横列の左右':'上下左右の直線')+'。遮るキャラなしで手前に着地し、距離1の通常攻撃相当。MP1。'};
   }
@@ -149,6 +168,10 @@ const Battle = (() => {
   function inRange(a,side,pos,kind,s) {
     if(kind==='return')return hasEffect(a,'returnHome')&&!a.returnUsed&&pos!==a.pos&&boardOf(pos)===a.side&&(!s||freeCell(s,pos));
     if(kind==='skill'&&activeSkill(a)==='stamp')return stampCells(a,pos).length>0;
+    if(kind==='skill'&&activeSkill(a)==='grapple')return grappleCell(a,{side,pos,hp:1})!==null;
+    if(kind==='skill'&&activeSkill(a)==='itemUse')return false;
+    if(kind==='skill'&&activeSkill(a)==='legSweep')return sweepCells(a).includes(pos);
+    if(kind==='skill'&&activeSkill(a)==='poleVault')return !!s&&vaultCell(s,a,pos);
     if(a.job==='porter')return kind==='skill'&&side===a.side&&pos===a.pos;
     if(kind==='skill'&&activeSkill(a)==='scout')return !!(s&&ambush(s,a,{side,pos,hp:1}));
     const support=kind==='skill'&&['guard','mage','healingCross','defenseLine','manaGift'].includes(activeSkill(a));
@@ -161,7 +184,9 @@ const Battle = (() => {
     if(kind==='move')return target!==a.pos&&(paths(s,a,moveReach(a)).has(target)||!!swapTarget(s,a,target));
     if(kind==='return')return Number.isInteger(target)&&target>=0&&target<50&&inRange(a,a.side,target,kind,s);
     if(kind==='skill'&&equipmentSkills[activeSkill(a)]){
-      const id=activeSkill(a),d=equipmentSkills[id];if(a.mp<d.cost)return false;
+      const id=activeSkill(a),d=equipmentSkills[id];if(a.mp<d.cost||id==='itemUse')return false;
+      if(id==='legSweep')return target===a.id;
+      if(id==='poleVault')return vaultCell(s,a,target);
       if(d.target==='pair'||d.target==='upToTwo'){
         return Array.isArray(target)&&target.length>0&&target.length<=2&&(d.target!=='pair'||target.length===2)&&new Set(target).size===target.length&&target.every(t=>{const b=alive(s).find(u=>u.id===t);return b&&b.id!==a.id&&inRange(a,b.side,b.pos,kind,s);});
       }
@@ -173,8 +198,8 @@ const Battle = (() => {
     }
     if(kind==='skill'&&activeSkill(a)==='stamp')return a.mp>0&&stampCells(a,target).length>0;
     const b=alive(s).find(u=>u.id===target);if(!b)return false;
-    if(kind==='ether')return a.side==='ally'&&a.job==='porter'&&itemCount(s,a,'ether')>0&&b.side===a.side&&b.mp<b.maxMp;
-    if(kind==='item')return itemCount(s,a,'potion')>0&&b.side===a.side&&b.hp<b.max;
+    if(kind==='ether')return a.side==='ally'&&a.job==='porter'&&itemCount(s,a,'ether')>0&&itemInRange(a,b)&&b.mp<b.maxMp;
+    if(kind==='item')return itemCount(s,a,'potion')>0&&itemInRange(a,b)&&b.hp<b.max;
     if(kind==='attack')return a.job!=='porter'&&b.side!==a.side&&range(a,b)<=attackReach(a,'attack');
     if(kind!=='skill'||a.mp<=0)return false;
     if(a.job==='porter')return b.id===a.id&&formation(s,a.side);
@@ -201,12 +226,22 @@ const Battle = (() => {
     if(recipient.hp===0&&recipient.covers)recipient.covers=[];
     log(s,`${protector?`${recipient.name}が${target.name}をかばう：`:""}${recipient.name}に${hit}ダメージ${recipient.hp===0?"・戦闘不能":""}`);
   }
-  function apply(s,a,kind,target,landing,fixedCells) {
+  function apply(s,a,kind,target,landing,fixedCells,random=Math.random) {
     Presentation.mark(s,a,kind,target,{activeSkill,skillName});
     if(kind==='return'){a.pos=target;a.returnUsed=true;emit(s,a,'returnHome',{target});log(s,`${a.name}の帰還 → (${x(target)+1},${y(target)+1})`);return;}
     if(kind==='skill'&&equipmentSkills[activeSkill(a)]){
       const id=activeSkill(a),b=s.units.find(u=>u.id===target),d=equipmentSkills[id];
       a.mp-=d.cost;emit(s,a,id,{target});log(s,`${a.name}の${d.name}`);
+      if(id==='legSweep'){
+        for(const u of sweepTargets(s,a)){
+          const success=random()<sweepChance(a);
+          if(success)u.skipNextTurn=true; // Repeated successes never add skipped turns.
+          log(s,`${u.name}：足払い${success?'成功（次の1手番をスキップ）':'失敗'}`);
+        }
+        return;
+      }
+      if(id==='poleVault'){a.pos=target;log(s,`${a.name}が${x(target)+1},${y(target)+1}へ跳躍。`);return;}
+      if(id==='grapple'){const p=grappleCell(a,b);if(freeCell(s,p)){b.pos=p;log(s,`${b.name}を1マス引き寄せた。`);}else log(s,'引き寄せ先が占有されているため移動なし。');return;}
       if(id==='manaGift'){const amount=Math.min(2,a.mp,b.maxMp-b.mp);a.mp-=amount;b.mp+=amount;log(s,`${a.name}から${b.name}へMP${amount}移譲。`);return;}
       if(id==='defenseLine'){a.covers=[...target];a.cover=null;log(s,`次の本人の番まで ${target.map(id=>s.units.find(u=>u.id===id).name).join('・')} をかばう。`);return;}
       if(id==='healingCross'){for(const u of alive(s).filter(u=>u.side===a.side&&crossCells(b.pos).includes(u.pos))){const n=Math.min(30,u.max-u.hp);u.hp+=n;log(s,`${u.name}のHP＋${n}`);}return;}
@@ -245,13 +280,14 @@ const Battle = (() => {
   // Run the exact action on a detached copy; no turn advance or live events.
   function effectPreview(s,a,kind,target) {
     if(!legalFor(s,a,kind,target))return [];
+    if(kind==='skill'&&activeSkill(a)==='legSweep')return [{id:a.id,mp:-1},...sweepTargets(s,a).map(u=>({id:u.id,skipChance:sweepChance(a),alreadySkipping:!!u.skipNextTurn}))];
     const copy=JSON.parse(JSON.stringify(s)),actor=copy.units.find(u=>u.id===a.id);
     const landing=kind==='skill'&&activeSkill(actor)==='scout'?ambush(copy,actor,copy.units.find(u=>u.id===target))?.destination:undefined;
     apply(copy,actor,kind,target,landing);
-    return copy.units.map(u=>{const old=s.units.find(v=>v.id===u.id);return {id:u.id,hp:u.hp-old.hp,mp:u.mp-old.mp,guard:u.guard&&!old.guard,boost:u.boost&&!old.boost,cover:u.cover!==old.cover?u.cover:null,covers:JSON.stringify(u.covers)!==JSON.stringify(old.covers)?u.covers:[]};}).filter(e=>e.hp||e.mp||e.guard||e.boost||e.cover||e.covers?.length);
+    return copy.units.map(u=>{const old=s.units.find(v=>v.id===u.id);return {id:u.id,position:u.pos!==old.pos?u.pos:null,hp:u.hp-old.hp,mp:u.mp-old.mp,guard:u.guard&&!old.guard,boost:u.boost&&!old.boost,cover:u.cover!==old.cover?u.cover:null,covers:JSON.stringify(u.covers)!==JSON.stringify(old.covers)?u.covers:[]};}).filter(e=>e.position!==null||e.hp||e.mp||e.guard||e.boost||e.cover||e.covers?.length);
   }
   function damagePreview(s,a,kind,target) {
-    if(!['attack','skill'].includes(kind)||!legalFor(s,a,kind,target))return [];
+    if(!['attack','skill'].includes(kind)||!legalFor(s,a,kind,target)||kind==='skill'&&activeSkill(a)==='legSweep')return [];
     const copy=JSON.parse(JSON.stringify(s)),actor=copy.units.find(u=>u.id===a.id);
     copy.damagePreviewEvents=[];
     const landing=kind==='skill'&&activeSkill(actor)==='scout'?ambush(copy,actor,copy.units.find(u=>u.id===target))?.destination:undefined;
@@ -315,7 +351,21 @@ const Battle = (() => {
       }
     }
     return !!s.result;}
-  function advance(s){while(!check(s)){const a=alive(s).sort(order)[0];a.guard=false;a.cover=null;if(a.covers)a.covers=[];a.boost=false;s.actor=a.id;if(a.side==='ally'||Presentation.isStepping(s))return;enemyAction(s,a);a.next+=100/a.agi;if(check(s))break;plan(s,a);}s.actor=null;}
+  function advance(s){
+    while(!check(s)){
+      const a=alive(s).sort(order)[0];a.guard=false;a.cover=null;if(a.covers)a.covers=[];a.boost=false;s.actor=a.id;
+      if(a.skipNextTurn){
+        Presentation.mark(s,a,'skip',null,{activeSkill,skillName});
+        delete a.skipNextTurn;a.next+=100/a.agi;
+        log(s,`${a.name}：足払いで手番をスキップ。`);
+        if(a.side==='enemy')plan(s,a);
+        continue;
+      }
+      if(a.side==='ally'||Presentation.isStepping(s))return;
+      enemyAction(s,a);a.next+=100/a.agi;if(check(s))break;plan(s,a);
+    }
+    s.actor=null;
+  }
   function stepEnemy(s){const a=s.units.find(u=>u.id===s.actor);if(!a||a.side!=='enemy'||s.result)return false;enemyAction(s,a);a.next+=100/a.agi;if(!check(s))plan(s,a);advance(s);return true;}
   function create(options={}){
     const units=[];
@@ -346,8 +396,8 @@ const Battle = (() => {
     if(new Set(units.map(u=>u.pos)).size!==units.length||units.some(u=>!Number.isInteger(u.pos)||u.pos<0||u.pos>=50||boardOf(u.pos)!==u.side))return false;
     s.deploying=false;units.filter(u=>u.side==='enemy').forEach(u=>plan(s,u));advance(s);return true;
   }
-  function act(s,kind,target){if(!legal(s,kind,target))return false;const a=s.units.find(u=>u.id===s.actor);s.recentEnemies=[];const jump=kind==='skill'&&activeSkill(a)==='scout'?ambush(s,a,s.units.find(u=>u.id===target)):null;apply(s,a,kind,target,jump?.destination);a.next+=100/a.agi;s.actions++;advance(s);return true;}
-  function queue(s){const copies=alive(s).map(u=>({...u})),result=[];for(let i=0;i<10&&copies.length;i++){copies.sort(order);result.push({id:copies[0].id,name:copies[0].name,side:copies[0].side});copies[0].next+=100/copies[0].agi;}return result;}
-  return {skillLevel,skillInfo,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
+  function act(s,kind,target,random=Math.random){if(!legal(s,kind,target))return false;const a=s.units.find(u=>u.id===s.actor);s.recentEnemies=[];const jump=kind==='skill'&&activeSkill(a)==='scout'?ambush(s,a,s.units.find(u=>u.id===target)):null;apply(s,a,kind,target,jump?.destination,undefined,random);a.next+=100/a.agi;s.actions++;advance(s);return true;}
+  function queue(s){const copies=alive(s).map(u=>({...u})),result=[];for(let i=0;i<10&&copies.length;i++){copies.sort(order);result.push({id:copies[0].id,name:copies[0].name,side:copies[0].side,...(copies[0].skipNextTurn?{skip:true}:{})});delete copies[0].skipNextTurn;copies[0].next+=100/copies[0].agi;}return result;}
+  return {sweepCells,sweepChance,sweepTargets,vaultCell,itemUseLevel,itemInRange,grappleCell,skillLevel,skillInfo,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
 })();
 if(typeof module!=='undefined')module.exports=Battle;

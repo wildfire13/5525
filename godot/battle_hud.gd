@@ -32,6 +32,9 @@ var animate_menu := false
 var menu_transition := false
 var menu_ticket := 0
 var action_menu := true
+var opening_generation := 0
+var opening_visual: Control
+var opening_tween: Tween
 var item_list := false
 var skill_list := false
 const ItemMenu=preload("res://item_menu.gd")
@@ -85,6 +88,7 @@ func state_id() -> String:
 	if ui.command=="move":return "B2" if ui.pending!=null else "B1"
 	return "B4" if ui.pending!=null or ui.command=="guard" else "B3"
 func reset_context():
+	clear_opening_visual()
 	expanded_menu="";menu_transition=false;menu_ticket+=1;clear_action_visual();shifted_action="";queue_distance=0;animation_trace.clear()
 	inspected_uid="";invalidate_hover();skill_content_open=false
 	discard_reference();item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";last_actor="";last_action_count=-1;presentation_action={};queue_at_start=[];intent_versions.clear();intent_updated.clear()
@@ -110,22 +114,20 @@ func mount():
 	resize()
 func resize():
 	if not is_instance_valid(left_panel) or middle.size.x<100:return
-	left_panel.reserved_top=76;right_panel.reserved_top=76
-	if deployment_layout:
-		var height=maxf(240,middle.size.y-240)
-		var width=minf(420,middle.size.x*.32)
-		left_panel.layout_bounds=Rect2(0,76,width,height)
-		right_panel.layout_bounds=Rect2(middle.size.x-width,76,width,height)
-	else:
-		left_panel.layout_bounds=Rect2();right_panel.layout_bounds=Rect2()
+	left_panel.viewport_bounds=true;right_panel.viewport_bounds=true
+	left_panel.reserved_top=0;right_panel.reserved_top=0
+	left_panel.z_index=10;right_panel.z_index=10
+	left_panel.layout_bounds=Rect2();right_panel.layout_bounds=Rect2()
 	left_panel.constrain();right_panel.constrain();tools.size=Vector2(middle.size.x,56)
 	deployment_bar.position=Vector2(0,middle.size.y-152);deployment_bar.size=Vector2(maxf(280,middle.size.x-350),144)
 	deployment_actions.position=Vector2(middle.size.x-330,middle.size.y-132);deployment_actions.size=Vector2(330,124)
 	ui.battle_header.position.y=maxf(0,middle.size.y-108);ui.battle_header.size.x=middle.size.x
 func render():
+	var opening=false
 	var s=ui.state();var phase=ui.data.get("presentation");var a=acting()
 	if not (phase is Dictionary) and not ui.presenting:queue_at_start=ui.data.get("queue",[]).duplicate(true)
 	if not s.get("deploying",false) and s.get("result")==null and not ui.presenting and not phase is Dictionary and (a.get("id","")!=last_actor or int(s.get("actions",0))!=last_action_count):
+		opening=true
 		expanded_menu="";item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";inspected_uid="";range_reference=false;ui.invalidate_preview();last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0));ui.memory.request_focus("command_attack")
 	var deploying=bool(s.get("deploying",false))
 	if deploying!=deployment_layout:
@@ -143,8 +145,7 @@ func render():
 	local(tools,"戦闘の詳細",toggle_details)
 	if ui.data.get("trial") is Dictionary:
 		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.name="EndTrial";end.custom_minimum_size=Vector2(160,52)
-	else:
-		var retreat=b(tools,"撤退",func():ui.confirm("旅を中止し、受注・出発前の状態へ戻します。",ui.act.bind("retreat",[])),ui.presenting);retreat.name="Retreat";retreat.custom_minimum_size=Vector2(160,52)
+
 	tools.tooltip_text="右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小"
 	var hint=l(tools,tools.tooltip_text);hint.add_theme_font_size_override("font_size",16);hint.autowrap_mode=TextServer.AUTOWRAP_OFF;hint.clip_text=true;hint.max_lines_visible=1
 	left_panel.visible=deploying or (a.get("side")=="ally" and not s.get("deploying",false) and s.get("result")==null) or ui.engine.disconnected
@@ -170,6 +171,8 @@ func render():
 		l(target_box,"左の一覧から選択してください。")
 	else:presentation_action={};render_target()
 	update_board();ui.board.inspected_enemy="";refresh_hover();resize()
+	if is_instance_valid(opening_visual):left_panel.hide()
+	if opening:open_actor_panel()
 func open_history():
 	ui.dialog.open("戦闘履歴",func(body,actions):
 		l(body,"ログ（実結果・直近40件）",true)
@@ -189,7 +192,7 @@ func queue_entries() -> Array:
 	for index in range(queue_.size()):
 		if presenting and index==0 and queue_[index].id==acting().get("id"):continue
 		var u=unit(queue_[index].id)
-		if not u.is_empty() and u.get("hp",0)>0:entries.append({"unit":u,"label":""})
+		if not u.is_empty() and u.get("hp",0)>0:entries.append({"unit":u,"label":"次回スキップ" if queue_[index].get("skip",false) else ""})
 	return entries
 func open_order_details():
 	ui.dialog.open("順番詳細",func(body,actions):
@@ -220,7 +223,7 @@ func render_queue():
 		var panel=PanelContainer.new();panel.custom_minimum_size.x=QUEUE_CARD_WIDTH;panel.name="TurnCard_"+str(index);panel.set_meta("unit_id",u.id);panel.mouse_filter=Control.MOUSE_FILTER_IGNORE;band.add_child(panel)
 		var style=StyleBoxFlat.new();style.bg_color=Color("#344b50") if u.side=="ally" else Color("#594049");style.set_content_margin_all(2);style.set_corner_radius_all(4)
 		if index==0:style.set_border_width_all(1);style.border_color=Color("#ffe197")
-		panel.add_theme_stylebox_override("panel",style);panel.tooltip_text=str(u.name)
+		panel.add_theme_stylebox_override("panel",style);panel.tooltip_text=str(u.name)+(" / "+str(entries[index].label) if not entries[index].label.is_empty() else "")
 		var row=ui.row(panel);ui.portrait(row,u,true,32 if ui.ui_size_mode=="standard" else 24)
 		var label=l(row,("● " if index==0 else "")+str(u.name));label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size=Vector2(132,24);label.clip_text=true;label.max_lines_visible=1;label.tooltip_text=str(u.name)
 	var all_=local(line,"順番詳細",open_order_details);all_.name="BattleOrderDetails";all_.custom_minimum_size=Vector2(QUEUE_CARD_WIDTH,40);all_.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
@@ -297,6 +300,11 @@ func open_items():
 func item_count(id: String) -> int:
 	if ui.state().has("itemInventories"):return int(ui.state().itemInventories.get(acting().get("id",""),{}).get(id,0))
 	return int(ui.state().get("ethers",0)) if id=="ether" else int(ui.state().get("potions",{}).get("ally",0))
+func item_range_text() -> String:
+	var level=0
+	for source in acting().get("skillSources",[]):
+		if source.id=="itemUse":level=maxi(level,int(source.get("level",1)))
+	return ["使用スキルなし","自分のみ","自分と縦横隣接の味方","射程無限"][clampi(level,0,3)]
 func render_items():
 	var list=menu_content(bottom_commands,"BattleItemList")
 	for item in ItemMenu.definitions(ui.campaign()):
@@ -304,11 +312,12 @@ func render_items():
 		if kind.is_empty():continue
 		var count=item_count(str(item.id))
 		var reason=""
-		if item.get("battleRole","")=="porter" and acting().get("job")!="porter":reason="ポーター専用"
+		if not acting().get("activeSkills",["itemUse"]).has("itemUse"):reason="アイテム使用スキルなし"
+		elif item.get("battleRole","")=="porter" and acting().get("job")!="porter":reason="ポーター専用"
 		elif count<=0:reason="在庫なし"
 		elif ui.data.get("choices",{}).get(kind,[]).is_empty():reason="回復できる生存味方なし"
 		var control=b(list,"%s / %d個" % [item.name,count],ui.choose_command.bind(kind),not reason.is_empty())
-		control.tooltip_text=ItemMenu.effect(item)+" / 射程無限 / 1個・1行動"+(" / "+reason if not reason.is_empty() else "")
+		control.tooltip_text=ItemMenu.effect(item)+" / "+item_range_text()+" / 1個・1行動"+(" / "+reason if not reason.is_empty() else "")
 		control.name="BattleItem_"+str(item.id);ui.icons.apply(control,str(item.id))
 
 func skill_unavailable_reason() -> String:
@@ -370,6 +379,7 @@ func render_prediction(main,facts):
 	elif ui.pending is String:
 		var target=unit(ui.pending);summary=str(target.get("name",ui.pending))+" / "+coord(target.get("pos",0))+" HP%d/%d" % [target.get("hp",0),target.get("max",0)]
 	elif ui.pending is Array or not ui.chosen.is_empty():summary="選択 %d人: " % ui.chosen.size()+" / ".join(ui.chosen.map(func(id):return ui.member_name(str(id))))
+	if ui.command=="skill" and ui.data.get("skill")=="足払い":summary="対象：自分の周囲8マスの生存敵 / ダメージ0"
 	if ui.command=="skill" and ui.data.get("skill")=="陣形強化":summary="対象: 味方全員（陣形の3マス外も含む）"
 	var target=l(main,summary,true);target.name="TargetSummary";ui.short_name(target,summary)
 	var hits=ui.preview.get("damagePreview",[])
@@ -390,6 +400,8 @@ func render_prediction(main,facts):
 	if ui.command=="guard":ui.icons.line(ui,main,"defense_up","被ダメージ半減 / 次の本人の番まで")
 	if ui.preview_ready:
 		for effect in ui.preview.get("effectPreview",[]):
+			if effect.has("skipChance"):l(main,"%s：次の手番スキップ 成功率%d%%（対象ごとに判定）%s" % [target_name(effect.id),roundi(effect.skipChance*100)," / すでに次回スキップ（重複なし）" if effect.get("alreadySkipping",false) else ""])
+			if effect.get("position")!=null:l(main,target_name(effect.id)+" → "+coord(int(effect.position)))
 			if effect.get("mp",0)>0:
 				var before=int(unit(effect.id).get("mp",0));ui.icons.line(ui,main,"healing","%s MP %d → %d（＋%d）" % [target_name(effect.id),before,before+int(effect.mp),effect.mp],true)
 			if effect.get("boost",false):
@@ -399,7 +411,8 @@ func render_prediction(main,facts):
 		var info=ui.data.get("skillInfo",{});info=info if info is Dictionary else {}
 		if info.get("target")=="pair" and not ui.preview_ready:l(facts,"異なる2人が必要 / 選択 %d/2" % ui.chosen.size())
 		elif info.get("target")=="upToTwo":l(facts,"1〜2人を指定 / 選択 %d人" % ui.chosen.size())
-		if ui.data.get("skill")=="スタンプ":l(facts,"空振りでもMP1・1行動を消費")
+		if ui.data.get("skill") in ["スタンプ","足払い"]:l(facts,"空振りでもMP1・1行動を消費")
+		if ui.data.get("skill")=="引き寄せ" and ui.preview_ready and not ui.preview.get("effectPreview",[]).any(func(e):return e.get("position")!=null):l(main,"引き寄せ先が占有中：移動なし / MP1・1行動を消費")
 	if ui.preview_ready and not ui.preview.get("cells",[]).is_empty():l(facts,("影響 %dマス / 全マスは下へ" if ui.command=="skill" else "影響 %dマス / 全マスは内訳へ") % ui.preview.cells.size())
 func render_skill_breakdown(parent):
 	if ui.command=="return":
@@ -548,10 +561,10 @@ func render_result():
 func toggle_details():
 	details_open=true
 	ui.dialog.open("戦闘の詳細",func(body,actions):
-		l(body,"開始時の全行動順（演出中の実行者は上部に表示）" if ui.presenting else "全行動順",true)
-		for q in (queue_at_start if ui.presenting else ui.data.get("queue",[])):l(body,str(q.name)+" / "+("味方" if q.side=="ally" else "敵"))
-		l(body,"所持: ポーション 味方%d / 敵%d / エーテル%d（ポーター専用・射程無限）" % [ui.state().get("potions",{}).get("ally",0),ui.state().get("potions",{}).get("enemy",0),ui.state().get("ethers",0)])
-		enemy_intents(body);ui.render_unit_details(body,ui.state());formations(body)
+		formations(body)
+		for u in ui.state().get("units",[]):
+			if u.side=="enemy" and u.hp>0 and u.get("intent") is Dictionary:
+				l(body,str(u.name)+"：予告の理由 / "+str(u.intent.get("reason","")))
 		ui.local_button(actions,"戻る",ui.dialog.close),func():details_open=false)
 func inspect_enemy(id: String):
 	selected_enemy=id
@@ -630,6 +643,7 @@ func render_person_content(parent,u: Dictionary,expanded:=false):
 		var track=StyleBoxFlat.new();track.bg_color=Color("#11171e");track.set_corner_radius_all(3)
 		var fill=StyleBoxFlat.new();fill.bg_color=Color("#df958b") if resource=="hp" and value*4<maximum else Color("#8dc9af") if resource=="hp" else Color("#93b6df");fill.set_corner_radius_all(3)
 		bar.add_theme_stylebox_override("background",track);bar.add_theme_stylebox_override("fill",fill)
+	if u.get("skipNextTurn",false):l(parent,"足払い：次の1手番をスキップ")
 	if u.get("intent") is Dictionary:
 		l(parent,"予告："+str(u.intent.get("name","")))
 		l(parent,intent_target_text(u.intent))
@@ -687,10 +701,12 @@ func request_hover(uid: String,token: int,generation: int,connection: int,source
 	if parts.is_empty():
 		for effect in prediction.get("effectPreview",[]):
 			if effect.get("hp",0)>0:parts.append("HP ＋%d" % effect.hp)
+			if effect.has("skipChance"):parts.append("%s 次回スキップ %d%%" % [target_name(effect.id),roundi(effect.skipChance*100)])
+			if effect.get("position")!=null:parts.append(target_name(effect.id)+" → "+coord(int(effect.position)))
 			if effect.get("mp",0)>0:parts.append("MP ＋%d" % effect.mp)
 			if effect.get("boost",false):parts.append("攻撃×1.75 / 被害×0.65")
 			if effect.get("cover")!=null or not effect.get("covers",[]).is_empty():parts.append("次の本人の番までかばう")
-	ui.board.hover_caption=("予測："+" / ".join(parts) if not parts.is_empty() else "予測：効果なし")+"\n命中："+("100%" if prediction.get("accuracy")==100 else "対象外")
+	ui.board.hover_caption=("予測："+" / ".join(parts) if not parts.is_empty() else "予測：効果なし")+"\n命中："+("%d%%" % int(prediction.accuracy) if prediction.get("accuracy")!=null else "対象外")
 
 func menu_content(parent,kind: String) -> VBoxContainer:
 	var wrapper=preload("res://sliding_menu.gd").new();wrapper.name=kind+"Slide";wrapper.opening=animate_menu;wrapper.fast=ui.checks_fast;animate_menu=false
@@ -709,10 +725,39 @@ func skill_tooltip(id: String,title: String,level: int) -> String:
 	if target.is_empty():target={"pair":"異なる敵2人","upToTwo":"隣接する味方1～2人","cell":"指定マス","self":"自身"}.get(definition.get("target"),"射程・条件を満たす人物")
 	return "["+title+"]\n消費MP: %d\n対象: %s\nスキル効果:\n%s" % [int(definition.get("cost",0 if id=="returnHome" else 1)),target,ui.pages.skill_description(id,level)]
 
+func clear_opening_visual():
+	opening_generation+=1
+	if opening_tween and opening_tween.is_running():opening_tween.kill()
+	if is_instance_valid(opening_visual):opening_visual.queue_free()
+	opening_visual=null
+func open_actor_panel():
+	if not is_instance_valid(left_panel) or not left_panel.visible or ui.closing:return
+	clear_opening_visual()
+	var ticket=opening_generation
+	var panel=left_panel
+	await ui.get_tree().process_frame
+	if ticket!=opening_generation or not is_instance_valid(panel) or not panel.is_inside_tree() or panel.is_queued_for_deletion() or ui.closing:return
+	var first=ui.battle_header.find_child("TurnCard_0",true,false)
+	if first==null:return
+	opening_visual=panel.duplicate(0);opening_visual.name="CommandOpeningFlight";opening_visual.z_index=0
+	middle.add_child(opening_visual);opening_visual.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	opening_visual.position=first.global_position-middle.global_position;opening_visual.scale=first.size/panel.size
+	ui.battle_header.z_index=1;panel.hide()
+	animation_trace.append({"stage":"command_open","actor":last_actor})
+	opening_tween=ui.create_tween().bind_node(opening_visual);opening_tween.set_parallel(true)
+	opening_tween.tween_property(opening_visual,"position",panel.position,.001 if ui.checks_fast else .32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	opening_tween.tween_property(opening_visual,"scale",Vector2.ONE,.001 if ui.checks_fast else .32)
+	opening_tween.finished.connect(finish_opening.bind(ticket,panel),CONNECT_ONE_SHOT)
+func finish_opening(ticket: int,panel):
+	if ticket!=opening_generation:return
+	if is_instance_valid(opening_visual):opening_visual.queue_free()
+	opening_visual=null
+	if is_instance_valid(panel) and not ui.presenting:panel.show()
 func clear_action_visual():
 	if is_instance_valid(action_visual):action_visual.queue_free()
 	action_visual=null
 func capture_action_visual():
+	if is_instance_valid(opening_visual):clear_opening_visual();left_panel.show()
 	clear_action_visual()
 	if not is_instance_valid(left_panel) or not left_panel.visible:return
 	action_visual=left_panel.duplicate(0);action_visual.name="CommandActionFlight"
@@ -729,8 +774,15 @@ func prepare_action(phase: Dictionary):
 	if first==null:return
 	var scroll=band.get_parent();scroll.scroll_horizontal=0
 	queue_distance=int(second.position.x-first.position.x) if second!=null else int(first.size.x+8)
-	animation_trace.append({"action":id,"stage":"command_shrink"})
-	if is_instance_valid(action_visual):
+	if phase.get("kind")=="skip":
+		var flying=first.duplicate(0);flying.name="TurnSkipFlight";middle.add_child(flying);flying.position=first.global_position-middle.global_position;flying.z_index=30;flying.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		first.modulate.a=0
+		animation_trace.append({"action":id,"stage":"skip_fly_right","actor":phase.get("actor_id")})
+		var flight=ui.create_tween().bind_node(flying);flight.tween_property(flying,"position:x",middle.size.x+first.size.x,.001 if ui.checks_fast else .36).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		await flight.finished
+		if is_instance_valid(flying):flying.queue_free()
+	else:animation_trace.append({"action":id,"stage":"command_shrink"})
+	if phase.get("kind")!="skip" and is_instance_valid(action_visual):
 		left_panel.hide()
 		var destination=first.global_position-middle.global_position
 		var tween=ui.create_tween();tween.set_parallel(true)
@@ -743,5 +795,5 @@ func prepare_action(phase: Dictionary):
 	var slide=ui.create_tween();slide.tween_property(scroll,"scroll_horizontal",queue_distance,.001 if ui.checks_fast else .28).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	await slide.finished
 	if ui.closing:return
-	shifted_action=id;animation_trace.append({"action":id,"stage":"character_action"})
+	shifted_action=id;animation_trace.append({"action":id,"stage":"turn_skipped" if phase.get("kind")=="skip" else "character_action"})
 	if animation_trace.size()>90:animation_trace=animation_trace.slice(-90)

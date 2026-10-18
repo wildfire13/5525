@@ -365,12 +365,18 @@ func reset_animation():
 		nodes.sprite.position=sprite_origin(nodes.sprite);nodes.sprite.modulate=Color.WHITE
 func animate(p: Dictionary) -> float:
 	reset_animation()
+	if p.get("kind")=="skip":return 0.0
 	if not actors.has(p.get("unit_id","")) or p.phase not in ["action","move","hurt","heal"]:return 0.0
 	var root: Node3D=actors[p.unit_id].root
 	var sprite: Sprite3D=actors[p.unit_id].sprite
 	hit_tween=create_tween()
 	if p.phase=="move":
-		root.position=point(int(p.from));hit_tween.tween_property(root,"position",point(int(p.to)),.24)
+		root.position=point(int(p.from))
+		if p.get("jump",false):
+			var landing=point(int(p.to));var apex=root.position.lerp(landing,.5)+Vector3(0,1.4,0)
+			hit_tween.tween_property(root,"position",apex,.16);hit_tween.tween_property(root,"position",landing,.16)
+			return .32
+		hit_tween.tween_property(root,"position",point(int(p.to)),.24)
 		return .24
 	if p.phase in ["action","hurt"]:
 		# Legacy portrait-only shake. The caller waits before acknowledging the next phase.

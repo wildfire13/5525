@@ -10,7 +10,7 @@ var hover_window: Window
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
 func reset():slot="";generation+=1
 func entries(uid: String) -> Array:
-	return ui.campaign().get("inventoryByCharacter",{}).get(uid,{}).get("entries",[]).filter(func(e):return e.kind=="equipment")
+	return ui.campaign().get("inventoryByCharacter",{}).get(uid,{}).get("entries",[])
 func target(entry: Dictionary) -> String:
 	if not slot.is_empty():return slot
 	var choices=entry.get("equipSlots",[])
@@ -18,29 +18,33 @@ func target(entry: Dictionary) -> String:
 func render(parent,u: Dictionary):
 	generation+=1
 	if is_instance_valid(hover_window):hover_window.queue_free()
-	ui.label_(parent,str(u.name)+"の所持装備",true).name="OwnedEquipmentOwner"
-	var chooser=OptionButton.new();chooser.name="OwnedEquipmentSlot";chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(chooser)
-	chooser.add_item("すべての所持装備 / 比較枠を選択");chooser.set_item_metadata(0,"")
+	ui.label_(parent,str(u.name)+"の所持品",true).name="OwnedEquipmentOwner"
+	var chooser=OptionButton.new();chooser.name="OwnedEquipmentSlot";chooser.fit_to_longest_item=false;chooser.clip_text=true;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(chooser);parent.move_child(chooser,0)
+	chooser.add_item("すべての所持品 / 比較枠を選択");chooser.set_item_metadata(0,"")
 	for e in u.get("equipmentSlots",[]):
 		chooser.add_item(str(e.label));chooser.set_item_metadata(chooser.item_count-1,str(e.slot))
 		if slot==e.slot:chooser.select(chooser.item_count-1)
+	chooser.add_item("消耗品・荷物");chooser.set_item_metadata(chooser.item_count-1,"items")
+	if slot=="items":chooser.select(chooser.item_count-1)
 	chooser.item_selected.connect(func(i):slot=str(chooser.get_item_metadata(i));party.refresh_modal())
 	var list=VBoxContainer.new();list.name="OwnedEquipmentList";parent.add_child(list)
 	var hover=preload("res://hover_comparison.gd").new();hover.ui=ui;ui.dialog.window.add_child(hover);hover_window=hover
 	var panel=hover.content
 	for entry in entries(str(u.id)):
-		if not slot.is_empty() and not entry.equipSlots.any(func(q):return q.slot==slot):continue
+		if slot=="items" and entry.kind=="equipment":continue
+		if not slot.is_empty() and slot!="items" and not entry.equipSlots.any(func(q):return q.slot==slot):continue
 		var row=ui.row(list)
-		var button=ui.button(row,"%s　%d個" % [entry.name,entry.count],func():pass);button.name="OwnedEquipment_"+str(entry.id);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;button.alignment=HORIZONTAL_ALIGNMENT_LEFT
+		var button=ui.button(row,"%s　%d個" % [entry.name,entry.count],actions.bind(str(u.id),str(entry.id)));button.name="OwnedEquipment_"+str(entry.id);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;button.alignment=HORIZONTAL_ALIGNMENT_LEFT
 		button.set_script(preload("res://equipment_tooltip.gd"));button.configure_entry(entry,ui.campaign())
-		ui.icons.apply(button,ui.icons.equipment(entry.definition));button.set_meta("placeholder_item_icon",true)
+		ui.icons.apply(button,ui.icons.equipment(entry.definition) if entry.kind=="equipment" else str(entry.id) if entry.id in ["potion","ether"] else "items");button.set_meta("placeholder_item_icon",true)
 
+		if entry.kind!="equipment":continue
 		var chosen=target(entry);var allowed=entry.equipSlots.any(func(q):return q.slot==chosen and q.ok)
 		var action_button=ui.button(row,"装備",equip.bind(u,entry,panel),not allowed);action_button.name="OwnedEquipmentActions_"+str(entry.id)
 		action_button.mouse_entered.connect(func():hover.show_for(action_button))
 		action_button.focus_entered.connect(func():hover.show_for(action_button,true))
 		action_button.mouse_entered.connect(inspect.bind(u,entry,panel));action_button.focus_entered.connect(inspect.bind(u,entry,panel))
-	if list.get_child_count()==0:ui.label_(list,"この枠に装備できる所持装備はありません。" if not slot.is_empty() else "所持装備はありません。")
+	if list.get_child_count()==0:ui.label_(list,"この枠に装備できる所持装備はありません。" if not slot.is_empty() else "所持品はありません。")
 func actions(uid: String,id: String):
 	var inv=party.inventory_view
 	if not inv.available():return
@@ -86,6 +90,13 @@ func comparison(u: Dictionary,entry: Dictionary,chosen: String,q: Dictionary) ->
 			if not a.get(field,[]).has(id):lines.append("[color=#8ee6ab]＋ "+escaped(names.get(id,id))+"[/color]")
 		for id in a.get(field,[]):
 			if not z.get(field,[]).has(id):lines.append("[color=#ffb1a6]− "+escaped(names.get(id,id))+"[/color]")
+	for id in ["scout","itemUse","legSweep"]:
+		var before_level=0;var after_level=0
+		for source in a.get("skillSources",[]):
+			if source.id==id:before_level=maxi(before_level,int(source.get("level",1)))
+		for source in z.get("skillSources",[]):
+			if source.id==id:after_level=maxi(after_level,int(source.get("level",1)))
+		if before_level>0 and after_level>0 and before_level!=after_level:lines.append(change(str(names.get(id,id))+" Lv",before_level,after_level))
 	for candidate in entry.equipSlots:
 		if candidate.slot==chosen and not candidate.ok:lines.append("装備不可: "+escaped(candidate.reason))
 	return "\n".join(lines) if not lines.is_empty() else "能力値・スキルの変化なし"

@@ -42,14 +42,14 @@ test('return remains once per battle across selection changes and save reload',(
 });
 test('unequip removes only that source; stats and HP/MP do not regenerate',()=>{
  const s=town();C.buyGear(s,'mage','sharing-tome','leftHand');const c=s.characters.mage;c.mp=1;c.hp=10;
- assert.ok(C.stats(c).activeSkills.includes('manaGift'));assert.ok(C.buyGear(s,'mage','empty-leftHand','leftHand'));assert.deepEqual(C.stats(c).activeSkills,['mage']);assert.equal(c.mp,1);assert.equal(c.hp,10);roundtrip(s);
+ assert.ok(C.stats(c).activeSkills.includes('manaGift'));assert.ok(C.buyGear(s,'mage','empty-leftHand','leftHand'));assert.deepEqual(C.stats(c).activeSkills,['mage','itemUse']);assert.equal(c.mp,1);assert.equal(c.hp,10);roundtrip(s);
 });
-test('empty hands expose no inherited job skill; left-only weapon becomes primary',()=>{
+test('empty hands expose item use rather than inherited job skill; left-only weapon becomes primary',()=>{
  const s=town();assert.ok(C.buyGear(s,'mage','empty-rightHand','rightHand'));
- assert.deepEqual(C.stats(s.characters.mage).activeSkills,[]);
+ assert.deepEqual(C.stats(s.characters.mage).activeSkills,['itemUse']);
  const t=C.trial(s,'mage','empty-leftHand','leftHand'),a=t.battle.units.find(u=>u.id==='mage');
- assert.equal(B.activeSkill(a),null);assert.equal(B.skillName(a),'');assert.deepEqual(B.skillTargets(t.battle,a),[]);
- assert.ok(C.buyGear(s,'mage','breaker-hammer','leftHand'));assert.equal(C.stats(s.characters.mage).atk,29);assert.deepEqual(C.stats(s.characters.mage).activeSkills,['knockback']);roundtrip(s);
+ assert.equal(B.activeSkill(a),'itemUse');assert.equal(B.skillName(a),'アイテム使用');assert.deepEqual(B.skillTargets(t.battle,a),[]);
+ assert.ok(C.buyGear(s,'mage','breaker-hammer','leftHand'));assert.equal(C.stats(s.characters.mage).atk,29);assert.deepEqual(C.stats(s.characters.mage).activeSkills,['itemUse','knockback']);roundtrip(s);
 });
 test('race and ability restrictions unchanged; porter cannot select offensive skills',()=>{
  const s=town();assert.ok(C.buyGear(s,'mage','hammer-wood','leftHand'));assert.equal(C.buyGear(s,'mage','hammer-iron-1','leftHand'),false);assert.equal(C.buyGear(s,'scout','hammer-wood','leftHand'),false);

@@ -5,6 +5,7 @@ var layout_key := ""
 var minimum := Vector2(280,240)
 var body: VBoxContainer
 var footer: VBoxContainer
+var viewport_bounds := false
 var reserved_top := 0.0
 var layout_bounds := Rect2()
 var drag_edges := Vector2.ZERO
@@ -26,8 +27,16 @@ func configure(prefs,key: String,title: String,fallback: Rect2):
 	gui_input.connect(func(event):handle(event,false))
 func edges(at: Vector2) -> Vector2:
 	return Vector2(-1 if at.x<9 else 1 if at.x>size.x-9 else 0,-1 if at.y<9 else 1 if at.y>size.y-9 else 0)
+func bound_rect(rect: Rect2) -> Rect2:
+	if viewport_bounds:
+		var offset=get_parent_control().global_position
+		var bounded=preferences.bounded(Rect2(rect.position+offset,rect.size),get_viewport_rect().size,minimum)
+		return Rect2(bounded.position-offset,bounded.size)
+	return preferences.bounded(rect,get_parent_control().size,minimum)
 func constrain():
-	var rect=preferences.bounded(Rect2(position,size),get_parent_control().size,minimum);rect.position.y=maxf(reserved_top,rect.position.y)
+	var rect=bound_rect(Rect2(position,size))
+	if viewport_bounds:position=rect.position;size=rect.size;return
+	rect.position.y=maxf(reserved_top,rect.position.y)
 	rect.size.y=minf(rect.size.y,maxf(minimum.y,get_parent_control().size.y-rect.position.y))
 	if layout_bounds.has_area():
 		rect=preferences.bounded(Rect2(rect.position-layout_bounds.position,rect.size),layout_bounds.size,minimum)
@@ -37,6 +46,7 @@ func persist():preferences.store_rect(layout_key,Rect2(position,size))
 func handle(event,header: bool):
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
 		if event.pressed:
+			get_parent().move_child(self,-1)
 			drag_edges=edges(event.global_position-global_position);moving=header and drag_edges==Vector2.ZERO
 			dragging=moving or drag_edges!=Vector2.ZERO;origin=Rect2(position,size);pointer=event.global_position
 			if dragging:accept_event()
@@ -54,6 +64,6 @@ func _input(event):
 				if drag_edges[axis]<0:
 					var shift=minf(delta[axis],origin.size[axis]-minimum[axis]);rect.position[axis]+=shift;rect.size[axis]-=shift
 				elif drag_edges[axis]>0:rect.size[axis]=maxf(minimum[axis],origin.size[axis]+delta[axis])
-		rect=preferences.bounded(rect,get_parent_control().size,minimum);position=rect.position;size=rect.size
+		rect=bound_rect(rect);position=rect.position;size=rect.size
 		if layout_bounds.has_area():constrain()
 		get_viewport().set_input_as_handled()
