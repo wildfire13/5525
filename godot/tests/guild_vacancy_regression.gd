@@ -4,7 +4,7 @@ var checks=[]
 func _initialize():call_deferred("run")
 func settle():
 	for i in range(12):await process_frame
-	while game.locked or game.engine.busy or game.presenting:await process_frame
+	while game.locked or game.engine.busy or game.presenting or game.pages.guild_view.stage=="animating":await process_frame
 func check(ok,label):checks.append({"passed":bool(ok),"label":label});print(("PASS " if ok else "FAIL ")+label)
 func tap(name_: String):game.find_child(name_,true,false).pressed.emit();await settle()
 func run():
@@ -17,12 +17,15 @@ func run():
 	var reply=await game.update({"op":"campaign_load","data":seed});game.navigate("party");await settle()
 	check(reply.get("ok",false) and game.campaign().selected==["porter"],"single porter remains valid minimum composition")
 	await tap("GuildMember_guard")
-	check(not game.find_child("GuildSwap",true,false).disabled and not game.find_child("GuildAdd",true,false).disabled,"single porter can exchange with any reserve or append")
-	var guild=game.pages.guild_view;guild.begin_swap();await settle()
-	check(guild.stage=="pick" and not game.modal_open(),"single porter counterpart picker is available")
+	var guild=game.pages.guild_view
+	check(not game.find_child("GuildAdd",true,false).disabled and not guild.candidate("swap","porter","guard").is_empty(),"single porter can exchange with reserve or append")
+	await tap("GuildMember_porter")
+	check(game.campaign().selected==["guard"] and not game.modal_open(),"selecting active counterpart swaps immediately without obsolete picker")
+	await tap("GuildMember_guard")
+	check(game.find_child("GuildRemove",true,false).disabled,"last active member cannot be removed")
 	guild.cancel_selection();await settle()
-	await tap("GuildAdd");await tap("GuildConfirm")
-	check(game.campaign().selected==["porter","guard"] and game.campaign().characters==seed.state.characters,"append to minimum party keeps order and all owner fields")
+	await tap("GuildMember_porter");await tap("GuildAdd")
+	check(game.campaign().selected==["guard","porter"] and game.campaign().characters==seed.state.characters,"append to minimum party keeps order and all owner fields")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame
 	var f=FileAccess.open(OS.get_environment("INVENTORY_QA_ROOT").path_join("vacancy-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
