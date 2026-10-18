@@ -97,9 +97,9 @@ func mount():
 	middle=Control.new();middle.name="BattleOverlay";middle.mouse_filter=Control.MOUSE_FILTER_IGNORE;middle.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.content.add_child(middle);middle.size=Vector2(ui.size.x-48,ui.size.y-130);ui.battle_row=middle
 	ui.board=preload("res://battle_board.gd").new();ui.board.preferences=ui.preferences;ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";ui.add_child(ui.board);ui.move_child(ui.board,0);ui.board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deploy_drag.connect(ui.deploy_dragged);ui.board.enemy_focused.connect(inspect_enemy);ui.board.unit_hovered.connect(inspect_hover.bind(ui.board))
-	left_panel=preload("res://floating_panel.gd").new();middle.add_child(left_panel)
+	left_panel=preload("res://floating_panel.gd").new();left_panel.viewport_bounds=true;middle.add_child(left_panel)
 	left_panel.configure(ui.preferences,"battle_actor","行動者 / コマンド",Rect2(0,76,320,650))
-	right_panel=preload("res://floating_panel.gd").new();middle.add_child(right_panel)
+	right_panel=preload("res://floating_panel.gd").new();right_panel.viewport_bounds=true;middle.add_child(right_panel)
 	right_panel.configure(ui.preferences,"battle_target","対象 / 効果",Rect2(maxf(0,ui.size.x-380),76,330,620))
 	dock=left_panel
 	tools=HBoxContainer.new();tools.name="BattleTools";middle.add_child(tools)
@@ -111,6 +111,8 @@ func mount():
 	var formation_style=StyleBoxFlat.new();formation_style.bg_color=Color("#18212aef");formation_style.border_color=Color("#63717f");formation_style.set_border_width_all(1);formation_style.set_corner_radius_all(5);formation_style.set_content_margin_all(10);deployment_bar.add_theme_stylebox_override("panel",formation_style)
 	deployment_options=VBoxContainer.new();deployment_bar.add_child(deployment_options)
 	deployment_actions=VBoxContainer.new();deployment_actions.name="DeploymentActions";middle.add_child(deployment_actions)
+	# Control input follows sibling order, independently of drawing z_index.
+	middle.move_child(left_panel,-1);middle.move_child(right_panel,-1)
 	resize()
 func resize():
 	if not is_instance_valid(left_panel) or middle.size.x<100:return
@@ -134,7 +136,7 @@ func render():
 		deployment_layout=deploying
 		for pair in [[left_panel,"deployment_ally" if deploying else "battle_actor",Rect2(0,76,320,650)], [right_panel,"deployment_enemy" if deploying else "battle_target",Rect2(maxf(0,middle.size.x-330),76,330,620)]]:
 			var panel=pair[0];panel.layout_key=pair[1]
-			var rect=ui.preferences.rect_for(pair[1],pair[2],middle.size,panel.minimum);panel.position=rect.position;panel.size=rect.size
+			panel.restore_rect(pair[2])
 	left_panel.find_child("DragHandle",true,false).text="配置する味方  ⋮" if deploying else "行動者 / コマンド  ⋮"
 	right_panel.find_child("DragHandle",true,false).text="敵の情報  ⋮" if deploying else "対象 / 効果  ⋮"
 	deployment_bar.visible=deploying;deployment_actions.visible=deploying;ui.battle_header.visible=not deploying
@@ -725,6 +727,11 @@ func skill_tooltip(id: String,title: String,level: int) -> String:
 	if target.is_empty():target={"pair":"異なる敵2人","upToTwo":"隣接する味方1～2人","cell":"指定マス","self":"自身"}.get(definition.get("target"),"射程・条件を満たす人物")
 	return "["+title+"]\n消費MP: %d\n対象: %s\nスキル効果:\n%s" % [int(definition.get("cost",0 if id=="returnHome" else 1)),target,ui.pages.skill_description(id,level)]
 
+func visual_only(control: Control):
+	control.mouse_filter=Control.MOUSE_FILTER_IGNORE;control.focus_mode=Control.FOCUS_NONE
+	control.process_mode=Node.PROCESS_MODE_DISABLED
+	for child in control.get_children(true):
+		if child is Control:visual_only(child)
 func clear_opening_visual():
 	opening_generation+=1
 	if opening_tween and opening_tween.is_running():opening_tween.kill()
@@ -736,15 +743,17 @@ func open_actor_panel():
 	var ticket=opening_generation
 	var panel=left_panel
 	await ui.get_tree().process_frame
+	while is_instance_valid(panel) and panel.pending_restore!=null and not ui.closing:
+		await ui.get_tree().process_frame
 	if ticket!=opening_generation or not is_instance_valid(panel) or not panel.is_inside_tree() or panel.is_queued_for_deletion() or ui.closing:return
 	var first=ui.battle_header.find_child("TurnCard_0",true,false)
 	if first==null:return
 	opening_visual=panel.duplicate(0);opening_visual.name="CommandOpeningFlight";opening_visual.z_index=0
-	middle.add_child(opening_visual);opening_visual.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	middle.add_child(opening_visual);visual_only(opening_visual)
 	opening_visual.position=first.global_position-middle.global_position;opening_visual.scale=first.size/panel.size
 	ui.battle_header.z_index=1;panel.hide()
 	animation_trace.append({"stage":"command_open","actor":last_actor})
-	opening_tween=ui.create_tween().bind_node(opening_visual);opening_tween.set_parallel(true)
+	opening_tween=ui.create_tween().bind_node(opening_visual);opening_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS);opening_tween.set_parallel(true)
 	opening_tween.tween_property(opening_visual,"position",panel.position,.001 if ui.checks_fast else .32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	opening_tween.tween_property(opening_visual,"scale",Vector2.ONE,.001 if ui.checks_fast else .32)
 	opening_tween.finished.connect(finish_opening.bind(ticket,panel),CONNECT_ONE_SHOT)
@@ -760,7 +769,7 @@ func capture_action_visual():
 	if is_instance_valid(opening_visual):clear_opening_visual();left_panel.show()
 	clear_action_visual()
 	if not is_instance_valid(left_panel) or not left_panel.visible:return
-	action_visual=left_panel.duplicate(0);action_visual.name="CommandActionFlight"
+	action_visual=left_panel.duplicate(0);action_visual.name="CommandActionFlight";visual_only(action_visual)
 	middle.add_child(action_visual);action_visual.position=left_panel.position;action_visual.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	ui.battle_header.z_index=1
 func prepare_action(phase: Dictionary):
@@ -775,10 +784,10 @@ func prepare_action(phase: Dictionary):
 	var scroll=band.get_parent();scroll.scroll_horizontal=0
 	queue_distance=int(second.position.x-first.position.x) if second!=null else int(first.size.x+8)
 	if phase.get("kind")=="skip":
-		var flying=first.duplicate(0);flying.name="TurnSkipFlight";middle.add_child(flying);flying.position=first.global_position-middle.global_position;flying.z_index=30;flying.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		var flying=first.duplicate(0);flying.name="TurnSkipFlight";middle.add_child(flying);flying.position=first.global_position-middle.global_position;flying.z_index=30;visual_only(flying)
 		first.modulate.a=0
 		animation_trace.append({"action":id,"stage":"skip_fly_right","actor":phase.get("actor_id")})
-		var flight=ui.create_tween().bind_node(flying);flight.tween_property(flying,"position:x",middle.size.x+first.size.x,.001 if ui.checks_fast else .36).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		var flight=ui.create_tween().bind_node(flying);flight.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS);flight.tween_property(flying,"position:x",middle.size.x+first.size.x,.001 if ui.checks_fast else .36).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		await flight.finished
 		if is_instance_valid(flying):flying.queue_free()
 	else:animation_trace.append({"action":id,"stage":"command_shrink"})
