@@ -13,6 +13,8 @@ var dragging := false
 var moving := false
 var origin := Rect2()
 var pointer := Vector2.ZERO
+var pending_restore = null
+var restore_frames := 0
 func configure(prefs,key: String,title: String,fallback: Rect2):
 	preferences=prefs;layout_key=key;name=key
 	mouse_filter=Control.MOUSE_FILTER_STOP
@@ -23,8 +25,20 @@ func configure(prefs,key: String,title: String,fallback: Rect2):
 	var scroll=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;box.add_child(scroll)
 	body=VBoxContainer.new();body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(body)
 	footer=VBoxContainer.new();footer.name="PinnedActions";box.add_child(footer)
-	var rect=preferences.rect_for(layout_key,fallback,get_parent_control().size,minimum);position=rect.position;size=rect.size
+	restore_rect(fallback)
 	gui_input.connect(func(event):handle(event,false))
+func restore_rect(fallback: Rect2):
+	var stored=preferences.config.get_value("windows",layout_key,fallback)
+	var rect=bound_rect(stored if stored is Rect2 else fallback)
+	position=rect.position;size=rect.size
+	pending_restore=stored if stored is Rect2 else fallback;restore_frames=2
+func _process(_delta):
+	if pending_restore==null:return
+	restore_frames-=1
+	if restore_frames>0:return
+	# Containers finish positioning the parent after mount/render. Clamp in that final space.
+	var rect=bound_rect(pending_restore);pending_restore=null
+	position=rect.position;size=rect.size
 func edges(at: Vector2) -> Vector2:
 	return Vector2(-1 if at.x<9 else 1 if at.x>size.x-9 else 0,-1 if at.y<9 else 1 if at.y>size.y-9 else 0)
 func bound_rect(rect: Rect2) -> Rect2:
@@ -46,6 +60,7 @@ func persist():preferences.store_rect(layout_key,Rect2(position,size))
 func handle(event,header: bool):
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
 		if event.pressed:
+			pending_restore=null
 			get_parent().move_child(self,-1)
 			drag_edges=edges(event.global_position-global_position);moving=header and drag_edges==Vector2.ZERO
 			dragging=moving or drag_edges!=Vector2.ZERO;origin=Rect2(position,size);pointer=event.global_position

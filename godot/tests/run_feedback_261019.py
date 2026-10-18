@@ -15,9 +15,9 @@ def run(name,cmd,env=None):
  errors=[line for line in text.splitlines() if 'ERROR:' in line or line.startswith('FAIL ') or 'leaked' in line.lower()]
  result=dict(name=name,passed=code==0 and not errors,exit=code,pass_lines=sum(line.startswith('PASS ') for line in text.splitlines()),errors=errors);results.append(result)
  (out/'results.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8');print(json.dumps(result,ensure_ascii=False),flush=True)
-for name in ['feedback_261019','inventory_battle','equipment_migration','equipment_slots','two_handed','empty_equipment','weapon_variations','equipment_skills','equipment_ambush_def','support_reach','dual_attack','dual_skills','quest_cargo','cargo_return','cargo_migration','cargo_marker_boundary','ui_feedback_rules','battle_presentation','shop_transactions','reserve_policy']:
+for name in ['feedback_261019','feedback_261019_input','inventory_battle','equipment_migration','equipment_slots','two_handed','empty_equipment','weapon_variations','equipment_skills','equipment_ambush_def','support_reach','dual_attack','dual_skills','quest_cargo','cargo_return','cargo_migration','cargo_marker_boundary','ui_feedback_rules','battle_presentation','shop_transactions','reserve_policy']:
  run('native_'+name,[node,'native/test_'+name+'.cjs'])
-for name in ['feedback_261019','feedback_261019_skills','frontend_smoke','additional_feedback','turn_order_i02','ui_feedback2_20261017','quest_cargo_regression','deployment_layout_20261017','owned_equipment_regression','ui_preferences_restart']:
+for name in ['feedback_261019','feedback_261019_skills','feedback_261019_input','frontend_smoke','additional_feedback','turn_order_i02','ui_feedback2_20261017','quest_cargo_regression','deployment_layout_20261017','owned_equipment_regression','ui_preferences_restart']:
  scope=Path(tempfile.mkdtemp(prefix=name+'-',dir=out))
  phases=['write','read'] if name=='ui_preferences_restart' else ['']
  for phase in phases:
