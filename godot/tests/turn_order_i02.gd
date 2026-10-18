@@ -38,7 +38,7 @@ func run():
 	check(await saved()==before,"reading order and history never mutates engine state")
 	# Real action at normal speed: fixed controls must remain outside the slide.
 	game.hud.choose_command("guard");await settle();game.checks_fast=false;game.commit()
-	while game.hud.animation_trace.size()<2:await process_frame
+	while not game.hud.animation_trace.any(func(e):return e.stage=="queue_slide"):await process_frame
 	var detail_position=node("BattleOrderDetails").global_position;var history_position=node("BattleHistory").global_position
 	await create_timer(.12).timeout
 	check(node("TurnOrderViewport").scroll_horizontal>0,"queue moves during action animation")
@@ -46,6 +46,6 @@ func run():
 	check(node("TurnOrderViewport").get_global_rect().end.x<node("BattleOrderDetails").global_position.x,"offscreen sixth card cannot cover details button")
 	await settle();game.checks_fast=true
 	check(cards().size()==5 and node("TurnOrderViewport").scroll_horizontal==0,"next live queue returns to five cards with no scroll offset")
-	check(game.hud.animation_trace.slice(0,3).map(func(e):return e.stage)==["command_shrink","queue_slide","character_action"],"existing animation stage order preserved")
+	check(game.hud.animation_trace.filter(func(e):return e.stage!="command_open").slice(0,3).map(func(e):return e.stage)==["command_shrink","queue_slide","character_action"],"existing animation stage order preserved")
 	var f=FileAccess.open(evidence.path_join("turn-order-i02.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

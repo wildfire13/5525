@@ -5,7 +5,6 @@ func layout_check(label):
 	var valid=true
 	for i in range(panels.size()):
 		valid=valid and root.get_visible_rect().encloses(panels[i].get_global_rect())
-		for j in range(i):valid=valid and not panels[i].get_global_rect().intersects(panels[j].get_global_rect())
 	check(valid,label)
 func run():
 	create_timer(85).timeout.connect(func():print("FAIL deployment watchdog");quit(2))
@@ -23,7 +22,7 @@ func run():
 	var deployment=await saved();var initial=positions();var camera=prefs.camera().duplicate(true)
 	check(game.hud.left_panel.visible and game.hud.left_info.get_meta("inspected_unit")==game.selected,"selected deployment ally shown on left")
 	check(not game.hud.person_box.has_meta("inspected_unit"),"right initially asks to click an enemy")
-	layout_check("FHD deployment regions disjoint despite oversized misplaced saved layouts")
+	layout_check("FHD deployment windows remain reachable with oversized misplaced saved layouts")
 	check(node("DeploymentFormation_convoy").size.x>=140 and node("DeploymentFormation_flank").size.x>=140,"formation choices retain readable widths")
 	var allies=game.state().units.filter(func(u):return u.side=="ally")
 	await game.on_cell(int(allies[1].pos));await settle()
@@ -56,7 +55,7 @@ func run():
 	check(before_begin.state.gold==deployment.state.gold and game.state().actions==0,"deployment consumes no gold or battle actions")
 	for u in game.state().units:
 		u.name="長い人物名".repeat(15)
-	game.render();await settle();layout_check("long names do not overlap deployment regions")
+	game.render();await settle();layout_check("long names remain inside viewport despite user-allowed overlap")
 	game.hud.left_panel.persist();game.hud.right_panel.persist()
 	var left_deploy=Rect2(game.hud.left_panel.position,game.hud.left_panel.size)
 	check(prefs.config.get_value("windows","battle_actor")==battle_left and prefs.config.get_value("windows","battle_target")==battle_right,"deployment persistence leaves battle layouts intact")

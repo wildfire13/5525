@@ -112,8 +112,8 @@ check('R08 all eight directed ring journeys finish two real battles, reload, del
   }
 });
 check('R02 exact effect prediction does not consume inventory, MP, actions or history',()=>{
-  const s=C.create();assert(C.inventoryAction(s,'guard','potion','transfer','archer',1,null,C.inventoryToken(s)));C.depart(s,'east');C.travel(s,'safe',()=>0);C.begin(s);
-  const a=s.battle.units.find(u=>u.id===s.battle.actor),friend=s.battle.units.find(u=>u.side==='ally'&&u.id!==a.id);friend.hp-=10;
+  const s=C.create();s.characters.archer.weapon='fist-1';assert(C.inventoryAction(s,'guard','potion','transfer','archer',1,null,C.inventoryToken(s)));C.depart(s,'east');C.travel(s,'safe',()=>0);C.begin(s);
+  const a=s.battle.units.find(u=>u.id===s.battle.actor),friend=a;friend.hp-=10;
   const before=JSON.stringify(s);const effect=B.effectPreview(s.battle,a,'item',friend.id);assert.equal(effect.find(e=>e.id===friend.id).hp,10);assert.equal(JSON.stringify(s),before);
 });
 console.log(`UI feedback shared rules: ${checks} groups passed`);

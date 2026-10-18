@@ -95,7 +95,8 @@ func _ready():
 	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
 	resource_header=row(top);gold_header=icons.line(self,resource_header,"money","")
 	town_back=button(top,"拠点へ",navigate.bind("hub"));town_back.visible=false
-	local_button(top,"メニュー",open_menu)
+	var menu_button=local_button(self,"メニュー",open_menu);menu_button.name="CommonMenuButton"
+	menu_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);menu_button.offset_left=-136;menu_button.offset_top=-64;menu_button.offset_right=-12;menu_button.offset_bottom=-8
 	retry_button=button(top,"再接続",func():confirm("ゲーム接続を再開します。失われた未保存の進行は復元できません。\n再接続後、保存済みファイルを読み込んでください。",reconnect_engine));retry_button.visible=false
 	audio=preload("res://audio.gd").new();add_child(audio)
 	save_notice=preload("res://save_notice.gd").new();save_notice.name="SaveNotice";add_child(save_notice)
@@ -217,6 +218,8 @@ func _unhandled_key_input(event):
 			elif pages.guild_view.escape():pass
 			elif pages.close_items():pass
 			elif hud.close_detail():pass
+			elif not presenting and not locked and hud.action_menu and not hud.menu_transition and pending==null and not state().is_empty() and not state().get("deploying",false) and state().get("result")==null and data.get("trial")==null and campaign().get("phase")=="battle":
+				confirm("旅を中止し、受注・出発前の状態へ戻します。",act.bind("retreat",[]))
 			elif not presenting:cancel()
 			get_viewport().set_input_as_handled()
 func _notification(what):
@@ -246,6 +249,12 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 	if footer!=null:set_status("処理中…")
 	var connection=engine.connection_generation
 	var reply: Dictionary=await engine.request(request)
+	var arrived=false
+	if reply.get("ok",false) and reply.get("campaign") is Dictionary:
+		if reply.campaign.get("phase")=="arrival":
+			reply=await engine.request({"op":"campaign","action":"arrive","args":[]});arrived=reply.get("ok",false)
+		if reply.get("ok",false) and reply.get("campaign") is Dictionary and reply.campaign.get("phase")=="result" and reply.campaign.get("result",{}).get("outcome")=="travel":
+			reply=await engine.request({"op":"campaign","action":"acknowledge","args":[]});arrived=reply.get("ok",false)
 	if connection!=engine.connection_generation:return {"ok":false,"obsolete_connection":true,"error":"古い接続の応答です"}
 	locked=false
 	if request.get("op")=="campaign" and request.get("action") not in ["begin","finishBattle","endTrial","trial","forecast","previewGear","inventoryQuote","purchaseQuote","purchasePlan","saleQuote"] and reply.get("presentation")==null:
@@ -260,7 +269,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 				if frontend.get("reconnect_bootstrap",false):campaign_identity.reconnect_bootstrap();pages.reset_context("reconnect")
 				else:campaign_identity.new_campaign();pages.reset_context()
 				memory.reset();skip_capture_once=true
-			if request.get("action")=="arrive":
+			if arrived or request.get("action")=="arrive":
 				pages.hub_view.reset();page="hub"
 			invalidate_preview();data=reply
 		notice=""
@@ -269,6 +278,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		if reply.get("connection_lost",false):invalidate_preview();pages.reset_context("disconnect",campaign_identity.current_id)
 	if closing:return reply
 	render()
+	if arrived:save_notice.display(town_name(campaign().get("location",""))+"に到着しました")
 	if data.get("presentation")!=null and not presenting and not engine.disconnected:await present()
 	return reply
 func present():
@@ -472,6 +482,7 @@ func prepare_skill_preview():
 func select_skill(id: String):
 	if locked or presenting or closing or hud.menu_transition:return
 	if id=="returnHome":choose_command("return");return
+	if id=="itemUse":hud.open_items();return
 	invalidate_preview();command="skill";hud.action_menu=false;hud.item_list=false;hud.skill_list=false
 	await update({"op":"select_skill","skillId":id})
 	if data.get("skill")=="陣形強化" or (data.get("skillInfo") is Dictionary and data.skillInfo.get("target")=="self"):
@@ -493,7 +504,7 @@ func on_cell(pos: int):
 		elif not selected.is_empty():await act("deploy",[selected,pos])
 		return
 	var target=null
-	if command in ["move","return"] or command=="skill" and data.get("skill")=="スタンプ":target=pos
+	if command in ["move","return"] or command=="skill" and (data.get("skill")=="スタンプ" or data.get("skillInfo") is Dictionary and data.skillInfo.get("target")=="cell"):target=pos
 	elif not u.is_empty():target=u.id
 	if target==null:invalidate_preview();render();return
 	generation+=1;preview={};preview_ready=false;preview_pending=false

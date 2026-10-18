@@ -27,9 +27,11 @@ func render(parent):
 		if not FACILITIES.has(id):continue
 		var spec=FACILITIES[id];var button=ui.button(column,spec[0],ui.navigate.bind(spec[1]));button.name="HubFacility_"+id;ui.memory.key(button,"nav_"+spec[1])
 	var map=ui.button(column,"地図・出発",ui.navigate.bind("map"));map.name="HubMap";ui.memory.key(map,"nav_map")
-	var spacer=Control.new();spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL;column.add_child(spacer)
 	var quest=c.get("activeQuest")
 	if quest is Dictionary and quest.get("to")==c.location:
-		var notice=ui.label_(column,"依頼は未完了です。掲示板で納品してください。");notice.custom_minimum_size.x=280
+		var missing=not c.get("cargoAboard",false)
+		var deliver=ui.button(column,"荷物を届ける",ui.act.bind("completeQuest",[]),missing);deliver.name="HubDeliverCargo"
+		if missing:ui.label_(column,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
+	var spacer=Control.new();spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL;column.add_child(spacer)
 	var style=ui.label_(parent,"画風："+str(artwork.get("style","")) if not artwork.is_empty() else "拠点画像は準備中です。施設は利用できます。")
 	style.name="TownArtStyle";style.add_theme_font_size_override("font_size",16)

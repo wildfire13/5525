@@ -251,12 +251,15 @@ func refresh_modal():
 		tab_button.name="StatusTab_"+str(i);tab_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	match detail_tab:
 		0:
-			equipment(body,u)
-			owned_equipment_view.render(body,u)
+			var split=HBoxContainer.new();split.name="StatusEquipmentSplit";split.add_theme_constant_override("separation",16);body.add_child(split)
+			var equipped=VBoxContainer.new();equipped.name="StatusEquipped";equipped.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(equipped)
+			var owned=VBoxContainer.new();owned.name="StatusOwnedInventory";owned.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(owned)
+			equipment(equipped,u)
+			owned_equipment_view.render(owned,u)
 			for e in u.get("equipmentSlots",[]):
 				if e.slot==owned_equipment_view.slot and e.get("occupiedBy")==null and e.get("id","")!="" and u.get("equipmentDetails",{}).get(e.slot,{}).get("type")=="empty":continue
 				if e.slot==owned_equipment_view.slot and e.get("occupiedBy")==null and u.get("equipmentDetails",{}).get(e.slot,{}).get("type")!="empty":
-					var row=ui.row(body)
+					var row=ui.row(equipped)
 					var remove=b(row,"装備を外す",inventory_view.prepare_unequip.bind(detail_uid,str(e.id),str(e.slot)),pages.c().get("phase") not in ["town","camp"] or not pages.c().get("selected",[]).has(detail_uid));remove.name="UnequipSelected";remove.custom_minimum_size=Vector2(160,40)
 					l(row,str(e.label))
 

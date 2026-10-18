@@ -75,7 +75,7 @@ func run():
 	check(is_instance_valid(hud.action_visual) and hud.action_visual.scale.x<1 and hud.action_visual.position.y>hud.left_panel.position.y,"confirmed command panel visibly shrinks toward first order card")
 	await settle();game.checks_fast=true
 	check(int(game.state().actions)==actions+1,"self skill repeated execution consumes one action")
-	var trace=hud.animation_trace
+	var trace=hud.animation_trace.filter(func(e):return e.stage!="command_open")
 	check(trace.size()>=3 and trace[0].stage=="command_shrink" and trace[1].stage=="queue_slide" and trace[2].stage=="character_action" and trace[1].distance>180,"command shrink then one-card queue slide precedes character action")
 	check(not is_instance_valid(hud.action_visual) and game.battle_header.visible,"presentation removes flight copy and restores live order")
 	var f=FileAccess.open(evidence.path_join("feedback2-1017.json"),FileAccess.WRITE);f.store_string(JSON.stringify({"checks":checks,"animation_trace":trace},"\t"));f.close()

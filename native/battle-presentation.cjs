@@ -26,7 +26,7 @@ function capture(state,engine,run) {
     current=actor;actionNumber++;spoken.clear();
     const cue=kind==='return'?'skill:returnHome':kind==='skill'?'skill:'+eng.activeSkill(actor):'attack';
     add('action',actor,{kind,skill_id:kind==='skill'?eng.activeSkill(actor):kind==='return'?'returnHome':null,target:clone(target??null),label:actor.name+'：'+
-      (kind==='skill'?eng.skillName(actor):({attack:'攻撃',move:'移動',guard:'防御',item:'回復薬',ether:'エーテル',return:'帰還'}[kind]||kind)),
+      (kind==='skill'?eng.skillName(actor):({attack:'攻撃',move:'移動',guard:'防御',item:'回復薬',ether:'エーテル',return:'帰還',skip:'足払いで手番をスキップ'}[kind]||kind)),
       voiceEvents:actor.side==='ally'&&['attack','skill','return'].includes(kind)?[{character_id:actor.id,cue}]:[]});
   }};
   observers.set(state,observer);stepping.add(state);
@@ -38,7 +38,7 @@ function capture(state,engine,run) {
         const previous=value;value=next;
         if(next===previous)return;
         const phase=key==='pos'?'move':next<previous?'hurt':'heal';
-        add(phase,unit,{from:previous,to:next,label:unit.name+'：'+
+        add(phase,unit,{...(phase==='move'&&unit===current&&engine.activeSkill(current)==='poleVault'?{jump:true}:{}),from:previous,to:next,label:unit.name+'：'+
           (phase==='move'?'移動':phase==='hurt'?'被ダメージ '+(previous-next):'HP回復 '+(next-previous)),
           voiceEvents:phase==='hurt'&&unit.side==='ally'?[{character_id:unit.id,cue:'hurt'}]:[]});
       }});
