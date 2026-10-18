@@ -20,9 +20,11 @@ Run `python godot/tests/run_feedback_261019_2.py --evidence <outside-checkout-di
 
 The new regression covers repeated selection and explicit-details equivalence, active/reserve state preservation, default width vs saved geometry, tab alignment at FHD and1364×1024, pointer-dispatched return clicks, inn cards/resources/long names/count, and lodging cancellation/double-confirmation/resource preservation. Related status/portrait, shop, inventory, frontend and restart checks are included. Native inn's six existing Python tests are also run.
 
-Legacy guild_regression, guild_vacancy_regression and inventory_regression still reference removed nav_party/GuildSwap/InventoryOwner controls (already absent at base8a8d55d). Their title expectations were updated, but these obsolete control-flow tests are not counted as passed; their stalls/errors are recorded separately. Modern targeted and owned-equipment tests cover the current controls. Two additional broad suites, followup_ui_regression (old battle item/skill flows) and shop_quote_lifecycle (two quote-exit expectations), failed identically on unchanged base8a8d55d; both baseline and current logs are included. They are not counted as passed.
+The original guild_regression, guild_vacancy_regression and inventory_regression scripts were reproduced on both unchanged8a8d55d and candidate2af9df4. All three stopped at identical obsolete control references. Their tests now follow the current hub entry, direct counterpart selection, cargo-only confirmation, shared status owner heading and independent ConfirmationDialog. They retain cancellation, duplicate request, owner/resource preservation, stale confirmation and rejection coverage. The updated three suites pass on both the candidate and base production code (only the expected status title is changed to the old title for the baseline run).
 
-Final focused evidence: 9 Godot runs /223 checks pass, plus6 native inn tests. No newly introduced failure was found in these checks.
+Two additional broad suites remain outside the focused passing set: followup_ui_regression (old battle item/skill flows) and shop_quote_lifecycle (two quote-exit expectations). They failed identically on unchanged8a8d55d and2af9df4. Baseline and current logs are retained; these two are not counted as passed or fixed.
+
+Focused evidence after test maintenance: 12 Godot runs /274 checks pass, plus6 native inn tests. The follow-up changes tests/documentation only; production code is identical to2af9df4. See feedback-261019-2-legacy-tests.md for the complete five-suite distinction.
 
 ## Dot GUI review
 
