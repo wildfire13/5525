@@ -20,6 +20,7 @@ func _init(owner):owner_ref=weakref(owner);ui=owner.ui;inventory_view=preload("r
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func render(parent):
+	l(parent,"ギルド / パーティー編成" if pages.c().get("guildAvailable",false) else "仲間・装備",true).name="PartyFacilityHeading"
 	if pages.c().get("guildAvailable",false):pages.guild_view.render(parent);return
 	var c=pages.c();var members=ui.visible_roster();var ids=c.get("selected",[])
 	if members.is_empty():return

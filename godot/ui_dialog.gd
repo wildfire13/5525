@@ -26,7 +26,7 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 	var margin=preload("res://modal_input.gd").new();margin.owner_ref=weakref(self);window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,12)
 	var box=VBoxContainer.new();box.add_theme_constant_override("separation",8);margin.add_child(box)
-	if title!=STATUS_TITLE:ui.label_(box,title,true)
+	if title not in [STATUS_TITLE,"行動ログ"]:ui.label_(box,title,true)
 	body=ui.scroller(box);body.get_parent().name="ModalDetailScroll";body.get_parent().custom_minimum_size.y=80
 	if title==STATUS_TITLE:body.get_parent().horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
 	actions=ui.row(box);actions.name="ModalActions"

@@ -63,7 +63,7 @@ func run():
 	await tap("HubFacility_guild")
 	var guild=game.pages.guild_view;recorder=RecordedEngine.new();recorder.actual=actual;game.add_child(recorder);game.engine=recorder
 	var before=await saved()
-	check(game.page=="party" and game.header.text=="ギルド / パーティー編成","G01 one click opens formation page")
+	check(game.page=="party" and game.header.text=="アスタリス" and node("PartyFacilityHeading").text=="ギルド / パーティー編成","G01 one click opens formation page")
 	check(ids("GuildCurrentScroll")==game.campaign().selected and ids("GuildReserveScroll")==["guard-2","archer-2","mage-2","scout-2","porter-2","warrior"],"G02 lists retain selected and reserve order")
 	check(node("GuildVitals_guard").text.contains("Lv.1") and not node("GuildStatus_porter").text.contains("編成固定"),"G02 rows show resources and level without job-based lock")
 	await tap("GuildMember_guard")

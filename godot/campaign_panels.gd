@@ -72,7 +72,7 @@ func board(parent):
 	var town_data={}
 	for t in c().get("locations",[]):
 		if t.id==c().location:town_data=t
-	ui.icons.line(ui,parent,ui.icons.place(str(c().location)),town(c().location),true)
+	ui.icons.line(ui,parent,ui.icons.place(str(c().location)),"掲示板",true)
 	muted(parent,town_data.get("description",town_data.get("text","掲示板で依頼を選ぶか、依頼を受けずに次の拠点へ移動できます。")))
 	l(parent,"同時に受ける依頼は一件")
 	var quest=c().get("activeQuest")
@@ -123,10 +123,7 @@ func map(parent):
 	chart.quest_destination=str(quest.to) if quest is Dictionary else ""
 	parent.add_child(chart);chart.destination_selected.connect(select_destination)
 	for id in chart.buttons:ui.widgets.append(chart.buttons[id])
-	var choices=row(parent)
-	for id in available:b(choices,("● " if ui.destination==id else "")+town(id),select_destination.bind(id))
 	muted(parent,"未受注での移動も戦闘・消耗があります。配達報酬はありません。追加の移動料金はありません。")
-	l(parent,"編成: "+" / ".join(roster().filter(func(u):return c().selected.has(u.id)).map(func(u):return u.name)))
 	var depart=b(parent,town(ui.destination)+"へ出発" if not ui.destination.is_empty() else "行先がありません",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty());depart.name="DepartButton"
 	depart.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;depart.custom_minimum_size=Vector2(280,44)
 	for state_ in ["normal","hover","pressed"]:
@@ -229,7 +226,7 @@ func items(parent):
 			var target=b(member,"使う" if reason.is_empty() else reason,use_selected_item.bind(u.id),not reason.is_empty());target.name="ItemTarget_"+str(u.id);ui.memory.key(target,"item_target_"+str(u.id))
 func inn(parent):
 	var q: Dictionary=c().get("inn",{})
-	ui.icons.line(ui,parent,"inn","アスタリスの宿屋",true)
+	ui.icons.line(ui,parent,"inn","宿屋",true)
 	if not q.get("available",false):l(parent,"宿屋はアスタリスで利用できます。");return
 	l(parent,"パーティ全員で%dG（仮料金）" % q.price)
 	l(parent,"編成中の全員のHP・MPを上限まで回復します。戦闘不能の仲間も回復します。")
@@ -256,7 +253,7 @@ func stay_inn():
 	ui.confirm("%dGを支払い、編成中の全員のHP・MPを全回復しますか？\n戦闘不能も回復。控えは対象外、時間は経過しません。" % q.get("price",30),ui.act.bind("inn",[]))
 func shop(parent):
 	var location=c().get("location","")
-	if location not in ["east","west","north"]:l(parent,{"south":"サウスの道具屋"}.get(location,"この拠点にお店はありません"),true)
+	if location not in ["east","west","north"]:l(parent,{"south":"道具店"}.get(location,"この拠点にお店はありません"),true)
 	if location=="south":
 		var body=ui.scroller(parent);ui.memory.watch(body.get_parent(),"consumable_shop")
 		if not c().get("selected",[]).has(ui.shop_uid):ui.shop_uid=str(c().selected[0])

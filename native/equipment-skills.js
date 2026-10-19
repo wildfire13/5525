@@ -30,6 +30,6 @@ const weapons=[
 const accessories=[['return-ring','帰り路の指輪','returnHome'],['victory-earring','凱歌の耳飾り','victoryBreath'],['lone-ring','一匹狼の指輪','loneWolf'],['pioneer-gloves','先駆者の手袋','firstStride'],['invasion-charm','侵入用装飾品（既存効果の仮枠化）','invasion']];
 const gear=[...weapons,...['accessory1','accessory2'].flatMap((slot,index)=>[
  {id:`empty-${slot}`,name:`装飾${index+1}：なし`,slot,allowedSlots:['accessory1','accessory2'],type:'empty',material:'cloth',grade:0,price:0,str:0,int:0,agi:0},
- ...accessories.map(([id,name,effect])=>({id:`${id}-${index+1}`,name:`${name}［装飾${index+1}］`,slot,type:'accessory',effect,material:'cloth',grade:0,price:70,str:0,int:0,agi:0,note:definitions[effect]?.description||'敵陣侵入を許可。ポーターは侵入不可。帰還指輪と併用すると2枠使用。'}))
+ ...accessories.map(([id,name,effect])=>({id:`${id}-${index+1}`,name,shopProductId:`${id}-1`,slot,type:'accessory',effect,material:'cloth',grade:0,price:70,str:0,int:0,agi:0,note:definitions[effect]?.description||'敵陣侵入を許可。ポーターは侵入不可。帰還指輪と併用すると2枠使用。'}))
 ])];
 module.exports={definitions,gear};

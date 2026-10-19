@@ -30,7 +30,10 @@ func slots() -> Array:
 	return ["rightHand","leftHand"] if c().get("location")=="east" else ["accessory1","accessory2"] if c().get("location")=="north" else ["head","upperBody","lowerBody","feet"]
 const WEAPON_NAMES={"sword":"剣","greatsword":"両手剣","spear":"槍","bow":"弓","hammer":"槌","staff":"杖","shield":"盾","dagger":"短剣","book":"本","gun":"銃","fist":"拳","rope":"鉤縄"}
 func offered() -> Array:
+	# Legacy slot-specific IDs stay valid in owned inventories and save files.
+	# Only the canonical product is offered for new purchases.
 	return c().get("shop",[]).filter(func(g):
+		if g.get("shopProductId",g.id)!=g.id:return false
 		if g.get("type")=="empty":return false
 		if filter_slot=="all":return true
 		if c().get("location")=="east":return g.get("type","")==filter_slot
@@ -38,7 +41,7 @@ func offered() -> Array:
 		var allowed=g.get("allowedSlots",["rightHand"] if g.get("hands",1)==2 else ["rightHand","leftHand"] if g.slot=="weapon" else ["upperBody"] if g.slot=="armor" else [g.slot])
 		return allowed.has(filter_slot))
 func product_filter(parent):
-	if filter_location!=str(c().get("location","")):filter_location=str(c().get("location",""));filter_slot="all"
+	if c().get("location")=="north" or filter_location!=str(c().get("location","")):filter_location=str(c().get("location",""));filter_slot="all"
 	var options=[]
 	if c().get("location") in ["east","south"]:
 		var seen={}
@@ -47,7 +50,7 @@ func product_filter(parent):
 			var id=str(item.get("type","")) if c().location=="east" else str(item.id)
 			if seen.has(id):continue
 			seen[id]=true;options.append([id,str(WEAPON_NAMES.get(id,id)) if c().location=="east" else str(item.name),ui.icons.WEAPONS.get(id,"items") if c().location=="east" else id])
-	else:
+	elif c().get("location")!="north":
 		for id in slots():options.append([id,str(c().get("slots",{}).get(id,id)),ui.icons.slot(id)])
 	var slot=OptionButton.new();slot.name="ShopSlotFilter";slot.custom_minimum_size=Vector2(280,44);slot.size_flags_horizontal=Control.SIZE_EXPAND_FILL;slot.fit_to_longest_item=false;slot.clip_text=true;parent.add_child(slot)
 	slot.add_item("商品リスト（すべて）");slot.set_item_metadata(0,"all")
@@ -58,8 +61,8 @@ func product_filter(parent):
 	slot.item_selected.connect(func(i):select_slot(str(slot.get_item_metadata(i))));ui.memory.key(slot,"shop_filter")
 func render(parent):
 	var context=ui.row(parent);context.name="ShopContext"
-	var shop_name={"east":"イースの武器屋","west":"ウエスの防具屋","north":"ノースの装飾品店"}.get(c().location,"")
-	ui.icons.line(ui,context,ui.icons.shop(str(c().location)),shop_name)
+	var shop_name={"east":"武器店","west":"防具店","north":"装飾品店"}.get(c().location,"")
+	ui.icons.line(ui,context,ui.icons.shop(str(c().location)),shop_name,true)
 	render_notice(parent)
 	var body=ui.scroller(parent);var scroll=body.get_parent();scroll.name="ShopProductsScroll"
 	scroll.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;scroll.custom_minimum_size.x=maxf(600,ui.size.x*2.0/3.0-parent.global_position.x);scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"shop_products")
@@ -208,7 +211,7 @@ func back_list():
 	generation+=1;stage="S0";consent={};pages.invalidate_quote();ui.render()
 func select_slot(id: String):
 	if busy():return
-	filter_slot=id;ui.memory.scrolls.erase("shop_products");ui.render()
+	filter_slot="all" if c().get("location")=="north" else id;ui.memory.scrolls.erase("shop_products");ui.render()
 func select_member(id: String):
 	if not busy():ui.shop_uid=id
 func select_product(id: String):
