@@ -572,7 +572,10 @@ func commit():
 func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback: Callable, filename: String=""):
 	pages.shop_view.cancel_pending()
 	var d=FileDialog.new();d.access=FileDialog.ACCESS_FILESYSTEM;d.file_mode=mode;d.filters=filters
-	d.use_native_dialog=false;d.exclusive=true;add_child(d);d.current_dir=ProjectSettings.globalize_path("user://")
+	d.use_native_dialog=false;d.exclusive=true
+	if is_instance_valid(dialog.window) and dialog.window.visible and dialog.window.exclusive:dialog.window.add_child(d)
+	else:add_child(d)
+	d.current_dir=ProjectSettings.globalize_path("user://")
 	if not filename.is_empty():d.current_file=filename;d.title="保存先を選択";d.overwrite_warning_enabled=false
 	d.file_selected.connect(func(path):d.queue_free();callback.call(path));d.canceled.connect(func():d.queue_free())
 	preferences.bind_window(d,"file_dialog",size,size*.75);d.popup()
