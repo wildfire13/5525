@@ -18,7 +18,7 @@ func render(parent):
 	var place={}
 	for entry in c.get("locations",[]):
 		if entry.id==c.location:place=entry;break
-	ui.label_(parent,ui.town_name(c.location),true)
+	ui.label_(parent,ui.town_name(c.location)+"の広場",true).name="TownFacilityHeading"
 	var panel=PanelContainer.new();panel.name="TownHub";panel.custom_minimum_size.y=maxf(400,ui.size.y*.65);parent.add_child(panel)
 	var image=TextureRect.new();image.name="TownStill";image.texture=load(artwork.path) if not artwork.is_empty() else null;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;image.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.add_child(image)
 	var margin=MarginContainer.new();margin.add_theme_constant_override("margin_left",24);margin.add_theme_constant_override("margin_right",24);margin.add_theme_constant_override("margin_top",24);margin.add_theme_constant_override("margin_bottom",24);panel.add_child(margin)

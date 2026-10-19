@@ -348,11 +348,11 @@ func render():
 	theme.default_font_size=22 # Resize via wrapping and scrolling, never global text shrinking.
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
-	header.text=town_name(place)+"の掲示板" if page=="board" and c.get("phase")=="town" else town_name(place)
+	header.text=town_name(place)
 	gold_header.text="%dG" % c.get("gold",0)
 	header.tooltip_text=header.text
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
-	resource_header.visible=not battle and not (phase=="town" and page=="party")
+	resource_header.visible=not battle
 	actor_face.visible=false
 	var lower_return=phase=="result" or phase=="town" and page!="hub"
 	town_back.visible=not battle and page!="hub" and phase=="town" and not lower_return
@@ -368,7 +368,6 @@ func render():
 		var nav=row(content)
 		var focused_page=phase=="town" and page in ["shop","party"]
 		if focused_page:
-			header.text="" if page=="shop" else "ギルド / パーティー編成" if c.get("guildAvailable",false) else "仲間・装備"
 			button(nav,"拠点へ",navigate.bind("hub"));nav.visible=false
 		var tabs_=[["board","掲示板"],["map","地図・出発"],["shop","商店"]] if phase=="town" else [["board","旅程"],["items","道具"]]
 		if phase=="town" and c.get("location")=="astaris":tabs_.append(["inn","宿屋"]);tabs_.append(["party","ギルド"])
@@ -615,7 +614,8 @@ func load_game(path: String):
 	await update({"op":"campaign_load","data":envelope},{"images":images,"music":music,"source_path":path})
 func show_action_log():
 	dialog.open("行動ログ",func(body,actions):
-		label_(body,"累計%d時間" % campaign().get("hours",0),true).name="ActionLogHours"
+		label_(body,"ゲーム内経過時間:%d時間" % campaign().get("hours",0),true).name="ActionLogHours"
+		var separator=HSeparator.new();separator.name="ActionLogSeparator";body.add_child(separator)
 		var history=label_(body,"\n".join(campaign().get("history",[])));history.name="ActionLogHistory"
 		if history.text.is_empty():history.text="記録はまだありません。"
 		local_button(actions,"ログ保存",save_log).name="ActionLogSave"
