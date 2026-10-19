@@ -311,7 +311,10 @@ func draw_overlay():
 	for u in state.get("units",[]):
 		if u.hp<=0:continue
 		if u.id==(data.presentation.get("actor_id") if data.get("presentation") is Dictionary else state.get("actor")) or u.id==selected:overlay.draw_arc(project_cell(u.pos),18,0,TAU,40,Color("#fff0ac"),2,true)
-		if targets.has(u.id):overlay.draw_circle(project_cell(u.pos),10,Color(.2,1,.55,.6))
+		if u.id==hover_uid:cell_outline(int(u.pos),Color("#a6ddff"),3.0)
+		if targets.has(u.id):
+			cell_outline(int(u.pos),Color("#75ffc2"),4.0)
+			overlay.draw_string(ThemeDB.fallback_font,project_cell(u.pos)+Vector2(-28,30),"選択中",HORIZONTAL_ALIGNMENT_LEFT,-1,18,Color("#75ffc2"))
 		if u.side=="enemy" and u.get("intent")!=null:
 			var valid=false
 			for e in data.get("enemyInfo",[]):

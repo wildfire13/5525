@@ -10,6 +10,10 @@ var checks=[]
 var owned=[]
 var evidence=OS.get_environment("UIUX_REVIEW_EVIDENCE")
 func _initialize():call_deferred("run")
+func process_running(pid: int) -> bool:
+	# Godot4.6 Linux emits an error when querying an already reaped child PID.
+	if OS.get_name()=="Linux":return DirAccess.dir_exists_absolute("/proc/"+str(pid))
+	return OS.is_process_running(pid)
 func frames(n=12):
 	for i in range(n):await process_frame
 func settle():
@@ -40,7 +44,7 @@ func delayed(fault,new_battle):
 	var loss=fault in ["eof","timeout"]
 	check(label+"-transport",probe.held_reply.get("connection_lost",false)==loss and probe.disconnected==loss and probe.held_reply.get("ok",false)==(fault==""),probe.held_reply.duplicate(true))
 	if loss:
-		check(label+"-old-node-exited",not OS.is_process_running(old_pid));await game.reconnect_engine();await settle();owned.append(int(probe.handles.pid));check(label+"-new-connection",probe.connection_generation>connection)
+		check(label+"-old-node-exited",not process_running(old_pid));await game.reconnect_engine();await settle();owned.append(int(probe.handles.pid));check(label+"-new-connection",probe.connection_generation>connection)
 	else:await game.new_game();await settle()
 	probe.timeout_ms=15000
 	check(label+"-old-board-freed",not is_instance_valid(old))
@@ -53,7 +57,7 @@ func delayed(fault,new_battle):
 	check(label+"-no-replay",probe.calls.size()==call_count)
 	check(label+"-state-preserved",await saved()==before and game.generation==generation and game.pending==pending)
 	check(label+"-new-view-preserved",game.notice=="fresh session" and game.board==current and game.hud.inspected_uid==person and (current==null or current.hover_caption==caption))
-	check(label+"-connection-preserved",not probe.disconnected and int(probe.handles.pid)==pid and OS.is_process_running(pid))
+	check(label+"-connection-preserved",not probe.disconnected and int(probe.handles.pid)==pid and process_running(pid))
 func null_and_foreign():
 	await prepare();var old=game.board;var person=game.hud.inspected_uid
 	game.hud.selected_cell=24;old.set_hover("guard");var shown=game.hud.inspected_uid;game.board=null;old.set_hover("");game.hud.render_person();game.hud.refresh_hover();await frames()
@@ -65,7 +69,7 @@ func current_response(fault):
 	await prepare();var before=await saved();mode(fault);check("current-"+fault+"-held",await trigger())
 	mode("");var calls=probe.calls.size();probe.deliver=true;await settle()
 	var caption=game.board.hover_caption
-	check("current-"+fault+"-applied",caption=="予測：未取得" if fault=="error" else caption.begins_with("予測：HP −") and caption.contains("命中：100%"),caption)
+	check("current-"+fault+"-applied",caption=="予測：未取得" if fault=="error" else caption.begins_with("予測：") and caption.contains("が受ける −") and caption.contains("命中：100%"),caption)
 	check("current-"+fault+"-no-replay",calls==probe.calls.size())
 	check("current-"+fault+"-state-preserved",await saved()==before)
 func busy_teardown():
@@ -93,5 +97,5 @@ func run():
 	for fault in ["","error","eof","timeout"]:
 		for new_battle in [false,true]:await delayed(fault,new_battle)
 	await current_response("");await current_response("error");await busy_teardown();await null_and_foreign();game.closing=true;game.invalidate_preview();await game.audio.finish_audio();probe.close_engine();game.queue_free();await frames()
-	check("owned-nodes-exited",owned.all(func(pid):return not OS.is_process_running(pid)))
+	check("owned-nodes-exited",owned.all(func(pid):return not process_running(pid)))
 	var failed=checks.filter(func(c):return not c.passed).size();print("HOVER LIFETIME REGRESSION ",checks.size()," FAILED ",failed);quit(0 if failed==0 else 1)

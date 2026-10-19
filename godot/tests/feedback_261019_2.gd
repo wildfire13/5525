@@ -8,9 +8,9 @@ func pointer_click(control):
 func green(control):return control.get_theme_stylebox("normal").bg_color.is_equal_approx(Color("#236044"))
 func return_layout(id):
 	var back=node(id);var bar=node("PartyFaceBar")
-	check(back!=null and back.text=="広場へ移動" and green(back) and not game.town_back.visible,"one green square-return button "+id)
+	check(back!=null and back.text=="広場に移動" and green(back) and not game.town_back.visible,"one green square-return button "+id)
 	check(back.get_global_rect().end.y<=bar.global_position.y and bar.global_position.y-back.get_global_rect().end.y<=20 and absf(back.get_global_rect().end.x-bar.get_global_rect().end.x)<2,"return sits right aligned immediately above party bar "+id)
-	check(game.find_children("*","Button",true,false).filter(func(b):return b.visible and b.text=="広場へ移動").size()==1,"no duplicate return "+id)
+	check(game.find_children("*","Button",true,false).filter(func(b):return b.visible and b.text=="広場に移動").size()==1,"no duplicate return "+id)
 func alignment():
 	check(absf(node("StatusTab_2").get_global_rect().end.x-node("StatusEquipped").get_global_rect().end.x)<2,"skills tab right edge matches equipped column")
 	check(absf(node("StatusTab_3").global_position.x-node("StatusOwnedInventory").global_position.x)<2,"inventory tab left edge matches owner inventory")

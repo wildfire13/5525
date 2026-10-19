@@ -27,19 +27,9 @@ func place():
 	for line in plain.split("\n"):natural=maxf(natural,font.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,FONT_SIZE).x)
 	# Reserve scrollbar width even for short content so wrapping never oscillates.
 	var width=clampf(natural+PADDING*2+16,MIN_WIDTH,MAX_WIDTH)
-	var right=float(status.position.x+status.size.x)+8
-	var left_space=float(status.position.x)-16
-	var right_space=bounds.x-8-right
 	var anchor=Vector2(status.position)+source.get_global_rect().position
-	var x: float
-	if right_space>=MIN_WIDTH:
-		width=minf(width,right_space);x=right
-	elif left_space>=MIN_WIDTH:
-		width=minf(width,left_space);x=float(status.position.x)-width-8
-	else:
-		# A maximized status window has no outside strip. Keep the right-hand
-		# equipment actions uncovered by using the space to the left of them.
-		width=minf(width,maxf(120,anchor.x-24));x=8
+	var x=anchor.x+source.size.x+8
+	if x+width>bounds.x-8:x=anchor.x-width-8
 	width=minf(width,maxf(120,bounds.x-16))
 	var height=font.get_multiline_string_size(plain,HORIZONTAL_ALIGNMENT_LEFT,width-PADDING*2-16,FONT_SIZE).y+PADDING*2+4
 	# Use the final RichText layout after a width change has settled as well.
