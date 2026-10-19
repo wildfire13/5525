@@ -74,7 +74,7 @@ func board(parent):
 		if t.id==c().location:town_data=t
 	ui.icons.line(ui,parent,ui.icons.place(str(c().location)),town(c().location),true)
 	muted(parent,town_data.get("description",town_data.get("text","掲示板で依頼を選ぶか、依頼を受けずに次の拠点へ移動できます。")))
-	l(parent,"掲示板 / 同時に受ける依頼は一件",true)
+	l(parent,"同時に受ける依頼は一件")
 	var quest=c().get("activeQuest")
 	if quest is Dictionary:
 		var box=card(parent);l(box,"受注中: "+quest.name,true);quest_info(box,quest)
@@ -91,7 +91,7 @@ func board(parent):
 			b(box,"この依頼を引き受ける",accept.bind(q.id),not c().get("hasPorter",false))
 		b(parent,"地図・出発 / 自由移動",ui.navigate.bind("map"))
 	if not c().get("hasPorter",false):l(parent,"クエスト受注には最低1人のポーターが必要です。ギルドで編成してください。自由移動は可能です。")
-	l(parent,"直近の記録");l(parent,"\n".join(c().get("history",[]).slice(-6)))
+
 func accept(id: String):
 	if ui.locked or ui.modal_open():return
 	var token=c().get("inventoryToken");var epoch=ui.pages.epoch
@@ -256,7 +256,7 @@ func stay_inn():
 	ui.confirm("%dGを支払い、編成中の全員のHP・MPを全回復しますか？\n戦闘不能も回復。控えは対象外、時間は経過しません。" % q.get("price",30),ui.act.bind("inn",[]))
 func shop(parent):
 	var location=c().get("location","")
-	if location not in ["east","west","north"]:l(parent,{"south":"サウスの道具屋"}.get(location,"この拠点にお店はありません")+" / 所持金%dG" % c().get("gold",0),true)
+	if location not in ["east","west","north"]:l(parent,{"south":"サウスの道具屋"}.get(location,"この拠点にお店はありません"),true)
 	if location=="south":
 		var body=ui.scroller(parent);ui.memory.watch(body.get_parent(),"consumable_shop")
 		if not c().get("selected",[]).has(ui.shop_uid):ui.shop_uid=str(c().selected[0])
@@ -267,7 +267,8 @@ func shop(parent):
 			if uid==ui.shop_uid:recipient.select(recipient.item_count-1)
 		recipient.item_selected.connect(func(i):ui.shop_uid=str(recipient.get_item_metadata(i));ui.render())
 		muted(body,"購入品は選んだ受取人のインベントリへ入ります。消耗品の合計上限は各99個。回復量はHP+55 / MP+3です。")
-		for item in c().shop:
+		shop_view.product_filter(body)
+		for item in shop_view.offered():
 			var count=c().characters[ui.shop_uid].get("inventory",{}).get(item.id,0);var actions=row(card(body))
 			ui.icons.line(ui,actions,str(item.id),"%s %dG / %sの所持%d個" % [item.name,item.price,ui.member_name(ui.shop_uid),count])
 			for amount in [1,5]:b(actions,"%d個購入" % amount,ui.act.bind("buyItem",[item.id,amount,ui.shop_uid,c().get("inventoryToken")]),c().gold<item.price*amount or c().get("inventoryTotals",{}).get(item.id,0)+amount>99)
@@ -282,7 +283,7 @@ func buy(id: String):
 func cancel_quote():shop_view.back_list()
 func result(parent):
 	var result_: Dictionary=c().get("result",{});var outcome=result_.get("outcome","")
-	l(parent,{"success":"配達達成","late":"配達達成 / 遅配","failed":"クエスト失敗 / 出発前へ","travel":"目的地に到着"}.get(outcome,"旅の結果"),true)
+	l(parent,{"success":"配達完了！","late":"配達完了！ / 遅配","failed":"クエスト失敗 / 出発前へ","travel":"目的地に到着"}.get(outcome,"旅の結果"),true)
 	if outcome=="failed":
 		l(parent,result_.get("reason","護送隊が敗北しました"))
 		l(parent,"受注直前の状態へ戻しました。自由移動の場合は出発直前へ戻ります。")
@@ -294,15 +295,7 @@ func result(parent):
 	ui.icons.line(ui,parent,"money","所持金 %dG" % c().gold)
 	if result_.get("hours")!=null:l(parent,"所要時間 %d時間" % result_.hours)
 	l(parent,"現在地: "+town(c().location)+"。ここで施設を利用し、次の出発を選べます。")
-	b(parent,town(c().location)+"に留まる / 拠点へ",acknowledge.bind("hub"))
-	var facilities=[]
-	for place in c().get("locations",[]):
-		if place.id==c().location:facilities=place.get("facilities",[]);break
-	if facilities.any(func(id):return id in ["weapon","armor","items","accessory"]):
-		var label=town(c().location)+("の装飾品店へ" if facilities.has("accessory") else "のお店へ")
-		b(parent,label,acknowledge.bind("shop")).name="ResultShop"
-	elif facilities.has("inn"):b(parent,town(c().location)+"の宿屋へ",acknowledge.bind("inn"))
-	l(parent,"\n".join(c().get("history",[]).slice(-5)))
+
 func acknowledge(page: String):ui.page=page;await ui.act("acknowledge",[])
 
 func select_party(id: String):

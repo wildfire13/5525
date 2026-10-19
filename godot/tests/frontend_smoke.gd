@@ -14,6 +14,8 @@ func run():
 	while game.data.is_empty() and Time.get_ticks_msec()<deadline:await process_frame
 	if game.data.is_empty():check(false,"initialization");quit(1);return
 	game.checks_fast=true;game.audio.fast_mode=true
+	# Sound-event assertions explicitly opt in; ordinary playtests start muted.
+	for kind in ["bgm","voice","se"]:game.audio.set_mute(kind,false)
 	game.audio.ui_sound_started.connect(func(id):ui_events.append(id))
 	check(game.campaign().location=="astaris","single-window campaign initial state")
 	game.navigate("party");await process_frame

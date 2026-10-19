@@ -17,34 +17,52 @@ func target(entry: Dictionary) -> String:
 	return str(choices[0].slot) if choices.size()==1 else ""
 func render(parent,u: Dictionary):
 	generation+=1
-	if is_instance_valid(hover_window):hover_window.queue_free()
-	ui.label_(parent,str(u.name)+"の所持品",true).name="OwnedEquipmentOwner"
-	var chooser=OptionButton.new();chooser.name="OwnedEquipmentSlot";chooser.fit_to_longest_item=false;chooser.clip_text=true;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(chooser);parent.move_child(chooser,0)
-	chooser.add_item("すべての所持品 / 比較枠を選択");chooser.set_item_metadata(0,"")
+	if is_instance_valid(hover_window):hover_window.hide();hover_window.name="RetiredEquipmentHover";hover_window.queue_free()
+	var heading=ui.row(parent);heading.name="OwnedInventoryHeader"
+	var title=ui.label_(heading,str(u.name)+"のインベントリ",true);title.name="OwnedEquipmentOwner";title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ui.short_name(title,title.text);title.autowrap_mode=TextServer.AUTOWRAP_OFF;title.clip_text=true;title.max_lines_visible=1
+	var chooser=OptionButton.new();chooser.name="OwnedEquipmentSlot";chooser.fit_to_longest_item=false;chooser.clip_text=true;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_child(chooser);chooser.custom_minimum_size.x=160
+	chooser.add_item("すべて");chooser.set_item_metadata(0,"")
 	for e in u.get("equipmentSlots",[]):
 		chooser.add_item(str(e.label));chooser.set_item_metadata(chooser.item_count-1,str(e.slot))
 		if slot==e.slot:chooser.select(chooser.item_count-1)
 	chooser.add_item("消耗品・荷物");chooser.set_item_metadata(chooser.item_count-1,"items")
 	if slot=="items":chooser.select(chooser.item_count-1)
 	chooser.item_selected.connect(func(i):slot=str(chooser.get_item_metadata(i));party.refresh_modal())
-	var list=VBoxContainer.new();list.name="OwnedEquipmentList";parent.add_child(list)
+	var list=GridContainer.new();list.columns=3;list.size_flags_horizontal=Control.SIZE_EXPAND_FILL;list.name="OwnedEquipmentList";parent.add_child(list)
 	var hover=preload("res://hover_comparison.gd").new();hover.ui=ui;ui.dialog.window.add_child(hover);hover_window=hover
 	var panel=hover.content
 	for entry in entries(str(u.id)):
 		if slot=="items" and entry.kind=="equipment":continue
 		if not slot.is_empty() and slot!="items" and not entry.equipSlots.any(func(q):return q.slot==slot):continue
-		var row=ui.row(list)
+		var row=list
 		var button=ui.button(row,"%s　%d個" % [entry.name,entry.count],actions.bind(str(u.id),str(entry.id)));button.name="OwnedEquipment_"+str(entry.id);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;button.alignment=HORIZONTAL_ALIGNMENT_LEFT
 		button.set_script(preload("res://equipment_tooltip.gd"));button.configure_entry(entry,ui.campaign())
 		ui.icons.apply(button,ui.icons.equipment(entry.definition) if entry.kind=="equipment" else str(entry.id) if entry.id in ["potion","ether"] else "items");button.set_meta("placeholder_item_icon",true)
 
-		if entry.kind!="equipment":continue
+		if entry.kind!="equipment":
+			var usable=entry.get("useTargets",[]).any(func(q):return q.get("ok",false))
+			if usable:
+				ui.button(row,"使用",use_item.bind(str(u.id),str(entry.id))).name="OwnedInventoryUse_"+str(entry.id)
+			else:row.add_child(Control.new())
+			sale_button(row,u,entry)
+			continue
 		var chosen=target(entry);var allowed=entry.equipSlots.any(func(q):return q.slot==chosen and q.ok)
 		var action_button=ui.button(row,"装備",equip.bind(u,entry,panel),not allowed);action_button.name="OwnedEquipmentActions_"+str(entry.id)
 		action_button.mouse_entered.connect(func():hover.show_for(action_button))
 		action_button.focus_entered.connect(func():hover.show_for(action_button,true))
 		action_button.mouse_entered.connect(inspect.bind(u,entry,panel));action_button.focus_entered.connect(inspect.bind(u,entry,panel))
+		sale_button(row,u,entry)
 	if list.get_child_count()==0:ui.label_(list,"この枠に装備できる所持装備はありません。" if not slot.is_empty() else "所持品はありません。")
+func use_item(uid: String,id: String):
+	actions(uid,id)
+	if party.inventory_view.owner_id==uid and party.inventory_view.item_id==id:party.inventory_view.choose("use")
+func sale_button(parent,u,entry):
+	if ui.page!="shop":parent.add_child(Control.new());return
+	var enabled=ui.campaign().get("saleAvailable",false) and ui.campaign().get("selected",[]).has(u.id) and entry.get("sale",{}).get("ok",false)
+	ui.button(parent,"売却",sell_item.bind(str(u.id),str(entry.id)),not enabled).name="OwnedInventorySell_"+str(entry.id)
+func sell_item(uid: String,id: String):
+	actions(uid,id)
+	if party.inventory_view.owner_id==uid:party.inventory_view.choose_sale(id)
 func actions(uid: String,id: String):
 	var inv=party.inventory_view
 	if not inv.available():return

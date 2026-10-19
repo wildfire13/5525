@@ -352,7 +352,7 @@ func render_target():
 	if ui.command in ["skill","return","item","ether"]:
 		if ui.pending!=null and ui.preview_ready:
 			l(target_box,command_name()+"を実行しますか？").name="BattleConsent"
-			ui.memory.key(ui.primary(b(ui.battle_actions,"実行",ui.commit,not ui.can_commit())),"battle_commit")
+			ui.memory.key(ui.primary(b(ui.battle_actions,command_name()+"を確定",ui.commit,not ui.can_commit())),"battle_commit")
 			ui.memory.key(b(ui.battle_actions,"キャンセル",ui.cancel),"battle_cancel")
 		else:ui.memory.key(b(ui.battle_actions,"一覧へ戻る",open_skills if ui.command in ["skill","return"] else open_items),"battle_cancel")
 		return
@@ -385,6 +385,11 @@ func render_prediction(main,facts):
 	if ui.command=="skill" and ui.data.get("skill")=="陣形強化":summary="対象: 味方全員（陣形の3マス外も含む）"
 	var target=l(main,summary,true);target.name="TargetSummary";ui.short_name(target,summary)
 	var hits=ui.preview.get("damagePreview",[])
+	if ui.preview_ready:
+		for hit in hits:
+			var recipient=unit(str(hit.get("recipientId","")));var before=int(recipient.get("hp",0));var loss=int(hit.get("hpLoss",0))
+			var detail=l(main,"指示対象: %s\n実受け手: %s / HP %d → %d（−%d）" % [hit.get("targetName",""),hit.get("recipientName",""),before,maxi(0,before-loss),loss],true)
+			detail.name="RecipientSummary_"+str(hit.get("recipientId",""))
 	var hp_effects=ui.preview.get("effectPreview",[]).filter(func(effect):return effect.get("hp",0)!=0)
 	if ui.preview_ready and not hp_effects.is_empty():
 		for i in range(hp_effects.size()):
@@ -698,7 +703,7 @@ func request_hover(uid: String,token: int,generation: int,connection: int,source
 	if prediction.get("status")!="ready":ui.board.hover_caption="異なる2人の対象を指定" if prediction.get("status")=="needs_targets" else "対象外";return
 	var parts=[]
 	for hit in prediction.get("damagePreview",[]):
-		parts.append("HP −%d" % hit.hpLoss+(" → "+str(hit.recipientName) if hit.get("targetId")!=hit.get("recipientId") else ""))
+		parts.append("%sが受ける −%d" % [hit.get("recipientName","対象"),hit.hpLoss])
 	if prediction.get("fullHealth",false):parts.append("HP ＋0（HP満タン）")
 	if parts.is_empty():
 		for effect in prediction.get("effectPreview",[]):

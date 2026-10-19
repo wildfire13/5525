@@ -21,7 +21,7 @@ func run():
 	for i in range(36):
 		var entry=original_entries[i%original_entries.size()].duplicate(true);entry.id="layout-stress-"+str(i);entry.name="長い所持品の名称".repeat(12);long_entries.append(entry)
 	game.campaign().inventoryByCharacter.guard.entries=long_entries;party.refresh_modal();await settle()
-	check(node("OwnedEquipmentList").get_child_count()==36 and node("StatusEquipmentSplit").size.x<=game.dialog.window.size.x,"many long inventory names wrap inside status width")
+	check(node("OwnedEquipmentList").get_child_count()==36*3 and node("StatusEquipmentSplit").size.x<=game.dialog.window.size.x,"many long inventory names wrap inside status width")
 	check(node("OwnedEquipmentList").size.y>game.dialog.window.size.y,"large owner inventory remains in scrollable dialog content")
 	game.campaign().inventoryByCharacter.guard.entries=original_entries;party.refresh_modal();await settle()
 	var slot=game.campaign().roster.filter(func(u):return u.id=="guard")[0].equipmentSlots.filter(func(e):return e.slot=="lowerBody")[0]

@@ -102,14 +102,15 @@ func _ready():
 	save_notice=preload("res://save_notice.gd").new();save_notice.name="SaveNotice";add_child(save_notice)
 	menu=PopupPanel.new();menu.name="CommonMenu";add_child(menu)
 	var menu_body=VBoxContainer.new();menu.add_child(menu_body)
-	for item in [["拠点・旅程へ",func():navigate("hub")],["保存",save_game],["読込",load_dialog],["ログ保存",save_log],["画像",portrait_dialog],["新しい旅",func():confirm("未保存の進行を終了し、新しい旅を始めます。保存済みファイルは変更しません。",new_game)]]:
+	for item in [["セーブ",save_game],["ロード",load_dialog],["行動ログ",show_action_log]]:
 		var callback: Callable=item[1]
 		button(menu_body,item[0],func():menu.hide();callback.call())
 	local_button(menu_body,"操作説明",func():menu.hide();show_status_details())
 	local_button(menu_body,"全画面 F11",func():menu.hide();fullscreen())
 	for pair in [["bgm","BGM"],["voice","ボイス"],["se","SE"]]:
-		var check=CheckButton.new();check.text=pair[1]+"ミュート";check.custom_minimum_size.y=40;menu_body.add_child(check)
+		var check=CheckButton.new();check.text=pair[1]+"ミュート";check.button_pressed=audio.muted[pair[0]];check.custom_minimum_size.y=40;menu_body.add_child(check)
 		check.toggled.connect(func(value):audio.set_mute(pair[0],value);audio.sync(data))
+	button(menu_body,"新しい旅",func():menu.hide();confirm("未保存の進行を終了し、新しい旅を始めます。保存済みファイルは変更しません。",new_game))
 	local_button(menu_body,"閉じる",menu.hide)
 	content=VBoxContainer.new();content.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.size_flags_vertical=Control.SIZE_EXPAND_FILL;base.add_child(content)
 	footer=Label.new();footer.name="StatusFooter";footer.custom_minimum_size.y=24;footer.clip_text=true;footer.max_lines_visible=1;footer.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;base.add_child(footer)
@@ -347,13 +348,13 @@ func render():
 	theme.default_font_size=22 # Resize via wrapping and scrolling, never global text shrinking.
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
-	header.text="5525 / %s / 編成%d人 / 累計%d時間" % [town_name(place),c.get("selected",[]).size(),c.get("hours",0)]
+	header.text=town_name(place)+"の掲示板" if page=="board" and c.get("phase")=="town" else town_name(place)
 	gold_header.text="%dG" % c.get("gold",0)
 	header.tooltip_text=header.text
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	resource_header.visible=not battle and not (phase=="town" and page=="party")
 	actor_face.visible=false
-	var lower_return=phase=="town" and (page=="inn" or page=="party" and c.get("guildAvailable",false))
+	var lower_return=phase=="result" or phase=="town" and page!="hub"
 	town_back.visible=not battle and page!="hub" and phase=="town" and not lower_return
 	town_back.text="アスタリスへ戻る" if page=="party" and c.get("guildAvailable",false) else "拠点へ"
 	top.custom_minimum_size.y=56 if battle and ui_size_mode=="standard" else 44
@@ -367,11 +368,11 @@ func render():
 		var nav=row(content)
 		var focused_page=phase=="town" and page in ["shop","party"]
 		if focused_page:
-			header.text="装備を購入" if page=="shop" else "ギルド / パーティー編成" if c.get("guildAvailable",false) else "仲間・装備"
+			header.text="" if page=="shop" else "ギルド / パーティー編成" if c.get("guildAvailable",false) else "仲間・装備"
 			button(nav,"拠点へ",navigate.bind("hub"));nav.visible=false
 		var tabs_=[["board","掲示板"],["map","地図・出発"],["shop","商店"]] if phase=="town" else [["board","旅程"],["items","道具"]]
 		if phase=="town" and c.get("location")=="astaris":tabs_.append(["inn","宿屋"]);tabs_.append(["party","ギルド"])
-		for tab in ([] if focused_page or phase=="town" else tabs_):
+		for tab in ([] if focused_page or phase in ["town","result"] else tabs_):
 			var nb=button(nav,("● " if page==tab[0] else "")+tab[1],navigate.bind(tab[0]),phase!="town" and tab[0]=="items" and phase!="camp");memory.key(nb,"nav_"+tab[0])
 		var body: VBoxContainer
 		if phase=="town" and page in ["party","shop"]:
@@ -390,10 +391,10 @@ func render():
 		else:render_journey(body)
 		if lower_return:
 			var return_row=row(content);return_row.name="TownReturnRow";return_row.alignment=BoxContainer.ALIGNMENT_END
-			var back=green_button(button(return_row,"広場へ移動",navigate.bind("hub"),pages.guild_view.busy() if page=="party" else false));back.name="GuildReturn" if page=="party" else "InnReturn"
+			var back=green_button(button(return_row,"広場に移動",pages.acknowledge.bind("hub") if phase=="result" else navigate.bind("hub"),pages.guild_view.busy() if page=="party" else false));back.name="GuildReturn" if page=="party" else "InnReturn" if page=="inn" else "TownReturn"
 		pages.party_view.face_bar(content)
 	pages.party_view.refresh_modal()
-	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else ("処理中…" if locked or preview_pending or pages.quote_pending else "演出中…" if presenting else focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消"))
+	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else ("処理中…" if locked or preview_pending or pages.quote_pending else "演出中…" if presenting else focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if phase in ["battle","deployment"] else ""))
 	rendering=false;memory.restore()
 func town_name(id) -> String:
 	for t in campaign().get("towns",[]):
@@ -609,6 +610,13 @@ func load_game(path: String):
 	if not audio.valid_metadata(music):notice="旅曲の保存情報が不正です";render();return
 	envelope.erase("nativePortraits");envelope.erase("godotFrontend")
 	await update({"op":"campaign_load","data":envelope},{"images":images,"music":music,"source_path":path})
+func show_action_log():
+	dialog.open("行動ログ",func(body,actions):
+		label_(body,"累計%d時間" % campaign().get("hours",0),true).name="ActionLogHours"
+		var history=label_(body,"\n".join(campaign().get("history",[])));history.name="ActionLogHistory"
+		if history.text.is_empty():history.text="記録はまだありません。"
+		local_button(actions,"ログ保存",save_log).name="ActionLogSave"
+		local_button(actions,"閉じる",dialog.close))
 func save_log():
 	var r=await update({"op":"export"})
 	if r.get("ok",false):

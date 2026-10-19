@@ -28,29 +28,42 @@ func reset(_plan_mode: String="discard",_campaign_id: String=""):
 	if ui.dialog!=null:ui.dialog.close(false)
 func slots() -> Array:
 	return ["rightHand","leftHand"] if c().get("location")=="east" else ["accessory1","accessory2"] if c().get("location")=="north" else ["head","upperBody","lowerBody","feet"]
+const WEAPON_NAMES={"sword":"剣","greatsword":"両手剣","spear":"槍","bow":"弓","hammer":"槌","staff":"杖","shield":"盾","dagger":"短剣","book":"本","gun":"銃","fist":"拳","rope":"鉤縄"}
 func offered() -> Array:
 	return c().get("shop",[]).filter(func(g):
 		if g.get("type")=="empty":return false
+		if filter_slot=="all":return true
+		if c().get("location")=="east":return g.get("type","")==filter_slot
+		if c().get("location")=="south":return g.id==filter_slot
 		var allowed=g.get("allowedSlots",["rightHand"] if g.get("hands",1)==2 else ["rightHand","leftHand"] if g.slot=="weapon" else ["upperBody"] if g.slot=="armor" else [g.slot])
-		return filter_slot=="all" or allowed.has(filter_slot))
-func render(parent):
+		return allowed.has(filter_slot))
+func product_filter(parent):
 	if filter_location!=str(c().get("location","")):filter_location=str(c().get("location",""));filter_slot="all"
+	var options=[]
+	if c().get("location") in ["east","south"]:
+		var seen={}
+		for item in c().get("shop",[]):
+			if item.get("type")=="empty":continue
+			var id=str(item.get("type","")) if c().location=="east" else str(item.id)
+			if seen.has(id):continue
+			seen[id]=true;options.append([id,str(WEAPON_NAMES.get(id,id)) if c().location=="east" else str(item.name),ui.icons.WEAPONS.get(id,"items") if c().location=="east" else id])
+	else:
+		for id in slots():options.append([id,str(c().get("slots",{}).get(id,id)),ui.icons.slot(id)])
+	var slot=OptionButton.new();slot.name="ShopSlotFilter";slot.custom_minimum_size=Vector2(280,44);slot.size_flags_horizontal=Control.SIZE_EXPAND_FILL;slot.fit_to_longest_item=false;slot.clip_text=true;parent.add_child(slot)
+	slot.add_item("商品リスト（すべて）");slot.set_item_metadata(0,"all")
+	for option in options:
+		slot.add_icon_item(ui.icons.texture(option[2]),"商品リスト（%sのみ）" % option[1]);slot.set_item_metadata(slot.item_count-1,option[0])
+		if filter_slot==option[0]:slot.select(slot.item_count-1)
+	slot.add_theme_constant_override("icon_max_width",24);slot.disabled=busy()
+	slot.item_selected.connect(func(i):select_slot(str(slot.get_item_metadata(i))));ui.memory.key(slot,"shop_filter")
+func render(parent):
 	var context=ui.row(parent);context.name="ShopContext"
 	var shop_name={"east":"イースの武器屋","west":"ウエスの防具屋","north":"ノースの装飾品店"}.get(c().location,"")
 	ui.icons.line(ui,context,ui.icons.shop(str(c().location)),shop_name)
 	render_notice(parent)
-	var filters=ui.row(parent);filters.name="ShopFilters"
-	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;filters.add_child(spacer)
-	var filter_label=l(filters,"部位フィルター");filter_label.size_flags_horizontal=Control.SIZE_FILL;filter_label.custom_minimum_size.x=176;filter_label.autowrap_mode=TextServer.AUTOWRAP_OFF
-	var slot=OptionButton.new();slot.name="ShopSlotFilter";slot.custom_minimum_size=Vector2(180,44);filters.add_child(slot)
-	slot.add_item("すべて");slot.set_item_metadata(0,"all")
-	for id in slots():
-		slot.add_icon_item(ui.icons.texture(ui.icons.slot(id)),str(c().get("slots",{}).get(id,id)));slot.set_item_metadata(slot.item_count-1,id)
-		if filter_slot==id:slot.select(slot.item_count-1)
-	slot.add_theme_constant_override("icon_max_width",24);slot.disabled=busy()
-	slot.item_selected.connect(func(i):select_slot(str(slot.get_item_metadata(i))));ui.memory.key(slot,"shop_filter")
 	var body=ui.scroller(parent);var scroll=body.get_parent();scroll.name="ShopProductsScroll"
 	scroll.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;scroll.custom_minimum_size.x=maxf(600,ui.size.x*2.0/3.0-parent.global_position.x);scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"shop_products")
+	product_filter(body)
 	for item in offered():
 		var line=ui.row(body);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=64
 		var info=b(line,"",func():pass);info.name="Product_"+str(item.id);info.alignment=HORIZONTAL_ALIGNMENT_LEFT
