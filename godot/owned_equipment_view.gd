@@ -52,7 +52,10 @@ func render(parent,u: Dictionary):
 		action_button.focus_entered.connect(func():hover.show_for(action_button,true))
 		action_button.mouse_entered.connect(inspect.bind(u,entry,panel));action_button.focus_entered.connect(inspect.bind(u,entry,panel))
 		sale_button(row,u,entry)
-	if list.get_child_count()==0:ui.label_(list,"この枠に装備できる所持装備はありません。" if not slot.is_empty() else "所持品はありません。")
+	if list.get_child_count()==0:
+		# An empty three-column grid cannot give this label a useful text width.
+		var empty=ui.label_(parent,"この枠に装備できる所持装備はありません。" if not slot.is_empty() else "所持品はありません。")
+		empty.name="OwnedInventoryEmpty";empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 func use_item(uid: String,id: String):
 	actions(uid,id)
 	if party.inventory_view.owner_id==uid and party.inventory_view.item_id==id:party.inventory_view.choose("use")

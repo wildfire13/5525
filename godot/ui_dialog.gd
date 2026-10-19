@@ -48,7 +48,13 @@ func keep_visible():
 	var available=ui.size
 	if window.title==STATUS_TITLE:
 		var faces=ui.find_child("PartyFaceBar",true,false)
-		if faces!=null and faces.is_visible_in_tree():available.y=minf(available.y,faces.global_position.y-8)
+		if faces!=null and faces.is_visible_in_tree():
+			# The row is rebuilt during render; its position/size are provisional
+			# until Container sorts. Derive its bottom-anchored boundary from
+			# stable layout metrics, never persist a transient y=64 as a height cap.
+			var bottom=ui.size.y+minf(0,ui.base.offset_bottom)
+			if ui.footer.is_visible_in_tree():bottom-=ui.footer.get_combined_minimum_size().y+ui.base.get_theme_constant("separation")
+			available.y=minf(available.y,bottom-faces.get_combined_minimum_size().y-8)
 	ui.preferences.keep_visible(window,available)
 func resize():
 	if not is_instance_valid(window):return
