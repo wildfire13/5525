@@ -42,7 +42,12 @@ jobs:
           $env:NATIVE5525_NODE = (Get-Command node).Source
           $env:NATIVE5525_PYTHON = (Get-Command python).Source
           python godot/tests/launcher_checks.py $env:GODOT_BIN
-          exit $LASTEXITCODE
+          $checkExit = $LASTEXITCODE
+          if ($checkExit -ne 0 -and (Test-Path godot/qa/launcher-report.json)) {
+            $report = Get-Content godot/qa/launcher-report.json -Raw | ConvertFrom-Json
+            $report.steps | Where-Object { -not $_.passed } | Select-Object name, exitCode, stdout, stderr, resolved | ConvertTo-Json -Depth 6
+          }
+          exit $checkExit
       - name: Retain synthetic test summary
         if: ${{ always() }}
         run: |
