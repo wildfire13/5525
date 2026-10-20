@@ -2,6 +2,21 @@ name: Windows launcher
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'Start-5525*.cmd'
+      - 'godot/**'
+      - '!godot/tests/**'
+      - '!godot/**/*.md'
+      - 'godot/tests/launcher_checks.py'
+      - 'godot/tests/launcher_smoke.gd'
+      - 'godot/tests/fixtures/python-launcher-baseline.json'
+      - 'native/**'
+      - '!native/**/*.md'
+      - '.gitattributes'
+      - '.github/scripts/**'
+      - '.github/workflows/windows-launcher.yml'
 
 permissions:
   contents: read
