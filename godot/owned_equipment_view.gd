@@ -15,9 +15,7 @@ func target(entry: Dictionary) -> String:
 	if not slot.is_empty():return slot
 	var choices=entry.get("equipSlots",[])
 	return str(choices[0].slot) if choices.size()==1 else ""
-func render(parent,u: Dictionary):
-	generation+=1
-	if is_instance_valid(hover_window):hover_window.hide();hover_window.name="RetiredEquipmentHover";hover_window.queue_free()
+func render_header(parent,u: Dictionary):
 	var heading=ui.row(parent);heading.name="OwnedInventoryHeader"
 	var title=ui.label_(heading,str(u.name)+"のインベントリ",true);title.name="OwnedEquipmentOwner";title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ui.short_name(title,title.text);title.autowrap_mode=TextServer.AUTOWRAP_OFF;title.clip_text=true;title.max_lines_visible=1
 	var chooser=OptionButton.new();chooser.name="OwnedEquipmentSlot";chooser.fit_to_longest_item=false;chooser.clip_text=true;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_child(chooser);chooser.custom_minimum_size.x=160
@@ -27,7 +25,13 @@ func render(parent,u: Dictionary):
 		if slot==e.slot:chooser.select(chooser.item_count-1)
 	chooser.add_item("消耗品・荷物");chooser.set_item_metadata(chooser.item_count-1,"items")
 	if slot=="items":chooser.select(chooser.item_count-1)
-	chooser.item_selected.connect(func(i):slot=str(chooser.get_item_metadata(i));party.refresh_modal())
+	chooser.disabled=not party.inventory_view.available() or party.inventory_view.stage=="confirm"
+	chooser.item_selected.connect(func(i):
+		if not party.inventory_view.available() or party.inventory_view.stage=="confirm":return
+		slot=str(chooser.get_item_metadata(i));party.inventory_view.reset();party.inventory_view.owner_id=str(u.id);party.refresh_modal())
+func render(parent,u: Dictionary):
+	generation+=1
+	if is_instance_valid(hover_window):hover_window.hide();hover_window.name="RetiredEquipmentHover";hover_window.queue_free()
 	var list=GridContainer.new();list.columns=3;list.size_flags_horizontal=Control.SIZE_EXPAND_FILL;list.name="OwnedEquipmentList";parent.add_child(list)
 	var hover=preload("res://hover_comparison.gd").new();hover.ui=ui;ui.dialog.window.add_child(hover);hover_window=hover
 	var panel=hover.content
@@ -35,7 +39,7 @@ func render(parent,u: Dictionary):
 		if slot=="items" and entry.kind=="equipment":continue
 		if not slot.is_empty() and slot!="items" and not entry.equipSlots.any(func(q):return q.slot==slot):continue
 		var row=list
-		var button=ui.button(row,"%s　%d個" % [entry.name,entry.count],actions.bind(str(u.id),str(entry.id)));button.name="OwnedEquipment_"+str(entry.id);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;button.alignment=HORIZONTAL_ALIGNMENT_LEFT
+		var button=ui.button(row,"%s　%d個" % [entry.name,entry.count],actions.bind(str(u.id),str(entry.id)));button.name="OwnedEquipment_"+str(entry.id);ui.memory.key(button,"inventory_"+str(u.id)+"_"+str(entry.id));button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;button.alignment=HORIZONTAL_ALIGNMENT_LEFT
 		button.set_script(preload("res://equipment_tooltip.gd"));button.configure_entry(entry,ui.campaign())
 		ui.icons.apply(button,ui.icons.equipment(entry.definition) if entry.kind=="equipment" else str(entry.id) if entry.id in ["potion","ether"] else "items");button.set_meta("placeholder_item_icon",true)
 
@@ -69,9 +73,9 @@ func sell_item(uid: String,id: String):
 func actions(uid: String,id: String):
 	var inv=party.inventory_view
 	if not inv.available():return
-	inv.reset();inv.owner_id=uid;party.detail_tab=3;inv.pick(id)
+	inv.reset();inv.owner_id=uid;inv.pick(id)
 func current(ticket: int,panel,epoch,connection,token) -> bool:
-	return ticket==generation and is_instance_valid(panel) and panel.is_inside_tree() and not panel.is_queued_for_deletion() and not ui.closing and party.detail_tab==0 and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and token==ui.campaign().get("inventoryToken")
+	return ticket==generation and is_instance_valid(panel) and panel.is_inside_tree() and not panel.is_queued_for_deletion() and not ui.closing and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and token==ui.campaign().get("inventoryToken")
 func inspect(u: Dictionary,entry: Dictionary,panel) -> String:
 	generation+=1;var ticket=generation;var chosen=target(entry)
 	if chosen.is_empty():

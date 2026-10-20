@@ -93,7 +93,7 @@ func run():
 	check(game.campaign().selected==["guard-2","mage","scout","porter","archer"] and (await saved()).state.characters==before.state.characters,"G04 addition appends and preserves owner data")
 	var roundtrip=await saved();await game.update({"op":"campaign_load","data":roundtrip});game.navigate("party");await settle()
 	check(game.campaign().selected==roundtrip.state.selected,"G10 save/load retains composition and order")
-	await tap("GuildMember_warrior");await tap("GuildDetails");await tap("StatusTab_3");await tap("InventoryItem_potion")
+	await tap("GuildMember_warrior");await tap("GuildDetails");await all_inventory();await tap("OwnedEquipment_potion")
 	check(node("InventoryUse").disabled and node("InventoryTransfer").disabled and node("InventoryDiscard").disabled,"G07 reserve inventory restrictions remain")
 	await tap("StatusTab_1")
 	check(game.find_children("*","Button",true,false).filter(func(b):return str(b.get_meta("ui_key","")).begins_with("allocate_")).all(func(b):return b.disabled),"G07 reserve growth editing disabled")
@@ -133,3 +133,7 @@ func run():
 	game.dialog.close(false);game.engine=actual;recorder.queue_free();game.closing=true;await game.audio.finish_audio();actual.close_engine();game.queue_free();await frames()
 	var f=FileAccess.open(OS.get_environment("INVENTORY_QA_ROOT").path_join("guild-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
 	quit(0 if checks.all(func(row):return row.passed) else 1)
+
+func all_inventory():
+	var chooser=game.find_child("OwnedEquipmentSlot",true,false)
+	chooser.select(0);chooser.item_selected.emit(0);await settle()

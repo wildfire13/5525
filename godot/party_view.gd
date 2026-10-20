@@ -222,16 +222,14 @@ func open_detail(uid: String):
 	ui.render()
 func open_inventory(uid: String):
 	open_detail(uid)
-	if detail_uid==uid:detail_tab=3;refresh_modal()
 func detail_close_guard(next: Callable) -> bool:
 	if ui.locked or ui.presenting or inventory_view.stage=="pending":return false
 	return guard_leave(next)
 func detail_escape() -> bool:
 	if inventory_view.stage=="confirm":inventory_view.cancel_confirmation();return true
-	if detail_tab==3 and inventory_view.stage=="confirm" and inventory_view.action=="sell" and inventory_view.sale_available():return inventory_view.back()
 	return false
 func detail_back():
-	if detail_tab==3:inventory_view.back()
+	inventory_view.back()
 func refresh_modal():
 	if detail_uid.is_empty() or modal_refreshing or not is_instance_valid(ui.dialog.window):return
 	if ui.dialog.window.title!=ui.dialog.STATUS_TITLE:return
@@ -246,32 +244,35 @@ func refresh_modal():
 	face.gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed:face.hide_hint();open_portrait_preview(u))
 	l(hero,str(u.name)+" / Lv.%d / 経験値 %d\nHP%d/%d  MP%d/%d" % [u.level,u.get("xp",0),u.hp,u.max,u.mp,u.maxMp],true);identity(body,u)
-	# Shared grid columns align the tab boundaries with the equipment/inventory below.
+	# The left tabs select character detail; the right column is always inventory.
+	if inventory_view.owner_id!=detail_uid:inventory_view.reset();inventory_view.owner_id=detail_uid
 	var split=GridContainer.new();split.columns=2;split.name="StatusEquipmentSplit";split.add_theme_constant_override("h_separation",16);body.add_child(split)
 	var left_tabs=ui.row(split);left_tabs.name="StatusLeftTabs";left_tabs.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	var right_tabs=ui.row(split);right_tabs.name="StatusRightTabs";right_tabs.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	for i in range(4):
-		var tab_button=b(left_tabs if i<3 else right_tabs,("● " if detail_tab==i else "")+["装備","能力・成長","スキル・効果","インベントリ"][i],func():detail_tab=i;detail_gear={};refresh_modal())
+	var right_header=VBoxContainer.new();right_header.name="StatusInventoryHeading";right_header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(right_header)
+	owned_equipment_view.render_header(right_header,u)
+	for i in range(3):
+		var tab_button=b(left_tabs,("● " if detail_tab==i else "")+["装備","能力・成長","スキル・効果"][i],func():detail_tab=i;detail_gear={};refresh_modal())
 		tab_button.name="StatusTab_"+str(i);tab_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	var equipped=VBoxContainer.new();equipped.name="StatusEquipped";equipped.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(equipped)
+	var owned=VBoxContainer.new();owned.name="StatusOwnedInventory";owned.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(owned)
 	match detail_tab:
 		0:
-			var equipped=VBoxContainer.new();equipped.name="StatusEquipped";equipped.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(equipped)
-			var owned=VBoxContainer.new();owned.name="StatusOwnedInventory";owned.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(owned)
 			equipment(equipped,u)
-			owned_equipment_view.render(owned,u)
 			for e in u.get("equipmentSlots",[]):
 				if e.slot==owned_equipment_view.slot and e.get("occupiedBy")==null and e.get("id","")!="" and u.get("equipmentDetails",{}).get(e.slot,{}).get("type")=="empty":continue
 				if e.slot==owned_equipment_view.slot and e.get("occupiedBy")==null and u.get("equipmentDetails",{}).get(e.slot,{}).get("type")!="empty":
 					var row=ui.row(equipped)
 					var remove=b(row,"装備を外す",inventory_view.prepare_unequip.bind(detail_uid,str(e.id),str(e.slot)),pages.c().get("phase") not in ["town","camp"] or not pages.c().get("selected",[]).has(detail_uid));remove.name="UnequipSelected";remove.custom_minimum_size=Vector2(160,40)
 					l(row,str(e.label))
-
-		1:growth(body,u)
-		2:skills(body,u)
-		3:inventory_view.render(body,detail_uid)
+		1:growth(equipped,u)
+		2:skills(equipped,u)
+	owned_equipment_view.render(owned,u)
+	if inventory_view.stage!="list" or not inventory_view.message.is_empty():
+		var actions=VBoxContainer.new();actions.name="StatusInventoryActions";owned.add_child(actions)
+		inventory_view.render(actions,detail_uid)
 	if not ui.notice.is_empty():l(body,ui.notice)
 	var back_button=ui.dialog.actions.get_node("StatusBack")
-	back_button.visible=detail_tab==3
+	back_button.visible=inventory_view.stage!="list"
 	back_button.disabled=not inventory_view.available() or inventory_view.stage=="list"
 	scroll.set_deferred("scroll_vertical",old_scroll);modal_refreshing=false
 
