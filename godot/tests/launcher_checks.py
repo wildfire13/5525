@@ -37,7 +37,9 @@ with tempfile.TemporaryDirectory(prefix='5525-launcher-discovery-') as temporary
         data=json.loads(item['stdout'])
         item['resolved']=data
         item['passed'] &= data['installedNothing'] and all(Path(data[k]['path']).is_file() for k in ['godot','node','python'])
-        item['passed'] &= Path(data['godot']['path']).parent==runtime
+        # Hosted Windows TEMP may use an 8.3 alias while PowerShell returns
+        # the long path. Require the same filesystem directory, not spelling.
+        item['passed'] &= Path(data['godot']['path']).parent.samefile(runtime)
 explicit=run('Godot entry accepts explicit runtime','Start-5525-Godot.cmd',['-Check'],env)
 for key in ['GODOT_BIN','NATIVE5525_NODE','NATIVE5525_PYTHON']:
     item=run('Reject missing explicit '+key,'Start-5525-Godot.cmd',['-Check'],{**env,key:str(ROOT/'nonexistent-runtime.exe')},1)
