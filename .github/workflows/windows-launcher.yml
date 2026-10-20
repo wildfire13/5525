@@ -17,8 +17,6 @@ jobs:
     env:
       PYTHONUTF8: '1'
       PYTHONDONTWRITEBYTECODE: '1'
-      APPDATA: ${{ runner.temp }}\5525-profile\Roaming
-      LOCALAPPDATA: ${{ runner.temp }}\5525-profile\Local
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -35,9 +33,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python .github/scripts/install_godot.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          New-Item -ItemType Directory -Force $env:APPDATA, $env:LOCALAPPDATA | Out-Null
       - name: Check real CMD and PowerShell launcher
+        env:
+          APPDATA: ${{ runner.temp }}\5525-profile\Roaming
+          LOCALAPPDATA: ${{ runner.temp }}\5525-profile\Local
         run: |
+          New-Item -ItemType Directory -Force $env:APPDATA, $env:LOCALAPPDATA | Out-Null
           $env:NATIVE5525_NODE = (Get-Command node).Source
           $env:NATIVE5525_PYTHON = (Get-Command python).Source
           python godot/tests/launcher_checks.py $env:GODOT_BIN
