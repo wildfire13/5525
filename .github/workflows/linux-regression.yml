@@ -1,0 +1,51 @@
+name: Linux startup and UI regression
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONUTF8: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      XDG_DATA_HOME: ${{ runner.temp }}/5525-profile/data
+      XDG_CONFIG_HOME: ${{ runner.temp }}/5525-profile/config
+      XDG_CACHE_HOME: ${{ runner.temp }}/5525-profile/cache
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Install test runtimes
+        run: |
+          python -m pip install Pillow==12.3.0
+          python .github/scripts/install_godot.py
+          mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME"
+      - name: Import Godot project
+        run: |
+          timeout 180 godot --headless --path godot --editor --import > "$RUNNER_TEMP/godot-import.log" 2>&1
+          if rg 'SCRIPT ERROR:|ERROR:' "$RUNNER_TEMP/godot-import.log"; then exit 1; fi
+      - name: Run all 16 current UI and startup checks
+        run: python godot/tests/run_inventory_header_261020.py --evidence "$RUNNER_TEMP/5525-regression"
+      - name: Retain synthetic test summary
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: linux-regression-summary
+          path: ${{ runner.temp }}/5525-regression/results.json
+          retention-days: 5
+          if-no-files-found: ignore
