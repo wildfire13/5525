@@ -52,4 +52,4 @@ HANDOFF.md             開発引き継ぎ
 
 Linuxの起動・現行UI回帰（16回）とWindowsのCMD／PowerShellランチャーチェックを、標準のGitHub-hosted runnerで実行します。Godot 4.6.3の公式配布とSHA-256、Node.js 24、Python 3.12、Pillow 12.3.0を使用します。GUIの見た目・実機の音声は別途確認が必要です。旧仕様テストを含む `godot/check.py --full` は必須化していません。
 
-初回はActionsタブの各ワークフローから `Run workflow` を実行します。両方の成功を確認してから、関連ファイルのmainへのpushで自動実行する設定へ切り替えます。テストは隔離プロファイルを使い、artifactは合成テストの要約のみ5日保持します。Actionsの実行ログ保持期間はワークフローYAMLでは指定できないため、リポジトリの Settings → Actions → General で5日への設定が必要です。個人のセーブ・環境変数一覧・資格情報は出力やアップロードの対象にしません。
+初回の手動実行で両方の成功を確認済みです。LinuxはGodot・nativeのコード／アセットとCI設定、Windowsはランチャー・起動に使うコード／アセットと専用テスト・CI設定のmainへのpushで実行します。Markdownのみの変更は対象外です。Actionsタブの各ワークフローの `Run workflow` から手動実行もできます。テストは隔離プロファイルを使い、artifactは合成テストの要約のみ5日保持します。Actionsの実行ログ保持期間はワークフローYAMLでは指定できないため、リポジトリの Settings → Actions → General で5日への設定が必要です。個人のセーブ・環境変数一覧・資格情報は出力やアップロードの対象にしません。
