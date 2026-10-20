@@ -5,6 +5,14 @@ func filter_to(value):
 		if str(chooser.get_item_metadata(i))==value:chooser.select(i);chooser.item_selected.emit(i);break
 	await settle()
 func layout_check():
+	var scroll=node("ModalDetailScroll")
+	var lines=scroll.divider_geometry()
+	check(lines.size()==4,"status region dividers are present")
+	if lines.size()==4:
+		var origin=scroll.global_position
+		check(absf(lines[0].x+origin.x-node("StatusEquipmentSplit").global_position.x)<2 and absf(lines[1].x+origin.x-node("StatusEquipmentSplit").get_global_rect().end.x)<2,"horizontal divider spans both columns")
+		check(lines[2].x+origin.x>node("StatusLeftTabs").get_global_rect().end.x and lines[2].x+origin.x<node("StatusInventoryHeading").global_position.x,"vertical divider follows the column gap")
+		check(lines[2].y==lines[0].y and lines[3].y==scroll.size.y,"vertical divider joins header line and reaches viewport bottom")
 	check(node("StatusTab_3")==null and node("OwnedInventoryHeader")!=null,"no inventory tab; real header is present")
 	check(node("OwnedEquipmentOwner") is Label and node("OwnedEquipmentSlot") is OptionButton,"owner column heading and filter are in header")
 	check(absf(node("OwnedInventoryHeader").global_position.x-node("StatusOwnedInventory").global_position.x)<2 and absf(node("OwnedInventoryHeader").get_global_rect().end.x-node("StatusOwnedInventory").get_global_rect().end.x)<2,"header and list edges align")

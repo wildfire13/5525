@@ -28,7 +28,9 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 	var box=VBoxContainer.new();box.add_theme_constant_override("separation",8);margin.add_child(box)
 	if title not in [STATUS_TITLE,"行動ログ"]:ui.label_(box,title,true)
 	body=ui.scroller(box);body.get_parent().name="ModalDetailScroll";body.get_parent().custom_minimum_size.y=80
-	if title==STATUS_TITLE:body.get_parent().horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
+	if title==STATUS_TITLE:
+		body.get_parent().horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
+		body.get_parent().set_script(preload("res://status_region_dividers.gd"))
 	actions=ui.row(box);actions.name="ModalActions"
 	builder.call(body,actions)
 	if actions.get_child_count()==0:ui.local_button(actions,"閉じる",close)
