@@ -43,9 +43,6 @@ prototype/             変更せず保持したWeb比較版
   vendor/              Three.jsとライセンス
   tools/               検証・比較プレイ用ツール
   qa/                  検証結果・スクリーンショット
-FromAdmin/             企画・制作資料
-FromAstra/             実装・試遊の報告
-FromLuna/              Lunaの試遊記録
 HANDOFF.md             開発引き継ぎ
 ```
 
