@@ -13,7 +13,7 @@ func return_layout(id):
 	check(game.find_children("*","Button",true,false).filter(func(b):return b.visible and b.text=="広場に移動").size()==1,"no duplicate return "+id)
 func alignment():
 	check(absf(node("StatusTab_2").get_global_rect().end.x-node("StatusEquipped").get_global_rect().end.x)<2,"skills tab right edge matches equipped column")
-	check(absf(node("StatusTab_3").global_position.x-node("StatusOwnedInventory").global_position.x)<2,"inventory tab left edge matches owner inventory")
+	check(absf(node("OwnedInventoryHeader").global_position.x-node("StatusOwnedInventory").global_position.x)<2,"inventory header left edge matches owner inventory")
 func run():
 	create_timer(90).timeout.connect(func():print("FAIL feedback2 watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return

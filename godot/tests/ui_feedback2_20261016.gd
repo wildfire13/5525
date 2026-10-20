@@ -21,7 +21,7 @@ func run():
 	check(node("OwnedEquipment_swift-boots").tooltip_text.contains("俊足"),"S1 item hover retains item details separately")
 	node("OwnedEquipmentActions_swift-boots").focus_entered.emit();await settle()
 	var hover=node("EquipmentHover")
-	check(hover.visible and hover.position.x>=status.position.x+status.size.x and hover.position.x+hover.size.x<=1920,"S1 comparison appears to right of status within FHD")
+	check(hover.visible and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(hover.position),Vector2(hover.size))),"S1 comparison stays within FHD (feedback3 placement)")
 	var text=node("OwnedEquipmentComparison").text
 	check(text.contains("俊足") and not text.contains("人物全体") and not text.contains("単品性能") and not text.contains("武器ATK") and not text.contains("+0"),"S2/3 comparison only changed effects without redundant headings")
 	var q={"before":{"max":245,"maxMp":10,"speed":14,"def":0},"after":{"max":207,"maxMp":10,"speed":14,"def":0}}
@@ -38,7 +38,7 @@ func run():
 	var d=inv.confirmation;d.confirmed.emit();d.confirmed.emit();await settle()
 	var after=await saved()
 	check(not after.state.characters.guard.inventory.has("swift-boots") and inv.stage=="list","S4 repeated YES equips exactly once")
-	await click("StatusTab_3");await click("InventoryItem_potion");await click("InventoryDiscard");await click("InventoryPrepareDiscard")
+	await all_inventory();await click("OwnedEquipment_potion");await click("InventoryDiscard");await click("InventoryPrepareDiscard")
 	check(inv.confirmation.visible and inv.confirmation.get_parent()==status,"S4 discard uses independent confirmation")
 	before=await saved();await consent(false);check(await saved()==before,"S4 discard NO preserves all inventory")
 	await click("InventoryDiscard");await click("InventoryPrepareDiscard");await consent(true)
@@ -52,7 +52,7 @@ func run():
 	check(node("DepartButton").size.x<600 and node("DepartButton").get_theme_stylebox("normal").bg_color==Color("#236044"),"S5 departure button narrow and green")
 	seed.state.location="west";await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle()
 	check(game.resource_header.visible and game.gold_header.is_visible_in_tree(),"S7 shop gold uses common upper-right header")
-	check(node("ShopSlotFilter").get_global_rect().position.x>game.size.x*.7,"S7 slot filter aligned right")
+	check(node("ShopSlotFilter").get_item_text(0)=="商品リスト（すべて）","S7 product heading retains filter (feedback3 layout)")
 	check(game.find_children("ProductSummary_*","Label",true,false).is_empty(),"S6 no permanent performance descriptions")
 	var product=node("Product_swift-boots");var price=node("ProductPrice_swift-boots")
 	check(product.is_ancestor_of(price) and product.get_global_rect().encloses(price.get_global_rect()),"S6 price inside product right edge")

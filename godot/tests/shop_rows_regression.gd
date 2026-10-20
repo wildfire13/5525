@@ -59,9 +59,9 @@ func run():
 	check(shop.stage=="S0" and not game.modal_open(),"successful receipt returns safely to product list")
 	await tap("PartyFace_mage")
 	check(game.dialog.window.title=="キャラクターステータス" and game.pages.party_view.detail_uid=="mage","shop lower face still opens personal status")
-	await tap("StatusTab_3")
-	check(exists("InventorySell_javelin-wood"),"shop inventory exposes per-item sale")
-	await tap("InventorySell_javelin-wood");await tap("InventoryPrepareSale")
+	await all_inventory()
+	check(exists("OwnedInventorySell_javelin-wood"),"shop inventory exposes per-item sale")
+	await tap("OwnedInventorySell_javelin-wood");await tap("InventoryPrepareSale")
 	var inv=game.pages.party_view.inventory_view
 	check(inv.quote.get("action")=="sell" and inv.quote.get("count")==1 and inv.quote.get("afterGold")==1000,"sale confirmation shows quantity and payment from actual owner")
 	await tap("InventoryCancel")
@@ -70,8 +70,8 @@ func run():
 	check(game.campaign().gold==1000 and not game.campaign().characters.mage.inventory.has("javelin-wood"),"sale commits once, removes actual owner's unit")
 	game.dialog.close();await settle()
 	await load_at("astaris",1000,{"javelin-wood":1});game.navigate("board");await settle();game.pages.party_view.open_inventory("mage");await settle()
-	check(not exists("InventorySell_javelin-wood"),"sale is absent outside equipment shop")
-	await tap("InventoryItem_javelin-wood");check(not exists("InventorySell"),"item action has no sale outside shop")
+	check(not exists("OwnedInventorySell_javelin-wood"),"sale is absent outside equipment shop")
+	await tap("OwnedEquipment_javelin-wood");check(not exists("InventorySell"),"item action has no sale outside shop")
 	await load_at("east",0)
 	check(button("ProductBuy_javelin-wood").disabled and not button("ProductTrial_javelin-wood").disabled,"insufficient money blocks purchase, not trial")
 	before=await saved();await shop.confirm_purchase("javelin-wood");await settle()
@@ -96,3 +96,7 @@ func run():
 	for i in range(8):await process_frame
 	var file=FileAccess.open(evidence.path_join("focused-checks.json"),FileAccess.WRITE);file.store_string(JSON.stringify(checks,"\t"));file.close()
 	quit(0 if checks.all(func(row):return row.passed) else 1)
+
+func all_inventory():
+	var chooser=game.find_child("OwnedEquipmentSlot",true,false)
+	chooser.select(0);chooser.item_selected.emit(0);await settle()

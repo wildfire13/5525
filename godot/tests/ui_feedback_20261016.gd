@@ -41,8 +41,8 @@ func run():
 	await click("StatusTab_0");check(node("UnequipSelected")!=null and node("UnequipSelected").text=="装備を外す","S11 compact unequip follows owned list")
 	await click("UnequipSelected");check(p.inventory_view.quote.slot=="rightHand","S11 unequip uses selected slot")
 	await click("InventoryConfirm");check((await saved()).state.characters.guard.inventory["spear-wood"]==2,"S11 unequip returns exactly one item")
-	await click("StatusTab_3")
-	check(node("InventoryItem_potion").tooltip_text.contains("HP") and node("InventoryItem_spear-wood").tooltip_text.contains("通常攻撃射程"),"S5 mixed consumables and unequipped gear have tooltips")
+	await all_inventory()
+	check(node("OwnedEquipment_potion").tooltip_text.contains("HP") and node("OwnedEquipment_spear-wood").tooltip_text.contains("通常攻撃射程"),"S5 mixed consumables and unequipped gear have tooltips")
 	var tip=preload("res://equipment_tooltip.gd").new();tip.configure("armor",{"type":"armor","hp":5,"effect":"archer"},{"definitions":{"archer":{"reach":3}},"descriptions":{"archer":"射程+1"}})
 	check(not tip.tooltip_text.contains("通常攻撃射程") and "\n".join(tip.details).contains("#c7a5ff"),"S6 armor excludes attack reach while skill effect is purple");tip.free()
 	game.dialog.close();await settle()
@@ -74,3 +74,7 @@ func run():
 	var f=FileAccess.open(evidence.path_join("ui-feedback-20261016.json"),FileAccess.WRITE);f.store_string(JSON.stringify(record,"\t"));f.close()
 	game.closing=true;game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames()
 	quit(0 if checks.all(func(c):return c.passed) else 1)
+
+func all_inventory():
+	var chooser=game.find_child("OwnedEquipmentSlot",true,false)
+	chooser.select(0);chooser.item_selected.emit(0);await settle()

@@ -61,25 +61,7 @@ func render(parent,uid: String):
 	if stage=="pending":l(parent,"所持品の状態を確認しています…");return
 	var entry=selected()
 	if stage!="list" and stage!="confirm" and entry.is_empty():stage="list";item_id=""
-	if stage=="list":
-		if data().get("entries",[]).is_empty():l(parent,"所持品はありません。")
-		for item in data().get("entries",[]):
-			var row=ui.row(parent)
-			var sale: Dictionary=item.get("sale",{})
-			var sale_text=(" / 単価 %dG" % sale.get("price",0) if sale.get("ok",false) else " / 売却不可") if ui.page=="shop" else ""
-			var button=b(row,"%s　%d個" % [item.name,item.count]+sale_text,pick.bind(str(item.id)))
-			button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-			button.alignment=HORIZONTAL_ALIGNMENT_LEFT;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-			button.set_script(preload("res://equipment_tooltip.gd"));button.configure_entry(item,c())
-			var icon=ui.icons.equipment(item.definition) if item.kind=="equipment" else str(item.id) if item.id in ["potion","ether"] else "items"
-			if not ResourceLoader.exists(ui.icons.path_for(icon)):icon="items"
-			ui.icons.apply(button,icon);button.set_meta("placeholder_item_icon",true)
-			button.name="InventoryItem_"+str(item.id);button.custom_minimum_size.y=48
-			ui.memory.key(button,"inventory_"+owner_id+"_"+str(item.id))
-			if ui.page=="shop":
-				var sell=b(row,"売却",choose_sale.bind(str(item.id)),not sale_available() or not sale.get("ok",false));sell.name="InventorySell_"+str(item.id)
-				sell.tooltip_text=str(sale.get("reason",""))
-		return
+	if stage=="list":return # The persistent owner list is rendered by owned_equipment_view.
 	if stage=="confirm":l(parent,"確認ダイアログで操作を選択してください。");return
 	l(parent,"%s / %s / 所持 %d個" % [ui.member_name(owner_id),entry.name,entry.count],true)
 	if stage=="actions":
@@ -148,7 +130,7 @@ func restore_equipment_context():
 	if context.is_empty():return
 	await ui.get_tree().process_frame
 	await ui.get_tree().process_frame
-	if not is_instance_valid(ui.dialog.window) or party.detail_tab!=0 or party.detail_uid!=context.owner or ui.dialog.window.get_instance_id()!=context.window:return
+	if not is_instance_valid(ui.dialog.window) or party.detail_uid!=context.owner or ui.dialog.window.get_instance_id()!=context.window:return
 	var scroll=ui.dialog.body.get_parent()
 	var button=ui.dialog.body.find_child("OwnedEquipmentActions_"+str(context.item),true,false)
 	if button!=null:button.grab_focus()
@@ -157,7 +139,7 @@ func cancel_confirmation():
 	close_confirmation()
 	var restore=return_to_equipment
 	stage="list" if return_to_equipment else "actions";quote={};generation+=1
-	if return_to_equipment:party.detail_tab=0;return_to_equipment=false
+	if return_to_equipment:return_to_equipment=false
 	redraw()
 	if restore:restore_equipment_context()
 
@@ -200,5 +182,5 @@ func commit():
 		message="%s×%dを売却 / 受取%dG" % [confirmed.name,confirmed.count,confirmed.proceeds]
 		ui.pages.shop_view.record_sale(confirmed);ui.render()
 	else:
-		if return_to_equipment:party.detail_tab=0;return_to_equipment=false
+		if return_to_equipment:return_to_equipment=false
 		redraw()

@@ -34,7 +34,7 @@ func run():
 	await open_inventory("mage")
 	check("INV-UI-01",game.dialog.window.title=="キャラクターステータス" and game.pages.party_view.detail_uid=="mage" and inventory().owner_id=="mage" and game.dialog.body.find_children("*","Label",true,false).any(func(label):return label.text.begins_with(game.member_name("mage")+" /")),"status names its inventory owner")
 	check("INV-UI-02",game.shop_uid=="guard" and game.pages.gear_id==selected and game.shop_slot==shop_slot,"face/status opening preserves purchase recipient, product and equipment slot")
-	check("INV-UI-03",button("InventoryItem_potion")==null,"another character's and planned items are absent")
+	check("INV-UI-03",button("OwnedEquipment_potion")==null,"another character's and planned items are absent")
 	await open_inventory("guard");inventory().pick("potion");inventory().choose("use")
 	var before=await saved();await inventory().prepare("mage",null);await settle()
 	check("INV-UI-04",inventory().quote.ownerId=="guard" and inventory().quote.targetId=="mage" and inventory().quote.count==1 and inventory().quote.after==56,"use confirmation names source, recipient, effect and consumption")
