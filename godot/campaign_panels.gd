@@ -354,7 +354,7 @@ func describe_gear(parent,gear: Dictionary):
 	if gear.has("allowedSlots"):l(parent,"装備枠: "+" / ".join(gear.allowedSlots.map(func(slot):return str(c().get("slots",{}).get(slot,slot)))))
 	for field in ["skill","effect"]:
 		if gear.get(field)!=null:
-			ui.icons.line(ui,parent,ui.icons.skill(str(gear[field])),("スキル: " if field=="skill" else "効果: ")+str(c().get("skillNames",{}).get(gear[field],gear[field])))
+			ui.icons.line(ui,parent,ui.icons.skill(str(gear[field]),int(gear.get("skillLevel",1))),("スキル: " if field=="skill" else "効果: ")+str(c().get("skillNames",{}).get(gear[field],gear[field])))
 			l(parent,skill_description(str(gear[field]),int(gear.get("skillLevel",1))))
 	if gear.has("note"):l(parent,gear.note)
 
