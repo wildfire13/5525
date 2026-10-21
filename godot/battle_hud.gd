@@ -443,13 +443,14 @@ func render_skills(parent):
 	var list=menu_content(parent,"BattleSkillList")
 	for skill in ui.data.get("skillset",[]):
 		var control=b(list,("● " if not skill_list and acting().get("selectedSkill","")==skill.id else "")+str(skill.name),ui.select_skill.bind(str(skill.id)))
-		control.name="BattleSkill_"+str(skill.id);ui.icons.apply(control,ui.icons.skill(str(skill.id)),24)
+		control.name="BattleSkill_"+str(skill.id)
 		var level=1
 		for source in skill.get("sources",[]):level=maxi(level,int(source.get("level",1)))
+		ui.icons.apply(control,ui.icons.skill(str(skill.id),level),24)
 		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip(str(skill.id),str(skill.name),level)
 		ui.memory.key(control,"battle_skill_"+str(skill.id))
 	if has_return():
-		var control=b(list,("● " if ui.command=="return" and not skill_list else "")+"帰還",ui.select_skill.bind("returnHome"));control.name="BattleSkill_returnHome"
+		var control=b(list,("● " if ui.command=="return" and not skill_list else "")+"帰還",ui.select_skill.bind("returnHome"));control.name="BattleSkill_returnHome";ui.icons.apply(control,ui.icons.skill("returnHome"),24)
 		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip("returnHome","帰還",1)
 func has_return() -> bool:return acting().get("effects",[]).has("returnHome")
 func command_name() -> String:

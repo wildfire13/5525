@@ -1,0 +1,2206 @@
+{
+  "site": "https://gogotogo-5525-spec.a-mochizuki13.chatgpt.site",
+  "version": 56,
+  "commit": "f9ffdc99f01122c1530bd6c872d875b7147cf353",
+  "source_route": "Authenticated Sites dispatch GET with existing tool-returned OAI-Sites-Authorization; no new credentials or sharing changes",
+  "equipment": [
+    {
+      "equipment_id": "cloth-head",
+      "name_text": "布の帽子",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-head.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-head.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-head.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": null,
+      "skill_visual": null,
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/head.png"
+      ]
+    },
+    {
+      "equipment_id": "cloth-lowerBody",
+      "name_text": "布のズボン",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-lowerBody.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-lowerBody.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-lowerBody.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": null,
+      "skill_visual": null,
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/trousers.png"
+      ]
+    },
+    {
+      "equipment_id": "cloth-feet",
+      "name_text": "布の靴",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-feet.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-feet.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-feet.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": null,
+      "skill_visual": null,
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/feet.png"
+      ]
+    },
+    {
+      "equipment_id": "greatsword-wood",
+      "name_text": "木製の両手剣",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/greatsword-wood.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/greatsword-wood.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/greatsword-wood.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": null,
+      "skill_visual": null,
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "spear-wood",
+      "name_text": "木製の片手槍",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/spear-wood.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/spear-wood.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/spear-wood.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": null,
+      "skill_visual": null,
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "longspear-wood",
+      "name_text": "木製の両手槍",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/longspear-wood.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/longspear-wood.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/longspear-wood.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "poleVault",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"poleVault\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "javelin-wood",
+      "name_text": "木製の投げ槍",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/javelin-wood.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/javelin-wood.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/javelin-wood.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": null,
+      "skill_visual": null,
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "swift-boots",
+      "name_text": "俊足の靴（試作）",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/swift-boots.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/swift-boots.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/swift-boots.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "swift",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"swift\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/feet.png"
+      ]
+    },
+    {
+      "equipment_id": "kungfu-pants",
+      "name_text": "カンフーパンツ ゲーム内の共通画像（部位fallback）",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/ui_icons/icons64/trousers.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "legSweep",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"legSweep\"><span class=\"skill-icon-stack\" data-level=\"1\"><span aria-label=\"足払いの図柄\" class=\"skill-effect-sprite\" data-crop=\"0,685,415,335\" role=\"img\" style=\"width:64.00000px;height:51.66265px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:191.22892px;height:195.70120px;left:0.00000px;top:-105.63855px\"/></span><span aria-label=\"スキルLv1\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"112,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-14.56px;top:-135.20000000000002px\"/></span></span></div>",
+        "images": [
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "0,685,415,335",
+            "label": "足払いの図柄",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "112,1040,200,200",
+            "label": "スキルLv1",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "1"
+        ]
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/trousers.png"
+      ]
+    },
+    {
+      "equipment_id": "kungfu-pants-1",
+      "name_text": "カンフーパンツ＋1 ゲーム内の共通画像（部位fallback）",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/ui_icons/icons64/trousers.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "legSweep",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"legSweep\"><span class=\"skill-icon-stack\" data-level=\"1\"><span aria-label=\"足払いの図柄\" class=\"skill-effect-sprite\" data-crop=\"0,685,415,335\" role=\"img\" style=\"width:64.00000px;height:51.66265px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:191.22892px;height:195.70120px;left:0.00000px;top:-105.63855px\"/></span><span aria-label=\"スキルLv1\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"112,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-14.56px;top:-135.20000000000002px\"/></span></span></div>",
+        "images": [
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "0,685,415,335",
+            "label": "足払いの図柄",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "112,1040,200,200",
+            "label": "スキルLv1",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "1"
+        ]
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/trousers.png"
+      ]
+    },
+    {
+      "equipment_id": "kungfu-pants-2",
+      "name_text": "カンフーパンツ＋2 ゲーム内の共通画像（部位fallback）",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/ui_icons/icons64/trousers.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "legSweep",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"legSweep\"><span class=\"skill-icon-stack\" data-level=\"2\"><span aria-label=\"足払いの図柄\" class=\"skill-effect-sprite\" data-crop=\"0,685,415,335\" role=\"img\" style=\"width:64.00000px;height:51.66265px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:191.22892px;height:195.70120px;left:0.00000px;top:-105.63855px\"/></span><span aria-label=\"スキルLv2\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"521,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-67.73px;top:-135.20000000000002px\"/></span></span></div>",
+        "images": [
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "0,685,415,335",
+            "label": "足払いの図柄",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "521,1040,200,200",
+            "label": "スキルLv2",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "2"
+        ]
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/trousers.png"
+      ]
+    },
+    {
+      "equipment_id": "kungfu-pants-3",
+      "name_text": "カンフーパンツ＋3 ゲーム内の共通画像（部位fallback）",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/ui_icons/icons64/trousers.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "legSweep",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"legSweep\"><span class=\"skill-icon-stack\" data-level=\"3\"><span aria-label=\"足払いの図柄\" class=\"skill-effect-sprite\" data-crop=\"0,685,415,335\" role=\"img\" style=\"width:64.00000px;height:51.66265px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:191.22892px;height:195.70120px;left:0.00000px;top:-105.63855px\"/></span><span aria-label=\"スキルLv3\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"924,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-120.12px;top:-135.20000000000002px\"/></span></span></div>",
+        "images": [
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "0,685,415,335",
+            "label": "足払いの図柄",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "924,1040,200,200",
+            "label": "スキルLv3",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "3"
+        ]
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/trousers.png"
+      ]
+    },
+    {
+      "equipment_id": "fist",
+      "name_text": "画像未割当（現行ゲームは画像なし） 拳 空き手の仮想既定値・所持品ではない",
+      "name_visual": null,
+      "name_images": [],
+      "skill_id": "itemUse",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"itemUse\"><span class=\"skill-icon-stack\" data-level=\"1\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span><span aria-label=\"スキルLv1\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"112,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-14.56px;top:-135.20000000000002px\"/></span></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "112,1040,200,200",
+            "label": "スキルLv1",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "1"
+        ]
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "fist-1",
+      "name_text": "画像未割当（現行ゲームは画像なし） 拳＋1",
+      "name_visual": null,
+      "name_images": [],
+      "skill_id": "itemUse",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"itemUse\"><span class=\"skill-icon-stack\" data-level=\"2\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span><span aria-label=\"スキルLv2\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"521,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-67.73px;top:-135.20000000000002px\"/></span></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "521,1040,200,200",
+            "label": "スキルLv2",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "2"
+        ]
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "fist-2",
+      "name_text": "画像未割当（現行ゲームは画像なし） 拳＋2 空き手の仮想既定値・所持品ではない",
+      "name_visual": null,
+      "name_images": [],
+      "skill_id": "itemUse",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"itemUse\"><span class=\"skill-icon-stack\" data-level=\"3\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span><span aria-label=\"スキルLv3\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"924,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-120.12px;top:-135.20000000000002px\"/></span></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "924,1040,200,200",
+            "label": "スキルLv3",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "3"
+        ]
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "grappling-rope",
+      "name_text": "鉤縄 本人指定：拳＋仮（wiki上の割当。現行ゲームは画像未割当）",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"拳に仮を重ねた鉤縄の仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/ui_icons/icons64/unarmed.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/ui_icons/icons64/unarmed.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/unarmed.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "grapple",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"grapple\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "undertow-sword",
+      "name_text": "引き波の剣",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/undertow-sword.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/undertow-sword.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/undertow-sword.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "retreatSlash",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"retreatSlash\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "breaker-hammer",
+      "name_text": "突き崩しの槌",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/breaker-hammer.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/breaker-hammer.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/breaker-hammer.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "knockback",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"knockback\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "twin-bow",
+      "name_text": "双射の弓",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/twin-bow.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/twin-bow.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/twin-bow.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "splitShot",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"splitShot\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "partner-dagger",
+      "name_text": "相棒の短剣",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/partner-dagger.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/partner-dagger.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/partner-dagger.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "pincer",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"pincer\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "rest-staff",
+      "name_text": "憩いの杖",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/rest-staff.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/rest-staff.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/rest-staff.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "healingCross",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"healingCross\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "battleline-shield",
+      "name_text": "戦列の盾",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/battleline-shield.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/battleline-shield.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/battleline-shield.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "defenseLine",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"defenseLine\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "sharing-tome",
+      "name_text": "分かちの魔導書",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sharing-tome.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sharing-tome.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sharing-tome.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "manaGift",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"manaGift\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "return-ring-1",
+      "name_text": "帰り路の指輪［データID末尾1］",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/return-ring-1.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/return-ring-1.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/return-ring-1.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "returnHome",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"returnHome\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/accessory.png"
+      ]
+    },
+    {
+      "equipment_id": "victory-earring-1",
+      "name_text": "凱歌の耳飾り［データID末尾1］",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/victory-earring-1.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/victory-earring-1.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/victory-earring-1.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "victoryBreath",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"victoryBreath\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/accessory.png"
+      ]
+    },
+    {
+      "equipment_id": "lone-ring-1",
+      "name_text": "一匹狼の指輪［データID末尾1］",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/lone-ring-1.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/lone-ring-1.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/lone-ring-1.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "loneWolf",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"loneWolf\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/accessory.png"
+      ]
+    },
+    {
+      "equipment_id": "pioneer-gloves-1",
+      "name_text": "先駆者の手袋［データID末尾1］",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/pioneer-gloves-1.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/pioneer-gloves-1.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/pioneer-gloves-1.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "firstStride",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"firstStride\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/accessory.png"
+      ]
+    },
+    {
+      "equipment_id": "invasion-charm-1",
+      "name_text": "侵入用装飾品（既存効果の仮枠化）［データID末尾1］",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/invasion-charm-1.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/invasion-charm-1.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/invasion-charm-1.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "invasion",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"invasion\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/accessory.png"
+      ]
+    },
+    {
+      "equipment_id": "return-ring-2",
+      "name_text": "帰り路の指輪［データID末尾2］",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/return-ring-2.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/return-ring-2.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/return-ring-2.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "returnHome",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"returnHome\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/accessory.png"
+      ]
+    },
+    {
+      "equipment_id": "victory-earring-2",
+      "name_text": "凱歌の耳飾り［データID末尾2］",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/victory-earring-2.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/victory-earring-2.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/victory-earring-2.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "victoryBreath",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"victoryBreath\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/accessory.png"
+      ]
+    },
+    {
+      "equipment_id": "lone-ring-2",
+      "name_text": "一匹狼の指輪［データID末尾2］",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/lone-ring-2.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/lone-ring-2.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/lone-ring-2.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "loneWolf",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"loneWolf\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/accessory.png"
+      ]
+    },
+    {
+      "equipment_id": "pioneer-gloves-2",
+      "name_text": "先駆者の手袋［データID末尾2］",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/pioneer-gloves-2.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/pioneer-gloves-2.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/pioneer-gloves-2.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "firstStride",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"firstStride\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/accessory.png"
+      ]
+    },
+    {
+      "equipment_id": "invasion-charm-2",
+      "name_text": "侵入用装飾品（既存効果の仮枠化）［データID末尾2］",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/invasion-charm-2.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/invasion-charm-2.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/invasion-charm-2.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "invasion",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"invasion\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/accessory.png"
+      ]
+    },
+    {
+      "equipment_id": "sword-wood",
+      "name_text": "木製の護衛剣",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sword-wood.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sword-wood.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sword-wood.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": null,
+      "skill_visual": null,
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "sword-iron-1",
+      "name_text": "鉄製の護衛剣＋1",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sword-iron-1.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sword-iron-1.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sword-iron-1.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": null,
+      "skill_visual": null,
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "bow-wood",
+      "name_text": "木製の遠見弓",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-wood.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-wood.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-wood.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "archer",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"archer\"><span class=\"skill-icon-stack\" data-level=\"1\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span><span aria-label=\"スキルLv1\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"112,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-14.56px;top:-135.20000000000002px\"/></span></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "112,1040,200,200",
+            "label": "スキルLv1",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "1"
+        ]
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "bow-wood-1",
+      "name_text": "木製の遠見弓＋1",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-wood-1.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-wood-1.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-wood-1.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "archer",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"archer\"><span class=\"skill-icon-stack\" data-level=\"1\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span><span aria-label=\"スキルLv1\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"112,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-14.56px;top:-135.20000000000002px\"/></span></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "112,1040,200,200",
+            "label": "スキルLv1",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "1"
+        ]
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "bow-silver-2",
+      "name_text": "銀製の遠見弓＋2",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-silver-2.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-silver-2.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-silver-2.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "archer",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"archer\"><span class=\"skill-icon-stack\" data-level=\"1\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span><span aria-label=\"スキルLv1\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"112,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-14.56px;top:-135.20000000000002px\"/></span></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "112,1040,200,200",
+            "label": "スキルLv1",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "1"
+        ]
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "staff-wood",
+      "name_text": "木製の癒し杖",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/staff-wood.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/staff-wood.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/staff-wood.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "mage",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"mage\"><span aria-label=\"ヒールの図柄\" class=\"skill-effect-sprite\" data-crop=\"820,685,420,335\" role=\"img\" style=\"width:64.00000px;height:51.04762px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:188.95238px;height:193.37143px;left:-124.95238px;top:-104.38095px\"/></span></div>",
+        "images": [
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "820,685,420,335",
+            "label": "ヒールの図柄",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "staff-silver-1",
+      "name_text": "銀製の癒し杖＋1",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/staff-silver-1.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/staff-silver-1.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/staff-silver-1.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "mage",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"mage\"><span aria-label=\"ヒールの図柄\" class=\"skill-effect-sprite\" data-crop=\"820,685,420,335\" role=\"img\" style=\"width:64.00000px;height:51.04762px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:188.95238px;height:193.37143px;left:-124.95238px;top:-104.38095px\"/></span></div>",
+        "images": [
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "820,685,420,335",
+            "label": "ヒールの図柄",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "dagger-wood",
+      "name_text": "木製の奇襲短剣",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/dagger-wood.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/dagger-wood.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/dagger-wood.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "scout",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"scout\"><span class=\"skill-icon-stack\" data-level=\"1\"><span aria-label=\"奇襲の図柄\" class=\"skill-effect-sprite\" data-crop=\"415,685,405,335\" role=\"img\" style=\"width:64.00000px;height:52.93827px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:195.95062px;height:200.53333px;left:-65.58025px;top:-108.24691px\"/></span><span aria-label=\"スキルLv1\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"112,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-14.56px;top:-135.20000000000002px\"/></span></span></div>",
+        "images": [
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "415,685,405,335",
+            "label": "奇襲の図柄",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "112,1040,200,200",
+            "label": "スキルLv1",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "1"
+        ]
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "hammer-wood",
+      "name_text": "木製のスタンプ槌",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/hammer-wood.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/hammer-wood.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/hammer-wood.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "stamp",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"stamp\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "hammer-iron-1",
+      "name_text": "鉄製のスタンプ槌＋1",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/hammer-iron-1.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/hammer-iron-1.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/hammer-iron-1.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "stamp",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"stamp\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "porter-kit",
+      "name_text": "運搬用の手道具（仮）",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/porter-kit.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/porter-kit.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/porter-kit.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "porter",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"porter\"><span aria-label=\"陣形強化の図柄（採用済み）\" class=\"skill-effect-sprite\" data-crop=\"444,0,443,444\" role=\"img\" style=\"width:63.85586px;height:64.00000px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/formation-effects.png\" style=\"width:255.71171px;height:127.85586px;left:-64.00000px;top:0.00000px\"/></span></div>",
+        "images": [
+          "assets/icons-review-20261020/formation-effects.png"
+        ],
+        "crops": [
+          {
+            "xywh": "444,0,443,444",
+            "label": "陣形強化の図柄（採用済み）",
+            "sheet": "assets/icons-review-20261020/formation-effects.png"
+          }
+        ],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "armor-cloth",
+      "name_text": "布製の旅装",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-cloth.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-cloth.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-cloth.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": null,
+      "skill_visual": null,
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/body.png"
+      ]
+    },
+    {
+      "equipment_id": "armor-leather-1",
+      "name_text": "革製の旅装＋1",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-leather-1.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-leather-1.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-leather-1.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": null,
+      "skill_visual": null,
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/body.png"
+      ]
+    },
+    {
+      "equipment_id": "armor-iron-2",
+      "name_text": "鉄製の鎧＋2",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-iron-2.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-iron-2.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-iron-2.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": null,
+      "skill_visual": null,
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/body.png"
+      ]
+    },
+    {
+      "equipment_id": "armor-silver-1",
+      "name_text": "銀製の軽鎧＋1",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-silver-1.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-silver-1.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-silver-1.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": null,
+      "skill_visual": null,
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/body.png"
+      ]
+    },
+    {
+      "equipment_id": "guard-shield-wood",
+      "name_text": "木製の護衛盾",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/guard-shield-wood.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/guard-shield-wood.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/guard-shield-wood.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "guard",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"guard\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    },
+    {
+      "equipment_id": "guard-shield-iron-1",
+      "name_text": "鉄製の護衛盾＋1",
+      "name_visual": {
+        "html": "<div class=\"equipment-name-visual\"><span aria-label=\"仮装備画像\" class=\"equipment-temp-icon\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-display-20261020/equipment_icons_placeholder/icons64/guard-shield-iron-1.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/icons-review-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/guard-shield-iron-1.png",
+          "assets/icons-review-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "name_images": [
+        "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/guard-shield-iron-1.png",
+        "assets/icons-review-20261020/temporary-outlined.png"
+      ],
+      "skill_id": "guard",
+      "skill_visual": {
+        "html": "<div class=\"skill-effect-visual\" data-skill=\"guard\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      },
+      "slot_images": [
+        "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+        "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "skill_id": "swift",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"swift\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "retreatSlash",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"retreatSlash\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "knockback",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"knockback\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "splitShot",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"splitShot\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "pincer",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"pincer\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "healingCross",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"healingCross\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "defenseLine",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"defenseLine\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "manaGift",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"manaGift\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "returnHome",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"returnHome\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "victoryBreath",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"victoryBreath\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "loneWolf",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"loneWolf\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "firstStride",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"firstStride\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "invasion",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"invasion\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "archer",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"archer\"><span class=\"skill-icon-stack\" data-level=\"1\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span><span aria-label=\"スキルLv1\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"112,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-14.56px;top:-135.20000000000002px\"/></span></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "112,1040,200,200",
+            "label": "スキルLv1",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "1"
+        ]
+      }
+    },
+    {
+      "skill_id": "mage",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"mage\"><span aria-label=\"ヒールの図柄\" class=\"skill-effect-sprite\" data-crop=\"820,685,420,335\" role=\"img\" style=\"width:64.00000px;height:51.04762px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:188.95238px;height:193.37143px;left:-124.95238px;top:-104.38095px\"/></span></div></div>",
+        "images": [
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "820,685,420,335",
+            "label": "ヒールの図柄",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "scout",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"scout\"><span class=\"skill-icon-stack\" data-level=\"1\"><span aria-label=\"奇襲の図柄\" class=\"skill-effect-sprite\" data-crop=\"415,685,405,335\" role=\"img\" style=\"width:64.00000px;height:52.93827px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:195.95062px;height:200.53333px;left:-65.58025px;top:-108.24691px\"/></span><span aria-label=\"スキルLv1\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"112,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-14.56px;top:-135.20000000000002px\"/></span></span></div></div>",
+        "images": [
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "415,685,405,335",
+            "label": "奇襲の図柄",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "112,1040,200,200",
+            "label": "スキルLv1",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "1"
+        ]
+      }
+    },
+    {
+      "skill_id": "stamp",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"stamp\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "porter",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"porter\"><span aria-label=\"陣形強化の図柄（採用済み）\" class=\"skill-effect-sprite\" data-crop=\"444,0,443,444\" role=\"img\" style=\"width:63.85586px;height:64.00000px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/formation-effects.png\" style=\"width:255.71171px;height:127.85586px;left:-64.00000px;top:0.00000px\"/></span></div></div>",
+        "images": [
+          "assets/icons-review-20261020/formation-effects.png"
+        ],
+        "crops": [
+          {
+            "xywh": "444,0,443,444",
+            "label": "陣形強化の図柄（採用済み）",
+            "sheet": "assets/icons-review-20261020/formation-effects.png"
+          }
+        ],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "guard",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"guard\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "itemUse",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"itemUse\"><span class=\"skill-icon-stack\" data-level=\"1\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span><span aria-label=\"スキルLv1\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"112,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-14.56px;top:-135.20000000000002px\"/></span></span></div><div class=\"skill-effect-visual\" data-skill=\"itemUse\"><span class=\"skill-icon-stack\" data-level=\"2\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span><span aria-label=\"スキルLv2\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"521,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-67.73px;top:-135.20000000000002px\"/></span></span></div><div class=\"skill-effect-visual\" data-skill=\"itemUse\"><span class=\"skill-icon-stack\" data-level=\"3\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span><span aria-label=\"スキルLv3\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"924,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-120.12px;top:-135.20000000000002px\"/></span></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png",
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png",
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "112,1040,200,200",
+            "label": "スキルLv1",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "521,1040,200,200",
+            "label": "スキルLv2",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "924,1040,200,200",
+            "label": "スキルLv3",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "1",
+          "2",
+          "3"
+        ]
+      }
+    },
+    {
+      "skill_id": "legSweep",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"legSweep\"><span class=\"skill-icon-stack\" data-level=\"1\"><span aria-label=\"足払いの図柄\" class=\"skill-effect-sprite\" data-crop=\"0,685,415,335\" role=\"img\" style=\"width:64.00000px;height:51.66265px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:191.22892px;height:195.70120px;left:0.00000px;top:-105.63855px\"/></span><span aria-label=\"スキルLv1\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"112,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-14.56px;top:-135.20000000000002px\"/></span></span></div><div class=\"skill-effect-visual\" data-skill=\"legSweep\"><span class=\"skill-icon-stack\" data-level=\"2\"><span aria-label=\"足払いの図柄\" class=\"skill-effect-sprite\" data-crop=\"0,685,415,335\" role=\"img\" style=\"width:64.00000px;height:51.66265px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:191.22892px;height:195.70120px;left:0.00000px;top:-105.63855px\"/></span><span aria-label=\"スキルLv2\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"521,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-67.73px;top:-135.20000000000002px\"/></span></span></div><div class=\"skill-effect-visual\" data-skill=\"legSweep\"><span class=\"skill-icon-stack\" data-level=\"3\"><span aria-label=\"足払いの図柄\" class=\"skill-effect-sprite\" data-crop=\"0,685,415,335\" role=\"img\" style=\"width:64.00000px;height:51.66265px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:191.22892px;height:195.70120px;left:0.00000px;top:-105.63855px\"/></span><span aria-label=\"スキルLv3\" class=\"skill-effect-sprite skill-level-badge\" data-crop=\"924,1040,200,200\" role=\"img\" style=\"width:26px;height:26px\"><img alt=\"\" decoding=\"async\" loading=\"lazy\" src=\"assets/icons-review-20261020/style-selected.png\" style=\"width:161.20000000000002px;height:164.97px;left:-120.12px;top:-135.20000000000002px\"/></span></span></div></div>",
+        "images": [
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/icons-review-20261020/style-selected.png",
+          "assets/icons-review-20261020/style-selected.png"
+        ],
+        "crops": [
+          {
+            "xywh": "0,685,415,335",
+            "label": "足払いの図柄",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "112,1040,200,200",
+            "label": "スキルLv1",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "0,685,415,335",
+            "label": "足払いの図柄",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "521,1040,200,200",
+            "label": "スキルLv2",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "0,685,415,335",
+            "label": "足払いの図柄",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          },
+          {
+            "xywh": "924,1040,200,200",
+            "label": "スキルLv3",
+            "sheet": "assets/icons-review-20261020/style-selected.png"
+          }
+        ],
+        "levels": [
+          "1",
+          "2",
+          "3"
+        ]
+      }
+    },
+    {
+      "skill_id": "grapple",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"grapple\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    },
+    {
+      "skill_id": "poleVault",
+      "visual": {
+        "html": "<div aria-label=\"装備一覧と共通のスキル図柄\" class=\"skill-catalog-visuals\"><div class=\"skill-effect-visual\" data-skill=\"poleVault\"><span aria-label=\"仮スキル画像\" class=\"equipment-temp-icon skill-placeholder\" role=\"img\"><img alt=\"\" class=\"equipment-temp-base\" decoding=\"async\" height=\"64\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/skill.png\" width=\"64\"/><img alt=\"\" class=\"equipment-temp-badge\" decoding=\"async\" height=\"30\" loading=\"lazy\" src=\"assets/equipment-skills-20261020/temporary-outlined.png\" width=\"30\"/></span></div></div>",
+        "images": [
+          "assets/equipment-skills-20261020/skill.png",
+          "assets/equipment-skills-20261020/temporary-outlined.png"
+        ],
+        "crops": [],
+        "levels": []
+      }
+    }
+  ],
+  "assets": [
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-cloth.png",
+      "bytes": 7226,
+      "sha256": "188e19f1ac3743ba0f7ab9c7ffeaa221d6ea45741a035905be48cfea876fc5dc"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-iron-2.png",
+      "bytes": 7226,
+      "sha256": "188e19f1ac3743ba0f7ab9c7ffeaa221d6ea45741a035905be48cfea876fc5dc"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-leather-1.png",
+      "bytes": 7226,
+      "sha256": "188e19f1ac3743ba0f7ab9c7ffeaa221d6ea45741a035905be48cfea876fc5dc"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-silver-1.png",
+      "bytes": 7226,
+      "sha256": "188e19f1ac3743ba0f7ab9c7ffeaa221d6ea45741a035905be48cfea876fc5dc"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/battleline-shield.png",
+      "bytes": 5880,
+      "sha256": "219ef2a81bb2466d9f40b9ebd52103bfae60480c4aa258bf11d45667a02b3cfe"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-silver-2.png",
+      "bytes": 4275,
+      "sha256": "208ed0f078170031d04f889a0ced69b6248feaf4a11aada2cd22f976e9a52255"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-wood-1.png",
+      "bytes": 4275,
+      "sha256": "208ed0f078170031d04f889a0ced69b6248feaf4a11aada2cd22f976e9a52255"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-wood.png",
+      "bytes": 4275,
+      "sha256": "208ed0f078170031d04f889a0ced69b6248feaf4a11aada2cd22f976e9a52255"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/breaker-hammer.png",
+      "bytes": 5261,
+      "sha256": "77f46e6cdc48c04b220a762ae93a4ac5618056e59fe947ba2b536c1a23df3aff"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-feet.png",
+      "bytes": 6941,
+      "sha256": "0ea34b6eb8f5713bb686ec7db307bb2d66962c42e3c8ffb5e7b8695869ead2ec"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-head.png",
+      "bytes": 6217,
+      "sha256": "a1db6fb366f54d7ec84407f28197f29cb4c7e44a5b5b62171de2433d5b282577"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-lowerBody.png",
+      "bytes": 7001,
+      "sha256": "3db9217b346117ef32f56c6edc8323ef90d30183dae89b2e753d8f3faeb56d8c"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/dagger-wood.png",
+      "bytes": 4741,
+      "sha256": "5fba81dc354cd2b13c3be0741ca0d8bead6eb2bfac5e9acc84d8e3a10cb8eb6f"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/greatsword-wood.png",
+      "bytes": 4584,
+      "sha256": "d3e5ddfee04dd71d9f5224b1007ce4935cd46d78ce69ce5421e285e590444b08"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/guard-shield-iron-1.png",
+      "bytes": 5880,
+      "sha256": "219ef2a81bb2466d9f40b9ebd52103bfae60480c4aa258bf11d45667a02b3cfe"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/guard-shield-wood.png",
+      "bytes": 5880,
+      "sha256": "219ef2a81bb2466d9f40b9ebd52103bfae60480c4aa258bf11d45667a02b3cfe"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/hammer-iron-1.png",
+      "bytes": 5261,
+      "sha256": "77f46e6cdc48c04b220a762ae93a4ac5618056e59fe947ba2b536c1a23df3aff"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/hammer-wood.png",
+      "bytes": 5261,
+      "sha256": "77f46e6cdc48c04b220a762ae93a4ac5618056e59fe947ba2b536c1a23df3aff"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/invasion-charm-1.png",
+      "bytes": 5010,
+      "sha256": "457f1426abf7e5745a057cbde222a708b07fb02c5ec73040257379d088935d7a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/invasion-charm-2.png",
+      "bytes": 5010,
+      "sha256": "457f1426abf7e5745a057cbde222a708b07fb02c5ec73040257379d088935d7a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/javelin-wood.png",
+      "bytes": 3144,
+      "sha256": "a146fafb69f6faba770d78e32a857a4e031ac157b1ba73a5032b6a08bc4c27fd"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/lone-ring-1.png",
+      "bytes": 5010,
+      "sha256": "457f1426abf7e5745a057cbde222a708b07fb02c5ec73040257379d088935d7a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/lone-ring-2.png",
+      "bytes": 5010,
+      "sha256": "457f1426abf7e5745a057cbde222a708b07fb02c5ec73040257379d088935d7a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/longspear-wood.png",
+      "bytes": 3404,
+      "sha256": "c0634850469272c3d8a01d5f739defe97c6ee0f1f709d69d9e8317f5eec6aefc"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/partner-dagger.png",
+      "bytes": 4741,
+      "sha256": "5fba81dc354cd2b13c3be0741ca0d8bead6eb2bfac5e9acc84d8e3a10cb8eb6f"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/pioneer-gloves-1.png",
+      "bytes": 5010,
+      "sha256": "457f1426abf7e5745a057cbde222a708b07fb02c5ec73040257379d088935d7a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/pioneer-gloves-2.png",
+      "bytes": 5010,
+      "sha256": "457f1426abf7e5745a057cbde222a708b07fb02c5ec73040257379d088935d7a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/porter-kit.png",
+      "bytes": 7711,
+      "sha256": "394d5de0e0a95aa132aa083e3583d10773e59a78991227025cd92f7c142255ed"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/rest-staff.png",
+      "bytes": 4032,
+      "sha256": "3bd74631c2a400791de388fac069281961d5ce1f3eabc661398b2eef6682754a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/return-ring-1.png",
+      "bytes": 5010,
+      "sha256": "457f1426abf7e5745a057cbde222a708b07fb02c5ec73040257379d088935d7a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/return-ring-2.png",
+      "bytes": 5010,
+      "sha256": "457f1426abf7e5745a057cbde222a708b07fb02c5ec73040257379d088935d7a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sharing-tome.png",
+      "bytes": 7209,
+      "sha256": "aab46fbd6c188fb3f4b016159e145632bc4fea8f2861f54fd7ccf36c6485b686"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/spear-wood.png",
+      "bytes": 3404,
+      "sha256": "c0634850469272c3d8a01d5f739defe97c6ee0f1f709d69d9e8317f5eec6aefc"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/staff-silver-1.png",
+      "bytes": 4032,
+      "sha256": "3bd74631c2a400791de388fac069281961d5ce1f3eabc661398b2eef6682754a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/staff-wood.png",
+      "bytes": 4032,
+      "sha256": "3bd74631c2a400791de388fac069281961d5ce1f3eabc661398b2eef6682754a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/swift-boots.png",
+      "bytes": 6941,
+      "sha256": "0ea34b6eb8f5713bb686ec7db307bb2d66962c42e3c8ffb5e7b8695869ead2ec"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sword-iron-1.png",
+      "bytes": 4213,
+      "sha256": "54bc40807bba585558ff11b342fd2c709dcf6ea34cc239837ea4e604f534cb84"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sword-wood.png",
+      "bytes": 4213,
+      "sha256": "54bc40807bba585558ff11b342fd2c709dcf6ea34cc239837ea4e604f534cb84"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/twin-bow.png",
+      "bytes": 4275,
+      "sha256": "208ed0f078170031d04f889a0ced69b6248feaf4a11aada2cd22f976e9a52255"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/undertow-sword.png",
+      "bytes": 4213,
+      "sha256": "54bc40807bba585558ff11b342fd2c709dcf6ea34cc239837ea4e604f534cb84"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/victory-earring-1.png",
+      "bytes": 5010,
+      "sha256": "457f1426abf7e5745a057cbde222a708b07fb02c5ec73040257379d088935d7a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/equipment_icons_placeholder/icons64/victory-earring-2.png",
+      "bytes": 5010,
+      "sha256": "457f1426abf7e5745a057cbde222a708b07fb02c5ec73040257379d088935d7a"
+    },
+    {
+      "path": "assets/equipment-display-20261020/ui_icons/icons64/accessory.png",
+      "bytes": 4811,
+      "sha256": "301d67a125d16a92336cd8fd814139fea1e18046f1e016f9f2d5f8f76b41f33b"
+    },
+    {
+      "path": "assets/equipment-display-20261020/ui_icons/icons64/body.png",
+      "bytes": 7433,
+      "sha256": "222d1f6efbf3a7e932cbbe1d2f786793cc76acfc54618327c30a21a08c47dfab"
+    },
+    {
+      "path": "assets/equipment-display-20261020/ui_icons/icons64/feet.png",
+      "bytes": 7229,
+      "sha256": "59524dcf846e0f2ef237e0557a505bcf82b9ff2afd468eba5d72a4690f9d8da1"
+    },
+    {
+      "path": "assets/equipment-display-20261020/ui_icons/icons64/head.png",
+      "bytes": 6484,
+      "sha256": "b1c82f742fb39087364f992ceb0f8c7170788af4bc4d8a08454cbcba02c7377f"
+    },
+    {
+      "path": "assets/equipment-display-20261020/ui_icons/icons64/left_hand.png",
+      "bytes": 6260,
+      "sha256": "96d23f816017cf9a62b1fc115265be6e756dce75b91663455306e26c75563578"
+    },
+    {
+      "path": "assets/equipment-display-20261020/ui_icons/icons64/right_hand.png",
+      "bytes": 6312,
+      "sha256": "2363141c08148e52aa371108fd34c8968bcae57e24bfbca4f1ee6426ab654c9b"
+    },
+    {
+      "path": "assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+      "bytes": 7004,
+      "sha256": "4e68da73400954abdeb1a2796cf7d3e6319b7822f3b4f6b47b32a588f5b651da"
+    },
+    {
+      "path": "assets/equipment-display-20261020/ui_icons/icons64/unarmed.png",
+      "bytes": 6279,
+      "sha256": "0cdc1264a230971bf8e82f7eecfe935d6bd6de2f0f1cbc3c31a8396aa76a18f8"
+    },
+    {
+      "path": "assets/equipment-skills-20261020/skill.png",
+      "bytes": 8879,
+      "sha256": "b1b5680c4be795d3a2eeddcf4de13c4967a263186130671b0f759fc5bfec1c25"
+    },
+    {
+      "path": "assets/equipment-skills-20261020/temporary-outlined.png",
+      "bytes": 639899,
+      "sha256": "973e7ea0312122f14ae3c633c1d523a185a72294b2b59a8981ede217e5f30d41"
+    },
+    {
+      "path": "assets/icons-approved-20261011/skill.png",
+      "bytes": 8212,
+      "sha256": "6bbbc0a4228587be56ef00c1a32a2e84c20c852d071105dc3d21496977d6fcf3"
+    },
+    {
+      "path": "assets/icons-review-20261020/formation-effects.png",
+      "bytes": 1316597,
+      "sha256": "d1b60a1abed6a8afb2e479500a0198b8d005875245817497bc6b7636aee755b3"
+    },
+    {
+      "path": "assets/icons-review-20261020/style-selected.png",
+      "bytes": 1915007,
+      "sha256": "cff660fee02b57f67e8d6ac902c2b5299ab9d28c3e83e38f309a27c826ea4d9c"
+    },
+    {
+      "path": "assets/icons-review-20261020/temporary-outlined.png",
+      "bytes": 663565,
+      "sha256": "57e4bfb2e156f1cb0558f99ccd94b88fcea52c70b0a7459d104be804e9f4cfbf"
+    }
+  ],
+  "approved_fist_image": {
+    "path": "user-approved/unarmed.png",
+    "library_file_id": "libfile_c9d6f56583f48191b33e458ea52793c5",
+    "bytes": 6802,
+    "sha256": "bd0be9ffa4b4626f509eb7a2ecf30ed8aad43623a55eea91ddc1da0c2487605c",
+    "scope": "Latest user-provided equipment fist image; v56 wiki had no equipment image for fist/fist-1/fist-2. Do not confuse with itemUse skill icon."
+  }
+}

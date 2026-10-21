@@ -99,7 +99,7 @@ func equipment(parent,u: Dictionary):
 				if source.id==id:effective_levels[id]=maxi(effective_levels[id],int(source.get("level",1)))
 			descriptions[id]=pages.skill_description(id,effective_levels[id] if id=="scout" else level)
 		btn.configure(equipment_name(e),item,{"names":pages.c().get("skillNames",{}),"definitions":pages.c().get("skillDefinitions",{}),"descriptions":descriptions,"effective_levels":effective_levels,"occupied":e.get("occupiedBy")!=null,"job":u.get("job"),"title_size":24 if ui.size.x>=1800 else 20,"detail_size":18 if ui.size.x>=1800 else 16})
-		ui.icons.apply(btn,ui.icons.slot(str(e.slot)))
+		ui.icons.apply(btn,"" if e.get("occupiedBy")!=null else ui.icons.equipment(item))
 		preload("res://item_drag.gd").target(btn,
 			func(data):return owned_equipment_view.can_drop(data,str(u.id),str(e.slot)),
 			func(data):owned_equipment_view.drop_equipment(data,str(u.id),str(e.slot)))
@@ -143,9 +143,9 @@ func skills(parent,u: Dictionary):
 		if not groups.has(source.id):groups[source.id]=[]
 		groups[source.id].append(source)
 	for id in groups:
-		ui.icons.line(ui,parent,ui.icons.skill(str(id)),str(names.get(id,id)),true)
 		var level=1
 		for source in groups[id]:level=maxi(level,int(source.get("level",1)))
+		ui.icons.line(ui,parent,ui.icons.skill(str(id),level),str(names.get(id,id)),true)
 		l(parent,pages.skill_description(str(id),level))
 		for source in groups[id]:
 			l(parent,"由来: "+str(pages.c().slots.get(source.slot,source.slot))+" / "+str(u.get("equipmentDetails",{}).get(source.slot,{}).get("name",source.itemId)))

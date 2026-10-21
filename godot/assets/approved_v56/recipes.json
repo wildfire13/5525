@@ -1,0 +1,389 @@
+{
+  "equipment": {
+    "cloth-head": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-head.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "cloth-lowerBody": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-lowerBody.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "cloth-feet": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-feet.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "greatsword-wood": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/greatsword-wood.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "spear-wood": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/spear-wood.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "longspear-wood": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/longspear-wood.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "javelin-wood": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/javelin-wood.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "swift-boots": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/swift-boots.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "kungfu-pants": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "kungfu-pants-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "kungfu-pants-2": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "kungfu-pants-3": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "grappling-rope": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/ui_icons/icons64/unarmed.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "undertow-sword": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/undertow-sword.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "breaker-hammer": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/breaker-hammer.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "twin-bow": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/twin-bow.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "partner-dagger": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/partner-dagger.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "rest-staff": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/rest-staff.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "battleline-shield": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/battleline-shield.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "sharing-tome": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sharing-tome.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "return-ring-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/return-ring-1.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "victory-earring-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/victory-earring-1.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "lone-ring-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/lone-ring-1.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "pioneer-gloves-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/pioneer-gloves-1.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "invasion-charm-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/invasion-charm-1.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "return-ring-2": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/return-ring-2.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "victory-earring-2": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/victory-earring-2.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "lone-ring-2": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/lone-ring-2.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "pioneer-gloves-2": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/pioneer-gloves-2.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "invasion-charm-2": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/invasion-charm-2.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "sword-wood": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sword-wood.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "sword-iron-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sword-iron-1.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "bow-wood": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-wood.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "bow-wood-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-wood-1.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "bow-silver-2": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-silver-2.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "staff-wood": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/staff-wood.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "staff-silver-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/staff-silver-1.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "dagger-wood": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/dagger-wood.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "hammer-wood": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/hammer-wood.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "hammer-iron-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/hammer-iron-1.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "porter-kit": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/porter-kit.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "armor-cloth": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-cloth.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "armor-leather-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-leather-1.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "armor-iron-2": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-iron-2.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "armor-silver-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-silver-1.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "guard-shield-wood": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/guard-shield-wood.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    },
+    "guard-shield-iron-1": {
+      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/guard-shield-iron-1.png",
+      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+    }
+  },
+  "skills": {
+    "swift": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "retreatSlash": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "knockback": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "splitShot": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "pincer": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "healingCross": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "defenseLine": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "manaGift": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "returnHome": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "victoryBreath": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "loneWolf": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "firstStride": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "invasion": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "archer": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png",
+      "levels": {
+        "1": {
+          "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
+          "crop": [
+            112,
+            1040,
+            200,
+            200
+          ]
+        }
+      }
+    },
+    "mage": {
+      "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
+      "crop": [
+        820,
+        685,
+        420,
+        335
+      ]
+    },
+    "scout": {
+      "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
+      "crop": [
+        415,
+        685,
+        405,
+        335
+      ],
+      "levels": {
+        "1": {
+          "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
+          "crop": [
+            112,
+            1040,
+            200,
+            200
+          ]
+        }
+      }
+    },
+    "stamp": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "porter": {
+      "base": "res://assets/approved_v56/assets/icons-review-20261020/formation-effects.png",
+      "crop": [
+        444,
+        0,
+        443,
+        444
+      ]
+    },
+    "guard": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "itemUse": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png",
+      "levels": {
+        "1": {
+          "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
+          "crop": [
+            112,
+            1040,
+            200,
+            200
+          ]
+        },
+        "2": {
+          "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
+          "crop": [
+            521,
+            1040,
+            200,
+            200
+          ]
+        },
+        "3": {
+          "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
+          "crop": [
+            924,
+            1040,
+            200,
+            200
+          ]
+        }
+      }
+    },
+    "legSweep": {
+      "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
+      "crop": [
+        0,
+        685,
+        415,
+        335
+      ],
+      "levels": {
+        "1": {
+          "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
+          "crop": [
+            112,
+            1040,
+            200,
+            200
+          ]
+        },
+        "2": {
+          "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
+          "crop": [
+            521,
+            1040,
+            200,
+            200
+          ]
+        },
+        "3": {
+          "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
+          "crop": [
+            924,
+            1040,
+            200,
+            200
+          ]
+        }
+      }
+    },
+    "grapple": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    },
+    "poleVault": {
+      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
+      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+    }
+  },
+  "fist": {
+    "base": "res://assets/approved_v56/user-approved/unarmed.png"
+  }
+}
