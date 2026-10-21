@@ -741,6 +741,27 @@ const Campaign = (() => {
     const loaded=clone(envelope.state);
     migrateEquipment(loaded);
     if(envelope.version===1)migrateInventory(loaded);
+    // A rollback is an alternative snapshot, never additional owned stock.
+    // Refund each snapshot independently; removal makes migration idempotent.
+    // Only the validated clone is touched, so source files/objects remain intact.
+    function retirePaidFists(s) {
+      if(s.rollback)retirePaidFists(s.rollback);
+      let count=0;
+      for(const c of Object.values(s.characters)) {
+        count+=c.inventory['fist-1']||0;
+        delete c.inventory['fist-1'];
+        for(const slot of Object.keys(S.slots)) {
+          const field=S.storage(slot);
+          if(c[field]==='fist-1'){count++;c[field]=`empty-${slot}`;}
+        }
+      }
+      if(!count)return;
+      const refund=count*100;
+      demand(integer(s.gold+refund),'旧拳＋1の返金後に所持金上限を超えます。元セーブは変更していません。所持金を調整して別名保存してください');
+      s.gold+=refund;
+      note(s,`旧拳＋1を${count}個、仮想拳へ移行。${refund}Gを返金。`);
+    }
+    retirePaidFists(loaded);
     if(envelope.cargoRevision===undefined&&loaded.cargoRevision===undefined){
       function upgradeCargo(s){
         if(s.rollback)upgradeCargo(s.rollback);

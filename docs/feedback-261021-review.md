@@ -15,13 +15,13 @@ Base: 4a6724f0a1184eade48f5c3b5574cd17c151a9a1. f71660a and e0018a6 are ancestor
 
 Excel libfile_85261559da108191b8039d5f94fa867b, fist libfile_c9d6f56583f48191b33e458ea52793c5 and approved icon package libfile_9453ad2fe8c48191bf93868a98b49606 each prepared successfully but the official transfer helper returned download failed (exit 1), no local file. No actual source pixels inspected. Implemented from explicit written requirements as authorized. No icon guessing or denied-archive bypass. Icon application is NOT complete.
 
-Previously purchased fist-1 (100G, itemUse Lv2) is still preserved by existing save compatibility. New sales are disabled. Removal/refund policy was asked asynchronously and remains pending; this candidate does not silently delete old inventory, change skill level, or issue refunds. Do not treat this as final approval of a migration policy.
+User approved retirement/refund of old fist-1. Load first validates the original, then clones it and removes paid fists from inventory and actual equipment fields, refunding 100G per item. Rollback snapshots are migrated independently (not added to current funds). Empty hands become virtual fists; the old Lv2 effect is removed. Repeated load is idempotent because the paid item IDs no longer exist. Original input/save file is not overwritten; existing atomic save behavior is unchanged. Refund beyond the supported currency bound rejects the load without changing the source.
 
 ## Validation
 
 Godot isolated import successful. Current regression suite plus feedback_261021 passed after updating three outdated expectations for removed confirmation text / new Execute label. New checks cover slot validity, two-handed left-slot rejection, second accessory slot, stale payload, consent purity/cancel, equip to chosen slot, purchase to chosen owner without equipping, duplicate purchase protection, consumables, skill marks/cost, inline abilities and skill cancellation.
 
-Six native scripts pass: test_feedback_261021, test_feedback_261019, test_feedback_261019_input, test_shop_transactions, test_inventory_battle, test_two_handed. Old failure logs are retained in external QA evidence. Tests exercise drop acceptance and transaction callbacks; actual pointer dragging and visual quality require GUI review.
+Eight native scripts pass (including save-file atomicity and UI rule regressions): test_feedback_261021, test_feedback_261019, test_feedback_261019_input, test_shop_transactions, test_inventory_battle, test_two_handed, test_campaign_files, test_ui_feedback_rules. Old failure logs are retained in external QA evidence. Tests exercise drop acceptance and transaction callbacks; actual pointer dragging and visual quality require GUI review.
 
 ## Start and review
 
@@ -38,3 +38,5 @@ Run automated checks:
     node native/test_feedback_261021.cjs
 
 Restore by closing the isolated verification copy and reopening the original. Never overlay a dirty working tree.
+
+Reattached approved icon package libfile_3abe3a154c78819189f80ec71c6e9a1d was also attempted using its newly authorized exact reference. Preparation succeeded; official transfer returned download failed, exit 1, no file and no HTTP status. No further retries after the scope-denial notice. Icon integration remains blocked.
