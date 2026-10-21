@@ -43,6 +43,10 @@ func render(parent,u: Dictionary):
 		button.set_script(preload("res://equipment_tooltip.gd"));button.configure_entry(entry,ui.campaign())
 		ui.icons.apply(button,ui.icons.equipment(entry.definition) if entry.kind=="equipment" else str(entry.id) if entry.id in ["potion","ether"] else "items");button.set_meta("placeholder_item_icon",true)
 
+		if entry.kind=="equipment":
+			preload("res://item_drag.gd").source(button,func():
+				if not party.inventory_view.available() or party.inventory_view.stage=="confirm":return null
+				return {"kind":"owned_equipment","owner":str(u.id),"item":str(entry.id),"connection":ui.engine.connection_generation,"token":ui.campaign().get("inventoryToken"),"epoch":party.pages.epoch},button.text,button.icon)
 		if entry.kind!="equipment":
 			var usable=entry.get("useTargets",[]).any(func(q):return q.get("ok",false))
 			if usable:
@@ -133,3 +137,15 @@ func equip(u: Dictionary,entry: Dictionary,panel):
 		if candidate.slot==chosen and candidate.ok:
 			var inv=party.inventory_view;inv.reset();inv.owner_id=str(u.id);inv.item_id=str(entry.id);inv.action="equip";inv.equipment_comparison=text;inv.return_to_equipment=true;inv.capture_equipment_context(str(u.id),str(entry.id))
 			await inv.prepare(null,chosen);return
+
+func can_drop(data: Dictionary,uid: String,chosen: String) -> bool:
+	if not party.inventory_view.available() or party.inventory_view.stage=="confirm":return false
+	if data.get("kind")!="owned_equipment" or data.get("owner")!=uid or data.get("connection")!=ui.engine.connection_generation or data.get("epoch")!=party.pages.epoch or data.get("token")!=ui.campaign().get("inventoryToken"):return false
+	for entry in entries(uid):
+		if entry.id==data.get("item"):return entry.get("equipSlots",[]).any(func(q):return q.slot==chosen and q.ok)
+	return false
+func drop_equipment(data: Dictionary,uid: String,chosen: String):
+	if not can_drop(data,uid,chosen):return
+	var inv=party.inventory_view
+	inv.reset();inv.owner_id=uid;inv.item_id=str(data.item);inv.action="equip";inv.return_to_equipment=true;inv.capture_equipment_context(uid,str(data.item))
+	await inv.prepare(null,chosen)

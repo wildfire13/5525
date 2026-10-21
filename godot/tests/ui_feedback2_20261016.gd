@@ -68,7 +68,7 @@ func run():
 	var hud=game.hud;hud.open_items();await settle()
 	var list=node("BattleItemList");check(list.get_parent().get_parent()==hud.bottom_commands and list.get_parent().get_index()>hud.buttons.items.get_index() and list.get_parent().get_index()<hud.buttons.guard.get_index(),"S9 item list between item and guard commands")
 	before=await saved();await click("BattleItem_potion");await game.on_cell(int(hud.acting().pos));await settle()
-	check(node("BattleConsent")!=null and game.can_commit() and node("PredictionSummary")!=null,"S8/9 self item target shows prediction and execute consent")
+	check(game.find_children("*","Button",true,false).any(func(b):return b.get_meta("ui_key","")=="battle_commit" and b.text.ends_with("を実行")) and game.can_commit() and node("PredictionSummary")!=null,"S8/9 self item target shows prediction and execute consent")
 	game.cancel();await settle();check(await saved()==before and not game.can_commit(),"S9 item cancellation consumes no stock or action")
 	# Healer with missing HP, plus a full-HP self hover. Both use actual bridge predictions.
 	var heal=fixture.guard.duplicate(true);heal.state.battle.actor="mage"
@@ -87,7 +87,7 @@ func run():
 	await click("BattleSkill_mage");await game.on_cell(int(hud.acting().pos));await settle()
 	var prediction=await game.engine.request({"op":"hover_preview","kind":"skill","uid":"mage"})
 	check(prediction.hover.accuracy==100 and prediction.hover.effectPreview.any(func(e):return e.id=="mage" and e.hp>0),"S8 self heal predicts recovery with 100 percent hit")
-	check(node("BattleConsent")!=null and node("PredictionSummary")!=null and game.can_commit(),"S9 skill target click produces execute/cancel consent")
+	check(game.find_children("*","Button",true,false).any(func(b):return b.get_meta("ui_key","")=="battle_commit" and b.text.ends_with("を実行")) and node("PredictionSummary")!=null and game.can_commit(),"S9 skill target click produces execute/cancel consent")
 	before=await saved();game.cancel();await settle();check(await saved()==before and not game.can_commit(),"S9 skill cancel preserves MP HP inventory and action")
 	await game.on_cell(int(hud.acting().pos));await settle();var action_count=int(game.state().actions)
 	game.commit();game.commit();await settle();check(int(game.state().actions)==action_count+1,"S9 skill execution completes once through action guard")

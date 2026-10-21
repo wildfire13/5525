@@ -1,7 +1,7 @@
 'use strict';
 // Source: restored proposal, 2026-10-02 11:11 UTC. All numbers are playtest values.
 const definitions = {
-  itemUse:{name:'アイテム使用',classification:'active',cost:0,target:'item',description:'本人の所持品を1個使用。Lv1は自身のみ、Lv2は自身と隣接する味方、Lv3は距離制限なし。MP0。'},
+  itemUse:{name:'アイテム使用',classification:'active',cost:0,target:'item',description:'バトル中にもアイテムを使用できる。本人の所持品を1個使用。Lv1は自身のみ、Lv2は自身と隣接する味方、Lv3は距離制限なし。MP0。'},
   legSweep:{name:'足払い',classification:'active',cost:1,reach:1.5,target:'self',description:'周囲8マスの敵それぞれに足払い判定。Lv1:50%、Lv2:75%、Lv3:100%。ダメージ0、成功時は次の1手番をスキップ（重複なし）。MP1。'},
   grapple:{name:'引き寄せ',classification:'active',cost:1,reach:2,target:'unit',description:'右2マス先の敵味方を1マス引き寄せる。途中が占有されている場合もMP1と行動を消費するが移動しない。'},
   poleVault:{name:'ポールヴォールト',classification:'active',cost:1,reach:2,target:'cell',description:'上下左右2マス先へ跳躍。途中の空き・人物を問わず、盤内の移動可能な空きマスに着地。MP1。'},

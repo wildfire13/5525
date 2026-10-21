@@ -84,7 +84,7 @@ func run():
 	game.cancel();await settle();await game.update({"op":"campaign_load","data":cases.split});await settle();await game.select_skill("splitShot");await settle()
 	for id in game.data.choices.skill[0]:await game.on_cell(int(game.hud.unit(id).pos));await settle()
 	var commits=game.find_children("*","Button",true,false).filter(func(b):return b.get_meta("ui_key","")=="battle_commit")
-	check(commits.size()==1 and commits[0].text==game.hud.command_name()+"を確定","skill confirmation uses action name without extra step")
+	check(commits.size()==1 and commits[0].text==game.hud.command_name()+"を実行","skill confirmation uses action name without extra step")
 	before=await saved();game.cancel();await settle();check(await saved()==before,"named skill confirmation cancels without consumption")
 	var f=FileAccess.open(evidence.path_join("checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

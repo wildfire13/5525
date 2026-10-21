@@ -289,7 +289,7 @@ const Campaign = (() => {
   function shop(s) {
     if(s.phase!=='town')return [];
     const kind=s.location==='east'?'weapon':s.location==='west'?'armor':s.location==='north'?'accessory':null;
-    return kind?clone(gear.filter(g=>(g.slot===kind||kind==='armor'&&['head','lowerBody','feet'].includes(g.slot)||kind==='accessory'&&['accessory1','accessory2'].includes(g.slot)||kind==='weapon'&&g.slot==='leftHand')&&!g.starterOnly)):s.location==='south'?clone(items):[];
+    return kind?clone(gear.filter(g=>(g.slot===kind||kind==='armor'&&['head','lowerBody','feet'].includes(g.slot)||kind==='accessory'&&['accessory1','accessory2'].includes(g.slot)||kind==='weapon'&&g.slot==='leftHand')&&!g.starterOnly&&g.type!=='fist')):s.location==='south'?clone(items):[];
   }
   function quote(s,charId,gearId,slot) {
     const c=s.characters[charId],g=getGear(gearId);if(!c||!g)return null;

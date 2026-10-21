@@ -341,7 +341,7 @@ func draw_unit_labels(state: Dictionary):
 	for u in state.get("units",[]):
 		if u.hp<=0:continue
 		var compact=compact_board();var pitch=cell_pitch() if compact else Vector2(64,48)
-		var width=minf(48,pitch.x*.72);var at=project_cell(int(u.pos))+Vector2(0,3) if compact else project(point(int(u.pos))+Vector3(0,1.25,0))
+		var width=minf(48,pitch.x*.72);var at=project_cell(int(u.pos))+Vector2(0,3)
 		var color=Color("#a9ede0") if u.side=="ally" else Color("#f3b4b4")
 		var low=u.get("max",0)>0 and u.hp*4<u.max
 		if low:color=Color("#ff9494")
@@ -353,7 +353,7 @@ func draw_unit_labels(state: Dictionary):
 			if u.side=="ally":overlay.draw_circle(badge,3,color)
 			else:overlay.draw_colored_polygon(PackedVector2Array([badge+Vector2(0,-4),badge+Vector2(3,3),badge+Vector2(-3,3)]),color)
 			if u.get("guard",false):overlay.draw_rect(Rect2(at-Vector2(width*.5+1,1),Vector2(width+2,6)),Color("#ffe197"),false,1)
-		else:overlay.draw_string(ThemeDB.fallback_font,at+Vector2(-24,-5),("味" if u.side=="ally" else "敵")+(" 防" if u.get("guard",false) else ""),HORIZONTAL_ALIGNMENT_LEFT,-1,16,color)
+		elif u.get("guard",false):overlay.draw_string(ThemeDB.fallback_font,at+Vector2(-24,-5),"防",HORIZONTAL_ALIGNMENT_LEFT,-1,16,color)
 		if u.id!=hover_uid or hover_caption.is_empty():continue
 		var lines=hover_caption.split("\n");var width_=minf(330,size.x-12);var height_=lines.size()*24+12
 		var origin=project_cell(int(u.pos))+Vector2(18,-height_-18)

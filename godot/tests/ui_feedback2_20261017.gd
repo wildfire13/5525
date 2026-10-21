@@ -64,7 +64,7 @@ func run():
 		person.pos=pair[1]
 	await game.update({"op":"campaign_load","data":porter});await settle();hud.open_skills();await settle()
 	before=await saved();await click("BattleSkill_porter")
-	check(game.pending=="porter" and node("BattleConsent")!=null and game.can_commit(),"self-target porter skips target picking into execute/cancel")
+	check(game.pending=="porter" and game.find_children("*","Button",true,false).any(func(b):return b.get_meta("ui_key","")=="battle_commit" and b.text.ends_with("を実行")) and game.can_commit(),"self-target porter skips target picking into execute/cancel")
 	check(node("BattleSkill_porter").tooltip_text.contains("×1.75") and node("BattleSkill_porter").tooltip_text.contains("×0.65"),"porter tooltip retains real multipliers instead of example 25 percent")
 	before=await saved();game.cancel();await settle();check(await saved()==before and not game.can_commit(),"self skill cancel preserves complete save")
 	await click("BattleSkill_porter");var actions=int(game.state().actions);game.checks_fast=false;game.commit();game.commit()

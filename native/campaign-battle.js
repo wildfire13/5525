@@ -82,7 +82,9 @@ const Battle = (() => {
     return Math.max(1,...(a.skillSources||[]).filter(source=>source.id===id).map(source=>source.level??1));
   }
   function itemUseLevel(a) {
-    // Standalone legacy battles keep their original rules; campaign units supply sources.
+    // Campaign equipment requires a fist in at least one hand. Old standalone
+    // battles without equipment metadata retain their original rules.
+    if(a.side==='ally'&&a.equipment&&!['rightHand','leftHand'].some(slot=>(a.skillSources||[]).some(source=>source.id==='itemUse'&&source.slot===slot&&(source.itemId===`empty-${slot}`||/^fist(?:-[12])?$/.test(source.itemId||'')))))return 0;
     return a.side!=='ally'||a.skillSources===undefined?3:activeSkills(a).includes('itemUse')?skillLevel(a,'itemUse'):0;
   }
   function itemInRange(a,b) {
