@@ -64,9 +64,9 @@ func render(parent):
 	var shop_name={"east":"武器店","west":"防具店","north":"装飾品店"}.get(c().location,"")
 	ui.icons.line(ui,context,ui.icons.shop(str(c().location)),shop_name,true)
 	render_notice(parent)
+	product_filter(parent)
 	var body=ui.scroller(parent);var scroll=body.get_parent();scroll.name="ShopProductsScroll"
 	scroll.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;scroll.custom_minimum_size.x=maxf(600,ui.size.x*2.0/3.0-parent.global_position.x);scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"shop_products")
-	product_filter(body)
 	for item in offered():
 		var line=ui.row(body);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=64
 		var info=b(line,"",func():pass);info.name="Product_"+str(item.id);info.alignment=HORIZONTAL_ALIGNMENT_LEFT
@@ -77,6 +77,9 @@ func render(parent):
 		var copy=HBoxContainer.new();copy.mouse_filter=Control.MOUSE_FILTER_IGNORE;copy.add_theme_constant_override("separation",0);margin.add_child(copy)
 		var name_label=l(copy,str(item.name));name_label.name="ProductName_"+str(item.id);name_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;name_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;name_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		configure_tooltip(info,item)
+		preload("res://item_drag.gd").source(info,func():
+			if busy():return null
+			return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":pages.epoch},str(item.name)+"  %dG" % item.price,info.icon)
 		var price=l(copy,"%dG" % item.price);price.name="ProductPrice_"+str(item.id);price.custom_minimum_size.x=96;price.size_flags_horizontal=Control.SIZE_FILL;price.autowrap_mode=TextServer.AUTOWRAP_OFF;price.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;price.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		# Wrapping changes minimum height after the parent has already resized.
 		# Defer measurement and listen for that change, including shrinkage.
@@ -133,8 +136,11 @@ func valid_ticket(ticket: int,epoch: int,connection: int,place: String) -> bool:
 func cancel_purchase(ticket: int):
 	if ticket!=generation or stage=="S5":return
 	generation+=1;consent={};stage="S0";ui.render()
-func confirm_purchase(id: String=""):
+func confirm_purchase(id: String="",recipient: String=""):
 	if busy() or id.is_empty():return
+	if not recipient.is_empty() and not c().get("selected",[]).has(recipient):return
+	if c().get("location")=="south":
+		confirm_consumable(id,recipient);return
 	stage="S1";generation+=1;var ticket=generation;var epoch=pages.epoch;var connection=ui.engine.connection_generation;var place=str(c().get("location"))
 	var reply=await ui.engine.request({"op":"campaign","action":"purchaseQuote","args":[id]})
 	if not valid_ticket(ticket,epoch,connection,place):return
@@ -145,11 +151,13 @@ func confirm_purchase(id: String=""):
 	ui.dialog.open("購入の確認",func(body,actions):
 		l(body,str(q.gear.name)+" / 1個",true)
 		l(body,"支払 %dG / 所持金 %d → %dG" % [q.cost,q.goldBefore,q.afterGold],true).name="PurchasePayment"
-		l(body,"購入しますか？ 同意後に受取人を選びます。自動装備はしません。")
+		l(body,ui.member_name(recipient)+"のインベントリへ購入しますか？" if not recipient.is_empty() else "購入しますか？ 同意後に受取人を選びます。自動装備はしません。")
 		b(actions,"購入しない",ui.dialog.close).name="PurchaseDecline"
 		ui.primary(b(actions,"購入する",func():
 			if ticket!=generation or stage!="S4":return
-			ui.dialog.close(false);stage="S9";choose_recipient(ticket))).name="PurchaseAgree",
+			ui.dialog.close(false);stage="S9"
+			if recipient.is_empty():choose_recipient(ticket)
+			else:buy(q,recipient,ticket))).name="PurchaseAgree",
 		cancel_purchase.bind(ticket))
 func choose_recipient(ticket: int):
 	if ticket!=generation or stage!="S9":return
@@ -222,3 +230,23 @@ func escape() -> bool:
 	if stage in ["S1","S5"] or unknown:return true
 	if stage!="S0":back_list();return true
 	return false
+
+func can_drop_product(data: Dictionary,uid: String) -> bool:
+	return not busy() and not ui.modal_open() and ui.page=="shop" and c().get("selected",[]).has(uid) and data.get("kind")=="shop_product" and data.get("connection")==ui.engine.connection_generation and data.get("epoch")==pages.epoch and data.get("token")==c().get("inventoryToken") and offered().any(func(item):return item.id==data.get("item") and int(c().gold)>=int(item.price))
+
+func confirm_consumable(id: String,uid: String):
+	var products=offered().filter(func(item):return item.id==id)
+	if products.is_empty() or uid.is_empty() or not c().get("selected",[]).has(uid):return
+	var item=products[0];var token=c().get("inventoryToken")
+	if c().gold<item.price or c().get("inventoryTotals",{}).get(id,0)>=99:return
+	generation+=1;var ticket=generation;stage="S4"
+	ui.dialog.open("購入の確認",func(body,actions):
+		l(body,"%s 1個 / 支払%dG / %sのインベントリへ" % [item.name,item.price,ui.member_name(uid)],true)
+		b(actions,"購入しない",ui.dialog.close).name="PurchaseDecline"
+		b(actions,"購入する",func():
+			if stage!="S4" or ticket!=generation:return
+			stage="S5";ui.dialog.close(false)
+			var reply=await ui.update({"op":"campaign","action":"buyItem","args":[id,1,uid,token]})
+			if ticket==generation:
+				unknown=reply.get("connection_lost",false);stage="S7" if unknown else "S0";ui.render()).name="PurchaseAgree",
+		cancel_purchase.bind(ticket))

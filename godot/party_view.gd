@@ -100,6 +100,9 @@ func equipment(parent,u: Dictionary):
 			descriptions[id]=pages.skill_description(id,effective_levels[id] if id=="scout" else level)
 		btn.configure(equipment_name(e),item,{"names":pages.c().get("skillNames",{}),"definitions":pages.c().get("skillDefinitions",{}),"descriptions":descriptions,"effective_levels":effective_levels,"occupied":e.get("occupiedBy")!=null,"job":u.get("job"),"title_size":24 if ui.size.x>=1800 else 20,"detail_size":18 if ui.size.x>=1800 else 16})
 		ui.icons.apply(btn,ui.icons.slot(str(e.slot)))
+		preload("res://item_drag.gd").target(btn,
+			func(data):return owned_equipment_view.can_drop(data,str(u.id),str(e.slot)),
+			func(data):owned_equipment_view.drop_equipment(data,str(u.id),str(e.slot)))
 func equipment_name(e: Dictionary) -> String:
 	return str(e.get("name","なし")).trim_prefix(str(e.label)+":").trim_prefix(str(e.label)+"：").strip_edges()
 func open_equipment(u: Dictionary,e: Dictionary):
@@ -210,6 +213,10 @@ func face_bar(parent):
 		if str(id)==detail_uid:tint(control,Color("#243c58"))
 		elif pages.guild_view.available() and str(id)==pages.guild_view.chosen_id:tint(control,Color("#236044"))
 		control.name="PartyFace_"+str(id);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.icon=ui.portraits.texture(u,true);control.expand_icon=true;control.add_theme_constant_override("icon_max_width",48 if ui.ui_size_mode=="standard" else 28);control.clip_text=true;control.tooltip_text=caption+" / ステータスを開く";ui.memory.key(control,"face_"+str(id))
+		if ui.page=="shop":
+			preload("res://item_drag.gd").target(control,
+				func(data):return pages.shop_view.can_drop_product(data,str(id)),
+				func(data):pages.shop_view.confirm_purchase(str(data.item),str(id)))
 func open_detail(uid: String):
 	if ui.locked or ui.presenting or ui.modal_open() or not ui.can_inspect_member(uid):return
 	if not guard_leave(open_detail.bind(uid)):return

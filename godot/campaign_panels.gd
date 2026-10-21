@@ -255,6 +255,7 @@ func shop(parent):
 	var location=c().get("location","")
 	if location not in ["east","west","north"]:l(parent,{"south":"道具店"}.get(location,"この拠点にお店はありません"),true)
 	if location=="south":
+		shop_view.product_filter(parent)
 		var body=ui.scroller(parent);ui.memory.watch(body.get_parent(),"consumable_shop")
 		if not c().get("selected",[]).has(ui.shop_uid):ui.shop_uid=str(c().selected[0])
 		var receiving=row(body);l(receiving,"購入品の受取人")
@@ -264,10 +265,13 @@ func shop(parent):
 			if uid==ui.shop_uid:recipient.select(recipient.item_count-1)
 		recipient.item_selected.connect(func(i):ui.shop_uid=str(recipient.get_item_metadata(i));ui.render())
 		muted(body,"購入品は選んだ受取人のインベントリへ入ります。消耗品の合計上限は各99個。回復量はHP+55 / MP+3です。")
-		shop_view.product_filter(body)
 		for item in shop_view.offered():
 			var count=c().characters[ui.shop_uid].get("inventory",{}).get(item.id,0);var actions=row(card(body))
-			ui.icons.line(ui,actions,str(item.id),"%s %dG / %sの所持%d個" % [item.name,item.price,ui.member_name(ui.shop_uid),count])
+			var product=b(actions,"%s %dG / %sの所持%d個" % [item.name,item.price,ui.member_name(ui.shop_uid),count],func():pass)
+			ui.icons.apply(product,str(item.id))
+			preload("res://item_drag.gd").source(product,func():
+				if shop_view.busy():return null
+				return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":epoch},product.text,product.icon)
 			for amount in [1,5]:b(actions,"%d個購入" % amount,ui.act.bind("buyItem",[item.id,amount,ui.shop_uid,c().get("inventoryToken")]),c().gold<item.price*amount or c().get("inventoryTotals",{}).get(item.id,0)+amount>99)
 		items(body);return
 	if location not in ["east","west","north"]:
@@ -355,7 +359,7 @@ func describe_gear(parent,gear: Dictionary):
 	if gear.has("note"):l(parent,gear.note)
 
 func skill_description(id: String,stage: int=1) -> String:
-	if id=="itemUse":return "アイテム使用Lv%d：%s。本人の所持品1個・MP0・1行動。" % [stage,["自分のみ","自分と縦横隣接の味方","距離制限なしの味方"][clampi(stage-1,0,2)]]
+	if id=="itemUse":return "バトル中にもアイテムを使用できる。アイテム使用Lv%d：%s。本人の所持品1個・MP0・1行動。" % [stage,["自分のみ","自分と縦横隣接の味方","距離制限なしの味方"][clampi(stage-1,0,2)]]
 	if id=="legSweep":return "足払いLv%d：周囲8マスの敵にそれぞれ%d%%で次の1手番をスキップ（重複なし）。ダメージ0・MP1。" % [stage,[50,75,100][clampi(stage-1,0,2)]]
 	var definition=c().get("skillDefinitions",{}).get(id,{})
 	return str(definition.description) if definition.has("description") else ui.legacy_skill_description(str(c().get("skillNames",{}).get(id,id)),stage)
