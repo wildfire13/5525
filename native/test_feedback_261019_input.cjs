@@ -18,8 +18,8 @@ test('porter defaults expose Lv3 without generating stock or permitting attack',
  const b=C.deserialize(fixtures.item3).battle,a=b.units.find(u=>u.id==='porter'),enemy=b.units.find(u=>u.side==='enemy');
  assert(!B.legalFor(b,a,'attack',enemy.id));
 });
-test('item use checks all fifty target cells: Lv1 self, Lv2 orthogonal adjacency, Lv3 unrestricted',()=>{
- for(const [name,level] of [['item1',1],['item2',2],['item3',3]]){
+test('item use checks all fifty target cells: Lv1 self including retired paid fists, Lv3 unrestricted',()=>{
+ for(const [name,level] of [['item1',1],['item2',1],['item3',3]]){
   const b=C.deserialize(fixtures[name]).battle,a=b.units.find(u=>u.id===b.actor),ally=b.units.find(u=>u.id==='mage'),before=structuredClone(b);
   assert.equal(B.itemUseLevel(a),level);assert(B.legalFor(b,a,'item',a.id));
   for(let pos=0;pos<50;pos++){
@@ -30,7 +30,7 @@ test('item use checks all fifty target cells: Lv1 self, Lv2 orthogonal adjacency
   assert.equal(b.actions,before.actions);assert.deepEqual(b.itemInventories,before.itemInventories);
  }
 });
-test('non-porter save cannot forge Lv3 sources while wearing Lv1 or Lv2 fists',()=>{
+test('non-porter save cannot forge Lv3 sources after loading default or retired paid fists',()=>{
  for(const name of ['item1','item2']){
   const s=C.deserialize(fixtures[name]),a=s.battle.units.find(u=>u.id===s.battle.actor);
   for(const source of a.skillSources)if(source.id==='itemUse')source.level=3;
