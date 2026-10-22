@@ -41,7 +41,7 @@ def run(name, command, cwd, env=None):
     print(json.dumps(result, ensure_ascii=False), flush=True)
 
 
-for name in ['icons_approved_261021', 'feedback_261021', 'inventory_header_261020', 'status_layout_lifecycle', 'status_empty_inventory', 'feedback_261019_3', 'feedback_261019_2', 'feedback_261019_input', 'guild_regression', 'inventory_regression', 'ui_feedback2_20261016', 'ui_feedback2_20261017', 'ui_feedback_20261016', 'shop_rows_regression', 'owned_equipment_regression', 'frontend_smoke', 'ui_preferences_restart']:
+for name in ['facility_art_261021', 'hover_regression', 'hover_lifetime_regression', 'icons_approved_261021', 'feedback_261021', 'inventory_header_261020', 'status_layout_lifecycle', 'status_empty_inventory', 'feedback_261019_3', 'feedback_261019_2', 'feedback_261019_input', 'guild_regression', 'inventory_regression', 'ui_feedback2_20261016', 'ui_feedback2_20261017', 'ui_feedback_20261016', 'shop_rows_regression', 'owned_equipment_regression', 'frontend_smoke', 'ui_preferences_restart']:
     scope = Path(tempfile.mkdtemp(prefix=name + '-', dir=out))
     env = dict(os.environ, NATIVE5525_NODE=node, NATIVE5525_PYTHON=sys.executable, INVENTORY_QA_ROOT=str(scope), UIUX_REVIEW_EVIDENCE=str(scope))
     for key, child in [('XDG_DATA_HOME', 'data'), ('XDG_CONFIG_HOME', 'config'), ('XDG_CACHE_HOME', 'cache')]:

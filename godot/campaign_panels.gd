@@ -14,6 +14,7 @@ var shop_view
 var party_view
 var guild_view
 var hub_view
+var facility_art=preload("res://facility_art.gd").new()
 var item_stage := "entry"
 var item_id := ""
 const ItemMenu=preload("res://item_menu.gd")
@@ -321,6 +322,7 @@ func invalidate_quote(clear_id:=false):
 	if clear_id:gear_id=""
 func reset_context(plan_mode: String="discard",campaign_id: String=""):
 	hub_view.reset()
+	facility_art.reset()
 	if ui.hud!=null:ui.hud.reset_context()
 	reset_items();shop_view.reset(plan_mode,campaign_id);guild_view.reset();party_view.reset();party_view.tab=0;party_view.highlight_slot=""
 	epoch+=1;invalidate_quote(true);trial_return={};cached_quotes={}

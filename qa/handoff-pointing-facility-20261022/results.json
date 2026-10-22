@@ -1,0 +1,128 @@
+[
+  {
+    "name": "facility_art_261021",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "hover_regression",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "hover_lifetime_regression",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "icons_approved_261021",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "feedback_261021",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "inventory_header_261020",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "status_layout_lifecycle",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "status_empty_inventory",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "feedback_261019_3",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "feedback_261019_2",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "feedback_261019_input",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "guild_regression",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "inventory_regression",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "ui_feedback2_20261016",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "ui_feedback2_20261017",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "ui_feedback_20261016",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "shop_rows_regression",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "owned_equipment_regression",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "frontend_smoke",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "ui_preferences_restart_write",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  },
+  {
+    "name": "ui_preferences_restart_read",
+    "passed": true,
+    "exit": 0,
+    "errors": []
+  }
+]

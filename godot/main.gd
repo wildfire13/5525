@@ -352,6 +352,7 @@ func render():
 	gold_header.text="%dG" % c.get("gold",0)
 	header.tooltip_text=header.text
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
+	pages.facility_art.sync("battle" if battle else phase,str(c.get("location","")),page)
 	resource_header.visible=not battle
 	actor_face.visible=false
 	var lower_return=phase=="result" or phase=="town" and page!="hub"
@@ -374,9 +375,10 @@ func render():
 		for tab in ([] if focused_page or phase in ["town","result"] else tabs_):
 			var nb=button(nav,("● " if page==tab[0] else "")+tab[1],navigate.bind(tab[0]),phase!="town" and tab[0]=="items" and phase!="camp");memory.key(nb,"nav_"+tab[0])
 		var body: VBoxContainer
+		var body_parent=pages.facility_art.backdrop(content)
 		if phase=="town" and page in ["party","shop"]:
-			body=VBoxContainer.new();body.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(body)
-		else:body=scroller(content);memory.watch(body.get_parent(),"page_"+phase+"_"+page)
+			body=VBoxContainer.new();body.size_flags_vertical=Control.SIZE_EXPAND_FILL;body_parent.add_child(body)
+		else:body=scroller(body_parent);memory.watch(body.get_parent(),"page_"+phase+"_"+page)
 		if phase=="town":
 			match page:
 				"hub":pages.hub(body)

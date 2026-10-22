@@ -608,10 +608,12 @@ func formations(parent):
 
 func live_board(source_id: int=0) -> bool:
 	return not ui.closing and is_instance_valid(ui.board) and ui.board.is_inside_tree() and not ui.board.is_queued_for_deletion() and (source_id==0 or source_id==ui.board.get_instance_id())
-func render_person():
+func render_person(hover_only := false):
 	if not live_board() or not is_instance_valid(person_box) or not person_box.is_inside_tree() or person_box.is_queued_for_deletion():return
 	ui.clear(person_box)
 	person_box.remove_meta("inspected_unit")
+	if hover_only and inspected_uid.is_empty():
+		l(person_box,"人物にカーソルを合わせると情報を表示します。");return
 	if ui.state().get("deploying",false):
 		var enemy=unit(selected_enemy)
 		if enemy.get("side")=="enemy":
@@ -670,7 +672,7 @@ func inspect_hover(uid: String,source=null):
 	if typeof(source)!=TYPE_NIL and not is_instance_valid(source):return
 	var source_id: int=source.get_instance_id() if typeof(source)!=TYPE_NIL else 0
 	if not live_board(source_id):return
-	inspected_uid=uid;render_person();refresh_hover()
+	inspected_uid=uid;render_person(true);refresh_hover()
 func invalidate_hover():
 	hover_generation+=1;hover_stamp=""
 	if is_instance_valid(ui.board):ui.board.hover_caption=""
