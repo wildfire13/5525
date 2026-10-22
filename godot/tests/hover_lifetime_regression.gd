@@ -44,6 +44,9 @@ func delayed(fault,new_battle):
 	var loss=fault in ["eof","timeout"]
 	check(label+"-transport",probe.held_reply.get("connection_lost",false)==loss and probe.disconnected==loss and probe.held_reply.get("ok",false)==(fault==""),probe.held_reply.duplicate(true))
 	if loss:
+		# Only the injected hover fault has a 250ms budget. A fresh Node
+		# bootstrap must use the normal budget, including on slower CI hosts.
+		probe.timeout_ms=15000
 		check(label+"-old-node-exited",not process_running(old_pid));await game.reconnect_engine();await settle();owned.append(int(probe.handles.pid));check(label+"-new-connection",probe.connection_generation>connection)
 	else:await game.new_game();await settle()
 	probe.timeout_ms=15000

@@ -5,10 +5,16 @@ func run():
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var art=game.pages.facility_art;var seed=await saved()
-	check(art.catalog.is_empty(),"production manifest truthfully contains no undelivered materials")
-	var entries=[]
-	# Existing images are test fixtures only, never production facility materials.
-	for style in art.STYLES:entries.append({"style":style,"path":"res://assets/towns/west_b.png"})
+	var production=art.catalog.duplicate(true)
+	check(production.size()==7,"production manifest contains all seven facilities")
+	for facility in ["weapon","armor","item","accessory","guild","inn","departure_map"]:
+		var variants=production.get(facility,[])
+		check(variants.size()==3,"three original styles registered for "+facility)
+		for variant in variants:
+			var image=Image.load_from_file(variant.path)
+			check(variant.path=="res://assets/facilities/"+facility+"_"+variant.style+".png" and art.STYLES.has(variant.style),"canonical original filename "+variant.path)
+			check(image!=null and image.get_size()==Vector2i(1671 if facility=="armor" else 1672,941),"original PNG dimensions "+variant.path)
+	var entries=production.weapon
 	var cases=[["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"],["astaris","map","departure_map"]]
 	for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
 		root.size=dims
@@ -17,7 +23,10 @@ func run():
 			await game.update({"op":"campaign_load","data":saved_seed});game.navigate(spec[1]);await settle()
 			art.catalog={};art.reset();game.render();await settle()
 			check(node("FacilityStill")==null,"missing material preserves original UI "+str(spec))
-			art.catalog[spec[2]]=entries.duplicate(true);art.reset();game.render();await settle()
+			for variant in production[spec[2]]:
+				art.catalog={spec[2]:[variant]};art.reset();game.render();await settle()
+				check(art.artwork==variant and node("FacilityStill").texture.resource_path==variant.path,"actual facility style displayed "+str(spec)+" "+variant.style+str(dims))
+			art.catalog=production.duplicate(true);art.reset();game.render();await settle()
 			var before=await saved();var state=art.rng.state;var artwork=art.artwork.duplicate()
 			check(art.visit_key==spec[0]+":"+spec[2] and node("FacilityStill")!=null,"mapped facility rendered "+str(spec)+str(dims))
 			var image=node("FacilityStill");var foreground=node("FacilityForeground")
@@ -40,6 +49,13 @@ func run():
 				var map=node("TownMap");var destination=map.buttons.keys().filter(func(id):return id!=map.current and id!=map.selected)[0]
 				map.buttons[destination].pressed.emit();await settle()
 				check(node("TownMap").selected==destination and art.rng.state==state,"destination selection works without reroll")
+			if spec[1]=="party":
+				game.pages.party_view.open_detail("guard");await settle()
+				for tab in range(3):
+					await click("StatusTab_"+str(tab))
+					check(art.rng.state==state and art.artwork==artwork,"guild status tab keeps visit artwork "+str(tab))
+				game.dialog.close();await settle()
+				check(art.rng.state==state and art.artwork==artwork,"closing guild details keeps visit artwork")
 			game.navigate("hub");await settle();check(art.visit_key.is_empty() and art.texture==null,"leaving facility clears visit")
 			var town_image=game.pages.hub_view.artwork.duplicate()
 			game.navigate(spec[1]);await settle();check(art.rng.state!=state,"returning facility makes new random draw (same style allowed)")

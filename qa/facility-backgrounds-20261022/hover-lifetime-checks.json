@@ -1,0 +1,1490 @@
+{
+  "checks": [
+    {
+      "detail": "Real hover response withheld only after transport completion",
+      "id": "success-town-held",
+      "passed": true
+    },
+    {
+      "detail": {
+        "hover": {
+          "accuracy": 100.0,
+          "cells": [],
+          "damagePreview": [
+            {
+              "base": 25.0,
+              "bonus": 0.0,
+              "damage": 38.0,
+              "hpLoss": 38.0,
+              "recipientId": "enemy-archer-2",
+              "recipientName": "敵弓手 1",
+              "targetId": "enemy-archer-2",
+              "targetName": "敵弓手 1",
+              "weapons": [
+                {
+                  "atk": 25.0,
+                  "itemId": "bow-wood",
+                  "name": "木製の遠見弓",
+                  "reach": 3.0,
+                  "skill": "archer",
+                  "slot": "rightHand"
+                }
+              ]
+            }
+          ],
+          "destination": null,
+          "effectPreview": [
+            {
+              "cover": null,
+              "covers": [],
+              "guard": false,
+              "hp": -38.0,
+              "id": "enemy-archer-2",
+              "mp": 0.0,
+              "position": null
+            }
+          ],
+          "formationAfter": true,
+          "formationBefore": true,
+          "fullHealth": false,
+          "kind": "attack",
+          "path": [],
+          "previewKind": "attack",
+          "ranges": [
+            1.0,
+            2.0,
+            3.0,
+            5.0,
+            10.0,
+            11.0,
+            12.0,
+            14.0,
+            15.0,
+            16.0,
+            21.0,
+            23.0,
+            25.0,
+            32.0,
+            34.0,
+            43.0
+          ],
+          "risks": [],
+          "status": "ready",
+          "swap": null,
+          "target": "enemy-archer-2",
+          "targets": [
+            "敵弓手 1",
+            "敵スカウト 2",
+            "敵盾役 3"
+          ],
+          "units": [
+            {
+              "activeSkills": [
+                "guard"
+              ],
+              "agi": 10.0,
+              "atk": 26.0,
+              "attackBonus": 0.0,
+              "attackWeapons": [
+                {
+                  "atk": 26.0,
+                  "itemId": "sword-wood",
+                  "name": "木製の護衛剣",
+                  "reach": 1.0,
+                  "skill": null,
+                  "slot": "rightHand"
+                }
+              ],
+              "canInvade": false,
+              "cover": null,
+              "def": 0.0,
+              "effects": [],
+              "equipment": {
+                "accessory1": "empty-accessory1",
+                "accessory2": "empty-accessory2",
+                "feet": "empty-feet",
+                "head": "empty-head",
+                "leftHand": "guard-shield-wood",
+                "lowerBody": "empty-lowerBody",
+                "rightHand": "sword-wood",
+                "upperBody": "armor-cloth"
+              },
+              "equippedSkill": "guard",
+              "guard": false,
+              "hp": 180.0,
+              "icon": "盾",
+              "id": "guard",
+              "image": "knight.png",
+              "int": 8.0,
+              "job": "guard",
+              "max": 180.0,
+              "maxMp": 6.0,
+              "mp": 6.0,
+              "name": "ガロ",
+              "next": 10.0,
+              "pos": 24.0,
+              "race": "human",
+              "reach": 1.0,
+              "role": "盾役",
+              "side": "ally",
+              "skillSources": [
+                {
+                  "classification": "active",
+                  "id": "guard",
+                  "itemId": "guard-shield-wood",
+                  "slot": "leftHand"
+                }
+              ],
+              "str": 16.0,
+              "tie": 1.0,
+              "weapon": "sword"
+            },
+            {
+              "activeSkills": [
+                "archer"
+              ],
+              "agi": 14.0,
+              "atk": 25.0,
+              "attackBonus": 0.0,
+              "attackWeapons": [
+                {
+                  "atk": 25.0,
+                  "itemId": "bow-wood",
+                  "name": "木製の遠見弓",
+                  "reach": 3.0,
+                  "skill": "archer",
+                  "slot": "rightHand"
+                }
+              ],
+              "boost": false,
+              "canInvade": false,
+              "cover": null,
+              "def": 0.0,
+              "effects": [],
+              "equipment": {
+                "accessory1": "empty-accessory1",
+                "accessory2": "empty-accessory2",
+                "feet": "empty-feet",
+                "head": "empty-head",
+                "leftHand": "empty-leftHand",
+                "lowerBody": "empty-lowerBody",
+                "rightHand": "bow-wood",
+                "upperBody": "armor-cloth"
+              },
+              "equippedSkill": "archer",
+              "guard": false,
+              "hp": 100.0,
+              "icon": "弓",
+              "id": "archer",
+              "image": "archer.png",
+              "int": 8.0,
+              "job": "archer",
+              "max": 100.0,
+              "maxMp": 4.0,
+              "mp": 4.0,
+              "name": "リノ",
+              "next": 7.14285714285714,
+              "pos": 13.0,
+              "race": "human",
+              "reach": 3.0,
+              "role": "弓手",
+              "side": "ally",
+              "skillSources": [
+                {
+                  "classification": "active",
+                  "id": "archer",
+                  "itemId": "bow-wood",
+                  "slot": "rightHand"
+                }
+              ],
+              "str": 12.0,
+              "tie": 4.01,
+              "weapon": "bow"
+            },
+            {
+              "activeSkills": [
+                "mage",
+                "itemUse"
+              ],
+              "agi": 11.0,
+              "atk": 14.0,
+              "attackBonus": 0.0,
+              "attackWeapons": [
+                {
+                  "atk": 14.0,
+                  "itemId": "staff-wood",
+                  "name": "木製の癒し杖",
+                  "reach": 2.0,
+                  "skill": "mage",
+                  "slot": "rightHand"
+                }
+              ],
+              "canInvade": false,
+              "cover": null,
+              "def": 0.0,
+              "effects": [],
+              "equipment": {
+                "accessory1": "empty-accessory1",
+                "accessory2": "empty-accessory2",
+                "feet": "empty-feet",
+                "head": "empty-head",
+                "leftHand": "empty-leftHand",
+                "lowerBody": "empty-lowerBody",
+                "rightHand": "staff-wood",
+                "upperBody": "armor-cloth"
+              },
+              "equippedSkill": "mage",
+              "guard": false,
+              "hp": 100.0,
+              "icon": "癒",
+              "id": "mage",
+              "image": "healer.png",
+              "int": 16.0,
+              "job": "mage",
+              "max": 100.0,
+              "maxMp": 8.0,
+              "mp": 8.0,
+              "name": "ミオ",
+              "next": 9.09090909090909,
+              "pos": 33.0,
+              "race": "elf",
+              "reach": 2.0,
+              "role": "ヒーラー",
+              "side": "ally",
+              "skillSources": [
+                {
+                  "classification": "active",
+                  "id": "mage",
+                  "itemId": "staff-wood",
+                  "slot": "rightHand"
+                },
+                {
+                  "classification": "active",
+                  "id": "itemUse",
+                  "itemId": "empty-leftHand",
+                  "level": 1.0,
+                  "slot": "leftHand"
+                }
+              ],
+              "str": 14.0,
+              "tie": 9.02,
+              "weapon": "staff"
+            },
+            {
+              "activeSkills": [
+                "scout",
+                "itemUse"
+              ],
+              "agi": 13.0,
+              "atk": 23.0,
+              "attackBonus": 0.0,
+              "attackWeapons": [
+                {
+                  "atk": 23.0,
+                  "itemId": "dagger-wood",
+                  "name": "木製の奇襲短剣",
+                  "reach": 1.0,
+                  "skill": "scout",
+                  "slot": "rightHand"
+                }
+              ],
+              "canInvade": true,
+              "cover": null,
+              "def": 0.0,
+              "effects": [
+                "invasion"
+              ],
+              "equipment": {
+                "accessory1": "invasion-charm-1",
+                "accessory2": "empty-accessory2",
+                "feet": "empty-feet",
+                "head": "empty-head",
+                "leftHand": "empty-leftHand",
+                "lowerBody": "empty-lowerBody",
+                "rightHand": "dagger-wood",
+                "upperBody": "armor-cloth"
+              },
+              "equippedSkill": "scout",
+              "guard": false,
+              "hp": 105.0,
+              "icon": "斥",
+              "id": "scout",
+              "image": "scout.png",
+              "int": 9.0,
+              "job": "scout",
+              "max": 105.0,
+              "maxMp": 5.0,
+              "mp": 5.0,
+              "name": "ニカ",
+              "next": 7.69230769230769,
+              "pos": 4.0,
+              "race": "elf",
+              "reach": 1.0,
+              "role": "スカウト",
+              "side": "ally",
+              "skillSources": [
+                {
+                  "classification": "active",
+                  "id": "scout",
+                  "itemId": "dagger-wood",
+                  "level": 1.0,
+                  "slot": "rightHand"
+                },
+                {
+                  "classification": "active",
+                  "id": "itemUse",
+                  "itemId": "empty-leftHand",
+                  "level": 1.0,
+                  "slot": "leftHand"
+                },
+                {
+                  "classification": "passive",
+                  "id": "invasion",
+                  "itemId": "invasion-charm-1",
+                  "slot": "accessory1"
+                }
+              ],
+              "str": 10.0,
+              "tie": 12.03,
+              "weapon": "dagger"
+            },
+            {
+              "activeSkills": [
+                "porter",
+                "itemUse"
+              ],
+              "agi": 12.0,
+              "atk": 0.0,
+              "attackBonus": 0.0,
+              "attackWeapons": [],
+              "canInvade": false,
+              "cover": null,
+              "def": 0.0,
+              "effects": [],
+              "equipment": {
+                "accessory1": "empty-accessory1",
+                "accessory2": "empty-accessory2",
+                "feet": "empty-feet",
+                "head": "empty-head",
+                "leftHand": "empty-leftHand",
+                "lowerBody": "empty-lowerBody",
+                "rightHand": "porter-kit",
+                "upperBody": "armor-cloth"
+              },
+              "equippedSkill": "porter",
+              "guard": false,
+              "hp": 110.0,
+              "icon": "運",
+              "id": "porter",
+              "image": "porter.png",
+              "int": 10.0,
+              "job": "porter",
+              "max": 110.0,
+              "maxMp": 6.0,
+              "mp": 6.0,
+              "name": "トワ",
+              "next": 8.33333333333333,
+              "pos": 22.0,
+              "race": "human",
+              "reach": 0.0,
+              "role": "ポーター",
+              "side": "ally",
+              "skillSources": [
+                {
+                  "classification": "active",
+                  "id": "porter",
+                  "itemId": "porter-kit",
+                  "slot": "rightHand"
+                },
+                {
+                  "classification": "active",
+                  "id": "itemUse",
+                  "itemId": "empty-leftHand",
+                  "level": 3.0,
+                  "slot": "leftHand"
+                }
+              ],
+              "str": 14.0,
+              "tie": 17.04
+            },
+            {
+              "agi": 14.0,
+              "atk": 25.0,
+              "cover": null,
+              "def": 0.0,
+              "guard": false,
+              "hp": 100.0,
+              "icon": "弓",
+              "id": "enemy-archer-2",
+              "image": "archer.png",
+              "intent": {
+                "cells": [
+                  13.0
+                ],
+                "kind": "skill",
+                "name": "スナイプ",
+                "reason": "射程内の弱った敵を狙う",
+                "target": "archer"
+              },
+              "job": "archer",
+              "max": 100.0,
+              "maxMp": 4.0,
+              "mp": 4.0,
+              "name": "敵弓手 1",
+              "next": 7.14285714285714,
+              "pos": 16.0,
+              "reach": 3.0,
+              "role": "弓手",
+              "side": "enemy",
+              "tie": 5.0
+            },
+            {
+              "agi": 13.0,
+              "atk": 23.0,
+              "cover": null,
+              "def": 0.0,
+              "guard": false,
+              "hp": 105.0,
+              "icon": "斥",
+              "id": "enemy-scout-2",
+              "image": "scout.png",
+              "intent": {
+                "cells": [
+                  4.0
+                ],
+                "destination": 5.0,
+                "kind": "skill",
+                "name": "奇襲",
+                "path": [],
+                "reason": "装備の奇襲Lvの範囲内にいる弱った敵へ奇襲",
+                "target": "scout"
+              },
+              "job": "scout",
+              "max": 105.0,
+              "maxMp": 5.0,
+              "mp": 5.0,
+              "name": "敵スカウト 2",
+              "next": 7.69230769230769,
+              "pos": 5.0,
+              "reach": 1.0,
+              "role": "スカウト",
+              "side": "enemy",
+              "skillSources": [
+                {
+                  "classification": "active",
+                  "id": "scout",
+                  "itemId": "dagger-wood",
+                  "level": 1.0,
+                  "slot": "rightHand"
+                }
+              ],
+              "tie": 13.01
+            },
+            {
+              "agi": 10.0,
+              "atk": 26.0,
+              "cover": null,
+              "def": 0.0,
+              "guard": false,
+              "hp": 180.0,
+              "icon": "盾",
+              "id": "enemy-guard",
+              "image": "knight.png",
+              "intent": {
+                "cells": [
+                  24.0
+                ],
+                "kind": "attack",
+                "name": "攻撃",
+                "reason": "射程内の弱った敵を狙う",
+                "target": "guard"
+              },
+              "job": "guard",
+              "max": 180.0,
+              "maxMp": 6.0,
+              "mp": 6.0,
+              "name": "敵盾役 3",
+              "next": 10.0,
+              "pos": 25.0,
+              "reach": 1.0,
+              "role": "盾役",
+              "side": "enemy",
+              "tie": 0.02
+            }
+          ]
+        },
+        "ok": true
+      },
+      "id": "success-town-transport",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "success-town-old-board-freed",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "success-town-released",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "success-town-no-replay",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "success-town-state-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "success-town-new-view-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "success-town-connection-preserved",
+      "passed": true
+    },
+    {
+      "detail": "Real hover response withheld only after transport completion",
+      "id": "success-new-board-held",
+      "passed": true
+    },
+    {
+      "detail": {
+        "hover": {
+          "accuracy": 100.0,
+          "cells": [],
+          "damagePreview": [
+            {
+              "base": 25.0,
+              "bonus": 0.0,
+              "damage": 38.0,
+              "hpLoss": 38.0,
+              "recipientId": "enemy-archer-2",
+              "recipientName": "敵弓手 1",
+              "targetId": "enemy-archer-2",
+              "targetName": "敵弓手 1",
+              "weapons": [
+                {
+                  "atk": 25.0,
+                  "itemId": "bow-wood",
+                  "name": "木製の遠見弓",
+                  "reach": 3.0,
+                  "skill": "archer",
+                  "slot": "rightHand"
+                }
+              ]
+            }
+          ],
+          "destination": null,
+          "effectPreview": [
+            {
+              "cover": null,
+              "covers": [],
+              "guard": false,
+              "hp": -38.0,
+              "id": "enemy-archer-2",
+              "mp": 0.0,
+              "position": null
+            }
+          ],
+          "formationAfter": true,
+          "formationBefore": true,
+          "fullHealth": false,
+          "kind": "attack",
+          "path": [],
+          "previewKind": "attack",
+          "ranges": [
+            1.0,
+            2.0,
+            3.0,
+            5.0,
+            10.0,
+            11.0,
+            12.0,
+            14.0,
+            15.0,
+            16.0,
+            21.0,
+            23.0,
+            25.0,
+            32.0,
+            34.0,
+            43.0
+          ],
+          "risks": [],
+          "status": "ready",
+          "swap": null,
+          "target": "enemy-archer-2",
+          "targets": [
+            "敵弓手 1",
+            "敵スカウト 2",
+            "敵盾役 3"
+          ],
+          "units": [
+            {
+              "activeSkills": [
+                "guard"
+              ],
+              "agi": 10.0,
+              "atk": 26.0,
+              "attackBonus": 0.0,
+              "attackWeapons": [
+                {
+                  "atk": 26.0,
+                  "itemId": "sword-wood",
+                  "name": "木製の護衛剣",
+                  "reach": 1.0,
+                  "skill": null,
+                  "slot": "rightHand"
+                }
+              ],
+              "canInvade": false,
+              "cover": null,
+              "def": 0.0,
+              "effects": [],
+              "equipment": {
+                "accessory1": "empty-accessory1",
+                "accessory2": "empty-accessory2",
+                "feet": "empty-feet",
+                "head": "empty-head",
+                "leftHand": "guard-shield-wood",
+                "lowerBody": "empty-lowerBody",
+                "rightHand": "sword-wood",
+                "upperBody": "armor-cloth"
+              },
+              "equippedSkill": "guard",
+              "guard": false,
+              "hp": 180.0,
+              "icon": "盾",
+              "id": "guard",
+              "image": "knight.png",
+              "int": 8.0,
+              "job": "guard",
+              "max": 180.0,
+              "maxMp": 6.0,
+              "mp": 6.0,
+              "name": "ガロ",
+              "next": 10.0,
+              "pos": 24.0,
+              "race": "human",
+              "reach": 1.0,
+              "role": "盾役",
+              "side": "ally",
+              "skillSources": [
+                {
+                  "classification": "active",
+                  "id": "guard",
+                  "itemId": "guard-shield-wood",
+                  "slot": "leftHand"
+                }
+              ],
+              "str": 16.0,
+              "tie": 1.0,
+              "weapon": "sword"
+            },
+            {
+              "activeSkills": [
+                "archer"
+              ],
+              "agi": 14.0,
+              "atk": 25.0,
+              "attackBonus": 0.0,
+              "attackWeapons": [
+                {
+                  "atk": 25.0,
+                  "itemId": "bow-wood",
+                  "name": "木製の遠見弓",
+                  "reach": 3.0,
+                  "skill": "archer",
+                  "slot": "rightHand"
+                }
+              ],
+              "boost": false,
+              "canInvade": false,
+              "cover": null,
+              "def": 0.0,
+              "effects": [],
+              "equipment": {
+                "accessory1": "empty-accessory1",
+                "accessory2": "empty-accessory2",
+                "feet": "empty-feet",
+                "head": "empty-head",
+                "leftHand": "empty-leftHand",
+                "lowerBody": "empty-lowerBody",
+                "rightHand": "bow-wood",
+                "upperBody": "armor-cloth"
+              },
+              "equippedSkill": "archer",
+              "guard": false,
+              "hp": 100.0,
+              "icon": "弓",
+              "id": "archer",
+              "image": "archer.png",
+              "int": 8.0,
+              "job": "archer",
+              "max": 100.0,
+              "maxMp": 4.0,
+              "mp": 4.0,
+              "name": "リノ",
+              "next": 7.14285714285714,
+              "pos": 13.0,
+              "race": "human",
+              "reach": 3.0,
+              "role": "弓手",
+              "side": "ally",
+              "skillSources": [
+                {
+                  "classification": "active",
+                  "id": "archer",
+                  "itemId": "bow-wood",
+                  "slot": "rightHand"
+                }
+              ],
+              "str": 12.0,
+              "tie": 4.01,
+              "weapon": "bow"
+            },
+            {
+              "activeSkills": [
+                "mage",
+                "itemUse"
+              ],
+              "agi": 11.0,
+              "atk": 14.0,
+              "attackBonus": 0.0,
+              "attackWeapons": [
+                {
+                  "atk": 14.0,
+                  "itemId": "staff-wood",
+                  "name": "木製の癒し杖",
+                  "reach": 2.0,
+                  "skill": "mage",
+                  "slot": "rightHand"
+                }
+              ],
+              "canInvade": false,
+              "cover": null,
+              "def": 0.0,
+              "effects": [],
+              "equipment": {
+                "accessory1": "empty-accessory1",
+                "accessory2": "empty-accessory2",
+                "feet": "empty-feet",
+                "head": "empty-head",
+                "leftHand": "empty-leftHand",
+                "lowerBody": "empty-lowerBody",
+                "rightHand": "staff-wood",
+                "upperBody": "armor-cloth"
+              },
+              "equippedSkill": "mage",
+              "guard": false,
+              "hp": 100.0,
+              "icon": "癒",
+              "id": "mage",
+              "image": "healer.png",
+              "int": 16.0,
+              "job": "mage",
+              "max": 100.0,
+              "maxMp": 8.0,
+              "mp": 8.0,
+              "name": "ミオ",
+              "next": 9.09090909090909,
+              "pos": 33.0,
+              "race": "elf",
+              "reach": 2.0,
+              "role": "ヒーラー",
+              "side": "ally",
+              "skillSources": [
+                {
+                  "classification": "active",
+                  "id": "mage",
+                  "itemId": "staff-wood",
+                  "slot": "rightHand"
+                },
+                {
+                  "classification": "active",
+                  "id": "itemUse",
+                  "itemId": "empty-leftHand",
+                  "level": 1.0,
+                  "slot": "leftHand"
+                }
+              ],
+              "str": 14.0,
+              "tie": 9.02,
+              "weapon": "staff"
+            },
+            {
+              "activeSkills": [
+                "scout",
+                "itemUse"
+              ],
+              "agi": 13.0,
+              "atk": 23.0,
+              "attackBonus": 0.0,
+              "attackWeapons": [
+                {
+                  "atk": 23.0,
+                  "itemId": "dagger-wood",
+                  "name": "木製の奇襲短剣",
+                  "reach": 1.0,
+                  "skill": "scout",
+                  "slot": "rightHand"
+                }
+              ],
+              "canInvade": true,
+              "cover": null,
+              "def": 0.0,
+              "effects": [
+                "invasion"
+              ],
+              "equipment": {
+                "accessory1": "invasion-charm-1",
+                "accessory2": "empty-accessory2",
+                "feet": "empty-feet",
+                "head": "empty-head",
+                "leftHand": "empty-leftHand",
+                "lowerBody": "empty-lowerBody",
+                "rightHand": "dagger-wood",
+                "upperBody": "armor-cloth"
+              },
+              "equippedSkill": "scout",
+              "guard": false,
+              "hp": 105.0,
+              "icon": "斥",
+              "id": "scout",
+              "image": "scout.png",
+              "int": 9.0,
+              "job": "scout",
+              "max": 105.0,
+              "maxMp": 5.0,
+              "mp": 5.0,
+              "name": "ニカ",
+              "next": 7.69230769230769,
+              "pos": 4.0,
+              "race": "elf",
+              "reach": 1.0,
+              "role": "スカウト",
+              "side": "ally",
+              "skillSources": [
+                {
+                  "classification": "active",
+                  "id": "scout",
+                  "itemId": "dagger-wood",
+                  "level": 1.0,
+                  "slot": "rightHand"
+                },
+                {
+                  "classification": "active",
+                  "id": "itemUse",
+                  "itemId": "empty-leftHand",
+                  "level": 1.0,
+                  "slot": "leftHand"
+                },
+                {
+                  "classification": "passive",
+                  "id": "invasion",
+                  "itemId": "invasion-charm-1",
+                  "slot": "accessory1"
+                }
+              ],
+              "str": 10.0,
+              "tie": 12.03,
+              "weapon": "dagger"
+            },
+            {
+              "activeSkills": [
+                "porter",
+                "itemUse"
+              ],
+              "agi": 12.0,
+              "atk": 0.0,
+              "attackBonus": 0.0,
+              "attackWeapons": [],
+              "canInvade": false,
+              "cover": null,
+              "def": 0.0,
+              "effects": [],
+              "equipment": {
+                "accessory1": "empty-accessory1",
+                "accessory2": "empty-accessory2",
+                "feet": "empty-feet",
+                "head": "empty-head",
+                "leftHand": "empty-leftHand",
+                "lowerBody": "empty-lowerBody",
+                "rightHand": "porter-kit",
+                "upperBody": "armor-cloth"
+              },
+              "equippedSkill": "porter",
+              "guard": false,
+              "hp": 110.0,
+              "icon": "運",
+              "id": "porter",
+              "image": "porter.png",
+              "int": 10.0,
+              "job": "porter",
+              "max": 110.0,
+              "maxMp": 6.0,
+              "mp": 6.0,
+              "name": "トワ",
+              "next": 8.33333333333333,
+              "pos": 22.0,
+              "race": "human",
+              "reach": 0.0,
+              "role": "ポーター",
+              "side": "ally",
+              "skillSources": [
+                {
+                  "classification": "active",
+                  "id": "porter",
+                  "itemId": "porter-kit",
+                  "slot": "rightHand"
+                },
+                {
+                  "classification": "active",
+                  "id": "itemUse",
+                  "itemId": "empty-leftHand",
+                  "level": 3.0,
+                  "slot": "leftHand"
+                }
+              ],
+              "str": 14.0,
+              "tie": 17.04
+            },
+            {
+              "agi": 14.0,
+              "atk": 25.0,
+              "cover": null,
+              "def": 0.0,
+              "guard": false,
+              "hp": 100.0,
+              "icon": "弓",
+              "id": "enemy-archer-2",
+              "image": "archer.png",
+              "intent": {
+                "cells": [
+                  13.0
+                ],
+                "kind": "skill",
+                "name": "スナイプ",
+                "reason": "射程内の弱った敵を狙う",
+                "target": "archer"
+              },
+              "job": "archer",
+              "max": 100.0,
+              "maxMp": 4.0,
+              "mp": 4.0,
+              "name": "敵弓手 1",
+              "next": 7.14285714285714,
+              "pos": 16.0,
+              "reach": 3.0,
+              "role": "弓手",
+              "side": "enemy",
+              "tie": 5.0
+            },
+            {
+              "agi": 13.0,
+              "atk": 23.0,
+              "cover": null,
+              "def": 0.0,
+              "guard": false,
+              "hp": 105.0,
+              "icon": "斥",
+              "id": "enemy-scout-2",
+              "image": "scout.png",
+              "intent": {
+                "cells": [
+                  4.0
+                ],
+                "destination": 5.0,
+                "kind": "skill",
+                "name": "奇襲",
+                "path": [],
+                "reason": "装備の奇襲Lvの範囲内にいる弱った敵へ奇襲",
+                "target": "scout"
+              },
+              "job": "scout",
+              "max": 105.0,
+              "maxMp": 5.0,
+              "mp": 5.0,
+              "name": "敵スカウト 2",
+              "next": 7.69230769230769,
+              "pos": 5.0,
+              "reach": 1.0,
+              "role": "スカウト",
+              "side": "enemy",
+              "skillSources": [
+                {
+                  "classification": "active",
+                  "id": "scout",
+                  "itemId": "dagger-wood",
+                  "level": 1.0,
+                  "slot": "rightHand"
+                }
+              ],
+              "tie": 13.01
+            },
+            {
+              "agi": 10.0,
+              "atk": 26.0,
+              "cover": null,
+              "def": 0.0,
+              "guard": false,
+              "hp": 180.0,
+              "icon": "盾",
+              "id": "enemy-guard",
+              "image": "knight.png",
+              "intent": {
+                "cells": [
+                  24.0
+                ],
+                "kind": "attack",
+                "name": "攻撃",
+                "reason": "射程内の弱った敵を狙う",
+                "target": "guard"
+              },
+              "job": "guard",
+              "max": 180.0,
+              "maxMp": 6.0,
+              "mp": 6.0,
+              "name": "敵盾役 3",
+              "next": 10.0,
+              "pos": 25.0,
+              "reach": 1.0,
+              "role": "盾役",
+              "side": "enemy",
+              "tie": 0.02
+            }
+          ]
+        },
+        "ok": true
+      },
+      "id": "success-new-board-transport",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "success-new-board-old-board-freed",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "success-new-board-released",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "success-new-board-no-replay",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "success-new-board-state-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "success-new-board-new-view-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "success-new-board-connection-preserved",
+      "passed": true
+    },
+    {
+      "detail": "Real hover response withheld only after transport completion",
+      "id": "error-town-held",
+      "passed": true
+    },
+    {
+      "detail": {
+        "error": "controlled hover error",
+        "ok": false
+      },
+      "id": "error-town-transport",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "error-town-old-board-freed",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "error-town-released",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "error-town-no-replay",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "error-town-state-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "error-town-new-view-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "error-town-connection-preserved",
+      "passed": true
+    },
+    {
+      "detail": "Real hover response withheld only after transport completion",
+      "id": "error-new-board-held",
+      "passed": true
+    },
+    {
+      "detail": {
+        "error": "controlled hover error",
+        "ok": false
+      },
+      "id": "error-new-board-transport",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "error-new-board-old-board-freed",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "error-new-board-released",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "error-new-board-no-replay",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "error-new-board-state-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "error-new-board-new-view-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "error-new-board-connection-preserved",
+      "passed": true
+    },
+    {
+      "detail": "Real hover response withheld only after transport completion",
+      "id": "eof-town-held",
+      "passed": true
+    },
+    {
+      "detail": {
+        "connection_lost": true,
+        "error": "ゲーム接続が終了しました（eof）。未保存の進行は失われています。再接続して保存済みファイルを読み込めます。",
+        "ok": false
+      },
+      "id": "eof-town-transport",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-town-old-node-exited",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-town-new-connection",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-town-old-board-freed",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-town-released",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-town-no-replay",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-town-state-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-town-new-view-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-town-connection-preserved",
+      "passed": true
+    },
+    {
+      "detail": "Real hover response withheld only after transport completion",
+      "id": "eof-new-board-held",
+      "passed": true
+    },
+    {
+      "detail": {
+        "connection_lost": true,
+        "error": "ゲーム接続が終了しました（eof）。未保存の進行は失われています。再接続して保存済みファイルを読み込めます。",
+        "ok": false
+      },
+      "id": "eof-new-board-transport",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-new-board-old-node-exited",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-new-board-new-connection",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-new-board-old-board-freed",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-new-board-released",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-new-board-no-replay",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-new-board-state-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-new-board-new-view-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "eof-new-board-connection-preserved",
+      "passed": true
+    },
+    {
+      "detail": "Real hover response withheld only after transport completion",
+      "id": "timeout-town-held",
+      "passed": true
+    },
+    {
+      "detail": {
+        "connection_lost": true,
+        "error": "ゲーム接続が終了しました（timeout）。未保存の進行は失われています。再接続して保存済みファイルを読み込めます。",
+        "ok": false
+      },
+      "id": "timeout-town-transport",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-town-old-node-exited",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-town-new-connection",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-town-old-board-freed",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-town-released",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-town-no-replay",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-town-state-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-town-new-view-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-town-connection-preserved",
+      "passed": true
+    },
+    {
+      "detail": "Real hover response withheld only after transport completion",
+      "id": "timeout-new-board-held",
+      "passed": true
+    },
+    {
+      "detail": {
+        "connection_lost": true,
+        "error": "ゲーム接続が終了しました（timeout）。未保存の進行は失われています。再接続して保存済みファイルを読み込めます。",
+        "ok": false
+      },
+      "id": "timeout-new-board-transport",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-new-board-old-node-exited",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-new-board-new-connection",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-new-board-old-board-freed",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-new-board-released",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-new-board-no-replay",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-new-board-state-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-new-board-new-view-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "timeout-new-board-connection-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "current--held",
+      "passed": true
+    },
+    {
+      "detail": "予測：敵弓手 1が受ける −38\n命中：100%",
+      "id": "current--applied",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "current--no-replay",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "current--state-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "current-error-held",
+      "passed": true
+    },
+    {
+      "detail": "予測：未取得",
+      "id": "current-error-applied",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "current-error-no-replay",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "current-error-state-preserved",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "busy-wait-old-board-freed",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "busy-wait-no-dispatch",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "busy-wait-no-inspection-mutation",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "null-board-no-inspection-mutation",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "foreign-board-rejected",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "freed-board-callback-rejected",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "teardown-town",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "id": "owned-nodes-exited",
+      "passed": true
+    }
+  ],
+  "owned": [
+    2298,
+    2389,
+    2421,
+    2447,
+    2454
+  ],
+  "scope": "Adapted independent Q06 controls plus current-response and freed-callback checks; real Node transport; no OS input."
+}
