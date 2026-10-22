@@ -1,0 +1,94 @@
+[
+	{
+		"label": "extra real GUI renderer active",
+		"passed": true
+	},
+	{
+		"label": "OS click target visible",
+		"passed": true
+	},
+	{
+		"label": "OS XTest mouse request acknowledged",
+		"passed": true
+	},
+	{
+		"label": "OS status tab holds visit artwork 1",
+		"passed": true
+	},
+	{
+		"label": "OS click target visible",
+		"passed": true
+	},
+	{
+		"label": "OS XTest mouse request acknowledged",
+		"passed": true
+	},
+	{
+		"label": "OS status tab holds visit artwork 2",
+		"passed": true
+	},
+	{
+		"label": "OS click target visible",
+		"passed": true
+	},
+	{
+		"label": "OS XTest mouse request acknowledged",
+		"passed": true
+	},
+	{
+		"label": "OS status tab holds visit artwork 0",
+		"passed": true
+	},
+	{
+		"label": "status close holds visit artwork",
+		"passed": true
+	},
+	{
+		"label": "valid real attack target",
+		"passed": true
+	},
+	{
+		"label": "OS XTest mouse request acknowledged",
+		"passed": true
+	},
+	{
+		"label": "OS click selects real target and loads preview",
+		"passed": true
+	},
+	{
+		"label": "real rendered viewport real_attack_selection",
+		"passed": true
+	},
+	{
+		"label": "OS XTest mouse request acknowledged",
+		"passed": true
+	},
+	{
+		"label": "OS empty hover clears inspection and retains real target",
+		"passed": true
+	},
+	{
+		"label": "OS XTest mouse request acknowledged",
+		"passed": true
+	},
+	{
+		"label": "OS middle drag rotates camera",
+		"passed": true
+	},
+	{
+		"label": "OS XTest mouse request acknowledged",
+		"passed": true
+	},
+	{
+		"label": "OS hover after camera rotation uses projected floor",
+		"passed": true
+	},
+	{
+		"label": "real rendered viewport real_camera_hover",
+		"passed": true
+	},
+	{
+		"label": "real selection cancellation and camera controls preserve save and progress RNG",
+		"passed": true
+	}
+]

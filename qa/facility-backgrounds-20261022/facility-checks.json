@@ -1,0 +1,1030 @@
+[
+	{
+		"label": "production manifest contains all seven facilities",
+		"passed": true
+	},
+	{
+		"label": "three original styles registered for weapon",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/weapon_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/weapon_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/weapon_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/weapon_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/weapon_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/weapon_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "three original styles registered for armor",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/armor_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/armor_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/armor_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/armor_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/armor_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/armor_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "three original styles registered for item",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/item_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/item_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/item_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/item_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/item_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/item_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "three original styles registered for accessory",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/accessory_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/accessory_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/accessory_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/accessory_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/accessory_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/accessory_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "three original styles registered for guild",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/guild_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/guild_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/guild_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/guild_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/guild_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/guild_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "three original styles registered for inn",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/inn_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/inn_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/inn_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/inn_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/inn_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/inn_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "three original styles registered for departure_map",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/departure_map_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/departure_map_papercut.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/departure_map_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/departure_map_gouache.png",
+		"passed": true
+	},
+	{
+		"label": "canonical original filename res://assets/facilities/departure_map_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "original PNG dimensions res://assets/facilities/departure_map_watercolor_pen.png",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"east\", \"shop\", \"weapon\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"east\", \"shop\", \"weapon\"] papercut(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"east\", \"shop\", \"weapon\"] gouache(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"east\", \"shop\", \"weapon\"] watercolor_pen(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"east\", \"shop\", \"weapon\"](1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "shop filter keeps visit artwork",
+		"passed": true
+	},
+	{
+		"label": "purchase cancellation preserves campaign and artwork",
+		"passed": true
+	},
+	{
+		"label": "confirmed purchase works over fixed background",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"west\", \"shop\", \"armor\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"west\", \"shop\", \"armor\"] papercut(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"west\", \"shop\", \"armor\"] gouache(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"west\", \"shop\", \"armor\"] watercolor_pen(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"west\", \"shop\", \"armor\"](1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "shop filter keeps visit artwork",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"south\", \"shop\", \"item\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"south\", \"shop\", \"item\"] papercut(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"south\", \"shop\", \"item\"] gouache(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"south\", \"shop\", \"item\"] watercolor_pen(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"south\", \"shop\", \"item\"](1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "shop filter keeps visit artwork",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"north\", \"shop\", \"accessory\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"north\", \"shop\", \"accessory\"] papercut(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"north\", \"shop\", \"accessory\"] gouache(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"north\", \"shop\", \"accessory\"] watercolor_pen(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"north\", \"shop\", \"accessory\"](1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "shop filter keeps visit artwork",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"astaris\", \"party\", \"guild\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"party\", \"guild\"] papercut(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"party\", \"guild\"] gouache(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"party\", \"guild\"] watercolor_pen(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"astaris\", \"party\", \"guild\"](1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "guild status tab keeps visit artwork 0",
+		"passed": true
+	},
+	{
+		"label": "guild status tab keeps visit artwork 1",
+		"passed": true
+	},
+	{
+		"label": "guild status tab keeps visit artwork 2",
+		"passed": true
+	},
+	{
+		"label": "closing guild details keeps visit artwork",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"astaris\", \"inn\", \"inn\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"inn\", \"inn\"] papercut(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"inn\", \"inn\"] gouache(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"inn\", \"inn\"] watercolor_pen(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"astaris\", \"inn\", \"inn\"](1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"astaris\", \"map\", \"departure_map\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"map\", \"departure_map\"] papercut(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"map\", \"departure_map\"] gouache(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"map\", \"departure_map\"] watercolor_pen(1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"astaris\", \"map\", \"departure_map\"](1920, 1080)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "map controls remain available over background",
+		"passed": true
+	},
+	{
+		"label": "destination selection works without reroll",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"east\", \"shop\", \"weapon\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"east\", \"shop\", \"weapon\"] papercut(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"east\", \"shop\", \"weapon\"] gouache(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"east\", \"shop\", \"weapon\"] watercolor_pen(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"east\", \"shop\", \"weapon\"](1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "shop filter keeps visit artwork",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"west\", \"shop\", \"armor\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"west\", \"shop\", \"armor\"] papercut(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"west\", \"shop\", \"armor\"] gouache(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"west\", \"shop\", \"armor\"] watercolor_pen(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"west\", \"shop\", \"armor\"](1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "shop filter keeps visit artwork",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"south\", \"shop\", \"item\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"south\", \"shop\", \"item\"] papercut(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"south\", \"shop\", \"item\"] gouache(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"south\", \"shop\", \"item\"] watercolor_pen(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"south\", \"shop\", \"item\"](1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "shop filter keeps visit artwork",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"north\", \"shop\", \"accessory\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"north\", \"shop\", \"accessory\"] papercut(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"north\", \"shop\", \"accessory\"] gouache(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"north\", \"shop\", \"accessory\"] watercolor_pen(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"north\", \"shop\", \"accessory\"](1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "shop filter keeps visit artwork",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"astaris\", \"party\", \"guild\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"party\", \"guild\"] papercut(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"party\", \"guild\"] gouache(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"party\", \"guild\"] watercolor_pen(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"astaris\", \"party\", \"guild\"](1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "guild status tab keeps visit artwork 0",
+		"passed": true
+	},
+	{
+		"label": "guild status tab keeps visit artwork 1",
+		"passed": true
+	},
+	{
+		"label": "guild status tab keeps visit artwork 2",
+		"passed": true
+	},
+	{
+		"label": "closing guild details keeps visit artwork",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"astaris\", \"inn\", \"inn\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"inn\", \"inn\"] papercut(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"inn\", \"inn\"] gouache(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"inn\", \"inn\"] watercolor_pen(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"astaris\", \"inn\", \"inn\"](1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing material preserves original UI [\"astaris\", \"map\", \"departure_map\"]",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"map\", \"departure_map\"] papercut(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"map\", \"departure_map\"] gouache(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "actual facility style displayed [\"astaris\", \"map\", \"departure_map\"] watercolor_pen(1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "mapped facility rendered [\"astaris\", \"map\", \"departure_map\"](1180, 812)",
+		"passed": true
+	},
+	{
+		"label": "background layers ignore input",
+		"passed": true
+	},
+	{
+		"label": "aspect ratio and foreground layer retained",
+		"passed": true
+	},
+	{
+		"label": "background fits viewport",
+		"passed": true
+	},
+	{
+		"label": "repeated UI renders do not reroll",
+		"passed": true
+	},
+	{
+		"label": "map controls remain available over background",
+		"passed": true
+	},
+	{
+		"label": "destination selection works without reroll",
+		"passed": true
+	},
+	{
+		"label": "leaving facility clears visit",
+		"passed": true
+	},
+	{
+		"label": "returning facility makes new random draw (same style allowed)",
+		"passed": true
+	},
+	{
+		"label": "facility navigation preserves existing town still",
+		"passed": true
+	},
+	{
+		"label": "visual visits preserve exact campaign and battle RNG state",
+		"passed": true
+	},
+	{
+		"label": "missing paths and unsupported styles safely fall back",
+		"passed": true
+	},
+	{
+		"label": "battle and trial leave facility visit",
+		"passed": true
+	},
+	{
+		"label": "session reset clears visit",
+		"passed": true
+	}
+]

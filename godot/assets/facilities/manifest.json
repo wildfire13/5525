@@ -1,1 +1,100 @@
-{}
+{
+  "weapon": [
+    {
+      "style": "papercut",
+      "path": "res://assets/facilities/weapon_papercut.png"
+    },
+    {
+      "style": "gouache",
+      "path": "res://assets/facilities/weapon_gouache.png"
+    },
+    {
+      "style": "watercolor_pen",
+      "path": "res://assets/facilities/weapon_watercolor_pen.png"
+    }
+  ],
+  "armor": [
+    {
+      "style": "papercut",
+      "path": "res://assets/facilities/armor_papercut.png"
+    },
+    {
+      "style": "gouache",
+      "path": "res://assets/facilities/armor_gouache.png"
+    },
+    {
+      "style": "watercolor_pen",
+      "path": "res://assets/facilities/armor_watercolor_pen.png"
+    }
+  ],
+  "item": [
+    {
+      "style": "papercut",
+      "path": "res://assets/facilities/item_papercut.png"
+    },
+    {
+      "style": "gouache",
+      "path": "res://assets/facilities/item_gouache.png"
+    },
+    {
+      "style": "watercolor_pen",
+      "path": "res://assets/facilities/item_watercolor_pen.png"
+    }
+  ],
+  "accessory": [
+    {
+      "style": "papercut",
+      "path": "res://assets/facilities/accessory_papercut.png"
+    },
+    {
+      "style": "gouache",
+      "path": "res://assets/facilities/accessory_gouache.png"
+    },
+    {
+      "style": "watercolor_pen",
+      "path": "res://assets/facilities/accessory_watercolor_pen.png"
+    }
+  ],
+  "guild": [
+    {
+      "style": "papercut",
+      "path": "res://assets/facilities/guild_papercut.png"
+    },
+    {
+      "style": "gouache",
+      "path": "res://assets/facilities/guild_gouache.png"
+    },
+    {
+      "style": "watercolor_pen",
+      "path": "res://assets/facilities/guild_watercolor_pen.png"
+    }
+  ],
+  "inn": [
+    {
+      "style": "papercut",
+      "path": "res://assets/facilities/inn_papercut.png"
+    },
+    {
+      "style": "gouache",
+      "path": "res://assets/facilities/inn_gouache.png"
+    },
+    {
+      "style": "watercolor_pen",
+      "path": "res://assets/facilities/inn_watercolor_pen.png"
+    }
+  ],
+  "departure_map": [
+    {
+      "style": "papercut",
+      "path": "res://assets/facilities/departure_map_papercut.png"
+    },
+    {
+      "style": "gouache",
+      "path": "res://assets/facilities/departure_map_gouache.png"
+    },
+    {
+      "style": "watercolor_pen",
+      "path": "res://assets/facilities/departure_map_watercolor_pen.png"
+    }
+  ]
+}

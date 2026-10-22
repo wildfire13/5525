@@ -2,3 +2,6 @@ native/** text=auto eol=lf
 native/**/*.png binary
 Start-5525.cmd text eol=crlf
 godot/assets/ui_icons/** -text
+godot/assets/facilities/*.png -text
+docs/facility-backgrounds/* -text
+docs/facility-backgrounds/facility_style_map.csv whitespace=cr-at-eol

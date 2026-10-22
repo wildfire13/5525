@@ -1,0 +1,253 @@
+{
+  "verified_at_utc": "2026-10-22T04:44:20.323374+00:00",
+  "status": "passed",
+  "archive_count": 7,
+  "image_count": 21,
+  "original_bytes_preserved": true,
+  "common_documents_identical_across_all_7": {
+    "README_JA.txt": {
+      "sha256": "b9cfd62a18d654af4b1e8e2a7b4dc7ec601682162a745222f94a70799597c918",
+      "bytes": 1594
+    },
+    "SHA256SUMS.txt": {
+      "sha256": "4e191dab93d2ad3e907a2d2a00789216ed0deafe9be9930f3344e45816d66e55",
+      "bytes": 2354
+    },
+    "facility_style_map.csv": {
+      "sha256": "15a26118ab8142193d00e8ef7d0545b9eabc3f39d26e43482500213f4f749570",
+      "bytes": 2967
+    },
+    "manifest.json": {
+      "sha256": "c2ddc17ae7cecaf38e7f10da3275f245f64634f5c68daa1e422bd9ebdd1c2866",
+      "bytes": 19868
+    }
+  },
+  "archives": [
+    {
+      "zip": "5525-weapon-3styles.zip",
+      "size_bytes": 9040791,
+      "sha256": "67b06c31296167d9750ba5f4bd3aeb19adeae2a1ca1a11f027985a0fd38983ce",
+      "entries": 7,
+      "crc_ok": true,
+      "safe_paths": true
+    },
+    {
+      "zip": "5525-accessory-3styles.zip",
+      "size_bytes": 8895038,
+      "sha256": "4ad94afab1302de08f7af562365fecb352a2d9720c4145853779fab60f290019",
+      "entries": 7,
+      "crc_ok": true,
+      "safe_paths": true
+    },
+    {
+      "zip": "5525-armor-3styles.zip",
+      "size_bytes": 8819433,
+      "sha256": "8be14950ce4355437c0eb8f07702c6f3872b93aea731dac5fc1da3737937da1f",
+      "entries": 7,
+      "crc_ok": true,
+      "safe_paths": true
+    },
+    {
+      "zip": "5525-departure_map-3styles.zip",
+      "size_bytes": 9700979,
+      "sha256": "186d0930f8e5a4ff1b01b80d2c12d80dc8e924af514be02812fa6e03bc71cc68",
+      "entries": 7,
+      "crc_ok": true,
+      "safe_paths": true
+    },
+    {
+      "zip": "5525-guild-3styles.zip",
+      "size_bytes": 8842118,
+      "sha256": "48965dea803ff27aa68d4c2de083b09c39c97cbbe9e2bbfb0c66310e1193293b",
+      "entries": 7,
+      "crc_ok": true,
+      "safe_paths": true
+    },
+    {
+      "zip": "5525-inn-3styles.zip",
+      "size_bytes": 8980625,
+      "sha256": "d565f76f18eaf49fa0d7df396b551329a56410042146148d9d49a2d6c2850176",
+      "entries": 7,
+      "crc_ok": true,
+      "safe_paths": true
+    },
+    {
+      "zip": "5525-item-3styles.zip",
+      "size_bytes": 9366016,
+      "sha256": "c831af31b2ad79532b015ca85e0513b738a27c41a1e82c9b0a17cf53729c5bd8",
+      "entries": 7,
+      "crc_ok": true,
+      "safe_paths": true
+    }
+  ],
+  "images": [
+    {
+      "path": "godot/assets/facilities/accessory_gouache.png",
+      "bytes": 2890578,
+      "sha256": "8568a300ea28658120912794448786385f5db724645366fd8410756661757b22",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/accessory_papercut.png",
+      "bytes": 2760644,
+      "sha256": "4f742c3eea797039a3608d38278b919277192576c928fd600f47b0ef2c58ae96",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/accessory_watercolor_pen.png",
+      "bytes": 3353447,
+      "sha256": "23155a2613e16ae10903b0e76eb9979207b9bf1f36987898f4579acb2f881ba5",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/armor_gouache.png",
+      "bytes": 2699993,
+      "sha256": "3c32c8c2d68bfdc91562d3d05f6f301b51711afd4ab5ef35ecff1bc450705790",
+      "width": 1671,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/armor_papercut.png",
+      "bytes": 2866707,
+      "sha256": "75b0547cc6d44c04a5785ae8dc9b5cd739abd4b9e60cc0412a62251b5df793be",
+      "width": 1671,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/armor_watercolor_pen.png",
+      "bytes": 3370213,
+      "sha256": "d39bdf5a0386f335f6e068592f81745fb81ac291a7d25e6a65d3058591de8c06",
+      "width": 1671,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/departure_map_gouache.png",
+      "bytes": 3144310,
+      "sha256": "229374f93d2e37cb00bdd087d06121a258ea2abbf062eea0387fcc58638c8765",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/departure_map_papercut.png",
+      "bytes": 3194287,
+      "sha256": "d15593e381e4fe534461af9257c9f87feae817ab993b3285eb2858c022c4500f",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/departure_map_watercolor_pen.png",
+      "bytes": 3479045,
+      "sha256": "46e8f9e48133c8ae1201256e33b9fdea3a78535b96c346e67ac634731ef81f3e",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/guild_gouache.png",
+      "bytes": 2780468,
+      "sha256": "bb389b728cd9a211b0fffc46c11e53f68a6762835e5afe8b26585f437b8b19ab",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/guild_papercut.png",
+      "bytes": 2827090,
+      "sha256": "e4a018c1ffff0b545442577c46c0e5dae33007e7a1bdfeb0c403a73b199ea38d",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/guild_watercolor_pen.png",
+      "bytes": 3335965,
+      "sha256": "d335f3d985482c903af22bad43c512d1f9186d14360fd7accae5b4d4d36c5f42",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/inn_gouache.png",
+      "bytes": 2780638,
+      "sha256": "2b5783d18e138a8cac50fafeaaa5e788eeaa30438561056100a29a1378dcf661",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/inn_papercut.png",
+      "bytes": 2806715,
+      "sha256": "7568875e9859582a931d370fd38265a2cb17bf33d4ede37a57d7fca19eb48a61",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/inn_watercolor_pen.png",
+      "bytes": 3519382,
+      "sha256": "a1be8453c88eaf6806b64e365933423c987c7fc980ac06ce142ee27832b1c757",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/item_gouache.png",
+      "bytes": 3047674,
+      "sha256": "807c9811d73d2083ed863bc0f6aecf318b613b5fb85b593385b8a63afb4f13b2",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/item_papercut.png",
+      "bytes": 2963816,
+      "sha256": "7136ea9073bfa70a521341c9091d5f64c8165ff3a516b578a40c4e81f019f36c",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/item_watercolor_pen.png",
+      "bytes": 3466032,
+      "sha256": "a522b91497ddfdce6c1fc35b4f739ae05331a7eef13d628fe014087932638f74",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/weapon_gouache.png",
+      "bytes": 3011908,
+      "sha256": "ade0560ac1fc557cf439ade23cf17c6359310969834e444299e7a25e74f7ad0e",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/weapon_papercut.png",
+      "bytes": 2943475,
+      "sha256": "2e717c298abc30d023a2e6eba9bbe713da012d4a38e1297eb0b9a4971de7f189",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    },
+    {
+      "path": "godot/assets/facilities/weapon_watercolor_pen.png",
+      "bytes": 3206685,
+      "sha256": "a8e1481f62decd4a6307d5fba701931a936bbb0fbd469415fc4201054e3f7600",
+      "width": 1672,
+      "height": 941,
+      "png_valid": true
+    }
+  ]
+}
