@@ -120,8 +120,8 @@ func sprite_unit_at(at: Vector2) -> Dictionary:
 		nearest=distance;result=u
 	return result
 func hover_unit_at(at: Vector2) -> Dictionary:
-	var u=sprite_unit_at(at)
-	return u if not u.is_empty() else unit_at(cell_at(at))
+	# Hover and click both resolve the floor cell, regardless of portrait overlap.
+	return unit_at(cell_at(at))
 func input_event(event):
 	if reference_mode and (event is InputEventKey and event.keycode in [KEY_ENTER,KEY_KP_ENTER] or event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT):accept_event();return
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -144,7 +144,7 @@ func input_event(event):
 		if event.button_index==MOUSE_BUTTON_LEFT:
 			var pos=cell_at(event.position)
 			if event.pressed:
-				grab_focus();keyboard_cell=pos if pos>=0 else keyboard_cell
+				keyboard_cell=pos if pos>=0 else keyboard_cell;grab_focus()
 				press_cell=pos;press_uid=str(unit_at(pos).get("id",""))
 			elif pos>=0:
 				if pos!=press_cell and not press_uid.is_empty() and data.get("state",{}).get("deploying",false): deploy_drag.emit(press_uid,pos)

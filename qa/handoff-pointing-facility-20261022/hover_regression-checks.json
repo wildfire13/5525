@@ -1,0 +1,514 @@
+[
+  {
+    "label": "(1920, 1080) pitch0.4 occupied hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "(1920, 1080) pitch0.4 occupied right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "(1920, 1080) pitch0.4 occupied click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "(1920, 1080) pitch0.4 occupied click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "outside grid hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "outside grid right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "outside grid empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "outside grid click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "(1920, 1080) pitch0.7 occupied hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "(1920, 1080) pitch0.7 occupied right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "(1920, 1080) pitch0.7 occupied click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "(1920, 1080) pitch0.7 occupied click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "outside grid hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "outside grid right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "outside grid empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "outside grid click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "(1920, 1080) pitch1.1 occupied hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "(1920, 1080) pitch1.1 occupied right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "(1920, 1080) pitch1.1 occupied click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "(1920, 1080) pitch1.1 occupied click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "outside grid hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "outside grid right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "outside grid empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "outside grid click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "(1180, 812) pitch0.4 occupied hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "(1180, 812) pitch0.4 occupied right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "(1180, 812) pitch0.4 occupied click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "(1180, 812) pitch0.4 occupied click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "outside grid hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "outside grid right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "outside grid empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "outside grid click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "(1180, 812) pitch0.7 occupied hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "(1180, 812) pitch0.7 occupied right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "(1180, 812) pitch0.7 occupied click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "(1180, 812) pitch0.7 occupied click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "outside grid hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "outside grid right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "outside grid empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "outside grid click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "(1180, 812) pitch1.1 occupied hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "(1180, 812) pitch1.1 occupied right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "(1180, 812) pitch1.1 occupied click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "(1180, 812) pitch1.1 occupied click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "foot HP bar click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "empty after occupied click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "outside grid hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "outside grid right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "outside grid empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "outside grid click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "overlapping opaque image on cell 0 hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "overlapping opaque image on cell 0 right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "overlapping opaque image on cell 0 empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "overlapping opaque image on cell 0 click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "overlapping opaque image on cell 0 click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "overlapping transparent image on cell 0 hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "overlapping transparent image on cell 0 right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "overlapping transparent image on cell 0 empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "overlapping transparent image on cell 0 click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "overlapping transparent image on cell 0 click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "overlapping opaque image on cell 13 hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "overlapping opaque image on cell 13 right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "overlapping opaque image on cell 13 click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "overlapping opaque image on cell 13 click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "overlapping transparent image on cell 13 hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "overlapping transparent image on cell 13 right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "overlapping transparent image on cell 13 click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "overlapping transparent image on cell 13 click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "HP drawing overlay and viewport cannot intercept mouse",
+    "passed": true
+  },
+  {
+    "label": "empty with pending target hover uses floor occupant",
+    "passed": true
+  },
+  {
+    "label": "empty with pending target right abilities use same occupant",
+    "passed": true
+  },
+  {
+    "label": "empty with pending target empty cell clears effect prediction",
+    "passed": true
+  },
+  {
+    "label": "empty with pending target click uses same floor cell or ignores outside",
+    "passed": true
+  },
+  {
+    "label": "empty with pending target click focus preserves matching hover",
+    "passed": true
+  },
+  {
+    "label": "empty hover preserves pending action",
+    "passed": true
+  },
+  {
+    "label": "hover and observed clicks preserve save and chosen targets",
+    "passed": true
+  }
+]
