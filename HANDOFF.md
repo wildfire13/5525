@@ -1,6 +1,32 @@
 # GoGo To Go 引き継ぎ
 
-更新: 2026-10-02
+更新: 2026-10-23
+
+## 現在：旧Web比較版整理・回帰テスト整合（ローカル自動検証済み）
+
+- 基点 main は `b723b4cdfb84f1b20fe895502d459092d412effb`。旧Web版の `prototype/` 87ファイルだけを削除し、旧資料の参照は[削除前の固定コミット](https://github.com/wildfire13/5525/tree/b723b4cdfb84f1b20fe895502d459092d412effb/prototype)へ整理した。過去のコード・画像・QA・同梱ライブラリ/ライセンスとGit履歴は追跡可能。
+- `native/` はGodotのルール、`bridge.cjs`、`godot_files.py`、音楽・人物画像を含む必須バックエンドとして保持。ゲーム仕様・実装、`5525-godot-prototype` 保存先名、公開/認証設定、CCT、temporary-storage、ユーザーPCは変更しない。
+- 承認済みの回帰テスト整合を含む。原本フォルダーの自動検出を外し、ローカルの原本由来ハッシュ・検証コピー・現行仕様の検証を必須のまま実行する。外部の固定版チェックアウトを使う追加照合も保持。詳細は [native/source_tests/README.md](native/source_tests/README.md)。
+- 削除後の `python3 native/check.py` は23/23段階合格（Python162件中161件合格、Windows固有1件スキップ）。従来の24段階から減ったのは兄弟prototype自動検出の追加照合だけで、必須の通常18項目は維持。外部に保存した固定版prototypeとの明示的追加照合も28/28項目合格。
+- Godot 4.6.3の隔離プロファイル・headless/DummyでインポートとCI同一の現行UI/起動runner22/22件が合格。素材検証に既存のImage読込警告があるが、このrunnerにはERROR・失敗・leakなし。追加の受注8/8・荷物21/21も合格。
+- 当初の追加bridgeは12/12 assertionsとexit 0だが、`tests/bridge_smoke.gd:44` の終了済みPID再照会でUnix側の `ERROR: Thread ... errno: 10` が出たため厳密には未合格。追加audioは39/57合格・18件失敗（exit 1）。`audio.gd:16` の既定ミュート有効化（`2e2388022a7989e5fbeb6d17b711e2cce6044394`）に対し、`tests/audio_smoke.gd` が明示的なunmute前に再生を期待する不整合がある。WAVハッシュ・decode・ループ境界定義は合格。
+- 同条件・別チェックアウト・隔離プロファイルの変更前b723b4c比較でも、bridgeの同一エラーとaudioの同一18失敗が再現。その後の明示承認でテストだけを修正。audioは既定3種ミュート・実sync無音・選曲保持を先に検証し、BGMを明示解除して既存再生検証を維持（66/66合格）。bridgeは終了前の生存肯定対照と、ESRCHだけを不在とする独立照会を使い残留検出を維持（13/13合格）。本体は変更なし。最終の集約・Godot検証とCI結果は区別して確定する。安全上の拒否は今回発生していない。
+- 追加2テストの独立レビューも完了。音声の既定ミュート解除/無視4例と、bridgeの終了省略/照会常時不在2例の隔離mutationをすべて検出し、正常対照は合格。各試験の所有Node終了も確認した。
+- 最終差分で再実行し、native23/23・外部原本28/28、Godotインポート・現行runner22/22・bridge13/13・受注8/8・荷物21/21・audio66/66がすべて合格。GodotのERROR・FAIL・leakなし。GitHub反映はこの変更のcommit、CI結果はそのcommitのActionsを参照する。
+- 実画面の手操作・実機音声・Windows固有検証・ユーザーPCへのpull・本人のプレイ確認は今回未実施で、headless自動検証とは別作業として扱う。
+
+## 前段：回帰テスト契約の整合（旧Web版削除前の記録）
+
+- 基点は main `b723b4cdfb84f1b20fe895502d459092d412effb`。変更はテスト・検証案内のみ。「ポーターは受注時だけ必須」の既存ゲーム実装を維持する。
+- 旧Web原本 `0b77f6b` の由来と、`b143630` で訂正された現行仕様を分離。旧ハッシュは残し、明示した差分だけを照合時に逆変換する。標準チェックに現行の受注・編成・荷物保持の検証を接続。詳細は [native/source_tests/README.md](native/source_tests/README.md)。
+- 変更前の旧回帰は通常9/10・原本比較付き17/20。変更後は通常18/18・原本比較付き28/28（検証項目を追加）、意味的ポーター契約56項目、実Nodeプロセスの旅程9テストが合格。原本フォルダーを含めない隔離コピーでも通常18/18が合格。誤実装・原本改変を入れた隔離コピー12例はすべて失敗を検出した。
+- Godot 4.6.3のheadless/Dummy・隔離プロファイルで、受注条件UI8項目と荷物UI21項目が合格。荷物所持者を控えへ戻す警告・取消・保持を含む。受注条件UIテストに残っていた、荷物未所持者にも確認ボタンを要求する古い手順だけを修正。実画面・実音声・Windows・CI・本人のプレイは今回未確認。
+- 前段の集約検証は16/20→20/22段階で、旧前提の4テストに失敗が残っていた。その後の承認で4件を更新し、`python3 native/check.py` は24/24段階が合格。Pythonは162件中161件合格・Windows固有のno-replace rename検証1件スキップ。対象Pythonの3ファイル17テストも合格。
+- 受注は明示した所持者・納品・個人EXP・外した装備の保持へ、撤退は人物別在庫へ、武器は技能の供給元/Lvへ更新。旧戦闘の無条件な全体一致は、独立した凍結原本由来の既定31状態参照と、現行DEF/奇襲Lvの検証に分けた。旧エンジンの全状態プロセス比較も保持。テストファイル削除なし。網羅性の対応表は [native/source_tests/README.md](native/source_tests/README.md)。
+- 独立した読み取りレビューで所持者選択の検証を強化。隔離コピーの正常対照5件が合格し、受注者の自動選択・指定無視、自動納品、隊EXP加算、撤退時在庫喪失、技能欠落、既定戦闘の状態/ダメージ変更、DEF無視等の誤実装13例をすべて検出。実装本体は変更していない。
+- prototype 整理は保留。削除・commit・push・ユーザーPC反映は未実施。公開設定、CCT、temporary-storage、Godot保存先名は変更対象外。
+- 再開時は基点と差分を再確認する。prototype削除前に固定コミットへの案内整理と削除後の同等検証を確定し、削除・commit・pushの有効な作業範囲を確認する。今回の4テスト整理では実画面・実音声・Windows・CIは未実行。前段のGodot headless結果とは区別する。
+- 以下は過去のWeb版の記録。当時の「出発にもポーター必須」は現行仕様ではない。
 
 ## 最新：槌戦士スタンプ・弓スナイプ（2026-10-02）
 
@@ -11,21 +37,21 @@
 - `src/battle.js` に `activeSkill` / `attackReach` / `stampCells`。スタンプのtargetはユニットIDではなく数値セル。`app.js` の `areaTarget` は移動プレビューと分離し、取消・行動後・再挑戦で消去。ログに数値target/範囲/weaponを保持。
 - `tools/test-stamp-snipe.cjs` と `tools/test-stamp-snipe-ui.cjs` を追加。標準ランナーが自動検出。編成126通り・ポーター入り336通りも確認。戦士入り二連戦のDOM操作ではスタンプ5回、32/26行動、休息込み8時間で150Gの配達成功。固定条件の機能検証で、バランス評価ではない。
 - 実ブラウザーQAは未実行（既知のクラウドfile/localhost制限・ローカルWindows UI未接続）。DOMシミュレーションを実描画検証と混同しない。既存のスクリーンショット・QA JSONは今回の検証結果ではない。
-- 詳細・試し方：`prototype/README.md` の槌戦士/スナイプ節。
+- 詳細・試し方：[prototype/README.md](https://github.com/wildfire13/5525/blob/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/README.md) の槌戦士/スナイプ節。
 
 ## 履歴：ゲームサイクル試作01
 
-2026-10-01：動作確認の標準入口を `node prototype/tools/check.cjs`（ルートから）に統合。Node.js 22以上、依存追加不要。既存5本＋実戦二連戦4パターン＋実HTML/app/cycleのDOM配線＋プレイログの検証を実行し、`--json` で機械可読の結果を出力。画面上部から最大600イベント/2MiBのローカルJSONログを書き出せるようにした。再挑戦で戦闘/プレビュー/配置/期限確認の状態を初期化し、ログにはプレイ番号を付けて前の記録を保持。戦闘・旅程のルール/数値/AIは変更なし。今回の確認はNodeの自動チェックで、DOMはシミュレーション。クラウドブラウザーのfile/localhost制限のため実ブラウザー描画・実ダウンロードは未検証。既存のWindows Edge QAと過去のスクリーンショットは別の検証結果として扱う。詳細は `prototype/README.md` の自動チェック/プレイログ節。
+2026-10-01：動作確認の標準入口を [当時のWeb検証入口](https://github.com/wildfire13/5525/blob/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/tools/check.cjs)（ルートから）に統合。Node.js 22以上、依存追加不要。既存5本＋実戦二連戦4パターン＋実HTML/app/cycleのDOM配線＋プレイログの検証を実行し、`--json` で機械可読の結果を出力。画面上部から最大600イベント/2MiBのローカルJSONログを書き出せるようにした。再挑戦で戦闘/プレビュー/配置/期限確認の状態を初期化し、ログにはプレイ番号を付けて前の記録を保持。戦闘・旅程のルール/数値/AIは変更なし。今回の確認はNodeの自動チェックで、DOMはシミュレーション。クラウドブラウザーのfile/localhost制限のため実ブラウザー描画・実ダウンロードは未検証。既存のWindows Edge QAと過去のスクリーンショットは別の検証結果として扱う。詳細は [prototype/README.md](https://github.com/wildfire13/5525/blob/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/README.md) の自動チェック/プレイログ節。
 
 2026-10-01追加：配置画面の味方画像をドラッグ＆ドロップして移動／交換可能に。クリック操作は維持。実ブラウザーのマウス入力で移動・交換・敵陣拒否を検証、通しQA通過。既定／ニカ列合わせ／前衛ポーターの3配置も同一敵・同一方針で比較。詳細 旧資料（2026-10-20削除済み）。
 
-2026-10-01：ユーザー／dotの合意（スクショ）により、敵編成・位置公開の戦闘前配置を追加。道選択後はjourney.phase='deployment'、Battle.create({deployment:true})で敵行動前に停止。キャラボタン→自陣マスで自由配置／交換、陣形・通常射程・奇襲可能敵を表示、初期配置復元、確定開始。Battle.deploy/beginで検証、敵予告は配置確定後に生成。二戦目も配置可、消耗維持。夜襲の非公開方式は将来案。配置専用ルール検証・既存戦闘検証・ブラウザー通しQA通過。画面 prototype/qa/deployment.png。
+2026-10-01：ユーザー／dotの合意（スクショ）により、敵編成・位置公開の戦闘前配置を追加。道選択後はjourney.phase='deployment'、Battle.create({deployment:true})で敵行動前に停止。キャラボタン→自陣マスで自由配置／交換、陣形・通常射程・奇襲可能敵を表示、初期配置復元、確定開始。Battle.deploy/beginで検証、敵予告は配置確定後に生成。二戦目も配置可、消耗維持。夜襲の非公開方式は将来案。配置専用ルール検証・既存戦闘検証・ブラウザー通しQA通過。画面 [prototype/qa/deployment.png](https://github.com/wildfire13/5525/blob/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/qa/deployment.png)。
 
-2026-10-01：期限超過の確認をブラウザーconfirmからゲーム内のモーダルへ変更。配達見込み・超過時間・報酬額を表示し「戻る」「このまま進む」で選択。Escでも取消。道／休息とも確定前は状態変更なし。`prototype/tools/qa-cycle.mjs` で取消・Esc・続行・通し配達を検証、画面 `prototype/qa/deadline-dialog.png`。
+2026-10-01：期限超過の確認をブラウザーconfirmからゲーム内のモーダルへ変更。配達見込み・超過時間・報酬額を表示し「戻る」「このまま進む」で選択。Escでも取消。道／休息とも確定前は状態変更なし。[prototype/tools/qa-cycle.mjs](https://github.com/wildfire13/5525/blob/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/tools/qa-cycle.mjs) で取消・Esc・続行・通し配達を検証、画面 [prototype/qa/deadline-dialog.png](https://github.com/wildfire13/5525/blob/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/qa/deadline-dialog.png)。
 
 ポーター試遊追加：5編成×3敵シード×休息有無の30比較、2ポーター編成の実UI通し配達、固定局面での入れ替え比較を実施。2ポーターUI試行は部品を8時間、19／55行動、全員生存で配達。入れ替えは味方の被弾をポーターへ移せるが、弱ったポーターで行うと即失敗になる。ゲーム仕様の変更なし。詳細 旧資料（2026-10-20削除済み）。
 
-フォルダ整理：ユーザー依頼で実行HTML・CSS・src・vendor・tools・qa・詳細READMEを `prototype/` へ移動。起動は `prototype/index.html`、旧単体は `prototype/battle.html`。仮当て画像フォルダ一式（透過前後・敵味方28枚）を `prototype/assets/characters/` へ移し、全画像のハッシュ一致を確認。imageRootは `assets/characters/背景透過済み/`。検証時の作業ディレクトリは `prototype/`。企画資料・旧報告は2026-10-20に削除済み。以下の過去記録にある実行ファイル・素材の旧パスは移動前のもの。
+フォルダ整理：ユーザー依頼で実行HTML・CSS・src・vendor・tools・qa・詳細READMEを [prototype/](https://github.com/wildfire13/5525/tree/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/) へ移動。起動は [prototype/index.html](https://github.com/wildfire13/5525/blob/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/index.html)、旧単体は [prototype/battle.html](https://github.com/wildfire13/5525/blob/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/battle.html)。仮当て画像フォルダ一式（透過前後・敵味方28枚）を [prototype/assets/characters/](https://github.com/wildfire13/5525/tree/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/assets/characters/) へ移し、全画像のハッシュ一致を確認。imageRootは `assets/characters/背景透過済み/`。検証時の作業ディレクトリは [prototype/](https://github.com/wildfire13/5525/tree/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/)。企画資料・旧報告は2026-10-20に削除済み。以下の過去記録にある実行ファイル・素材の旧パスは移動前のもの。
 
 最新追加：ポーターのトワ／ハルを実装し最大5人へ。初期編成は既存4ロール＋トワ。受注・出発にポーター最低1人が必要。攻撃不可、通常移動2以内の味方との入れ替え（プレビュー対応）、MP1の陣形強化（本人次ターンまで攻撃＋75％・被害−35％、重複なし）。どちらかのポーター死亡で即戦闘終了・クエスト失敗。5人は試験用の上限で、完成形は25人以上のキャラバン／交代要員も構想中。素材移動に合わせimageRootを 旧企画フォルダ（2026-10-20削除済み） に修正。詳細 旧資料（2026-10-20削除済み）。ルール4本＋ブラウザー2本検証通過。
 

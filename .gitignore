@@ -6,7 +6,6 @@ node_modules/
 !.env.example
 *.pem
 *.key
-prototype/qa/check-report.json
 
 # Native runtime/test artifacts
 native/__pycache__/

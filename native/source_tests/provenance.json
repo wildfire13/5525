@@ -1,0 +1,28 @@
+{
+  "sourceCommit": "0b77f6bc3f18d02359f7376a0936ad5a8a67a173",
+  "correctionCommit": "b14363029587f8f38d20421f9b862a21b0d4962d",
+  "modules": {
+    "battle.js": "893b0d35463923806ace15f1a5a48c26dfdb65a306b098ffa9788a773d0f7fe0",
+    "journey.js": "3710de59d75110f2e576d0ec00be78a08f7d36ae34f393bc89a7d468bbb7bc8e",
+    "play-log.js": "b7aae87a4a5a23665b050052b9cede24beb4a097277f7a3fc451b2456e2345f0"
+  },
+  "assertions": {
+    "test-battle.cjs": "435e285cd109d5a17314d5650790ed204715ff0ef8bbcdd734bfce26e554ead9",
+    "test-party.cjs": "d49012c6163652cb009443725f542771993859dcbf61229a7ba1916675513863",
+    "test-porter.cjs": "8fe986a76b5647dd9c9507188a3bce863fcfee85213711436af17d40c5ab104e",
+    "test-stamp-snipe.cjs": "71ffaf67d18c98e89374d0d4cc2f8e9dcd66f073072406f092f117a3eec49b25",
+    "test-deployment.cjs": "c74124634770bf63b27ecd82d1bffeadf3662c57321fe78515b4df1b353f6567",
+    "test-journey.cjs": "3bd1773f0a5c72b99750a3a0406489c88d54c9ad9566f78abea9243b0198c358",
+    "test-play-log.cjs": "6056a17ca2a85f25f8ab731ba3c9d93fb9c0a53f571fe2bb9d06dbf832bc2a6b"
+  },
+  "corrections": {
+    "journey.js": {
+      "original": "function depart(s,kit,formation){if(s.phase!=='prepare'||!hasPorter(s)||",
+      "current": "function depart(s,kit,formation){if(s.phase!=='prepare'||!s.selected.length||"
+    },
+    "test-porter.cjs": {
+      "original": "const j=J.create();j.selected=['guard'];assert.equal(J.accept(j,'parts'),false);j.selected=['porter'];J.accept(j,'parts');J.select(j,['guard']);assert.equal(J.depart(j,'medicine','convoy'),false);J.select(j,['porter','porter-2','guard','archer','mage']);assert.ok(J.depart(j,'medicine','convoy'));",
+      "current": "const j=J.create();j.selected=['guard'];assert.equal(J.accept(j,'parts'),false);j.selected=['porter'];J.accept(j,'parts');J.select(j,['guard']);assert.equal(J.depart(j,'medicine','convoy'),true);const multiple=J.create();J.accept(multiple,'parts');J.select(multiple,['porter','porter-2','guard','archer','mage']);assert.ok(J.depart(multiple,'medicine','convoy'));"
+    }
+  }
+}

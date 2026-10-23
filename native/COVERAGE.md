@@ -57,7 +57,7 @@ Independent read-only release review found no remaining blocker after save-schem
 
 ## Historical one-shot native migration baseline (2026-10-02)
 
-**Everything below this heading records the original one-shot migration and its review.** Scope: functionality in `5525/prototype/index.html` and `battle.html` at source commit `0b77f6bc3f18d02359f7376a0936ad5a8a67a173`. Independent gameplay-testability review passed; that build was designated the official gameplay prototype on 2026-10-02. Its old “no progress-save/replay/equipment UI” disclosures describe that baseline, not the new campaign. Its GUI runs do not establish coverage of the new campaign features.
+**Everything below this heading records the original one-shot migration and its review.** Scope: functionality in the historical [index.html](https://github.com/wildfire13/5525/blob/0b77f6bc3f18d02359f7376a0936ad5a8a67a173/prototype/index.html) and [battle.html](https://github.com/wildfire13/5525/blob/0b77f6bc3f18d02359f7376a0936ad5a8a67a173/prototype/battle.html) at source commit `0b77f6bc3f18d02359f7376a0936ad5a8a67a173`. Independent gameplay-testability review passed; that build was designated the official gameplay prototype on 2026-10-02. Its old “no progress-save/replay/equipment UI” disclosures describe that baseline, not the new campaign. Its GUI runs do not establish coverage of the new campaign features.
 
 ## Evidence categories
 

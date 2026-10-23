@@ -6,7 +6,10 @@ func settle():
 	for i in range(12):await process_frame
 	while game.locked or game.engine.busy or game.presenting:await process_frame
 func check(ok,label):checks.append({"passed":bool(ok),"label":label});print(("PASS " if ok else "FAIL ")+label)
-func tap(n):game.find_child(n,true,false).pressed.emit();await settle()
+func tap(n):
+	var control=game.find_child(n,true,false)
+	if control==null:push_error("Missing test control: "+n);quit(2);return
+	control.pressed.emit();await settle()
 func run():
 	var qa=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/").to_lower()
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
@@ -16,8 +19,9 @@ func run():
 	game.navigate("party");await settle()
 	await tap("GuildMember_porter")
 	check(not game.find_child("GuildRemove",true,false).disabled,"last porter removal available")
-	await tap("GuildRemove");await tap("GuildConfirm")
-	check(not game.campaign().hasPorter and game.campaign().selected.size()==4,"confirmed UI removes last porter")
+	await tap("GuildRemove")
+	check(not game.campaign().hasPorter and game.campaign().selected.size()==4,"UI removes last porter without a fixed-member constraint")
+	check(game.find_child("GuildConfirm",true,false)==null,"unladen porter removal needs no cargo warning; carrier warning is tested separately")
 	var saved=(await game.engine.request({"op":"campaign_save"})).data
 	var path=OS.get_environment("INVENTORY_QA_ROOT").path_join("zero-porter-save.json")
 	var f=FileAccess.open(path,FileAccess.WRITE);f.store_string(JSON.stringify(saved));f.close()

@@ -123,13 +123,25 @@ class JourneyBridgeTests(unittest.TestCase):
         self.reject_unchanged('select', ['porter', 'guard', 'archer', 'mage', 'scout', 'warrior'])
         self.reject_unchanged('select', ['porter', 'porter'])
         self.reject_unchanged('select', ['porter', 'unknown'])
-        self.action('select', ['guard', 'warrior'])
+        self.action('select', [])
         self.reject_unchanged('depart', 'medicine', 'convoy')
         self.action('select', ['porter', 'porter-2', 'warrior', 'archer', 'mage'])
         self.reject_unchanged('depart', 'unknown', 'convoy')
         self.reject_unchanged('depart', 'medicine', 'unknown')
         self.action('depart', 'medicine', 'convoy')
         self.reject_unchanged('select', ['porter'])
+
+    def test_accepted_quest_can_depart_after_removing_last_porter(self):
+        self.action('accept', 'parts')
+        self.assertEqual(self.data['journey']['phase'], 'prepare')
+        self.action('select', ['guard', 'warrior'])
+        self.action('depart', 'medicine', 'convoy')
+        self.assertEqual(self.data['journey']['phase'], 'road')
+        self.assertEqual(self.data['journey']['selected'], ['guard', 'warrior'])
+        self.action('travel', 'short')
+        self.assertEqual(self.data['journey']['phase'], 'deployment')
+        self.assertEqual([u['id'] for u in self.data['state']['units']
+                          if u['side'] == 'ally'], ['guard', 'warrior'])
 
     def test_initial_run_one_and_repeated_start_increments(self):
         first = self.bridge.call(op='export')['data']

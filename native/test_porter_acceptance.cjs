@@ -1,8 +1,33 @@
 'use strict';
 const assert=require('node:assert/strict'),C=require('./campaign.js');
+const J=require('./journey.js');
 function acceptWithPorter(s,id){return C.accept(s,id,s.selected.find(uid=>C.view(s).roster.find(u=>u.id===uid)?.job==='porter'));}
 let checks=0;const check=(ok,label)=>{assert.ok(ok,label);checks++;console.log('PASS '+label);};
-const roundtrip=s=>{const loaded=C.deserialize(C.serialize(s));assert.deepEqual(loaded,JSON.parse(JSON.stringify(s)));return loaded;};
+const roundtrip=s=>{let loaded;assert.doesNotThrow(()=>{loaded=C.deserialize(C.serialize(s));},'valid party and cargo must save/reload');assert.deepEqual(loaded,JSON.parse(JSON.stringify(s)));return loaded;};
+// Current behavior is tested independently of the historical source hashes.
+let journey=J.create();journey.selected=['guard'];
+let unchanged=JSON.stringify(journey);
+check(!J.accept(journey,'parts')&&JSON.stringify(journey)===unchanged,'legacy zero porter acceptance rejected without mutation');
+for(const porter of ['porter','porter-2']){
+ for(const kit of ['medicine','ether'])for(const formation of ['convoy','flank']){
+  journey=J.create();journey.selected=['guard',porter];
+  check(J.accept(journey,'parts')&&journey.phase==='prepare','legacy either porter permits acceptance without departure');
+  check(J.select(journey,['guard']),'legacy accepted quest permits removing last porter');
+  check(J.depart(journey,kit,formation)&&journey.phase==='road','legacy zero porter departure with valid kit and formation');
+ }
+}
+journey=J.create();check(J.accept(journey,'parts'),'legacy acceptance fixture');
+for(const ids of [['guard','guard'],['missing'],['guard','archer','mage','scout','porter','porter-2']]){
+ unchanged=JSON.stringify(journey);
+ check(!J.select(journey,ids)&&JSON.stringify(journey)===unchanged,'legacy duplicate unknown and oversized compositions rejected');
+}
+J.select(journey,[]);unchanged=JSON.stringify(journey);
+check(!J.depart(journey,'medicine','convoy')&&JSON.stringify(journey)===unchanged,'legacy empty party cannot depart');
+J.select(journey,['guard']);
+for(const args of [['missing','convoy'],['medicine','missing']]){
+ unchanged=JSON.stringify(journey);
+ check(!J.depart(journey,...args)&&JSON.stringify(journey)===unchanged,'legacy invalid departure option rejected without mutation');
+}
 let s=C.create();
 check(s.selected.join(',')==='guard,archer,mage,scout,porter','initial cast unchanged');
 const people=JSON.stringify(s.characters),gold=s.gold;
@@ -26,7 +51,10 @@ for(const ids of [[],['guard','guard'],['missing'],['guard','archer','mage','sco
 check(C.select(s,['guard','porter-2'])&&acceptWithPorter(s,C.board(s)[0].id),'one porter acceptance succeeds');
 check(s.phase==='town'&&!s.journey,'acceptance remains separate from departure');
 check(C.select(s,['guard']),'accepted quest permits removing last porter at guild');
-check(roundtrip(s).activeQuest!==null,'accepted quest zero porter save roundtrip');
+const quest={...s.activeQuest},owner=quest.cargoOwnerId;
+check(s.characters[owner].inventory[quest.cargoItemId]===1&&!C.view(s).cargoAboard,'reserve porter retains cargo without locking composition');
+const loaded=roundtrip(s);
+check(loaded.activeQuest.cargoOwnerId===owner&&loaded.characters[owner].inventory[quest.cargoItemId]===1,'accepted quest zero porter save retains cargo and owner');
 check(C.depart(s,s.activeQuest.to),'accepted quest departure does not extend acceptance rule');
 roundtrip(s);
 s=C.create();s.characters.porter.hp=0;

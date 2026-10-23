@@ -10,6 +10,25 @@ func check(ok: bool,label: String):
 func _initialize():call_deferred("run")
 func run():
 	var audio=load("res://audio.gd").new();root.add_child(audio)
+	# Default silence is a separate contract from the playback checks below.
+	for kind in ["bgm","voice","se"]:
+		check(audio.muted[kind],kind+" starts muted")
+	var muted_campaign={"phase":"town","location":"astaris","journey":null}
+	audio.sync({"campaign":muted_campaign})
+	check(audio.bgm.stream!=null and audio.bgm.stream_paused and not audio.bgm.playing,"default town sync keeps loaded music paused")
+	muted_campaign.phase="road";muted_campaign.journey={"token":1,"origin":"astaris","destination":"north"}
+	audio.sync({"campaign":muted_campaign})
+	var muted_selection=audio.frontend_save()
+	check(not audio.quest_id.is_empty() and audio.quest.stream!=null and audio.quest.stream_paused and not audio.quest.playing,"default road sync selects music without playback")
+	audio.sync({"campaign":muted_campaign})
+	check(audio.frontend_save()==muted_selection and audio.quest.stream_paused,"repeated muted sync retains journey selection")
+	muted_campaign.phase="battle";audio.sync({"campaign":muted_campaign,"state":{"result":null}})
+	check(audio.current_bgm=="battle2" and audio.bgm.stream_paused and not audio.bgm.playing and audio.quest.stream_paused and audio.frontend_save()==muted_selection,"default battle sync keeps both music streams silent and selection intact")
+	check(not audio.voice.playing and audio.effects.all(func(p):return not p.playing) and not audio.ui_player.playing,"default sync leaves voice and effects silent")
+	# Playback tests explicitly opt into BGM while preserving other mute defaults.
+	audio.set_mute("bgm",false)
+	muted_campaign.phase="camp";audio.sync({"campaign":muted_campaign})
+	check(audio.quest.playing and not audio.quest.stream_paused and audio.frontend_save()==muted_selection and audio.muted.voice and audio.muted.se,"explicit BGM unmute starts retained selection only")
 	check(audio.quest_slots.size()==3,"three delivered quest tracks configured")
 	check(audio.bgm_catalog.size()==10,"six existing tracks plus three quest tracks and battle alias")
 	var index=0
