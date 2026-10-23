@@ -29,14 +29,42 @@ class CampaignBridgeTests(unittest.TestCase):
             r=subprocess.run(['node','-e',POLICY],cwd=BASE,input=json.dumps(self.data['state']),text=True,capture_output=True,check=True)
             self.data=self.bridge.call(op='act',**json.loads(r.stdout));self.assertTrue(self.data['ok'],self.data.get('error'))
         self.assertTrue(self.data['state']['result']);self.action('finishBattle')
-    def journey(self,destination,quest=True):
-        if quest:self.action('accept',next(q['id'] for q in self.data['campaign']['board'] if q['to']==destination))
+    def journey(self,destination,quest=True,owner='porter'):
+        if quest:
+            self.action('accept',next(q['id'] for q in self.data['campaign']['board'] if q['to']==destination),owner)
+            accepted=self.save()['state']['activeQuest']
+            self.assertEqual(accepted['cargoOwnerId'],owner)
+            self.assertEqual(self.data['campaign']['characters'][owner]['inventory'][accepted['cargoItemId']],1)
         self.action('depart',destination,'convoy')
         for leg in range(2):
             self.action('travel','safe');self.fight()
             self.assertNotEqual((self.data['campaign']['result'] or {}).get('outcome'),'failed')
             if leg==0:self.action('rest');self.action('onward')
-        self.action('arrive');r=copy.deepcopy(self.data['campaign']['result']);self.action('acknowledge');return r
+        before_arrival=self.save()['state']
+        self.action('arrive')
+        if quest:
+            arrived=self.save()['state']
+            self.assertEqual(arrived['phase'],'town');self.assertIsNone(arrived['result'])
+            self.assertEqual(arrived['gold'],before_arrival['gold'])
+            self.assertEqual(arrived['characters'],before_arrival['characters'])
+            self.assertEqual(arrived['activeQuest']['cargoOwnerId'],owner)
+            self.assertEqual(arrived['characters'][owner]['inventory'][accepted['cargoItemId']],1)
+            pending=self.save();self.action('acknowledge',ok=False);self.assertEqual(self.save(),pending)
+            self.action('completeQuest')
+            self.assertNotIn(accepted['cargoItemId'],self.data['campaign']['characters'][owner]['inventory'])
+            completed=self.save();self.action('completeQuest',ok=False);self.assertEqual(self.save(),completed)
+        r=copy.deepcopy(self.data['campaign']['result']);self.action('acknowledge');return r
+    def test_accept_requires_explicit_selected_porter(self):
+        qid=self.data['campaign']['board'][0]['id'];before=self.save()
+        for args in [(qid,),(qid,'guard'),(qid,'porter-2')]:
+            self.action('accept',*args,ok=False);self.assertEqual(self.save(),before)
+        self.action('select',['guard','porter','porter-2'])
+        self.action('accept',qid,'porter-2')
+        quest=self.data['campaign']['activeQuest']
+        self.assertEqual(quest['cargoOwnerId'],'porter-2')
+        self.assertEqual(self.data['campaign']['characters']['porter-2']['inventory'][quest['cargoItemId']],1)
+        self.assertNotIn(quest['cargoItemId'],self.data['campaign']['characters']['porter']['inventory'])
+        self.assertEqual(self.data['campaign']['phase'],'town')
     def test_reject_and_roundtrip_atomic(self):
         saved=self.save();self.action('buyItem','potion',1,ok=False);self.action('depart','nowhere',ok=False)
         self.assertEqual(self.save(),saved)
@@ -44,18 +72,30 @@ class CampaignBridgeTests(unittest.TestCase):
         self.assertFalse(self.bridge.call(op='campaign_load',data=corrupt)['ok']);self.assertEqual(self.save(),saved)
         self.data=self.bridge.call(op='campaign_load',data=saved);self.assertTrue(self.data['ok']);self.assertEqual(self.save(),saved)
         log=self.bridge.call(op='export')['data'];self.assertEqual(log['mode'],'campaign');self.assertEqual(log['campaign']['location'],'astaris')
-    def test_repeat_trial_trade_and_questless(self):
+    def test_repeat_trial_inventory_purchase_and_questless(self):
         first=self.journey('east');self.assertGreater(first['gold'],0);snapshot=self.save()
         self.action('trial','mage','hammer-wood');self.assertIsNotNone(self.data['trial']);self.assertEqual(self.data['state']['actor'],'mage')
         self.data=self.bridge.call(op='act',kind='skill',target=25);self.assertTrue(self.data['ok']);self.assertEqual(self.data['state']['units'][0]['equippedSkill'],'stamp')
         self.action('accept','invalid',ok=False);self.action('endTrial');self.assertEqual(self.save(),snapshot)
         self.action('buyGear','mage','hammer-iron-1',ok=False);self.assertEqual(self.save(),snapshot)
         self.action('buyGear','mage','hammer-wood');self.assertEqual(self.data['campaign']['characters']['mage']['weapon'],'hammer-wood')
+        self.assertEqual(self.data['campaign']['characters']['mage']['inventory']['staff-wood'],1)
         bought=self.save();self.action('buyGear','mage','hammer-wood',ok=False);self.assertEqual(self.save(),bought)
-        self.action('buyGear','mage','staff-wood');second=self.journey('astaris');self.assertGreater(second['gold'],0)
-        self.assertEqual(self.data['campaign']['completed'],2);xp=self.data['campaign']['xp']
+        self.action('inventoryQuote','mage','staff-wood','equip',None,1,'rightHand')
+        quote=self.data['inventoryQuote'];self.assertTrue(quote['ok'])
+        gold=self.data['campaign']['gold']
+        self.action('inventoryAction','mage','staff-wood','equip',None,1,'rightHand',quote['token'])
+        self.assertEqual(self.data['campaign']['gold'],gold)
+        self.assertEqual(self.data['campaign']['characters']['mage']['inventory']['hammer-wood'],1)
+        second=self.journey('astaris');self.assertGreater(second['gold'],0)
+        self.assertEqual(self.data['campaign']['completed'],2)
+        before=self.save()['state'];selected=before['selected']
         third=self.journey('north',quest=False);self.assertEqual((third['gold'],third['xp'],third['outcome']),(0,0,'travel'))
-        self.assertGreater(self.data['campaign']['xp'],xp);self.assertEqual(self.data['campaign']['completed'],2)
+        after=self.save()['state']
+        self.assertEqual(after['xp'],before['xp']);self.assertEqual(after['level'],before['level'])
+        for uid,person in before['characters'].items():
+            self.assertEqual(after['characters'][uid]['xp'],person['xp']+(40 if uid in selected else 0),uid)
+        self.assertEqual(after['gold'],before['gold']+16);self.assertEqual(after['completed'],2)
         saved=self.save();self.action('arrive',ok=False);self.assertEqual(self.save(),saved);self.assertTrue(self.data['campaign']['shop']);self.assertTrue(all(g['slot'] in ['accessory1','accessory2'] for g in self.data['campaign']['shop']))
     def test_malformed_battle_save_does_not_replace_live_state(self):
         generator = r"""

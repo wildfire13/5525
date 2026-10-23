@@ -7,12 +7,22 @@ func check(condition: bool, label: String) -> void:
 	print(("PASS " if condition else "FAIL ") + label)
 func _initialize():
 	call_deferred("run")
+func process_status(pid: int) -> int:
+	# Godot may already have reaped its child during close_engine(). A second
+	# OS.is_process_running() then emits ECHILD on Unix. Probe independently:
+	# signal 0 never terminates a process; only ESRCH counts as absent.
+	if pid <= 0: return 2
+	var node := OS.get_environment("NATIVE5525_NODE")
+	if node.is_empty(): node = "node"
+	var output: Array = []
+	return OS.execute(node,PackedStringArray(["-e","try { process.kill(Number(process.argv[1]), 0); process.exitCode = 1; } catch (error) { if (error.code !== 'ESRCH') { console.error(error.code); process.exitCode = 2; } }",str(pid)]),output,true)
 func run():
 	var bridge = load("res://engine_bridge.gd").new()
 	root.add_child(bridge)
 	check(bridge.start_engine(),"Node process starts with pipes")
 	if bridge.handles.is_empty(): quit(1); return
 	var pid = int(bridge.handles.pid)
+	check(process_status(pid)==1,"owned Node process observable before close")
 	var d: Dictionary = await bridge.request({"op":"campaign_start"})
 	check(d.get("ok",false) and d.campaign.location == "astaris","state retrieval")
 	var saved: Dictionary = await bridge.request({"op":"campaign_save"})
@@ -41,6 +51,6 @@ func run():
 	check(d.get("ok",false) and d.campaign.phase == "town","save round-trip")
 	bridge.close_engine()
 	await process_frame
-	check(not OS.is_process_running(pid),"owned Node process terminates")
+	check(process_status(pid)==0,"owned Node process terminates")
 	print(JSON.stringify({"suite":"bridge_smoke","checks":count,"failures":failures,"gui":false}))
 	quit(0 if failures.is_empty() else 1)

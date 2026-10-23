@@ -11,6 +11,8 @@ steps=[
  ('Python syntax',[sys.executable,'-m','compileall','-q','app.py','journey_app.py','tiny_poc.py','tk_bootstrap.py','campaign_app.py','voice.py','music.py']),
  ('Python rules/adapter/preview tests',[sys.executable,'-m','unittest','-v']),
  ('Campaign battle extension',['node','test_campaign_battle.cjs']),
+ ('Equipment-level ambush and DEF contract',['node','test_equipment_ambush_def.cjs']),
+ ('Individual growth and inert legacy team fields',['node','test_team_growth.cjs']),
  ('Eleven equipment proposals',['node','test_equipment_skills.cjs']),
  ('Eight equipment slots',['node','test_equipment_slots.cjs']),
  ('Dual normal attacks',['node','test_dual_attack.cjs']),
@@ -24,12 +26,12 @@ steps=[
  ('Character voice event routing',['node','test_voice_events.cjs']),
  ('Campaign long-battle log retention',['node','test_campaign_log.cjs']),
  ('Campaign replay loop',['node','test_campaign.cjs']),
+ ('Guild composition and personal ownership',['node','test_guild_contract.cjs']),
+ ('Quest cargo ownership and reserve carrier',['node','test_quest_cargo.cjs']),
  ('Standalone 30-action parity',['node','test_parity.cjs']),
  ('Reachable QA boundary fixtures',['node','test_qa_fixtures.cjs']),
- ('Original rule suites and frozen hashes',['node','test_engine_regression.cjs']),
+ ('Historical provenance and current porter contract',['node','test_engine_regression.cjs']),
 ]
-source=BASE.parent/'prototype'
-if source.exists():steps.append(('Live source and assertion parity',['node','test_engine_regression.cjs','--source',str(source)]))
 report={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'guiIncluded':False,'steps':[]}
 for name,command in steps:
     try:

@@ -45,10 +45,19 @@ class EquipmentSlotsBridgeTests(unittest.TestCase):
             self.bridge.call(op='campaign',action='endTrial',args=[])
 
     def test_all_four_new_weapons_in_shop_purchase_and_trial(self):
-        for gear,damage,reach,hands in [('greatsword-wood',50,1,2),('spear-wood',23,2,1),('longspear-wood',34,2,2),('javelin-wood',21,3,1)]:
+        cases=[
+            ('greatsword-wood',50,1,2,[]),
+            ('spear-wood',23,2,1,[('itemUse','leftHand','empty-leftHand',1)]),
+            ('longspear-wood',34,2,2,[('poleVault','rightHand','longspear-wood',1)]),
+            ('javelin-wood',21,3,1,[('itemUse','leftHand','empty-leftHand',1)]),
+        ]
+        for gear,damage,reach,hands,skills in cases:
             snapshot=self.bridge.call(op='campaign_save')['data']
             data=self.bridge.call(op='campaign',action='trial',args=['mage',gear,'rightHand'])
-            self.assertTrue(data['ok'],gear);self.assertEqual(data['normalAttackReach'],reach);self.assertEqual(data['skillset'],[])
+            self.assertTrue(data['ok'],gear);self.assertEqual(data['normalAttackReach'],reach)
+            self.assertEqual([skill['id'] for skill in data['skillset']],[skill[0] for skill in skills],gear)
+            self.assertEqual([(skill['id'],source['slot'],source['itemId'],source['level'])
+                              for skill in data['skillset'] for source in skill['sources']],skills,gear)
             preview=self.bridge.call(op='preview',kind='attack',target='enemy-guard')['preview']
             self.assertEqual(preview['damagePreview'][0]['base'],damage)
             self.assertTrue(self.bridge.call(op='act',kind='attack',target='enemy-guard')['ok'])

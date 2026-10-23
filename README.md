@@ -12,44 +12,26 @@ Linuxでは `python3 native/journey_app.py`。通常の入口は、1都市・4�
 
 検証：`python native/check.py`（Windows）または `python3 native/check.py`（Linux）。結果は `native/qa-check-report.json` に出力します。Python/Tk + ローカルNodeの構成で、サーバーやネット通信は不要です。
 
-## 元のWeb比較版を遊ぶ
+## 旧Web比較版の履歴
 
-**[prototype/index.html](prototype/index.html)** をブラウザーで直接開いてください。サーバー不要です。
+旧Web比較版の `prototype/` は現行ツリーから整理しました。コード・画像・QA記録・同梱ライブラリとライセンスは、[削除前の固定コミット b723b4c](https://github.com/wildfire13/5525/tree/b723b4cdfb84f1b20fe895502d459092d412effb/prototype)から参照できます。当時の起動方法・仮仕様・Web検証手順は[固定版README](https://github.com/wildfire13/5525/blob/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/README.md)に残しています。
 
-Web版は今回のキャンペーン追加では変更していません。先行する2026-10-02の変更では編成候補に「槌戦士（仮）」を追加。スタンプは位置指定の3マス攻撃、弓のアクティブは一撃だけ射程＋1の「スナイプ」です。試し方・仮仕様は [prototype/README.md](prototype/README.md#槌戦士スタンプと弓スナイプ2026-10-02)。
-
-- ゲームサイクル版：`prototype/index.html`
-- 戦闘単体版：`prototype/battle.html`
-- 仕様・検証コマンド：[prototype/README.md](prototype/README.md)
-
-## Web比較版の動作をチェック
-
-Node.js 22以上があれば、リポジトリ直下で `node prototype/tools/check.cjs` を実行できます。追加インストール・サーバー・ブラウザー起動は不要です。既存ルール検証、二連戦の進行、UIの配線、ローカルJSONログをまとめて確認し、失敗時は終了コード1を返します。
-
-画面上部の「プレイログを保存（JSON）」で、そのプレイの操作・状態を保存できます。自動送信はありません。自動チェックの範囲と未検証項目は [prototype/README.md](prototype/README.md#自動チェック) を参照してください。
+現行の回帰検証は `python3 native/check.py`（Windowsは `python native/check.py`）です。旧原本の固定ハッシュ・検証コピーの由来と、現行キャンペーンの意味的検証を分けて実行します。歴史原本との追加照合手順は [native/source_tests/README.md](native/source_tests/README.md) を参照してください。
 
 ## フォルダ構成
 
 ```text
-native/                ネイティブ・キャンペーンと旧版比較入口
+native/                Godotのルール・保存/画像処理・素材とPython比較UI
 Start-5525.cmd         Windows用Godot起動入口
 Start-5525-Python.cmd  従来Python UIの起動入口
 godot/                 Godot画面・音声・起動検出・移行検証
-prototype/             変更せず保持したWeb比較版
-  index.html           ゲームサイクル版の入口
-  battle.html          戦闘単体版の入口
-  assets/characters/   仮当て画像（透過前・透過後、敵味方）
-  src/                 ゲームコード
-  vendor/              Three.jsとライセンス
-  tools/               検証・比較プレイ用ツール
-  qa/                  検証結果・スクリーンショット
 HANDOFF.md             開発引き継ぎ
 ```
 
-ネイティブ版の実行ファイルは `native/`、Web比較版の実行ファイルは `prototype/` にまとまっています。上記の検証コマンドはリポジトリ直下から実行できます。
+`native/` は現行Godot版の必須バックエンド・素材も含むため保持しています。上記の現行検証コマンドはリポジトリ直下から実行できます。
 
 ## GitHub Actions
 
-Linuxの起動・現行UI回帰（16回）とWindowsのCMD／PowerShellランチャーチェックを、標準のGitHub-hosted runnerで実行します。Godot 4.6.3の公式配布とSHA-256、Node.js 24、Python 3.12、Pillow 12.3.0を使用します。GUIの見た目・実機の音声は別途確認が必要です。旧仕様テストを含む `godot/check.py --full` は必須化していません。
+Linuxの起動・現行UI回帰とWindowsのCMD／PowerShellランチャーチェックを、標準のGitHub-hosted runnerで実行します。Godot 4.6.3の公式配布とSHA-256、Node.js 24、Python 3.12、Pillow 12.3.0を使用します。GUIの見た目・実機の音声は別途確認が必要です。旧仕様テストを含む `godot/check.py --full` は必須化していません。
 
 初回の手動実行で両方の成功を確認済みです。LinuxはGodot・nativeのコード／アセットとCI設定、Windowsはランチャー・起動に使うコード／アセットと専用テスト・CI設定のmainへのpushで実行します。Markdownのみの変更は対象外です。Actionsタブの各ワークフローの `Run workflow` から手動実行もできます。テストは隔離プロファイルを使い、artifactは合成テストの要約のみ5日保持します。Actionsの実行ログ保持期間はワークフローYAMLでは指定できないため、リポジトリの Settings → Actions → General で5日への設定が必要です。個人のセーブ・環境変数一覧・資格情報は出力やアップロードの対象にしません。

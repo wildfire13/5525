@@ -1,0 +1,160 @@
+{
+  "sourceCommit": "0b77f6bc3f18d02359f7376a0936ad5a8a67a173",
+  "sourceModule": "prototype/src/battle.js",
+  "sourceModuleSha256": "893b0d35463923806ace15f1a5a48c26dfdb65a306b098ffa9788a773d0f7fe0",
+  "scope": "Only the unchanged default mirror-match scenario; not general campaign-versus-legacy equivalence.",
+  "encoding": "SHA-256 of UTF-8 JSON.stringify after JSON roundtrip; scout skill intent reason uses the named default-match-scout-ambush marker. Current campaign additionally asserts zero DEF and absent skillStage before matching.",
+  "initial": "76d9869917309ccdbe0f195b0322078905162d95d5c0b8a550ea14ceea2733cd",
+  "steps": [
+    {
+      "kind": "skill",
+      "target": "enemy-archer",
+      "expected": "94a1a95288980a4c0f5e525074a72d3ebfe26e6ff55ddb2ea1758d6491ad13de"
+    },
+    {
+      "kind": "skill",
+      "target": "enemy-scout",
+      "expected": "820c9189f2920442cf4f8f6f75dc4f1dfd84c2a27ea8fafc42789aeda1f332e9"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-mage",
+      "expected": "2ad07f84f01b2e03d1c27db30486e8716a55eaeb6378f0664ab191813451ba70"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-guard",
+      "expected": "2073687b9f5b6840d581ab183ce7e0870187efbede562212800b6c722ad2cfe3"
+    },
+    {
+      "kind": "skill",
+      "target": "enemy-archer",
+      "expected": "74f2f9138c5005d28bbea99462243a36aaa8df96693eda94c13a950e8717f12a"
+    },
+    {
+      "kind": "skill",
+      "target": "enemy-scout",
+      "expected": "33ff44bab5cdd29d5c9fbf7dc59a1183ae94f3f5db6751aaacef4d6300d2b4a7"
+    },
+    {
+      "kind": "skill",
+      "target": "archer",
+      "expected": "c48a55d5824985b2469830a0a36bebacee854cc967deca722da851c442f1a592"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-guard",
+      "expected": "a349d6d12d02edb6f859a07bc24b252927d83660ef47720a23ccebc9a7c72f55"
+    },
+    {
+      "kind": "skill",
+      "target": "enemy-archer",
+      "expected": "1dac712e1e26633adc964481e0412400b4ada2265ac2c8e231c299b01c15c49e"
+    },
+    {
+      "kind": "skill",
+      "target": "enemy-scout",
+      "expected": "9dbf53b77510025b793980c41df3a1e8347af6c0f410955f7879b3f8795ced58"
+    },
+    {
+      "kind": "skill",
+      "target": "guard",
+      "expected": "a49a1d52fedf67c053ded4ed09b56cfd8044604db6534d02c3dbea6642c7cb14"
+    },
+    {
+      "kind": "skill",
+      "target": "enemy-scout",
+      "expected": "a023d2878b58571d397df2bf2b0f0d404a0957915a34fc0cd9fe178f3ec24c24"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-guard",
+      "expected": "5d34ec37180e2f1bbb0159bb0eef18ff244ce2e4f791cd961328a7c33f4ca7c3"
+    },
+    {
+      "kind": "move",
+      "target": 15,
+      "expected": "931ec177c70e08994b0f50aa87dfa6b4b491cc55cbde32dcccafcf78292522fc"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-guard",
+      "expected": "22cc5ba348e536628670ecb0589ee705687fba8505da724c70cb46074e28987e"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-mage",
+      "expected": "7d895e0ddb3a644e2387be0fe1f721db94f3e7463202229c180bd7c61fdca1f9"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-guard",
+      "expected": "29bcaa9f5d347cbb14cd3391c544d609fcde76eaf9390da83acc05c6968cc0a3"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-guard",
+      "expected": "5ee34b7ff63f81d1e0f930f1167a60e52cd1e36edc944d702a787c3750eb2cf8"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-guard",
+      "expected": "4c762120932c8df6557f29aac28780c7ba8904f7fc1ba4a7212e92955979ec9d"
+    },
+    {
+      "kind": "skill",
+      "target": "guard",
+      "expected": "73a9e77f437d94026b01013f19076bf65b4765e52f191e11fc8945722ea3cb2a"
+    },
+    {
+      "kind": "move",
+      "target": 25,
+      "expected": "85383870bfc6b27041ba477e5d6871eb11fd89c8c2301f35842ea9161b58e707"
+    },
+    {
+      "kind": "skill",
+      "target": "scout",
+      "expected": "6ef698f3c48b26f1ab37c90a78b7c10c626afceb3c5ac0fc129564b2bf4746f1"
+    },
+    {
+      "kind": "move",
+      "target": 14,
+      "expected": "306a408bcc60386eb173f52d010faff43787db25e97d35bb82427e2f8107d7ae"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-mage",
+      "expected": "2be71bcd6ac36cd4ec54be3853ebe5bb0b9d7243e2f467e36dc24f226a7c452d"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-mage",
+      "expected": "2c970a0f18c1629cf485b68ca5f4698fcaa3f0de3bc1d015fd00b17f7d6ece6f"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-mage",
+      "expected": "c122b2880466be5fe4efe65f42354032513945a8d3df62eaadfcf241c8aa95e2"
+    },
+    {
+      "kind": "skill",
+      "target": "scout",
+      "expected": "ceaaf9dac70fb1a742bd45b16e15d7b1d30b13f886e3481508262c99cd5e384a"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-mage",
+      "expected": "bf351c4906be78ae0d49e7bb5fd47c2a67a0a43bca9511816e18c1e819bc408d"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-mage",
+      "expected": "94318c726b5851b4023b7fbe00a48f2136d88b2aa41e2b31462fcc5a892bb6bf"
+    },
+    {
+      "kind": "attack",
+      "target": "enemy-mage",
+      "expected": "f68f68e66b795a2f1262ba0ce7237bc784d54c2d8518e0ccf083bfdc32f78b80"
+    }
+  ]
+}
