@@ -99,13 +99,6 @@ func product_summary(item: Dictionary) -> String:
 	if item.get("atk",0)>0:parts.append("ATK %d / 通常射程%d" % [item.atk,item.get("reach",0)])
 	for pair in [["hp","HP"],["mp","MP"],["agiBonus","行動速度"]]:
 		if item.get(pair[0],0)!=0:parts.append("%s %+d" % [pair[1],item[pair[0]]])
-	var names=[]
-	for field in ["skill","effect"]:
-		if item.get(field)==null:continue
-		var name_=str(c().get("skillNames",{}).get(item[field],item[field]))
-		if item[field]=="scout":name_+="Lv%d" % int(item.get("skillLevel",1))
-		if not names.has(name_):names.append(name_)
-	if not names.is_empty():parts.append("付与："+"/".join(names))
 	return " / ".join(parts) if not parts.is_empty() else "補正なし"
 func open_comparison(id: String):
 	if busy() or ui.modal_open():return

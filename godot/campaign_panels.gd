@@ -364,7 +364,4 @@ func describe_gear(parent,gear: Dictionary):
 	if gear.has("note"):l(parent,gear.note)
 
 func skill_description(id: String,stage: int=1) -> String:
-	if id=="itemUse":return "バトル中にもアイテムを使用できる。アイテム使用Lv%d：%s。本人の所持品1個・MP0・1行動。" % [stage,["自分のみ","自分と縦横隣接の味方","距離制限なしの味方"][clampi(stage-1,0,2)]]
-	if id=="legSweep":return "足払いLv%d：周囲8マスの敵にそれぞれ%d%%で次の1手番をスキップ（重複なし）。ダメージ0・MP1。" % [stage,[50,75,100][clampi(stage-1,0,2)]]
-	var definition=c().get("skillDefinitions",{}).get(id,{})
-	return str(definition.description) if definition.has("description") else ui.legacy_skill_description(str(c().get("skillNames",{}).get(id,id)),stage)
+	return preload("res://skill_text.gd").description(id,stage,c())

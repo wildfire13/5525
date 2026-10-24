@@ -7,8 +7,49 @@ var ui
 var slot := ""
 var generation := 0
 var hover_window: Window
+var list_scroll: ScrollContainer
+var list_positions: Dictionary={}
+var reveal_id := ""
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
-func reset():slot="";generation+=1
+func reset():slot="";generation+=1;list_scroll=null;list_positions.clear();reveal_id=""
+func list_key(uid: String) -> String:return uid+":"+slot
+func context(uid: String,id: String,origin: String) -> Dictionary:
+	return {"window":ui.dialog.window.get_instance_id(),"owner":uid,"item":id,"category":slot,"scroll":list_scroll.scroll_vertical if is_instance_valid(list_scroll) else 0,"outer_scroll":ui.dialog.body.get_parent().scroll_vertical,"origin":origin}
+func restore_context(saved: Dictionary,focus_name: String,ticket: int):
+	if saved.is_empty() or not is_instance_valid(ui) or ui.closing or not ui.is_inside_tree():return
+	list_positions[str(saved.owner)+":"+str(saved.category)]=int(saved.scroll)
+	var tree=ui.get_tree()
+	for i in range(4):await tree.process_frame
+	if not is_instance_valid(ui) or ui.closing:return
+	if ticket!=party.inventory_view.generation or party.detail_uid!=saved.owner or slot!=saved.category or not is_instance_valid(ui.dialog.window) or ui.dialog.window.get_instance_id()!=saved.window:return
+	var button=ui.dialog.body.find_child(focus_name if not focus_name.is_empty() else str(saved.origin),true,false)
+	if button is SpinBox:button.get_line_edit().grab_focus()
+	elif button is Control:button.grab_focus()
+	if is_instance_valid(list_scroll):list_scroll.scroll_vertical=int(saved.scroll)
+	ui.dialog.body.get_parent().scroll_vertical=int(saved.outer_scroll)
+func fit_list(scroll: ScrollContainer,parent: Control,key: String):
+	if not is_instance_valid(ui) or ui.closing or not ui.is_inside_tree():return
+	var tree=ui.get_tree()
+	await tree.process_frame
+	await tree.process_frame
+	if not is_instance_valid(scroll) or scroll!=list_scroll or not scroll.is_visible_in_tree() or not is_instance_valid(ui.dialog.window):return
+	var viewport=ui.dialog.body.get_parent()
+	# Only the list scrolls: leave the selected item's controls below it visible.
+	var top=scroll.global_position.y-viewport.global_position.y+viewport.scroll_vertical
+	var actions=parent.find_child("StatusInventoryActions",true,false)
+	var reserved=actions.get_combined_minimum_size().y+8 if actions!=null else 0.0
+	var height=clampf(viewport.size.y-top-reserved-8,120,360)
+	height=minf(height,maxf(44,scroll.get_child(0).get_combined_minimum_size().y))
+	if absf(scroll.custom_minimum_size.y-height)>1:scroll.custom_minimum_size.y=height
+	await tree.process_frame
+	await tree.process_frame
+	if not is_instance_valid(scroll) or scroll!=list_scroll or not scroll.is_inside_tree():return
+	if scroll.get_meta("restoring",false):
+		scroll.scroll_vertical=int(list_positions.get(key,0));scroll.set_meta("restoring",false)
+		if not reveal_id.is_empty():
+			var selected=scroll.find_child("OwnedEquipment_"+reveal_id,true,false)
+			if selected!=null and party.inventory_view.item_id==reveal_id and party.inventory_view.stage!="list":scroll.ensure_control_visible(selected)
+			reveal_id=""
 func entries(uid: String) -> Array:
 	return ui.campaign().get("inventoryByCharacter",{}).get(uid,{}).get("entries",[])
 func target(entry: Dictionary) -> String:
@@ -32,14 +73,23 @@ func render_header(parent,u: Dictionary):
 func render(parent,u: Dictionary):
 	generation+=1
 	if is_instance_valid(hover_window):hover_window.hide();hover_window.name="RetiredEquipmentHover";hover_window.queue_free()
-	var list=GridContainer.new();list.columns=3;list.size_flags_horizontal=Control.SIZE_EXPAND_FILL;list.name="OwnedEquipmentList";parent.add_child(list)
+	var scroll=ScrollContainer.new();scroll.name="OwnedEquipmentScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.follow_focus=true;scroll.custom_minimum_size.y=200;scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(scroll);list_scroll=scroll
+	var key=list_key(str(u.id));scroll.set_meta("restoring",true)
+	scroll.get_v_scroll_bar().value_changed.connect(func(value):
+		if scroll==list_scroll and scroll.is_inside_tree() and not scroll.is_queued_for_deletion() and not scroll.get_meta("restoring",false):list_positions[key]=int(value))
+	parent.resized.connect(func():fit_list(scroll,parent,key))
+	var list=GridContainer.new();list.columns=3;list.size_flags_horizontal=Control.SIZE_EXPAND_FILL;list.name="OwnedEquipmentList";scroll.add_child(list)
 	var hover=preload("res://hover_comparison.gd").new();hover.ui=ui;ui.dialog.window.add_child(hover);hover_window=hover
 	var panel=hover.content
 	for entry in entries(str(u.id)):
 		if slot=="items" and entry.kind=="equipment":continue
 		if not slot.is_empty() and slot!="items" and not entry.equipSlots.any(func(q):return q.slot==slot):continue
 		var row=list
-		var button=ui.button(row,"%s　%d個" % [entry.name,entry.count],actions.bind(str(u.id),str(entry.id)));button.name="OwnedEquipment_"+str(entry.id);ui.memory.key(button,"inventory_"+str(u.id)+"_"+str(entry.id));button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;button.alignment=HORIZONTAL_ALIGNMENT_LEFT
+		var selected=party.inventory_view.owner_id==str(u.id) and party.inventory_view.item_id==str(entry.id) and party.inventory_view.stage!="list"
+		var button=ui.button(row,("選択中 / " if selected else "")+"%s　%d個" % [entry.name,entry.count],actions.bind(str(u.id),str(entry.id)));button.name="OwnedEquipment_"+str(entry.id);ui.memory.key(button,"inventory_"+str(u.id)+"_"+str(entry.id));button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;button.alignment=HORIZONTAL_ALIGNMENT_LEFT;button.set_meta("selected_inventory_item",selected)
+		if selected:
+			for state_ in ["normal","hover","pressed"]:
+				var style=button.get_theme_stylebox(state_).duplicate();style.border_color=Color("#91dacf");style.set_border_width_all(2);button.add_theme_stylebox_override(state_,style)
 		button.set_script(preload("res://equipment_tooltip.gd"));button.configure_entry(entry,ui.campaign())
 		ui.icons.apply(button,ui.icons.equipment(entry.definition) if entry.kind=="equipment" else str(entry.id) if entry.id in ["potion","ether"] else "items");button.set_meta("placeholder_item_icon",true)
 
@@ -61,23 +111,27 @@ func render(parent,u: Dictionary):
 		action_button.mouse_entered.connect(inspect.bind(u,entry,panel));action_button.focus_entered.connect(inspect.bind(u,entry,panel))
 		sale_button(row,u,entry)
 	if list.get_child_count()==0:
+		scroll.hide();scroll.custom_minimum_size.y=0
 		# An empty three-column grid cannot give this label a useful text width.
 		var empty=ui.label_(parent,"この枠に装備できる所持装備はありません。" if not slot.is_empty() else "所持品はありません。")
 		empty.name="OwnedInventoryEmpty";empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	fit_list(scroll,parent,key)
 func use_item(uid: String,id: String):
-	actions(uid,id)
-	if party.inventory_view.owner_id==uid and party.inventory_view.item_id==id:party.inventory_view.choose("use")
+	if actions(uid,id,"OwnedInventoryUse_"+id):party.inventory_view.choose("use")
 func sale_button(parent,u,entry):
 	if ui.page!="shop":parent.add_child(Control.new());return
 	var enabled=ui.campaign().get("saleAvailable",false) and ui.campaign().get("selected",[]).has(u.id) and entry.get("sale",{}).get("ok",false)
 	ui.button(parent,"売却",sell_item.bind(str(u.id),str(entry.id)),not enabled).name="OwnedInventorySell_"+str(entry.id)
 func sell_item(uid: String,id: String):
-	actions(uid,id)
-	if party.inventory_view.owner_id==uid:party.inventory_view.choose_sale(id)
-func actions(uid: String,id: String):
+	if actions(uid,id,"OwnedInventorySell_"+id):party.inventory_view.choose_sale(id)
+func actions(uid: String,id: String,origin: String="") -> bool:
 	var inv=party.inventory_view
-	if not inv.available():return
-	inv.reset();inv.owner_id=uid;inv.pick(id)
+	if not inv.available() or inv.stage=="confirm" or party.detail_uid!=uid:return false
+	var visible=entries(uid).filter(func(entry):return entry.id==id and (slot.is_empty() or slot=="items" and entry.kind!="equipment" or slot!="items" and entry.equipSlots.any(func(q):return q.slot==slot)))
+	if visible.is_empty():return false
+	var saved=context(uid,id,origin if not origin.is_empty() else "OwnedEquipment_"+id)
+	inv.reset();inv.owner_id=uid;inv.list_context=saved;reveal_id=id;inv.pick(id)
+	return true
 func current(ticket: int,panel,epoch,connection,token) -> bool:
 	return ticket==generation and is_instance_valid(panel) and panel.is_inside_tree() and not panel.is_queued_for_deletion() and not ui.closing and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and token==ui.campaign().get("inventoryToken")
 func inspect(u: Dictionary,entry: Dictionary,panel) -> String:

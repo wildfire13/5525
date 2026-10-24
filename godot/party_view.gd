@@ -97,7 +97,7 @@ func equipment(parent,u: Dictionary):
 			var id=str(item[field]);var level=int(item.get("skillLevel",1));effective_levels[id]=level
 			for source in u.get("stats",{}).get("skillSources",[]):
 				if source.id==id:effective_levels[id]=maxi(effective_levels[id],int(source.get("level",1)))
-			descriptions[id]=pages.skill_description(id,effective_levels[id] if id=="scout" else level)
+			descriptions[id]=pages.skill_description(id,effective_levels[id])
 		btn.configure(equipment_name(e),item,{"names":pages.c().get("skillNames",{}),"definitions":pages.c().get("skillDefinitions",{}),"descriptions":descriptions,"effective_levels":effective_levels,"occupied":e.get("occupiedBy")!=null,"job":u.get("job"),"title_size":24 if ui.size.x>=1800 else 20,"detail_size":18 if ui.size.x>=1800 else 16})
 		ui.icons.apply(btn,"" if e.get("occupiedBy")!=null else ui.icons.equipment(item))
 		preload("res://item_drag.gd").target(btn,
@@ -145,8 +145,10 @@ func skills(parent,u: Dictionary):
 	for id in groups:
 		var level=1
 		for source in groups[id]:level=maxi(level,int(source.get("level",1)))
-		ui.icons.line(ui,parent,ui.icons.skill(str(id),level),str(names.get(id,id)),true)
-		l(parent,pages.skill_description(str(id),level))
+		var heading=ui.row(parent)
+		ui.icons.line(ui,heading,ui.icons.skill(str(id),level),str(names.get(id,id)),true)
+		ui.local_button(heading,"説明",ui.show_skill_details.bind(str(id),str(names.get(id,id)),level,u.get("equipmentDetails",{}).get(groups[id][0].slot,{}))).name="PartySkillDetails_"+str(id)
+		l(parent,preload("res://skill_text.gd").plain(preload("res://skill_text.gd").document(str(id),str(names.get(id,id)),level,pages.c())))
 		for source in groups[id]:
 			l(parent,"由来: "+str(pages.c().slots.get(source.slot,source.slot))+" / "+str(u.get("equipmentDetails",{}).get(source.slot,{}).get("name",source.itemId)))
 			if id=="scout":l(parent,"装備の奇襲Lv%d / 使用する奇襲Lv%d" % [source.get("level",1),level])
