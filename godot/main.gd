@@ -352,7 +352,7 @@ func render():
 	gold_header.text="%dG" % c.get("gold",0)
 	header.tooltip_text=header.text
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
-	pages.facility_art.sync("battle" if battle else phase,str(c.get("location","")),page)
+	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
 	resource_header.visible=not battle
 	actor_face.visible=false
 	var lower_return=phase=="result" or phase=="town" and page!="hub"
