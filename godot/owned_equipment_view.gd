@@ -128,7 +128,8 @@ func comparison(u: Dictionary,entry: Dictionary,chosen: String,q: Dictionary) ->
 		if before_level>0 and after_level>0 and before_level!=after_level:lines.append(change(str(names.get(id,id))+" Lv",before_level,after_level))
 	for candidate in entry.equipSlots:
 		if candidate.slot==chosen and not candidate.ok:lines.append("装備不可: "+escaped(candidate.reason))
-	return "\n".join(lines) if not lines.is_empty() else "能力値・スキルの変化なし"
+	var heading="対象：%s / %s\n現在：%s → 候補：%s" % [escaped(u.get("name",ui.member_name(str(u.get("id",""))))),escaped(ui.campaign().get("slots",{}).get(chosen,chosen)),escaped(q.get("current",{}).get("name","現在の装備")),escaped(entry.get("name",q.get("gear",{}).get("name","候補装備")))]
+	return heading+"\n"+("\n".join(lines) if not lines.is_empty() else "能力値・スキルの変化なし")
 func equip(u: Dictionary,entry: Dictionary,panel):
 	var chosen=target(entry)
 	var text=await inspect(u,entry,panel)

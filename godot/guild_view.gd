@@ -11,6 +11,7 @@ var stage := "idle"
 var mode := ""
 var notice := ""
 var generation := 0
+var reserve_job := ""
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
 func c() -> Dictionary:return pages.c()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
@@ -18,7 +19,7 @@ func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func available() -> bool:return ui.page=="party" and c().get("guildAvailable",false) and c().get("phase")=="town" and c().get("location")=="astaris"
 func busy() -> bool:return ui.locked or ui.presenting or ui.closing or ui.engine.disconnected or stage in ["pending","unknown","animating"]
 func reset():
-	generation+=1;chosen_id="";origin_id="";mode="";stage="idle";notice=""
+	generation+=1;chosen_id="";origin_id="";mode="";stage="idle";notice="";reserve_job=""
 func person(id: String) -> Dictionary:
 	for member in ui.roster():
 		if member.id==id:return member
@@ -34,19 +35,48 @@ func groups() -> Array:
 	for u in ui.roster():
 		if not active(str(u.id)):reserves.append(u)
 	return [reserves,current]
+func visible_reserves(reserves: Array) -> Array:
+	return reserves if reserve_job.is_empty() else reserves.filter(func(u):return str(u.get("job",""))==reserve_job)
+func set_reserve_job(value: String):
+	if not available() or busy() or ui.modal_open() or stage!="idle":return
+	if value==reserve_job:return
+	reserve_job=value
+	var selected=person(chosen_id)
+	if not selected.is_empty() and not active(chosen_id) and not visible_reserves([selected]).has(selected):
+		notice="%sは絞り込み対象外のため、選択を解除しました。" % selected.name
+		generation+=1;chosen_id="";origin_id="";mode=""
+	else:notice=""
+	ui.memory.request_focus("guild_reserve_job");ui.render()
+func reserve_filter(parent):
+	var filter_row=ui.row(parent);filter_row.name="GuildReserveFilter"
+	var caption=l(filter_row,"控えの職業");caption.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;caption.autowrap_mode=TextServer.AUTOWRAP_OFF;caption.add_theme_font_size_override("font_size",18)
+	var chooser=OptionButton.new();chooser.name="GuildReserveJobFilter";chooser.custom_minimum_size=Vector2(180,40);chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	chooser.add_item("すべて");chooser.set_item_metadata(0,"")
+	var jobs=[]
+	for member in ui.roster():
+		var job=str(member.get("job",""))
+		if job.is_empty() or jobs.has(job):continue
+		jobs.append(job);chooser.add_item(str(member.get("role",job)));chooser.set_item_metadata(chooser.item_count-1,job)
+		if job==reserve_job:chooser.select(chooser.item_count-1)
+	chooser.disabled=busy() or stage!="idle";filter_row.add_child(chooser);ui.memory.key(chooser,"guild_reserve_job")
+	chooser.item_selected.connect(func(index):set_reserve_job(str(chooser.get_item_metadata(index))))
+	return filter_row
 func render(parent):
 	var header=Control.new();header.name="GuildRules";header.custom_minimum_size.y=64;parent.add_child(header)
 	var rules=VBoxContainer.new();header.add_child(rules);rules.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	l(rules,"最大%d人 / ポーター%d人（クエスト受注時は最低1人） / 編成変更は無料" % [LIMIT,porter_count()])
+	l(rules,"最大%d人 / 残り%d枠 / ポーター%d人（クエスト受注時は最低1人） / 編成変更は無料" % [LIMIT,maxi(0,LIMIT-c().get("selected",[]).size()),porter_count()]).name="GuildCapacity"
 	var hint=l(rules,"人物を選択 → 入替相手を選択。パーティー内の並び順も変更できます。");hint.add_theme_font_size_override("font_size",18)
 	var split=HBoxContainer.new();split.name="GuildColumns";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",24);parent.add_child(split)
-	var lists=groups();var buttons={}
+	var lists=groups();var reserve_count=lists[0].size();lists[0]=visible_reserves(lists[0]);var buttons={};var filter_height=40.0
 	for side in range(2):
 		var column=VBoxContainer.new();column.name="GuildReserveColumn" if side==0 else "GuildCurrentColumn";column.custom_minimum_size.x=mini(860,maxi(240,int((ui.size.x-72)/2)));column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(column)
-		var title=l(column,"控え %d人" % lists[0].size() if side==0 else "現在のパーティー %d/%d人" % [lists[1].size(),LIMIT],true);title.name="GuildReserveHeading" if side==0 else "GuildCurrentHeading"
-		var body=ui.scroller(column);var scroll=body.get_parent();scroll.name="GuildReserveScroll" if side==0 else "GuildCurrentScroll";scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"guild_reserves" if side==0 else "guild_current")
+		var title=l(column,("控え %d人" % reserve_count if reserve_job.is_empty() else "控え %d/%d人表示" % [lists[0].size(),reserve_count]) if side==0 else "現在のパーティー %d/%d人" % [lists[1].size(),LIMIT],true);title.name="GuildReserveHeading" if side==0 else "GuildCurrentHeading"
+		if side==0:filter_height=reserve_filter(column).get_combined_minimum_size().y
+		else:
+			var spacer=Control.new();spacer.custom_minimum_size.y=filter_height;column.add_child(spacer)
+		var body=ui.scroller(column);var scroll=body.get_parent();scroll.name="GuildReserveScroll" if side==0 else "GuildCurrentScroll";scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,("guild_reserves"+("_"+reserve_job if not reserve_job.is_empty() else "")) if side==0 else "guild_current")
 		body.add_theme_constant_override("separation",6)
-		if lists[side].is_empty():l(body,"控えの人物はいません。" if side==0 else "編成中の人物はいません。")
+		if lists[side].is_empty():l(body,("この職業の控えはいません。『すべて』で控え全員を表示できます。" if not reserve_job.is_empty() else "控えの人物はいません。") if side==0 else "編成中の人物はいません。").name="GuildEmptyReserves" if side==0 else "GuildEmptyCurrent"
 		for u in lists[side]:
 			var id=str(u.id);var selected=id==chosen_id or stage=="confirm" and id==origin_id
 			var disabled=busy() or stage=="confirm"
@@ -79,7 +109,7 @@ func render(parent):
 	var instruction="人物を選択してください。" if u.is_empty() else "選択中：%s / %s" % [u.name,"現在のパーティー" if active(chosen_id) else "控え"]
 	if not u.is_empty() and active(chosen_id) and c().selected.size()==1:instruction+=" / パーティーは最低1人です。控えの人物と入れ替えできます。"
 	elif not u.is_empty() and not active(chosen_id) and c().selected.size()>=LIMIT:instruction+=" / %d/%d人。入れ替える人物を選んでください。" % [LIMIT,LIMIT]
-	var description=l(controls,instruction);description.name="GuildSelection";description.autowrap_mode=TextServer.AUTOWRAP_OFF;description.clip_text=true;description.add_theme_font_size_override("font_size",20)
+	var description=l(controls,instruction);description.name="GuildSelection";description.autowrap_mode=TextServer.AUTOWRAP_OFF;description.clip_text=true;description.tooltip_text=instruction;description.add_theme_font_size_override("font_size",20)
 	var result=l(controls,notice);result.name="GuildNotice";result.autowrap_mode=TextServer.AUTOWRAP_OFF;result.clip_text=true;result.add_theme_font_size_override("font_size",18)
 	var actions=ui.row(controls);actions.name="GuildActions"
 	if stage=="idle":
@@ -88,6 +118,7 @@ func render(parent):
 	b(actions,"人物詳細",pages.party_view.open_detail.bind(chosen_id),u.is_empty() or busy() or stage=="confirm").name="GuildDetails"
 func choose(id: String):
 	if not available() or busy() or ui.modal_open() or person(id).is_empty():return
+	if not active(id) and not reserve_job.is_empty() and str(person(id).get("job",""))!=reserve_job:return
 	if stage!="idle":return
 	if chosen_id==id:
 		pages.party_view.open_detail(id);return
@@ -102,7 +133,7 @@ func cancel_selection():
 	generation+=1;stage="idle";mode="";origin_id="";chosen_id="";notice="";ui.render()
 func outside_press(point: Vector2):
 	if not available() or busy() or ui.modal_open() or chosen_id.is_empty():return
-	for name_ in ["GuildReserveScroll","GuildCurrentScroll","GuildActions","TownReturnRow","PartyFaceBar"]:
+	for name_ in ["GuildReserveScroll","GuildCurrentScroll","GuildReserveFilter","GuildActions","TownReturnRow","PartyFaceBar"]:
 		var area=ui.find_child(name_,true,false)
 		if area!=null and area.get_global_rect().has_point(point):return
 	cancel_selection()

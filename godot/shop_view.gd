@@ -17,12 +17,14 @@ var message := ""
 var consent: Dictionary={}
 var receipt: Dictionary={}
 var transaction: Dictionary={}
+var comparison_view
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
 func c() -> Dictionary:return pages.c()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func busy() -> bool:return stage!="S0" or unknown or ui.locked or ui.presenting or ui.closing or ui.engine.disconnected
 func reset(_plan_mode: String="discard",_campaign_id: String=""):
+	if comparison_view!=null:comparison_view.invalidate()
 	stage="S0";unknown=false;consent={};receipt={};transaction={};message="";generation+=1
 	filter_slot="all";filter_location="";background.clear();return_from_party=false;from_party=false
 	if ui.dialog!=null:ui.dialog.close(false)
@@ -69,13 +71,13 @@ func render(parent):
 	scroll.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;scroll.custom_minimum_size.x=maxf(600,ui.size.x*2.0/3.0-parent.global_position.x);scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"shop_products")
 	for item in offered():
 		var line=ui.row(body);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=64
-		var info=b(line,"",func():pass);info.name="Product_"+str(item.id);info.alignment=HORIZONTAL_ALIGNMENT_LEFT
+		var info=b(line,"",open_comparison.bind(str(item.id)),busy());info.name="Product_"+str(item.id);info.alignment=HORIZONTAL_ALIGNMENT_LEFT
 		info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.custom_minimum_size=Vector2(240,64)
 		ui.icons.apply(info,ui.icons.equipment(item));ui.memory.key(info,"product_"+str(item.id));ui.memory.item(info,str(item.id))
 		var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;info.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,48 if side=="left" else 8)
 		var copy=HBoxContainer.new();copy.mouse_filter=Control.MOUSE_FILTER_IGNORE;copy.add_theme_constant_override("separation",0);margin.add_child(copy)
-		var name_label=l(copy,str(item.name));name_label.name="ProductName_"+str(item.id);name_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;name_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;name_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		var name_label=l(copy,str(item.name)+"　› 比較");name_label.name="ProductName_"+str(item.id);name_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;name_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;name_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		configure_tooltip(info,item)
 		preload("res://item_drag.gd").source(info,func():
 			if busy():return null
@@ -105,6 +107,10 @@ func product_summary(item: Dictionary) -> String:
 		if not names.has(name_):names.append(name_)
 	if not names.is_empty():parts.append("付与："+"/".join(names))
 	return " / ".join(parts) if not parts.is_empty() else "補正なし"
+func open_comparison(id: String):
+	if busy() or ui.modal_open():return
+	if comparison_view==null:comparison_view=preload("res://shop_comparison.gd").new(self)
+	comparison_view.open(id)
 func render_notice(parent):
 	var region=Control.new();region.name="ShopNoticeRegion";region.custom_minimum_size.y=56;region.clip_contents=true;parent.add_child(region)
 	var row=ui.row(region);row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -163,6 +169,7 @@ func choose_recipient(ticket: int):
 	if ticket!=generation or stage!="S9":return
 	ui.dialog.open("受取人の選択",func(body,actions):
 		l(body,str(consent.gear.name)+" / 1個",true)
+		l(body,"支払 %dG / 所持金 %d → %dG" % [consent.cost,consent.goldBefore,consent.afterGold]).name="RecipientPayment"
 		l(body,"誰のインベントリに入れますか？ 受取確定まで所持金は減りません。")
 		for person in ui.roster():
 			if not c().get("selected",[]).has(person.id):continue

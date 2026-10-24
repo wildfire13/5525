@@ -16,7 +16,7 @@ import time
 
 p = argparse.ArgumentParser()
 p.add_argument('--evidence', required=True, type=Path)
-p.add_argument('--script', choices=['facility_gui_261022','facility_input_extra_261022'], default='facility_gui_261022')
+p.add_argument('--script', choices=['facility_gui_261022','facility_input_extra_261022','brushup_gui'], default='facility_gui_261022')
 a = p.parse_args()
 repo = Path(__file__).resolve().parents[2]
 out = a.evidence.resolve()
@@ -35,6 +35,11 @@ x.XDefaultRootWindow.argtypes = [C.c_void_p]
 x.XDefaultRootWindow.restype = C.c_ulong
 x.XQueryPointer.argtypes = [C.c_void_p,C.c_ulong,C.POINTER(C.c_ulong),C.POINTER(C.c_ulong),C.POINTER(C.c_int),C.POINTER(C.c_int),C.POINTER(C.c_int),C.POINTER(C.c_int),C.POINTER(C.c_uint)]
 x.XSetInputFocus.argtypes = [C.c_void_p,C.c_ulong,C.c_int,C.c_ulong]
+x.XStringToKeysym.argtypes = [C.c_char_p]
+x.XStringToKeysym.restype = C.c_ulong
+x.XKeysymToKeycode.argtypes = [C.c_void_p, C.c_ulong]
+x.XKeysymToKeycode.restype = C.c_uint
+xt.XTestFakeKeyEvent.argtypes = [C.c_void_p, C.c_uint, C.c_int, C.c_ulong]
 xt.XTestFakeMotionEvent.argtypes = [C.c_void_p, C.c_int, C.c_int, C.c_int, C.c_ulong]
 xt.XTestFakeButtonEvent.argtypes = [C.c_void_p, C.c_uint, C.c_int, C.c_ulong]
 display = x.XOpenDisplay(os.environ['DISPLAY'].encode())
@@ -71,27 +76,38 @@ with (out/'gui.log').open('w') as log:
             if request['id'] <= len(requests):
                 time.sleep(.03)
                 continue
-            move(request['x'], request['y'])
-            time.sleep(.08)
-            # This display intentionally has no window manager. Give the real
-            # window under the pointer keyboard focus before its first click.
-            root_window, child = C.c_ulong(), C.c_ulong()
-            rx, ry, wx, wy, mask = C.c_int(), C.c_int(), C.c_int(), C.c_int(), C.c_uint()
-            x.XQueryPointer(display,x.XDefaultRootWindow(display),C.byref(root_window),C.byref(child),C.byref(rx),C.byref(ry),C.byref(wx),C.byref(wy),C.byref(mask))
-            if child.value:
-                x.XSetInputFocus(display,child.value,1,0)
+            if request['action'] == 'key':
+                code = x.XKeysymToKeycode(display, x.XStringToKeysym(request['key'].encode()))
+                if not code:
+                    raise ValueError('Unknown X11 keysym: ' + request['key'])
+                xt.XTestFakeKeyEvent(display, code, True, 0)
                 x.XFlush(display)
                 time.sleep(.08)
-            if request['action'] in ('click','drag','camera_drag'):
-                number = 2 if request['action']=='camera_drag' else 1
-                button(True, number)
+                xt.XTestFakeKeyEvent(display, code, False, 0)
+                x.XFlush(display)
+                time.sleep(.12)
+            else:
+                move(request['x'], request['y'])
                 time.sleep(.08)
-                if request['action'] in ('drag','camera_drag'):
-                    for step in range(1,13):
-                        move(request['x']+(request['end_x']-request['x'])*step/12,
-                             request['y']+(request['end_y']-request['y'])*step/12)
-                        time.sleep(.035)
-                button(False, number)
+                # This display intentionally has no window manager. Give the real
+                # window under the pointer keyboard focus before its first click.
+                root_window, child = C.c_ulong(), C.c_ulong()
+                rx, ry, wx, wy, mask = C.c_int(), C.c_int(), C.c_int(), C.c_int(), C.c_uint()
+                x.XQueryPointer(display,x.XDefaultRootWindow(display),C.byref(root_window),C.byref(child),C.byref(rx),C.byref(ry),C.byref(wx),C.byref(wy),C.byref(mask))
+                if child.value:
+                    x.XSetInputFocus(display,child.value,1,0)
+                    x.XFlush(display)
+                    time.sleep(.08)
+                if request['action'] in ('click','drag','camera_drag'):
+                    number = 2 if request['action']=='camera_drag' else 1
+                    button(True, number)
+                    time.sleep(.08)
+                    if request['action'] in ('drag','camera_drag'):
+                        for step in range(1,13):
+                            move(request['x']+(request['end_x']-request['x'])*step/12,
+                                 request['y']+(request['end_y']-request['y'])*step/12)
+                            time.sleep(.035)
+                    button(False, number)
             requests.append(request)
             temp=out/'response.tmp'
             temp.write_text(json.dumps({'id':request['id']}))
