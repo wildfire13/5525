@@ -273,7 +273,10 @@ func shop(parent):
 			preload("res://item_drag.gd").source(product,func():
 				if shop_view.busy():return null
 				return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":epoch},product.text,product.icon)
-			for amount in [1,5]:b(actions,"%d個購入" % amount,ui.act.bind("buyItem",[item.id,amount,ui.shop_uid,c().get("inventoryToken")]),c().gold<item.price*amount or c().get("inventoryTotals",{}).get(item.id,0)+amount>99)
+			for amount in [1,5]:
+				var cost=int(item.price)*amount;var remaining=int(c().gold)-cost;var full=c().get("inventoryTotals",{}).get(item.id,0)+amount>99
+				var buy=b(actions,"%d個購入 / %dG\n%s" % [amount,cost,"上限99個" if full else "所持金不足" if remaining<0 else "残金 %dG" % remaining],ui.act.bind("buyItem",[item.id,amount,ui.shop_uid,c().get("inventoryToken")]),remaining<0 or full)
+				buy.tooltip_text="%sへ %s×%d / 所持金 %dG / 支払 %dG" % [ui.member_name(ui.shop_uid),item.name,amount,c().gold,cost]
 		items(body);return
 	if location not in ["east","west","north"]:
 		shop_guide(parent);return

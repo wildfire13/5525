@@ -16,6 +16,7 @@ var equipment_comparison := ""
 var return_to_equipment := false
 var equipment_context: Dictionary={}
 var confirmation: ConfirmationDialog
+var sale_preview_generation := 0
 func close_confirmation():
 	if is_instance_valid(confirmation):confirmation.hide();confirmation.queue_free()
 	confirmation=null
@@ -87,7 +88,12 @@ func render(parent,uid: String):
 		amount=clampi(amount,1,int(entry.count))
 		var row=ui.row(parent);l(row,"個数")
 		var count=SpinBox.new();count.name="InventoryQuantity";count.min_value=1;count.max_value=int(entry.count);count.step=1;count.value=amount;count.custom_minimum_size.x=132;row.add_child(count)
-		count.value_changed.connect(func(value):amount=int(value));count.editable=available()
+		count.editable=available()
+		if action=="sell":
+			var totals=l(parent,"売却額を確認中…");totals.name="InventorySaleTotals"
+			count.value_changed.connect(func(value):amount=int(value);preview_sale(totals))
+			preview_sale(totals)
+		else:count.value_changed.connect(func(value):amount=int(value))
 	if action in ["use","transfer","equip"]:
 		l(parent,"回復対象を選択" if action=="use" else "受取人を選択" if action=="transfer" else "装備枠を選択")
 		var choices=entry.useTargets if action=="use" else entry.transferTargets if action=="transfer" else entry.equipSlots
@@ -101,6 +107,19 @@ func render(parent,uid: String):
 	else:b(parent,"捨てる内容を確認",prepare.bind(null,null)).name="InventoryPrepareDiscard"
 	if action=="sell" and sale_available():b(parent,"所持品一覧へ",func():stage="list";quote={};generation+=1;redraw()).name="InventoryList"
 	else:b(parent,"操作選択へ",func():stage="actions";redraw())
+
+func preview_sale(label):
+	sale_preview_generation+=1
+	var ticket=sale_preview_generation;var owner=owner_id;var item=item_id;var count=amount;var token=c().get("inventoryToken");var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation
+	label.text="売却額を確認中…"
+	var valid=func():return ticket==sale_preview_generation and is_instance_valid(label) and label.is_inside_tree() and not label.is_queued_for_deletion() and owner==owner_id and item==item_id and amount==count and action=="sell" and stage=="targets" and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and token==c().get("inventoryToken") and not ui.closing
+	while ui.engine.busy:
+		await ui.get_tree().process_frame
+		if not valid.call():return
+	var result=await ui.engine.request({"op":"campaign","action":"saleQuote","args":[owner,item,count]})
+	if not valid.call():return
+	var q=result.get("saleQuote",{})
+	label.text="%sの%s ×%d / 受取 %dG / 所持金 %d → 売却後 %dG" % [q.ownerName,q.name,q.count,q.proceeds,q.goldBefore,q.afterGold] if q.get("ok",false) else "売却不可："+str(q.get("reason","金額を取得できません。"))
 
 func prepare(target,slot):
 	if not available():return
