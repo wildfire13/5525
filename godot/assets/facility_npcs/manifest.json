@@ -1,0 +1,44 @@
+[
+  {
+    "path": "res://assets/facility_npcs/weapon1.png",
+    "sha256": "890074967580fd218ce8b8e82254e0675c81292612073717eb88dd8c26261ee0",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "path": "res://assets/facility_npcs/weapon2.png",
+    "sha256": "cbd602371f75db2105a4e2f3dc173e179b5ba16ff0a3dbb39d2b64a974bbccef",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "path": "res://assets/facility_npcs/armor.png",
+    "sha256": "7577bfd0680195dedaaab3f7a14ddec18a3948b228f002d31d1a816f5140d5eb",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "path": "res://assets/facility_npcs/item.png",
+    "sha256": "cf68b9d229163db4d84c5c0bee5c6f6e29396d4d2b89209ae50132d3f4e054dd",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "path": "res://assets/facility_npcs/accessory.png",
+    "sha256": "4f2b31875633824f081ca49cbc9b7d08ad4cdfd8b43045f7cc30410c942e2c29",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "path": "res://assets/facility_npcs/inn.png",
+    "sha256": "8a7d104a74a9e0b190a8560e2880b659dde8f664de87d0b61e03e45a7bbe77e0",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "path": "res://assets/facility_npcs/guild.png",
+    "sha256": "9b530b21d0db9dcb15fe58ff03963b5655a5b767ef1ac14b4b6f2f2d6167ecd5",
+    "width": 1024,
+    "height": 1536
+  }
+]

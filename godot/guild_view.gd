@@ -69,7 +69,7 @@ func render(parent):
 	var split=HBoxContainer.new();split.name="GuildColumns";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",24);parent.add_child(split)
 	var lists=groups();var reserve_count=lists[0].size();lists[0]=visible_reserves(lists[0]);var buttons={};var filter_height=40.0
 	for side in range(2):
-		var column=VBoxContainer.new();column.name="GuildReserveColumn" if side==0 else "GuildCurrentColumn";column.custom_minimum_size.x=mini(860,maxi(240,int((ui.size.x-72)/2)));column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(column)
+		var column=VBoxContainer.new();column.name="GuildReserveColumn" if side==0 else "GuildCurrentColumn";column.custom_minimum_size.x=240;column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(column)
 		var title=l(column,("控え %d人" % reserve_count if reserve_job.is_empty() else "控え %d/%d人表示" % [lists[0].size(),reserve_count]) if side==0 else "現在のパーティー %d/%d人" % [lists[1].size(),LIMIT],true);title.name="GuildReserveHeading" if side==0 else "GuildCurrentHeading"
 		if side==0:filter_height=reserve_filter(column).get_combined_minimum_size().y
 		else:

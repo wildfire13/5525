@@ -7,6 +7,7 @@ var visit_key := ""
 var artwork: Dictionary={}
 var texture: Texture2D
 var rng=RandomNumberGenerator.new()
+var npc=preload("res://facility_npc.gd").new()
 func _init():
 	rng.randomize()
 	var path=ROOT+"manifest.json"
@@ -15,6 +16,7 @@ func _init():
 		if parsed is Dictionary:catalog=parsed
 func reset():
 	visit_key="";artwork={};texture=null
+	npc.reset()
 func facility(phase: String,location: String,page: String) -> String:
 	if phase!="town":return ""
 	match page:
@@ -29,6 +31,7 @@ func sync(phase: String,location: String,page: String):
 	if key==visit_key:return
 	reset();visit_key=key
 	if id.is_empty():return
+	npc.sync(id)
 	var variants=[]
 	var entries=catalog.get(id,[])
 	if not entries is Array:return
@@ -51,4 +54,4 @@ func backdrop(parent: Control) -> Control:
 	var shade=ColorRect.new();shade.name="FacilityReadabilityShade";shade.color=Color(.025,.04,.06,.72)
 	shade.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.add_child(shade)
 	var foreground=VBoxContainer.new();foreground.name="FacilityForeground";foreground.mouse_filter=Control.MOUSE_FILTER_PASS;panel.add_child(foreground)
-	return foreground
+	return npc.columns(foreground,parent.get_viewport_rect().size.x)
