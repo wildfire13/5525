@@ -17,6 +17,8 @@ var return_to_equipment := false
 var equipment_context: Dictionary={}
 var confirmation: ConfirmationDialog
 var sale_preview_generation := 0
+var list_context: Dictionary={}
+var confirmation_list_context: Dictionary={}
 func close_confirmation():
 	if is_instance_valid(confirmation):confirmation.hide();confirmation.queue_free()
 	confirmation=null
@@ -29,6 +31,7 @@ func redraw():party.refresh_modal()
 func reset():
 	close_confirmation()
 	equipment_comparison="";return_to_equipment=false;equipment_context={}
+	list_context={};confirmation_list_context={}
 	owner_id="";item_id="";action="";stage="list";amount=1;quote={};message="";generation+=1
 func data() -> Dictionary:return c().get("inventoryByCharacter",{}).get(owner_id,{})
 func selected() -> Dictionary:
@@ -42,11 +45,16 @@ func pick(id: String):
 	equipment_comparison=""
 	item_id=id;stage="actions";action="";amount=1;quote={};message="";redraw()
 func back() -> bool:
-	if return_to_equipment and stage=="confirm":cancel_confirmation();return true
+	if stage=="confirm":cancel_confirmation();return true
 	if not available() or stage=="list":return false
 	if action=="sell" and sale_available() and stage in ["targets","confirm"]:stage="targets" if stage=="confirm" else "list"
 	else:stage="actions" if stage in ["targets","confirm"] else "list"
-	quote={};message="";generation+=1;redraw();return true
+	quote={};message="";generation+=1;redraw()
+	if stage=="list":party.owned_equipment_view.restore_context(list_context,"",generation)
+	return true
+func show_list():
+	if not available() or stage=="confirm":return
+	stage="list";quote={};generation+=1;redraw();party.owned_equipment_view.restore_context(list_context,"",generation)
 func choose(kind: String):
 	if not available():return
 	equipment_comparison=""
@@ -66,6 +74,7 @@ func render(parent,uid: String):
 	if stage=="confirm":l(parent,"確認ダイアログで操作を選択してください。");return
 	l(parent,"%s / %s / 所持 %d個" % [ui.member_name(owner_id),entry.name,entry.count],true)
 	if stage=="actions":
+		b(parent,"説明",ui.show_equipment_details.bind(entry)).name="InventoryDetails"
 		var use_reason=""
 		if entry.kind=="equipment":use_reason="装備品です。装備枠を選んで装備できます。"
 		elif entry.kind=="quest":use_reason="依頼の荷物は使用できません。目的地の拠点で「荷物を届ける」を選んで納品してください。"
@@ -83,7 +92,7 @@ func render(parent,uid: String):
 			if not equip_available and not entry.equipSlots.is_empty():l(parent,"装備できない理由: "+str(entry.equipSlots[0].reason))
 		if not entry.discard.ok:l(parent,entry.discard.reason)
 		if entry.transferTargets.is_empty():l(parent,"渡せる編成中の仲間がいません。")
-		b(parent,"所持品一覧へ",func():stage="list";redraw());return
+		b(parent,"所持品一覧へ",show_list).name="InventoryList";return
 	if action in ["transfer","discard","sell"]:
 		amount=clampi(amount,1,int(entry.count))
 		var row=ui.row(parent);l(row,"個数")
@@ -105,25 +114,29 @@ func render(parent,uid: String):
 			target.name="InventoryTarget_"+str(candidate.get("targetId",candidate.get("slot","")))
 	elif action=="sell":b(parent,"売却内容を確認",prepare.bind(null,null),not sale_available()).name="InventoryPrepareSale"
 	else:b(parent,"捨てる内容を確認",prepare.bind(null,null)).name="InventoryPrepareDiscard"
-	if action=="sell" and sale_available():b(parent,"所持品一覧へ",func():stage="list";quote={};generation+=1;redraw()).name="InventoryList"
+	if action=="sell" and sale_available():b(parent,"所持品一覧へ",show_list).name="InventoryList"
 	else:b(parent,"操作選択へ",func():stage="actions";redraw())
 
 func preview_sale(label):
 	sale_preview_generation+=1
 	var ticket=sale_preview_generation;var owner=owner_id;var item=item_id;var count=amount;var token=c().get("inventoryToken");var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation
+	var label_ref=weakref(label)
 	label.text="売却額を確認中…"
-	var valid=func():return ticket==sale_preview_generation and is_instance_valid(label) and label.is_inside_tree() and not label.is_queued_for_deletion() and owner==owner_id and item==item_id and amount==count and action=="sell" and stage=="targets" and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and token==c().get("inventoryToken") and not ui.closing
+	var valid=func():
+		var current_label=label_ref.get_ref()
+		return ticket==sale_preview_generation and is_instance_valid(current_label) and current_label.is_inside_tree() and not current_label.is_queued_for_deletion() and owner==owner_id and item==item_id and amount==count and action=="sell" and stage=="targets" and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and token==c().get("inventoryToken") and not ui.closing
 	while ui.engine.busy:
 		await ui.get_tree().process_frame
 		if not valid.call():return
 	var result=await ui.engine.request({"op":"campaign","action":"saleQuote","args":[owner,item,count]})
 	if not valid.call():return
 	var q=result.get("saleQuote",{})
-	label.text="%sの%s ×%d / 受取 %dG / 所持金 %d → 売却後 %dG" % [q.ownerName,q.name,q.count,q.proceeds,q.goldBefore,q.afterGold] if q.get("ok",false) else "売却不可："+str(q.get("reason","金額を取得できません。"))
+	label_ref.get_ref().text="%sの%s ×%d / 受取 %dG / 所持金 %d → 売却後 %dG" % [q.ownerName,q.name,q.count,q.proceeds,q.goldBefore,q.afterGold] if q.get("ok",false) else "売却不可："+str(q.get("reason","金額を取得できません。"))
 
 func prepare(target,slot):
 	if not available():return
 	if action=="sell" and not sale_available():return
+	if action=="sell":confirmation_list_context=party.owned_equipment_view.context(owner_id,item_id,"InventoryQuantity")
 	stage="pending";message="";generation+=1
 	var ticket=generation;var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation
 	var args=[owner_id,item_id,action,target,amount,slot]
@@ -143,7 +156,7 @@ func prepare_unequip(uid: String,id: String,slot: String):
 	await prepare(null,slot)
 
 func capture_equipment_context(uid: String,id: String):
-	equipment_context={"window":ui.dialog.window.get_instance_id(),"owner":uid,"item":id,"slot":party.owned_equipment_view.slot,"scroll":ui.dialog.body.get_parent().scroll_vertical}
+	equipment_context={"window":ui.dialog.window.get_instance_id(),"owner":uid,"item":id,"slot":party.owned_equipment_view.slot,"scroll":ui.dialog.body.get_parent().scroll_vertical,"list_scroll":party.owned_equipment_view.list_scroll.scroll_vertical if is_instance_valid(party.owned_equipment_view.list_scroll) else 0}
 func restore_equipment_context():
 	var context=equipment_context.duplicate();equipment_context={}
 	if context.is_empty():return
@@ -153,14 +166,17 @@ func restore_equipment_context():
 	var scroll=ui.dialog.body.get_parent()
 	var button=ui.dialog.body.find_child("OwnedEquipmentActions_"+str(context.item),true,false)
 	if button!=null:button.grab_focus()
+	if is_instance_valid(party.owned_equipment_view.list_scroll):party.owned_equipment_view.list_scroll.scroll_vertical=int(context.get("list_scroll",0))
 	scroll.scroll_vertical=int(context.scroll)
 func cancel_confirmation():
 	close_confirmation()
 	var restore=return_to_equipment
-	stage="list" if return_to_equipment else "actions";quote={};generation+=1
+	var sale=action=="sell" and sale_available()
+	stage="list" if return_to_equipment else "targets" if sale else "actions";quote={};generation+=1
 	if return_to_equipment:return_to_equipment=false
 	redraw()
 	if restore:restore_equipment_context()
+	elif sale:party.owned_equipment_view.restore_context(confirmation_list_context if not confirmation_list_context.is_empty() else list_context,"InventoryQuantity",generation)
 
 func show_confirmation():
 	close_confirmation()

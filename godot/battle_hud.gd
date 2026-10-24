@@ -442,16 +442,23 @@ func cost_text() -> String:
 func render_skills(parent):
 	var list=menu_content(parent,"BattleSkillList")
 	for skill in ui.data.get("skillset",[]):
-		var control=b(list,("● " if not skill_list and acting().get("selectedSkill","")==skill.id else "")+str(skill.name),ui.select_skill.bind(str(skill.id)))
+		var line=ui.row(list)
+		var control=b(line,("● " if not skill_list and acting().get("selectedSkill","")==skill.id else "")+str(skill.name),ui.select_skill.bind(str(skill.id)))
+		control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		control.name="BattleSkill_"+str(skill.id)
 		var level=1
 		for source in skill.get("sources",[]):level=maxi(level,int(source.get("level",1)))
 		ui.icons.apply(control,ui.icons.skill(str(skill.id),level),24)
 		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip(str(skill.id),str(skill.name),level)
 		ui.memory.key(control,"battle_skill_"+str(skill.id))
+		var info=ui.local_button(line,"説明",ui.show_skill_details.bind(str(skill.id),str(skill.name),level));info.name="BattleSkillDetails_"+str(skill.id)
+		ui.memory.key(info,"battle_skill_details_"+str(skill.id))
 	if has_return():
-		var control=b(list,("● " if ui.command=="return" and not skill_list else "")+"帰還",ui.select_skill.bind("returnHome"));control.name="BattleSkill_returnHome";ui.icons.apply(control,ui.icons.skill("returnHome"),24)
+		var line=ui.row(list)
+		var control=b(line,("● " if ui.command=="return" and not skill_list else "")+"帰還",ui.select_skill.bind("returnHome"));control.name="BattleSkill_returnHome";ui.icons.apply(control,ui.icons.skill("returnHome"),24)
+		control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip("returnHome","帰還",1)
+		ui.local_button(line,"説明",ui.show_skill_details.bind("returnHome","帰還",1)).name="BattleSkillDetails_returnHome"
 func has_return() -> bool:return acting().get("effects",[]).has("returnHome")
 func command_name() -> String:
 	if ui.command=="return":return "帰還"
@@ -726,10 +733,7 @@ func close_menu():
 	if ticket!=menu_ticket or ui.closing:return
 	menu_transition=false;expanded_menu="";ui.invalidate_preview();item_list=false;skill_list=false;action_menu=true;ui.render()
 func skill_tooltip(id: String,title: String,level: int) -> String:
-	var definition=ui.campaign().get("skillDefinitions",{}).get(id,{})
-	var target={"guard":"隣接する味方1人","archer":"射程内の敵1人","mage":"射程内の味方1人（自身を含む）","scout":"条件を満たす敵1人","stamp":"指定マスと範囲内の人物","porter":"特殊（使用者自身を指定・陣形中の味方全員）","returnHome":"自陣の空きマス","retreatSlash":"射程内の敵1人","knockback":"射程内の敵1人","pincer":"射程内の敵1人","healingCross":"味方1人を中心とする十字範囲の味方","manaGift":"射程内の味方1人"}.get(id,"")
-	if target.is_empty():target={"pair":"異なる敵2人","upToTwo":"隣接する味方1～2人","cell":"指定マス","self":"自身"}.get(definition.get("target"),"射程・条件を満たす人物")
-	return "["+title+"]\n消費MP: %d\n対象: %s\nスキル効果:\n%s" % [int(definition.get("cost",0 if id=="returnHome" else 1)),target,ui.pages.skill_description(id,level)]
+	return preload("res://skill_text.gd").plain(preload("res://skill_text.gd").document(id,title,level,ui.campaign()))
 
 func visual_only(control: Control):
 	control.mouse_filter=Control.MOUSE_FILTER_IGNORE;control.focus_mode=Control.FOCUS_NONE

@@ -35,16 +35,11 @@ func colored_effect(text: String) -> String:
 		cursor=match_.get_end()
 	return result+escaped(text.substr(cursor))
 func skill_range(id: String,gear: Dictionary,definition: Dictionary,passive: bool) -> String:
-	if passive:return "該当なし（パッシブ）"
-	if id=="scout":return "距離制限なし（装備Lvの方向・経路条件あり）"
-	if id=="returnHome":return "距離制限なし（自陣の空きマス）"
-	if id=="porter":return "0（使用者自身・成立中の陣形）"
-	if definition.get("reach")!=null:return str(int(definition.reach))
-	if id=="archer":return str(int(gear.get("reach",0))+1)+"（各攻撃武器の射程+1）"
-	return {"guard":"1","mage":"2","stamp":"1（中心指定・3マス範囲）"}.get(id,"該当なし")
+	return preload("res://skill_text.gd").range_text(id,gear,definition,passive,int(gear.get("skillLevel",1)))
 func configure(title: String,gear: Dictionary,context: Dictionary):
 	heading=title;title_size=context.get("title_size",24);detail_size=context.get("detail_size",18)
 	details.clear();plain_details.clear()
+	line("装備の基礎能力")
 	var attacks=gear.get("type")!="empty" and int(gear.get("atk",0))>0
 	if attacks:line("通常攻撃射程："+str(int(gear.get("reach",1))))
 	var modifiers={"atk":"武器ATK","hp":"HP上限","mp":"MP上限","agiBonus":"行動速度"}
@@ -55,26 +50,29 @@ func configure(title: String,gear: Dictionary,context: Dictionary):
 			var n=int(gear[key]);var sign="+" if n>0 and key!="atk" else ""
 			line(modifiers[key]+"："+sign+str(n),modifiers[key]+"："+signed_value(n,key!="atk"));count+=1
 	if count==0:line("補正値：なし")
+	var requirements=[]
+	for key in ["str","int","agi"]:
+		if gear.get(key,0)>0:requirements.append(key.to_upper()+str(int(gear[key])))
+	if not requirements.is_empty():line("装備条件："+" / ".join(requirements))
 	var has_skill=false
 	for field in ["skill","effect"]:
 		if gear.get(field)==null:continue
 		has_skill=true;var id=str(gear[field]);var definition=context.get("definitions",{}).get(id,{})
-		var passive=definition.get("classification","passive" if field=="effect" else "active")=="passive"
-		var name=str(context.get("names",{}).get(id,id))
-		if id=="scout":name+="Lv%d" % int(gear.get("skillLevel",1))
-		line("付与スキル："+name,"[color="+SKILL+"]付与スキル："+escaped(name)+"[/color]")
-		var effective=int(context.get("effective_levels",{}).get(id,gear.get("skillLevel",1)))
-		if id=="scout" and effective!=int(gear.get("skillLevel",1)):
-			line("装備中の有効Lv：%d（同スキル最高Lv）" % effective,"[color="+SKILL+"]装備中の有効Lv：%d（同スキル最高Lv）[/color]" % effective)
-		var range_=skill_range(id,gear,definition,passive)
-		line("スキル射程："+range_,"[color="+SKILL+"]スキル射程："+escaped(range_)+"[/color]")
-		var description=str(context.get("descriptions",{}).get(id,""))
-		if description.is_empty():description=str(gear.get("note","効果の説明なし"))
-		line(description,"[color="+SKILL+"]"+colored_effect(description)+"[/color]")
-		if not passive:
-			var cost=int(definition.get("cost",0 if id=="returnHome" else 1))
-			line("消費MP："+str(cost),"[color="+SKILL+"]消費MP："+signed_value(-cost)+"[/color]")
+		var supplied=int(gear.get("skillLevel",1));var effective=int(context.get("effective_levels",{}).get(id,supplied))
+		var name_=str(context.get("names",{}).get(id,id))
+		var campaign={"skillDefinitions":context.get("definitions",{}),"skillNames":context.get("names",{})}
+		var copy=preload("res://skill_text.gd");var doc=copy.document(id,name_,effective,campaign,gear)
+		line("付与スキル："+name_+("Lv%d" % supplied if copy.LEVELLED.has(id) else ""),"[color="+SKILL+"]付与スキル："+escaped(name_)+("Lv%d" % supplied if copy.LEVELLED.has(id) else "")+"[/color]")
+		if copy.LEVELLED.has(id) and effective!=supplied:line("装備中の有効Lv：%d（同スキル最高Lv）" % effective)
+		if not doc.classification.is_empty():line("種別："+("パッシブ" if doc.classification=="passive" else "アクティブ"))
+		if doc.cost!=null and doc.classification!="passive":line("消費MP：%d" % doc.cost)
+		if not doc.target.is_empty():line("対象："+doc.target)
+		if not doc.range.is_empty():line("スキル射程："+doc.range)
+		line(copy.body(doc),"[color="+SKILL+"]"+colored_effect(copy.body(doc))+"[/color]")
 	if not has_skill:line("付与スキル：なし")
+	if gear.has("note") and not str(gear.note).is_empty():
+		line("装備メモ（原文）")
+		line(str(gear.note))
 	if context.get("occupied",false):line("両手装備で使用中（独立した追加装備ではありません）")
 	if context.get("job")=="porter" and attacks:line("この人物は通常攻撃不可（ポーター）")
 	tooltip_text=heading+"\n"+"\n".join(plain_details)
@@ -88,15 +86,25 @@ func configure_entry(entry: Dictionary,campaign: Dictionary):
 		if gear.has("battleRole"):line("戦闘での使用条件："+("ポーター" if gear.battleRole=="porter" else str(gear.battleRole)))
 		line(str(gear.get("note",gear.get("description","依頼に関わる所持品" if entry.get("kind")=="quest" else "使用時に1個消費"))))
 		tooltip_text=heading+"\n"+"\n".join(plain_details)
+func detail_document(entry: Dictionary) -> Dictionary:
+	var doc=preload("res://skill_text.gd").document("",str(entry.name),1,{})
+	doc.window_title="所持品の説明";doc.summary_text="所持 %d個" % entry.count
+	var note_index=plain_details.find("装備メモ（原文）")
+	doc.body_text="\n".join(plain_details.slice(0,note_index) if note_index>=0 else plain_details)
+	return doc
 func _make_custom_tooltip(_for_text: String) -> Object:
 	var box=VBoxContainer.new();box.name="EquipmentTooltip";box.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	# Native tooltip windows measure this tree before its first container layout.
 	# Seed the wrapping width and final heading font before that measurement.
 	var width=mini(520,maxi(240,int(get_viewport_rect().size.x)-32));box.custom_minimum_size.x=width;box.size.x=width
 	var title=Label.new();title.name="EquipmentTooltipName";title.size.x=width;title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	title.max_lines_visible=2;title.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
 	title.add_theme_font_override("font",get_theme_font("font"));title.add_theme_font_size_override("font_size",title_size)
 	title.text=heading;title.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(title)
-	var body=RichTextLabel.new();body.name="EquipmentTooltipDetails";body.bbcode_enabled=true;body.fit_content=true;body.scroll_active=false
+	var hint=Label.new();hint.text="全文は品目の詳細・比較、または「スキル・効果」から";hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;hint.add_theme_font_size_override("font_size",detail_size);box.add_child(hint)
+	var body=RichTextLabel.new();body.name="EquipmentTooltipDetails";body.bbcode_enabled=true;body.fit_content=false;body.scroll_active=false
+	var content_height=get_theme_font("font").get_multiline_string_size("\n".join(plain_details),HORIZONTAL_ALIGNMENT_LEFT,width,detail_size).y+8
+	body.custom_minimum_size.y=clampf(content_height,80,minf(280,maxf(80,get_viewport_rect().size.y-160)))
 	body.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.custom_minimum_size.x=width;body.size.x=width;body.add_theme_font_size_override("normal_font_size",detail_size)
 	body.add_theme_font_override("normal_font",get_theme_font("font"));body.text="\n".join(details);body.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(body)
 	return box

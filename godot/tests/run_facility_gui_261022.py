@@ -16,7 +16,7 @@ import time
 
 p = argparse.ArgumentParser()
 p.add_argument('--evidence', required=True, type=Path)
-p.add_argument('--script', choices=['facility_gui_261022','facility_input_extra_261022','brushup_gui','facility_npc_gui'], default='facility_gui_261022')
+p.add_argument('--script', choices=['facility_gui_261022','facility_input_extra_261022','brushup_gui','facility_npc_gui','research2_gui'], default='facility_gui_261022')
 a = p.parse_args()
 repo = Path(__file__).resolve().parents[2]
 out = a.evidence.resolve()
@@ -98,7 +98,13 @@ with (out/'gui.log').open('w') as log:
                     x.XSetInputFocus(display,child.value,1,0)
                     x.XFlush(display)
                     time.sleep(.08)
-                if request['action'] in ('click','drag','camera_drag'):
+                if request['action'] in ('wheel_down', 'wheel_up'):
+                    number = 5 if request['action'] == 'wheel_down' else 4
+                    for _ in range(max(1, min(100, int(request.get('steps', 1))))):
+                        button(True, number)
+                        button(False, number)
+                        time.sleep(.02)
+                elif request['action'] in ('click','drag','camera_drag'):
                     number = 2 if request['action']=='camera_drag' else 1
                     button(True, number)
                     time.sleep(.08)

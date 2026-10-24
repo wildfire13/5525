@@ -53,15 +53,18 @@ func render():
 	positions.item_selected.connect(func(i):switch_target(owner_id,str(positions.get_item_metadata(i))))
 	var money=ui.label_(body,"費用を確認中…");money.name="ShopComparisonPayment"
 	var comparison=RichTextLabel.new();comparison.name="ShopComparisonStats";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.scroll_active=false;comparison.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(comparison);comparison.text="比較を読み込み中…"
-	ui.label_(body,"効果："+shop.product_summary(gear)).name="ShopComparisonEffects"
+	ui.label_(body,"装備の基礎能力："+shop.product_summary(gear)).name="ShopComparisonEffects"
 	var described=[]
 	for field in ["skill","effect"]:
 		var id=str(gear.get(field,""))
 		if id.is_empty() or id=="<null>" or described.has(id):continue
 		described.append(id)
-		ui.label_(body,shop.pages.skill_description(id,int(gear.get("skillLevel",1)))).name="ShopComparisonSkill_"+id
+		var copy=preload("res://skill_text.gd")
+		ui.label_(body,copy.plain(copy.document(id,str(shop.c().get("skillNames",{}).get(id,id)),int(gear.get("skillLevel",1)),shop.c(),gear))).name="ShopComparisonSkill_"+id
 	var conditions=ui.label_(body,"条件を確認中…");conditions.name="ShopComparisonConditions"
 	ui.label_(body,"補足：装備した場合の比較です。購入では自動装備しません。受取可否は購入確定時に確認します。")
+	if gear.has("note") and not str(gear.note).is_empty():
+		ui.label_(body,"装備メモ（原文）\n"+str(gear.note)).name="ShopComparisonNotes"
 	var buy=ui.button(body,ui.member_name(owner_id)+"への購入を確認",purchase,true);buy.name="ShopComparisonBuy"
 	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
 	refresh(money,comparison,conditions,buy)
