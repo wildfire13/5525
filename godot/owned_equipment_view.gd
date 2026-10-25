@@ -204,5 +204,5 @@ func can_drop(data: Dictionary,uid: String,chosen: String) -> bool:
 func drop_equipment(data: Dictionary,uid: String,chosen: String):
 	if not can_drop(data,uid,chosen):return
 	var inv=party.inventory_view
-	inv.reset();inv.owner_id=uid;inv.item_id=str(data.item);inv.action="equip";inv.return_to_equipment=true;inv.capture_equipment_context(uid,str(data.item))
+	inv.reset();inv.owner_id=uid;inv.item_id=str(data.item);inv.action="equip";inv.return_to_equipment=true;inv.capture_equipment_context(uid,str(data.item),"OwnedEquipment_"+str(data.item))
 	await inv.prepare(null,chosen)

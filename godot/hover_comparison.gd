@@ -35,7 +35,19 @@ func place():
 	# Use the final RichText layout after a width change has settled as well.
 	if absf(float(size.x)-width)<1:height=maxf(height,float(content.get_content_height())+PADDING*2+4)
 	size=Vector2i(ceili(width),ceili(clampf(height,48,minf(360,bounds.y-72))))
-	position=Vector2i(Vector2(x,anchor.y).clamp(Vector2(8,36),(bounds-Vector2(size)-Vector2(8,8)).max(Vector2(8,36))))
+	var y=anchor.y
+	# A left-side fallback must not cover the same item's name/drag source.
+	# Keep the comparison scrollable, but move it above or below that row.
+	if str(source.name).begins_with("OwnedEquipmentActions_"):
+		var item=source.get_parent().get_node_or_null("OwnedEquipment_"+str(source.name).trim_prefix("OwnedEquipmentActions_"))
+		if item is Control:
+			var row=Rect2(Vector2(status.position)+item.get_global_rect().position,item.size).merge(Rect2(anchor,source.size))
+			if Rect2(Vector2(x,y),Vector2(size)).intersects(row):
+				var above=maxf(0,row.position.y-44);var below=maxf(0,bounds.y-row.end.y-16)
+				var use_below=below>=size.y or below>=above
+				size.y=mini(size.y,int(below if use_below else above))
+				y=row.end.y+8 if use_below else row.position.y-size.y-8
+	position=Vector2i(Vector2(x,y).clamp(Vector2(8,36),(bounds-Vector2(size)-Vector2(8,8)).max(Vector2(8,36))))
 func _process(delta):
 	if not visible:return
 	if not is_instance_valid(source) or not source.is_visible_in_tree():hide();return

@@ -213,6 +213,10 @@ func render_queue():
 	var queue_scroll=ScrollContainer.new();queue_scroll.name="TurnOrderViewport";queue_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;queue_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
 	queue_scroll.custom_minimum_size=Vector2(queue_viewport_width(),40 if ui.ui_size_mode=="standard" else 32)
 	queue_scroll.mouse_filter=Control.MOUSE_FILTER_STOP;queue_scroll.focus_mode=Control.FOCUS_ALL;ui.memory.key(queue_scroll,"turn_order");line.add_child(queue_scroll)
+	queue_scroll.gui_input.connect(func(event):
+		if queue_scroll.has_focus() and event is InputEventKey and event.pressed and event.keycode in [KEY_LEFT,KEY_RIGHT]:
+			queue_scroll.scroll_horizontal+=QUEUE_PITCH if event.keycode==KEY_RIGHT else -QUEUE_PITCH
+			queue_scroll.accept_event())
 	var band=ui.row(queue_scroll);band.name="TurnOrder";band.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var available=not ui.state().get("deploying",false) and (ui.state().get("result")==null or ui.data.get("presentation") is Dictionary)
 	var entries=queue_entries() if available else []
