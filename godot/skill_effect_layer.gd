@@ -95,9 +95,24 @@ func _burst(cell: int, progress: float, color: Color) -> void:
 		var far = .22 + progress * .22
 		_stroke(cell, [Vector3(cos(angle) * near, .09, sin(angle) * near), Vector3(cos(angle) * far, .09, sin(angle) * far)], color, 2.0)
 
+func _shield_outline(cell: int) -> PackedVector2Array:
+	# Face the camera so the shield remains distinct from a ground ring at every
+	# view angle. Keep its bottom above the fixed 18px selection ring and HP text.
+	var foot = _project(cell, Vector3(0, .03, 0))
+	var raised = _project(cell, Vector3(0, .65, 0))
+	var height = clampf(foot.distance_to(raised) * .72, 22.0, 30.0)
+	var bottom = Vector2(foot.x, minf(foot.y - 26.0, raised.y + height * .5))
+	var half_width = height * .43
+	return PackedVector2Array([bottom + Vector2(-half_width, -height), bottom + Vector2(half_width, -height), bottom + Vector2(half_width * .92, -height * .4), bottom, bottom + Vector2(-half_width * .92, -height * .4), bottom + Vector2(-half_width, -height)])
+
 func _shield(cell: int, color: Color) -> void:
-	# A low outline identifies the supplied guarding/cover state, not its result.
-	_stroke(cell, [Vector3(-.30, .08, -.29), Vector3(.30, .08, -.29), Vector3(.27, .08, .12), Vector3(0, .08, .39), Vector3(-.27, .08, .12), Vector3(-.30, .08, -.29)], color, 2.0)
+	# Outline only: no filled plate over portraits, labels or actual HP values.
+	# The supplied guarding/cover state never claims success or damage reduction.
+	var points = _shield_outline(cell)
+	draw_polyline(points, Color(Color("#19313e"), color.a * .9), 4.0, true)
+	draw_polyline(points, Color(Color("#e2eef3"), color.a), 2.1, true)
+	var top = (points[0] + points[1]) * .5
+	draw_line(top.lerp(points[3], .20), top.lerp(points[3], .63), Color(Color("#e2eef3"), color.a * .75), 1.4, true)
 
 func _attack_preparation(origin: int, recipient: int, progress: float, color: Color) -> void:
 	if not _valid_cell(recipient) or origin == recipient:

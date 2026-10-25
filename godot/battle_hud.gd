@@ -119,15 +119,23 @@ func resize():
 	var queue_scroll=ui.battle_header.find_child("TurnOrderViewport",true,false)
 	if queue_scroll!=null:queue_scroll.custom_minimum_size.x=queue_viewport_width()
 	ui.battle_header.position.y=maxf(0,middle.size.y-maxf(108,ui.battle_header.get_combined_minimum_size().y));ui.battle_header.size.x=middle.size.x
+	deployment_bar.position=Vector2(0,middle.size.y-152);deployment_bar.size=Vector2(maxf(280,middle.size.x-350),144)
+	# The formation window stays below the board. Only the compact action column
+	# needs to clear the bottom-right common menu.
+	var footer_end=middle.size.y-8
+	var common_menu=ui.find_child("CommonMenuButton",true,false)
+	if is_instance_valid(common_menu) and common_menu.is_visible_in_tree():footer_end=minf(footer_end,common_menu.global_position.y-middle.global_position.y-8)
+	var action_height=maxf(1,deployment_actions.get_combined_minimum_size().y)
+	deployment_actions.size=Vector2(330,action_height);deployment_actions.position=Vector2(middle.size.x-330,footer_end-action_height)
 	left_panel.viewport_bounds=true;right_panel.viewport_bounds=true
 	left_panel.reserved_top=0;right_panel.reserved_top=0
-	var reserved=0.0 if deployment_layout else maxf(0,ui.size.y-ui.battle_header.global_position.y+8)
+	# Both phases have pinned controls below the draggable information panels.
+	var protected_top=minf(deployment_bar.global_position.y,deployment_actions.global_position.y) if deployment_layout else ui.battle_header.global_position.y
+	var reserved=maxf(0,ui.size.y-protected_top+8)
 	left_panel.reserved_bottom=reserved;right_panel.reserved_bottom=reserved
 	left_panel.z_index=10;right_panel.z_index=10
 	left_panel.layout_bounds=Rect2();right_panel.layout_bounds=Rect2()
 	left_panel.constrain();right_panel.constrain();tools.size=Vector2(middle.size.x,56)
-	deployment_bar.position=Vector2(0,middle.size.y-152);deployment_bar.size=Vector2(maxf(280,middle.size.x-350),144)
-	deployment_actions.position=Vector2(middle.size.x-330,middle.size.y-132);deployment_actions.size=Vector2(330,124)
 func render():
 	var opening=false
 	var s=ui.state();var phase=ui.data.get("presentation");var a=acting()
