@@ -38,7 +38,9 @@ func fit_list(scroll: ScrollContainer,parent: Control,key: String):
 	var top=scroll.global_position.y-viewport.global_position.y+viewport.scroll_vertical
 	var actions=parent.find_child("StatusInventoryActions",true,false)
 	var reserved=actions.get_combined_minimum_size().y+8 if actions!=null else 0.0
-	var height=clampf(viewport.size.y-top-reserved-8,120,360)
+	# A short saved character window may have room for only one inventory row.
+	# Reserve the controls first instead of forcing a three-row list over them.
+	var height=clampf(viewport.size.y-top-reserved-8,44,360)
 	height=minf(height,maxf(44,scroll.get_child(0).get_combined_minimum_size().y))
 	if absf(scroll.custom_minimum_size.y-height)>1:scroll.custom_minimum_size.y=height
 	await tree.process_frame

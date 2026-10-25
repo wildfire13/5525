@@ -94,17 +94,38 @@ func detail_document(entry: Dictionary) -> Dictionary:
 	return doc
 func _make_custom_tooltip(_for_text: String) -> Object:
 	var box=VBoxContainer.new();box.name="EquipmentTooltip";box.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	# Native tooltip windows measure this tree before its first container layout.
-	# Seed the wrapping width and final heading font before that measurement.
+	# RichTextLabel shapes text only inside a tree. Measure this hidden subtree
+	# synchronously under the source, then hand the completed tree to the popup.
+	box.hide();add_child(box)
+	box.add_theme_constant_override("separation",4)
+	# The native popup measures before Container layout. Seed every wrapping
+	# control, including the hint, with its final width and font on that first pass.
 	var width=mini(520,maxi(240,int(get_viewport_rect().size.x)-32));box.custom_minimum_size.x=width;box.size.x=width
+	var font=get_theme_font("font")
 	var title=Label.new();title.name="EquipmentTooltipName";title.size.x=width;title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	title.max_lines_visible=2;title.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
-	title.add_theme_font_override("font",get_theme_font("font"));title.add_theme_font_size_override("font_size",title_size)
+	title.add_theme_font_override("font",font);title.add_theme_font_size_override("font_size",title_size)
 	title.text=heading;title.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(title)
-	var hint=Label.new();hint.text="全文は品目の詳細・比較、または「スキル・効果」から";hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;hint.add_theme_font_size_override("font_size",detail_size);box.add_child(hint)
-	var body=RichTextLabel.new();body.name="EquipmentTooltipDetails";body.bbcode_enabled=true;body.fit_content=false;body.scroll_active=false
-	var content_height=get_theme_font("font").get_multiline_string_size("\n".join(plain_details),HORIZONTAL_ALIGNMENT_LEFT,width,detail_size).y+8
-	body.custom_minimum_size.y=clampf(content_height,80,minf(280,maxf(80,get_viewport_rect().size.y-160)))
-	body.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.custom_minimum_size.x=width;body.size.x=width;body.add_theme_font_size_override("normal_font_size",detail_size)
-	body.add_theme_font_override("normal_font",get_theme_font("font"));body.text="\n".join(details);body.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(body)
+	var hint=Label.new();hint.name="EquipmentTooltipHint";hint.text="全文は品目の詳細・比較、または「スキル・効果」から"
+	hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;hint.custom_minimum_size.x=width;hint.size.x=width
+	hint.add_theme_font_override("font",font);hint.add_theme_font_size_override("font_size",detail_size);hint.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(hint)
+	var body=RichTextLabel.new();body.name="EquipmentTooltipDetails";body.bbcode_enabled=true;body.fit_content=true;body.scroll_active=false
+	body.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.custom_minimum_size.x=width;body.size.x=width
+	body.add_theme_font_size_override("normal_font_size",detail_size);body.add_theme_font_override("normal_font",font)
+	body.text="\n".join(details);body.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(body)
+	var margins=get_theme_stylebox("panel","TooltipPanel").get_minimum_size().y
+	var budget=maxf(font.get_height(detail_size)+4,get_viewport_rect().size.y-32-margins-title.get_combined_minimum_size().y-hint.get_combined_minimum_size().y-8)
+	var excerpt=body.get_content_height()+4>budget
+	if excerpt:
+		hint.text="長文のため抜粋表示。全文は品目の詳細・比較、または「スキル・効果」から"
+		budget=maxf(font.get_height(detail_size)+4,get_viewport_rect().size.y-32-margins-title.get_combined_minimum_size().y-hint.get_combined_minimum_size().y-8)
+		var shown: Array[String]=[];var continuation="…（続きは全文で確認）"
+		# Include only complete original blocks. Never hide half a rendered line
+		# behind a fixed-height label or leave an unclosed colour span.
+		for block in details:
+			shown.append(block);body.text="\n".join(shown)+"\n"+continuation
+			if body.get_content_height()+4>budget:shown.pop_back();break
+		body.text=("\n".join(shown)+"\n" if not shown.is_empty() else "")+continuation
+	body.set_meta("excerpt",excerpt);body.custom_minimum_size.y=body.get_content_height()+4
+	box.size.y=box.get_combined_minimum_size().y;remove_child(box);box.show()
 	return box

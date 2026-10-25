@@ -74,7 +74,11 @@ func render(parent,uid: String):
 	if stage=="confirm":l(parent,"確認ダイアログで操作を選択してください。");return
 	l(parent,"%s / %s / 所持 %d個" % [ui.member_name(owner_id),entry.name,entry.count],true)
 	if stage=="actions":
-		b(parent,"説明",ui.show_equipment_details.bind(entry)).name="InventoryDetails"
+		var primary=ui.row(parent)
+		b(primary,"説明",ui.show_equipment_details.bind(entry)).name="InventoryDetails"
+		var equip_available=entry.kind=="equipment" and entry.equipSlots.any(func(q):return q.ok)
+		if entry.kind=="equipment":b(primary,"装備する",choose.bind("equip"),not equip_available).name="InventoryEquip"
+		b(primary,"所持品一覧へ",show_list).name="InventoryList"
 		var use_reason=""
 		if entry.kind=="equipment":use_reason="装備品です。装備枠を選んで装備できます。"
 		elif entry.kind=="quest":use_reason="依頼の荷物は使用できません。目的地の拠点で「荷物を届ける」を選んで納品してください。"
@@ -87,12 +91,10 @@ func render(parent,uid: String):
 		if ui.page=="shop":b(actions,"売却",choose.bind("sell"),not sale_available() or not entry.get("sale",{}).get("ok",false)).name="InventorySell"
 		if not use_reason.is_empty():l(parent,"使用できない理由: "+use_reason)
 		if entry.kind=="equipment":
-			var equip_available=entry.equipSlots.any(func(q):return q.ok)
-			b(parent,"装備する",choose.bind("equip"),not equip_available).name="InventoryEquip"
 			if not equip_available and not entry.equipSlots.is_empty():l(parent,"装備できない理由: "+str(entry.equipSlots[0].reason))
 		if not entry.discard.ok:l(parent,entry.discard.reason)
 		if entry.transferTargets.is_empty():l(parent,"渡せる編成中の仲間がいません。")
-		b(parent,"所持品一覧へ",show_list).name="InventoryList";return
+		return
 	if action in ["transfer","discard","sell"]:
 		amount=clampi(amount,1,int(entry.count))
 		var row=ui.row(parent);l(row,"個数")
@@ -112,10 +114,13 @@ func render(parent,uid: String):
 			if not candidate.ok:caption+=" / "+str(candidate.reason)
 			var target=b(parent,caption,prepare.bind(candidate.get("targetId"),candidate.get("slot")),not candidate.ok)
 			target.name="InventoryTarget_"+str(candidate.get("targetId",candidate.get("slot","")))
-	elif action=="sell":b(parent,"売却内容を確認",prepare.bind(null,null),not sale_available()).name="InventoryPrepareSale"
+	elif action=="sell":
+		var actions=ui.row(parent);actions.name="InventorySaleActions"
+		b(actions,"売却内容を確認",prepare.bind(null,null),not sale_available()).name="InventoryPrepareSale"
+		b(actions,"所持品一覧へ",show_list).name="InventoryList"
+		return
 	else:b(parent,"捨てる内容を確認",prepare.bind(null,null)).name="InventoryPrepareDiscard"
-	if action=="sell" and sale_available():b(parent,"所持品一覧へ",show_list).name="InventoryList"
-	else:b(parent,"操作選択へ",func():stage="actions";redraw())
+	b(parent,"操作選択へ",func():stage="actions";redraw())
 
 func preview_sale(label):
 	sale_preview_generation+=1
