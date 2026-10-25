@@ -16,6 +16,9 @@ var world
 var view: SubViewport
 var viewport_container: SubViewportContainer
 var overlay: Control
+var skill_effects: Control
+var effect_action: Dictionary = {}
+var last_animated_phase := ""
 var portraits
 var data: Dictionary = {}
 var preview: Dictionary = {}
@@ -58,6 +61,8 @@ func _ready():
 		var saved=preferences.camera();camera_pan=saved.get("pan",Vector2.ZERO);camera_yaw=float(saved.get("yaw",0.0));camera_pitch=clampf(float(saved.get("pitch",0.7)),0.2,1.4);world.zoom=clampf(float(saved.get("zoom",16.5)),10,24)
 	ghost=Sprite3D.new();ghost.billboard=BaseMaterial3D.BILLBOARD_ENABLED;ghost.modulate=Color(1,1,1,.4)
 	ghost.no_depth_test=true;ghost.visible=false;world.add_child(ghost)
+	skill_effects=preload("res://skill_effect_layer.gd").new();skill_effects.name="SkillEffects";skill_effects.board_ref=weakref(self)
+	skill_effects.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(skill_effects)
 	overlay=Control.new();overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(overlay);overlay.draw.connect(draw_overlay)
 	resized.connect(func():call_deferred("update_camera"))
@@ -66,6 +71,8 @@ func _ready():
 	mouse_exited.connect(func():set_hover(""))
 	focus_entered.connect(func():set_hover(str(unit_at(keyboard_cell).get("id",""))))
 	focus_exited.connect(func():set_hover(""))
+	visibility_changed.connect(func():
+		if not is_visible_in_tree():reset_animation();effect_action.clear();last_animated_phase="")
 func set_hover(uid: String):
 	if uid==hover_uid:return
 	hover_uid=uid;tooltip_text="";hover_caption="";unit_hovered.emit(uid);overlay.queue_redraw()
@@ -211,6 +218,10 @@ func refresh_actor_scale():
 func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, chosen: Array):
 	var phase_key=JSON.stringify(d.get("presentation"))
 	if phase_key!=last_visual_phase:reset_animation()
+	if not d.get("presentation") is Dictionary:
+		effect_action.clear();last_animated_phase=""
+	elif d.presentation.get("action_id")!=effect_action.get("action_id"):
+		effect_action.clear()
 	last_visual_phase=phase_key
 	data=d;preview=pr;kind=command;selected=uid;targets=chosen
 	var state: Dictionary=d.get("state") if d.get("state") is Dictionary else {}
@@ -362,16 +373,65 @@ func draw_unit_labels(state: Dictionary):
 		overlay.draw_rect(rect,Color(.04,.1,.14,.95));overlay.draw_rect(rect,color,false,1.0)
 		for i in range(lines.size()):overlay.draw_string(ThemeDB.fallback_font,origin+Vector2(6,23+i*24),lines[i],HORIZONTAL_ALIGNMENT_LEFT,width_-12,18,Color.WHITE)
 func reset_animation():
+	if is_instance_valid(skill_effects):skill_effects.clear()
 	if hit_tween and hit_tween.is_running():hit_tween.kill()
 	hit_tween=null
 	for nodes in actors.values():
 		nodes.sprite.position=sprite_origin(nodes.sprite);nodes.sprite.modulate=Color.WHITE
+func effect_event(p: Dictionary) -> Dictionary:
+	# Only accepted native presentation packets can start an effect. Preview,
+	# cancelled and invalid actions never reach this path.
+	var current=data.get("presentation")
+	if not current is Dictionary or current.get("id")!=p.get("id") or current.get("index")!=p.get("index"):return {}
+	if p.get("phase")=="action":
+		effect_action.clear()
+		var actor={}
+		for unit in data.get("state",{}).get("units",[]):
+			if unit.id==p.get("actor_id"):actor=unit;break
+		if actor.is_empty():return {}
+		var action_kind=str(p.get("kind",""));var skill=str(p.get("skill_id","")) if action_kind=="skill" else action_kind
+		var cells=[];var recipient=-1;var target_id=""
+		var intent=actor.get("intent",{}) if actor.get("intent") is Dictionary else {}
+		if skill=="legSweep":cells=data.get("ranges",{}).get("skill",[]).duplicate()
+		elif skill=="stamp":
+			cells=intent.get("cells",[]).duplicate() if actor.get("side")=="enemy" and intent.get("kind")=="skill" else data.get("stampAreas",{}).get(str(int(p.get("target",-1))),[]).duplicate()
+		if action_kind=="attack":
+			if actor.get("side")=="enemy" and not intent.get("cells",[]).is_empty():
+				recipient=int(intent.cells[0]) # Enemy attacks resolve their reserved cell, not a moving portrait.
+				for unit in data.get("state",{}).get("units",[]):
+					if unit.pos==recipient and unit.hp>0:target_id=str(unit.id);break
+			else:
+				target_id=str(p.get("target",""))
+				for unit in data.get("state",{}).get("units",[]):
+					if unit.id==target_id:recipient=int(unit.pos);break
+		elif action_kind=="guard":recipient=int(actor.pos)
+		effect_action={"action_id":p.get("action_id"),"skill_id":skill,"kind":action_kind,"origin":int(actor.pos),"cells":cells,"recipient":recipient,"target_id":target_id}
+		if skill not in ["legSweep","mage","stamp","attack","guard"] or (skill in ["legSweep","stamp"] and cells.is_empty()):return {}
+		var event=effect_action.duplicate(true);event.phase="action";return event
+	var same_action=p.get("action_id")==effect_action.get("action_id")
+	var skill=effect_action.get("skill_id","") if same_action else ""
+	var healing=p.get("phase")=="heal" and skill=="mage" and p.get("to",0)>p.get("from",0)
+	var hurting=p.get("phase")=="hurt" and p.get("to",0)<p.get("from",0)
+	if not healing and not hurting:return {}
+	for unit in data.get("state",{}).get("units",[]):
+		if unit.id==p.get("unit_id"):
+			var event=effect_action.duplicate(true) if same_action else {}
+			event.skill_id="mage" if healing else "stamp" if skill=="stamp" else "impact"
+			event.phase=p.phase;event.recipient=int(unit.pos);event.guarding=unit.get("guard",false)
+			event.redirected=hurting and same_action and effect_action.get("kind")=="attack" and not str(effect_action.get("target_id","")).is_empty() and effect_action.target_id!=str(unit.id)
+			return event
+	return {}
 func animate(p: Dictionary) -> float:
+	var phase_key=JSON.stringify(p)
+	if phase_key==last_animated_phase:return 0.0
+	last_animated_phase=phase_key
 	reset_animation()
 	if p.get("kind")=="skip":return 0.0
 	if not actors.has(p.get("unit_id","")) or p.phase not in ["action","move","hurt","heal"]:return 0.0
 	var root: Node3D=actors[p.unit_id].root
 	var sprite: Sprite3D=actors[p.unit_id].sprite
+	var effect=effect_event(p)
+	if not effect.is_empty():skill_effects.play(effect,.3 if p.phase=="heal" else .42)
 	hit_tween=create_tween()
 	if p.phase=="move":
 		root.position=point(int(p.from))
