@@ -31,3 +31,5 @@
 - Windows実UI/DPI、本人PC、音声実聴、今回branchのCIは未確認。ローカルcommitのみで、push/main統合/本人PC操作はしていない。
 
 原本・私的画像・アカウント・私用URLはリポジトリに含めない。
+
+公開前の追加測定・原因切分け・最適化不採用の根拠は [性能診断](feedback-ui-performance-20261026.md) に記録。実行コードは68aのまま。
