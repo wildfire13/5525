@@ -13,7 +13,13 @@ var quest_id := ""
 var journey_key := ""
 var current_bgm := ""
 var quest_loaded := ""
-var muted := {"bgm":true,"voice":true,"se":true}
+const SETTINGS_PATH="user://audio-settings-v1.cfg"
+# 100% retains the delivered mix; the control scales its amplitude, not dB.
+const MIX_DB={"bgm":-6.0,"voice":0.0,"se":-4.0,"ui":-6.0}
+var muted := {"bgm":false,"voice":false,"se":false}
+var volumes := {"bgm":100,"voice":100,"se":100}
+var test_silence := false
+signal settings_changed
 var seen: Dictionary = {}
 var connection_generation:=-1
 var result_key := ""
@@ -35,6 +41,12 @@ func player(volume: float) -> AudioStreamPlayer:
 func _ready():
 	bgm=player(-6); quest=player(-6); voice=player(0); ui_player=player(-6)
 	for i in range(4): effects.append(player(-4))
+	load_settings()
+	# QA silence is an explicit process override; it never resets saved choices.
+	test_silence=OS.get_environment("NATIVE5525_AUDIO_OFF")=="1"
+	if test_silence:
+		for kind in muted:muted[kind]=true
+	apply_levels()
 	var base = ProjectSettings.globalize_path("res://../native/assets")
 	var m = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("music/manifest.json")))
 	for t in m.tracks: bgm_catalog[t.id]=base.path_join("music").path_join(t.filename)
@@ -106,7 +118,7 @@ func sync(d: Dictionary) -> void:
 		bgm.stop();current_bgm=key
 		bgm.stream=load_wav(str(bgm_catalog.get(key,"")),true)
 		if bgm.stream: bgm.play()
-	bgm.stream_paused=muted.bgm
+	bgm.stream_paused=not audible("bgm")
 	if on_road:
 		if quest_loaded != quest_id:
 			quest.stop();quest_loaded=quest_id
@@ -114,7 +126,7 @@ func sync(d: Dictionary) -> void:
 				if t.id==quest_id:
 					quest.stream=quest_stream(t)
 					if quest.stream: quest.play()
-		quest.stream_paused=muted.bgm
+		quest.stream_paused=not audible("bgm")
 	else: quest.stream_paused=true
 	if state.get("result")==null:result_key=""
 	if state.get("result") != null and (d.get("presentation")==null or d.presentation.phase=="settled"):
@@ -137,13 +149,47 @@ func finish_audio() -> bool:
 func _exit_tree():
 	close_audio()
 func set_mute(kind: String, value: bool) -> void:
+	if not muted.has(kind):return
 	muted[kind]=value
-	if kind=="voice" and value: voice.stop()
-	if kind=="se" and value:
+	apply_levels();save_settings();settings_changed.emit()
+func audible(kind: String) -> bool:return not muted.get(kind,true) and int(volumes.get(kind,0))>0
+func effective_volume(kind: String) -> int:return 0 if muted.get(kind,true) else int(volumes.get(kind,0))
+func set_sound_level(kind: String,value: float) -> void:
+	if not volumes.has(kind) or not is_finite(value):return
+	volumes[kind]=clampi(int(round(value/10.0))*10,0,100)
+	muted[kind]=int(volumes[kind])==0
+	apply_levels();save_settings();settings_changed.emit()
+func set_volume(kind: String,value: float) -> void:
+	if not volumes.has(kind) or not is_finite(value):return
+	volumes[kind]=clampi(int(round(value/10.0))*10,0,100)
+	apply_levels();save_settings();settings_changed.emit()
+func apply_levels():
+	for pair in [[bgm,"bgm","bgm"],[quest,"bgm","bgm"],[voice,"voice","voice"],[ui_player,"se","ui"]]:
+		var p=pair[0];var percent=int(volumes[pair[1]])
+		p.volume_db=float(MIX_DB[pair[2]])+(linear_to_db(percent/100.0) if percent>0 else -80.0)
+	for p in effects:p.volume_db=float(MIX_DB.se)+(linear_to_db(int(volumes.se)/100.0) if int(volumes.se)>0 else -80.0)
+	if not audible("bgm"):bgm.stream_paused=true;quest.stream_paused=true
+	if not audible("voice"):voice.stop()
+	if not audible("se"):
 		for p in effects: p.stop()
 		ui_player.stop()
+func load_settings():
+	var config=ConfigFile.new()
+	if config.load(SETTINGS_PATH)!=OK:return
+	for kind in muted:
+		var mute=config.get_value(kind,"muted",muted[kind]);var percent=config.get_value(kind,"volume",volumes[kind])
+		if mute is bool:muted[kind]=mute
+		if (percent is int or percent is float) and is_finite(float(percent)):volumes[kind]=clampi(int(round(float(percent)/10.0))*10,0,100)
+func save_settings():
+	if test_silence:return
+	# Read before write so independent local preferences are not discarded.
+	var config=ConfigFile.new();config.load(SETTINGS_PATH)
+	for kind in muted:
+		config.set_value(kind,"muted",muted[kind]);config.set_value(kind,"volume",volumes[kind])
+	var error=config.save(SETTINGS_PATH)
+	if error!=OK:push_warning("Audio preferences could not be saved: %s" % error)
 func ui(id: String) -> void:
-	if muted.se: return
+	if not audible("se"): return
 	ui_player.stream=load_wav(str(sounds.get(id,"")))
 	if ui_player.stream:
 		ui_player.play();ui_sound_started.emit(id)
@@ -153,7 +199,7 @@ func phase(p: Dictionary) -> float:
 	seen[key]=true
 	if seen.size()>800: seen.erase(seen.keys()[0])
 	var duration := 0.22
-	if not muted.voice:
+	if audible("voice"):
 		for e in p.get("voiceEvents",[]):
 			voice.stream=load_wav(str(voices.get(str(e.character_id)+"/"+str(e.cue),"")))
 			if voice.stream:
@@ -167,7 +213,7 @@ func phase(p: Dictionary) -> float:
 	elif p.phase=="hurt":se_id="hit"
 	elif p.phase=="heal":se_id="heal"
 	var group=str(connection_generation)+":group:"+str(p.action_id)+":"+p.phase+":"+str(p.get("impact_group_id",0))
-	if not se_id.is_empty() and not muted.se and not seen.has(group):
+	if not se_id.is_empty() and audible("se") and not seen.has(group):
 		seen[group]=true
 		var sound=effects[effect_cursor%effects.size()];effect_cursor+=1
 		sound.stream=load_wav(str(sounds.get(se_id,"")))

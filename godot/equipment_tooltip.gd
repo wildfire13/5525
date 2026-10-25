@@ -1,5 +1,5 @@
 extends Button
-## Native tooltip lifecycle, with no game-state mutation or retained UI owner.
+## Read-only equipment hover, hosted by the game window rather than its status child.
 const POSITIVE="#8ac7ff"
 const NEGATIVE="#ff9494"
 const SKILL="#c7a5ff"
@@ -9,6 +9,9 @@ var details: Array[String]=[]
 var plain_details: Array[String]=[]
 var title_size := 24
 var detail_size := 18
+var hover_window: Control
+var hover_generation := 0
+var hover_connected := false
 func escaped(text: String) -> String:return text.replace("[","[lb]")
 func signed_value(value,show_sign:=true) -> String:
 	var n=int(value);var color=POSITIVE if n>0 else NEGATIVE if n<0 else NEUTRAL
@@ -37,6 +40,7 @@ func colored_effect(text: String) -> String:
 func skill_range(id: String,gear: Dictionary,definition: Dictionary,passive: bool) -> String:
 	return preload("res://skill_text.gd").range_text(id,gear,definition,passive,int(gear.get("skillLevel",1)))
 func configure(title: String,gear: Dictionary,context: Dictionary):
+	connect_hover();close_hover()
 	heading=title;title_size=context.get("title_size",24);detail_size=context.get("detail_size",18)
 	details.clear();plain_details.clear()
 	line("装備の基礎能力")
@@ -77,6 +81,7 @@ func configure(title: String,gear: Dictionary,context: Dictionary):
 	if context.get("job")=="porter" and attacks:line("この人物は通常攻撃不可（ポーター）")
 	tooltip_text=heading+"\n"+"\n".join(plain_details)
 func configure_entry(entry: Dictionary,campaign: Dictionary):
+	connect_hover();close_hover()
 	var gear: Dictionary=entry.get("definition",{})
 	if entry.get("kind")=="equipment":
 		configure(str(entry.name),gear,{"names":campaign.get("skillNames",{}),"definitions":campaign.get("skillDefinitions",{}),"descriptions":campaign.get("skillDescriptions",{})})
@@ -92,40 +97,92 @@ func detail_document(entry: Dictionary) -> Dictionary:
 	var note_index=plain_details.find("装備メモ（原文）")
 	doc.body_text="\n".join(plain_details.slice(0,note_index) if note_index>=0 else plain_details)
 	return doc
+func connect_hover():
+	if hover_connected:return
+	hover_connected=true
+	mouse_entered.connect(queue_hover)
+	mouse_exited.connect(func():hover_generation+=1)
+	pressed.connect(close_hover)
+	visibility_changed.connect(func():
+		if not is_visible_in_tree():close_hover())
+func _get_tooltip(_at: Vector2) -> String:
+	# A native tooltip is bounded by the character Window, hiding its lower text.
+	# Keep tooltip_text as the complete plain accessibility/inspection copy.
+	return ""
+func reading_hover_at_pointer() -> bool:
+	var point=get_global_mouse_position()+game_window_offset()
+	for popup in get_tree().get_nodes_in_group("equipment_full_hover"):
+		if popup.visible and is_instance_valid(popup.content) and popup.content.get_meta("scrollable",false) and popup.get_global_rect().has_point(point):return true
+	return false
+func queue_hover():
+	# The drawing is click-through, but moving over its long text must not
+	# replace the reader with the equipment button located underneath it.
+	if reading_hover_at_pointer():return
+	hover_generation+=1
+	var generation=hover_generation
+	get_tree().create_timer(.45).timeout.connect(func():
+		if generation==hover_generation and is_visible_in_tree() and is_hovered() and not reading_hover_at_pointer() and not get_viewport().gui_is_dragging():show_hover())
+func show_hover():
+	for group in ["equipment_full_hover","equipment_comparison_hover"]:
+		for popup in get_tree().get_nodes_in_group(group):
+			if popup!=hover_window:popup.hide()
+	if not is_instance_valid(hover_window):
+		hover_window=preload("res://equipment_hover_popup.gd").new()
+		hover_window.source=self
+		var layer=CanvasLayer.new();layer.name="EquipmentHoverLayer";layer.layer=1025
+		get_tree().root.add_child(layer);layer.add_child(hover_window)
+	hover_window.present()
+func close_hover():
+	hover_generation+=1
+	if is_instance_valid(hover_window):hover_window.hide()
+func _notification(what):
+	if what==NOTIFICATION_DRAG_BEGIN:close_hover()
+func game_window_offset() -> Vector2:
+	return Vector2.ZERO if get_window()==get_tree().root else Vector2(get_window().position)
+func _exit_tree():
+	hover_generation+=1
+	if is_instance_valid(hover_window):hover_window.get_parent().queue_free()
 func _make_custom_tooltip(_for_text: String) -> Object:
-	var box=VBoxContainer.new();box.name="EquipmentTooltip";box.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	# RichTextLabel shapes text only inside a tree. Measure this hidden subtree
-	# synchronously under the source, then hand the completed tree to the popup.
-	box.hide();add_child(box)
-	box.add_theme_constant_override("separation",4)
-	# The native popup measures before Container layout. Seed every wrapping
-	# control, including the hint, with its final width and font on that first pass.
-	var width=mini(520,maxi(240,int(get_viewport_rect().size.x)-32));box.custom_minimum_size.x=width;box.size.x=width
+	# Godot still calls this override for an empty native tooltip request.
+	# Manual full-hover requests pass the retained nonempty plain description.
+	if _for_text.is_empty():return null
+	var box=VBoxContainer.new();box.name="EquipmentTooltip";box.mouse_filter=Control.MOUSE_FILTER_PASS
+	# Measure in-tree with the final font/width before the Popup sizes itself.
+	box.hide();add_child(box);box.add_theme_constant_override("separation",4)
+	var bounds=Vector2(get_tree().root.size)
+	var width=mini(520,maxi(160,int(bounds.x)-48))
+	var anchor=game_window_offset()+get_global_rect().position
+	var beside=maxf(anchor.x-24,bounds.x-anchor.x-size.x-24)-16
+	if beside>=160:width=mini(width,int(beside))
+	box.custom_minimum_size.x=width;box.size.x=width
 	var font=get_theme_font("font")
-	var title=Label.new();title.name="EquipmentTooltipName";title.size.x=width;title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	title.max_lines_visible=2;title.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
-	title.add_theme_font_override("font",font);title.add_theme_font_size_override("font_size",title_size)
-	title.text=heading;title.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(title)
-	var hint=Label.new();hint.name="EquipmentTooltipHint";hint.text="全文は品目の詳細・比較、または「スキル・効果」から"
+	var hint=Label.new();hint.name="EquipmentTooltipHint";hint.text="ホイールでスクロールして全文を確認"
 	hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;hint.custom_minimum_size.x=width;hint.size.x=width
-	hint.add_theme_font_override("font",font);hint.add_theme_font_size_override("font_size",detail_size);hint.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(hint)
+	hint.add_theme_font_override("font",font);hint.add_theme_font_size_override("font_size",detail_size);hint.mouse_filter=Control.MOUSE_FILTER_IGNORE;hint.hide();box.add_child(hint)
+	var scroll=ScrollContainer.new();scroll.name="EquipmentTooltipScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	scroll.custom_minimum_size.x=width;box.add_child(scroll)
+	var content=VBoxContainer.new();content.name="EquipmentTooltipContent";content.add_theme_constant_override("separation",4);content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content.custom_minimum_size.x=width;content.size.x=width;scroll.add_child(content)
+	var title=Label.new();title.name="EquipmentTooltipName";title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	title.custom_minimum_size.x=width;title.size.x=width
+	title.add_theme_font_override("font",font);title.add_theme_font_size_override("font_size",title_size)
+	title.text=heading;title.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.add_child(title)
 	var body=RichTextLabel.new();body.name="EquipmentTooltipDetails";body.bbcode_enabled=true;body.fit_content=true;body.scroll_active=false
-	body.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.custom_minimum_size.x=width;body.size.x=width
-	body.add_theme_font_size_override("normal_font_size",detail_size);body.add_theme_font_override("normal_font",font)
-	body.text="\n".join(details);body.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(body)
-	var margins=get_theme_stylebox("panel","TooltipPanel").get_minimum_size().y
-	var budget=maxf(font.get_height(detail_size)+4,get_viewport_rect().size.y-32-margins-title.get_combined_minimum_size().y-hint.get_combined_minimum_size().y-8)
-	var excerpt=body.get_content_height()+4>budget
-	if excerpt:
-		hint.text="長文のため抜粋表示。全文は品目の詳細・比較、または「スキル・効果」から"
-		budget=maxf(font.get_height(detail_size)+4,get_viewport_rect().size.y-32-margins-title.get_combined_minimum_size().y-hint.get_combined_minimum_size().y-8)
-		var shown: Array[String]=[];var continuation="…（続きは全文で確認）"
-		# Include only complete original blocks. Never hide half a rendered line
-		# behind a fixed-height label or leave an unclosed colour span.
-		for block in details:
-			shown.append(block);body.text="\n".join(shown)+"\n"+continuation
-			if body.get_content_height()+4>budget:shown.pop_back();break
-		body.text=("\n".join(shown)+"\n" if not shown.is_empty() else "")+continuation
-	body.set_meta("excerpt",excerpt);body.custom_minimum_size.y=body.get_content_height()+4
+	body.custom_minimum_size.x=width;body.size.x=width
+	body.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.add_theme_font_size_override("normal_font_size",detail_size);body.add_theme_font_override("normal_font",font)
+	body.text="\n".join(details);body.mouse_filter=Control.MOUSE_FILTER_PASS;content.add_child(body)
+	var panel_margins=get_theme_stylebox("panel","TooltipPanel").get_minimum_size().y
+	var budget=maxf(64,bounds.y-32-panel_margins)
+	for pass_ in range(2):
+		var inside_width=width-(16 if pass_==1 else 0)
+		for child in [title,body]:child.custom_minimum_size.x=inside_width;child.size.x=inside_width
+		content.custom_minimum_size.x=inside_width;content.size.x=inside_width
+		body.custom_minimum_size.y=body.get_content_height()+4
+		var natural=title.get_combined_minimum_size().y+body.custom_minimum_size.y+4
+		var overflowing=natural>budget
+		if overflowing:hint.show()
+		var hint_height=hint.get_combined_minimum_size().y+4 if overflowing else 0.0
+		scroll.custom_minimum_size.y=minf(natural,maxf(32,budget-hint_height))
+		box.set_meta("scrollable",overflowing);body.set_meta("excerpt",false)
+		if not overflowing:break
 	box.size.y=box.get_combined_minimum_size().y;remove_child(box);box.show()
 	return box

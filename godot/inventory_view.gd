@@ -17,6 +17,7 @@ var return_to_equipment := false
 var equipment_context: Dictionary={}
 var confirmation: ConfirmationDialog
 var sale_preview_generation := 0
+var sale_preview_loading := false
 var list_context: Dictionary={}
 var confirmation_list_context: Dictionary={}
 func close_confirmation():
@@ -31,7 +32,7 @@ func redraw():party.refresh_modal()
 func reset():
 	close_confirmation()
 	equipment_comparison="";return_to_equipment=false;equipment_context={}
-	list_context={};confirmation_list_context={}
+	list_context={};confirmation_list_context={};sale_preview_loading=false
 	owner_id="";item_id="";action="";stage="list";amount=1;quote={};message="";generation+=1
 func data() -> Dictionary:return c().get("inventoryByCharacter",{}).get(owner_id,{})
 func selected() -> Dictionary:
@@ -123,7 +124,7 @@ func render(parent,uid: String):
 	b(parent,"操作選択へ",func():stage="actions";redraw())
 
 func preview_sale(label):
-	sale_preview_generation+=1
+	sale_preview_generation+=1;sale_preview_loading=true
 	var ticket=sale_preview_generation;var owner=owner_id;var item=item_id;var count=amount;var token=c().get("inventoryToken");var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation
 	var label_ref=weakref(label)
 	label.text="売却額を確認中…"
@@ -132,8 +133,11 @@ func preview_sale(label):
 		return ticket==sale_preview_generation and is_instance_valid(current_label) and current_label.is_inside_tree() and not current_label.is_queued_for_deletion() and owner==owner_id and item==item_id and amount==count and action=="sell" and stage=="targets" and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and token==c().get("inventoryToken") and not ui.closing
 	while ui.engine.busy:
 		await ui.get_tree().process_frame
-		if not valid.call():return
+		if not valid.call():
+			if ticket==sale_preview_generation:sale_preview_loading=false
+			return
 	var result=await ui.engine.request({"op":"campaign","action":"saleQuote","args":[owner,item,count]})
+	if ticket==sale_preview_generation:sale_preview_loading=false
 	if not valid.call():return
 	var q=result.get("saleQuote",{})
 	label_ref.get_ref().text="%sの%s ×%d / 受取 %dG / 所持金 %d → 売却後 %dG" % [q.ownerName,q.name,q.count,q.proceeds,q.goldBefore,q.afterGold] if q.get("ok",false) else "売却不可："+str(q.get("reason","金額を取得できません。"))

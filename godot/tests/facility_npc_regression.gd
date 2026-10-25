@@ -7,9 +7,9 @@ func npc_layout(label: String):
 	var view=Rect2(Vector2.ZERO,Vector2(root.size));var content_rect=content.get_global_rect();var stage_rect=stage.get_global_rect()
 	check(view.encloses(content_rect) and view.encloses(stage_rect) and content_rect.end.x<=stage_rect.position.x,"NPC region and UI fit without intersection "+label)
 	check(stage.mouse_filter==Control.MOUSE_FILTER_IGNORE and portrait.mouse_filter==Control.MOUSE_FILTER_IGNORE and portrait.focus_mode==Control.FOCUS_NONE,"NPC decoration cannot consume pointer or focus "+label)
-	check(portrait.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and portrait.expand_mode==TextureRect.EXPAND_IGNORE_SIZE and portrait.texture.get_size()==Vector2(1024,1536),"NPC keeps complete original aspect and pixels "+label)
+	check(portrait.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and portrait.expand_mode==TextureRect.EXPAND_IGNORE_SIZE and portrait.texture.get_size()==Vector2(1024,1536) and is_equal_approx(portrait.size.x/portrait.size.y,2.0/3.0) and portrait.size.y>root.size.y and portrait.position.y>0,"NPC enlarges unchanged original aspect with only lower body outside viewport "+label)
 	var image=node("FacilityStill")
-	check(image.get_parent().get_child_count()==3 and node("FacilityForeground").get_index()==2,"NPC preserves existing three backdrop layers "+label)
+	check(image.get_parent()==game.backdrop_layer and portrait.get_parent()==game.backdrop_layer and portrait.get_index()>image.get_index() and game.base.get_index()>game.backdrop_layer.get_index(),"NPC stays on decoration layer below foreground controls "+label)
 	var fit=true
 	for control in content.find_children("*","Control",true,false):
 		if not control.is_visible_in_tree():continue

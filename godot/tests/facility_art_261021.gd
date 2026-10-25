@@ -31,8 +31,8 @@ func run():
 			check(art.visit_key==spec[0]+":"+spec[2] and node("FacilityStill")!=null,"mapped facility rendered "+str(spec)+str(dims))
 			var image=node("FacilityStill");var foreground=node("FacilityForeground")
 			check(image.mouse_filter==Control.MOUSE_FILTER_IGNORE and node("FacilityReadabilityShade").mouse_filter==Control.MOUSE_FILTER_IGNORE,"background layers ignore input")
-			check(image.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and image.get_parent().get_child_count()==3 and foreground.get_index()==2,"aspect ratio and foreground layer retained")
-			check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(image.get_global_rect()),"background fits viewport")
+			check(image.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_COVERED and image.get_parent()==game.backdrop_layer and game.base.get_index()>game.backdrop_layer.get_index() and game.content.is_ancestor_of(foreground),"cover aspect ratio and foreground UI above full-window decoration")
+			check(image.get_global_rect()==Rect2(Vector2.ZERO,Vector2(root.size)),"background covers complete viewport")
 			for i in range(3):game.render();await settle()
 			check(art.rng.state==state and art.artwork==artwork,"repeated UI renders do not reroll")
 			if spec[1]=="shop" and node("ShopSlotFilter")!=null:

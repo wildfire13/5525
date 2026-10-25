@@ -5,7 +5,7 @@ import subprocess,sys,shutil,tempfile
 ROOT=Path(__file__).resolve().parents[2]
 Q=ROOT/'godot/qa'
 Q.mkdir(parents=True,exist_ok=True)
-env={**os.environ,'GODOT_BIN':sys.argv[1],'PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8'}
+env={**os.environ,'GODOT_BIN':sys.argv[1],'PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8','NATIVE5525_AUDIO_OFF':'1'}
 MARKERS=['SCRIPT ERROR:','ERROR:','FAIL ','ObjectDB instances leaked','resources still in use']
 entries=[]
 def run(name,entry,args,environment,expected=0,project=ROOT):

@@ -27,7 +27,7 @@ func hover_equipped(slot: String,label: String):
  var box=internal_named(root,"EquipmentTooltip")
  check(box!=null,"native custom equipment tooltip visible "+label)
  if box==null:return
- var body=box.find_child("EquipmentTooltipDetails",true,false);var popup=box.get_window();var children_min=0.0
+ var body=box.find_child("EquipmentTooltipDetails",true,false);var popup=box.get_meta("hover_owner").get_ref();var children_min=0.0
  for child in box.get_children():children_min+=child.get_combined_minimum_size().y
  children_min+=box.get_theme_constant("separation")*(box.get_child_count()-1)
  var data={"case":label,"root":str(root.size),"popup_position":str(popup.position),"popup_size":str(popup.size),"box_size":str(box.size),"children_min_height":children_min,"body_size":str(body.size),"body_min":str(body.get_combined_minimum_size()),"body_content_height":body.get_content_height(),"full_text":body.get_parsed_text()}
@@ -67,7 +67,13 @@ func run():
   before=await saved();await hover_equipped("rightHand","synthetic-long-1180")
   await os_mouse(screen_rect(source).get_center());await create_timer(.85).timeout;await frames()
   var box=internal_named(root,"EquipmentTooltip");var body=box.find_child("EquipmentTooltipDetails",true,false)
-  check(body.get_meta("excerpt",false) and body.get_parsed_text().ends_with("…（続きは全文で確認）") and box.find_child("EquipmentTooltipHint",true,false).text.contains("抜粋"),"OS overlong note is an explicit complete-block preview rather than a clipped line")
+  check(not body.get_meta("excerpt",true) and body.get_parsed_text().ends_with(long_note) and box.find_child("EquipmentTooltipHint",true,false).text.contains("スクロール"),"OS overlong note stays complete in its own scrollable hover")
+  var active=source.hover_window;var scroll=box.find_child("EquipmentTooltipScroll",true,false)
+  await os_mouse(scroll.get_global_rect().get_center());await create_timer(.7).timeout
+  check(active.visible and source.hover_window==active and active.content.find_child("EquipmentTooltipDetails",true,false).get_parsed_text().ends_with(long_note),"OS long hover keeps its owner over underlying equipment buttons")
+  await os_wheel(scroll.get_global_rect().get_center(),100);await create_timer(.7).timeout;await settle()
+  check(active.visible and scroll.scroll_vertical>0 and scroll.scroll_vertical+scroll.size.y>=scroll.get_v_scroll_bar().max_value-2,"OS same long hover reaches its final original line by wheel")
+  await snapshot("F4-long-hover-final-line-1180")
   check(source.tooltip_text.ends_with(long_note) and await saved()==before,"overlong preview keeps original note and canonical save unchanged")
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"all equipment hover audio OFF")
  var f=FileAccess.open(evidence.path_join("hover-geometry.json"),FileAccess.WRITE);f.store_string(JSON.stringify(observations,"\t"));f.close()

@@ -17,8 +17,8 @@ func run():
 			var image=node("TownStill");var texture=image.texture
 			check(texture!=null and texture.resource_path==variant.path and texture.get_width()==1672 and texture.get_height()==941,"actual texture loaded: "+variant.id)
 			check(texture.get_image()!=null and not texture.get_image().is_empty(),"decoded pixel image available: "+variant.id)
-			check(image.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(image.get_global_rect()),"full aspect-preserved image within FHD: "+variant.id)
-			check(node("TownArtStyle").text=="画風："+variant.style,"Japanese style label matches: "+variant.id)
+			check(image.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_COVERED and image.get_global_rect()==Rect2(Vector2.ZERO,Vector2(root.size)),"full-window aspect-preserved cover image at FHD: "+variant.id)
+			check(node("TownArtStyle")==null and game.location_label.text.begins_with(game.town_name(town)),"duplicate art/location heading removed; shared band identifies town: "+variant.id)
 			var buttons=game.find_children("HubFacility_*","Button",true,false).map(func(b):return b.name)
 			for button in buttons:
 				await click(button);game.town_back.pressed.emit();await settle()

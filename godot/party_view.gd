@@ -205,16 +205,15 @@ func go_shop(uid: String,slot: String):
 	ui.shop_uid=uid;ui.shop_slot=slot;ui.page="shop";pages.gear_id="";pages.shop_view.from_party=true;pages.shop_view.back_list()
 func face_bar(parent):
 	var row=ui.row(parent);row.name="PartyFaceBar";row.custom_minimum_size.y=96 if ui.ui_size_mode=="standard" else 64
-	# Item target cards own HP/MP; the persistent portraits remain detail entry points.
-	var show_resources=parent.find_child("CampParty",true,false)==null and parent.find_child("ItemParty",true,false)==null
+	# Resources stay available on hover; no duplicate status row is rendered.
 	for id in pages.c().get("selected",[]):
 		var u=ui.roster().filter(func(member):return member.id==id)[0]
 		var caption=str(u.name)+(" 戦闘不能" if u.hp<=0 else "")
-		if show_resources:caption+="\nHP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]
+		caption+="\nHP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]
 		var control=b(row,"",portrait_pressed.bind(str(id)),(ui.modal_open() and detail_uid.is_empty()) or (pages.guild_view.available() and pages.guild_view.busy()) or pages.shop_view.stage in ["S4","S5"] or pages.shop_view.unknown)
 		if str(id)==detail_uid:tint(control,Color("#243c58"))
 		elif pages.guild_view.available() and str(id)==pages.guild_view.chosen_id:tint(control,Color("#236044"))
-		control.name="PartyFace_"+str(id);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.icon=ui.portraits.texture(u,true);control.expand_icon=true;control.add_theme_constant_override("icon_max_width",48 if ui.ui_size_mode=="standard" else 28);control.clip_text=true;control.tooltip_text=caption+" / ステータスを開く";ui.memory.key(control,"face_"+str(id))
+		control.set_meta("no_status_hint",true);control.name="PartyFace_"+str(id);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.icon=ui.portraits.texture(u,true);control.expand_icon=true;control.add_theme_constant_override("icon_max_width",48 if ui.ui_size_mode=="standard" else 28);control.clip_text=true;control.tooltip_text=caption+" / ステータスを開く";ui.memory.key(control,"face_"+str(id))
 		if ui.page=="shop":
 			preload("res://item_drag.gd").target(control,
 				func(data):return pages.shop_view.can_drop_product(data,str(id)),

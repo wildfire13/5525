@@ -23,6 +23,9 @@ var locked := false
 var presenting := false
 var closing := false
 var checks_fast := false
+var backdrop_layer: Control
+var location_bar: PanelContainer
+var location_label: Label
 var base: VBoxContainer
 var top: HBoxContainer
 var header: Label
@@ -51,7 +54,8 @@ var town_back: Button
 var status_override := ""
 var modal_escape_frame := -1
 var ui_size_mode := "standard"
-var menu: PopupPanel
+var menu: PanelContainer
+var menu_overlay: Control
 var preview_pending := false
 var preview_ready := false
 var rendering := false
@@ -87,29 +91,48 @@ func _ready():
 		theme_.set_color("font_disabled_color",type_,Color("#9299a3"))
 	theme=theme_
 	low_hp_font=FontVariation.new();low_hp_font.base_font=ui_font.base_font;low_hp_font.variation_opentype={weight_axis:700}
+	backdrop_layer=Control.new();backdrop_layer.name="SceneBackdrop";backdrop_layer.mouse_filter=Control.MOUSE_FILTER_IGNORE;backdrop_layer.clip_contents=true;add_child(backdrop_layer);backdrop_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base=VBoxContainer.new();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base.add_theme_constant_override("separation",8)
 	base.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	top=HBoxContainer.new();top.custom_minimum_size.y=44;base.add_child(top)
 	actor_face=portrait(top,{},true,40);actor_face.visible=false
 	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
-	resource_header=row(top);gold_header=icons.line(self,resource_header,"money","")
+
 	town_back=button(top,"拠点へ",navigate.bind("hub"));town_back.visible=false
 	var menu_button=local_button(self,"メニュー",open_menu);menu_button.name="CommonMenuButton"
+	menu_button.z_index=61
 	menu_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);menu_button.offset_left=-136;menu_button.offset_top=-64;menu_button.offset_right=-12;menu_button.offset_bottom=-8
 	retry_button=button(top,"再接続",func():confirm("ゲーム接続を再開します。失われた未保存の進行は復元できません。\n再接続後、保存済みファイルを読み込んでください。",reconnect_engine));retry_button.visible=false
 	audio=preload("res://audio.gd").new();add_child(audio)
 	save_notice=preload("res://save_notice.gd").new();save_notice.name="SaveNotice";add_child(save_notice)
-	menu=PopupPanel.new();menu.name="CommonMenu";add_child(menu)
-	var menu_body=VBoxContainer.new();menu.add_child(menu_body)
+	# A native Popup closes before forwarding its outside click, which used to
+	# reopen it on this same menu button. Keep this menu in the root canvas.
+	menu_overlay=Control.new();menu_overlay.name="CommonMenuOverlay";add_child(menu_overlay);menu_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu_overlay.z_index=60;menu_overlay.hide()
+	menu=PanelContainer.new();menu.name="CommonMenu";menu_overlay.add_child(menu);menu.hide()
+	menu.add_theme_stylebox_override("panel",get_theme_stylebox("panel","TooltipPanel").duplicate())
+	menu.visibility_changed.connect(func():
+		if not menu.visible:menu_overlay.hide();menu_button.grab_focus())
+	menu_overlay.gui_input.connect(func(event):
+		if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:menu.hide();menu_overlay.accept_event())
+	var menu_scroll=ScrollContainer.new();menu_scroll.name="CommonMenuScroll";menu_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;menu_scroll.follow_focus=true;menu.add_child(menu_scroll)
+	var menu_body=VBoxContainer.new();menu_body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;menu_scroll.add_child(menu_body)
 	for item in [["セーブ",save_game],["ロード",load_dialog],["行動ログ",show_action_log]]:
 		var callback: Callable=item[1]
 		button(menu_body,item[0],func():menu.hide();callback.call())
 	local_button(menu_body,"操作説明",func():menu.hide();show_status_details())
 	local_button(menu_body,"全画面 F11",func():menu.hide();fullscreen())
 	for pair in [["bgm","BGM"],["voice","ボイス"],["se","SE"]]:
-		var check=CheckButton.new();check.text=pair[1]+"ミュート";check.button_pressed=audio.muted[pair[0]];check.custom_minimum_size.y=40;menu_body.add_child(check)
-		check.toggled.connect(func(value):audio.set_mute(pair[0],value);audio.sync(data))
+		var kind=str(pair[0]);var caption=str(pair[1]);var controls=VBoxContainer.new();menu_body.add_child(controls)
+		var category=Label.new();category.text=caption+"音量";controls.add_child(category)
+		var volume_row=HBoxContainer.new();controls.add_child(volume_row)
+		var slider=HSlider.new();slider.name="AudioVolume_"+kind;slider.min_value=0;slider.max_value=100;slider.step=10;slider.custom_minimum_size=Vector2(220,32);slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;volume_row.add_child(slider)
+		var value_label=Label.new();value_label.name="AudioVolumeValue_"+kind;value_label.custom_minimum_size.x=90;value_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;volume_row.add_child(value_label)
+		var refresh_audio=func():
+			var level=audio.effective_volume(kind)
+			slider.set_value_no_signal(level);value_label.text="%d%%" % level+(" 無音" if level==0 else "")
+		refresh_audio.call();audio.settings_changed.connect(refresh_audio)
+		slider.value_changed.connect(func(value):audio.set_sound_level(kind,value);audio.sync(data))
 	button(menu_body,"新しい旅",func():menu.hide();confirm("未保存の進行を終了し、新しい旅を始めます。保存済みファイルは変更しません。",new_game))
 	local_button(menu_body,"閉じる",menu.hide)
 	content=VBoxContainer.new();content.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.size_flags_vertical=Control.SIZE_EXPAND_FILL;base.add_child(content)
@@ -118,6 +141,10 @@ func _ready():
 	footer.gui_input.connect(func(event):
 		if (event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT) or (event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ENTER,KEY_SPACE]):
 			show_status_details();footer.accept_event())
+	location_bar=PanelContainer.new();location_bar.name="CommonLocationBar";base.add_child(location_bar)
+	var bar_style=StyleBoxFlat.new();bar_style.bg_color=Color("#111b25ec");bar_style.content_margin_left=12;bar_style.content_margin_right=148;bar_style.content_margin_top=7;bar_style.content_margin_bottom=7;location_bar.add_theme_stylebox_override("panel",bar_style)
+	var location_row=row(location_bar);location_label=Label.new();location_label.name="CommonLocation";location_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;location_label.clip_text=true;location_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;location_row.add_child(location_label)
+	resource_header=row(location_row);gold_header=icons.line(self,resource_header,"money","");gold_header.name="CommonGold"
 	engine=preload("res://engine_bridge.gd").new();add_child(engine)
 	resized.connect(queue_layout)
 	if not engine.start_engine():notice=engine.last_error;render();return
@@ -152,7 +179,7 @@ func button(parent: Node,text: String,fn: Callable,disabled:=false) -> Button:
 		if not closing and (b.get_meta("read_only",false) or (not locked and not presenting and not b.disabled)):status_override="";fn.call())
 	b.focus_entered.connect(func():
 		# Popup-local controls must not replace the underlying screen explanation.
-		if b.get_window()!=get_window():return
+		if b.get_window()!=get_window() or b.get_meta("no_status_hint",false):return
 		focus_hint=b.tooltip_text
 		if is_instance_valid(footer) and notice.is_empty():set_status(focus_hint))
 	b.focus_exited.connect(func():
@@ -162,6 +189,7 @@ func set_status(message: String):
 	# Newlines and wrapping must never enlarge the fixed status row.
 	footer.text=message.replace("\r","").replace("\n"," / ")
 	footer.tooltip_text=message;footer.set_meta("full_message",message)
+	if view_kind=="page":footer.visible=page not in ["shop","party"] and not message.is_empty()
 func show_status_details():
 	var message=str(footer.get_meta("full_message",footer.text))
 	var saved_notice=notice;var saved_hint=focus_hint;var epoch=pages.epoch;var generation=engine.connection_generation
@@ -349,16 +377,29 @@ func render():
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
 	header.text=town_name(place)
+	location_label.text=town_name(place)+location_suffix(phase,c)
+	location_label.tooltip_text=location_label.text
 	gold_header.text="%dG" % c.get("gold",0)
 	header.tooltip_text=header.text
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
 	resource_header.visible=not battle
+	location_bar.visible=not battle
+	top.visible=battle or engine.disconnected
+	clear(backdrop_layer)
+	if not battle and phase=="town":
+		pages.hub_view.select_art(str(c.get("location","")))
+		var town_texture: Texture2D=load(pages.hub_view.artwork.path) if not pages.hub_view.artwork.is_empty() else null
+		pages.facility_art.fullscreen(backdrop_layer,town_texture)
 	actor_face.visible=false
 	var lower_return=phase=="result" or phase=="town" and page!="hub"
 	town_back.visible=not battle and page!="hub" and phase=="town" and not lower_return
 	town_back.text="アスタリスへ戻る" if page=="party" and c.get("guildAvailable",false) else "拠点へ"
 	top.custom_minimum_size.y=56 if battle and ui_size_mode=="standard" else 44
+	var common_menu=find_child("CommonMenuButton",true,false)
+	if common_menu!=null:
+		common_menu.offset_top=-64 if battle else -56
+		common_menu.offset_bottom=-8
 	footer.visible=not battle and page not in ["shop","party"]
 	if battle:
 		if view_kind!="battle":clear(content);hud.mount();view_kind="battle"
@@ -397,6 +438,10 @@ func render():
 	pages.party_view.refresh_modal()
 	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else ("処理中…" if locked or preview_pending or pages.quote_pending else "演出中…" if presenting else focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if phase in ["battle","deployment"] else ""))
 	rendering=false;memory.restore()
+func location_suffix(phase: String,c: Dictionary) -> String:
+	if phase!="town":return " / "+{"road":"街道","camp":"野営地","arrival":"到着","delivery":"配達","result":"結果","prepare":"出発準備"}.get(phase,"旅程")
+	if page=="shop":return " / "+{"east":"武器店","west":"防具店","south":"道具店","north":"装飾品店"}.get(str(c.get("location","")),"商店")
+	return " / "+{"hub":"広場","party":"ギルド","inn":"宿屋","map":"地図・出発","board":"掲示板","items":"道具"}.get(page,page)
 func town_name(id) -> String:
 	for t in campaign().get("towns",[]):
 		if t.id==id:return t.name
@@ -673,8 +718,17 @@ func short_name(control: Label,full: String):
 	control.max_lines_visible=2;control.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;control.tooltip_text=full
 	control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 func open_menu():
-	menu.popup_centered(Vector2i(300,0))
+	if menu.visible:menu.hide();return
+	menu_overlay.show();menu.show();fit_menu()
+	var controls=menu_focus_controls()
+	if not controls.is_empty():controls[0].grab_focus()
+func menu_focus_controls() -> Array:
+	return menu.find_children("*","Control",true,false).filter(func(control):return control.focus_mode==Control.FOCUS_ALL and control.is_visible_in_tree() and (not control is BaseButton or not control.disabled))
+func fit_menu():
+	menu.size=Vector2(minf(440,maxf(1,size.x-24)),minf(680,maxf(1,size.y-48)))
+	menu.position=(size-menu.size)/2
 func modal_open() -> bool:
+	if menu.visible:return true
 	for child in get_children():
 		if child is Window and child.visible:return true
 	return false
@@ -687,6 +741,7 @@ func refresh_layout():
 	if not closing:
 		dialog.remember();render();dialog.resize()
 func _process(_delta):
+	if menu.visible:fit_menu()
 	for child in find_children("*","Window",true,false):
 		if child==dialog.window:dialog.keep_visible()
 		elif child.get_meta("managed_layout",false):preferences.keep_visible(child,size)
@@ -697,6 +752,15 @@ func fit_battle_layout():
 func prefetch_shop_rows():
 	if pages!=null:pages.shop_view.prefetch_visible()
 func _input(event):
+	if menu.visible and event is InputEventKey:
+		if event.pressed and not event.echo and event.keycode==KEY_TAB:
+			var controls=menu_focus_controls()
+			if not controls.is_empty():
+				var index=controls.find(get_viewport().gui_get_focus_owner())
+				var next=controls[posmod(index+(-1 if event.shift_pressed else 1),controls.size())]
+				next.grab_focus();(menu.find_child("CommonMenuScroll",true,false) as ScrollContainer).ensure_control_visible(next)
+			get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey:
 		var explanation=find_child("SkillDetailsWindow",true,false)
 		if explanation!=null and explanation.visible:return

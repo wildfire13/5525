@@ -16,7 +16,7 @@ import time
 
 p = argparse.ArgumentParser()
 p.add_argument('--evidence', required=True, type=Path)
-p.add_argument('--script', choices=['facility_gui_261022','facility_input_extra_261022','brushup_gui','facility_npc_gui','research2_gui','layout_fixes_gui','equipment_hover_gui','skill_effects_gui','ui_p3_gui','turn_order_keyboard_gui','deployment_start_gui','guard_feedback_gui','individual_icons_gui'], default='facility_gui_261022')
+p.add_argument('--script', choices=['facility_gui_261022','facility_input_extra_261022','brushup_gui','facility_npc_gui','research2_gui','layout_fixes_gui','equipment_hover_gui','skill_effects_gui','ui_p3_gui','turn_order_keyboard_gui','deployment_start_gui','guard_feedback_gui','individual_icons_gui','audio_options_gui'], default='facility_gui_261022')
 a = p.parse_args()
 repo = Path(__file__).resolve().parents[2]
 out = a.evidence.resolve()
@@ -55,7 +55,7 @@ def button(pressed, number=1):
     xt.XTestFakeButtonEvent(display, number, int(pressed), 0)
     x.XFlush(display)
 
-env = dict(os.environ, NATIVE5525_NODE=shutil.which('node'), NATIVE5525_PYTHON=sys.executable,
+env = dict(os.environ, NATIVE5525_NODE=shutil.which('node'), NATIVE5525_PYTHON=sys.executable, NATIVE5525_AUDIO_OFF='1',
            INVENTORY_QA_ROOT=str(out), UIUX_REVIEW_EVIDENCE=str(out), LIBGL_ALWAYS_SOFTWARE='1')
 for key, child in [('XDG_DATA_HOME','data'),('XDG_CONFIG_HOME','config'),('XDG_CACHE_HOME','cache')]:
     path = out/child
