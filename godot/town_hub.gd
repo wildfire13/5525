@@ -18,9 +18,8 @@ func render(parent):
 	var place={}
 	for entry in c.get("locations",[]):
 		if entry.id==c.location:place=entry;break
-	ui.label_(parent,ui.town_name(c.location)+"の広場",true).name="TownFacilityHeading"
-	var panel=PanelContainer.new();panel.name="TownHub";panel.custom_minimum_size.y=maxf(400,ui.size.y*.65);parent.add_child(panel)
-	var image=TextureRect.new();image.name="TownStill";image.texture=load(artwork.path) if not artwork.is_empty() else null;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;image.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.add_child(image)
+
+	var panel=PanelContainer.new();panel.name="TownHub";panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new());parent.add_child(panel)
 	var margin=MarginContainer.new();margin.add_theme_constant_override("margin_left",24);margin.add_theme_constant_override("margin_right",24);margin.add_theme_constant_override("margin_top",24);margin.add_theme_constant_override("margin_bottom",24);panel.add_child(margin)
 	var column=VBoxContainer.new();column.size_flags_horizontal=Control.SIZE_SHRINK_END;column.custom_minimum_size.x=280;margin.add_child(column)
 	for id in place.get("facilities",[]):
@@ -33,5 +32,4 @@ func render(parent):
 		var deliver=ui.button(column,"荷物を届ける",ui.act.bind("completeQuest",[]),missing);deliver.name="HubDeliverCargo"
 		if missing:ui.label_(column,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
 	var spacer=Control.new();spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL;column.add_child(spacer)
-	var style=ui.label_(parent,"画風："+str(artwork.get("style","")) if not artwork.is_empty() else "拠点画像は準備中です。施設は利用できます。")
-	style.name="TownArtStyle";style.add_theme_font_size_override("font_size",16)
+	if artwork.is_empty():ui.label_(parent,"拠点画像は準備中です。施設は利用できます。")

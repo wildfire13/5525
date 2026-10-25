@@ -44,14 +44,15 @@ func sync(phase: String,location: String,page: String):
 	if variants.is_empty():return
 	var selected=variants[rng.randi_range(0,variants.size()-1)]
 	artwork=selected.entry.duplicate();texture=selected.texture
+func fullscreen(parent: Control,town_texture: Texture2D=null):
+	var selected=texture if texture!=null else town_texture
+	if selected==null:return
+	var image=TextureRect.new();image.name="FacilityStill" if texture!=null else "TownStill";image.texture=selected
+	image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	image.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var shade=ColorRect.new();shade.name="FacilityReadabilityShade";shade.color=Color(.025,.04,.06,.44)
+	shade.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	npc.portrait_layer(parent)
 func backdrop(parent: Control) -> Control:
-	if texture==null:return parent
-	var panel=PanelContainer.new();panel.name="FacilityBackdrop";panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
-	panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new());panel.mouse_filter=Control.MOUSE_FILTER_PASS;parent.add_child(panel)
-	var image=TextureRect.new();image.name="FacilityStill";image.texture=texture
-	image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	image.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.add_child(image)
-	var shade=ColorRect.new();shade.name="FacilityReadabilityShade";shade.color=Color(.025,.04,.06,.72)
-	shade.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.add_child(shade)
-	var foreground=VBoxContainer.new();foreground.name="FacilityForeground";foreground.mouse_filter=Control.MOUSE_FILTER_PASS;panel.add_child(foreground)
+	var foreground=VBoxContainer.new();foreground.name="FacilityForeground";foreground.mouse_filter=Control.MOUSE_FILTER_PASS;foreground.size_flags_vertical=Control.SIZE_EXPAND_FILL;parent.add_child(foreground)
 	return npc.columns(foreground,parent.get_viewport_rect().size.x)

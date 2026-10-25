@@ -55,6 +55,7 @@ func keep_visible():
 			# until Container sorts. Derive its bottom-anchored boundary from
 			# stable layout metrics, never persist a transient y=64 as a height cap.
 			var bottom=ui.size.y+minf(0,ui.base.offset_bottom)
+			if ui.location_bar.is_visible_in_tree():bottom-=ui.location_bar.get_combined_minimum_size().y+ui.base.get_theme_constant("separation")
 			if ui.footer.is_visible_in_tree():bottom-=ui.footer.get_combined_minimum_size().y+ui.base.get_theme_constant("separation")
 			available.y=minf(available.y,bottom-faces.get_combined_minimum_size().y-8)
 	ui.preferences.keep_visible(window,available)

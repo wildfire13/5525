@@ -10,9 +10,11 @@ func check(ok: bool,label: String):
 func _initialize():call_deferred("run")
 func run():
 	var audio=load("res://audio.gd").new();root.add_child(audio)
-	# Default silence is a separate contract from the playback checks below.
+	# The test runner explicitly requests silence; product defaults are checked
+	# separately by audio_options_regression.gd without the QA override.
+	check(OS.get_environment("NATIVE5525_AUDIO_OFF")=="1","QA-only silence override supplied")
 	for kind in ["bgm","voice","se"]:
-		check(audio.muted[kind],kind+" starts muted")
+		check(audio.muted[kind],kind+" test starts muted")
 	var muted_campaign={"phase":"town","location":"astaris","journey":null}
 	audio.sync({"campaign":muted_campaign})
 	check(audio.bgm.stream!=null and audio.bgm.stream_paused and not audio.bgm.playing,"default town sync keeps loaded music paused")

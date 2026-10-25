@@ -17,16 +17,33 @@ func context(uid: String,id: String,origin: String) -> Dictionary:
 	return {"window":ui.dialog.window.get_instance_id(),"owner":uid,"item":id,"category":slot,"scroll":list_scroll.scroll_vertical if is_instance_valid(list_scroll) else 0,"outer_scroll":ui.dialog.body.get_parent().scroll_vertical,"origin":origin}
 func restore_context(saved: Dictionary,focus_name: String,ticket: int):
 	if saved.is_empty() or not is_instance_valid(ui) or ui.closing or not ui.is_inside_tree():return
-	list_positions[str(saved.owner)+":"+str(saved.category)]=int(saved.scroll)
+	var current=func():return is_instance_valid(ui) and not ui.closing and ticket==party.inventory_view.generation and party.detail_uid==saved.owner and slot==saved.category and is_instance_valid(ui.dialog.window) and ui.dialog.window.get_instance_id()==saved.window
 	var tree=ui.get_tree()
-	for i in range(4):await tree.process_frame
-	if not is_instance_valid(ui) or ui.closing:return
-	if ticket!=party.inventory_view.generation or party.detail_uid!=saved.owner or slot!=saved.category or not is_instance_valid(ui.dialog.window) or ui.dialog.window.get_instance_id()!=saved.window:return
+	# A quantity quote may turn a one-line loading label into several lines.
+	# Restore only after that actual content and its fitted list have settled.
+	while current.call() and party.inventory_view.sale_preview_loading:await tree.process_frame
+	if not current.call():return
+	if is_instance_valid(list_scroll):await fit_list(list_scroll,list_scroll.get_parent(),list_key(str(saved.owner)))
+	if not current.call():return
 	var button=ui.dialog.body.find_child(focus_name if not focus_name.is_empty() else str(saved.origin),true,false)
 	if button is SpinBox:button.get_line_edit().grab_focus()
 	elif button is Control:button.grab_focus()
+	# Inner list keyboard focus stays local. Its descendants should never make
+	# the outer character document jump after the controls already fit.
+	ui.dialog.body.get_parent().follow_focus=outer_focus_needed(ui.dialog.body.get_parent())
+	await tree.process_frame
+	if not current.call():return
+	list_positions[str(saved.owner)+":"+str(saved.category)]=int(saved.scroll)
 	if is_instance_valid(list_scroll):list_scroll.scroll_vertical=int(saved.scroll)
 	ui.dialog.body.get_parent().scroll_vertical=int(saved.outer_scroll)
+func outer_focus_needed(viewport: ScrollContainer) -> bool:
+	if party.inventory_view.stage=="list" or not is_instance_valid(list_scroll):return true
+	var actions=list_scroll.get_parent().find_child("StatusInventoryActions",true,false)
+	if actions==null:return true
+	# Only suppress ancestor scrolling when the complete operation already fits
+	# at its original position. Long transfer/target forms retain keyboard reveal.
+	var natural=Rect2(actions.global_position+Vector2(viewport.scroll_horizontal,viewport.scroll_vertical),actions.size)
+	return not viewport.get_global_rect().encloses(natural)
 func fit_list(scroll: ScrollContainer,parent: Control,key: String):
 	if not is_instance_valid(ui) or ui.closing or not ui.is_inside_tree():return
 	var tree=ui.get_tree()
@@ -46,6 +63,7 @@ func fit_list(scroll: ScrollContainer,parent: Control,key: String):
 	await tree.process_frame
 	await tree.process_frame
 	if not is_instance_valid(scroll) or scroll!=list_scroll or not scroll.is_inside_tree():return
+	viewport.follow_focus=outer_focus_needed(viewport)
 	if scroll.get_meta("restoring",false):
 		scroll.scroll_vertical=int(list_positions.get(key,0));scroll.set_meta("restoring",false)
 		if not reveal_id.is_empty():

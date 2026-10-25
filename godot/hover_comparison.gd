@@ -10,7 +10,7 @@ var content: RichTextLabel
 var idle := 0.0
 var keyboard_focus := false
 func _ready():
-	name="EquipmentHover";visible=false;borderless=true;unresizable=true;transient=true;unfocusable=true
+	name="EquipmentHover";add_to_group("equipment_comparison_hover");visible=false;borderless=true;unresizable=true;transient=true;unfocusable=true
 	var panel=PanelContainer.new();add_child(panel);panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var style=StyleBoxFlat.new();style.bg_color=Color("#18212a");style.border_color=Color("#a8c9ed");style.set_border_width_all(1);style.set_content_margin_all(PADDING);panel.add_theme_stylebox_override("panel",style)
 	var scroll=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;panel.add_child(scroll)
@@ -18,6 +18,7 @@ func _ready():
 	for font_size in ["normal_font_size","bold_font_size","italics_font_size","bold_italics_font_size","mono_font_size"]:content.add_theme_font_size_override(font_size,FONT_SIZE)
 	scroll.add_child(content)
 func show_for(control: Control,keyboard:=false):
+	for popup in get_tree().get_nodes_in_group("equipment_full_hover"):popup.hide()
 	source=control;keyboard_focus=keyboard;idle=0;place();show()
 func place():
 	if not is_instance_valid(source):hide();return

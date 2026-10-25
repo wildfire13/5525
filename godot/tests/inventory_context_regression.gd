@@ -51,6 +51,7 @@ func run():
 		node("InventoryQuantity").value=2;await settle()
 		var canonical=(await game.engine.request({"op":"campaign","action":"saleQuote","args":["guard","twin-bow",2]})).saleQuote
 		check(node("InventorySaleTotals").text.contains("ガロの双射の弓 ×2") and node("InventorySaleTotals").text.contains(str(int(canonical.afterGold))+"G") and (await saved())==before,"quantity preview uses canonical price and cannot mutate save "+str(dims.x)+" text="+node("InventorySaleTotals").text)
+		check(not node("ModalDetailScroll").follow_focus,"already visible quantity controls keep outer scroll local "+str(dims.x))
 		var editing_scroll=node("OwnedEquipmentScroll").scroll_vertical
 		await tap("InventoryPrepareSale");await tap("InventoryCancel")
 		check(inv.stage=="targets" and inv.amount==2 and inv.owner_id=="guard" and inv.item_id=="twin-bow" and owned.slot=="rightHand" and inv.quote.is_empty(),"NO keeps exact owner item quantity category and discards confirmation quote "+str(dims.x))
@@ -73,6 +74,12 @@ func run():
 			if entry.id=="twin-bow":entry.name="長い名前でも対象と所持数を見失わないための双射の弓"
 		game.pages.party_view.refresh_modal();await settle()
 		check(node("OwnedEquipment_twin-bow").heading.contains("長い名前") and node("OwnedEquipment_twin-bow").text.contains("1個") and node("OwnedEquipmentScroll").get_global_rect().end.x<=node("StatusOwnedInventory").get_global_rect().end.x,"long item name and count wrap inside independent list "+str(dims.x))
+		if dims.x==1180:
+			await choose_slot("items");owned.actions("guard","potion");inv.choose("transfer");await settle()
+			var targets=game.find_children("InventoryTarget_*","Button",true,false).filter(func(control):return not control.disabled)
+			check(targets.size()>1 and node("ModalDetailScroll").follow_focus,"long existing transfer form retains keyboard scrolling")
+			var last=targets[-1];last.grab_focus();await settle()
+			check(node("ModalDetailScroll").get_global_rect().encloses(last.get_global_rect()) and (await saved())==committed,"keyboard focus reveals last transfer target without consuming an item")
 		game.dialog.close();await settle()
 	# A late sale preview and an obsolete row callback cannot cross owners.
 	await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle();game.pages.party_view.open_detail("guard");await settle()
