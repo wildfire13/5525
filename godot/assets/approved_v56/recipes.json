@@ -1,250 +1,189 @@
 {
   "equipment": {
     "cloth-head": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-head.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/cloth-head.png"
     },
     "cloth-lowerBody": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-lowerBody.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/cloth-lowerBody.png"
     },
     "cloth-feet": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/cloth-feet.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/cloth-feet.png"
     },
     "greatsword-wood": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/greatsword-wood.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/greatsword-wood.png"
     },
     "spear-wood": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/spear-wood.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/spear-wood.png"
     },
     "longspear-wood": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/longspear-wood.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/longspear-wood.png"
     },
     "javelin-wood": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/javelin-wood.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/javelin-wood.png"
     },
     "swift-boots": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/swift-boots.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/swift-boots.png"
     },
     "kungfu-pants": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/kungfu-pants.png"
     },
     "kungfu-pants-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/kungfu-pants-1.png"
     },
     "kungfu-pants-2": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/kungfu-pants-2.png"
     },
     "kungfu-pants-3": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/ui_icons/icons64/trousers.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/kungfu-pants-3.png"
     },
     "grappling-rope": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/ui_icons/icons64/unarmed.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/grappling-rope.png"
     },
     "undertow-sword": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/undertow-sword.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/undertow-sword.png"
     },
     "breaker-hammer": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/breaker-hammer.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/breaker-hammer.png"
     },
     "twin-bow": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/twin-bow.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/twin-bow.png"
     },
     "partner-dagger": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/partner-dagger.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/partner-dagger.png"
     },
     "rest-staff": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/rest-staff.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/rest-staff.png"
     },
     "battleline-shield": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/battleline-shield.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/battleline-shield.png"
     },
     "sharing-tome": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sharing-tome.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/sharing-tome.png"
     },
     "return-ring-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/return-ring-1.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/return-ring.png"
     },
     "victory-earring-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/victory-earring-1.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/victory-earring.png"
     },
     "lone-ring-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/lone-ring-1.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/lone-ring.png"
     },
     "pioneer-gloves-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/pioneer-gloves-1.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/pioneer-gloves.png"
     },
     "invasion-charm-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/invasion-charm-1.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/invasion-charm.png"
     },
     "return-ring-2": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/return-ring-2.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/return-ring.png"
     },
     "victory-earring-2": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/victory-earring-2.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/victory-earring.png"
     },
     "lone-ring-2": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/lone-ring-2.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/lone-ring.png"
     },
     "pioneer-gloves-2": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/pioneer-gloves-2.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/pioneer-gloves.png"
     },
     "invasion-charm-2": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/invasion-charm-2.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/invasion-charm.png"
     },
     "sword-wood": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sword-wood.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/sword-wood.png"
     },
     "sword-iron-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/sword-iron-1.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/sword-iron-1.png"
     },
     "bow-wood": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-wood.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/bow-wood.png"
     },
     "bow-wood-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-wood-1.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/bow-wood-1.png"
     },
     "bow-silver-2": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/bow-silver-2.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/bow-silver-2.png"
     },
     "staff-wood": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/staff-wood.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/staff-wood.png"
     },
     "staff-silver-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/staff-silver-1.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/staff-silver-1.png"
     },
     "dagger-wood": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/dagger-wood.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/dagger-wood.png"
     },
     "hammer-wood": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/hammer-wood.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/hammer-wood.png"
     },
     "hammer-iron-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/hammer-iron-1.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/hammer-iron-1.png"
     },
     "porter-kit": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/porter-kit.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/porter-kit.png"
     },
     "armor-cloth": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-cloth.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/armor-cloth.png"
     },
     "armor-leather-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-leather-1.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/armor-leather-1.png"
     },
     "armor-iron-2": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-iron-2.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/armor-iron-2.png"
     },
     "armor-silver-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/armor-silver-1.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/wearables/armor-silver-1.png"
     },
     "guard-shield-wood": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/guard-shield-wood.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/guard-shield-wood.png"
     },
     "guard-shield-iron-1": {
-      "base": "res://assets/approved_v56/assets/equipment-display-20261020/equipment_icons_placeholder/icons64/guard-shield-iron-1.png",
-      "badge": "res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/weapons/guard-shield-iron-1.png"
     }
   },
   "skills": {
     "swift": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/swift.png"
     },
     "retreatSlash": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/retreatSlash.png"
     },
     "knockback": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/knockback.png"
     },
     "splitShot": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/splitShot.png"
     },
     "pincer": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/pincer.png"
     },
     "healingCross": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/healingCross.png"
     },
     "defenseLine": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/defenseLine.png"
     },
     "manaGift": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/manaGift.png"
     },
     "returnHome": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/returnHome.png"
     },
     "victoryBreath": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/victoryBreath.png"
     },
     "loneWolf": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/loneWolf.png"
     },
     "firstStride": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/firstStride.png"
     },
     "invasion": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/invasion.png"
     },
     "archer": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png",
+      "base": "res://assets/individual_icons/icons64/skills/archer.png",
       "levels": {
         "1": {
           "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
@@ -287,8 +226,7 @@
       }
     },
     "stamp": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/stamp.png"
     },
     "porter": {
       "base": "res://assets/approved_v56/assets/icons-review-20261020/formation-effects.png",
@@ -300,12 +238,10 @@
       ]
     },
     "guard": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/guard.png"
     },
     "itemUse": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png",
+      "base": "res://assets/individual_icons/icons64/skills/itemUse.png",
       "levels": {
         "1": {
           "base": "res://assets/approved_v56/assets/icons-review-20261020/style-selected.png",
@@ -375,12 +311,10 @@
       }
     },
     "grapple": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/grapple.png"
     },
     "poleVault": {
-      "base": "res://assets/approved_v56/assets/equipment-skills-20261020/skill.png",
-      "badge": "res://assets/approved_v56/assets/equipment-skills-20261020/temporary-outlined.png"
+      "base": "res://assets/individual_icons/icons64/skills/poleVault.png"
     }
   },
   "fist": {
