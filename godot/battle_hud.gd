@@ -116,14 +116,18 @@ func mount():
 	resize()
 func resize():
 	if not is_instance_valid(left_panel) or middle.size.x<100:return
+	var queue_scroll=ui.battle_header.find_child("TurnOrderViewport",true,false)
+	if queue_scroll!=null:queue_scroll.custom_minimum_size.x=queue_viewport_width()
+	ui.battle_header.position.y=maxf(0,middle.size.y-maxf(108,ui.battle_header.get_combined_minimum_size().y));ui.battle_header.size.x=middle.size.x
 	left_panel.viewport_bounds=true;right_panel.viewport_bounds=true
 	left_panel.reserved_top=0;right_panel.reserved_top=0
+	var reserved=0.0 if deployment_layout else maxf(0,ui.size.y-ui.battle_header.global_position.y+8)
+	left_panel.reserved_bottom=reserved;right_panel.reserved_bottom=reserved
 	left_panel.z_index=10;right_panel.z_index=10
 	left_panel.layout_bounds=Rect2();right_panel.layout_bounds=Rect2()
 	left_panel.constrain();right_panel.constrain();tools.size=Vector2(middle.size.x,56)
 	deployment_bar.position=Vector2(0,middle.size.y-152);deployment_bar.size=Vector2(maxf(280,middle.size.x-350),144)
 	deployment_actions.position=Vector2(middle.size.x-330,middle.size.y-132);deployment_actions.size=Vector2(330,124)
-	ui.battle_header.position.y=maxf(0,middle.size.y-108);ui.battle_header.size.x=middle.size.x
 func render():
 	var opening=false
 	var s=ui.state();var phase=ui.data.get("presentation");var a=acting()
@@ -206,9 +210,9 @@ func open_order_details():
 		local(actions,"閉じる",ui.dialog.close))
 func render_queue():
 	var line=ui.row(ui.battle_header);line.name="TurnOrderControls";line.add_theme_constant_override("separation",QUEUE_ARROW_WIDTH+QUEUE_GAP*2)
-	var queue_scroll=ScrollContainer.new();queue_scroll.name="TurnOrderViewport";queue_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER;queue_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
-	queue_scroll.custom_minimum_size=Vector2(QUEUE_PITCH*QUEUE_VISIBLE-QUEUE_ARROW_WIDTH-QUEUE_GAP*2,40 if ui.ui_size_mode=="standard" else 32)
-	queue_scroll.mouse_filter=Control.MOUSE_FILTER_IGNORE;line.add_child(queue_scroll)
+	var queue_scroll=ScrollContainer.new();queue_scroll.name="TurnOrderViewport";queue_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;queue_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+	queue_scroll.custom_minimum_size=Vector2(queue_viewport_width(),40 if ui.ui_size_mode=="standard" else 32)
+	queue_scroll.mouse_filter=Control.MOUSE_FILTER_STOP;queue_scroll.focus_mode=Control.FOCUS_ALL;ui.memory.key(queue_scroll,"turn_order");line.add_child(queue_scroll)
 	var band=ui.row(queue_scroll);band.name="TurnOrder";band.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var available=not ui.state().get("deploying",false) and (ui.state().get("result")==null or ui.data.get("presentation") is Dictionary)
 	var entries=queue_entries() if available else []
@@ -231,6 +235,10 @@ func render_queue():
 	var all_=local(line,"順番詳細",open_order_details);all_.name="BattleOrderDetails";all_.custom_minimum_size=Vector2(QUEUE_CARD_WIDTH,40);all_.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
 	var history=local(ui.battle_header,"戦闘履歴",open_history);history.name="BattleHistory";history.custom_minimum_size=Vector2(QUEUE_CARD_WIDTH,40);history.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 	if presenting and str(ui.data.presentation.get("action_id",""))==shifted_action:queue_scroll.set_deferred("scroll_horizontal",queue_distance)
+func queue_viewport_width() -> float:
+	# Keep all five cards, with the details action outside their scrolling area.
+	var preferred=QUEUE_PITCH*QUEUE_VISIBLE-QUEUE_ARROW_WIDTH-QUEUE_GAP*2
+	return minf(preferred,maxf(1,middle.size.x-QUEUE_CARD_WIDTH-QUEUE_ARROW_WIDTH-QUEUE_GAP*2))
 func target_name(id) -> String:
 	return str(unit(id).get("name","対象不明"))
 func selected_target_text(target) -> String:

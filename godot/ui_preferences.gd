@@ -22,9 +22,16 @@ func save():
 
 func bind_window(window: Window,key: String,available: Vector2,extent: Vector2,minimum:=Vector2(420,300)):
 	window.set_meta("managed_layout",true)
-	window.unresizable=false;window.min_size=Vector2i(minimum.min(available))
-	var rect=rect_for(key,Rect2((available-extent)/2,extent),available,minimum)
-	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position.max(Vector2(0,36)))
+	window.set_meta("layout_minimum",minimum)
+	var margin=Vector2(0,36);var area=(available-margin).max(Vector2.ONE)
+	window.unresizable=false;window.min_size=Vector2i(minimum.min(area))
+	var fallback=Rect2((area-extent)/2+margin,extent)
+	var value=config.get_value("windows",key,fallback)
+	if not value is Rect2:value=fallback
+	# Stored positions already include the title-bar margin. Bound in the
+	# usable coordinate space, then convert back exactly once.
+	var rect=bounded(Rect2(value.position-margin,value.size),area,minimum)
+	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position+margin)
 	# tree_exiting covers close, cancel, selection and application teardown.
 	window.tree_exiting.connect(func():store_rect(key,Rect2(Vector2(window.position),Vector2(window.size))))
 
@@ -32,6 +39,11 @@ func keep_visible(window: Window,available: Vector2):
 	if not is_instance_valid(window) or not window.visible:return
 	var margin=Vector2(0,36)
 	var area=(available-margin).max(Vector2.ONE)
-	window.max_size=Vector2i(area)
+	# Retain the preferred minimum, but allow an already-open child to fit a
+	# smaller parent. Restore that minimum when the parent grows again.
+	if not window.has_meta("layout_minimum"):window.set_meta("layout_minimum",Vector2(window.min_size))
+	var minimum=Vector2(window.get_meta("layout_minimum")).min(area)
+	if window.min_size!=Vector2i(minimum) or window.max_size!=Vector2i(area):
+		window.min_size=Vector2i.ONE;window.max_size=Vector2i(area);window.min_size=Vector2i(minimum)
 	var rect=bounded(Rect2(Vector2(window.position)-margin,Vector2(window.size)),area,Vector2(window.min_size))
 	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position+margin)

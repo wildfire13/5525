@@ -7,6 +7,7 @@ var body: VBoxContainer
 var footer: VBoxContainer
 var viewport_bounds := false
 var reserved_top := 0.0
+var reserved_bottom := 0.0
 var layout_bounds := Rect2()
 var drag_edges := Vector2.ZERO
 var dragging := false
@@ -29,7 +30,7 @@ func configure(prefs,key: String,title: String,fallback: Rect2):
 	gui_input.connect(func(event):handle(event,false))
 func restore_rect(fallback: Rect2):
 	var stored=preferences.config.get_value("windows",layout_key,fallback)
-	var rect=bound_rect(stored if stored is Rect2 else fallback)
+	var rect=bound_rect(stored if stored is Rect2 else fallback,true)
 	position=rect.position;size=rect.size
 	pending_restore=stored if stored is Rect2 else fallback;restore_frames=2
 func _process(_delta):
@@ -37,18 +38,23 @@ func _process(_delta):
 	restore_frames-=1
 	if restore_frames>0:return
 	# Containers finish positioning the parent after mount/render. Clamp in that final space.
-	var rect=bound_rect(pending_restore);pending_restore=null
+	var rect=bound_rect(pending_restore,true);pending_restore=null
 	position=rect.position;size=rect.size
 func edges(at: Vector2) -> Vector2:
 	return Vector2(-1 if at.x<9 else 1 if at.x>size.x-9 else 0,-1 if at.y<9 else 1 if at.y>size.y-9 else 0)
-func bound_rect(rect: Rect2) -> Rect2:
+func bound_rect(rect: Rect2,preserve_top:=false) -> Rect2:
 	if viewport_bounds:
 		var offset=get_parent_control().global_position
-		var bounded=preferences.bounded(Rect2(rect.position+offset,rect.size),get_viewport_rect().size,minimum)
+		var available=get_viewport_rect().size
+		available.y=maxf(1,available.y-reserved_bottom)
+		var global_rect=Rect2(rect.position+offset,rect.size)
+		if preserve_top and reserved_bottom>0:
+			global_rect.size.y=minf(global_rect.size.y,maxf(minimum.y,available.y-maxf(0,global_rect.position.y)))
+		var bounded=preferences.bounded(global_rect,available,minimum)
 		return Rect2(bounded.position-offset,bounded.size)
 	return preferences.bounded(rect,get_parent_control().size,minimum)
 func constrain():
-	var rect=bound_rect(Rect2(position,size))
+	var rect=bound_rect(Rect2(position,size),true)
 	if viewport_bounds:position=rect.position;size=rect.size;return
 	rect.position.y=maxf(reserved_top,rect.position.y)
 	rect.size.y=minf(rect.size.y,maxf(minimum.y,get_parent_control().size.y-rect.position.y))

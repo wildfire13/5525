@@ -16,7 +16,7 @@ import time
 
 p = argparse.ArgumentParser()
 p.add_argument('--evidence', required=True, type=Path)
-p.add_argument('--script', choices=['facility_gui_261022','facility_input_extra_261022','brushup_gui','facility_npc_gui','research2_gui'], default='facility_gui_261022')
+p.add_argument('--script', choices=['facility_gui_261022','facility_input_extra_261022','brushup_gui','facility_npc_gui','research2_gui','layout_fixes_gui','equipment_hover_gui'], default='facility_gui_261022')
 a = p.parse_args()
 repo = Path(__file__).resolve().parents[2]
 out = a.evidence.resolve()
@@ -31,6 +31,7 @@ x.XOpenDisplay.argtypes = [C.c_char_p]
 x.XOpenDisplay.restype = C.c_void_p
 x.XFlush.argtypes = [C.c_void_p]
 x.XCloseDisplay.argtypes = [C.c_void_p]
+x.XResizeWindow.argtypes = [C.c_void_p, C.c_ulong, C.c_uint, C.c_uint]
 x.XDefaultRootWindow.argtypes = [C.c_void_p]
 x.XDefaultRootWindow.restype = C.c_ulong
 x.XQueryPointer.argtypes = [C.c_void_p,C.c_ulong,C.POINTER(C.c_ulong),C.POINTER(C.c_ulong),C.POINTER(C.c_int),C.POINTER(C.c_int),C.POINTER(C.c_int),C.POINTER(C.c_int),C.POINTER(C.c_uint)]
@@ -76,7 +77,11 @@ with (out/'gui.log').open('w') as log:
             if request['id'] <= len(requests):
                 time.sleep(.03)
                 continue
-            if request['action'] == 'key':
+            if request['action'] == 'resize_window':
+                x.XResizeWindow(display, int(request['window']), int(request['width']), int(request['height']))
+                x.XFlush(display)
+                time.sleep(.3)
+            elif request['action'] == 'key':
                 code = x.XKeysymToKeycode(display, x.XStringToKeysym(request['key'].encode()))
                 if not code:
                     raise ValueError('Unknown X11 keysym: ' + request['key'])
