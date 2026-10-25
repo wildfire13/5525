@@ -1,0 +1,699 @@
+{
+  "version": 1,
+  "runtime_size": [
+    64,
+    64
+  ],
+  "preserved_skills": [
+    "mage",
+    "scout",
+    "legSweep",
+    "porter"
+  ],
+  "equipment": [
+    {
+      "id": "greatsword-wood",
+      "name": "木製の両手剣",
+      "target_ids": [
+        "greatsword-wood"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/greatsword-wood.png",
+      "sha256": "fea2932785d6b23d88cc0ed95fe48830bdc1a7ea026968c07d6f8166e4c424f0",
+      "levels": []
+    },
+    {
+      "id": "spear-wood",
+      "name": "木製の片手槍",
+      "target_ids": [
+        "spear-wood"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/spear-wood.png",
+      "sha256": "15466522b1a751b8b594da0a7395d443b931db3683f1b721c91151a2b80d98c3",
+      "levels": []
+    },
+    {
+      "id": "longspear-wood",
+      "name": "木製の両手槍",
+      "target_ids": [
+        "longspear-wood"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/longspear-wood.png",
+      "sha256": "6773afe5315fada0354ebb91f51f56543ee2d1522a45e24ff3a470bc9ea4aec2",
+      "levels": []
+    },
+    {
+      "id": "javelin-wood",
+      "name": "木製の投げ槍",
+      "target_ids": [
+        "javelin-wood"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/javelin-wood.png",
+      "sha256": "d462a7bbe9a4a0e4f79f06bf955414647cd95db7916fbc335f027de6bce1dad0",
+      "levels": []
+    },
+    {
+      "id": "grappling-rope",
+      "name": "鉤縄",
+      "target_ids": [
+        "grappling-rope"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/grappling-rope.png",
+      "sha256": "228056deb0b06e641291bd38b7fad36ea288c53bd8495393f29191ead197cc79",
+      "levels": []
+    },
+    {
+      "id": "undertow-sword",
+      "name": "引き波の剣",
+      "target_ids": [
+        "undertow-sword"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/undertow-sword.png",
+      "sha256": "dce64745f30b61334997340a9a55883a5dde5d108eb1ac13d211669b1d657c6d",
+      "levels": []
+    },
+    {
+      "id": "breaker-hammer",
+      "name": "突き崩しの槌",
+      "target_ids": [
+        "breaker-hammer"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/breaker-hammer.png",
+      "sha256": "d38c1050a2b0ff12e768dbaa382ffcadc10c460eb29c15d97b9bda8cf3839a16",
+      "levels": []
+    },
+    {
+      "id": "twin-bow",
+      "name": "双射の弓",
+      "target_ids": [
+        "twin-bow"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/twin-bow.png",
+      "sha256": "8bec2c4d06452e37dfa5bbec699ea19afad90d91e394a24b8eec3bd4f6f50da0",
+      "levels": []
+    },
+    {
+      "id": "partner-dagger",
+      "name": "相棒の短剣",
+      "target_ids": [
+        "partner-dagger"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/partner-dagger.png",
+      "sha256": "9eccd7a410221f2d0ff16ec5f99a38fa45eeab51f74fd3c0e34bcb7d6c4f7c6a",
+      "levels": []
+    },
+    {
+      "id": "rest-staff",
+      "name": "憩いの杖",
+      "target_ids": [
+        "rest-staff"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/rest-staff.png",
+      "sha256": "08739aa475d6dd8b590852e3ff3df9ef04e2a6a4b320dadbf087ca04f882a7b1",
+      "levels": []
+    },
+    {
+      "id": "battleline-shield",
+      "name": "戦列の盾",
+      "target_ids": [
+        "battleline-shield"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/battleline-shield.png",
+      "sha256": "f845de37003f28afc97aab5462bab2a3fef777e8839436a7c1244a772f35434c",
+      "levels": []
+    },
+    {
+      "id": "sharing-tome",
+      "name": "分かちの魔導書",
+      "target_ids": [
+        "sharing-tome"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/sharing-tome.png",
+      "sha256": "5ae63104a831e7f3c37499cde70959d9da7c31325ab9a23f2404eaed2c0e6cd7",
+      "levels": []
+    },
+    {
+      "id": "sword-wood",
+      "name": "木製の護衛剣",
+      "target_ids": [
+        "sword-wood"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/sword-wood.png",
+      "sha256": "6ec0f992df3184ee8be8553be1327adff898a857ee30e3eadd7aea28d2af5c04",
+      "levels": []
+    },
+    {
+      "id": "sword-iron-1",
+      "name": "鉄製の護衛剣＋1",
+      "target_ids": [
+        "sword-iron-1"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/sword-iron-1.png",
+      "sha256": "0e37898c6d2fd2707062562f7af82acbad5aac3a2481575f5a25bad7270a4231",
+      "levels": []
+    },
+    {
+      "id": "bow-wood",
+      "name": "木製の遠見弓",
+      "target_ids": [
+        "bow-wood"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/bow-wood.png",
+      "sha256": "26f255bcc5f64e22885d5d4300aa754c71a8a7bf8c6da4624c9c4a1b6a60d861",
+      "levels": []
+    },
+    {
+      "id": "bow-wood-1",
+      "name": "木製の遠見弓＋1",
+      "target_ids": [
+        "bow-wood-1"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/bow-wood-1.png",
+      "sha256": "729d7c1df7430bb26687b319e4b03de820b42c41c760f8acad16801ba02cdab9",
+      "levels": []
+    },
+    {
+      "id": "bow-silver-2",
+      "name": "銀製の遠見弓＋2",
+      "target_ids": [
+        "bow-silver-2"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/bow-silver-2.png",
+      "sha256": "993cb7ffccbb420846cd2a36a6fa09e8774c5281d9e405c87f407dcb3f8a31eb",
+      "levels": []
+    },
+    {
+      "id": "staff-wood",
+      "name": "木製の癒し杖",
+      "target_ids": [
+        "staff-wood"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/staff-wood.png",
+      "sha256": "c0ae0cf554afc0d90e51e7db5d4ba89cc45faafa366a4624de5e923670397c29",
+      "levels": []
+    },
+    {
+      "id": "staff-silver-1",
+      "name": "銀製の癒し杖＋1",
+      "target_ids": [
+        "staff-silver-1"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/staff-silver-1.png",
+      "sha256": "b89418bd238d531d50464961f58f35f3adf53be4547bef6a78d53c6825c80d2f",
+      "levels": []
+    },
+    {
+      "id": "dagger-wood",
+      "name": "木製の奇襲短剣",
+      "target_ids": [
+        "dagger-wood"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/dagger-wood.png",
+      "sha256": "96718ec513ddef8eb17c32fce066fbdda513e8e25305c6290561153f41c64390",
+      "levels": []
+    },
+    {
+      "id": "hammer-wood",
+      "name": "木製のスタンプ槌",
+      "target_ids": [
+        "hammer-wood"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/hammer-wood.png",
+      "sha256": "3b416ed57e4685f9ae0b22c3d713fcff3ec5595d0a0298e6eb5a7e4a8d9f7fbb",
+      "levels": []
+    },
+    {
+      "id": "hammer-iron-1",
+      "name": "鉄製のスタンプ槌＋1",
+      "target_ids": [
+        "hammer-iron-1"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/hammer-iron-1.png",
+      "sha256": "b58208ed9c1df5d3a92cc1dbb3d4462e560721e9464b075758aecda113df9529",
+      "levels": []
+    },
+    {
+      "id": "porter-kit",
+      "name": "運搬用の手道具（仮）",
+      "target_ids": [
+        "porter-kit"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/porter-kit.png",
+      "sha256": "d0b074f8664e74d44bbe52680b728e44707496b13615cd48ddc23911d1d4c78b",
+      "levels": []
+    },
+    {
+      "id": "guard-shield-wood",
+      "name": "木製の護衛盾",
+      "target_ids": [
+        "guard-shield-wood"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/guard-shield-wood.png",
+      "sha256": "2cbc62354361bf4b1b73235ed66864f5595da69c97bf122800dc7a3dd755f857",
+      "levels": []
+    },
+    {
+      "id": "guard-shield-iron-1",
+      "name": "鉄製の護衛盾＋1",
+      "target_ids": [
+        "guard-shield-iron-1"
+      ],
+      "category": "weapons",
+      "path": "res://assets/individual_icons/icons64/weapons/guard-shield-iron-1.png",
+      "sha256": "10fcdaae486ba7432f0ed1b341bb1e5672daeec447500a42b45f354dee194ec4",
+      "levels": []
+    },
+    {
+      "id": "cloth-head",
+      "name": "布の帽子",
+      "target_ids": [
+        "cloth-head"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/cloth-head.png",
+      "sha256": "fc3139d4b74873e18f9eaf2d936c29170716bd1410cde08f83e4d9463ebfa966",
+      "levels": []
+    },
+    {
+      "id": "armor-cloth",
+      "name": "布製の旅装",
+      "target_ids": [
+        "armor-cloth"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/armor-cloth.png",
+      "sha256": "3f50510cceda56178c89854c7d7ddd365c1e3f76f37e6f858b79794e36accff4",
+      "levels": []
+    },
+    {
+      "id": "armor-leather-1",
+      "name": "革製の旅装＋1",
+      "target_ids": [
+        "armor-leather-1"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/armor-leather-1.png",
+      "sha256": "e26f8df88fc9d0f6c134d603411ab9cd3dce3c25478c712cbe2bd24755cd2655",
+      "levels": []
+    },
+    {
+      "id": "armor-iron-2",
+      "name": "鉄製の鎧＋2",
+      "target_ids": [
+        "armor-iron-2"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/armor-iron-2.png",
+      "sha256": "56b9ae84911dc401e1e995654363f0f42e15358574640723a8500c86f9b81143",
+      "levels": []
+    },
+    {
+      "id": "armor-silver-1",
+      "name": "銀製の軽鎧＋1",
+      "target_ids": [
+        "armor-silver-1"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/armor-silver-1.png",
+      "sha256": "18df366341900af8f98f5c4fe271f317d652360bf9735951bfbdb34344f59cd7",
+      "levels": []
+    },
+    {
+      "id": "cloth-lowerBody",
+      "name": "布のズボン",
+      "target_ids": [
+        "cloth-lowerBody"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/cloth-lowerBody.png",
+      "sha256": "e327379641f23cd1bdeabb16a21f767d6a17f72545340a89166a42bae4c1d90a",
+      "levels": []
+    },
+    {
+      "id": "kungfu-pants",
+      "name": "カンフーパンツ",
+      "target_ids": [
+        "kungfu-pants"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/kungfu-pants.png",
+      "sha256": "03af1bcd87a7339d42484b21251292c16c5f435abaa6f53994ec5c54188f8076",
+      "levels": []
+    },
+    {
+      "id": "kungfu-pants-1",
+      "name": "カンフーパンツ＋1",
+      "target_ids": [
+        "kungfu-pants-1"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/kungfu-pants-1.png",
+      "sha256": "38c0637dc6ff50a4b40204e127a529695177d4cae5f041f534e557760d1bd426",
+      "levels": []
+    },
+    {
+      "id": "kungfu-pants-2",
+      "name": "カンフーパンツ＋2",
+      "target_ids": [
+        "kungfu-pants-2"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/kungfu-pants-2.png",
+      "sha256": "1dce8d446330e7db1abbbad636e49b1c0e95140b49588fffa896dc0d10988839",
+      "levels": []
+    },
+    {
+      "id": "kungfu-pants-3",
+      "name": "カンフーパンツ＋3",
+      "target_ids": [
+        "kungfu-pants-3"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/kungfu-pants-3.png",
+      "sha256": "dc340fd2dcb59e31a9d7e856b9a986621a0ffa4f039a6b533d167dbf3ac31dc4",
+      "levels": []
+    },
+    {
+      "id": "cloth-feet",
+      "name": "布の靴",
+      "target_ids": [
+        "cloth-feet"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/cloth-feet.png",
+      "sha256": "5c000c18f144f09040e7b8ba8c5c7ea108391310da6fe44a65ffaab0f8387c4a",
+      "levels": []
+    },
+    {
+      "id": "swift-boots",
+      "name": "俊足の靴（試作）",
+      "target_ids": [
+        "swift-boots"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/swift-boots.png",
+      "sha256": "9c83c75e0756bda323b5eb2ba41f5a1c217a23a9dac13cd479950008fe383702",
+      "levels": []
+    },
+    {
+      "id": "return-ring",
+      "name": "帰り路の指輪",
+      "target_ids": [
+        "return-ring-1",
+        "return-ring-2"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/return-ring.png",
+      "sha256": "3cc64459e4cd98acaa46f1021060432c0e29693f04fc50b59a107fdf286b4f24",
+      "levels": []
+    },
+    {
+      "id": "victory-earring",
+      "name": "凱歌の耳飾り",
+      "target_ids": [
+        "victory-earring-1",
+        "victory-earring-2"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/victory-earring.png",
+      "sha256": "365ab50f04cec79a4992cf84f8153a05127e6444c9a50d8c8e7ab95b155375d2",
+      "levels": []
+    },
+    {
+      "id": "lone-ring",
+      "name": "一匹狼の指輪",
+      "target_ids": [
+        "lone-ring-1",
+        "lone-ring-2"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/lone-ring.png",
+      "sha256": "d868783bb166c192be627c9e99d40f5dfdb026d235b5e30de9261c162e4ed9ad",
+      "levels": []
+    },
+    {
+      "id": "pioneer-gloves",
+      "name": "先駆者の手袋",
+      "target_ids": [
+        "pioneer-gloves-1",
+        "pioneer-gloves-2"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/pioneer-gloves.png",
+      "sha256": "9376001d5a3a44e713589f5a7d485a7a9ce044bf38ff113f90517c6ed091f7a9",
+      "levels": []
+    },
+    {
+      "id": "invasion-charm",
+      "name": "侵入用装飾品（既存効果の仮枠化）",
+      "target_ids": [
+        "invasion-charm-1",
+        "invasion-charm-2"
+      ],
+      "category": "wearables",
+      "path": "res://assets/individual_icons/icons64/wearables/invasion-charm.png",
+      "sha256": "f2c1ba59c117f91daa5bece8142a5587f4b6741c65502159c4d69b0a70c33506",
+      "levels": []
+    }
+  ],
+  "skills": [
+    {
+      "id": "swift",
+      "name": "俊足",
+      "target_ids": [
+        "swift"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/swift.png",
+      "sha256": "9c77f360a62336db249155df118dd1943647890dea539425c41d9c41bdce7549",
+      "levels": []
+    },
+    {
+      "id": "retreatSlash",
+      "name": "退き斬り",
+      "target_ids": [
+        "retreatSlash"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/retreatSlash.png",
+      "sha256": "2a7d03e0cb5ad98708e9e6268acaff2dfce6257ec109d5d55dde472bd778b686",
+      "levels": []
+    },
+    {
+      "id": "knockback",
+      "name": "吹き飛ばし",
+      "target_ids": [
+        "knockback"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/knockback.png",
+      "sha256": "42a88e043fa787915bc9719198d698b91f3e7d4ac27eeabd68df014c39529a34",
+      "levels": []
+    },
+    {
+      "id": "splitShot",
+      "name": "分け撃ち",
+      "target_ids": [
+        "splitShot"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/splitShot.png",
+      "sha256": "72d0a97064111c992515634a3cd6ffc5fb07991b091f30096378494c93ecc6e4",
+      "levels": []
+    },
+    {
+      "id": "pincer",
+      "name": "挟撃",
+      "target_ids": [
+        "pincer"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/pincer.png",
+      "sha256": "557eb37f5b38e48b3f15912e7fafad4db92728dce47b0ab01dbd4d3c23374ff5",
+      "levels": []
+    },
+    {
+      "id": "healingCross",
+      "name": "癒しの輪",
+      "target_ids": [
+        "healingCross"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/healingCross.png",
+      "sha256": "7f20114994d13485e25045c39860aa36299b2e77bc8fdadfe4b6d07869ba5a87",
+      "levels": []
+    },
+    {
+      "id": "defenseLine",
+      "name": "防衛線",
+      "target_ids": [
+        "defenseLine"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/defenseLine.png",
+      "sha256": "7d672c68a11f9be4223080c7fbd88ff62a20ab0bb06ad651ab192173520fcc10",
+      "levels": []
+    },
+    {
+      "id": "manaGift",
+      "name": "魔力譲渡",
+      "target_ids": [
+        "manaGift"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/manaGift.png",
+      "sha256": "6bc6578f2b78bd38a4e3056e5c6c6900cf443f033444fdfdcd7569a05e38409a",
+      "levels": []
+    },
+    {
+      "id": "returnHome",
+      "name": "帰還",
+      "target_ids": [
+        "returnHome"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/returnHome.png",
+      "sha256": "f42b5f1b966dc8184a9b07d3796aea6edf9bd3cbbe5f5705f7971033d5ce1352",
+      "levels": []
+    },
+    {
+      "id": "victoryBreath",
+      "name": "一息",
+      "target_ids": [
+        "victoryBreath"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/victoryBreath.png",
+      "sha256": "b52d63be15472c2799943a5ce8416d888c3a78c0b3efb70419b8e09619841fbc",
+      "levels": []
+    },
+    {
+      "id": "loneWolf",
+      "name": "孤軍",
+      "target_ids": [
+        "loneWolf"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/loneWolf.png",
+      "sha256": "8202472d7bc63808582f9a04ed2b0fec31629f5d3d11cb75c7588209f4fca81c",
+      "levels": []
+    },
+    {
+      "id": "firstStride",
+      "name": "先駆け",
+      "target_ids": [
+        "firstStride"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/firstStride.png",
+      "sha256": "fbd26f4581cd555a1c684e09fef8ccef3ff2996f807f1476f35eec4ad5e90a0f",
+      "levels": []
+    },
+    {
+      "id": "invasion",
+      "name": "侵入",
+      "target_ids": [
+        "invasion"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/invasion.png",
+      "sha256": "15075f1fb9a7fd53fa54f1245839e5802d7e77dba71f74b04328f849d0e1cf14",
+      "levels": []
+    },
+    {
+      "id": "archer",
+      "name": "スナイプ",
+      "target_ids": [
+        "archer"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/archer.png",
+      "sha256": "25865e296c5cc7ea937dfd23c90c8b88aeebbc21094cebb824b7dc46f65bcd45",
+      "levels": [
+        "1"
+      ]
+    },
+    {
+      "id": "stamp",
+      "name": "スタンプ",
+      "target_ids": [
+        "stamp"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/stamp.png",
+      "sha256": "594b4b2688bdd2d88572b80c16650df194285709bfca51294140ead8f8818eaf",
+      "levels": []
+    },
+    {
+      "id": "guard",
+      "name": "かばう",
+      "target_ids": [
+        "guard"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/guard.png",
+      "sha256": "c66b51566e5ef379d34045f085320b55b3812548153eef7c02566e61d7b577ac",
+      "levels": []
+    },
+    {
+      "id": "itemUse",
+      "name": "アイテム使用",
+      "target_ids": [
+        "itemUse"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/itemUse.png",
+      "sha256": "6c55521ad435ca412328dbf29e6ee68e154064d363b10498a8a9f2fd0c50ac03",
+      "levels": [
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "id": "grapple",
+      "name": "引き寄せ",
+      "target_ids": [
+        "grapple"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/grapple.png",
+      "sha256": "076f9da05a625ecec13b73b53042de78c38c840eca6ba6207c8021bd4876b469",
+      "levels": []
+    },
+    {
+      "id": "poleVault",
+      "name": "ポールヴォールト",
+      "target_ids": [
+        "poleVault"
+      ],
+      "category": "skills",
+      "path": "res://assets/individual_icons/icons64/skills/poleVault.png",
+      "sha256": "b21578424c36782a80f6fb569a50eeda7069f0865ac6044f42ea933da352a1c5",
+      "levels": []
+    }
+  ]
+}

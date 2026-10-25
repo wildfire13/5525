@@ -66,15 +66,15 @@ func compose_approved(id: String) -> Texture2D:
 	var levels: Dictionary=spec.get("levels",{});var level=str(parts[3]) if parts.size()>3 else "1"
 	if not levels.has(level):level="1"
 	var has_level=levels.has(level)
-	# CSS stack is 64x64; the level badge extends right by 5 and up by 4.
-	var canvas=Image.create(69 if has_level else 64,68 if has_level else 64,false,Image.FORMAT_RGBA8)
-	var base=fit_image(approved_image(spec),64);var offset=4 if has_level else 0
-	canvas.blend_rect(base,Rect2i(Vector2i.ZERO,base.get_size()),Vector2i((64-base.get_width())/2,offset+(64-base.get_height())/2))
+	# Keep artwork and the existing level badge inside the same square canvas.
+	var canvas=Image.create(64,64,false,Image.FORMAT_RGBA8)
+	var base=fit_image(approved_image(spec),64)
+	canvas.blend_rect(base,Rect2i(Vector2i.ZERO,base.get_size()),Vector2i((64-base.get_width())/2,(64-base.get_height())/2))
 	if spec.has("badge"):
 		var badge=fit_image(approved_image({"base":spec.badge}),30)
-		canvas.blend_rect(badge,Rect2i(Vector2i.ZERO,badge.get_size()),Vector2i(64-badge.get_width(),offset+64-badge.get_height()))
+		canvas.blend_rect(badge,Rect2i(Vector2i.ZERO,badge.get_size()),Vector2i(64-badge.get_width(),64-badge.get_height()))
 	if has_level:
-		var badge=fit_image(approved_image(levels[level]),26)
+		var badge=fit_image(approved_image(levels[level]),21)
 		canvas.blend_rect(badge,Rect2i(Vector2i.ZERO,badge.get_size()),Vector2i(43,0))
 	return ImageTexture.create_from_image(canvas)
 func job(id: String) -> String:return JOBS.get(id,"")

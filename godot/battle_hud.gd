@@ -468,7 +468,9 @@ func render_skills(parent):
 		control.name="BattleSkill_"+str(skill.id)
 		var level=1
 		for source in skill.get("sources",[]):level=maxi(level,int(source.get("level",1)))
-		ui.icons.apply(control,ui.icons.skill(str(skill.id),level),24)
+		var has_level=not ui.icons.approved.skills.get(str(skill.id),{}).get("levels",{}).is_empty()
+		if has_level:control.text+=" Lv%d" % level
+		ui.icons.apply(control,ui.icons.skill(str(skill.id),level),32 if has_level else 24)
 		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip(str(skill.id),str(skill.name),level)
 		ui.memory.key(control,"battle_skill_"+str(skill.id))
 		var info=ui.local_button(line,"説明",ui.show_skill_details.bind(str(skill.id),str(skill.name),level));info.name="BattleSkillDetails_"+str(skill.id)
