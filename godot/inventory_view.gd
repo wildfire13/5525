@@ -160,8 +160,8 @@ func prepare_unequip(uid: String,id: String,slot: String):
 	if return_to_equipment:capture_equipment_context(uid,id)
 	await prepare(null,slot)
 
-func capture_equipment_context(uid: String,id: String):
-	equipment_context={"window":ui.dialog.window.get_instance_id(),"owner":uid,"item":id,"slot":party.owned_equipment_view.slot,"scroll":ui.dialog.body.get_parent().scroll_vertical,"list_scroll":party.owned_equipment_view.list_scroll.scroll_vertical if is_instance_valid(party.owned_equipment_view.list_scroll) else 0}
+func capture_equipment_context(uid: String,id: String,origin: String=""):
+	equipment_context={"origin":origin if not origin.is_empty() else "OwnedEquipmentActions_"+id,"window":ui.dialog.window.get_instance_id(),"owner":uid,"item":id,"slot":party.owned_equipment_view.slot,"scroll":ui.dialog.body.get_parent().scroll_vertical,"list_scroll":party.owned_equipment_view.list_scroll.scroll_vertical if is_instance_valid(party.owned_equipment_view.list_scroll) else 0}
 func restore_equipment_context():
 	var context=equipment_context.duplicate();equipment_context={}
 	if context.is_empty():return
@@ -169,7 +169,7 @@ func restore_equipment_context():
 	await ui.get_tree().process_frame
 	if not is_instance_valid(ui.dialog.window) or party.detail_uid!=context.owner or ui.dialog.window.get_instance_id()!=context.window:return
 	var scroll=ui.dialog.body.get_parent()
-	var button=ui.dialog.body.find_child("OwnedEquipmentActions_"+str(context.item),true,false)
+	var button=ui.dialog.body.find_child(str(context.get("origin","OwnedEquipmentActions_"+str(context.item))),true,false)
 	if button!=null:button.grab_focus()
 	if is_instance_valid(party.owned_equipment_view.list_scroll):party.owned_equipment_view.list_scroll.scroll_vertical=int(context.get("list_scroll",0))
 	scroll.scroll_vertical=int(context.scroll)

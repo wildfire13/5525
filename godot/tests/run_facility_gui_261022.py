@@ -16,7 +16,7 @@ import time
 
 p = argparse.ArgumentParser()
 p.add_argument('--evidence', required=True, type=Path)
-p.add_argument('--script', choices=['facility_gui_261022','facility_input_extra_261022','brushup_gui','facility_npc_gui','research2_gui','layout_fixes_gui','equipment_hover_gui'], default='facility_gui_261022')
+p.add_argument('--script', choices=['facility_gui_261022','facility_input_extra_261022','brushup_gui','facility_npc_gui','research2_gui','layout_fixes_gui','equipment_hover_gui','ui_p3_gui','turn_order_keyboard_gui'], default='facility_gui_261022')
 a = p.parse_args()
 repo = Path(__file__).resolve().parents[2]
 out = a.evidence.resolve()
