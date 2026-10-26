@@ -3,6 +3,7 @@ var engine
 var portraits=preload("res://portraits.gd").new()
 var icons=preload("res://ui_icons.gd").new()
 var audio
+var loading_screen
 var data: Dictionary={}
 var campaign_identity=preload("res://campaign_identity.gd").new()
 var preview: Dictionary={}
@@ -65,6 +66,7 @@ var swallow_mouse_release := false
 var skip_capture_once := false
 const BG=Color("#191d23")
 func _ready():
+	loading_screen=preload("res://loading_screen.gd").new();loading_screen.name="LoadingScreen";add_child(loading_screen)
 	pages=preload("res://campaign_panels.gd").new(self)
 	memory=preload("res://ui_memory.gd").new(self)
 	hud=preload("res://battle_hud.gd").new(self)
@@ -256,14 +258,24 @@ func _notification(what):
 func close_game():
 	if is_instance_valid(board):board.persist_camera()
 	if is_instance_valid(dialog.window):dialog.remember()
-	closing=true;invalidate_preview()
+	closing=true;loading_screen.finish(loading_screen.sequence);invalidate_preview()
 	while engine.busy:await get_tree().process_frame
 	if data.get("presentation")!=null:await engine.request({"op":"presentation_finish","id":data.presentation.id})
 	await audio.finish_audio();engine.close_engine()
 	await get_tree().process_frame
 	get_tree().quit()
+func loading_kind(request: Dictionary) -> String:
+	if request.get("op")=="campaign":
+		if request.get("action") in ["travel","begin","trial"]:return "before"
+		if request.get("action") in ["finishBattle","retreat","endTrial"]:return "after"
+		if request.get("action")=="acknowledge" and campaign().get("phase")=="result":return "after"
+	if request.get("op")=="campaign_load":
+		var incoming=request.get("data",{}).get("state",{})
+		if incoming is Dictionary and incoming.get("phase") in ["battle","deployment"]:return "before"
+		if campaign().get("phase") in ["battle","deployment"] or data.get("trial")!=null:return "after"
+	return ""
 func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
-	if locked or closing:return {"ok":false,"error":"処理中です"}
+	if locked or closing or loading_screen.active:return {"ok":false,"error":"処理中です"}
 	pages.shop_view.cancel_pending()
 	var incoming={}
 	if request.get("op")=="campaign_load":
@@ -271,8 +283,17 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		if not incoming.ok:notice=incoming.error;render();return {"ok":false,"error":incoming.error}
 		request=request.duplicate(true);request.data=incoming.envelope
 	locked=true;status_override=""
+	var loading_token=0
+	var kind=loading_kind(request)
+	if not kind.is_empty():
+		menu.hide()
+		if is_instance_valid(dialog.window):dialog.close()
+		for window in find_children("*","Window",true,false):window.hide()
+		var subdued=request.get("action") in ["retreat","endTrial"] or not str(state().get("result","")).begins_with("勝利")
+		loading_token=loading_screen.begin(kind,subdued)
+		await loading_screen.painted(loading_token)
 	while engine.busy and not closing:await get_tree().process_frame
-	if closing:locked=false;return {"ok":false,"error":"終了しています"}
+	if closing:locked=false;loading_screen.finish(loading_token);return {"ok":false,"error":"終了しています"}
 	for b in widgets:
 		if is_instance_valid(b) and not b.get_meta("read_only",false):b.disabled=true
 	if footer!=null:set_status("処理中…")
@@ -284,7 +305,13 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 			reply=await engine.request({"op":"campaign","action":"arrive","args":[]});arrived=reply.get("ok",false)
 		if reply.get("ok",false) and reply.get("campaign") is Dictionary and reply.campaign.get("phase")=="result" and reply.campaign.get("result",{}).get("outcome")=="travel":
 			reply=await engine.request({"op":"campaign","action":"acknowledge","args":[]});arrived=reply.get("ok",false)
-	if connection!=engine.connection_generation:return {"ok":false,"obsolete_connection":true,"error":"古い接続の応答です"}
+	if connection!=engine.connection_generation:
+		var owns_loading=loading_token>0 and loading_screen.active and loading_screen.sequence==loading_token
+		loading_screen.finish(loading_token)
+		if owns_loading:
+			locked=false
+			if not closing:render()
+		return {"ok":false,"obsolete_connection":true,"error":"古い接続の応答です"}
 	locked=false
 	if request.get("op")=="campaign" and request.get("action") not in ["begin","finishBattle","endTrial","trial","forecast","previewGear","inventoryQuote","purchaseQuote","purchasePlan","saleQuote"] and reply.get("presentation")==null:
 		audio.ui("confirm" if reply.get("ok",false) else "cancel")
@@ -305,8 +332,12 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 	else:
 		notice=str(reply.get("error","操作できません"))
 		if reply.get("connection_lost",false):invalidate_preview();pages.reset_context("disconnect",campaign_identity.current_id)
-	if closing:return reply
+	if closing:loading_screen.finish(loading_token);return reply
 	render()
+	if request.get("action")=="endTrial" and reply.get("ok",false):await pages.restore_trial()
+	if loading_token>0:
+		await loading_screen.painted(loading_token)
+		loading_screen.finish(loading_token)
 	if arrived:save_notice.display(town_name(campaign().get("location",""))+"に到着しました")
 	if data.get("presentation")!=null and not presenting and not engine.disconnected:await present()
 	return reply
@@ -327,11 +358,10 @@ func present():
 	presenting=false
 	if not closing:render()
 func act(action: String,args: Array=[]):
-	if locked or presenting or closing:return
+	if locked or presenting or closing or loading_screen.active:return
 	if action=="trial":pages.remember_trial(args)
 	invalidate_preview()
 	var response=await update({"op":"campaign","action":action,"args":args,"presentation":action=="begin"})
-	if action=="endTrial" and response.get("ok",false):await pages.restore_trial()
 	return response
 func reconnect_engine():
 	# Cancel session confirmations before bootstrap; reconnect is not a new game.
@@ -752,6 +782,7 @@ func fit_battle_layout():
 func prefetch_shop_rows():
 	if pages!=null:pages.shop_view.prefetch_visible()
 func _input(event):
+	if loading_screen.active:get_viewport().set_input_as_handled();return
 	if menu.visible and event is InputEventKey:
 		if event.pressed and not event.echo and event.keycode==KEY_TAB:
 			var controls=menu_focus_controls()
