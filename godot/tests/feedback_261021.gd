@@ -22,7 +22,7 @@ func run():
 	await consent(false);check(await saved()==before,"drop cancel preserves complete state")
 	await owned.drop_equipment(payload("owned_equipment","spear-wood","guard"),"guard","leftHand");await settle();await consent(true)
 	check(game.campaign().characters.guard.leftHand=="spear-wood","confirmed drop equips specified hand")
-	game.dialog.close();game.navigate("shop");await settle()
+	game.dialog.close();await enter_facility("shop");await settle()
 	var shop=game.pages.shop_view
 	check(node("ShopSlotFilter").get_parent()!=node("ShopProductsScroll").get_child(0),"shop filter is outside scrolling list")
 	var data=payload("shop_product","spear-wood")
@@ -34,7 +34,7 @@ func run():
 	check(game.campaign().characters.mage.inventory.get("spear-wood",0)==1 and game.campaign().characters.mage.weapon==before.state.characters.mage.weapon,"confirmed purchase enters recipient inventory without equipping")
 	var after=await saved();await shop.buy(shop.receipt,"mage",shop.generation);check(await saved()==after,"duplicate purchase confirmation has no effect")
 	var south=seed.duplicate(true);south.state.location="south"
-	await game.update({"op":"campaign_load","data":south});game.navigate("shop");await settle()
+	await game.update({"op":"campaign_load","data":south});await enter_facility("shop");await settle()
 	before=await saved();await shop.confirm_purchase("potion","mage");await settle();await click("PurchaseDecline")
 	check(await saved()==before,"consumable drop decline is pure")
 	await shop.confirm_purchase("potion","mage");await settle();await click("PurchaseAgree")

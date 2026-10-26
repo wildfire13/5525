@@ -119,3 +119,10 @@ func run():
 func all_inventory():
 	var chooser=game.find_child("OwnedEquipmentSlot",true,false)
 	chooser.select(0);chooser.item_selected.emit(0);await settle()
+
+func enter_facility(page: String):
+	game.navigate(page);await settle()
+	var service={"shop":"buy","party":"guild","inn":"inn"}.get(page,"")
+	var choice=game.find_child("FacilityChoice_"+service,true,false)
+	if choice!=null and choice.is_visible_in_tree():
+		choice.pressed.emit();await settle()

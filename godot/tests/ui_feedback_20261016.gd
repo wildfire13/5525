@@ -11,6 +11,12 @@ func settle():
 	await frames()
 	while game.locked or game.engine.busy or game.presenting or game.preview_pending:await process_frame
 	await frames()
+func enter_facility(page: String):
+	game.navigate(page);await settle()
+	var service={"shop":"buy","party":"guild","inn":"inn"}.get(page,"")
+	var choice=game.find_child("FacilityChoice_"+service,true,false)
+	if choice!=null and choice.is_visible_in_tree():
+		choice.pressed.emit();await settle()
 func node(id):return game.find_child(id,true,false)
 func saved():return (await game.engine.request({"op":"campaign_save"})).data
 func click(id):node(id).pressed.emit();await settle()

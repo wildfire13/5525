@@ -21,7 +21,7 @@ func run():
  var original=await saved();var seed=original.duplicate(true);seed.state.location="east";seed.state.gold=500
  seed.state.characters.guard.inventory={"potion":2,"spear-wood":3,"swift-boots":1}
  for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
-  root.size=dims;await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle()
+  root.size=dims;await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle()
   game.shop_uid="guard";game.shop_slot="rightHand"
   var before=await saved();var shop=game.pages.shop_view
   await tap("Product_spear-wood")
@@ -65,13 +65,13 @@ func run():
   await tap("PartyFace_mage")
   check(node("InventorySaleTotals")==null and node("OwnedInventorySell_spear-wood")==null,"owner switch removes previous sale target and values")
   game.dialog.close();await settle()
-  var poor=seed.duplicate(true);poor.state.gold=0;await game.update({"op":"campaign_load","data":poor});game.navigate("shop");await settle()
+  var poor=seed.duplicate(true);poor.state.gold=0;await game.update({"op":"campaign_load","data":poor});await enter_facility("shop");await settle()
   shop.open_comparison("spear-wood");await settle()
   check(node("ShopComparisonPayment").text.contains("所持金が不足") and node("ShopComparisonBuy").disabled,"insufficient money reason uses canonical purchaseQuote")
   check(node("ShopComparisonStats").text.contains("→"),"equipment comparison remains available without funds")
   game.dialog.close();await settle()
  # Hold the first canonical response, switch owner, then release it.
- await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle()
+ await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle()
  var actual=game.engine;var delayed=DelayedEngine.new();delayed.actual=actual;game.add_child(delayed);game.engine=delayed
  game.shop_uid="guard";game.pages.shop_view.open_comparison("spear-wood")
  while not delayed.held:await process_frame
@@ -83,17 +83,20 @@ func run():
  # The UI labels confirmation, and rejection must remain atomic and repeat-safe.
  var upper=seed.duplicate(true);upper.state.characters.guard.inventory["spear-wood"]=10000000000
  check((await game.update({"op":"campaign_load","data":upper})).get("ok",false),"canonical maximum stock fixture loads")
- game.navigate("shop");game.shop_uid="guard";await settle();var upper_before=await saved()
+ await enter_facility("shop");game.shop_uid="guard";await settle();var upper_before=await saved()
  game.pages.shop_view.open_comparison("spear-wood");await settle();await tap("ShopComparisonBuy");await tap("PurchaseAgree")
  check((await saved())==upper_before and game.pages.shop_view.stage=="S0" and not game.pages.shop_view.message.is_empty(),"recipient save-limit rejection preserves exact state and returns to actionable list")
  var south=original.duplicate(true);south.state.location="south";south.state.gold=500
- await game.update({"op":"campaign_load","data":south});game.navigate("shop");await settle()
+ await game.update({"op":"campaign_load","data":south});await enter_facility("shop");await settle()
  var buttons=game.find_children("*","Button",true,false)
- check(buttons.any(func(b):return b.text=="5個購入 / 200G\n残金 300G"),"existing consumable quantity shows total and remainder without extra click")
+ check(buttons.any(func(b):return b.text=="5個 / 200G\n残金 300G"),"existing consumable quantity shows total and remainder without extra click")
+ var quantity_before=await saved();await tap("ProductBuy_potion_5");var quantity_after=await saved()
+ check(quantity_after.state.gold==300 and int(quantity_after.state.characters.guard.inventory.get("potion",0))==int(quantity_before.state.characters.guard.inventory.get("potion",0))+5,"displayed five-item cost and remainder match canonical committed purchase for current owner")
+ check(quantity_after.state.characters.archer==quantity_before.state.characters.archer and quantity_after.state.characters.guard.weapon==quantity_before.state.characters.guard.weapon,"quantity purchase changes neither another owner nor current equipment")
  var full=south.duplicate(true);full.state.characters.guard.inventory.potion=99
- await game.update({"op":"campaign_load","data":full});game.navigate("shop");await settle()
- check(game.find_children("*","Button",true,false).any(func(b):return b.disabled and b.text.contains("5個購入 / 200G") and b.text.contains("上限99個")),"consumable cap uses existing stock rule and explains disabled action")
- await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle()
+ await game.update({"op":"campaign_load","data":full});await enter_facility("shop");await settle()
+ check(game.find_children("*","Button",true,false).any(func(b):return b.disabled and b.text.contains("5個 / 200G") and b.text.contains("上限99個")),"consumable cap uses existing stock rule and explains disabled action")
+ await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle()
  var failed=DisconnectEngine.new();failed.actual=game.engine;game.add_child(failed);game.engine=failed
  game.pages.shop_view.open_comparison("spear-wood");await settle()
  check(game.engine.disconnected and not game.modal_open() and game.retry_button.visible,"comparison connection loss uses existing recovery UI and cannot confirm purchase")

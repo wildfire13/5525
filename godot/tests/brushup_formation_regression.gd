@@ -30,11 +30,11 @@ func run():
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	game.audio.fast_mode=true;game.checks_fast=true;game.navigate("party");await settle()
+	game.audio.fast_mode=true;game.checks_fast=true;await enter_facility("party");await settle()
 	check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"A1 all three audio channels remain muted")
 	var seed=await saved();var guild=game.pages.guild_view
 	check(ids("GuildCurrentScroll")==game.campaign().selected and ids("GuildReserveScroll").size()==6,"A1 default filter retains complete existing party and reserve order")
-	check(node("GuildCapacity").text.contains("残り0枠") and node("GuildReserveJobFilter").item_count==7,"A1 capacity and only existing six job categories shown")
+	check(node("GuildCapacity").text.contains("残り7枠") and node("GuildReserveJobFilter").item_count==7,"A1 capacity and only existing six job categories shown")
 	await tap("GuildMember_warrior");await filter_job("archer")
 	check(guild.chosen_id.is_empty() and guild.notice.contains("槌戦士") and guild.notice.contains("選択を解除"),"A1 hidden reserve selection clears with named explanation")
 	check(ids("GuildReserveScroll")==["archer-2"] and ids("GuildCurrentScroll")==seed.state.selected,"A1 reserve-only filter keeps all current swap targets visible")
@@ -59,14 +59,14 @@ func run():
 	var swapped=await saved()
 	check(swapped.state.characters==seed.state.characters and swapped.state.gold==seed.state.gold,"A1 direct swap preserves owners/equipment/stock/gold")
 	await tap("GuildMember_archer");await tap("GuildRemove")
-	check(node("GuildCapacity").text.contains("残り1枠"),"A1 capacity updates from confirmed composition")
-	await game.update({"op":"campaign_load","data":seed});game.navigate("party");await settle()
+	check(node("GuildCapacity").text.contains("残り8枠"),"A1 capacity updates from confirmed composition")
+	await game.update({"op":"campaign_load","data":seed});await enter_facility("party");await settle()
 	check(guild.reserve_job.is_empty() and guild.chosen_id.is_empty(),"A1 load clears session-only filter and selection")
 	var minimal=seed.duplicate(true);minimal.state.selected=["warrior"]
-	await game.update({"op":"campaign_load","data":minimal});game.navigate("party");await settle();await filter_job("warrior")
+	await game.update({"op":"campaign_load","data":minimal});await enter_facility("party");await settle();await filter_job("warrior")
 	check(ids("GuildReserveScroll").is_empty() and node("GuildEmptyReserves").text.contains("すべて") and ids("GuildCurrentScroll")==["warrior"],"A1 empty filtered reserves offer recovery and keep current members visible")
-	check(node("GuildCapacity").text.contains("残り4枠") and (await saved())==minimal,"A1 empty view neither adds constraints nor mutates state")
-	await game.update({"op":"campaign_load","data":seed});game.navigate("party");await settle()
+	check(node("GuildCapacity").text.contains("残り11枠") and (await saved())==minimal,"A1 empty view neither adds constraints nor mutates state")
+	await game.update({"op":"campaign_load","data":seed});await enter_facility("party");await settle()
 	for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
 		root.size=dims;await settle();await filter_job("")
 		for member in game.data.campaign.roster:
@@ -80,3 +80,10 @@ func run():
 	var f=FileAccess.open(OS.get_environment("INVENTORY_QA_ROOT").path_join("brushup-formation-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames()
 	quit(0 if checks.all(func(row):return row.passed) else 1)
+
+func enter_facility(page: String):
+	game.navigate(page);await settle()
+	var service={"shop":"buy","party":"guild","inn":"inn"}.get(page,"")
+	var choice=game.find_child("FacilityChoice_"+service,true,false)
+	if choice!=null and choice.is_visible_in_tree():
+		choice.pressed.emit();await settle()

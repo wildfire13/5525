@@ -8,9 +8,10 @@ func pointer_click(control):
 func green(control):return control.get_theme_stylebox("normal").bg_color.is_equal_approx(Color("#236044"))
 func return_layout(id):
 	var back=node(id);var bar=node("PartyFaceBar")
-	check(back!=null and back.text=="広場に移動" and green(back) and not game.town_back.visible,"one green square-return button "+id)
+	var expected="戻る" if game.pages.facility_entry.supported(game.page) and not game.pages.facility_entry.at_top() else "広場に移動"
+	check(back!=null and back.text==expected and green(back) and not game.town_back.visible,"one green facility-return button "+id)
 	check(back.get_global_rect().end.y<=bar.global_position.y and bar.global_position.y-back.get_global_rect().end.y<=20 and absf(back.get_global_rect().end.x-bar.get_global_rect().end.x)<2,"return sits right aligned immediately above party bar "+id)
-	check(game.find_children("*","Button",true,false).filter(func(b):return b.visible and b.text=="広場に移動").size()==1,"no duplicate return "+id)
+	check(game.find_children("*","Button",true,false).filter(func(b):return b.visible and b.text==expected).size()==1,"no duplicate service return "+id)
 func alignment():
 	check(absf(node("StatusTab_2").get_global_rect().end.x-node("StatusEquipped").get_global_rect().end.x)<2,"skills tab right edge matches equipped column")
 	check(absf(node("OwnedInventoryHeader").global_position.x-node("StatusOwnedInventory").global_position.x)<2,"inventory header left edge matches owner inventory")
@@ -20,7 +21,7 @@ func run():
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
-	var before=await saved();game.navigate("party");await settle()
+	var before=await saved();await enter_facility("party");await settle()
 	return_layout("GuildReturn")
 	await click("GuildMember_guard")
 	check(not game.modal_open() and game.pages.guild_view.chosen_id=="guard","first guild click selects without opening or changing state")
@@ -44,21 +45,21 @@ func run():
 	check(game.dialog.window.size==Vector2i(1000,700),"existing saved width and height retained")
 	alignment();game.dialog.close();await settle()
 	for resolution in [Vector2i(1364,1024),Vector2i(1920,1080)]:
-		root.size=resolution;await settle();game.navigate("party");await settle();return_layout("GuildReturn")
+		root.size=resolution;await settle();await enter_facility("party");await settle();return_layout("GuildReturn")
 		game.pages.party_view.open_detail("guard");await settle();alignment()
 		check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size))),"saved status remains within viewport "+str(resolution))
 		game.dialog.close();await settle();await pointer_click(node("GuildReturn"))
-		check(game.page=="hub","guild return accepts viewport pointer click")
-		game.navigate("inn");await settle();return_layout("InnReturn")
+		check(game.page=="party" and node("FacilityChoice_guild")!=null,"guild return accepts viewport pointer click and restores service entry")
+		await enter_facility("inn");await settle();return_layout("InnReturn")
 		check(node("InnParty").get_child_count()==game.campaign().selected.size(),"inn card count follows active party")
 		check(node("InnParty").find_children("*","Button",true,false).is_empty(),"inn cards have no inventory buttons")
 		check(node("InnStay").size.x<root.size.x/2 and green(node("InnStay")) and node("InnStay").disabled,"compact green stay control disables when full")
 		for id in game.campaign().selected:
 			check(node("InnPortrait_"+id).texture!=null and node("InnHP_"+id).text.contains("HP ") and node("InnMP_"+id).text.contains("MP "),"portrait HP MP card "+id)
-		await pointer_click(node("InnReturn"));check(game.page=="hub","inn return accepts viewport pointer click")
+		await pointer_click(node("InnReturn"));check(game.page=="inn" and node("FacilityChoice_inn")!=null,"inn return accepts viewport pointer click and restores service entry")
 	# Valid injured-party save; lodging rules remain the existing API's responsibility.
 	var injured=before.duplicate(true);injured.state.characters.guard.hp=0;injured.state.characters.mage.mp=0
-	await game.update({"op":"campaign_load","data":injured});game.navigate("inn");await settle()
+	await game.update({"op":"campaign_load","data":injured});await enter_facility("inn");await settle()
 	check(not node("InnStay").disabled and node("InnHP_guard").text.begins_with("HP 0/"),"injured/KO party enables lodging")
 	var unchanged=await saved();await click("InnStay")
 	var d=game.find_children("*","ConfirmationDialog",true,false).filter(func(w):return w.visible)[0];d.canceled.emit();await settle()
@@ -68,7 +69,7 @@ func run():
 	check(after.state.hours==unchanged.state.hours and after.state.characters["guard-2"]==unchanged.state.characters["guard-2"],"lodging leaves time and reserves unchanged")
 	# Valid smaller party; long names and a larger presentation projection need scrolling, not overflow.
 	var small=before.duplicate(true);small.state.selected=["guard","porter"]
-	await game.update({"op":"campaign_load","data":small});game.navigate("inn");await settle()
+	await game.update({"op":"campaign_load","data":small});await enter_facility("inn");await settle()
 	check(node("InnParty").get_child_count()==2,"inn supports smaller party")
 	game.data.campaign.selected=game.roster().map(func(u):return u.id)
 	for u in game.data.campaign.roster:u.name="長いキャラクター名".repeat(10)

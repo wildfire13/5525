@@ -24,7 +24,7 @@ func run():
 	seed.state.characters.guard.inventory.potion=5;seed.state.characters.guard.inventory.ether=2
 	for spec in [[Vector2i(1180,812),Vector2i(1180,619)],[Vector2i(1920,1080),Vector2i(1920,780)],[Vector2i(1920,1080),Vector2i(1180,619)]]:
 		var dims: Vector2i=spec[0]
-		root.size=dims;await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle();game.pages.party_view.open_detail("guard");await settle()
+		root.size=dims;await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle();game.pages.party_view.open_detail("guard");await settle()
 		game.dialog.window.size=spec[1];await frames(24)
 		var before=await saved();var inv=game.pages.party_view.inventory_view;var owned=game.pages.party_view.owned_equipment_view
 		check(owned.entries("guard").size()==49,"F3 fixture has all 49 distinct personal items "+str(dims.x))

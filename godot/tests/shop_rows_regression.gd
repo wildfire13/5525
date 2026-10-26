@@ -23,7 +23,7 @@ func load_at(place: String,gold:=1000,inventory: Dictionary={}):
 	game.dialog.close(false)
 	var data=seed.duplicate(true);data.state.location=place;data.state.gold=gold
 	data.state.characters.mage.inventory=inventory.duplicate(true)
-	await game.update({"op":"campaign_load","data":data});game.navigate("shop");await settle()
+	await game.update({"op":"campaign_load","data":data});await enter_facility("shop");await settle()
 func run():
 	var evidence=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/")
 	if evidence.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(evidence.to_lower()+"/"):push_error("Isolated profile required");quit(2);return
@@ -101,3 +101,10 @@ func run():
 func all_inventory():
 	var chooser=game.find_child("OwnedEquipmentSlot",true,false)
 	chooser.select(0);chooser.item_selected.emit(0);await settle()
+
+func enter_facility(page: String):
+	game.navigate(page);await settle()
+	var service={"shop":"buy","party":"guild","inn":"inn"}.get(page,"")
+	var choice=game.find_child("FacilityChoice_"+service,true,false)
+	if choice!=null and choice.is_visible_in_tree():
+		choice.pressed.emit();await settle()

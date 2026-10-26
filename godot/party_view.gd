@@ -35,7 +35,7 @@ func render(parent):
 		if not ids.has(u.id):reserves.append(u)
 	if ui.ui_size_mode=="standard":
 		var body=ui.scroller(split);var roster_scroll=body.get_parent();roster_scroll.custom_minimum_size.x=360;roster_scroll.size_flags_horizontal=Control.SIZE_FILL;roster_scroll.name="PartyRoster";ui.memory.watch(roster_scroll,"party_roster")
-		var groups=[["編成 %d/5" % ids.size(),active]]
+		var groups=[["パーティー %d/%d" % [ids.size(),c.get("partyLimit",5)],active]]
 		if ui.reserves_visible():groups.append(["控え %d人" % reserves.size(),reserves])
 		for group in groups:
 			l(body,group[0],true)
@@ -45,7 +45,7 @@ func render(parent):
 				var chooser=b(r,("● " if u.id==pages.party_uid else "")+str(u.name)+" / "+str(u.get("role",""))+"\nHP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp],pages.select_party.bind(str(u.id)))
 				chooser.custom_minimum_size.y=56;chooser.clip_text=true;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;chooser.tooltip_text=chooser.text;ui.memory.key(chooser,"party_"+str(u.id));ui.memory.item(r,str(u.id))
 	else:
-		l(split,"編成 %d/5" % ids.size())
+		l(split,"パーティー %d/%d" % [ids.size(),c.get("partyLimit",5)])
 		var lineup=ui.row(split);lineup.name="PartyActiveLineup"
 		for u in active:
 			var chooser=b(lineup,"",pages.select_party.bind(str(u.id)));chooser.custom_minimum_size.y=108;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;chooser.set_meta("member_id",u.id);ui.memory.key(chooser,"party_"+str(u.id))
@@ -202,22 +202,10 @@ func guard_leave(next: Callable) -> bool:
 func go_shop(uid: String,slot: String):
 	if not ui.active_member(uid):return
 	if not guard_leave(go_shop.bind(uid,slot)):return
-	ui.shop_uid=uid;ui.shop_slot=slot;ui.page="shop";pages.gear_id="";pages.shop_view.from_party=true;pages.shop_view.back_list()
+	ui.shop_uid=uid;ui.shop_slot=slot;ui.page="shop";pages.facility_entry.resume_buy();pages.gear_id="";pages.shop_view.from_party=true;pages.shop_view.back_list()
 func face_bar(parent):
-	var row=ui.row(parent);row.name="PartyFaceBar";row.custom_minimum_size.y=96 if ui.ui_size_mode=="standard" else 64
-	# Resources stay available on hover; no duplicate status row is rendered.
-	for id in pages.c().get("selected",[]):
-		var u=ui.roster().filter(func(member):return member.id==id)[0]
-		var caption=str(u.name)+(" 戦闘不能" if u.hp<=0 else "")
-		caption+="\nHP%d/%d MP%d/%d" % [u.hp,u.max,u.mp,u.maxMp]
-		var control=b(row,"",portrait_pressed.bind(str(id)),(ui.modal_open() and detail_uid.is_empty()) or (pages.guild_view.available() and pages.guild_view.busy()) or pages.shop_view.stage in ["S4","S5"] or pages.shop_view.unknown)
-		if str(id)==detail_uid:tint(control,Color("#243c58"))
-		elif pages.guild_view.available() and str(id)==pages.guild_view.chosen_id:tint(control,Color("#236044"))
-		control.set_meta("no_status_hint",true);control.name="PartyFace_"+str(id);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.icon=ui.portraits.texture(u,true);control.expand_icon=true;control.add_theme_constant_override("icon_max_width",48 if ui.ui_size_mode=="standard" else 28);control.clip_text=true;control.tooltip_text=caption+" / ステータスを開く";ui.memory.key(control,"face_"+str(id))
-		if ui.page=="shop":
-			preload("res://item_drag.gd").target(control,
-				func(data):return pages.shop_view.can_drop_product(data,str(id)),
-				func(data):pages.shop_view.confirm_purchase(str(data.item),str(id)))
+	var strip=preload("res://party_strip.gd").new();parent.add_child(strip);strip.build(self)
+	return strip
 func open_detail(uid: String):
 	if ui.locked or ui.presenting or ui.modal_open() or not ui.can_inspect_member(uid):return
 	if not guard_leave(open_detail.bind(uid)):return
@@ -290,9 +278,11 @@ func tint(control: Button,color: Color):
 		style.bg_color=color.lightened(.12) if state_=="hover" else color
 		control.add_theme_stylebox_override(state_,style)
 func portrait_pressed(uid: String):
+	if detail_uid.is_empty() and pages.shop_view.sale_mode() and pages.shop_view.owner_pressed(uid):return
 	if detail_uid.is_empty():open_detail(uid);return
 	if uid==detail_uid or ui.locked or ui.presenting or committing or leave_pending or inventory_view.stage in ["pending","unknown","confirm"]:return
 	if not ui.can_inspect_member(uid) or not guard_leave(portrait_pressed.bind(uid)):return
+	if pages.shop_view.sale_mode() and not pages.shop_view.sync_sale_owner_from_status(uid):return
 	detail_uid=uid;detail_gear={};inventory_view.reset();owned_equipment_view.reset();clear_draft();ui.render();ui.dialog.window.grab_focus()
 func outside_press(point: Vector2) -> bool:
 	if detail_uid.is_empty() or not is_instance_valid(ui.dialog.window) or ui.dialog.window.title!=ui.dialog.STATUS_TITLE:return false
@@ -302,9 +292,9 @@ func outside_press(point: Vector2) -> bool:
 	# Child confirmations and other popups retain their exclusive input/consent.
 	for child in ui.find_children("*","Window",true,false):
 		if child!=window and child.visible and child.exclusive:return true
-	for id in pages.c().get("selected",[]):
-		var face=ui.find_child("PartyFace_"+str(id),true,false)
-		if face!=null and face.is_visible_in_tree() and face.get_global_rect().has_point(point):portrait_pressed(str(id));return true
+	var bar=ui.find_child("PartyFaceBar",true,false)
+	# Let each card decide on release: a swipe must not switch the detail owner.
+	if bar!=null and bar.is_visible_in_tree() and bar.get_global_rect().has_point(point):return false
 	ui.dialog.close();return true
 
 func open_portrait_preview(u: Dictionary):

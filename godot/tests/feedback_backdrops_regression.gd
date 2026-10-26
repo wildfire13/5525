@@ -21,7 +21,7 @@ func run():
 		root.size=dims
 		for spec in [["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"],["astaris","map","departure_map"],["astaris","hub",""]]:
 			var scenario=seed.duplicate(true);scenario.state.location=spec[0]
-			await game.update({"op":"campaign_load","data":scenario});game.navigate(spec[1]);await settle()
+			await game.update({"op":"campaign_load","data":scenario});await enter_facility(spec[1]);await settle()
 			await visual_contract(str(spec)+str(dims))
 			var npc=node("FacilityNpc");var before=await saved();var art=game.pages.facility_art;var path=art.npc.selected_path;var random=art.npc.rng.state
 			if spec[2] not in ["departure_map",""]:
@@ -30,7 +30,7 @@ func run():
 			else:check(npc==null,"no invented NPC for hub/map "+str(spec))
 			game.render();await settle()
 			check(art.npc.selected_path==path and art.npc.rng.state==random and await saved()==before,"rerender preserves visit and exact save "+str(spec)+str(dims))
-	var scenario=seed.duplicate(true);scenario.state.location="east";await game.update({"op":"campaign_load","data":scenario});game.navigate("shop");await settle()
+	var scenario=seed.duplicate(true);scenario.state.location="east";await game.update({"op":"campaign_load","data":scenario});await enter_facility("shop");await settle()
 	var selected=game.pages.facility_art.npc.selected_path;var rng=game.pages.facility_art.npc.rng.state;var before=await saved()
 	for dims in [Vector2i(960,540),Vector2i(1920,1080),Vector2i(1180,812)]:
 		root.size=dims;await settle();await visual_contract("resized "+str(dims))

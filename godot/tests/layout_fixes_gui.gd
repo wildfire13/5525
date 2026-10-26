@@ -32,7 +32,7 @@ func run():
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true;await settle();var original=await saved()
  var town=original.duplicate(true);town.state.location="east"
- await game.update({"op":"campaign_load","data":town});game.navigate("shop");await settle();await os_click(node("PartyFace_guard"));await os_click(node("StatusTab_2"));await os_click(node("PartySkillDetails_guard"))
+ await game.update({"op":"campaign_load","data":town});await enter_facility("shop");await settle();await os_click(node("PartyFace_guard"));await os_click(node("StatusTab_2"));await os_click(node("PartySkillDetails_guard"))
  var before=await saved();await snapshot("F1-open-1180")
  await os_resize(Vector2i(960,540));observe("F1-shrink",[node("SkillDetailsBack"),node("SkillDetailsSummary")]);await snapshot("F1-shrink-960")
  if not baseline:
@@ -69,7 +69,7 @@ func run():
  var output=[];OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray(["-e","const C=require(process.argv[1]);process.stdout.write(JSON.stringify(C.gear.filter(g=>!g.virtualDefault&&g.type!=='empty'&&!g.id.startsWith('fist-')).map(g=>g.id)));",ProjectSettings.globalize_path("res://../native/campaign.js")]),output,true,false)
  town=original.duplicate(true);town.state.location="east";town.state.gold=500;town.state.characters.guard.inventory={"potion":3,"ether":2}
  for id in JSON.parse_string("".join(output)):town.state.characters.guard.inventory[id]=3
- await game.update({"op":"campaign_load","data":town});game.navigate("shop");await settle();await os_click(node("PartyFace_guard"));game.dialog.window.size=Vector2i(1180,619);game.dialog.window.position=Vector2i(0,36);await settle()
+ await game.update({"op":"campaign_load","data":town});await enter_facility("shop");await settle();await os_click(node("PartyFace_guard"));game.dialog.window.size=Vector2i(1180,619);game.dialog.window.position=Vector2i(0,36);await settle()
  var list=node("OwnedEquipmentScroll");list.ensure_control_visible(node("OwnedEquipment_kungfu-pants"));await settle();await os_click(node("OwnedEquipment_kungfu-pants"));await os_click(node("InventoryDetails"));await os_click(node("SkillDetailsBack"))
  observe("F3-pants",[node("InventoryEquip"),node("InventoryList")]);await snapshot("F3-pants-1180x619")
  if not baseline:

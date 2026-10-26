@@ -28,7 +28,7 @@ func run():
 	game.checks_fast=true;game.audio.fast_mode=true
 	var seed=await saved();seed.state.location="east";seed.state.characters.mage.hp=1
 	await game.update({"op":"campaign_load","data":seed})
-	game.shop_uid="guard";game.shop_slot="rightHand";game.navigate("shop");await settle()
+	game.shop_uid="guard";game.shop_slot="rightHand";await enter_facility("shop");await settle()
 	await game.pages.shop_view.select_product("staff-wood");await settle()
 	var selected=game.pages.gear_id;var shop_slot=game.shop_slot
 	await open_inventory("mage")
@@ -62,3 +62,10 @@ func run():
 	game.closing=true;game.dialog.close(false);game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(4):await process_frame
 	quit(0 if failures.is_empty() else 1)
+
+func enter_facility(page: String):
+	game.navigate(page);await settle()
+	var service={"shop":"buy","party":"guild","inn":"inn"}.get(page,"")
+	var choice=game.find_child("FacilityChoice_"+service,true,false)
+	if choice!=null and choice.is_visible_in_tree():
+		choice.pressed.emit();await settle()

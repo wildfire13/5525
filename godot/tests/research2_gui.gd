@@ -53,7 +53,7 @@ func run():
  for id in JSON.parse_string("".join(output)):seed.state.characters.guard.inventory[id]=3
  seed.state.characters.guard.inventory.potion=3;seed.state.characters.guard.inventory.ether=2
  game.pages.facility_art.rng.seed=12345
- await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle();await os_click(node("PartyFace_guard"))
+ await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle();await os_click(node("PartyFace_guard"))
  await snapshot("inventory-"+str(width));var list=node("OwnedEquipmentScroll")
  list.ensure_control_visible(node("OwnedEquipment_kungfu-pants"));await settle();await os_click(node("OwnedEquipment_kungfu-pants"));await os_click(node("InventoryDetails"))
  check(node("SkillDetailsBody").text.contains("50%") and node("SkillDetailsBody").text.contains("周囲8マス") and node("SkillDetailsContext").text.contains("ガロ"),"OS unequipped item explanation preserves owner and canonical effects")

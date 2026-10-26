@@ -41,7 +41,7 @@ func run():
 		root.size=dims;root.position=Vector2i.ZERO;await settle()
 		for spec in cases:
 			var scenario=seed.duplicate(true);scenario.state.location=spec[0];scenario.state.characters.guard.hp=1
-			await game.update({"op":"campaign_load","data":scenario});game.navigate(spec[1]);await settle()
+			await game.update({"op":"campaign_load","data":scenario});await enter_facility(spec[1]);await settle()
 			var before=await saved()
 			for variant in production[spec[2]]:
 				art.catalog={spec[2]:[variant]};art.reset();game.render();await settle()
@@ -50,7 +50,7 @@ func run():
 				var back=node("GuildReturn" if spec[1]=="party" else "InnReturn" if spec[1]=="inn" else "TownReturn")
 				await os_click(back);check(game.page=="hub" and art.visit_key.is_empty(),"OS return through real background "+spec[2]+variant.style)
 				art.catalog=production.duplicate(true)
-				game.navigate(spec[1]);await settle();check(art.rng.state!=state,"OS departure and revisit redraw "+spec[2]+variant.style)
+				await enter_facility(spec[1]);await settle();check(art.rng.state!=state,"OS departure and revisit redraw "+spec[2]+variant.style)
 			art.catalog=production.duplicate(true)
 			if spec[0]=="east":
 				var state=art.rng.state

@@ -57,7 +57,7 @@ func run():
   node("SkillDetailsTabs").current_tab=2;await frames();check(node("SkillDetailsNote").text=="原文メモをそのまま表示","equipment note remains verbatim and separate")
   await click("SkillDetailsBack")
   var town=original.duplicate(true);town.state.location="east";town.state.characters.guard.inventory={"kungfu-pants":1}
-  await game.update({"op":"campaign_load","data":town});game.navigate("shop");game.pages.party_view.open_detail("guard");await settle()
+  await game.update({"op":"campaign_load","data":town});await enter_facility("shop");game.pages.party_view.open_detail("guard");await settle()
   var tip=node("OwnedEquipment_kungfu-pants").tooltip_text
   check(tip.contains("周囲8マス") and tip.contains("50%") and tip.contains("装備の基礎能力") and tip.contains("装備メモ（原文）"),"owned pants use canonical effect instead of truncated item note")
   check(not tip.contains("スキル射程：1\n"),"fractional square range is never truncated to orthogonal one")

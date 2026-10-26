@@ -32,7 +32,7 @@ func run():
 	for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
 		root.size=dims
 		check((await game.update({"op":"campaign_load","data":seed})).get("ok",false),"many real item IDs load without new inventory rules "+str(dims.x))
-		game.navigate("shop");await settle();game.pages.party_view.open_detail("guard");await settle()
+		await enter_facility("shop");await settle();game.pages.party_view.open_detail("guard");await settle()
 		var before=await saved();var inv=game.pages.party_view.inventory_view;var owned=game.pages.party_view.owned_equipment_view
 		check(audio_off(),"all audio remains OFF "+str(dims.x))
 		check(node("OwnedEquipmentList").get_parent()==node("OwnedEquipmentScroll") and node("OwnedEquipmentList").get_child_count()/3>=40,"real long list remains same three-column item API in its own scroll "+str(dims.x))
@@ -68,7 +68,7 @@ func run():
 		await choose_slot("rightHand");await ready_item("twin-bow");await tap("OwnedInventorySell_twin-bow");node("InventoryQuantity").value=2;await settle();await tap("InventoryPrepareSale")
 		var confirmed=inv.quote.duplicate(true);inv.commit();inv.commit();await settle()
 		check(int(game.campaign().gold)==int(confirmed.afterGold) and int(game.campaign().characters.guard.inventory["twin-bow"])==1,"double confirmation commits only canonical selected owner and quantity once "+str(dims.x))
-		var committed=await saved();await game.update({"op":"campaign_load","data":committed});game.navigate("shop");await settle();game.pages.party_view.open_detail("guard");await settle()
+		var committed=await saved();await game.update({"op":"campaign_load","data":committed});await enter_facility("shop");await settle();game.pages.party_view.open_detail("guard");await settle()
 		check((await saved())==committed and inv.item_id.is_empty() and selected_names().is_empty(),"reload retains exact committed inventory and clears ephemeral selection "+str(dims.x))
 		for entry in game.data.campaign.inventoryByCharacter.guard.entries:
 			if entry.id=="twin-bow":entry.name="長い名前でも対象と所持数を見失わないための双射の弓"
@@ -82,7 +82,7 @@ func run():
 			check(node("ModalDetailScroll").get_global_rect().encloses(last.get_global_rect()) and (await saved())==committed,"keyboard focus reveals last transfer target without consuming an item")
 		game.dialog.close();await settle()
 	# A late sale preview and an obsolete row callback cannot cross owners.
-	await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle();game.pages.party_view.open_detail("guard");await settle()
+	await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle();game.pages.party_view.open_detail("guard");await settle()
 	var actual=game.engine;var delayed=DelayedSaleEngine.new();delayed.actual=actual;game.add_child(delayed);game.engine=delayed
 	game.pages.party_view.owned_equipment_view.sell_item("guard","twin-bow")
 	while not delayed.held:await process_frame

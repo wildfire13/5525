@@ -44,7 +44,7 @@ func run():
 		for gear in ["hammer-iron-1","partner-dagger","longspear-wood","grappling-rope"]:
 			hero.weapon=gear
 			check((await game.update({"op":"campaign_load","data":seed})).get("ok",false),"F4 canonical equipped level29 fixture "+gear)
-			game.navigate("shop");game.pages.party_view.open_detail("guard");await settle()
+			await enter_facility("shop");game.pages.party_view.open_detail("guard");await settle()
 			if dims.x==1920:game.dialog.window.size=Vector2i(1280,640);await settle()
 			var before=await saved()
 			for slot in (["upperBody","rightHand"] if gear=="hammer-iron-1" else ["rightHand"]):
@@ -62,7 +62,7 @@ func run():
 			game.dialog.close();await settle()
 	# Oversize original material remains complete in this same hover. Its own
 	# scroll reaches the end; no second window is needed to recover omitted text.
-	root.size=Vector2i(1180,812);await game.update({"op":"campaign_load","data":seed});game.pages.party_view.open_detail("guard");await settle()
+	root.size=Vector2i(1180,812);await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");game.pages.party_view.open_detail("guard");await settle()
 	game.dialog.window.size=Vector2i(1180,420);await settle()
 	var before=await saved();var source=equipped("rightHand");var definition=game.roster().filter(func(u):return u.id=="guard")[0].equipmentDetails.rightHand.duplicate(true)
 	var note="長い原文 [角括弧] の完全保持。".repeat(220)+"原文の最後まで保持"
@@ -99,6 +99,7 @@ func run():
 	compare.queue_free();await frames(2)
 	game.dialog.escape();await settle()
 	check(not is_instance_valid(equipped_source.hover_window) if is_instance_valid(equipped_source) else true,"F4 Escape frees source-owned root hover")
+	check(game.page=="shop" and game.pages.facility_entry.view=="buy","F4 status hover and closing preserve shop purchase context")
 	var product=node("Product_spear-wood")
 	check(product!=null,"F4 actual root shop product is available")
 	product.show_hover();product.hover_window.idle=-1000;await frames(3)

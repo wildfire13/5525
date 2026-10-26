@@ -10,7 +10,7 @@ func run():
  var original=await saved();var art=game.pages.facility_art;var keepers={}
  for spec in [["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"]]:
   var seed=original.duplicate(true);seed.state.location=spec[0];seed.state.gold=500;seed.state.characters.guard.hp=140
-  await game.update({"op":"campaign_load","data":seed});game.navigate(spec[1]);await settle()
+  await game.update({"op":"campaign_load","data":seed});await enter_facility(spec[1]);await settle()
   var before=await saved();var path=art.npc.selected_path;var rng=art.npc.rng.state
   check(node("FacilityNpc")!=null,"NPC present on rendered facility "+spec[2])
   await snapshot(spec[2]+"-"+str(width))
@@ -36,13 +36,13 @@ func run():
    await os_click(node("PartyFace_guard"));await os_click(node("PartyFace_archer"));await os_key("Escape")
    check(not game.modal_open() and art.npc.selected_path==path,"OS item shop character switching retains keeper")
   game.navigate("hub");await settle();check(node("FacilityNpc")==null,"NPC leaves with facility "+spec[2])
-  game.navigate(spec[1]);await settle()
+  await enter_facility(spec[1]);await settle()
   check(art.npc.selected_path.get_file() in art.npc.CATALOG[spec[2]],"NPC reentry uses assigned facility "+spec[2])
  # Deterministic entry seeds for both actual weapon PNGs; no image substitutions.
  var east=original.duplicate(true);east.state.location="east";east.state.gold=500
  await game.update({"op":"campaign_load","data":east});game.navigate("hub");await settle()
  for seed in range(16):
-  art.npc.rng.seed=seed;game.navigate("shop");await settle()
+  art.npc.rng.seed=seed;await enter_facility("shop");await settle()
   var path=art.npc.selected_path
   if not keepers.has(path):keepers[path]=true;await snapshot(path.get_file().get_basename()+"-"+str(width))
   var state=art.npc.rng.state;root.size=Vector2i(1180,812) if width==1920 else Vector2i(1920,1080);await settle()

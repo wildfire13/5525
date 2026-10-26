@@ -60,7 +60,7 @@ func run():
 		root.size=dims
 		for spec in cases:
 			var scenario=seed.duplicate(true);scenario.state.location=spec[0]
-			await game.update({"op":"campaign_load","data":scenario});game.navigate(spec[1]);await settle()
+			await game.update({"op":"campaign_load","data":scenario});await enter_facility(spec[1]);await settle()
 			var before=await saved();var path=art.npc.selected_path;var state=art.npc.rng.state
 			check(art.npc.visit_key==spec[2] and art.npc.texture!=null and path.get_file() in art.npc.CATALOG[spec[2]],"NPC correctly assigned on facility entry "+str(spec)+str(dims.x))
 			npc_layout(str(spec)+str(dims.x))
@@ -73,10 +73,10 @@ func run():
 			check(art.npc.selected_path==path and art.npc.rng.state==state and (await saved())==before,"NPC owner switching and details preserve NPC and exact save "+str(spec)+str(dims.x))
 			game.navigate("hub");await settle()
 			check(art.npc.selected_path.is_empty() and art.npc.texture==null and art.npc.visit_key.is_empty(),"NPC leaves with facility "+str(spec)+str(dims.x))
-			game.navigate(spec[1]);await settle()
+			await enter_facility(spec[1]);await settle()
 			check((art.npc.rng.state!=state if spec[2]=="weapon" else art.npc.rng.state==state and art.npc.selected_path==path) and (await saved())==before,"NPC reentry redraws weapon only and preserves game save "+str(spec)+str(dims.x))
 		var east=seed.duplicate(true);east.state.location="east"
-		await game.update({"op":"campaign_load","data":east});game.navigate("shop");await settle()
+		await game.update({"op":"campaign_load","data":east});await enter_facility("shop");await settle()
 		var path=art.npc.selected_path;var state=art.npc.rng.state;var before=await saved()
 		await game.pages.shop_view.confirm_purchase("spear-wood","guard");await settle();await click("PurchaseDecline")
 		check((await saved())==before and art.npc.selected_path==path and art.npc.rng.state==state,"NPC purchase cancellation keeps original visit "+str(dims.x))
@@ -89,12 +89,12 @@ func run():
 		game.dialog.close();await settle()
 	await game.update({"op":"campaign_load","data":seed});game.navigate("map");await settle()
 	check(node("FacilityNpc")==null and node("FacilityNpcStage")==null and art.npc.texture==null,"NPC does not reserve empty space on departure map")
-	game.navigate("party");await settle();art.sync("battle","astaris","party")
+	await enter_facility("party");await settle();art.sync("battle","astaris","party")
 	check(art.npc.texture==null and art.npc.selected_path.is_empty(),"NPC combat transition clears decorative visit")
 	art.sync("town","astaris","party");game.pages.reset_context()
 	check(art.npc.texture==null and art.npc.selected_path.is_empty(),"NPC load/new-session context reset clears selected keeper")
 	var shop_seed=seed.duplicate(true);shop_seed.state.location="east"
-	await game.update({"op":"campaign_load","data":shop_seed});game.navigate("shop");await settle()
+	await game.update({"op":"campaign_load","data":shop_seed});await enter_facility("shop");await settle()
 	var keeper=art.npc.selected_path;var keeper_rng=art.npc.rng.state;var save_before_compact=await saved()
 	for compact in [Vector2i(1024,720),Vector2i(800,600)]:
 		root.size=compact;await settle()

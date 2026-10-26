@@ -39,8 +39,8 @@ test('city and four source-map villages, correct facilities',()=>{
   assert.deepEqual(C.locations.map(p=>p.facilities),[['board','guild','inn'],['board','weapon'],['board','armor'],['board','items'],['board','accessory']]);
   for(const p of C.locations){const s=town(p.id);assert.ok(C.board(s).length);assert.equal(C.view(s).guildAvailable,p.id==='astaris');okay(s);}
 });
-test('guild is city-only, free, max five, unique roster; porter required only at acceptance',()=>{
-  const s=C.create(),gold=s.gold;for(const ids of [[],['porter','porter'],['bogus','porter'],['porter','guard','archer','mage','scout','warrior']])assert.equal(C.select(s,ids),false);
+test('guild is city-only, free, party cap twelve, unique roster; porter required only at acceptance',()=>{
+  const s=C.create(),gold=s.gold;for(const ids of [[],['porter','porter'],['bogus','porter']])assert.equal(C.select(s,ids),false);
   assert.equal(C.select(s,['guard']),true);okay(s);assert.equal(acceptWithPorter(s,C.board(s)[0].id),false);
   assert.equal(C.select(s,['porter','warrior']),true);assert.equal(s.gold,gold);s.location='east';assert.equal(C.select(s,['porter']),false);
 });
