@@ -1,4 +1,5 @@
 extends Node
+signal diagnostic_completed(file_operation: bool, ok: bool, duration_ms: int)
 ## Rules and files own separate processes; a file timeout never kills game state.
 var transport=preload("res://pipe_transport.gd").new()
 var file_transport=preload("res://pipe_transport.gd").new()
@@ -64,6 +65,7 @@ func request(payload: Dictionary) -> Dictionary:
 	if busy or closing:return {"ok":false,"error":"接続が使用中、または終了しています"}
 	if disconnected or handles.is_empty():return {"ok":false,"connection_lost":true,"error":last_error}
 	busy=true
+	var diagnostic_started=Time.get_ticks_msec()
 	var result: Dictionary
 	if payload.get("op")=="godot_io":result=await _file_request(payload)
 	else:
@@ -71,6 +73,7 @@ func request(payload: Dictionary) -> Dictionary:
 		if result.has("transport_error") and not closing:result=_disconnect(result.transport_error)
 	if closing:result={"ok":false,"error":"終了しています"}
 	busy=false
+	diagnostic_completed.emit(payload.get("op")=="godot_io",bool(result.get("ok",false)),Time.get_ticks_msec()-diagnostic_started)
 	return result
 func close_engine():
 	closing=true

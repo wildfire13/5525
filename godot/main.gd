@@ -1,5 +1,6 @@
 extends Control
 var engine
+var debug_view
 var portraits=preload("res://portraits.gd").new()
 var icons=preload("res://ui_icons.gd").new()
 var audio
@@ -111,6 +112,7 @@ func _ready():
 	retry_button=button(top,"再接続",func():confirm("ゲーム接続を再開します。失われた未保存の進行は復元できません。\n再接続後、保存済みファイルを読み込んでください。",reconnect_engine));retry_button.visible=false
 	audio=preload("res://audio.gd").new();add_child(audio)
 	save_notice=preload("res://save_notice.gd").new();save_notice.name="SaveNotice";add_child(save_notice)
+	debug_view=preload("res://debug_window.gd").new();debug_view.configure(self);add_child(debug_view)
 	# A native Popup closes before forwarding its outside click, which used to
 	# reopen it on this same menu button. Keep this menu in the root canvas.
 	menu_overlay=Control.new();menu_overlay.name="CommonMenuOverlay";add_child(menu_overlay);menu_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu_overlay.z_index=60;menu_overlay.hide()
@@ -139,6 +141,7 @@ func _ready():
 			slider.set_value_no_signal(level);value_label.text="%d%%" % level+(" 無音" if level==0 else "")
 		refresh_audio.call();audio.settings_changed.connect(refresh_audio)
 		slider.value_changed.connect(func(value):audio.set_sound_level(kind,value);audio.sync(data))
+	if debug_view.is_enabled():local_button(menu_body,"開発情報（別ウィンドウ）",func():menu.hide();debug_view.open()).name="OpenDeveloperWindow"
 	button(menu_body,"新しい旅",func():menu.hide();confirm("未保存の進行を終了し、新しい旅を始めます。保存済みファイルは変更しません。",new_game))
 	local_button(menu_body,"閉じる",menu.hide)
 	content=VBoxContainer.new();content.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.size_flags_vertical=Control.SIZE_EXPAND_FILL;base.add_child(content)
@@ -152,6 +155,7 @@ func _ready():
 	var location_row=row(location_bar);location_label=Label.new();location_label.name="CommonLocation";location_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;location_label.clip_text=true;location_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;location_row.add_child(location_label)
 	resource_header=row(location_row);gold_header=icons.line(self,resource_header,"money","");gold_header.name="CommonGold"
 	engine=preload("res://engine_bridge.gd").new();add_child(engine)
+	if debug_view.is_enabled():engine.diagnostic_completed.connect(debug_view.request_finished)
 	resized.connect(queue_layout)
 	if not engine.start_engine():notice=engine.last_error;render();return
 	await update({"op":"campaign_start"})
@@ -299,7 +303,8 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 	if not kind.is_empty():
 		menu.hide()
 		if is_instance_valid(dialog.window):dialog.close()
-		for window in find_children("*","Window",true,false):window.hide()
+		for window in find_children("*","Window",true,false):
+			if window!=debug_view.window:window.hide()
 		var subdued=request.get("action") in ["retreat","endTrial"] or not str(state().get("result","")).begins_with("勝利")
 		loading_token=loading_screen.begin(kind,subdued)
 		await loading_screen.painted(loading_token)
@@ -307,7 +312,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 	if closing:locked=false;loading_screen.finish(loading_token);return {"ok":false,"error":"終了しています"}
 	for b in widgets:
 		if is_instance_valid(b) and not b.get_meta("read_only",false):b.disabled=true
-	if footer!=null:set_status("処理中…")
+	debug_view.refresh_state()
 	var connection=engine.connection_generation
 	var result_before=campaign().duplicate(true);var battle_before=state().duplicate(true);var receipts=[]
 	var reply: Dictionary=await engine.request(request)
@@ -495,7 +500,7 @@ func render():
 			var back=green_button(button(return_row,pages.facility_entry.return_label() if phase=="town" else "広場に移動",pages.acknowledge.bind("hub") if phase=="result" else pages.facility_entry.back,pages.guild_view.busy() if page=="party" else false));back.name="GuildReturn" if page=="party" else "InnReturn" if page=="inn" else "TownReturn"
 		pages.party_view.face_bar(content)
 	pages.party_view.refresh_modal()
-	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else ("処理中…" if locked or preview_pending or pages.quote_pending else "演出中…" if presenting else focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if phase in ["battle","deployment"] else ""))
+	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else (focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if phase in ["battle","deployment"] else ""))
 	rendering=false;memory.restore()
 func location_suffix(phase: String,c: Dictionary) -> String:
 	if phase!="town":return " / "+{"road":"街道","camp":"野営地","arrival":"到着","delivery":"配達","result":"結果","prepare":"出発準備"}.get(phase,"旅程")

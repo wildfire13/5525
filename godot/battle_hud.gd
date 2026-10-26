@@ -569,7 +569,7 @@ func render_presentation(phase: Dictionary):
 	if phase.get("phase")=="action":presentation_action=phase.duplicate(true)
 	elif presentation_action.get("action_id")!=phase.get("action_id"):presentation_action={}
 	l(target_box,"実行中" if phase.get("phase")=="action" else "実結果",true)
-	var action=l(target_box,str(presentation_action.get("label",phase.get("label","演出中…"))));action.name="PresentationAction"
+	var action=l(target_box,str(presentation_action.get("label",phase.get("label",""))));action.name="PresentationAction"
 	l(target_box,str(phase.get("label","")))
 	if phase.get("unit_id")!=null and phase.get("phase") in ["hurt","heal"]:
 		var u=unit(phase.unit_id);ui.icons.line(ui,target_box,"healing" if phase.phase=="heal" else "damage","実受領者: "+str(u.get("name","対象不明"))+" / 現在HP%d/%d" % [u.get("hp",0),u.get("max",0)])
@@ -581,7 +581,7 @@ func render_presentation(phase: Dictionary):
 		l(target_box,"効果対象: 味方全員 / 陣形成立中のみ")
 		ui.icons.line(ui,target_box,"attack_up","攻撃×1.75");ui.icons.line(ui,target_box,"defense_up","被害×0.65")
 	elif not names.is_empty():l(target_box,"指定対象: "+" / ".join(names))
-	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";ui.primary(b(ui.battle_actions,"演出中…",func():pass,true))
+	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
 func render_deployment():
 	var s=ui.state()
 	l(deployment_options,"陣形を選択",true)
