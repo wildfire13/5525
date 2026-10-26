@@ -2,6 +2,8 @@ extends RefCounted
 ## Visit-only decoration. Selection never consumes campaign or background RNG.
 const ROOT="res://assets/facility_npcs/"
 const CATALOG={"weapon":["weapon1.png","weapon2.png"],"armor":["armor.png"],"item":["item.png"],"accessory":["accessory.png"],"inn":["inn.png"],"guild":["guild.png"]}
+# Mouth landmarks measured on the seven unchanged 1024x1536 source portraits.
+const MOUTHS={"weapon1.png":Vector2(504,480),"weapon2.png":Vector2(488,565),"armor.png":Vector2(536,252),"item.png":Vector2(516,255),"accessory.png":Vector2(462,162),"inn.png":Vector2(514,226),"guild.png":Vector2(512,228)}
 var visit_key := ""
 var selected_path := ""
 var texture: Texture2D
@@ -19,6 +21,11 @@ func sync(facility: String):
 	if ResourceLoader.exists(selected_path,"Texture2D"):texture=load(selected_path)
 func available(viewport: Vector2) -> bool:
 	return texture!=null and viewport.x>=1120 and viewport.y>=720
+func mouth_anchor(parent: Control) -> Vector2:
+	var portrait=parent.get_node_or_null("FacilityNpc")
+	if portrait==null or texture==null:return Vector2(-1,-1)
+	var source: Vector2=MOUTHS.get(selected_path.get_file(),Vector2(512,240))
+	return portrait.global_position+portrait.size*source/texture.get_size()
 func portrait_layer(parent: Control):
 	var viewport=parent.get_viewport_rect().size
 	if not available(viewport):return

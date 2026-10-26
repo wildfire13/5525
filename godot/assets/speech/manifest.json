@@ -29,5 +29,5 @@
     ]
   },
   "text": "No text in graphic; rendered in separate Label",
-  "processing": "Original generated RGBA image retained unchanged; runtime AtlasTexture regions only"
+  "processing": "Original generated RGBA image retained unchanged; runtime atlas UV regions, mirrored body halves, mouth-directed tail polygon and thought dots; tail root ink masked only inside body"
 }
