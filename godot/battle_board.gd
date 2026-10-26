@@ -217,7 +217,12 @@ func refresh_actor_scale():
 		ghost.pixel_size=texture_pixel_size(ghost.texture);ghost.position=point(int(preview.destination))+sprite_origin(ghost)
 func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, chosen: Array):
 	var phase_key=JSON.stringify(d.get("presentation"))
-	if phase_key!=last_visual_phase:reset_animation()
+	if phase_key!=last_visual_phase:
+		var same_action=d.get("presentation") is Dictionary and data.get("presentation") is Dictionary and d.presentation.get("action_id")==data.presentation.get("action_id")
+		if same_action:
+			reset_portrait_animation()
+			if is_instance_valid(skill_effects):skill_effects.end_phase()
+		else:reset_animation()
 	if not d.get("presentation") is Dictionary:
 		effect_action.clear();last_animated_phase=""
 	elif d.presentation.get("action_id")!=effect_action.get("action_id"):
@@ -287,6 +292,7 @@ func legal_target_cells() -> Array:
 	return result
 func draw_overlay():
 	if world==null or data.is_empty():return
+	var resolving=data.get("presentation") is Dictionary
 	var state: Dictionary=data.get("state") if data.get("state") is Dictionary else {}
 	var ranges=preview.get("ranges",data.get("ranges",{}).get(kind,[]))
 	if preview.is_empty() and kind in ["move","return"]:ranges=data.get("choices",{}).get(kind,[])
@@ -294,9 +300,9 @@ func draw_overlay():
 	for p in ranges:
 		var w=point(int(p));var poly=PackedVector2Array()
 		for offset in [Vector3(-.58,.04,-.58),Vector3(.58,.04,-.58),Vector3(.58,.04,.58),Vector3(-.58,.04,.58)]:poly.append(project(w+offset))
-		overlay.draw_colored_polygon(poly,Color(.25,.65,1,.2))
+		overlay.draw_colored_polygon(poly,Color(.25,.65,1,.035 if resolving else .2))
 	if not reference_mode:
-		for p in legal_target_cells():cell_outline(int(p),Color(.3,.9,.55,.65))
+		for p in legal_target_cells():cell_outline(int(p),Color(.3,.9,.55,.12 if resolving else .65))
 	for p in preview.get("cells",[]):cell_outline(int(p),Color("#fb923c"),3.0)
 	if preview.get("target") is float or preview.get("target") is int:cell_outline(int(preview.target),Color("#fff0ac"),3.0)
 	var threats={}
@@ -307,14 +313,15 @@ func draw_overlay():
 			var dest=project_cell(int(u.intent.destination))
 			overlay.draw_string(ThemeDB.fallback_font,dest+Vector2(-5,18),"↓",HORIZONTAL_ALIGNMENT_LEFT,-1,22,Color("#fda4af"))
 	for p in threats:
-		cell_outline(p,Color("#fb7185"))
+		cell_outline(p,Color(Color("#fb7185"),.14 if resolving else 1.0))
 		var center=project_cell(p)
-		for stripe in [-8,0,8]:overlay.draw_line(center+Vector2(stripe-6,-7),center+Vector2(stripe+6,7),Color(1,.45,.55,.65),1.0,true)
-		overlay.draw_string(ThemeDB.fallback_font,project_cell(p)+Vector2(14,-8),"!%d" % threats[p],HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color.WHITE)
+		for stripe in [-8,0,8]:overlay.draw_line(center+Vector2(stripe-6,-7),center+Vector2(stripe+6,7),Color(1,.45,.55,.1 if resolving else .65),1.0,true)
+		overlay.draw_string(ThemeDB.fallback_font,project_cell(p)+Vector2(14,-8),"!%d" % threats[p],HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color(1,1,1,.25 if resolving else 1))
 	for side in ["ally","enemy"]:
 		var slots=data.get("formationSlots",{}).get(side,[24,13,33] if side=="ally" else [25,16,36])
 		var active=data.get("formed",{}).get(side,false)
 		var color=Color("#ffe197") if active else Color(.82,.8,.62,.6)
+		if resolving:color.a*=.25
 		for i in range(3):
 			var at=project_cell(slots[i]);dashed(at,project_cell(slots[(i+1)%3]),color)
 			if active:overlay.draw_circle(at,13+sin(pulse*3)*2,Color(1,.82,.35,.18))
@@ -331,7 +338,9 @@ func draw_overlay():
 			for e in data.get("enemyInfo",[]):
 				if e.id==u.id:valid=e.valid
 			for p in u.intent.cells:
-				arrow(project_cell(u.pos),project_cell(p),(Color(1,.38,.36,.95) if valid else Color(.86,.74,.47,.85)) if inspected_enemy.is_empty() or inspected_enemy==u.id else Color(.86,.6,.55,.35),3.0 if inspected_enemy==u.id else 1.5)
+				var intent_color=(Color(1,.38,.36,.95) if valid else Color(.86,.74,.47,.85)) if inspected_enemy.is_empty() or inspected_enemy==u.id else Color(.86,.6,.55,.35)
+				if resolving:intent_color.a*=.14
+				arrow(project_cell(u.pos),project_cell(p),intent_color,1.0 if resolving else 3.0 if inspected_enemy==u.id else 1.5)
 	if preview.get("destination")!=null:
 		var actor={}
 		for u in state.get("units",[]):
@@ -374,6 +383,8 @@ func draw_unit_labels(state: Dictionary):
 		for i in range(lines.size()):overlay.draw_string(ThemeDB.fallback_font,origin+Vector2(6,23+i*24),lines[i],HORIZONTAL_ALIGNMENT_LEFT,width_-12,18,Color.WHITE)
 func reset_animation():
 	if is_instance_valid(skill_effects):skill_effects.clear()
+	reset_portrait_animation()
+func reset_portrait_animation():
 	if hit_tween and hit_tween.is_running():hit_tween.kill()
 	hit_tween=null
 	for nodes in actors.values():
@@ -394,6 +405,7 @@ func effect_event(p: Dictionary) -> Dictionary:
 		var intent=actor.get("intent",{}) if actor.get("intent") is Dictionary else {}
 		if skill=="legSweep":cells=data.get("ranges",{}).get("skill",[]).duplicate()
 		elif skill=="stamp":
+			recipient=int(p.get("target",-1))
 			cells=intent.get("cells",[]).duplicate() if actor.get("side")=="enemy" and intent.get("kind")=="skill" else data.get("stampAreas",{}).get(str(int(p.get("target",-1))),[]).duplicate()
 		if action_kind=="attack":
 			if actor.get("side")=="enemy" and not intent.get("cells",[]).is_empty():
@@ -404,8 +416,15 @@ func effect_event(p: Dictionary) -> Dictionary:
 				target_id=str(p.get("target",""))
 				for unit in data.get("state",{}).get("units",[]):
 					if unit.id==target_id:recipient=int(unit.pos);break
+			if p.get("attack_visual") is Dictionary:
+				recipient=int(p.attack_visual.get("target_cell",-1));target_id=str(p.attack_visual.get("target_unit_id") if p.attack_visual.get("target_unit_id")!=null else "")
 		elif action_kind=="guard":recipient=int(actor.pos)
-		effect_action={"action_id":p.get("action_id"),"skill_id":skill,"kind":action_kind,"origin":int(actor.pos),"cells":cells,"recipient":recipient,"target_id":target_id}
+		elif skill=="mage":
+			target_id=str(p.get("target",""))
+			for unit in data.get("state",{}).get("units",[]):
+				if unit.id==target_id:recipient=int(unit.pos);break
+		effect_action={"action_id":p.get("action_id"),"skill_id":skill,"kind":action_kind,"origin":int(actor.pos),"cells":cells,"recipient":recipient,"target_id":target_id,"actor_id":str(actor.id),"resolved_status":p.get("resolved_status",[]).duplicate(true)}
+		if action_kind=="attack":effect_action.attack_style=attack_visual_style(actor,p.get("attack_visual",{}))
 		if skill not in ["legSweep","mage","stamp","attack","guard"] or (skill in ["legSweep","stamp"] and cells.is_empty()):return {}
 		var event=effect_action.duplicate(true);event.phase="action";return event
 	var same_action=p.get("action_id")==effect_action.get("action_id")
@@ -417,21 +436,37 @@ func effect_event(p: Dictionary) -> Dictionary:
 		if unit.id==p.get("unit_id"):
 			var event=effect_action.duplicate(true) if same_action else {}
 			event.skill_id="mage" if healing else "stamp" if skill=="stamp" else "impact"
-			event.phase=p.phase;event.recipient=int(unit.pos);event.guarding=unit.get("guard",false)
+			event.phase=p.phase;event.recipient=int(unit.pos);event.recipient_id=str(unit.id);event.amount=int(p.get("to",0))-int(p.get("from",0));event.guarding=unit.get("guard",false)
 			event.redirected=hurting and same_action and effect_action.get("kind")=="attack" and not str(effect_action.get("target_id","")).is_empty() and effect_action.target_id!=str(unit.id)
 			return event
 	return {}
+func attack_visual_style(actor: Dictionary,visual: Dictionary) -> String:
+	# Only the weapon(s) included by canonical reachFilteredPower may supply style.
+	# The largest contributing base attack is a display choice, never another hit.
+	var selected={}
+	for weapon in visual.get("weapons",[]):
+		if selected.is_empty() or float(weapon.get("atk",0))>float(selected.get("atk",0)):selected=weapon
+	if selected.is_empty():return "abstract"
+	for member in data.get("campaign",{}).get("roster",[]):
+		if member.id!=actor.id:continue
+		for detail in member.get("equipmentDetails",{}).values():
+			if detail is Dictionary and detail.get("id")==selected.get("itemId"):return str(detail.get("type","abstract"))
+	return "abstract"
 func animate(p: Dictionary) -> float:
 	var phase_key=JSON.stringify(p)
 	if phase_key==last_animated_phase:return 0.0
 	last_animated_phase=phase_key
-	reset_animation()
+	reset_portrait_animation()
+	if is_instance_valid(skill_effects):skill_effects.end_phase()
 	if p.get("kind")=="skip":return 0.0
 	if not actors.has(p.get("unit_id","")) or p.phase not in ["action","move","hurt","heal"]:return 0.0
 	var root: Node3D=actors[p.unit_id].root
 	var sprite: Sprite3D=actors[p.unit_id].sprite
 	var effect=effect_event(p)
-	if not effect.is_empty():skill_effects.play(effect,.3 if p.phase=="heal" else .42)
+	if not effect.is_empty():
+		var visual_duration=skill_effects.phase_duration(effect)
+		skill_effects.play(effect,visual_duration)
+		if skill_effects.is_painted(effect):return visual_duration
 	hit_tween=create_tween()
 	if p.phase=="move":
 		root.position=point(int(p.from))

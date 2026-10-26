@@ -34,6 +34,15 @@ func expect_event(fixture: Dictionary,frame: Dictionary,context: Dictionary) -> 
 		if hit.is_empty():return {}
 		return {"skill_id":"mage" if p.phase=="heal" else "stamp" if context.get("skill_id")=="stamp" and context.get("action_id")==p.action_id else "impact","phase":p.phase,"recipient":unit(frame.state,p.unit_id).pos,"guarding":hit.guarding,"redirected":hit.redirected}
 	return {}
+func expected_vfx_duration(event: Dictionary) -> float:
+	if event.get("skill_id")=="legSweep" and event.get("phase")=="action":return .76
+	if event.get("skill_id")=="mage":return .36 if event.get("phase")=="action" else .58
+	if event.get("skill_id")=="guard" and event.get("kind")=="guard" and event.get("phase")=="action":return .58
+	if event.get("skill_id")=="stamp":return .34 if event.get("phase")=="action" else .24
+	if event.get("skill_id")=="attack" and event.get("phase")=="action":return .30
+	if event.get("phase")=="hurt" and (event.get("guarding",false) or event.get("redirected",false)):return .3
+	if event.get("phase")=="hurt" and event.get("skill_id")=="impact":return .20
+	return .3 if event.get("phase")=="heal" else .42
 func replay(name: String,fixture: Dictionary):
 	board.reset_animation();board.effect_action.clear();board.last_animated_phase=""
 	var context={};var active_count=0;var casts=0;var hurts=0;var heals=0
@@ -55,7 +64,7 @@ func replay(name: String,fixture: Dictionary):
 			if p.phase=="heal":heals+=1
 			for key in expected:
 				check(snap.event.get(key)==expected[key],tag+" exact "+key+" "+str(expected[key]))
-			check(is_equal_approx(snap.duration,.3 if p.phase=="heal" else .42) and snap.elapsed==0,tag+" single fresh event uses existing duration")
+			check(is_equal_approx(snap.duration,expected_vfx_duration(snap.event)) and snap.elapsed==0,tag+" single fresh event uses documented production profile timing")
 			if p.phase=="action" and p.kind=="attack":
 				var actor=unit(frame.state,p.actor_id);var intent=actor.get("intent",{});var cell=-1
 				if actor.side=="enemy" and intent is Dictionary and not intent.get("cells",[]).is_empty():cell=intent.cells[0]
@@ -67,13 +76,13 @@ func replay(name: String,fixture: Dictionary):
 			board.skill_effects._process(1)
 			check(not board.skill_effects.snapshot().active,tag+" automatically clears at duration")
 		if p.phase in ["action","hurt","heal","move"]:
-			var expected_duration=.3 if p.phase=="heal" else (.32 if p.get("jump",false) else .24) if p.phase=="move" else .42
-			check(is_equal_approx(duration,expected_duration),tag+" original animation acknowledgement duration unchanged")
+			var expected_duration=expected_vfx_duration(snap.event) if wants else (.32 if p.get("jump",false) else .24) if p.phase=="move" else .42
+			check(is_equal_approx(duration,expected_duration),tag+" acknowledgement uses documented visual profile; move/jump timing unchanged")
 		check(board.data==before,tag+" replay leaves canonical packet and state untouched")
 		observations.append({"case":name,"phase":p.duplicate(true),"snapshot":snap,"duration":duration})
 	check(fixture==initial,name+" source state, save boundary, geometry and expected RNG observations unchanged")
 	if name.begins_with("sweep"):
-		check(casts==1 and hurts==0 and heals==0,name+" sweep is casting only, never a knockdown success or damage claim")
+		check(casts==1 and hurts==0 and heals==0,name+" sweep never fabricates HP damage or healing; resolved status is separate")
 	if name=="stampMiss":check(casts==1 and hurts==0,name+" empty stamp has ground cast only")
 	if name=="healFull":check(active_count==0,name+" invalid full-HP heal produces no presentation or effect")
 	if name=="stampNextActor":check(board.data.stampAreas.is_empty() and hurts==fixture.expected.impacts.size(),name+" remembered stamp survives canonical geometry disappearing after first packet")
