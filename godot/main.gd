@@ -4,6 +4,7 @@ var portraits=preload("res://portraits.gd").new()
 var icons=preload("res://ui_icons.gd").new()
 var audio
 var loading_screen
+var results_view
 var data: Dictionary={}
 var campaign_identity=preload("res://campaign_identity.gd").new()
 var preview: Dictionary={}
@@ -67,6 +68,7 @@ var skip_capture_once := false
 const BG=Color("#191d23")
 func _ready():
 	loading_screen=preload("res://loading_screen.gd").new();loading_screen.name="LoadingScreen";add_child(loading_screen)
+	results_view=preload("res://results_view.gd").new(self);add_child(results_view)
 	pages=preload("res://campaign_panels.gd").new(self)
 	memory=preload("res://ui_memory.gd").new(self)
 	hud=preload("res://battle_hud.gd").new(self)
@@ -122,6 +124,7 @@ func _ready():
 	for item in [["セーブ",save_game],["ロード",load_dialog],["行動ログ",show_action_log]]:
 		var callback: Callable=item[1]
 		button(menu_body,item[0],func():menu.hide();callback.call())
+	local_button(menu_body,"直近のリザルト",func():menu.hide();results_view.reopen()).name="ReopenResults"
 	local_button(menu_body,"操作説明",func():menu.hide();show_status_details())
 	local_button(menu_body,"全画面 F11",func():menu.hide();fullscreen())
 	for pair in [["bgm","BGM"],["voice","ボイス"],["se","SE"]]:
@@ -239,6 +242,7 @@ func confirm(text: String,fn: Callable):
 func fullscreen():
 	get_window().mode=Window.MODE_WINDOWED if get_window().mode==Window.MODE_FULLSCREEN else Window.MODE_FULLSCREEN
 func _unhandled_key_input(event):
+	if results_view.active:get_viewport().set_input_as_handled();return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode==KEY_F11:fullscreen();get_viewport().set_input_as_handled()
 		elif event.keycode==KEY_ESCAPE:
@@ -258,7 +262,7 @@ func _notification(what):
 func close_game():
 	if is_instance_valid(board):board.persist_camera()
 	if is_instance_valid(dialog.window):dialog.remember()
-	closing=true;loading_screen.finish(loading_screen.sequence);invalidate_preview()
+	closing=true;results_view.reset();loading_screen.finish(loading_screen.sequence);invalidate_preview()
 	while engine.busy:await get_tree().process_frame
 	if data.get("presentation")!=null:await engine.request({"op":"presentation_finish","id":data.presentation.id})
 	await audio.finish_audio();engine.close_engine()
@@ -298,11 +302,17 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		if is_instance_valid(b) and not b.get_meta("read_only",false):b.disabled=true
 	if footer!=null:set_status("処理中…")
 	var connection=engine.connection_generation
+	var result_before=campaign().duplicate(true);var battle_before=state().duplicate(true);var receipts=[]
 	var reply: Dictionary=await engine.request(request)
+	var first_receipt=results_view.receipt_for(str(request.get("action","")),result_before,battle_before,reply)
+	if not first_receipt.is_empty():receipts.append(first_receipt)
 	var arrived=false
 	if reply.get("ok",false) and reply.get("campaign") is Dictionary:
 		if reply.campaign.get("phase")=="arrival":
+			var arrival_before=reply.campaign.duplicate(true)
 			reply=await engine.request({"op":"campaign","action":"arrive","args":[]});arrived=reply.get("ok",false)
+			var arrival_receipt=results_view.receipt_for("arrive",arrival_before,{},reply)
+			if not arrival_receipt.is_empty():receipts.append(arrival_receipt)
 		if reply.get("ok",false) and reply.get("campaign") is Dictionary and reply.campaign.get("phase")=="result" and reply.campaign.get("result",{}).get("outcome")=="travel":
 			reply=await engine.request({"op":"campaign","action":"acknowledge","args":[]});arrived=reply.get("ok",false)
 	if connection!=engine.connection_generation:
@@ -320,14 +330,17 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 			if frontend.has("images"):
 				portraits.activate(frontend.images);audio.restore(frontend.music)
 			if request.get("op")=="campaign_load":
-				campaign_identity.accept_load(incoming);pages.reset_context("load",campaign_identity.current_id);memory.reset();skip_capture_once=true
+				results_view.reset();campaign_identity.accept_load(incoming);pages.reset_context("load",campaign_identity.current_id);memory.reset();skip_capture_once=true
 			elif request.get("op")=="campaign_start":
+				results_view.reset()
 				if frontend.get("reconnect_bootstrap",false):campaign_identity.reconnect_bootstrap();pages.reset_context("reconnect")
 				else:campaign_identity.new_campaign();pages.reset_context()
 				memory.reset();skip_capture_once=true
 			if arrived or request.get("action")=="arrive":
 				pages.hub_view.reset();page="hub"
 			invalidate_preview();data=reply
+			for receipt in receipts:results_view.enqueue(receipt)
+			if request.get("op")=="campaign_load":results_view.restore_quest(campaign())
 		notice=""
 	else:
 		notice=str(reply.get("error","操作できません"))
@@ -338,6 +351,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 	if loading_token>0:
 		await loading_screen.painted(loading_token)
 		loading_screen.finish(loading_token)
+	results_view.present_pending()
 	if arrived:save_notice.display(town_name(campaign().get("location",""))+"に到着しました")
 	if data.get("presentation")!=null and not presenting and not engine.disconnected:await present()
 	return reply
@@ -358,7 +372,7 @@ func present():
 	presenting=false
 	if not closing:render()
 func act(action: String,args: Array=[]):
-	if locked or presenting or closing or loading_screen.active:return
+	if locked or presenting or closing or loading_screen.active or results_view.active:return
 	if action=="trial":pages.remember_trial(args)
 	invalidate_preview()
 	var response=await update({"op":"campaign","action":action,"args":args,"presentation":action=="begin"})
@@ -742,12 +756,15 @@ func primary(control: Button) -> Button:
 	for state_ in ["normal","hover","pressed"]:
 		var style=StyleBoxFlat.new();style.bg_color=Color("#ecd4a1" if state_=="hover" else "#bca16c" if state_=="pressed" else "#d8bd86");style.border_color=Color("#f2dcae");style.set_border_width_all(1);style.set_corner_radius_all(5);style.set_content_margin_all(8)
 		control.add_theme_stylebox_override(state_,style)
-	for color_ in ["font_color","font_hover_color","font_pressed_color"]:control.add_theme_color_override(color_,Color("#252830"))
+	for color_ in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:control.add_theme_color_override(color_,Color("#252830"))
 	return control
 func short_name(control: Label,full: String):
 	control.max_lines_visible=2;control.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;control.tooltip_text=full
 	control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 func open_menu():
+	var result_button=find_child("ReopenResults",true,false)
+	if result_button!=null:
+		result_button.disabled=results_view.recent.is_empty() or campaign().get("phase") in ["battle","deployment"] or data.get("trial")!=null;result_button.set_meta("base_disabled",result_button.disabled);result_button.tooltip_text="戦闘外で、直近に確認した結果を表示できます" if result_button.disabled else "報酬を再付与せず、直近の結果を見返します"
 	if menu.visible:menu.hide();return
 	menu_overlay.show();menu.show();fit_menu()
 	var controls=menu_focus_controls()
@@ -782,6 +799,7 @@ func fit_battle_layout():
 func prefetch_shop_rows():
 	if pages!=null:pages.shop_view.prefetch_visible()
 func _input(event):
+	if results_view.active:return
 	if loading_screen.active:get_viewport().set_input_as_handled();return
 	if menu.visible and event is InputEventKey:
 		if event.pressed and not event.echo and event.keycode==KEY_TAB:

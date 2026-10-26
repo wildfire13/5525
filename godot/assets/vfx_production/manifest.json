@@ -1,0 +1,330 @@
+{
+  "status": "adopted_runtime",
+  "images": [
+    {
+      "name": "attack_blade",
+      "file": "attack_blade.png",
+      "size": [
+        655,
+        467
+      ],
+      "alpha_bbox": [
+        96,
+        96,
+        559,
+        371
+      ],
+      "sha256": "e1321327de168f2e07213d5d5be8f95361f4ed59782e348bf06f18793aebf1d3",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "attack_projectile",
+      "file": "attack_projectile.png",
+      "size": [
+        690,
+        273
+      ],
+      "alpha_bbox": [
+        96,
+        96,
+        594,
+        177
+      ],
+      "sha256": "78233644699f2543510c06ff6c22cb80a75cddea6e5a024a48a246ec6772ccf8",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "guard_plate",
+      "file": "guard_plate.png",
+      "size": [
+        578,
+        1024
+      ],
+      "alpha_bbox": [
+        90,
+        90,
+        488,
+        933
+      ],
+      "sha256": "14739a3f7c6264ccf3a58887b9135ec81576bdbb3a490f1a936804081dda6773",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "guard_reflection",
+      "file": "guard_reflection.png",
+      "size": [
+        680,
+        768
+      ],
+      "alpha_bbox": [
+        92,
+        92,
+        588,
+        675
+      ],
+      "sha256": "1ca5569501f1695b4976d044b5b56405bae3a4b8a166b296bb887ef38aa04579",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "guard_shard",
+      "file": "guard_shard.png",
+      "size": [
+        295,
+        512
+      ],
+      "alpha_bbox": [
+        72,
+        70,
+        223,
+        441
+      ],
+      "sha256": "5e07030b767d17319dafe482692ea3a97d0542e59a18c95148b079e167798ab3",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "heal_core",
+      "file": "heal_core.png",
+      "size": [
+        512,
+        499
+      ],
+      "alpha_bbox": [
+        55,
+        55,
+        457,
+        444
+      ],
+      "sha256": "2bab2346723f96a19da9abc040bb73a39d8d6dc9d4e2bde974609874f7bfede1",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "heal_shard",
+      "file": "heal_shard.png",
+      "size": [
+        326,
+        512
+      ],
+      "alpha_bbox": [
+        63,
+        63,
+        263,
+        449
+      ],
+      "sha256": "e408f5f3a210ab285b8752af6e7e721fc14bc421d7dc2cf093a85d882f55d1ac",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "heal_veil",
+      "file": "heal_veil.png",
+      "size": [
+        662,
+        1024
+      ],
+      "alpha_bbox": [
+        70,
+        70,
+        592,
+        954
+      ],
+      "sha256": "626213b627b86cb367b720ec89db491a5f06e111b21db9bb508634f2f6f72887",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "impact_contact",
+      "file": "impact_contact.png",
+      "size": [
+        630,
+        569
+      ],
+      "alpha_bbox": [
+        96,
+        96,
+        534,
+        473
+      ],
+      "sha256": "8651ac90e7ae74aea21a0b7bda85b325b4095ddf79853f7d1980100c16cacda3",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "pose_crouch",
+      "file": "pose_crouch.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "alpha_bbox": [
+        78,
+        167,
+        1176,
+        1165
+      ],
+      "sha256": "b2300e4e93858ed1246c94a40ea814351a40147e505f160cfd08976179b8c8e6",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "pose_stamp_lift",
+      "file": "pose_stamp_lift.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "alpha_bbox": [
+        127,
+        134,
+        1128,
+        1165
+      ],
+      "sha256": "50fecc027b83f0363e04d1ff27f17bbae2ba0cd70fcff9469573b09499a7df05",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "pose_stamp_slam",
+      "file": "pose_stamp_slam.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "alpha_bbox": [
+        77,
+        54,
+        1177,
+        1165
+      ],
+      "sha256": "8abeca481dad561e8bb609670df8179cf3a66ab369f20c60e8586121fd6fa237",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "pose_sweep",
+      "file": "pose_sweep.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "alpha_bbox": [
+        45,
+        194,
+        1209,
+        1165
+      ],
+      "sha256": "69d0962518076c442be88839fdbd64d5a42b92e1c48222dd0a21ff4fa3b8f759",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "stamp_fall",
+      "file": "stamp_fall.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "alpha_bbox": [
+        99,
+        79,
+        939,
+        931
+      ],
+      "sha256": "020c6903bb53cfac9942a39784bbc4789ef9f6a52cc79ff794f9dea5fe1b7005",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "stamp_impact",
+      "file": "stamp_impact.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "alpha_bbox": [
+        129,
+        64,
+        712,
+        743
+      ],
+      "sha256": "c8b835282f3e22eb25d7180f972283b57e2917f77dc5e0330e1847be8600ef7c",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "stamp_rubble",
+      "file": "stamp_rubble.png",
+      "size": [
+        512,
+        512
+      ],
+      "alpha_bbox": [
+        70,
+        92,
+        448,
+        420
+      ],
+      "sha256": "99acec4f75b38d51bf168f2859b27de08446ad09967b2d640adaee472acdb133",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "sweep_arc",
+      "file": "sweep_arc.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "alpha_bbox": [
+        64,
+        69,
+        946,
+        960
+      ],
+      "sha256": "84d74e62b73d364fe6c0d08e69be0d9d0773f274b5bc051e933641de0dec3602",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "sweep_dust",
+      "file": "sweep_dust.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "alpha_bbox": [
+        64,
+        79,
+        960,
+        960
+      ],
+      "sha256": "9b57c99635b47c7e2379727b097694dc3619fc157e613afd1d75cbbe00571d8b",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    },
+    {
+      "name": "sweep_shard",
+      "file": "sweep_shard.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "alpha_bbox": [
+        92,
+        79,
+        939,
+        930
+      ],
+      "sha256": "28343ede4bb67030e53d1a0b6829ab9ab46b167997b8dc46881aa32e0232ab20",
+      "generation": "original_imagegen",
+      "usage": "runtime"
+    }
+  ],
+  "pose_base_sha256": "c8e248f42d9fa7d4b4f97ee5caaef2c4b9164899215ad0a30c9820a2bb7b70b0",
+  "pose_scope": "default ally knight.png only; never replaces custom portraits or other characters"
+}

@@ -1,0 +1,37 @@
+{
+  "status": "adopted_runtime",
+  "images": [
+    {
+      "file": "battle-crest.png",
+      "size": [
+        640,
+        768
+      ],
+      "alpha_bbox": [
+        64,
+        112,
+        576,
+        655
+      ],
+      "sha256": "bfd488fb077ee1d4fcf392ffbaa63a30185e296cf150caefd6216f28183e57f7",
+      "generation": "original_imagegen",
+      "status": "adopted_runtime"
+    },
+    {
+      "file": "quest-crest.png",
+      "size": [
+        640,
+        768
+      ],
+      "alpha_bbox": [
+        64,
+        104,
+        576,
+        663
+      ],
+      "sha256": "c3bfa4a5cf3788d3f123817dcf680687cc8322d4304b954242b32c419668c323",
+      "generation": "original_imagegen",
+      "status": "adopted_runtime"
+    }
+  ]
+}

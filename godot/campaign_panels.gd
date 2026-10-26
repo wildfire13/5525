@@ -301,7 +301,9 @@ func result(parent):
 	if result_.get("hours")!=null:l(parent,"所要時間 %d時間" % result_.hours)
 	l(parent,"現在地: "+town(c().location)+"。ここで施設を利用し、次の出発を選べます。")
 
-func acknowledge(page: String):ui.page=page;await ui.act("acknowledge",[])
+func acknowledge(page: String):
+	if ui.results_view.active and ui.results_view.current.get("acknowledge",false):await ui.results_view.advance_to(page);return
+	ui.page=page;await ui.act("acknowledge",[])
 
 func select_party(id: String):
 	if not ui.can_inspect_member(id):return

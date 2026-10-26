@@ -1,5 +1,5 @@
 extends SceneTree
-## Keep the short shield distinct from selection and foot-level status information.
+## Kind-less legacy shield packets remain distinct from selection and foot-level status information.
 var checks: Array = []
 func _initialize():call_deferred("run")
 func check(ok: bool, label: String):
