@@ -53,7 +53,9 @@ func run():
 		await enter_facility("inn");await settle();return_layout("InnReturn")
 		check(node("InnParty").get_child_count()==game.campaign().selected.size(),"inn card count follows active party")
 		check(node("InnParty").find_children("*","Button",true,false).is_empty(),"inn cards have no inventory buttons")
-		check(node("InnStay").size.x<root.size.x/2 and green(node("InnStay")) and node("InnStay").disabled,"compact green stay control disables when full")
+		check(node("InnStay").size.x<root.size.x/2 and green(node("InnStay")) and not node("InnStay").disabled,"compact green stay control permits free full-health greeting")
+		var full_before=await saved();await click("InnStay")
+		check(await saved()==full_before and game.pages.inn_view.dialogue==game.pages.inn_view.FULL_GREETING and game.pages.inn_view.recovered.is_empty(),"full-health stay uses free greeting without recovery")
 		for id in game.campaign().selected:
 			check(node("InnPortrait_"+id).texture!=null and node("InnHP_"+id).text.contains("HP ") and node("InnMP_"+id).text.contains("MP "),"portrait HP MP card "+id)
 		await pointer_click(node("InnReturn"));check(game.page=="inn" and node("FacilityChoice_inn")!=null,"inn return accepts viewport pointer click and restores service entry")

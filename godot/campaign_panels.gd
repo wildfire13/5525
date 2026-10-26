@@ -15,11 +15,16 @@ var facility_entry
 var party_view
 var guild_view
 var hub_view
+var quest_board
+var inn_view
 var facility_art=preload("res://facility_art.gd").new()
 var item_stage := "entry"
 var item_id := ""
 const ItemMenu=preload("res://item_menu.gd")
 func _init(frontend):
+	ui=frontend
+	quest_board=preload("res://quest_board.gd").new(self)
+	inn_view=preload("res://inn_view.gd").new(self)
 	hub_view=preload("res://town_hub.gd").new(frontend)
 	ui=frontend;shop_view=preload("res://shop_view.gd").new(self);party_view=preload("res://party_view.gd").new(self);guild_view=preload("res://guild_view.gd").new(self);facility_entry=preload("res://facility_entry.gd").new(self)
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
@@ -70,44 +75,8 @@ func quest_info(parent,q: Dictionary):
 	l(parent,q.get("text",""))
 	l(parent,"荷物 %s / %d枠 / 納期 %d時間 / 報酬 %dG" % [q.get("cargo",""),q.get("weight",0),q.get("deadline",0),q.get("reward",0)])
 func hub(parent):hub_view.render(parent)
-func board(parent):
-	var town_data={}
-	for t in c().get("locations",[]):
-		if t.id==c().location:town_data=t
-	ui.icons.line(ui,parent,ui.icons.place(str(c().location)),"掲示板",true)
-	muted(parent,town_data.get("description",town_data.get("text","掲示板で依頼を選ぶか、依頼を受けずに次の拠点へ移動できます。")))
-	l(parent,"同時に受ける依頼は一件")
-	var quest=c().get("activeQuest")
-	if quest is Dictionary:
-		var box=card(parent);l(box,"受注中: "+quest.name,true);quest_info(box,quest)
-		if c().location==quest.to:
-			var missing=not c().get("cargoAboard",false)
-			if missing:l(box,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
-			b(box,"拠点で荷物を届ける",ui.navigate.bind("hub"))
-		b(box,"地図で出発を準備",ui.navigate.bind("map"))
-	else:
-		muted(parent,"依頼文・期限・報酬は、繰り返し試遊のための仮設定です。")
-		if c().get("board",[]).is_empty():l(parent,"いま受注できる依頼はありません。地図から自由移動できます。")
-		for q in c().get("board",[]):
-			var box=card(parent);l(box,q.name,true);quest_info(box,q)
-			b(box,"この依頼を引き受ける",accept.bind(q.id),not c().get("hasPorter",false))
-		b(parent,"地図・出発 / 自由移動",ui.navigate.bind("map"))
-	if not c().get("hasPorter",false):l(parent,"クエスト受注には最低1人のポーターが必要です。ギルドで編成してください。自由移動は可能です。")
-
-func accept(id: String):
-	if ui.locked or ui.modal_open():return
-	var token=c().get("inventoryToken");var epoch=ui.pages.epoch
-	ui.dialog.open("荷物を持つポーターを選択",func(body,actions):
-		l(body,"この依頼の「荷物」を受け取るポーターを選んでください。")
-		for member in roster():
-			if c().selected.has(member.id) and member.job=="porter":
-				b(body,member.name,accept_with_owner.bind(id,member.id,token,epoch)).name="QuestCargoOwner_"+member.id
-		b(actions,"キャンセル",ui.dialog.close).name="QuestCargoCancel")
-func accept_with_owner(id: String,owner_id: String,token,epoch):
-	if ui.locked or epoch!=ui.pages.epoch or token!=c().get("inventoryToken"):return
-	ui.dialog.close(false)
-	await ui.act("accept",[id,owner_id])
-	if c().get("activeQuest") is Dictionary:ui.destination=c().activeQuest.to;ui.navigate("map")
+func board(parent):quest_board.render(parent)
+func accept(id: String):quest_board.open_picker(id)
 func select_destination(id: String):
 	ui.destination=id;ui.render()
 func map(parent):
@@ -229,35 +198,9 @@ func items(parent):
 		if item_stage=="target":
 			var reason=ItemMenu.camp_reason(selected_item,u,inventory)
 			var target=b(member,"使う" if reason.is_empty() else reason,use_selected_item.bind(u.id),not reason.is_empty());target.name="ItemTarget_"+str(u.id);ui.memory.key(target,"item_target_"+str(u.id))
-func inn(parent):
-	if facility_entry.render_top(parent,"inn"):return
-	facility_entry.render_dialogue()
-	var q: Dictionary=c().get("inn",{})
-	ui.icons.line(ui,parent,"inn","宿屋",true)
-	if not q.get("available",false):l(parent,"宿屋はアスタリスで利用できます。");return
-	l(parent,"パーティ全員で%dG（仮料金）" % q.price)
-	l(parent,"編成中の全員のHP・MPを上限まで回復します。戦闘不能の仲間も回復します。")
-	muted(parent,"控えの仲間は対象外。時間は経過しません（試作仕様）。");inn_cards(parent)
-	if not q.get("needsRecovery",false):l(parent,"全員が全回復しています。料金はかかりません。")
-	elif not q.get("affordable",false):l(parent,"所持金が足りません。宿泊には%dG必要です。" % q.price)
-	var actions=row(parent);actions.alignment=BoxContainer.ALIGNMENT_CENTER
-	ui.green_button(b(actions,"%dGで宿泊する / 確認" % q.price,stay_inn,not q.get("needsRecovery",false) or not q.get("affordable",false))).name="InnStay"
-func inn_cards(parent):
-	var scroll=ScrollContainer.new();scroll.name="InnPartyScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;parent.add_child(scroll)
-	var members=row(scroll);members.name="InnParty";members.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	for id in c().get("selected",[]):
-		var matches=roster().filter(func(u):return u.id==id)
-		if matches.is_empty():continue
-		var u=matches[0];var member=card(members);member.name="InnMember_"+str(id)
-		member.get_parent().custom_minimum_size.x=180;member.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		var face=ui.portrait(member,u,false,64);face.name="InnPortrait_"+str(id);face.custom_minimum_size.y=160;face.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		var name_label=l(member,u.name);name_label.name="InnName_"+str(id);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;ui.short_name(name_label,str(u.name))
-		var hp=ui.icons.line(ui,member,"hp","HP %d/%d" % [u.hp,u.max]);hp.name="InnHP_"+str(id);ui.emphasize_low_hp(hp,u)
-		ui.icons.line(ui,member,"mp","MP %d/%d" % [u.mp,u.maxMp]).name="InnMP_"+str(id)
-		if u.hp<=0:l(member,"戦闘不能")
-func stay_inn():
-	var q=c().get("inn",{})
-	ui.confirm("%dGを支払い、編成中の全員のHP・MPを全回復しますか？\n戦闘不能も回復。控えは対象外、時間は経過しません。" % q.get("price",30),ui.act.bind("inn",[]))
+func inn(parent):inn_view.render(parent)
+func inn_cards(parent):inn_view.cards(parent)
+func stay_inn():inn_view.stay()
 func shop(parent):
 	if facility_entry.render_top(parent,"shop"):return
 	facility_entry.render_dialogue()
@@ -308,6 +251,7 @@ func invalidate_quote(clear_id:=false):
 	quote_generation+=1;quote_pending=false;quote_stamp="";ui.gear_preview={}
 	if clear_id:gear_id=""
 func reset_context(plan_mode: String="discard",campaign_id: String=""):
+	quest_board.reset();inn_view.reset()
 	hub_view.reset()
 	facility_art.reset()
 	if ui.hud!=null:ui.hud.reset_context()
