@@ -62,8 +62,12 @@ func _file_request(payload: Dictionary) -> Dictionary:
 		return {"ok":false,"outcome":"unknown","error":"保存結果を確認できません。ゲーム進行は保持しています。保存先を確認してから別名で保存してください。","path":payload.get("path","")}
 	return {"ok":false,"error":"ファイル処理が終了しました（%s）。ゲーム進行は保持しています。" % result.transport_error}
 func request(payload: Dictionary) -> Dictionary:
-	if busy or closing:return {"ok":false,"error":"接続が使用中、または終了しています"}
-	if disconnected or handles.is_empty():return {"ok":false,"connection_lost":true,"error":last_error}
+	if busy or closing:
+		diagnostic_completed.emit(payload.get("op")=="godot_io",false,0)
+		return {"ok":false,"error":"接続が使用中、または終了しています"}
+	if disconnected or handles.is_empty():
+		diagnostic_completed.emit(payload.get("op")=="godot_io",false,0)
+		return {"ok":false,"connection_lost":true,"error":last_error}
 	busy=true
 	var diagnostic_started=Time.get_ticks_msec()
 	var result: Dictionary
