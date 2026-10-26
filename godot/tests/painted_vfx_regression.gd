@@ -13,7 +13,7 @@ func run():
  for i in range(5):await process_frame
  var fx=board.skill_effects;fx.set_process(false)
  var manifest=JSON.parse_string(FileAccess.get_file_as_string("res://assets/vfx_production/manifest.json"))
- check(manifest.images.size()==19 and fx.textures.size()==19,"19 original separated artwork layers loaded")
+ check(manifest.images.size()==19 and fx.textures.size()==38,"19 original separated artwork layers loaded")
  for entry in manifest.images:
   var path="res://assets/vfx_production/"+entry.file
   var im=Image.new();im.load_png_from_buffer(FileAccess.get_file_as_bytes(path))

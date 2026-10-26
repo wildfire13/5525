@@ -24,7 +24,7 @@ func expect_event(fixture: Dictionary,frame: Dictionary,context: Dictionary) -> 
 	var p=frame.presentation;var actor=unit(frame.state,p.actor_id)
 	if p.phase=="action":
 		var skill=p.get("skill_id","") if p.kind=="skill" else p.kind
-		if skill not in ["legSweep","mage","stamp","attack","guard"]:return {}
+		if skill not in ["legSweep","mage","stamp","attack","guard","archer"]:return {}
 		var cells=fixture.expected.cells.map(func(value):return int(value)) if skill in ["legSweep","stamp"] else []
 		return {"skill_id":skill,"phase":"action","origin":actor.pos,"cells":cells}
 	if p.phase in ["hurt","heal"]:
@@ -32,9 +32,10 @@ func expect_event(fixture: Dictionary,frame: Dictionary,context: Dictionary) -> 
 		for item in fixture.expected.impacts:
 			if item.action_id==p.action_id and item.unit_id==p.unit_id and item.phase==p.phase:hit=item;break
 		if hit.is_empty():return {}
-		return {"skill_id":"mage" if p.phase=="heal" else "stamp" if context.get("skill_id")=="stamp" and context.get("action_id")==p.action_id else "impact","phase":p.phase,"recipient":unit(frame.state,p.unit_id).pos,"guarding":hit.guarding,"redirected":hit.redirected}
+		return {"skill_id":"mage" if p.phase=="heal" else str(context.get("skill_id")) if context.get("skill_id") in ["stamp","archer"] and context.get("action_id")==p.action_id else "impact","phase":p.phase,"recipient":unit(frame.state,p.unit_id).pos,"guarding":hit.guarding,"redirected":hit.redirected}
 	return {}
 func expected_vfx_duration(event: Dictionary) -> float:
+	if event.get("skill_id")=="archer":return .24 if event.get("phase")=="hurt" else .32
 	if event.get("skill_id")=="legSweep" and event.get("phase")=="action":return .76
 	if event.get("skill_id")=="mage":return .36 if event.get("phase")=="action" else .58
 	if event.get("skill_id")=="guard" and event.get("kind")=="guard" and event.get("phase")=="action":return .58

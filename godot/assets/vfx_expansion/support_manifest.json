@@ -1,0 +1,349 @@
+{
+  "provenance": "Original OpenAI imagegen atlas, then imagegen edit for exact five-petal flower. No third-party art, no gameplay/state change.",
+  "source_sha256": "1591ad15418d1fc68d276130e80b1c65e4d57da75752d137b5bd3777a97515c6",
+  "production": "Separate source cells, alpha<=1 removal only, Lanczos downsample to max 320x280, 32px transparent padding, no color edits.",
+  "images": [
+    {
+      "name": "sup_wing",
+      "file": "sup_wing.png",
+      "size": [
+        384,
+        305
+      ],
+      "sha256": "55432be3e972a4a56559fd30050530888615f079cde0744a5cc33ec85109b741",
+      "alpha_bbox": [
+        32,
+        32,
+        352,
+        273
+      ],
+      "min_transparent_margin": 32,
+      "source_region": [
+        0,
+        0,
+        510,
+        344
+      ],
+      "source_alpha_bbox": [
+        38,
+        18,
+        470,
+        344
+      ],
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "anchor_meaning": "center of isolated motif; ground motifs use cell center",
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "name": "sup_bastion",
+      "file": "sup_bastion.png",
+      "size": [
+        384,
+        262
+      ],
+      "sha256": "d5d52c37167cd0b8a24c34415a1299d2334cdbd812915b108fa1c0f55b3e7b0c",
+      "alpha_bbox": [
+        32,
+        32,
+        352,
+        230
+      ],
+      "min_transparent_margin": 32,
+      "source_region": [
+        520,
+        0,
+        1020,
+        340
+      ],
+      "source_alpha_bbox": [
+        29,
+        66,
+        468,
+        338
+      ],
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "anchor_meaning": "center of isolated motif; ground motifs use cell center",
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "name": "sup_banner",
+      "file": "sup_banner.png",
+      "size": [
+        384,
+        244
+      ],
+      "sha256": "05a2b5f652b5dd9a6e20e75c08b4f8d4e97d5729b27d2a97c4b20381e743109f",
+      "alpha_bbox": [
+        32,
+        32,
+        352,
+        211
+      ],
+      "min_transparent_margin": 32,
+      "source_region": [
+        1030,
+        0,
+        1536,
+        340
+      ],
+      "source_alpha_bbox": [
+        22,
+        69,
+        481,
+        327
+      ],
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "anchor_meaning": "center of isolated motif; ground motifs use cell center",
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "name": "sup_bloom",
+      "file": "sup_bloom.png",
+      "size": [
+        384,
+        323
+      ],
+      "sha256": "c257186d191eb5221cead00dff9d54acc9ffaf2047fd67e446e889650fd16672",
+      "alpha_bbox": [
+        32,
+        32,
+        352,
+        291
+      ],
+      "min_transparent_margin": 32,
+      "source_region": [
+        0,
+        342,
+        510,
+        692
+      ],
+      "source_alpha_bbox": [
+        49,
+        0,
+        481,
+        350
+      ],
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "anchor_meaning": "center of isolated motif; ground motifs use cell center",
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "name": "sup_ribbon",
+      "file": "sup_ribbon.png",
+      "size": [
+        384,
+        147
+      ],
+      "sha256": "1083421b2711e23db2059857b5ebfbe26e45ab5314572b647ddfbfb18b2dc833",
+      "alpha_bbox": [
+        32,
+        32,
+        352,
+        115
+      ],
+      "min_transparent_margin": 32,
+      "source_region": [
+        510,
+        350,
+        1110,
+        675
+      ],
+      "source_alpha_bbox": [
+        3,
+        88,
+        595,
+        242
+      ],
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "anchor_meaning": "center of isolated motif; ground motifs use cell center",
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "name": "sup_vessel",
+      "file": "sup_vessel.png",
+      "size": [
+        384,
+        302
+      ],
+      "sha256": "c84a5051ba7350cf15303e1c7516742f23d67bdc34e664878d8cb38ff781c282",
+      "alpha_bbox": [
+        32,
+        32,
+        352,
+        270
+      ],
+      "min_transparent_margin": 32,
+      "source_region": [
+        1120,
+        345,
+        1536,
+        680
+      ],
+      "source_alpha_bbox": [
+        0,
+        27,
+        384,
+        313
+      ],
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "anchor_meaning": "center of isolated motif; ground motifs use cell center",
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "name": "sup_fang",
+      "file": "sup_fang.png",
+      "size": [
+        384,
+        267
+      ],
+      "sha256": "14f2de6517d46f9107171a86bbb2401b95b5dd1fa8a4b288b0d497362a93af88",
+      "alpha_bbox": [
+        32,
+        32,
+        352,
+        235
+      ],
+      "min_transparent_margin": 32,
+      "source_region": [
+        0,
+        690,
+        530,
+        1024
+      ],
+      "source_alpha_bbox": [
+        49,
+        0,
+        526,
+        303
+      ],
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "anchor_meaning": "center of isolated motif; ground motifs use cell center",
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "name": "sup_stride",
+      "file": "sup_stride.png",
+      "size": [
+        384,
+        245
+      ],
+      "sha256": "ec2f8c3f95f0af2bd392ef89caae663a116c470144bd021ab3bc6f3bd3f313d4",
+      "alpha_bbox": [
+        32,
+        32,
+        352,
+        213
+      ],
+      "min_transparent_margin": 32,
+      "source_region": [
+        535,
+        690,
+        1105,
+        1024
+      ],
+      "source_alpha_bbox": [
+        7,
+        0,
+        543,
+        304
+      ],
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "anchor_meaning": "center of isolated motif; ground motifs use cell center",
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "name": "sup_breath",
+      "file": "sup_breath.png",
+      "size": [
+        384,
+        306
+      ],
+      "sha256": "a950d251c8bc0b9c4998c0109bbfcf42a231e470cc0d4b95a3300d3c53c99213",
+      "alpha_bbox": [
+        32,
+        32,
+        352,
+        274
+      ],
+      "min_transparent_margin": 32,
+      "source_region": [
+        1120,
+        690,
+        1536,
+        1024
+      ],
+      "source_alpha_bbox": [
+        11,
+        29,
+        351,
+        286
+      ],
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "anchor_meaning": "center of isolated motif; ground motifs use cell center",
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    }
+  ]
+}

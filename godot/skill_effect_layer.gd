@@ -12,6 +12,8 @@ var textures={}
 var emitters: Array=[]
 var captions: Array=[]
 var reactions: Array=[]
+var physical
+var support
 var serial:=0
 var _last_action=""
 const PAINT=preload("res://shaders/vfx_painted.gdshader")
@@ -22,6 +24,8 @@ func _ready():
  for key in ["sweep_arc","sweep_dust","sweep_shard","heal_veil","heal_shard","heal_core","guard_plate","guard_reflection","guard_shard","pose_crouch","pose_sweep","impact_contact","attack_blade","attack_projectile","stamp_fall","stamp_impact","stamp_rubble","pose_stamp_lift","pose_stamp_slam"]:
   var path=ART+key+".png"
   if ResourceLoader.exists(path):textures[key]=load(path)
+ physical=preload("res://expanded_physical_vfx.gd").new(self)
+ support=preload("res://expanded_support_vfx.gd").new(self)
  set_process(false)
  _warm_material.call_deferred()
 func _warm_material():
@@ -37,6 +41,8 @@ func _shield_outline(cell: int) -> PackedVector2Array:
  return legacy._shield_outline(cell) # Kind-less legacy packets keep their original geometry.
 func _valid_cell(cell: int) -> bool:return cell>=0 and cell<50
 func phase_duration(event: Dictionary) -> float:
+ if physical!=null and physical.supports(event):return physical.duration(event)
+ if support!=null and support.supports(event):return support.duration(event)
  var skill=event.get("skill_id","");var phase=event.get("phase","")
  if skill=="legSweep" and phase=="action":return .76
  if skill=="mage":return .36 if phase=="action" else .58
@@ -47,7 +53,7 @@ func phase_duration(event: Dictionary) -> float:
  if phase=="hurt" and skill=="impact":return .20
  return .3 if phase=="heal" else .42
 func is_painted(event: Dictionary) -> bool:
- return event.get("skill_id") in ["legSweep","mage","stamp","attack","impact"] or (event.get("skill_id")=="guard" and event.get("kind")=="guard")
+ return (physical!=null and physical.supports(event)) or (support!=null and support.supports(event)) or event.get("skill_id") in ["legSweep","mage","stamp","attack","impact"] or (event.get("skill_id")=="guard" and event.get("kind")=="guard")
 func snapshot() -> Dictionary:
  return {"active":not _event.is_empty(),"event":_event.duplicate(true),"elapsed":_elapsed,"duration":_duration,"progress":clampf(_elapsed/_duration,0,1) if _duration>0 else 0.0,"emitter_count":emitters.size(),"caption_count":captions.size(),"texture_count":textures.size()}
 func end_phase():
@@ -66,14 +72,18 @@ func play(event: Dictionary,duration: float):
  end_phase()
  if not is_finite(duration) or duration<=0:return
  var skill=str(event.get("skill_id",""));var phase=str(event.get("phase",""))
- if not ((phase=="action" and skill in ["legSweep","mage","stamp","attack","guard"]) or (phase=="heal" and skill=="mage") or (phase=="hurt" and skill in ["stamp","impact"])):return
+ var expanded=(physical!=null and physical.supports(event)) or (support!=null and support.supports(event))
+ if not expanded and not ((phase=="action" and skill in ["legSweep","mage","stamp","attack","guard"]) or (phase=="heal" and skill=="mage") or (phase=="hurt" and skill in ["stamp","impact"])):return
  if not _valid_cell(int(event.get("origin",-1)) if phase=="action" else int(event.get("recipient",-1))):return
  _event=event.duplicate(true);_event.cells=[]
  for value in event.get("cells",[]):
   if (value is int or value is float) and _valid_cell(int(value)) and not (skill=="legSweep" and int(value)==int(event.origin)) and not _event.cells.has(int(value)):_event.cells.append(int(value))
  event=_event
  _elapsed=0;_duration=duration;serial+=1
- if not is_painted(event):legacy.play(event,duration)
+ if expanded:
+  if physical.supports(event):physical.play(event)
+  elif support.supports(event):support.play(event)
+ elif not is_painted(event):legacy.play(event,duration)
  else:
   if phase=="action":
    if skill=="legSweep":_sweep(event)
@@ -103,9 +113,9 @@ func _mask(row: Dictionary,cells: Array):
  for cell in cells:
   if _valid_cell(int(cell)):allowed[int(cell)]=1
  row.material.set_shader_parameter("ground_masked",true);row.material.set_shader_parameter("allowed_cells",allowed)
-func _caption(cell: int,text: String,color: Color,delay: float,life: float):
+func _caption(cell: int,text: String,color: Color,delay: float,life: float,options: Dictionary={}):
  if captions.size()>=16:return
- captions.append({"cell":cell,"text":text,"color":color,"age":-delay,"life":life})
+ var row={"cell":cell,"text":text,"color":color,"age":-delay,"life":life};row.merge(options,true);captions.append(row)
 func _sweep(event: Dictionary):
  var cell=int(event.origin);var cells=event.get("cells",[])
  var arc=_quad("sweep_arc",cell,Vector3(0,.065,0),Vector2(4.1,4.1),.48,.13,true,"sweep")
@@ -280,6 +290,7 @@ func _process(delta: float):
   var t=clampf(row.age/row.life,0,1);var eased=smoothstep(0,1,t) if row.tag=="projectile" else 1-pow(1-t,3)
   var n=row.node;var mat=row.material
   n.position=b.point(row.cell)+row.offset+row.travel*eased
+  if row.has("follow_id") and b.actors.has(row.follow_id):n.position=b.actors[row.follow_id].root.position+row.offset+row.travel*eased
   if row.get("sprite_anchor",false):
    for unit in b.data.get("state",{}).get("units",[]):
     if int(unit.pos)==int(row.cell) and b.actors.has(unit.id):
@@ -320,7 +331,7 @@ func _draw():
  if b==null:return
  for row in captions:
   if row.age<0:continue
-  var t=clampf(row.age/row.life,0,1);var at=b.project(b.point(row.cell)+Vector3(0,1.55+t*.32,0));var color=Color(row.color,1-smoothstep(.65,1,t));var font=ThemeDB.fallback_font;var font_size=17 if row.text=="手番スキップ" else 26
+  var t=clampf(row.age/row.life,0,1);var at=b.project(b.point(row.cell)+Vector3(0,float(row.get("height",1.55))+t*float(row.get("drift",.32)),0));var color=Color(row.color,1-smoothstep(.65,1,t));var font=ThemeDB.fallback_font;var font_size=int(row.get("font_size",17 if row.text=="手番スキップ" else 26))
   var width=font.get_string_size(row.text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
   at.x=clampf(at.x,width*.5+3,maxf(width*.5+3,size.x-width*.5-3));at.y=clampf(at.y,font_size+3,maxf(font_size+3,size.y-3));at.x-=width*.5
   draw_string_outline(font,at,row.text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size,5,Color(.06,.08,.10,color.a))
