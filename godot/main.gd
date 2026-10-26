@@ -193,9 +193,13 @@ func button(parent: Node,text: String,fn: Callable,disabled:=false) -> Button:
 	return b
 func set_status(message: String):
 	# Newlines and wrapping must never enlarge the fixed status row.
+	# Reserve the populated line even when empty, so the party strip stays put.
+	footer.custom_minimum_size.y=maxf(24,ceilf(footer.get_theme_font("font").get_height(footer.get_theme_font_size("font_size"))))
 	footer.text=message.replace("\r","").replace("\n"," / ")
 	footer.tooltip_text=message;footer.set_meta("full_message",message)
-	if view_kind=="page":footer.visible=page not in ["shop","party"] and not message.is_empty()
+	footer.focus_mode=Control.FOCUS_NONE if message.is_empty() else Control.FOCUS_ALL
+	footer.mouse_filter=Control.MOUSE_FILTER_IGNORE if message.is_empty() else Control.MOUSE_FILTER_STOP
+	if view_kind=="page":footer.visible=page not in ["shop","party"]
 func show_status_details():
 	var message=str(footer.get_meta("full_message",footer.text))
 	var saved_notice=notice;var saved_hint=focus_hint;var epoch=pages.epoch;var generation=engine.connection_generation
