@@ -7,7 +7,7 @@ func run():
  root.size=Vector2i(1180,812);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true;await settle();var original=await saved();var town=original.duplicate(true);town.state.location="east"
- await game.update({"op":"campaign_load","data":town});game.navigate("shop");game.pages.party_view.open_detail("guard");await settle();await click("StatusTab_2");node("PartySkillDetails_guard").grab_focus();await click("PartySkillDetails_guard");var before=await saved()
+ await game.update({"op":"campaign_load","data":town});await enter_facility("shop");game.pages.party_view.open_detail("guard");await settle();await click("StatusTab_2");node("PartySkillDetails_guard").grab_focus();await click("PartySkillDetails_guard");var before=await saved()
  var detail=node("SkillDetailsWindow")
  for dims in [Vector2i(960,540),Vector2i(1180,812),Vector2i(1920,1080),Vector2i(960,540),Vector2i(1180,812)]:
   root.size=dims;await settle()

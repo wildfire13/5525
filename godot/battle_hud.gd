@@ -52,6 +52,10 @@ var deployment_bar: PanelContainer
 var deployment_options: VBoxContainer
 var deployment_actions: VBoxContainer
 var deployment_layout := false
+var partybar_reserved_height := 0.0:
+	set(value):
+		partybar_reserved_height=maxf(0,value)
+		if is_instance_valid(middle):resize()
 var left_info: VBoxContainer
 var person_box: VBoxContainer
 var inspected_uid := ""
@@ -95,8 +99,8 @@ func reset_context():
 func mount():
 	deployment_layout=false
 	middle=Control.new();middle.name="BattleOverlay";middle.mouse_filter=Control.MOUSE_FILTER_IGNORE;middle.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.content.add_child(middle);middle.size=Vector2(ui.size.x-48,ui.size.y-130);ui.battle_row=middle
-	ui.board=preload("res://battle_board.gd").new();ui.board.preferences=ui.preferences;ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";ui.add_child(ui.board);ui.move_child(ui.board,0);ui.board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deploy_drag.connect(ui.deploy_dragged);ui.board.enemy_focused.connect(inspect_enemy);ui.board.unit_hovered.connect(inspect_hover.bind(ui.board))
+	ui.board=preload("res://battle_board.gd").new();ui.board.preferences=ui.preferences;ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";ui.board.deployment_ui=ui;ui.add_child(ui.board);ui.move_child(ui.board,0);ui.board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deployment_assigned.connect(ui.deployment_assigned);ui.board.enemy_focused.connect(inspect_enemy);ui.board.unit_hovered.connect(inspect_hover.bind(ui.board))
 	left_panel=preload("res://floating_panel.gd").new();left_panel.viewport_bounds=true;middle.add_child(left_panel)
 	left_panel.configure(ui.preferences,"battle_actor","行動者 / コマンド",Rect2(0,76,320,650))
 	right_panel=preload("res://floating_panel.gd").new();right_panel.viewport_bounds=true;middle.add_child(right_panel)
@@ -115,22 +119,29 @@ func mount():
 	middle.move_child(left_panel,-1);middle.move_child(right_panel,-1)
 	resize()
 func resize():
-	if not is_instance_valid(left_panel) or middle.size.x<100:return
+	if not is_instance_valid(left_panel) or not is_instance_valid(ui.board) or ui.board.is_queued_for_deletion() or middle.size.x<100:return
 	var queue_scroll=ui.battle_header.find_child("TurnOrderViewport",true,false)
 	if queue_scroll!=null:queue_scroll.custom_minimum_size.x=queue_viewport_width()
 	ui.battle_header.position.y=maxf(0,middle.size.y-maxf(108,ui.battle_header.get_combined_minimum_size().y));ui.battle_header.size.x=middle.size.x
-	deployment_bar.position=Vector2(0,middle.size.y-152);deployment_bar.size=Vector2(maxf(280,middle.size.x-350),144)
-	# The formation window stays below the board. Only the compact action column
-	# needs to clear the bottom-right common menu.
+	# Both preparation controls end on the same baseline above the shared partybar.
 	var footer_end=middle.size.y-8
 	var common_menu=ui.find_child("CommonMenuButton",true,false)
 	if is_instance_valid(common_menu) and common_menu.is_visible_in_tree():footer_end=minf(footer_end,common_menu.global_position.y-middle.global_position.y-8)
+	if deployment_layout and partybar_reserved_height>0:
+		var partybar=ui.get("deployment_party_strip")
+		if is_instance_valid(partybar):footer_end=minf(footer_end,partybar.global_position.y-middle.global_position.y-8)
+		else:footer_end-=partybar_reserved_height
 	var action_height=maxf(1,deployment_actions.get_combined_minimum_size().y)
 	deployment_actions.size=Vector2(330,action_height);deployment_actions.position=Vector2(middle.size.x-330,footer_end-action_height)
+	var formation_height=maxf(action_height,deployment_bar.get_combined_minimum_size().y)
+	deployment_bar.size=Vector2(maxf(280,middle.size.x-350),formation_height)
+	deployment_bar.position=Vector2(0,footer_end-formation_height)
 	left_panel.viewport_bounds=true;right_panel.viewport_bounds=true
 	left_panel.reserved_top=0;right_panel.reserved_top=0
 	# Both phases have pinned controls below the draggable information panels.
 	var protected_top=minf(deployment_bar.global_position.y,deployment_actions.global_position.y) if deployment_layout else ui.battle_header.global_position.y
+	ui.board.deployment_bottom_limit=protected_top-ui.board.global_position.y if deployment_layout else 0.0
+	ui.board.update_camera()
 	var reserved=maxf(0,ui.size.y-protected_top+8)
 	left_panel.reserved_bottom=reserved;right_panel.reserved_bottom=reserved
 	left_panel.z_index=10;right_panel.z_index=10
@@ -156,12 +167,16 @@ func render():
 	update_board()
 	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(left_panel.body);ui.clear(right_panel.body);ui.clear(right_panel.footer)
 	render_queue();render_actor(a)
-	local(tools,"戦闘の詳細",toggle_details)
+	tools.visible=not deploying;tools.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	if not deploying:local(tools,"戦闘の詳細",toggle_details).name="BattleDetails"
 	if ui.data.get("trial") is Dictionary:
 		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.name="EndTrial";end.custom_minimum_size=Vector2(160,52)
 
 	tools.tooltip_text="右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小"
-	var hint=l(tools,tools.tooltip_text);hint.add_theme_font_size_override("font_size",16);hint.autowrap_mode=TextServer.AUTOWRAP_OFF;hint.clip_text=true;hint.max_lines_visible=1
+	var hint=l(right_panel.footer if deploying else tools,tools.tooltip_text)
+	hint.name="DeploymentCameraHint" if deploying else "BattleCameraHint";hint.add_theme_font_size_override("font_size",16)
+	hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART if deploying else TextServer.AUTOWRAP_OFF
+	hint.clip_text=not deploying;hint.max_lines_visible=-1 if deploying else 1
 	left_panel.visible=deploying or (a.get("side")=="ally" and not s.get("deploying",false) and s.get("result")==null) or ui.engine.disconnected
 	if phase is Dictionary and (is_instance_valid(action_visual) or str(phase.get("action_id",""))==shifted_action):left_panel.hide()
 	left_info=left_panel.body
@@ -576,13 +591,15 @@ func render_deployment():
 		control.tooltip_text="点線の3マスを味方の生存者で埋めると発動。\n味方全員の攻撃×1.5・被ダメージ×0.75。\n陣形強化中は攻撃×1.75・被ダメージ×0.65（使用者の次の番まで）。\n陣形が崩れている間は無効。"
 		control.name="DeploymentFormation_"+pair[0];control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.x=140
 	if not s.units.any(func(u):return u.id==ui.selected and u.side=="ally" and u.hp>0):
+		ui.selected=""
 		for u in s.units:
 			if u.side=="ally" and u.hp>0:ui.selected=u.id;break
 	left_info.set_meta("inspected_unit",ui.selected)
-	render_person_content(left_info,unit(ui.selected))
+	if ui.selected.is_empty():l(left_info,"下の控えメンバーを味方のマスへドラッグして配置してください。")
+	else:render_person_content(left_info,unit(ui.selected))
 	ui.battle_actions=deployment_actions
 	b(deployment_actions,"配置リセット",reset_deployment).name="DeploymentReset"
-	ui.primary(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]))).name="DeploymentBegin"
+	ui.primary(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true))).name="DeploymentBegin"
 func deployment_changed() -> bool:
 	for initial in ui.state().get("deploymentInitial",[]):
 		if unit(initial.id).get("pos")!=initial.pos:return true

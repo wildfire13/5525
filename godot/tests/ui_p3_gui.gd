@@ -43,7 +43,7 @@ func run():
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
  var seed=await saved();seed.state.location="east";seed.state.characters.guard.inventory={"spear-wood":2,"potion":2}
- await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle()
+ await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle()
  await os_click(node("PartyFace_guard"));var before=await saved()
  await actual_drag("rightHand","initial")
  check(await saved()==before,"actual OS first NO preserves complete save")

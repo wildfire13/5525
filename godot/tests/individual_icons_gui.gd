@@ -115,7 +115,7 @@ func normal_route():
  await os_click(game.hud.buttons.skill);await reveal_battle_row("archer");battle_draw_contract("archer","normal list");await capture("normal-battle-skills")
  await selected_flow("archer","normal-archer")
 func inventory_cases():
- await at_fixture("east");game.navigate("shop");await settle();await os_click(node("PartyFace_guard"))
+ await at_fixture("east");await enter_facility("shop");await settle();await os_click(node("PartyFace_guard"))
  var before=await saved()
  check(node("OwnedEquipmentList").get_child_count()/3>=47,"all real equipment remains in existing personal list")
  await reveal("OwnedEquipment_javelin-wood","OwnedEquipmentScroll");await capture("owned-thin-spears")
@@ -136,7 +136,7 @@ func inventory_cases():
  await os_key("Escape")
 func shop_cases():
  for place in ["east","west","north","south"]:
-  await at_fixture(place);game.navigate("shop");await settle();var before=await saved()
+  await at_fixture(place);await enter_facility("shop");await settle();var before=await saved()
   if place=="south":
    await capture("shop-items");check(await saved()==before,"item shop inspection preserves save");continue
   var product="javelin-wood" if place=="east" else "armor-silver-1" if place=="west" else "lone-ring-1"
@@ -145,7 +145,7 @@ func shop_cases():
   await capture("comparison-"+place);await os_click(node("ShopComparisonBack"))
   check(await saved()==before,"comparison and cancellation preserve exact save "+place)
  # Representative ordinary purchase, cancel, and two-count sale use canonical quotes.
- await at_fixture("east");game.navigate("shop");await settle();var before=await saved()
+ await at_fixture("east");await enter_facility("shop");await settle();var before=await saved()
  await reveal("ProductBuy_spear-wood","ShopProductsScroll");await os_click(node("ProductBuy_spear-wood"));await os_click(node("PurchaseDecline"))
  check(await saved()==before,"ordinary purchase cancellation consumes no money or inventory")
  await os_click(node("ProductBuy_spear-wood"));await os_click(node("PurchaseAgree"));await os_click(node("PurchaseRecipient_guard"))

@@ -10,6 +10,9 @@ func display(message: String,path: String=""):
 	if is_instance_valid(fade):fade.kill()
 	caption.text=message;tooltip_text=path;modulate.a=1;show();place()
 	fade=create_tween();fade.tween_interval(5.0);fade.tween_property(self,"modulate:a",0.0,.5);fade.tween_callback(hide)
+func dismiss():
+	if is_instance_valid(fade):fade.kill()
+	fade=null;caption.text="";tooltip_text="";modulate.a=1;hide()
 func place():
 	var ui=get_parent();var width=minf(680,maxf(160,ui.size.x*.45))
 	size=Vector2(width,50);position=Vector2((ui.size.x-width)/2,ui.top.get_global_rect().end.y+8)

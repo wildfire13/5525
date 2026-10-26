@@ -46,7 +46,7 @@ func run():
  game.checks_fast=true;game.audio.fast_mode=true;await settle();var original=await saved();var town=original.duplicate(true);town.state.location="east"
  town.state.characters.guard.level=29;town.state.characters.guard.xp=2800;town.state.characters.guard.allocations.str=2;town.state.characters.guard.statPoints=54;town.state.characters.guard.skillPoints=28;town.state.characters.guard.weapon="hammer-iron-1"
  check((await game.update({"op":"campaign_load","data":town})).get("ok",false),"isolated level29 hammer fixture passes canonical load")
- game.navigate("shop");await settle();await os_click(node("PartyFace_guard"));var before=await saved()
+ await enter_facility("shop");await settle();await os_click(node("PartyFace_guard"));var before=await saved()
  for dims in [Vector2i(1280,800),Vector2i(1180,812),Vector2i(1920,1080)]:
   await os_resize(dims)
   await hover_equipped("upperBody","plain-"+str(dims.x))
@@ -56,7 +56,7 @@ func run():
  for item in [["partner-dagger","pincer","挟撃"],["longspear-wood","poleVault","ポールヴォールト"],["grappling-rope","grapple","引き寄せ"]]:
   town.state.characters.guard.weapon=item[0]
   check((await game.update({"op":"campaign_load","data":town})).get("ok",false),"long skill fixture passes canonical equipment eligibility "+item[0])
-  game.navigate("shop");await settle();await os_click(node("PartyFace_guard"));await os_resize(Vector2i(1180,812));before=await saved();await hover_equipped("rightHand",item[1]+"-1180")
+  await enter_facility("shop");await settle();await os_click(node("PartyFace_guard"));await os_resize(Vector2i(1180,812));before=await saved();await hover_equipped("rightHand",item[1]+"-1180")
   check(observations[-1].full_text.contains(item[2]),"tooltip is actual equipped skill rather than previous gear "+item[0])
   check(await saved()==before,"long skill hover is read-only "+item[0]);game.dialog.close();await settle()
  if not baseline:

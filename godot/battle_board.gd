@@ -2,6 +2,11 @@ extends Control
 signal cell_clicked(pos: int)
 signal enemy_focused(uid: String)
 signal deploy_drag(uid: String, pos: int)
+signal deployment_assigned(uid: String, pos: Variant)
+const DeploymentDrag=preload("res://deployment_drag.gd")
+var deployment_ui
+var deployment_bottom_limit := 0.0
+var suppress_deployment_release := false
 signal unit_hovered(uid: String)
 const CELL = 1.35
 var units: Array = [] # Demo scenery consumes an empty visual roster; gameplay is below.
@@ -151,11 +156,13 @@ func input_event(event):
 		if event.button_index==MOUSE_BUTTON_LEFT:
 			var pos=cell_at(event.position)
 			if event.pressed:
+				suppress_deployment_release=false
 				keyboard_cell=pos if pos>=0 else keyboard_cell;grab_focus()
 				press_cell=pos;press_uid=str(unit_at(pos).get("id",""))
-			elif pos>=0:
-				if pos!=press_cell and not press_uid.is_empty() and data.get("state",{}).get("deploying",false): deploy_drag.emit(press_uid,pos)
-				else: cell_clicked.emit(pos)
+			elif suppress_deployment_release or get_viewport().gui_is_dragging():
+				# Native D&D alone owns release once a drag began, including cancel.
+				suppress_deployment_release=false;press_cell=-1;press_uid="";accept_event();return
+			elif pos>=0:cell_clicked.emit(pos)
 	if event is InputEventMouseMotion:
 		if camera_drag!=0:
 			if camera_drag==MOUSE_BUTTON_RIGHT:camera_pan=(camera_pan+event.relative*world.zoom/maxf(1,size.x)).clamp(Vector2(-12,-8),Vector2(12,8))
@@ -165,7 +172,39 @@ func input_event(event):
 		set_hover(str(u.get("id","")))
 func persist_camera():
 	if preferences!=null and world!=null:preferences.store_camera({"pan":camera_pan,"yaw":camera_yaw,"pitch":camera_pitch,"zoom":world.zoom})
+func _get_drag_data(at_position: Vector2):
+	if not is_instance_valid(deployment_ui):return null
+	var member=unit_at(cell_at(at_position))
+	if member.get("side")!="ally" or member.get("hp",0)<=0:return null
+	var payload=DeploymentDrag.make_payload(deployment_ui,str(member.id),"board")
+	if payload==null:return null
+	suppress_deployment_release=true;press_cell=-1;press_uid=""
+	set_drag_preview(DeploymentDrag.preview(deployment_ui,str(member.id)))
+	set_hover("")
+	return payload
+func _can_drop_data(at_position: Vector2,payload) -> bool:
+	if not is_instance_valid(deployment_ui) or not DeploymentDrag.valid(deployment_ui,payload):return false
+	var global_at=get_global_transform_with_canvas()*at_position
+	if not Rect2(Vector2.ZERO,size).has_point(at_position) or not get_viewport_rect().has_point(global_at):return false
+	var cell=cell_at(at_position)
+	if cell<0:return payload.source=="board"
+	if cell%10>=5:return false
+	var occupant=unit_at(cell)
+	if not occupant.is_empty() and occupant.get("side")!="ally":return false
+	if payload.source=="board":return true
+	if not occupant.is_empty():return true
+	var roster=deployment_ui.campaign().get("deploymentRoster",{})
+	return int(roster.get("remaining",0))>0
+func _drop_data(at_position: Vector2,payload):
+	if not _can_drop_data(at_position,payload) or not DeploymentDrag.consume(deployment_ui,payload):return
+	var cell=cell_at(at_position)
+	suppress_deployment_release=true
+	deployment_assigned.emit(str(payload.uid),null if cell<0 else cell)
 func _input(event):
+	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE and get_viewport().gui_is_dragging():
+		var payload=get_viewport().gui_get_drag_data()
+		if payload is Dictionary and payload.get("kind")=="deployment_member":
+			suppress_deployment_release=true;get_viewport().gui_cancel_drag();get_viewport().set_input_as_handled();return
 	if camera_drag!=0 and event is InputEventMouseButton and not event.pressed and event.button_index==camera_drag:
 		camera_drag=0;persist_camera()
 func compact_board() -> bool:return size.y<300
@@ -181,11 +220,20 @@ func framing_bounds() -> Rect2:
 func update_camera():
 	if world==null or world.camera==null or view.size.x<=0 or view.size.y<=0 or size.y<=0:return
 	var camera: Camera3D=world.camera
-	var target=Vector3(0,.6,-1.1)+Vector3(-camera_pan.x,0,-camera_pan.y).rotated(Vector3.UP,camera_yaw)
+	var pan=Vector3(-camera_pan.x,0,-camera_pan.y).rotated(Vector3.UP,camera_yaw)
+	var target=Vector3(0,.6,-1.1)
 	camera.projection=Camera3D.PROJECTION_ORTHOGONAL;camera.keep_aspect=Camera3D.KEEP_WIDTH
 	camera.size=world.zoom*maxf(1.0,size.x/maxf(1,size.y)/1.62)
 	camera.position=target+Vector3(sin(camera_yaw)*cos(camera_pitch),sin(camera_pitch),cos(camera_yaw)*cos(camera_pitch))*22
 	camera.look_at(target)
+	# Reserve the new preparation footer without changing stored pan/zoom or battle framing.
+	if bool(data.get("state",{}).get("deploying",false)) and deployment_bottom_limit>0:
+		var bottom=-INF
+		for pos in range(50):bottom=maxf(bottom,project_cell(pos).y)
+		var pixels_per_unit=project(target+camera.global_basis.y).distance_to(project(target))
+		if bottom>deployment_bottom_limit-20 and pixels_per_unit>0:
+			camera.position+=camera.global_basis.y*((deployment_bottom_limit-20-bottom)/pixels_per_unit)
+	camera.position+=pan
 	projected_pitch=measure_cell_pitch();visual_height=1.55
 	if compact_board():
 		var max_pixels=1.0

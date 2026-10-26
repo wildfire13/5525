@@ -15,14 +15,14 @@ func run():
 	check(not menu_labels.has("画像") and not menu_labels.has("拠点・旅程へ"),"redundant menu navigation and portrait entry removed")
 	var seed=await saved();seed.state.characters.guard.inventory["sword-wood"]=1;seed.state.characters.guard.hp=1;seed.state.history.append("履歴保持テスト");seed.state.hours=123
 	for place in ["east","west","north","south"]:
-		await load_at(seed,place);game.navigate("shop");await settle();return_layout("TownReturn")
+		await load_at(seed,place);await enter_facility("shop");await settle();return_layout("TownReturn")
 		var chooser=node("ShopSlotFilter");check(chooser!=null and chooser.get_item_text(0)=="商品リスト（すべて）" and chooser.get_item_icon(0)==null,"all product heading has blank icon "+place)
 		check(not labels().has("装備を購入") and not labels().has("部位フィルター"),"duplicate shop headings removed "+place)
 		var id="spear" if place=="east" else "feet" if place=="west" else "accessory1" if place=="north" else "potion"
 		game.pages.shop_view.select_slot(id);await settle()
 		var products=game.pages.shop_view.offered();check(not products.is_empty() and products.all(func(g):return g.get("type")==id if place=="east" else g.id==id if place=="south" else g.get("allowedSlots",[g.slot]).has(id)),"department appropriate filter "+place)
 		check(node("ShopSlotFilter").item_count==1 if place=="north" else node("ShopSlotFilter").get_item_icon(node("ShopSlotFilter").selected)!=null,"department appropriate filter options "+place)
-		await pointer_click(node("TownReturn"));check(game.page=="hub","shop return pointer "+place)
+		await pointer_click(node("TownReturn"));check(game.page=="shop" and node("FacilityChoice_buy")!=null,"shop return pointer restores service entry "+place)
 	await load_at(seed,"east");game.navigate("board");await settle();return_layout("TownReturn")
 	check(game.header.text=="イース" and labels().has("掲示板") and not labels().has("直近の記録") and not labels().any(func(t):return t.contains("累計123") or t.contains("編成5人")),"board heading clean and history moved")
 	var before=await saved();game.show_action_log();await settle()
@@ -33,7 +33,7 @@ func run():
 	if not files.is_empty():files[0].canceled.emit();await settle()
 	check(await saved()==before and is_instance_valid(game.dialog.window),"cancel log export preserves campaign and log window")
 	game.dialog.close();await settle();check(await saved()==before,"log inspection preserves full campaign")
-	game.navigate("shop");await settle()
+	await enter_facility("shop");await settle()
 	game.preferences.store_rect("status",Rect2(120,60,1040,700));game.preferences.config.set_value("migration","status_feedback3",false)
 	game.pages.party_view.open_detail("guard");await settle()
 	check(game.dialog.window.size==Vector2i(1760,700),"old narrow status widens whole window once without changing height")

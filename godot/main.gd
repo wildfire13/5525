@@ -5,6 +5,7 @@ var icons=preload("res://ui_icons.gd").new()
 var audio
 var loading_screen
 var results_view
+var deployment_party_strip
 var data: Dictionary={}
 var campaign_identity=preload("res://campaign_identity.gd").new()
 var preview: Dictionary={}
@@ -252,6 +253,7 @@ func _unhandled_key_input(event):
 			elif pages.shop_view.escape():pass
 			elif pages.guild_view.escape():pass
 			elif pages.close_items():pass
+			elif campaign().get("phase")=="town" and page!="hub" and not locked and not presenting:pages.facility_entry.back()
 			elif hud.close_detail():pass
 			elif not presenting and not locked and hud.action_menu and not hud.menu_transition and pending==null and not state().is_empty() and not state().get("deploying",false) and state().get("result")==null and data.get("trial")==null and campaign().get("phase")=="battle":
 				confirm("旅を中止し、受注・出発前の状態へ戻します。",act.bind("retreat",[]))
@@ -330,9 +332,9 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 			if frontend.has("images"):
 				portraits.activate(frontend.images);audio.restore(frontend.music)
 			if request.get("op")=="campaign_load":
-				results_view.reset();campaign_identity.accept_load(incoming);pages.reset_context("load",campaign_identity.current_id);memory.reset();skip_capture_once=true
+				save_notice.dismiss();results_view.reset();campaign_identity.accept_load(incoming);pages.reset_context("load",campaign_identity.current_id);memory.reset();skip_capture_once=true
 			elif request.get("op")=="campaign_start":
-				results_view.reset()
+				save_notice.dismiss();results_view.reset()
 				if frontend.get("reconnect_bootstrap",false):campaign_identity.reconnect_bootstrap();pages.reset_context("reconnect")
 				else:campaign_identity.new_campaign();pages.reset_context()
 				memory.reset();skip_capture_once=true
@@ -401,7 +403,7 @@ func new_game(reconnect_bootstrap:=false):
 func navigate(value: String):
 	if not pages.party_view.guard_leave(navigate.bind(value)):return
 	if page=="party" and not pages.guild_view.guard_leave():return
-	invalidate_preview();page=value;pages.reset_items();pages.invalidate_quote(false);memory.focus_key="";render()
+	invalidate_preview();pages.facility_entry.navigate(value);page=value;pages.reset_items();pages.invalidate_quote(false);memory.focus_key="";render()
 func render():
 	if rendering:return
 	rendering=true
@@ -448,7 +450,15 @@ func render():
 	if battle:
 		if view_kind!="battle":clear(content);hud.mount();view_kind="battle"
 		render_battle()
+		if is_instance_valid(deployment_party_strip):remove_child(deployment_party_strip);deployment_party_strip.queue_free()
+		deployment_party_strip=null
+		if phase=="deployment":
+			deployment_party_strip=pages.party_view.face_bar(self);deployment_party_strip.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE);deployment_party_strip.offset_left=24;deployment_party_strip.offset_right=-154;deployment_party_strip.offset_top=-114 if ui_size_mode=="standard" else -104;deployment_party_strip.offset_bottom=-30
+			hud.partybar_reserved_height=94 if ui_size_mode=="standard" else 84
+		else:hud.partybar_reserved_height=0
 	else:
+		if is_instance_valid(deployment_party_strip):remove_child(deployment_party_strip);deployment_party_strip.queue_free()
+		deployment_party_strip=null
 		if is_instance_valid(board):board.persist_camera();board.queue_free()
 		board=null;actor_row=null;clear(content);view_kind="page"
 		var nav=row(content)
@@ -477,7 +487,7 @@ func render():
 		else:render_journey(body)
 		if lower_return:
 			var return_row=row(content);return_row.name="TownReturnRow";return_row.alignment=BoxContainer.ALIGNMENT_END
-			var back=green_button(button(return_row,"広場に移動",pages.acknowledge.bind("hub") if phase=="result" else navigate.bind("hub"),pages.guild_view.busy() if page=="party" else false));back.name="GuildReturn" if page=="party" else "InnReturn" if page=="inn" else "TownReturn"
+			var back=green_button(button(return_row,pages.facility_entry.return_label() if phase=="town" else "広場に移動",pages.acknowledge.bind("hub") if phase=="result" else pages.facility_entry.back,pages.guild_view.busy() if page=="party" else false));back.name="GuildReturn" if page=="party" else "InnReturn" if page=="inn" else "TownReturn"
 		pages.party_view.face_bar(content)
 	pages.party_view.refresh_modal()
 	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else ("処理中…" if locked or preview_pending or pages.quote_pending else "演出中…" if presenting else focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if phase in ["battle","deployment"] else ""))
@@ -583,6 +593,10 @@ func select_skill(id: String):
 	if data.get("skill")=="陣形強化" or (data.get("skillInfo") is Dictionary and data.skillInfo.get("target")=="self"):
 		if data.get("choices",{}).get("skill",[]).has(state().get("actor")):
 			pending=state().actor;await request_preview("attack")
+func deployment_assigned(uid: String,pos):
+	if locked or presenting or closing or campaign().get("phase")!="deployment":return
+	selected=uid
+	await act("deployment_assign",[uid,pos])
 func deploy_dragged(uid: String,pos: int):
 	if locked or presenting:return
 	selected=uid
@@ -825,7 +839,11 @@ func _input(event):
 		var focus=get_viewport().gui_get_focus_owner()
 		if focus is BaseButton or focus==board:get_viewport().set_input_as_handled()
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
-		if event.double_click and event.pressed:swallow_mouse_release=true;get_viewport().set_input_as_handled()
+		if event.double_click and event.pressed:
+			var allow_repeated_drag=campaign().get("phase")=="deployment" and not modal_open()
+			var bar=find_child("PartyFaceBar",true,false)
+			var sale_card=pages.shop_view.sale_mode() and is_instance_valid(bar) and bar.get_global_rect().has_point(event.position)
+			if not allow_repeated_drag and not sale_card:swallow_mouse_release=true;get_viewport().set_input_as_handled()
 		elif not event.pressed and swallow_mouse_release:swallow_mouse_release=false;get_viewport().set_input_as_handled()
 
 func legacy_skill_description(name_: String,stage:=1) -> String:

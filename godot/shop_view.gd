@@ -18,14 +18,15 @@ var consent: Dictionary={}
 var receipt: Dictionary={}
 var transaction: Dictionary={}
 var comparison_view
-func _init(owner):owner_ref=weakref(owner);ui=owner.ui
+var sale
+func _init(owner):owner_ref=weakref(owner);ui=owner.ui;sale=preload("res://facility_sale.gd").new(self)
 func c() -> Dictionary:return pages.c()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
-func busy() -> bool:return stage!="S0" or unknown or ui.locked or ui.presenting or ui.closing or ui.engine.disconnected
+func busy() -> bool:return stage!="S0" or unknown or ui.locked or ui.presenting or ui.closing or ui.engine.disconnected or sale.busy()
 func reset(_plan_mode: String="discard",_campaign_id: String=""):
 	if comparison_view!=null:comparison_view.invalidate()
-	stage="S0";unknown=false;consent={};receipt={};transaction={};message="";generation+=1
+	stage="S0";unknown=false;consent={};receipt={};transaction={};message="";generation+=1;sale.reset()
 	filter_slot="all";filter_location="";background.clear();return_from_party=false;from_party=false
 	if ui.dialog!=null:ui.dialog.close(false)
 func slots() -> Array:
@@ -61,15 +62,38 @@ func product_filter(parent):
 		if filter_slot==option[0]:slot.select(slot.item_count-1)
 	slot.add_theme_constant_override("icon_max_width",24);slot.disabled=busy()
 	slot.item_selected.connect(func(i):select_slot(str(slot.get_item_metadata(i))));ui.memory.key(slot,"shop_filter")
+func sale_mode() -> bool:return ui.page=="shop" and pages.facility_entry.view=="sell" and c().get("phase")=="town" and c().get("saleAvailable",false)
+func selected_owner() -> String:return sale.owner_id if sale_mode() else ""
+func owner_pressed(uid: String) -> bool:
+	if not sale_mode():return false
+	if busy() or ui.modal_open():return true
+	if sale.owner_id==uid:return false
+	if c().get("selected",[]).has(uid):sale.select_owner(uid)
+	return true
+func sync_sale_owner_from_status(uid: String) -> bool:
+	if not sale_mode() or busy() or ui.menu.visible or not c().get("selected",[]).has(uid):return false
+	var status=ui.dialog.window;var party=pages.party_view
+	if not is_instance_valid(status) or not status.visible or status.title!=ui.dialog.STATUS_TITLE or status.exclusive:return false
+	if party.committing or party.leave_pending or party.inventory_view.stage in ["confirm","pending","unknown"]:return false
+	for window in ui.find_children("*","Window",true,false):
+		if window!=status and window.visible and window.exclusive:return false
+	if sale.owner_id!=uid:sale.apply_owner(uid)
+	return true
 func render(parent):
+	if sale_mode():sale.render(parent);return
 	var context=ui.row(parent);context.name="ShopContext"
-	var shop_name={"east":"武器店","west":"防具店","north":"装飾品店"}.get(c().location,"")
+	var shop_name={"east":"武器店","west":"防具店","north":"装飾品店","south":"道具店"}.get(c().location,"")
 	ui.icons.line(ui,context,ui.icons.shop(str(c().location)),shop_name,true)
 	render_notice(parent)
-	product_filter(parent)
+	var header=VBoxContainer.new();header.name="ShopListHeader";header.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;parent.add_child(header);product_filter(header)
+	if c().get("location")=="south":render_recipient(header)
 	var body=ui.scroller(parent);var scroll=body.get_parent();scroll.name="ShopProductsScroll"
 	scroll.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;scroll.custom_minimum_size.x=maxf(600,ui.size.x*2.0/3.0-parent.global_position.x);scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"shop_products")
+	var align=func():
+		if is_instance_valid(header) and is_instance_valid(body):header.custom_minimum_size.x=body.size.x;header.size.x=body.size.x
+	body.resized.connect(align,CONNECT_DEFERRED)
 	for item in offered():
+		if c().get("location")=="south":consumable_row(body,item);continue
 		var line=ui.row(body);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=64
 		var info=b(line,"",open_comparison.bind(str(item.id)),busy());info.name="Product_"+str(item.id);info.alignment=HORIZONTAL_ALIGNMENT_LEFT
 		info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.custom_minimum_size=Vector2(240,64)
@@ -105,16 +129,42 @@ func open_comparison(id: String):
 	if comparison_view==null:comparison_view=preload("res://shop_comparison.gd").new(self)
 	comparison_view.open(id)
 func render_notice(parent):
-	var region=Control.new();region.name="ShopNoticeRegion";region.custom_minimum_size.y=56;region.clip_contents=true;parent.add_child(region)
-	var row=ui.row(region);row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var text=message if not message.is_empty() else "直近の取引："+str(transaction.text) if not transaction.is_empty() else ""
-	var notice=l(row,text);notice.name="ShopNotice";notice.autowrap_mode=TextServer.AUTOWRAP_OFF;notice.clip_text=true;notice.add_theme_font_size_override("font_size",18);notice.tooltip_text=text
-	if not message.is_empty():notice.add_theme_color_override("font_color",Color("#ffd0b8"))
-	if message.is_empty() and not unknown and transaction.get("kind")=="buy":
-		var uid=str(transaction.ownerId)
-		b(row,ui.member_name(uid)+"の所持品を見る",ui.pages.party_view.open_inventory.bind(uid),busy() or not ui.can_inspect_member(uid)).name="PurchasedInventory"
+	if message.is_empty():return
+	var notice=l(parent,message);notice.name="ShopNotice";notice.add_theme_color_override("font_color",Color("#ffd0b8"))
 func record_sale(q: Dictionary):
-	transaction={"kind":"sell","ownerId":q.ownerId,"text":"%sの%s×%dを売却 / 受取%dG" % [q.ownerName,q.name,q.count,q.proceeds]};message=""
+	transaction={"kind":"sell","ownerId":q.ownerId,"text":"%sの%s×%dを売却 / 受取%dG" % [q.ownerName,q.name,q.count,q.proceeds]};message="";ui.save_notice.display(str(transaction.text))
+func render_recipient(parent):
+	if not c().get("selected",[]).has(ui.shop_uid):ui.shop_uid=str(c().selected[0])
+	var line=ui.row(parent);l(line,"購入品の受取人")
+	var recipient=OptionButton.new();recipient.name="ConsumableRecipient";recipient.custom_minimum_size=Vector2(180,44);line.add_child(recipient)
+	for uid in c().get("selected",[]):
+		recipient.add_item(ui.member_name(str(uid)));recipient.set_item_metadata(recipient.item_count-1,uid)
+		if uid==ui.shop_uid:recipient.select(recipient.item_count-1)
+	recipient.item_selected.connect(func(i):if not busy():ui.shop_uid=str(recipient.get_item_metadata(i));ui.render())
+func consumable_row(parent,item: Dictionary):
+	var line=ui.row(parent);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=64
+	var label=b(line,str(item.name),show_consumable_details.bind(str(item.id)),busy());label.name="Product_"+str(item.id);label.alignment=HORIZONTAL_ALIGNMENT_LEFT;label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;label.custom_minimum_size=Vector2(240,64);ui.icons.apply(label,str(item.id));ui.memory.key(label,"product_"+str(item.id))
+	preload("res://item_drag.gd").source(label,func():
+		if busy():return null
+		return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":pages.epoch},str(item.name),label.icon)
+	var price=l(line,"%dG" % int(item.price));price.name="ProductPrice_"+str(item.id);price.custom_minimum_size.x=96;price.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;price.autowrap_mode=TextServer.AUTOWRAP_OFF
+	for amount in [1,5]:
+		var cost=int(item.price)*amount;var full=int(c().get("inventoryTotals",{}).get(item.id,0))+amount>99
+		var result_text="上限99個" if full else "所持金不足" if int(c().gold)<cost else "残金 %dG" % (int(c().gold)-cost)
+		var button=b(line,"%d個 / %dG\n%s" % [amount,cost,result_text],purchase_consumable.bind(str(item.id),amount),busy() or int(c().gold)<cost or full);button.name="ProductBuy_"+str(item.id)+"_"+str(amount);button.custom_minimum_size=Vector2(130 if amount==1 else 170,64)
+		button.tooltip_text=ui.member_name(ui.shop_uid)+"へ / "+("上限99個" if full else "所持金不足" if int(c().gold)<cost else "購入後 %dG" % (int(c().gold)-cost))
+func purchase_consumable(id: String,count: int):
+	if busy() or count not in [1,5] or not c().get("selected",[]).has(ui.shop_uid):return
+	var item=offered().filter(func(v):return v.id==id)
+	if item.is_empty():return
+	var owner=ui.shop_uid;var token=c().get("inventoryToken");generation+=1;var ticket=generation;stage="S5"
+	var reply=await ui.update({"op":"campaign","action":"buyItem","args":[id,count,owner,token]})
+	if ticket!=generation:return
+	unknown=reply.get("connection_lost",false);stage="S7" if unknown else "S0"
+	if reply.get("ok",false):
+		transaction={"kind":"buy","ownerId":owner,"text":"%sへ %s×%d / 支払%dG" % [ui.member_name(owner),item[0].name,count,int(item[0].price)*count]};message="";ui.save_notice.display(str(transaction.text))
+	else:message=str(reply.get("error","購入結果を確認してください。"))
+	ui.render()
 func configure_tooltip(button,item: Dictionary):
 	button.set_script(preload("res://equipment_tooltip.gd"))
 	var descriptions={};var levels={}
@@ -180,7 +230,7 @@ func buy(q: Dictionary,uid: String,ticket: int):
 	var after=int(c().get("characters",{}).get(uid,{}).get("inventory",{}).get(q.gearId,0))
 	if result.get("ok",false) and after==before+1 and c().get("gold")==q.afterGold:
 		stage="S0";receipt=q.duplicate(true);receipt.characterId=uid;message=""
-		transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×1 / 支払%dG" % [ui.member_name(uid),q.gear.name,q.cost]}
+		transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×1 / 支払%dG" % [ui.member_name(uid),q.gear.name,q.cost]};ui.save_notice.display(str(transaction.text))
 	else:
 		unknown=result.get("connection_lost",false) or result.get("ok",false);stage="S7" if unknown else "S0"
 		message="購入結果を確認できません。再送せず保存済みの進行を読み込んで確認してください。" if unknown else "購入を確定できませんでした。所持金・在庫を確認して選び直してください。"
@@ -248,5 +298,15 @@ func confirm_consumable(id: String,uid: String):
 			stage="S5";ui.dialog.close(false)
 			var reply=await ui.update({"op":"campaign","action":"buyItem","args":[id,1,uid,token]})
 			if ticket==generation:
-				unknown=reply.get("connection_lost",false);stage="S7" if unknown else "S0";ui.render()).name="PurchaseAgree",
+				unknown=reply.get("connection_lost",false);stage="S7" if unknown else "S0"
+				if reply.get("ok",false):
+					transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×1 / 支払%dG" % [ui.member_name(uid),item.name,item.price]};message="";ui.save_notice.display(str(transaction.text))
+				else:message=str(reply.get("error","購入結果を確認してください。"))
+				ui.render()).name="PurchaseAgree",
 		cancel_purchase.bind(ticket))
+
+func show_consumable_details(id: String):
+	var products=offered().filter(func(item):return item.id==id)
+	if products.is_empty():return
+	var entry={"id":id,"name":products[0].name,"kind":"consumable","count":c().get("characters",{}).get(ui.shop_uid,{}).get("inventory",{}).get(id,0),"definition":c().get("itemDefinitions",[]).filter(func(item):return item.id==id)[0]}
+	ui.show_equipment_details(entry)

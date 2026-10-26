@@ -11,6 +11,7 @@ var trial_return: Dictionary={}
 var cached_quotes: Dictionary={}
 var party_focus_after := ""
 var shop_view
+var facility_entry
 var party_view
 var guild_view
 var hub_view
@@ -20,7 +21,7 @@ var item_id := ""
 const ItemMenu=preload("res://item_menu.gd")
 func _init(frontend):
 	hub_view=preload("res://town_hub.gd").new(frontend)
-	ui=frontend;shop_view=preload("res://shop_view.gd").new(self);party_view=preload("res://party_view.gd").new(self);guild_view=preload("res://guild_view.gd").new(self)
+	ui=frontend;shop_view=preload("res://shop_view.gd").new(self);party_view=preload("res://party_view.gd").new(self);guild_view=preload("res://guild_view.gd").new(self);facility_entry=preload("res://facility_entry.gd").new(self)
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func row(parent):return ui.row(parent)
@@ -160,7 +161,10 @@ func journey(parent):
 			l(parent,town(journey_.get("destination",""))+"に到着しました",true)
 			b(parent,"町へ入る（依頼は未完了）" if quest is Dictionary else "町へ入る（配達報酬なし）",ui.act.bind("arrive",[]))
 	l(parent,"\n".join(journey_.get("history",[]).slice(-4)))
-func party(parent):party_view.render(parent)
+func party(parent):
+	if not facility_entry.render_top(parent,"party"):
+		if facility_entry.supported("party"):facility_entry.render_dialogue()
+		party_view.render(parent)
 func reset_items():item_stage="entry";item_id=""
 func show_items(stage: String,id: String=""):
 	if ui.locked or ui.presenting or ui.closing:return
@@ -226,6 +230,8 @@ func items(parent):
 			var reason=ItemMenu.camp_reason(selected_item,u,inventory)
 			var target=b(member,"使う" if reason.is_empty() else reason,use_selected_item.bind(u.id),not reason.is_empty());target.name="ItemTarget_"+str(u.id);ui.memory.key(target,"item_target_"+str(u.id))
 func inn(parent):
+	if facility_entry.render_top(parent,"inn"):return
+	facility_entry.render_dialogue()
 	var q: Dictionary=c().get("inn",{})
 	ui.icons.line(ui,parent,"inn","宿屋",true)
 	if not q.get("available",false):l(parent,"宿屋はアスタリスで利用できます。");return
@@ -253,33 +259,9 @@ func stay_inn():
 	var q=c().get("inn",{})
 	ui.confirm("%dGを支払い、編成中の全員のHP・MPを全回復しますか？\n戦闘不能も回復。控えは対象外、時間は経過しません。" % q.get("price",30),ui.act.bind("inn",[]))
 func shop(parent):
-	var location=c().get("location","")
-	if location not in ["east","west","north"]:l(parent,{"south":"道具店"}.get(location,"この拠点にお店はありません"),true)
-	if location=="south":
-		shop_view.product_filter(parent)
-		var body=ui.scroller(parent);ui.memory.watch(body.get_parent(),"consumable_shop")
-		if not c().get("selected",[]).has(ui.shop_uid):ui.shop_uid=str(c().selected[0])
-		var receiving=row(body);l(receiving,"購入品の受取人")
-		var recipient=OptionButton.new();recipient.name="ConsumableRecipient";recipient.custom_minimum_size=Vector2(180,44);receiving.add_child(recipient)
-		for uid in c().get("selected",[]):
-			recipient.add_item(ui.member_name(str(uid)));recipient.set_item_metadata(recipient.item_count-1,uid)
-			if uid==ui.shop_uid:recipient.select(recipient.item_count-1)
-		recipient.item_selected.connect(func(i):ui.shop_uid=str(recipient.get_item_metadata(i));ui.render())
-		muted(body,"購入品は選んだ受取人のインベントリへ入ります。消耗品の合計上限は各99個。回復量はHP+55 / MP+3です。")
-		for item in shop_view.offered():
-			var count=c().characters[ui.shop_uid].get("inventory",{}).get(item.id,0);var actions=row(card(body))
-			var product=b(actions,"%s %dG / %sの所持%d個" % [item.name,item.price,ui.member_name(ui.shop_uid),count],func():pass)
-			ui.icons.apply(product,str(item.id))
-			preload("res://item_drag.gd").source(product,func():
-				if shop_view.busy():return null
-				return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":epoch},product.text,product.icon)
-			for amount in [1,5]:
-				var cost=int(item.price)*amount;var remaining=int(c().gold)-cost;var full=c().get("inventoryTotals",{}).get(item.id,0)+amount>99
-				var buy=b(actions,"%d個購入 / %dG\n%s" % [amount,cost,"上限99個" if full else "所持金不足" if remaining<0 else "残金 %dG" % remaining],ui.act.bind("buyItem",[item.id,amount,ui.shop_uid,c().get("inventoryToken")]),remaining<0 or full)
-				buy.tooltip_text="%sへ %s×%d / 所持金 %dG / 支払 %dG" % [ui.member_name(ui.shop_uid),item.name,amount,c().gold,cost]
-		items(body);return
-	if location not in ["east","west","north"]:
-		shop_guide(parent);return
+	if facility_entry.render_top(parent,"shop"):return
+	facility_entry.render_dialogue()
+	if c().get("location") not in ["east","west","south","north"]:l(parent,"この拠点にお店はありません");return
 	shop_view.render(parent)
 func select_slot(slot: String):await shop_view.select_slot(slot)
 func purchase(_q: Dictionary):shop_view.confirm_purchase()
@@ -329,7 +311,7 @@ func reset_context(plan_mode: String="discard",campaign_id: String=""):
 	hub_view.reset()
 	facility_art.reset()
 	if ui.hud!=null:ui.hud.reset_context()
-	reset_items();shop_view.reset(plan_mode,campaign_id);guild_view.reset();party_view.reset();party_view.tab=0;party_view.highlight_slot=""
+	reset_items();facility_entry.reset();shop_view.reset(plan_mode,campaign_id);guild_view.reset();party_view.reset();party_view.tab=0;party_view.highlight_slot=""
 	epoch+=1;invalidate_quote(true);trial_return={};cached_quotes={}
 func request_quote(id: String):await shop_view.select_product(id)
 func select_member(uid: String):await shop_view.select_member(uid)

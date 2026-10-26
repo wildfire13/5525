@@ -27,7 +27,7 @@ func run():
  root.window_input.connect(func(e):
   if e is InputEventMouseButton and e.pressed:print("OS_POSITION ",e.position))
  for dims in widths:
-  root.size=dims;await game.update({"op":"campaign_load","data":original});game.navigate("party");await settle();await create_timer(.5).timeout
+  root.size=dims;await game.update({"op":"campaign_load","data":original});await enter_facility("party");await settle();await create_timer(.5).timeout
   print("GUI_GUILD_START ",game.page," ",game.pages.guild_view.stage," ",game.locked)
   await snapshot("guild-start-"+str(dims.x))
   var start=request_id
@@ -42,7 +42,7 @@ func run():
   await os_click(node("GuildMember_guard-2"));await create_timer(.5).timeout;await settle()
   check(game.campaign().selected[0]=="guard-2","OS two member choices still perform one direct swap")
   operations.append({"task":"guild detail/return/filter/swap","width":dims.x,"events":request_id-start,"direct_swap_member_clicks":2})
-  await game.update({"op":"campaign_load","data":east});game.navigate("shop");await settle()
+  await game.update({"op":"campaign_load","data":east});await enter_facility("shop");await settle()
   var before=await saved();await os_click(node("Product_spear-wood"));await settle()
   check(node("ShopComparisonStats").text.contains("ガロ"),"OS product click opens named comparison")
   await snapshot("comparison-"+str(dims.x))
@@ -67,10 +67,10 @@ func run():
   check((await saved())==bought,"OS sale cancellation preserves inventory and gold")
   await os_click(node("PartyFace_mage"));check(node("InventorySaleTotals")==null and node("OwnedInventorySell_spear-wood")==null,"OS portrait switch clears previous owner's sale action")
   await os_key("Escape");await settle()
-  await game.update({"op":"campaign_load","data":bought});game.navigate("shop");await settle()
+  await game.update({"op":"campaign_load","data":bought});await enter_facility("shop");await settle()
   check(int(game.campaign().gold)==410 and int(game.campaign().characters.guard.inventory["spear-wood"])==4,"reload retains canonical purchase result")
   var south=original.duplicate(true);south.state.location="south";south.state.gold=500
-  await game.update({"op":"campaign_load","data":south});game.navigate("shop");await settle();await snapshot("consumables-"+str(dims.x))
+  await game.update({"op":"campaign_load","data":south});await enter_facility("shop");await settle();await snapshot("consumables-"+str(dims.x))
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"BGM voice SE stayed OFF during real input QA")
  var f=FileAccess.open(evidence.path_join("checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
  f=FileAccess.open(evidence.path_join("operations.json"),FileAccess.WRITE);f.store_string(JSON.stringify(operations,"\t"));f.close()

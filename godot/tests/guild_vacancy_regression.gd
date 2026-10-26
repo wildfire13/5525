@@ -14,7 +14,7 @@ func run():
 	while game.data.is_empty():await process_frame
 	game.audio.fast_mode=true;game.checks_fast=true
 	var seed=(await game.engine.request({"op":"campaign_save"})).data;seed.state.selected=["porter"]
-	var reply=await game.update({"op":"campaign_load","data":seed});game.navigate("party");await settle()
+	var reply=await game.update({"op":"campaign_load","data":seed});await enter_facility("party");await settle()
 	check(reply.get("ok",false) and game.campaign().selected==["porter"],"single porter remains valid minimum composition")
 	await tap("GuildMember_guard")
 	var guild=game.pages.guild_view
@@ -30,3 +30,10 @@ func run():
 	for i in range(8):await process_frame
 	var f=FileAccess.open(OS.get_environment("INVENTORY_QA_ROOT").path_join("vacancy-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
 	quit(0 if checks.all(func(c):return c.passed) else 1)
+
+func enter_facility(page: String):
+	game.navigate(page);await settle()
+	var service={"shop":"buy","party":"guild","inn":"inn"}.get(page,"")
+	var choice=game.find_child("FacilityChoice_"+service,true,false)
+	if choice!=null and choice.is_visible_in_tree():
+		choice.pressed.emit();await settle()

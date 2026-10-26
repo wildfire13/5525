@@ -6,7 +6,7 @@ func run():
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.audio.fast_mode=true;game.checks_fast=true;await settle()
-	game.navigate("party");await settle();var art=game.pages.facility_art;var rng_state=art.rng.state;var artwork=art.artwork.duplicate()
+	await enter_facility("party");await settle();var art=game.pages.facility_art;var rng_state=art.rng.state;var artwork=art.artwork.duplicate()
 	game.pages.party_view.open_detail("guard");await settle()
 	for tab in [1,2,0]:
 		await os_click(node("StatusTab_"+str(tab)))

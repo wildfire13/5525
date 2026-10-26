@@ -16,7 +16,7 @@ func run():
 	check(map.event_markers.size()==16 and map.event_markers.all(func(m):return m.kind=="danger"),"eight routes display two current battle markers each")
 	var original=await saved();map.route_events["astaris|east"]=["unknown","safe"];map.queue_redraw();await frames()
 	check(map.event_markers.any(func(m):return m.color==map.EVENT_COLORS.unknown) and map.event_markers.any(func(m):return m.color==map.EVENT_COLORS.safe) and await saved()==original,"future event colors are display metadata only")
-	game.navigate("shop");await settle()
+	await enter_facility("shop");await settle()
 	var trial=node("ProductTrial_armor-cloth")
 	check(absf(trial.get_global_rect().end.x-1280)<28,"shop trial right edge near FHD two thirds")
 	check(node("Product_armor-cloth").get_meta("ui_icon_id")=="approved:equipment:armor-cloth","shop product uses individual equipment image")

@@ -50,7 +50,7 @@ func run():
 	check(map.buttons.values().filter(func(b):return b.text.contains("目的地") or b.text.contains("現在地")).is_empty(),"S5 map uses color without redundant location labels")
 	check(map.buttons.values().filter(func(b):return b.name not in ["Town_"+map.current,"Town_"+map.selected]).all(func(b):return b.get_theme_stylebox("normal").bg_color==Color("#41464e")),"S5 all other towns gray")
 	check(node("DepartButton").size.x<600 and node("DepartButton").get_theme_stylebox("normal").bg_color==Color("#236044"),"S5 departure button narrow and green")
-	seed.state.location="west";await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle()
+	seed.state.location="west";await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle()
 	check(game.resource_header.visible and game.gold_header.is_visible_in_tree(),"S7 shop gold uses common upper-right header")
 	check(node("ShopSlotFilter").get_item_text(0)=="商品リスト（すべて）","S7 product heading retains filter (feedback3 layout)")
 	check(game.find_children("ProductSummary_*","Label",true,false).is_empty(),"S6 no permanent performance descriptions")
