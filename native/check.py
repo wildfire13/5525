@@ -23,6 +23,7 @@ steps=[
  ('Two-handed occupancy',['node','test_two_handed.cjs']),
  ('New weapon variants',['node','test_weapon_variations.cjs']),
  ('Sequential battle presentation',['node','test_battle_presentation.cjs']),
+ ('Expanded presentation metadata parity',['node','test_vfx_expansion_presentation.cjs']),
  ('Character voice event routing',['node','test_voice_events.cjs']),
  ('Campaign long-battle log retention',['node','test_campaign_log.cjs']),
  ('Separate travelling and deployment rosters',['node','test_deployment_roster.cjs']),

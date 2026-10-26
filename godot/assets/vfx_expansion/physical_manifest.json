@@ -1,0 +1,357 @@
+{
+  "provenance": "Original transparent imagegen generation 2026-10-26, no third-party extraction",
+  "source_sha256": "9b54516a70bdc54db3958f6b334121ac641525f319f6443d98fa7ce3dab2592f",
+  "export": "Independent regions, alpha <=1 crop bounds, 48px transparent padding. No pixel recoloring or resampling. Fork extracted as two arrows for independent targets.",
+  "assets": [
+    {
+      "key": "phys_arrow",
+      "source_region": [
+        30,
+        100,
+        540,
+        230
+      ],
+      "alpha_crop": [
+        18,
+        27,
+        504,
+        108
+      ],
+      "size": [
+        582,
+        177
+      ],
+      "alpha_bbox": [
+        48,
+        48,
+        534,
+        129
+      ],
+      "alpha_extrema": [
+        0,
+        253
+      ],
+      "transparent_margin": 48,
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "sha256": "63b098a42cb5b4632fb0d23c8760053f389da9e49afd4277a6152cba82985a0f"
+    },
+    {
+      "key": "phys_afterimage",
+      "source_region": [
+        600,
+        0,
+        950,
+        337
+      ],
+      "alpha_crop": [
+        49,
+        27,
+        349,
+        326
+      ],
+      "size": [
+        396,
+        395
+      ],
+      "alpha_bbox": [
+        48,
+        48,
+        348,
+        347
+      ],
+      "alpha_extrema": [
+        0,
+        253
+      ],
+      "transparent_margin": 48,
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "sha256": "10a88c7b39ad163fdbcf7061984a14b3e7962091c00fb9f23811b6affa43f989"
+    },
+    {
+      "key": "phys_hook",
+      "source_region": [
+        1010,
+        70,
+        1536,
+        270
+      ],
+      "alpha_crop": [
+        31,
+        21,
+        491,
+        157
+      ],
+      "size": [
+        556,
+        232
+      ],
+      "alpha_bbox": [
+        48,
+        48,
+        508,
+        184
+      ],
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "transparent_margin": 48,
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "sha256": "b34e6a3f8680af7ef2d2bac98e8fc31816674b0307b8482b4663a389dd26935e"
+    },
+    {
+      "key": "phys_rise",
+      "source_region": [
+        60,
+        270,
+        450,
+        685
+      ],
+      "alpha_crop": [
+        30,
+        11,
+        340,
+        402
+      ],
+      "size": [
+        406,
+        487
+      ],
+      "alpha_bbox": [
+        48,
+        48,
+        358,
+        439
+      ],
+      "alpha_extrema": [
+        0,
+        253
+      ],
+      "transparent_margin": 48,
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "sha256": "75e964a52734151e344dff935e978f97b984022f4af1e234ef3dc4775d3e9f5c"
+    },
+    {
+      "key": "phys_dust",
+      "source_region": [
+        550,
+        410,
+        1020,
+        625
+      ],
+      "alpha_crop": [
+        28,
+        21,
+        452,
+        184
+      ],
+      "size": [
+        520,
+        259
+      ],
+      "alpha_bbox": [
+        48,
+        48,
+        472,
+        211
+      ],
+      "alpha_extrema": [
+        0,
+        253
+      ],
+      "transparent_margin": 48,
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "sha256": "234e7ca8c1aa1897b119aed2fc65b93d270bae3d703e9e3e6b2210e9a5695ced"
+    },
+    {
+      "key": "phys_curl",
+      "source_region": [
+        1080,
+        300,
+        1420,
+        650
+      ],
+      "alpha_crop": [
+        45,
+        31,
+        281,
+        328
+      ],
+      "size": [
+        332,
+        393
+      ],
+      "alpha_bbox": [
+        48,
+        48,
+        284,
+        345
+      ],
+      "alpha_extrema": [
+        0,
+        253
+      ],
+      "transparent_margin": 48,
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "sha256": "be04abd2a07583915edde351c15249974b3cf62d2e70e8c3910f7bd21579c258"
+    },
+    {
+      "key": "phys_wedge",
+      "source_region": [
+        100,
+        710,
+        460,
+        1000
+      ],
+      "alpha_crop": [
+        25,
+        9,
+        314,
+        257
+      ],
+      "size": [
+        385,
+        344
+      ],
+      "alpha_bbox": [
+        48,
+        48,
+        337,
+        296
+      ],
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "transparent_margin": 48,
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "sha256": "fb4d67c000dd1361ccfc8959b0c187965fd5e9bc950ccc076bb153765a52f746"
+    },
+    {
+      "key": "phys_fork_upper",
+      "source_region": [
+        550,
+        650,
+        1010,
+        815
+      ],
+      "alpha_crop": [
+        26,
+        10,
+        373,
+        162
+      ],
+      "size": [
+        443,
+        248
+      ],
+      "alpha_bbox": [
+        48,
+        48,
+        395,
+        200
+      ],
+      "alpha_extrema": [
+        0,
+        253
+      ],
+      "transparent_margin": 48,
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "sha256": "34a7a516e92bc5a695e3523f5499ce01ce16b5f235e06c5cc1aa54296340f2e5"
+    },
+    {
+      "key": "phys_fork_lower",
+      "source_region": [
+        590,
+        820,
+        1020,
+        990
+      ],
+      "alpha_crop": [
+        19,
+        3,
+        370,
+        142
+      ],
+      "size": [
+        447,
+        235
+      ],
+      "alpha_bbox": [
+        48,
+        48,
+        399,
+        187
+      ],
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "transparent_margin": 48,
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "sha256": "a0b917959b2b2f5e16818fe76a6729010e0f97d0c5362a92a840d14b16f57f68"
+    },
+    {
+      "key": "phys_gate",
+      "source_region": [
+        1100,
+        655,
+        1450,
+        1010
+      ],
+      "alpha_crop": [
+        9,
+        10,
+        325,
+        323
+      ],
+      "size": [
+        412,
+        409
+      ],
+      "alpha_bbox": [
+        48,
+        48,
+        364,
+        361
+      ],
+      "alpha_extrema": [
+        0,
+        253
+      ],
+      "transparent_margin": 48,
+      "anchor_normalized": [
+        0.5,
+        0.5
+      ],
+      "sha256": "23d444c9d109d7aa468466530202a4da09d78382bd9d5de3525af65c9f74fc0a"
+    }
+  ]
+}
