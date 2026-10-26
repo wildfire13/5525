@@ -243,6 +243,7 @@ func confirm(text: String,fn: Callable):
 func fullscreen():
 	get_window().mode=Window.MODE_WINDOWED if get_window().mode==Window.MODE_FULLSCREEN else Window.MODE_FULLSCREEN
 func _unhandled_key_input(event):
+	if file_dialog_open():get_viewport().set_input_as_handled();return
 	if results_view.active:get_viewport().set_input_as_handled();return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode==KEY_F11:fullscreen();get_viewport().set_input_as_handled()
@@ -674,14 +675,18 @@ func commit():
 	await update({"op":"act","kind":command,"target":target,"presentation":true})
 	hud.clear_action_visual()
 func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback: Callable, filename: String=""):
+	if file_dialog_open():return
 	pages.shop_view.cancel_pending()
 	var d=FileDialog.new();d.access=FileDialog.ACCESS_FILESYSTEM;d.file_mode=mode;d.filters=filters
-	d.use_native_dialog=false;d.exclusive=true
+	# Let the OS provide its file chooser; Godot keeps a fallback on display
+	# servers without native dialog support. Atomic overwrite approval remains
+	# in write_snapshot, after the selected target has been inspected.
+	d.use_native_dialog=true;d.exclusive=true;d.set_meta("file_dialog_active",true)
 	if is_instance_valid(dialog.window) and dialog.window.visible and dialog.window.exclusive:dialog.window.add_child(d)
 	else:add_child(d)
 	d.current_dir=ProjectSettings.globalize_path("user://")
 	if not filename.is_empty():d.current_file=filename;d.title="保存先を選択";d.overwrite_warning_enabled=false
-	d.file_selected.connect(func(path):d.queue_free();callback.call(path));d.canceled.connect(func():d.queue_free())
+	d.file_selected.connect(func(path):d.set_meta("file_dialog_active",false);d.hide();d.queue_free();callback.call(path));d.canceled.connect(func():d.set_meta("file_dialog_active",false);d.hide();d.queue_free())
 	preferences.bind_window(d,"file_dialog",size,size*.75);d.popup()
 func save_game():
 	var r=await update({"op":"campaign_save"})
@@ -788,7 +793,13 @@ func menu_focus_controls() -> Array:
 func fit_menu():
 	menu.size=Vector2(minf(440,maxf(1,size.x-24)),minf(680,maxf(1,size.y-48)))
 	menu.position=(size-menu.size)/2
+func file_dialog_open() -> bool:
+	# Native dialogs live outside the scene and do not set Window.visible.
+	for child in find_children("*","FileDialog",true,false):
+		if child.get_meta("file_dialog_active",false) and not child.is_queued_for_deletion():return true
+	return false
 func modal_open() -> bool:
+	if file_dialog_open():return true
 	if menu.visible:return true
 	for child in get_children():
 		if child is Window and child.visible:return true

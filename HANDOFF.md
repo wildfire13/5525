@@ -2,12 +2,18 @@
 
 更新: 2026-10-26
 
-## 現在：未対応スキル専用VFX拡張（公開前検証完了）
+## 現在：feedback3施設・受注・保存UI（原本照合・公開保留）
+
+- 基点main `c37f9d2997e1113d5ed7443ed906d155b079e630`。OSネイティブ保存/読込要求、施設NPCと漫画吹き出し、ギルドD&D、掲示板一覧/詳細と二段階受注、宿屋6列×2段と回復表示を実装。仕様と検証入口は [追加UI調整](docs/feedback3-ui-20261026.md)。既存ゲーム規則・保存形式・VFXを維持。装備テンプレートとキャラ作成は対象外。
+- 原本資料の正規取得が接続障害で未完了。全7シートの画像/図形/矢印照合ができていないため、独立実装とQAを進める一方、公開は保留。原本や私的URLはリポジトリに保存しない。
+- LinuxはOSネイティブfile機能が利用不可の環境でfallbackとロジックを確認。Windows実native UIは本人確認待ち。PC操作・force push・共有変更なし。native25/25、標準53実行を確認（初回52/53、今回全快クリック仕様に合わせた旧期待更新後の対象再試験成功）。専用回帰とLinux実OS確認、別担当の独立131項目/36入力も成功。宿屋全員同時ヒールの画像を独立実見済み。全実在11人と合成12人境界を区別。基点/変更後各3processの性能比較は3画面でframe間隔の悪化なし、RSSは約7.7〜29.8MiB増加、反復後node/resource増加・orphanなし（ソフトウェア描画標本）。今回push/CIは未実行。
+
+## 前段：未対応スキル専用VFX拡張（main反映済み）
 
 - 基点main `a3a8e28c91e95ed429c5fa98a12d8f011b27c77b`、remote一致・cleanを確認して開始。main上の依頼範囲で未対応active14種、実イベントのpassive3種、item/ether実使用へ独自graphics+runtimeを拡張する。既存VFX・規則・報酬・乱数・保存を保持。検証後main通常push/両CI/exactSHA独立試遊まで許可。PC/CCT/temp/wiki/共有変更・無関係な配置P3修正なし。
 - 正規imagegenの物理10層/支援9層と2helperを追加。native一時presentationへ実support書込/MP正増/既存passive sequence/正規対象情報を追加。元propertyの列挙属性・挿入順を保つ。全23のskill/effect IDの現行Lvと扱いは [拡張設計](docs/vfx-expansion-20261026.md)。
-- native専用31ケース、独立canonical64ケース、既存paintedと新GD回帰は成功。全登録48項目を確認し、旧UI途中時刻assertは期待値無変更の静穏再試験で成功。新GDは968/968、native25/25段階、独立OSの19family/最小画面/反転/保存ロードを確認。fixture出力UTF8、UI配列順/勝利文言/クリップ外クリック等のQA失敗は保持し、製品ルールへ合わせた改変はしない。MP譲渡実行後の通常保存/YES/epoch/完全一致は61/61。まだ今回pushは未実行。
-- 残り：差分・私的情報検査→commit/通常push/両CI→exactSHA独立スキル試遊。静穏の旧/新負荷比較と残留ゼロを確認。代表3種×3回のVFR動画は外部に保存、movie連続視聴は未実施。既知Library401/Chromium管理拒否/CIartifact403は再試行/迂回なし。movie連続視聴と連番評価を区別、音3種OFF。
+- native専用31ケース、独立canonical64ケース、既存paintedと新GD回帰は成功。全登録48項目を確認し、旧UI途中時刻assertは期待値無変更の静穏再試験で成功。新GDは968/968、native25/25段階、独立OSの19family/最小画面/反転/保存ロードを確認。fixture出力UTF8、UI配列順/勝利文言/クリップ外クリック等のQA失敗は保持し、製品ルールへ合わせた改変はしない。MP譲渡実行後の通常保存/YES/epoch/完全一致は61/61。main `c37f9d2997e1113d5ed7443ed906d155b079e630` に反映済み。Linux CI40314414651・Windows CI40314414673成功、exact SHAの独立218/218を確認済み。
+- 公開と独立試遊まで完了。静穏の旧/新負荷比較と残留ゼロを確認。代表3種×3回のVFR動画は外部に保存、movie連続視聴は未実施。既知Library401/Chromium管理拒否/CIartifact403は再試行/迂回なし。movie連続視聴と連番評価を区別、音3種OFF。
 
 ## 前段：施設・12人パーティー・出場D&D（main反映・独立確認済み）
 

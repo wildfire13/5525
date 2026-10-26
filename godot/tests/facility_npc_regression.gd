@@ -27,7 +27,7 @@ func npc_layout(label: String):
 	elif game.page=="shop" and node("ShopProductsScroll")!=null:
 		check(node("ShopProductsScroll").get_global_rect().end.x<=content_rect.end.x,"NPC product list stays within assigned UI width "+label)
 	elif game.page=="inn":
-		check(node("InnPartyScroll").size.x<=content.size.x and node("InnMember_guard").get_parent().custom_minimum_size.x==180,"NPC preserves inn card size with contained scrolling "+label)
+		check(node("InnPartyScroll").size.x<=content.size.x and node("InnParty").columns==6,"NPC preserves six-column inn grid with contained scrolling "+label)
 func run():
 	create_timer(180).timeout.connect(func():print("FAIL NPC watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):push_error("Isolated profile required");quit(2);return

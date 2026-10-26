@@ -1,0 +1,33 @@
+{
+  "generator": "OpenAI image_gen",
+  "created": "2026-10-26",
+  "file": "comic_balloons.png",
+  "sha256": "d3abc910f93ef480ad3299b6d5dd18524d7c78775deae80eabb0cad2cd870823",
+  "width": 1254,
+  "height": 1254,
+  "mode": "RGBA",
+  "transparentPixels": 503192,
+  "opaquePixels": 1420,
+  "regions": {
+    "normal": [
+      20,
+      30,
+      1210,
+      390
+    ],
+    "thought": [
+      20,
+      428,
+      1210,
+      408
+    ],
+    "shout": [
+      20,
+      837,
+      1210,
+      385
+    ]
+  },
+  "text": "No text in graphic; rendered in separate Label",
+  "processing": "Original generated RGBA image retained unchanged; runtime AtlasTexture regions only"
+}

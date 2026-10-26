@@ -12,6 +12,7 @@ var mode := ""
 var notice := ""
 var generation := 0
 var reserve_job := ""
+var drag_serial := 0
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
 func c() -> Dictionary:return pages.c()
 func party_limit() -> int:
@@ -70,7 +71,7 @@ func render(parent):
 	var header=Control.new();header.name="GuildRules";header.custom_minimum_size.y=56 if compact else 80;parent.add_child(header)
 	var rules=VBoxContainer.new();header.add_child(rules);rules.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var capacity=l(rules,"現在%d/%d人（最大%d人） / 残り%d枠 / ポーター%d人" % [c().get("selected",[]).size(),limit,limit,maxi(0,limit-c().get("selected",[]).size()),porter_count()]);capacity.name="GuildCapacity";capacity.add_theme_font_size_override("font_size",16 if compact else 20)
-	var hint=l(rules,"編成変更は無料。ポーターは受注時のみ最低1人必要。2人選択で入替・並び替え。");hint.add_theme_font_size_override("font_size",16 if compact else 18)
+	var hint=l(rules,"編成変更は無料。ポーターは受注時のみ最低1人必要。ドラッグか2人選択で入替。");hint.add_theme_font_size_override("font_size",16 if compact else 18)
 	var split=HBoxContainer.new();split.name="GuildColumns";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",12);parent.add_child(split)
 	var actions_column=VBoxContainer.new();actions_column.name="GuildActionColumn";actions_column.custom_minimum_size.x=188;actions_column.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;actions_column.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	var upper_space=Control.new();upper_space.size_flags_vertical=Control.SIZE_EXPAND_FILL;actions_column.add_child(upper_space)
@@ -91,6 +92,7 @@ func render(parent):
 			var id=str(u.id);var selected=id==chosen_id or stage=="confirm" and id==origin_id
 			var disabled=busy() or stage=="confirm"
 			var button=b(body,"",choose.bind(id),disabled);button.name="GuildMember_"+id;button.custom_minimum_size.y=124 if compact else 132;button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;buttons[id]=button
+			button.set_script(preload("res://guild_member_card.gd"));button.configure(self,id)
 			button.set_meta("member_id",id);button.set_meta("guild_active",side==1);ui.memory.key(button,"guild_member_"+id);ui.memory.item(button,id)
 			if selected:
 				for state_ in ["normal","hover","pressed"]:
@@ -209,7 +211,10 @@ func commit(kind: String,outgoing: String,incoming: String,ids: Array,context: S
 	if context!=stamp() or ids!=candidate(kind,outgoing,incoming):
 		ui.dialog.close(false);stage="idle";notice="編成の状態が変わりました。最新の一覧から選び直してください。";ui.render();return
 	var old_rects={}
+	var old_faces={}
+	for control in ui.find_children("PartyFace_*","Button",true,false):old_faces[str(control.get_meta("member_id"))]=control.get_global_rect()
 	for control in ui.find_children("GuildMember_*","Button",true,false):old_rects[str(control.get_meta("member_id"))]=control.get_global_rect()
+	if not incoming.is_empty() and not old_faces.has(incoming) and old_rects.has(incoming):old_faces[incoming]=old_rects[incoming]
 	stage="pending";ui.dialog.close(false);var epoch=pages.epoch;var connection=ui.engine.connection_generation;ui.render()
 	var reply=await ui.act("select",[ids])
 	if ticket!=generation or epoch!=pages.epoch or connection!=ui.engine.connection_generation or ui.closing:return
@@ -219,7 +224,9 @@ func commit(kind: String,outgoing: String,incoming: String,ids: Array,context: S
 		notice="%s → %s 入替完了" % [ui.member_name(outgoing),ui.member_name(incoming)] if kind in ["swap","reorder"] else "%sを編成に加えました。" % ui.member_name(incoming) if kind=="add" else "%sを控えへ戻しました。" % ui.member_name(outgoing)
 	else:stage="idle";notice=str(reply.get("error","編成を変更できませんでした。最新の一覧から選び直してください。"))
 	ui.render()
-	if stage=="animating":await animate_swap(old_rects,ticket)
+	if stage=="animating":
+		animate_faces(old_faces,ticket)
+		await animate_swap(old_rects,ticket)
 func animate_swap(old_rects: Dictionary,ticket: int):
 	await ui.get_tree().process_frame
 	await ui.get_tree().process_frame
@@ -257,3 +264,49 @@ func escape() -> bool:
 	if not chosen_id.is_empty():cancel_selection()
 	else:ui.navigate("hub")
 	return true
+
+func drag_payload(id: String):
+	if not available() or busy() or ui.modal_open() or stage!="idle" or person(id).is_empty():return null
+	if not active(id) and not visible_reserves([person(id)]).has(person(id)):return null
+	drag_serial+=1
+	return {"kind":"guild_member","uid":id,"stamp":stamp(),"generation":generation,"serial":drag_serial,"consumed":false}
+func valid_drag(data) -> bool:
+	if not available() or busy() or ui.modal_open() or stage!="idle" or not data is Dictionary:return false
+	return data.get("kind")=="guild_member" and data.get("uid") is String and not person(data.uid).is_empty() and data.get("stamp")==stamp() and data.get("generation")==generation and data.get("serial")==drag_serial and data.get("consumed")==false
+func drop_operation(data,target: String="",append_slot:=false) -> Array:
+	if not valid_drag(data):return []
+	var source=str(data.uid)
+	if append_slot:
+		if active(source) or not target.is_empty():return []
+		return ["add","",source] if not candidate("add","",source).is_empty() else []
+	if target==source or person(target).is_empty():return []
+	var operation=[]
+	if active(source) and active(target):operation=["reorder",source,target]
+	elif active(source):operation=["swap",source,target]
+	elif active(target):operation=["swap",target,source]
+	if operation.is_empty() or candidate(operation[0],operation[1],operation[2]).is_empty():return []
+	return operation
+func drop_member(data,target: String="",append_slot:=false):
+	var operation=drop_operation(data,target,append_slot)
+	if operation.is_empty():return
+	data.consumed=true
+	prepare(operation[0],operation[1],operation[2])
+func animate_faces(old_rects: Dictionary,ticket: int):
+	await ui.get_tree().process_frame
+	await ui.get_tree().process_frame
+	if generation!=ticket or ui.closing:return
+	var strip=ui.find_child("PartyFacesScroll",true,false)
+	if strip==null:return
+	var clip=Control.new();clip.name="GuildPartyAnimation";clip.mouse_filter=Control.MOUSE_FILTER_IGNORE;clip.clip_contents=true;clip.z_index=100;ui.add_child(clip);clip.global_position=strip.global_position;clip.size=strip.size
+	var hidden=[];var tween=ui.create_tween().set_parallel(true)
+	for control in ui.find_children("PartyFace_*","Button",true,false):
+		var id=str(control.get_meta("member_id"));var target=control.get_global_rect()
+		if not old_rects.has(id) or old_rects[id].position.distance_to(target.position)<1:continue
+		var ghost=control.duplicate(0) as Button;clip.add_child(ghost);ghost.mouse_filter=Control.MOUSE_FILTER_IGNORE;ghost.focus_mode=Control.FOCUS_NONE;ghost.position=old_rects[id].position-clip.global_position;ghost.size=target.size
+		hidden.append(control);control.modulate.a=0
+		tween.tween_property(ghost,"position",target.position-clip.global_position,.30).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	if hidden.is_empty():tween.kill()
+	else:await tween.finished
+	for control in hidden:
+		if is_instance_valid(control):control.modulate.a=1
+	if is_instance_valid(clip):clip.queue_free()

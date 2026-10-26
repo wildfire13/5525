@@ -91,7 +91,7 @@ func run():
 	await tap("GuildMember_guard");await tap("GuildAdd");check(game.campaign().selected[-1]=="guard" and not game.modal_open(),"ordinary addition uses vacant slot without confirmation")
 	# Keep cargo warning for the actual carrier; no warning for a party reorder.
 	await game.update({"op":"campaign_load","data":seed});game.navigate("board");await settle()
-	game.pages.accept(game.campaign().board[0].id);await settle();await tap("QuestCargoOwner_porter")
+	game.pages.accept(game.campaign().board[0].id);await settle();await tap("QuestCargoOwner_porter");await tap("QuestCargoConfirm")
 	game.navigate("party");await settle();before=await saved();await tap("GuildMember_porter");await tap("GuildMember_porter-2")
 	check(contains("荷物を持っています") and node("GuildConfirm")!=null,"carrier to reserve retains warning")
 	await capture("cargo-warning")

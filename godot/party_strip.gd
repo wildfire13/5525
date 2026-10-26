@@ -46,6 +46,8 @@ func build(owner):
 		elif ui.pages.guild_view.available() and str(id)==ui.pages.guild_view.chosen_id:view.tint(control,Color("#236044"))
 		elif deployed.has(str(id)):view.tint(control,Color("#294b51"))
 		ui.memory.key(control,"face_"+str(id));ui.memory.item(control,str(id))
+	if guild_drag():
+		var slot=Button.new();slot.name="GuildPartyAppend";slot.text="満員" if ui.campaign().get("selected",[]).size()>=ui.pages.guild_view.party_limit() else "＋";slot.custom_minimum_size=Vector2(72,custom_minimum_size.y-18);slot.tooltip_text="控えをここへドラッグして末尾に追加";members.add_child(slot);slot.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data),func(_at,data):drop(data))
 	right=ui.button(self,"›",slide.bind(1));right.name="PartySlideRight";right.custom_minimum_size=Vector2(38,custom_minimum_size.y);right.tooltip_text="パーティー一覧を右へ";right.set_meta("no_status_hint",true)
 	scroll.get_h_scroll_bar().value_changed.connect(func(_v):refresh_arrows())
 	scroll.resized.connect(refresh_arrows,CONNECT_DEFERRED);refresh_arrows.call_deferred()
@@ -65,11 +67,16 @@ func remove_inactive(id: String,stamp: String,epoch: int,connection: int):
 	if not Drag.available(ui) or stamp!=Drag.signature(ui) or epoch!=ui.pages.epoch or connection!=ui.engine.connection_generation or not Drag.deployed(ui).has(id):return
 	for member in ui.roster():
 		if str(member.id)==id and member.hp<=0:ui.deployment_assigned(id,null);return
-func drag_payload(id: String):return Drag.make_payload(ui,id,"party")
+func guild_drag() -> bool:return ui.pages.guild_view.available()
+func drag_payload(id: String):
+	return ui.pages.guild_view.drag_payload(id) if guild_drag() else Drag.make_payload(ui,id,"party")
 func can_drop(data,uid: String="") -> bool:
+	if guild_drag():return not ui.pages.guild_view.drop_operation(data,uid,uid.is_empty()).is_empty()
 	if Drag.valid(ui,data):return data.source=="board"
 	return not uid.is_empty() and ui.page=="shop" and not ui.pages.shop_view.sale_mode() and ui.pages.shop_view.can_drop_product(data,uid) if data is Dictionary else false
 func drop(data,uid: String=""):
+	if guild_drag():
+		ui.pages.guild_view.drop_member(data,uid,uid.is_empty());return
 	if Drag.valid(ui,data) and data.source=="board":
 		if Drag.consume(ui,data):ui.deployment_assigned(str(data.uid),null)
 	elif can_drop(data,uid):ui.pages.shop_view.confirm_purchase(str(data.item),uid)

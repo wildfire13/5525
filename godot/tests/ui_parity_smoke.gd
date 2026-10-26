@@ -68,7 +68,8 @@ func run():
 	check(await snapshot()==initial,"map selection does not depart or consume resources")
 	var quest=game.campaign().board[0]
 	await game.pages.accept(quest.id);await settle()
-	game.find_child("QuestCargoOwner_porter",true,false).pressed.emit();await settle()
+	game.find_child("QuestCargoOwner_porter",true,false).pressed.emit()
+	game.find_child("QuestCargoConfirm",true,false).pressed.emit();await settle()
 	check(game.page=="map" and game.destination==quest.to,"accept goes to map with quest destination")
 	chart=game.content.find_child("TownMap",true,false)
 	check(chart.buttons.values().filter(func(v):return not v.disabled).size()==game.campaign().destinations.size(),"active quest retains normal road choices")
@@ -180,7 +181,7 @@ func run():
 	var save_dialog
 	for child in game.get_children():
 		if child is FileDialog:save_dialog=child
-	check(save_dialog!=null and save_dialog.file_mode==FileDialog.FILE_MODE_SAVE_FILE and not save_dialog.use_native_dialog and save_dialog.current_file.begins_with("5525-godot-"),"save restores embedded destination chooser with unique default name")
+	check(save_dialog!=null and save_dialog.file_mode==FileDialog.FILE_MODE_SAVE_FILE and save_dialog.use_native_dialog and save_dialog.current_file.begins_with("5525-godot-"),"save requests native destination chooser with unique default name")
 	if save_dialog!=null:save_dialog.canceled.emit();await settle()
 	check(await snapshot()==before_save,"save destination cancellation preserves campaign")
 	await game.save_log();await settle()

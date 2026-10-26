@@ -28,7 +28,9 @@ func portrait_layer(parent: Control):
 	portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE;portrait.focus_mode=Control.FOCUS_NONE;parent.add_child(portrait)
 	var height=viewport.y*1.28;var width=height*texture.get_width()/texture.get_height()
-	portrait.size=Vector2(width,height);portrait.position=Vector2(viewport.x-width+viewport.y*.08,viewport.y*.055)
+	# The portrait's entire texture starts beneath the speech graphic, so even
+	# tall hair or hats cannot intersect its words or tail at supported sizes.
+	portrait.size=Vector2(width,height);portrait.position=Vector2(viewport.x-width+viewport.y*.08,maxf(204,viewport.y*.19))
 	portrait.set_meta("facility",visit_key);portrait.set_meta("asset_path",selected_path)
 func columns(parent: Control,viewport_width: float) -> Control:
 	if not available(parent.get_viewport_rect().size):return parent

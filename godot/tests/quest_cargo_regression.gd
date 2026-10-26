@@ -7,6 +7,9 @@ func settle():
 	while game.locked or game.engine.busy or game.presenting or game.pages.guild_view.stage in ["pending","animating"]:await process_frame
 func check(ok,label):checks.append({"passed":bool(ok),"label":label});print(("PASS " if ok else "FAIL ")+label)
 func tap(n):game.find_child(n,true,false).pressed.emit();await settle()
+func enter_guild():
+	game.navigate("party");await settle()
+	if game.find_child("FacilityChoice_guild",true,false)!=null:await tap("FacilityChoice_guild")
 func saved():return (await game.engine.request({"op":"campaign_save"})).data
 func arrive_fixture(to):
 	await game.act("depart",[to]);await settle()
@@ -30,14 +33,14 @@ func run():
 	check(game.find_child("QuestCargoOwner_guard",true,false)==null,"non porter not offered")
 	await tap("QuestCargoCancel")
 	check(await saved()==before,"owner picker cancel leaves complete state unchanged")
-	game.pages.accept(qid);await settle();await tap("QuestCargoOwner_porter")
+	game.pages.accept(qid);await settle();await tap("QuestCargoOwner_porter");await tap("QuestCargoConfirm")
 	var cargo=game.campaign().activeQuest.cargoItemId
 	check(game.campaign().characters.porter.inventory.get(cargo)==1,"selected porter receives linked cargo")
 	var reply=await game.engine.request({"op":"campaign","action":"inventoryQuote","args":["porter",cargo,"transfer","porter-2"]})
 	var quote=reply.inventoryQuote
 	await game.act("inventoryAction",["porter",cargo,"transfer","porter-2",1,null,quote.token]);await settle()
 	check(game.campaign().activeQuest.cargoOwnerId=="porter-2" and not game.campaign().characters.porter.inventory.has(cargo),"existing inventory transfer updates current carrier")
-	game.navigate("party");await settle();await tap("GuildMember_porter-2");await tap("GuildRemove")
+	await enter_guild();await tap("GuildMember_porter-2");await tap("GuildRemove")
 	check(contains("そのポーター、荷物を持っています"),"current carrier removal warns")
 	var before_remove=await saved();await tap("GuildConfirmCancel")
 	check(await saved()==before_remove,"warning cancel keeps party and cargo unchanged")
@@ -46,7 +49,7 @@ func run():
 	var seed=await saved()
 	reply=await game.update({"op":"campaign_load","data":seed});await settle()
 	check(reply.ok and game.campaign().activeQuest.cargoOwnerId=="porter-2","reserve carrier save reload")
-	game.navigate("party");await settle();await tap("GuildMember_porter-2");await tap("GuildAdd")
+	await enter_guild();await tap("GuildMember_porter-2");await tap("GuildAdd")
 	check(game.campaign().cargoAboard,"readding carrier restores aboard cargo")
 	await tap("GuildMember_porter-2");await tap("GuildMember_archer")
 	check(contains("そのポーター、荷物を持っています"),"current carrier swap warns")
@@ -58,7 +61,7 @@ func run():
 	check(game.find_child("HubDeliverCargo",true,false).disabled and contains("依頼は未完了"),"missing cargo completion disabled with reason")
 	game.navigate("map");await settle()
 	check(not game.find_child("TownMap",true,false).buttons.astaris.disabled,"ordinary road back to city available")
-	await arrive_fixture("astaris");game.navigate("party");await settle()
+	await arrive_fixture("astaris");await enter_guild()
 	await tap("GuildMember_porter-2");await tap("GuildAdd")
 	cash=game.campaign().gold
 	await arrive_fixture("east")
