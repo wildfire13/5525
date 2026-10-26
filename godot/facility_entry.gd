@@ -73,10 +73,12 @@ func fit_inline_speech(bubble: Control):
  # the entire content width and pushing useful service controls below them.
  bubble.custom_minimum_size=Vector2(minf(420,ui.size.x-64),110 if bubble.words.text.length()<=20 else 140)
  bubble.size_flags_horizontal=Control.SIZE_SHRINK_END;bubble.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+ bubble.set_speaker_visible(false)
 func render_dialogue(text_override: String="",kind: String="normal") -> bool:
  if not pages.facility_art.npc.available(ui.size):return false
  for previous in ui.backdrop_layer.get_children():
   if previous.name=="FacilityGreeting":ui.backdrop_layer.remove_child(previous);previous.queue_free()
  var bubble=make_speech(greeting_text() if text_override.is_empty() else text_override,kind);ui.backdrop_layer.add_child(bubble)
  var width=clampf(ui.size.x*.25,280,480);bubble.position=Vector2(ui.size.x-width-24,28);bubble.size=Vector2(width,160)
+ bubble.point_to(pages.facility_art.npc.mouth_anchor(ui.backdrop_layer))
  return true
