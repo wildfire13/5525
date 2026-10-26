@@ -42,7 +42,12 @@ func _process(delta):
 func refresh_history():
  if not is_instance_valid(window) or not window.visible:return
  history.text="\n".join(entries)
- history.scroll_vertical=history.get_line_count()
+ # Wrapped visual lines can exceed logical line_count. Wait for the range
+ # to update, then follow its actual bottom instead of a logical line index.
+ follow_latest.call_deferred()
+func follow_latest():
+ if not is_instance_valid(window) or not window.visible:return
+ history.scroll_vertical=history.get_v_scroll_bar().max_value
 func clear_history():
  entries.clear();refresh_history()
 func open():
@@ -51,7 +56,7 @@ func open():
  refresh_state();window.show();refresh_history();window.grab_focus();history.grab_focus()
 func build():
  if not is_enabled():return
- window=Window.new();window.visible=false;window.name="DeveloperWindow";window.title="5525 開発情報";window.force_native=true;window.transient=false;window.exclusive=false;window.size=Vector2i(720,480);window.min_size=Vector2i(440,300);window.visible=false;window.theme=ui.theme;add_child(window)
+ window=Window.new();window.visible=false;window.name="DeveloperWindow";window.title="5525 開発情報";window.force_native=true;window.transient=false;window.exclusive=false;window.size=Vector2i(720,480);window.min_size=Vector2i(440,480);window.visible=false;window.theme=ui.theme;add_child(window)
  window.close_requested.connect(window.hide)
  window.window_input.connect(func(event):
   if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
@@ -59,10 +64,11 @@ func build():
  var margin=MarginContainer.new();window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,12)
  var column=VBoxContainer.new();margin.add_child(column)
- var heading=Label.new();heading.text="開発情報（ゲーム操作・保存データとは独立）";column.add_child(heading)
+ var heading=Label.new();heading.text="開発情報（ゲーム操作・保存データとは独立）";heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(heading)
  status=Label.new();status.name="DebugState";status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(status)
  var hint=Label.new();hint.text="状態変化と要求結果のみ・最大200件・ファイル保存なし";hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(hint)
- history=TextEdit.new();history.name="DebugHistory";history.editable=false;history.size_flags_vertical=Control.SIZE_EXPAND_FILL;history.wrap_mode=TextEdit.LINE_WRAPPING_BOUNDARY;column.add_child(history)
+ history=TextEdit.new();history.name="DebugHistory";history.editable=false;history.custom_minimum_size.y=120;history.size_flags_vertical=Control.SIZE_EXPAND_FILL;history.wrap_mode=TextEdit.LINE_WRAPPING_BOUNDARY;column.add_child(history)
+ history.get_v_scroll_bar().changed.connect(follow_latest,CONNECT_DEFERRED)
  var actions=HBoxContainer.new();column.add_child(actions)
  var clear=Button.new();clear.name="DebugClear";clear.text="ログを消去";clear.pressed.connect(clear_history);actions.add_child(clear)
  var close=Button.new();close.name="DebugClose";close.text="閉じる";close.pressed.connect(window.hide);actions.add_child(close)
