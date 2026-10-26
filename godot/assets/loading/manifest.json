@@ -1,0 +1,41 @@
+{
+  "status": "provisional",
+  "images": [
+    {
+      "path": "res://assets/loading/before-01.png",
+      "name": "戦闘前_01_森の街道",
+      "phase": "before",
+      "sha256": "d9986337c6ea0e710c5b81e7f0a0ec6bd27bbe6b82be5caa2ebd2f9239bc368b"
+    },
+    {
+      "path": "res://assets/loading/before-02.png",
+      "name": "戦闘前_02_遺跡への突入",
+      "phase": "before",
+      "sha256": "750c40d65a13fd6ac45f949e12715a64a2cf961f7d994dcfa2fb7e5121fca4e7"
+    },
+    {
+      "path": "res://assets/loading/before-03.png",
+      "name": "戦闘前_03_石橋の守護者",
+      "phase": "before",
+      "sha256": "cfa75d5d2f8fc93adce01933e2887a609586811c86f95c0f5c887a76cc5781d0"
+    },
+    {
+      "path": "res://assets/loading/after-01.png",
+      "name": "戦闘後_01_木陰で休憩",
+      "phase": "after",
+      "sha256": "f443860ee31e03b13638dcdb4dcbd3ce7154cb8e732656c105374cc5cef55fd3"
+    },
+    {
+      "path": "res://assets/loading/after-02.png",
+      "name": "戦闘後_02_仲間の手当て",
+      "phase": "after",
+      "sha256": "038c6ade84f7ff0db930263591170ea1a6e038022fe314fb57efd357829f3261"
+    },
+    {
+      "path": "res://assets/loading/after-03.png",
+      "name": "戦闘後_03_夕映えの帰路",
+      "phase": "after",
+      "sha256": "7507b5f9c4ea40fb74a2c27c01aeac111746b4f94ad284f16454a7cfa91c3445"
+    }
+  ]
+}
