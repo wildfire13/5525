@@ -17,7 +17,7 @@ def run(name,entry,args,environment,expected=0,project=ROOT):
     return item
 # Exercise real discovery in its documented portable layout. Only existing
 # executables are copied to a disposable fixture; no sibling-PC layout is assumed.
-with tempfile.TemporaryDirectory(prefix='5525-launcher-discovery-') as temporary:
+with tempfile.TemporaryDirectory(prefix='5525 launcher discovery ') as temporary:
     project=Path(temporary)
     for relative in ['Start-5525.cmd','Start-5525-Godot.cmd','godot/launch.ps1',
                      'godot/project.godot','native/bridge.cjs','native/godot_files.py',
@@ -55,6 +55,9 @@ with tempfile.TemporaryDirectory(prefix='5525-launcher-discovery-') as temporary
     finally:
         master.write_bytes(original)
 explicit=run('Godot entry accepts explicit runtime','Start-5525-Godot.cmd',['-Check'],env)
+if explicit['passed']:
+    data=json.loads(explicit['stdout']);explicit['resolved']=data
+    explicit['passed'] &= bool(data['python'].get('sqlite')) and bool(data['python'].get('pillow'))
 for key in ['GODOT_BIN','NATIVE5525_NODE','NATIVE5525_PYTHON']:
     item=run('Reject missing explicit '+key,'Start-5525-Godot.cmd',['-Check'],{**env,key:str(ROOT/'nonexistent-runtime.exe')},1)
     item['passed'] &= 'was not found' in item['stderr']

@@ -164,10 +164,26 @@ def read(path):
         source['grantsByEquipment']=grants
         return source
 
+def runtime_probe():
+    """Dependency check from a file: avoids native shell quoting of Python/SQL."""
+    import PIL
+    if sys.version_info < (3,10):raise ValueError('unsupported Python version')
+    with closing(sqlite3.connect(':memory:')) as db:
+        if db.execute('SELECT json_valid(?)',('{}',)).fetchone()!=(1,):raise ValueError('SQLite JSON support required')
+        db.execute('PRAGMA foreign_keys=ON')
+        if db.execute('PRAGMA foreign_keys').fetchone()!=(1,):raise ValueError('SQLite foreign keys required')
+        db.executescript('CREATE TABLE parent(id INTEGER PRIMARY KEY); CREATE TABLE child(id INTEGER REFERENCES parent(id));')
+        try:db.execute('INSERT INTO child VALUES(1)')
+        except sqlite3.IntegrityError:pass
+        else:raise ValueError('SQLite foreign keys not enforced')
+    return {'python':sys.version.split()[0],'pillow':PIL.__version__,'sqlite':sqlite3.sqlite_version}
+
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('command',choices=['build','read']);parser.add_argument('--source',default=str(ROOT/'master-source.json'));parser.add_argument('--db',default=str(ROOT/'master.sqlite'));args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('command',choices=['build','read','probe']);parser.add_argument('--source',default=str(ROOT/'master-source.json'));parser.add_argument('--db',default=str(ROOT/'master.sqlite'));args=parser.parse_args()
     try:
-        if args.command=='build':build(args.source,args.db)
+        if args.command=='probe':print(json.dumps(runtime_probe()))
+        elif args.command=='build':build(args.source,args.db)
         else:print(json.dumps(read(args.db),ensure_ascii=False,allow_nan=False))
-    except (ValueError,KeyError,TypeError,OSError,sqlite3.Error):
-        print('Master database is missing, invalid, or incompatible.',file=sys.stderr);sys.exit(1)
+    except (ValueError,KeyError,TypeError,OSError,ImportError,sqlite3.Error):
+        message='Python runtime dependencies are missing or incompatible.' if args.command=='probe' else 'Master database is missing, invalid, or incompatible.'
+        print(message,file=sys.stderr);sys.exit(1)
