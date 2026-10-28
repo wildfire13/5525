@@ -243,6 +243,7 @@ func confirm(text: String,fn: Callable):
 		if d.get_meta("submitted",false) or locked or presenting:return
 		d.set_meta("submitted",true);d.hide();d.queue_free();fn.call())
 	d.canceled.connect(func():
+		record_debug_event("confirm","cancel")
 		audio.ui("cancel");d.hide();d.queue_free()
 		if not closing and pages.epoch==epoch and engine.connection_generation==generation:
 			memory.scrolls.merge(scroll_state,true);memory.request_focus(origin_key);memory.restore())
@@ -276,7 +277,9 @@ func close_game():
 	closing=true;results_view.reset();loading_screen.finish(loading_screen.sequence);invalidate_preview()
 	while engine.busy:await get_tree().process_frame
 	if data.get("presentation")!=null:await engine.request({"op":"presentation_finish","id":data.presentation.id})
-	await audio.finish_audio();engine.close_engine()
+	await audio.finish_audio()
+	if engine.has_method("finish_diagnostics"):await engine.finish_diagnostics()
+	engine.close_engine()
 	await get_tree().process_frame
 	get_tree().quit()
 func loading_kind(request: Dictionary) -> String:
@@ -290,12 +293,13 @@ func loading_kind(request: Dictionary) -> String:
 		if campaign().get("phase") in ["battle","deployment"] or data.get("trial")!=null:return "after"
 	return ""
 func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
-	if locked or closing or loading_screen.active:return {"ok":false,"error":"処理中です"}
+	if locked or closing or loading_screen.active:
+		record_debug_rejection(request);return {"ok":false,"error":"処理中です"}
 	pages.shop_view.cancel_pending()
 	var incoming={}
 	if request.get("op")=="campaign_load":
 		incoming=campaign_identity.prepare_load(request.get("data"),str(frontend.get("source_path","")))
-		if not incoming.ok:notice=incoming.error;render();return {"ok":false,"error":incoming.error}
+		if not incoming.ok:record_debug_rejection(request);notice=incoming.error;render();return {"ok":false,"error":incoming.error}
 		request=request.duplicate(true);request.data=incoming.envelope
 	locked=true;status_override=""
 	var loading_token=0
@@ -309,7 +313,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		loading_token=loading_screen.begin(kind,subdued)
 		await loading_screen.painted(loading_token)
 	while engine.busy and not closing:await get_tree().process_frame
-	if closing:locked=false;loading_screen.finish(loading_token);return {"ok":false,"error":"終了しています"}
+	if closing:record_debug_rejection(request);locked=false;loading_screen.finish(loading_token);return {"ok":false,"error":"終了しています"}
 	for b in widgets:
 		if is_instance_valid(b) and not b.get_meta("read_only",false):b.disabled=true
 	debug_view.refresh_state()
@@ -410,9 +414,14 @@ func new_game(reconnect_bootstrap:=false):
 	invalidate_preview()
 	portraits.activate({"version":1,"characters":{}});audio.restore({});gear_preview={};page="hub"
 	await update({"op":"campaign_start"},{"reconnect_bootstrap":reconnect_bootstrap})
+func record_debug_event(name: String,reason: String):
+	if engine!=null and engine.has_method("debug_local_event"):engine.debug_local_event(name,reason)
+func record_debug_rejection(request: Dictionary):
+	if engine!=null and engine.has_method("debug_rejected_request"):engine.debug_rejected_request(request)
 func navigate(value: String):
 	if not pages.party_view.guard_leave(navigate.bind(value)):return
 	if page=="party" and not pages.guild_view.guard_leave():return
+	record_debug_event("navigate","success")
 	invalidate_preview();pages.facility_entry.navigate(value);page=value;pages.reset_items();pages.invalidate_quote(false);memory.focus_key="";render()
 func render():
 	if rendering:return
@@ -701,7 +710,9 @@ func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback
 	else:add_child(d)
 	d.current_dir=ProjectSettings.globalize_path("user://")
 	if not filename.is_empty():d.current_file=filename;d.title="保存先を選択";d.overwrite_warning_enabled=false
-	d.file_selected.connect(func(path):d.set_meta("file_dialog_active",false);d.hide();d.queue_free();callback.call(path));d.canceled.connect(func():d.set_meta("file_dialog_active",false);d.hide();d.queue_free())
+	var diagnostic_kind="file_save" if mode==FileDialog.FILE_MODE_SAVE_FILE else "file_open"
+	record_debug_event(diagnostic_kind,"start")
+	d.file_selected.connect(func(path):record_debug_event(diagnostic_kind,"success");d.set_meta("file_dialog_active",false);d.hide();d.queue_free();callback.call(path));d.canceled.connect(func():record_debug_event(diagnostic_kind,"cancel");d.set_meta("file_dialog_active",false);d.hide();d.queue_free())
 	preferences.bind_window(d,"file_dialog",size,size*.75);d.popup()
 func save_game():
 	var r=await update({"op":"campaign_save"})
@@ -734,7 +745,7 @@ func load_game(path: String):
 	var envelope: Dictionary=r.data
 	var images: Dictionary=envelope.get("nativePortraits",{"version":1,"characters":{}})
 	var music=envelope.get("godotFrontend",{})
-	if not audio.valid_metadata(music):notice="旅曲の保存情報が不正です";render();return
+	if not audio.valid_metadata(music):record_debug_event("load_metadata","failed");notice="旅曲の保存情報が不正です";render();return
 	envelope.erase("nativePortraits");envelope.erase("godotFrontend")
 	await update({"op":"campaign_load","data":envelope},{"images":images,"music":music,"source_path":path})
 func show_action_log():
