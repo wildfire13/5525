@@ -50,6 +50,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify SQLite master and grant compatibility
         run: |
+          python -m unittest discover -s native -p test_debug_store.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m unittest discover -s native -p test_master_data.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node native/test_sqlite_grant_save.cjs

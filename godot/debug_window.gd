@@ -6,6 +6,7 @@ var ui:
  get:return owner_ref.get_ref()
 var window: Window
 var status: Label
+var persistence: Label
 var history: TextEdit
 var entries: Array[String]=[]
 var previous: Dictionary={}
@@ -34,7 +35,9 @@ func refresh_state():
  var current=sample()
  if current!=previous:
   previous=current;append_entry(state_text(current))
+  if "debug_store" in ui.engine and is_instance_valid(ui.engine.debug_store):ui.engine.debug_store.state_changed({"locked":current.get("処理待ち",false),"presenting":current.get("演出",false),"preview_pending":current.get("予測待ち",false),"quote_pending":current.get("見積待ち",false),"busy":current.get("エンジン処理",false),"disconnected":current.get("接続断",false),"loading":current.get("ロード画面",false)})
  if is_instance_valid(status):status.text=state_text(current)
+ if is_instance_valid(persistence):persistence.text="ローカルDB："+str(ui.engine.debug_store.status if "debug_store" in ui.engine and is_instance_valid(ui.engine.debug_store) else "無効")
 func _process(delta):
  elapsed+=delta
  if elapsed<.2:return
@@ -66,9 +69,10 @@ func build():
  var column=VBoxContainer.new();margin.add_child(column)
  var heading=Label.new();heading.text="開発情報（ゲーム操作・保存データとは独立）";heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(heading)
  status=Label.new();status.name="DebugState";status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(status)
- var hint=Label.new();hint.text="状態変化と要求結果のみ・最大200件・ファイル保存なし";hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(hint)
+ var hint=Label.new();hint.text="表示は最新200件。構造化診断はローカルDBに保存（公開・送信なし）";hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(hint)
+ persistence=Label.new();persistence.name="DebugPersistence";persistence.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(persistence)
  history=TextEdit.new();history.name="DebugHistory";history.editable=false;history.custom_minimum_size.y=120;history.size_flags_vertical=Control.SIZE_EXPAND_FILL;history.wrap_mode=TextEdit.LINE_WRAPPING_BOUNDARY;column.add_child(history)
  history.get_v_scroll_bar().changed.connect(follow_latest,CONNECT_DEFERRED)
  var actions=HBoxContainer.new();column.add_child(actions)
- var clear=Button.new();clear.name="DebugClear";clear.text="ログを消去";clear.pressed.connect(clear_history);actions.add_child(clear)
+ var clear=Button.new();clear.name="DebugClear";clear.text="表示履歴を消去";clear.pressed.connect(clear_history);actions.add_child(clear)
  var close=Button.new();close.name="DebugClose";close.text="閉じる";close.pressed.connect(window.hide);actions.add_child(close)

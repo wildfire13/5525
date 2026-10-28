@@ -58,6 +58,7 @@ jobs:
         run: python godot/tests/run_inventory_header_261020.py --evidence "$RUNNER_TEMP/5525-regression"
       - name: Verify SQLite master and grant compatibility
         run: |
+          python -m unittest discover -s native -p test_debug_store.py
           python -m unittest discover -s native -p test_master_data.py
           node native/test_sqlite_grant_save.cjs
           node native/test_skill_cooldowns.cjs

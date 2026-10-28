@@ -1,5 +1,6 @@
 extends Node
 signal diagnostic_completed(file_operation: bool, ok: bool, duration_ms: int)
+var debug_store: Node
 ## Rules and files own separate processes; a file timeout never kills game state.
 var transport=preload("res://pipe_transport.gd").new()
 var file_transport=preload("res://pipe_transport.gd").new()
@@ -22,6 +23,8 @@ var owned_io_pids: Array[int]=[]
 func start_engine() -> bool:
 	if busy:return false
 	native_dir=ProjectSettings.globalize_path("res://../native")
+	if OS.is_debug_build() and debug_store==null:
+		debug_store=preload("res://debug_store.gd").new();add_child(debug_store);debug_store.start(native_dir,python_program)
 	var program=node_program if not node_program.is_empty() else OS.get_environment("NATIVE5525_NODE")
 	if program.is_empty():program="C:/Program Files/nodejs/node.exe" if OS.get_name()=="Windows" else "/usr/bin/node"
 	var script=node_script if not node_script.is_empty() else native_dir.path_join("bridge.cjs")
@@ -62,11 +65,14 @@ func _file_request(payload: Dictionary) -> Dictionary:
 		return {"ok":false,"outcome":"unknown","error":"保存結果を確認できません。ゲーム進行は保持しています。保存先を確認してから別名で保存してください。","path":payload.get("path","")}
 	return {"ok":false,"error":"ファイル処理が終了しました（%s）。ゲーム進行は保持しています。" % result.transport_error}
 func request(payload: Dictionary) -> Dictionary:
+	var diagnostic_token=debug_store.begin_request(payload) if is_instance_valid(debug_store) else {}
 	if busy or closing:
 		diagnostic_completed.emit(payload.get("op")=="godot_io",false,0)
+		if is_instance_valid(debug_store):debug_store.finish_request(diagnostic_token,{"ok":false},"rejected")
 		return {"ok":false,"error":"接続が使用中、または終了しています"}
 	if disconnected or handles.is_empty():
 		diagnostic_completed.emit(payload.get("op")=="godot_io",false,0)
+		if is_instance_valid(debug_store):debug_store.finish_request(diagnostic_token,{"ok":false},"disconnected")
 		return {"ok":false,"connection_lost":true,"error":last_error}
 	busy=true
 	var diagnostic_started=Time.get_ticks_msec()
@@ -77,10 +83,19 @@ func request(payload: Dictionary) -> Dictionary:
 		if result.has("transport_error") and not closing:result=_disconnect(result.transport_error)
 	if closing:result={"ok":false,"error":"終了しています"}
 	busy=false
+	if is_instance_valid(debug_store):debug_store.finish_request(diagnostic_token,result,"disconnected" if result.get("connection_lost",false) else "")
 	diagnostic_completed.emit(payload.get("op")=="godot_io",bool(result.get("ok",false)),Time.get_ticks_msec()-diagnostic_started)
 	return result
 func close_engine():
 	closing=true
+	if is_instance_valid(debug_store):debug_store.stop_now()
 	file_transport.close();transport.close()
 	# An awaiting request observes closing and completes without another join.
+func debug_rejected_request(payload: Dictionary):
+	if is_instance_valid(debug_store):
+		var token=debug_store.begin_request(payload);debug_store.finish_request(token,{"ok":false},"rejected")
+func debug_local_event(name: String,reason: String):
+	if is_instance_valid(debug_store):debug_store.local_event(name,reason)
+func finish_diagnostics():
+	if is_instance_valid(debug_store):await debug_store.shutdown()
 func _exit_tree():close_engine()
