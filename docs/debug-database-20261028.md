@@ -61,3 +61,9 @@ FROM events WHERE session = :session ORDER BY seq;
 保存対象はエンジンへの要求と列挙済みUIイベント。戦闘ターゲット取消、購入詳細の閉じる、受注ポーター選択取消など、bridge要求を出さない全UI操作の個別イベントまで網羅していない。確認したLinux環境ではnative file dialog機能がなくGodot fallbackを使用。Windows実UIは未確認。
 
 今回の基点はmain `89c49906c9a538f895deaf7a6a0e0de185f939af`。実装時は未commit/未pushで保全し、その後の明示承認によりmain反映と両CI確認へ進む。現在の正規接続は正常と確認。認証・公開設定・本人PCへ変更なし。最終SHAとCI結果は完了報告を参照。
+
+## CIでの終了処理補修
+
+初回公開CIのnative_file_dialogは機能検査が成功しても終了時ObjectDB残留警告で失敗した。同試験のローカル旧版ではタイミング依存の警告を再現できなかったが、応答を止めた診断workerの途中で同期停止/解放すると、旧方式でGDScriptFunctionState残留を再現した。診断専用transportをWorkerThreadPool＋明示的なframeポーリングへ変更し、停止時に監視signal・pipe・workerを回収する。共有のゲーム/file transportは変更しない。
+
+修正版の同条件強制停止では残留なし。保存/読込37項目と既存の永続ログ突合125項目は期待値を変えず成功。CIで最終版を再確認する。旧版の通常試験で未再現だった事実と、独立した強制停止再現を区別する。
