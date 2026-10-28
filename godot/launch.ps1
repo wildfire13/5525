@@ -51,7 +51,8 @@ try {
         $resolved = Existing-Path $candidate
         if (-not $resolved) { continue }
         try {
-            $info = (Probe $resolved @('-X','utf8','-B','-c','import sys,json,PIL,sqlite3; assert sys.version_info >= (3,10); db=sqlite3.connect(":memory:"); assert db.execute("select json_valid(?)",("{}",)).fetchone()[0] == 1; db.execute("PRAGMA foreign_keys=ON"); assert db.execute("PRAGMA foreign_keys").fetchone()[0] == 1; db.close(); print(json.dumps(dict(python=sys.version.split()[0],pillow=PIL.__version__,sqlite=sqlite3.sqlite_version)))')) | ConvertFrom-Json
+            # File-based probe: Windows PowerShell strips embedded native argument quotes.
+            $info = (Probe $resolved @('-X','utf8','-B',(Join-Path $projectRoot 'native/master_data.py'),'probe')) | ConvertFrom-Json
             $pythonPath=$resolved; $pythonInfo=$info; break
         } catch { }
     }

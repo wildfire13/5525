@@ -3,10 +3,12 @@ from contextlib import closing
 import json
 import pathlib
 import sqlite3
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
-from master_data import ROOT, build, read
+from master_data import ROOT, build, read, runtime_probe
 
 class MasterTests(unittest.TestCase):
     def setUp(self):
@@ -163,6 +165,23 @@ class MasterTests(unittest.TestCase):
             with self.assertRaises(ValueError):build(self.src,self.db)
         self.assertEqual(len(opened),2);self.assert_connections_closed(opened)
         self.assertEqual(self.db.read_bytes(),original);self.assertEqual(set(self.root.iterdir()),before)
+    def test_runtime_probe_checks_dependencies_and_closes_connection(self):
+        opened,connect=self.tracked_connections()
+        with patch('master_data.sqlite3.connect',side_effect=connect):result=runtime_probe()
+        self.assertTrue(result['python']);self.assertTrue(result['pillow']);self.assertTrue(result['sqlite'])
+        self.assertEqual(len(opened),1);self.assert_connections_closed(opened)
+    def test_probe_cli_from_path_with_spaces_without_a_database(self):
+        folder=self.root/'runtime with spaces';folder.mkdir()
+        script=folder/'master_data.py';script.write_bytes((ROOT.parent/'master_data.py').read_bytes())
+        result=subprocess.run([sys.executable,'-X','utf8','-B',str(script),'probe'],capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(set(json.loads(result.stdout)),{'python','pillow','sqlite'})
+        self.assertEqual(list(folder.iterdir()),[script],'probe must not create a DB or cache')
+    def test_probe_cli_missing_pillow_reports_dependency_failure(self):
+        # -S excludes site-packages; Pillow is a runtime requirement, not vendored.
+        result=subprocess.run([sys.executable,'-S','-B',str(ROOT.parent/'master_data.py'),'probe'],capture_output=True,text=True,timeout=10)
+        self.assertNotEqual(result.returncode,0)
+        self.assertEqual(result.stdout,'');self.assertIn('runtime dependencies',result.stderr)
     def test_no_new_gear(self):
         self.assertEqual(len(read(self.db)['gear']),58)
 if __name__=='__main__':unittest.main()
