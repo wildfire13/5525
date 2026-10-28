@@ -2,6 +2,7 @@
 Never opens a save file. No schema migration is performed at runtime.
 """
 import argparse
+from contextlib import closing
 import json
 import math
 import pathlib
@@ -97,7 +98,9 @@ def build(source_path, output):
     output=pathlib.Path(output);output.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=output.parent,delete=False) as f: temp=pathlib.Path(f.name)
     try:
-        with sqlite3.connect(temp) as db:
+        # The SQLite transaction context commits/rolls back but does not close.
+        # Close both writer and validator before replacing the file on Windows.
+        with closing(sqlite3.connect(temp)) as db, db:
             db.executescript(SCHEMA)
             db.execute('INSERT INTO metadata VALUES(1,?)',(source['contentVersion'],))
             for sid in sorted(set(source['definitions'])|set(source['legacySkills'])):
@@ -125,7 +128,7 @@ def build(source_path, output):
 def read(path):
     path=pathlib.Path(path).resolve()
     if not path.is_file() or path.stat().st_size>16*1024*1024: raise ValueError('missing or oversized master')
-    with sqlite3.connect(path.as_uri()+'?mode=ro',uri=True) as db:
+    with closing(sqlite3.connect(path.as_uri()+'?mode=ro',uri=True)) as db:
         db.execute('PRAGMA query_only=ON');db.execute('PRAGMA foreign_keys=ON')
         if db.execute('PRAGMA integrity_check').fetchall()!=[('ok',)] or db.execute('PRAGMA foreign_key_check').fetchall(): raise ValueError('invalid master integrity')
         versions=db.execute('SELECT schema_version,content_version FROM metadata').fetchall()
