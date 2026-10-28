@@ -6,7 +6,7 @@ const MAX_QUEUE=256
 const BATCH_SIZE=32
 const FLUSH_INTERVAL=.2
 const WORKER_TIMEOUT_MS=500
-var transport=preload("res://pipe_transport.gd").new()
+var transport=preload("res://debug_transport.gd").new()
 var sanitizer=preload("res://debug_events.gd").new()
 var session=""
 var queue: Array=[]
@@ -18,6 +18,8 @@ var lost=0
 var start_ticks=0
 var active=false
 var pumping=false
+var in_flight_count=0
+var poll_tree: SceneTree
 var closing=false
 var failed=false
 var disabled_by_environment=false
@@ -92,6 +94,7 @@ func _process(delta):
  if not queue.is_empty():pump()
 func disable():
  lost+=queue.size()
+ _stop_polling()
  failed=true;active=false;status="保存停止（保存未確認%d件・ゲーム操作は継続できます）" % lost;queue.clear();set_process(false);transport.close()
 func pump(timeout_budget_ms: int=WORKER_TIMEOUT_MS):
  if pumping or not active or queue.is_empty():return
@@ -101,11 +104,21 @@ func pump(timeout_budget_ms: int=WORKER_TIMEOUT_MS):
    pumping=false;disable();return
  var events=queue.slice(0,BATCH_SIZE)
  queue=queue.slice(events.size())
- var response=await transport.exchange({"action":"batch","session":session,"version":BUILD,"events":events},self,clampi(timeout_budget_ms,1,WORKER_TIMEOUT_MS))
- pumping=false
- if closing and not is_inside_tree():return
- if not response.get("ok",false):lost+=events.size();disable();return
- status="保存中"
+ in_flight_count=events.size()
+ if not transport.begin({"action":"batch","session":session,"version":BUILD,"events":events},clampi(timeout_budget_ms,1,WORKER_TIMEOUT_MS)):
+  lost+=in_flight_count;in_flight_count=0;pumping=false;disable();return
+ poll_tree=get_tree()
+ if not poll_tree.process_frame.is_connected(_poll_batch):poll_tree.process_frame.connect(_poll_batch)
+func _stop_polling():
+ if is_instance_valid(poll_tree) and poll_tree.process_frame.is_connected(_poll_batch):poll_tree.process_frame.disconnect(_poll_batch)
+ poll_tree=null
+func _poll_batch():
+ if not pumping:return
+ var response=transport.poll()
+ if response.get("pending",false):return
+ _stop_polling();pumping=false
+ if not response.get("ok",false):lost+=in_flight_count;in_flight_count=0;disable();return
+ in_flight_count=0;status="保存中"
  if dropped>0 and queue.size()<MAX_QUEUE:
   var count=dropped;dropped=0;enqueue("lifecycle","session",0,{"reason":"queue_overflow","dropped":count})
 func shutdown(budget_ms: int=700):
@@ -115,12 +128,17 @@ func shutdown(budget_ms: int=700):
  enqueue("lifecycle","session",0,{"reason":"close"})
  set_process(false)
  while active and (pumping or not queue.is_empty()) and Time.get_ticks_msec()<deadline:
-  if not pumping:pump(maxi(1,deadline-Time.get_ticks_msec()))
-  await get_tree().process_frame
+  if pumping:_poll_batch()
+  elif not queue.is_empty():pump(maxi(1,deadline-Time.get_ticks_msec()))
+  if active and (pumping or not queue.is_empty()):await get_tree().process_frame
  if active and not pumping and queue.is_empty() and Time.get_ticks_msec()<deadline:
-  var response=await transport.exchange({"action":"close","session":session,"version":BUILD},self,maxi(1,deadline-Time.get_ticks_msec()))
-  if response.get("ok",false):status="保存完了"
+  if transport.begin({"action":"close","session":session,"version":BUILD},maxi(1,deadline-Time.get_ticks_msec())):
+   var response={"pending":true}
+   while response.get("pending",false) and not closing and Time.get_ticks_msec()<deadline:
+    response=transport.poll()
+    if response.get("pending",false):await get_tree().process_frame
+   if response.get("ok",false):status="保存完了"
  stop_now()
 func stop_now():
- closing=true;active=false;set_process(false);transport.close();queue.clear()
+ closing=true;active=false;set_process(false);_stop_polling();transport.close();pumping=false;in_flight_count=0;queue.clear()
 func _exit_tree():stop_now()

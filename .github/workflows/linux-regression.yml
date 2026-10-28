@@ -54,7 +54,7 @@ jobs:
         run: |
           timeout 180 godot --headless --path godot --editor --import > "$RUNNER_TEMP/godot-import.log" 2>&1
           if rg 'SCRIPT ERROR:|ERROR:' "$RUNNER_TEMP/godot-import.log"; then exit 1; fi
-      - name: Run all 16 current UI and startup checks
+      - name: Run UI and startup regression checks
         run: python godot/tests/run_inventory_header_261020.py --evidence "$RUNNER_TEMP/5525-regression"
       - name: Verify SQLite master and grant compatibility
         run: |

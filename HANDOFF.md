@@ -5,6 +5,7 @@
 ## 現在：独立SQLiteへの診断永続化（実装・ローカル検証完了、main反映用）
 
 - 基点main `89c49906`。debug限定の専用Python workerへ非同期送信し、`user://diagnostics/debug.sqlite` に起動/要求相関/戦闘付与元CT・帰還/保存読込結果を保存。ゲーム・マスタ・セーブから分離し、別窓の200件表示を保持。[設計・上限・読戻し・制約](docs/debug-database-20261028.md)。
+- 初回Linux CIの終了時ObjectDB警告を受け、診断専用pipeを停止可能なポーリングへ補修。応答停止workerの同期終了で旧版のFunctionState残留を再現、修正版は残留なし。保存読込37項目・ログ125項目再試験成功。共有のゲーム通信は変更しない。
 - キュー256、batch32、200ms、最新20セッション/10,000件/本文8MiB、DB本体16MiB。失敗/ロックは記録のみ停止。releaseは生成/収集なし、debugでも `NATIVE5525_DEBUG_DB_OFF=1` で永続化を停止可。raw引数/人物名/パス/セーブ/例外本文なし。
 - 専用writer14件、既存Python205件（1skip）、関連Godot9工程、新永続回帰125項目、独立OS105項目＋readback69項目成功。ロック中操作32項目成功。診断APIのない既存テストエンジンとの回帰を修正済み。GUI後の相関番号修正は実DB回帰で再検証。
 - 音3種OFF。Windows実UI/native dialog/releaseバイナリ未確認。異常終了直前のキュー消失と記録未確認の限界あり。最新の明示承認でmain通常commit/push・両CI確認へ進む。現在の正規接続は正常、最終SHAとCI結果は完了報告に記載。本人PC操作なし。
