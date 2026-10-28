@@ -71,9 +71,13 @@ class EquipmentSlotsBridgeTests(unittest.TestCase):
             saved=self.bridge.call(op='campaign_save')['data']
             self.assertTrue(self.bridge.call(op='campaign_load',data=saved)['ok'])
 
-    def test_exact_item_cannot_be_bought_into_two_slots(self):
+    def test_separate_copy_can_be_bought_into_other_hand(self):
         before=self.bridge.call(op='campaign_save')['data']
         result=self.bridge.call(op='campaign',action='buyGear',args=['guard','sword-wood','leftHand'])
-        self.assertFalse(result['ok']);self.assertEqual(self.bridge.call(op='campaign_save')['data'],before)
+        self.assertTrue(result['ok'])
+        after=self.bridge.call(op='campaign_save')['data']
+        self.assertEqual(after['state']['characters']['guard']['leftHand'],'sword-wood')
+        self.assertEqual(after['state']['characters']['guard']['weapon'],'sword-wood')
+        self.assertLess(after['state']['gold'],before['state']['gold'])
 
 if __name__=='__main__':unittest.main()

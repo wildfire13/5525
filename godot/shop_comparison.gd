@@ -54,13 +54,10 @@ func render():
 	var money=ui.label_(body,"費用を確認中…");money.name="ShopComparisonPayment"
 	var comparison=RichTextLabel.new();comparison.name="ShopComparisonStats";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.scroll_active=false;comparison.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(comparison);comparison.text="比較を読み込み中…"
 	ui.label_(body,"装備の基礎能力："+shop.product_summary(gear)).name="ShopComparisonEffects"
-	var described=[]
-	for field in ["skill","effect"]:
-		var id=str(gear.get(field,""))
-		if id.is_empty() or id=="<null>" or described.has(id):continue
-		described.append(id)
+	for grant in preload("res://equipment_grants.gd").list(gear):
+		var id=str(grant.id)
 		var copy=preload("res://skill_text.gd")
-		ui.label_(body,copy.plain(copy.document(id,str(shop.c().get("skillNames",{}).get(id,id)),int(gear.get("skillLevel",1)),shop.c(),gear))).name="ShopComparisonSkill_"+id
+		ui.label_(body,copy.plain(copy.document(id,str(shop.c().get("skillNames",{}).get(id,id)),int(grant.get("level",1)),shop.c(),gear))).name="ShopComparisonSkill_"+id+"_"+str(grant.get("slotNo",1))
 	var conditions=ui.label_(body,"条件を確認中…");conditions.name="ShopComparisonConditions"
 	ui.label_(body,"補足：装備した場合の比較です。購入では自動装備しません。受取可否は購入確定時に確認します。")
 	if gear.has("note") and not str(gear.note).is_empty():

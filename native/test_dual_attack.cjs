@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
-function scene(){const s=C.create();s.location='east';s.gold=1000;assert.ok(C.buyGear(s,'mage','staff-wood','leftHand')===false);assert.ok(C.buyGear(s,'mage','sword-wood','rightHand'));assert.ok(C.buyGear(s,'mage','staff-wood','leftHand'));const c=s.characters.mage;c.level=2;c.xp=100;c.skillPoints=1;c.allocations.str=2;const t=C.trial(s,'mage','sword-wood','rightHand');return {s,t,a:t.battle.units.find(u=>u.id==='mage'),e:t.battle.units.find(u=>u.id==='enemy-guard')};}
+function scene(){const s=C.create();s.location='east';s.gold=1000;assert.ok(C.buyGear(s,'mage','sword-wood','rightHand'));assert.ok(C.buyGear(s,'mage','staff-wood','leftHand'));const c=s.characters.mage;c.level=2;c.xp=100;c.skillPoints=1;c.allocations.str=2;const t=C.trial(s,'mage','sword-wood','rightHand');return {s,t,a:t.battle.units.find(u=>u.id==='mage'),e:t.battle.units.find(u=>u.id==='enemy-guard')};}
 let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS '+name);};
 test('sword1 staff2: near sums both, far staff only, growth added exactly once',()=>{
  for(const [position,base,slots] of [[25,41,['rightHand','leftHand']],[26,15,['leftHand']]]){

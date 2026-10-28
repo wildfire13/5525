@@ -19,7 +19,7 @@ function Existing-Path([string]$Path) {
     return ''
 }
 try {
-    foreach ($relative in @('godot/project.godot','native/bridge.cjs','native/godot_files.py','native/assets/music/manifest.json','godot/assets/quest_music.json')) {
+    foreach ($relative in @('godot/project.godot','native/bridge.cjs','native/godot_files.py','native/master-data.cjs','native/master_data.py','native/data/master.sqlite','native/assets/music/manifest.json','godot/assets/quest_music.json')) {
         if (-not (Test-Path -LiteralPath (Join-Path $projectRoot $relative) -PathType Leaf)) {
             throw "Missing project file: $relative. Keep the godot and native folders together."
         }
@@ -51,11 +51,18 @@ try {
         $resolved = Existing-Path $candidate
         if (-not $resolved) { continue }
         try {
-            $info = (Probe $resolved @('-X','utf8','-B','-c','import sys,json,PIL; assert sys.version_info >= (3,10); print(json.dumps(dict(python=sys.version.split()[0],pillow=PIL.__version__)))')) | ConvertFrom-Json
+            $info = (Probe $resolved @('-X','utf8','-B','-c','import sys,json,PIL,sqlite3; assert sys.version_info >= (3,10); db=sqlite3.connect(":memory:"); assert db.execute("select json_valid(?)",("{}",)).fetchone()[0] == 1; db.execute("PRAGMA foreign_keys=ON"); assert db.execute("PRAGMA foreign_keys").fetchone()[0] == 1; db.close(); print(json.dumps(dict(python=sys.version.split()[0],pillow=PIL.__version__,sqlite=sqlite3.sqlite_version)))')) | ConvertFrom-Json
             $pythonPath=$resolved; $pythonInfo=$info; break
         } catch { }
     }
-    if (-not $pythonPath) { throw 'Python 3.10+ with Pillow was not found. Set NATIVE5525_PYTHON to its full executable path.' }
+    if (-not $pythonPath) { throw 'Python 3.10+ with Pillow and SQLite JSON/foreign-key support was not found. Set NATIVE5525_PYTHON to its full executable path.' }
+
+    # Validate the shipped master read-only before opening the game or a save.
+    try {
+        $null = Probe $pythonPath @('-X','utf8','-B',(Join-Path $projectRoot 'native/master_data.py'),'read','--db',(Join-Path $projectRoot 'native/data/master.sqlite'))
+    } catch {
+        throw 'Master data could not be read. Restore native/data/master.sqlite from the matching game distribution. Existing saves were not changed.'
+    }
 
     $godotCandidates = @()
     if ($env:GODOT_BIN) { $godotCandidates = @($env:GODOT_BIN) }
@@ -87,7 +94,7 @@ try {
         project=$projectRoot
         godot=@{path=$godotPath;version=$godotVersion}
         node=@{path=$nodePath;version=$nodeVersion}
-        python=@{path=$pythonPath;version=$pythonInfo.python;pillow=$pythonInfo.pillow}
+        python=@{path=$pythonPath;version=$pythonInfo.python;pillow=$pythonInfo.pillow;sqlite=$pythonInfo.sqlite}
         fallback=(Join-Path $projectRoot 'Start-5525-Python.cmd')
         installedNothing=$true
     }

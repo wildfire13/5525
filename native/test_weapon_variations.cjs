@@ -15,9 +15,9 @@ test('purchase, isolated live trial, one damage contribution, save/load for ever
   assert.ok(C.depart(s,'astaris'));assert.ok(C.travel(s,'safe',()=>.2));assert.deepEqual(C.deserialize(C.serialize(s)),clone(s));
  }
 });
-test('one-hand spear works in either hand, duplicate ID rejected, distance-filtered sum',()=>{
+test('one-hand spear works in either hand, separately purchased duplicate allowed, distance-filtered sum',()=>{
  const s=town();assert.ok(C.buyGear(s,'mage','spear-wood','leftHand'));const t=C.trial(s,'mage','sword-wood','rightHand'),a=t.battle.units.find(u=>u.id==='mage');assert.equal(B.reachFilteredPower(a,{pos:25}).base,49);assert.equal(B.reachFilteredPower(a,{pos:26}).base,23);
- const old=clone(s);assert.equal(C.buyGear(s,'mage','spear-wood','rightHand'),false);assert.deepEqual(s,old);
+ const gold=s.gold;assert.equal(C.buyGear(s,'mage','spear-wood','rightHand'),true);assert.equal(s.gold,gold-90);assert.equal(s.characters.mage.weapon,'spear-wood');assert.equal(s.characters.mage.leftHand,'spear-wood');assert.equal(C.stats(s.characters.mage).attackWeapons.length,2);assert.deepEqual(C.deserialize(C.serialize(s)),s);
 });
 test('javelin repeats without MP/ammo/item expenditure and combines with sword only in range',()=>{
  const s=town();C.buyGear(s,'mage','javelin-wood','leftHand');const t=C.trial(s,'mage','sword-wood','rightHand'),a=t.battle.units.find(u=>u.id==='mage'),e=t.battle.units.find(u=>u.id==='enemy-guard');const mp=a.mp,stock=clone(t.battle.potions);

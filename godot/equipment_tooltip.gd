@@ -59,15 +59,13 @@ func configure(title: String,gear: Dictionary,context: Dictionary):
 		if gear.get(key,0)>0:requirements.append(key.to_upper()+str(int(gear[key])))
 	if not requirements.is_empty():line("装備条件："+" / ".join(requirements))
 	var has_skill=false
-	for field in ["skill","effect"]:
-		if gear.get(field)==null:continue
-		has_skill=true;var id=str(gear[field]);var definition=context.get("definitions",{}).get(id,{})
-		var supplied=int(gear.get("skillLevel",1));var effective=int(context.get("effective_levels",{}).get(id,supplied))
+	for grant in preload("res://equipment_grants.gd").list(gear):
+		has_skill=true;var id=str(grant.id)
+		var supplied=int(grant.get("level",1))
 		var name_=str(context.get("names",{}).get(id,id))
 		var campaign={"skillDefinitions":context.get("definitions",{}),"skillNames":context.get("names",{})}
-		var copy=preload("res://skill_text.gd");var doc=copy.document(id,name_,effective,campaign,gear)
+		var copy=preload("res://skill_text.gd");var doc=copy.document(id,name_,supplied,campaign,gear)
 		line("付与スキル："+name_+("Lv%d" % supplied if copy.LEVELLED.has(id) else ""),"[color="+SKILL+"]付与スキル："+escaped(name_)+("Lv%d" % supplied if copy.LEVELLED.has(id) else "")+"[/color]")
-		if copy.LEVELLED.has(id) and effective!=supplied:line("装備中の有効Lv：%d（同スキル最高Lv）" % effective)
 		if not doc.classification.is_empty():line("種別："+("パッシブ" if doc.classification=="passive" else "アクティブ"))
 		if doc.cost!=null and doc.classification!="passive":line("消費MP：%d" % doc.cost)
 		if not doc.target.is_empty():line("対象："+doc.target)

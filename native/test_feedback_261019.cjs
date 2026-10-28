@@ -12,13 +12,15 @@ function battle(skill='grapple',level=1){
  s.units[0].next=1;return s;
 }
 function inventory(s,uid,id,action,slot){const q=C.inventoryQuote(s,uid,id,action,null,1,slot);assert(q.ok,q.reason);assert(C.inventoryAction(s,uid,id,action,null,1,slot,q.token));assert(!C.inventoryAction(s,uid,id,action,null,1,slot,q.token),'duplicate token must reject');}
-test('equipment values and highest level sources',()=>{
+test('equipment values and independently selected level sources',()=>{
  for(const [id,hp,level] of [['kungfu-pants',5,1],['kungfu-pants-1',25,1],['kungfu-pants-2',25,2],['kungfu-pants-3',25,3]]){
   const s=C.create(),c=s.characters.guard,base=C.stats(c).max;c.inventory[id]=1;
   inventory(s,'guard',id,'equip','lowerBody');const st=C.stats(s.characters.guard);
   assert.equal(st.max,base+hp);assert.equal(st.skillSources.find(x=>x.id==='legSweep').level,level);assert(C.validate(s).ok);
  }
- assert.equal(B.skillLevel({skillSources:[{id:'itemUse',level:1},{id:'itemUse',level:2}]} ,'itemUse'),2);
+ const actor={side:'ally',activeSkills:['itemUse'],skillSources:[{id:'itemUse',level:1},{id:'itemUse',level:2}]};
+ const options=B.activeSkillOptions(actor);assert.equal(options.length,2);assert.notEqual(options[0].key,options[1].key);
+ for(const [i,level] of [1,2].entries()){actor.selectedSkill='itemUse';actor.selectedSkillKey=options[i].key;assert.equal(B.skillLevel(actor,'itemUse'),level);assert.equal(B.itemUseLevel(actor),level);}
 });
 test('virtual fists appear on empty hands, cannot generate stock; two handed weapons suppress both',()=>{
  const s=C.create();inventory(s,'guard','guard-shield-wood','unequip','leftHand');

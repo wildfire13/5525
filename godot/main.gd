@@ -596,13 +596,19 @@ func prepare_skill_preview():
 		await request_preview("attack")
 func select_skill(id: String):
 	if locked or presenting or closing or hud.menu_transition:return
-	if id=="returnHome":choose_command("return");return
-	if id=="itemUse":hud.open_items();return
+	if id=="returnHome":
+		await select_return_skill(id);return
 	invalidate_preview();command="skill";hud.action_menu=false;hud.item_list=false;hud.skill_list=false
 	await update({"op":"select_skill","skillId":id})
+	if not data.get("ok",false):return
+	if hud.acting().get("selectedSkill","")=="itemUse":hud.open_items();return
 	if data.get("skill")=="陣形強化" or (data.get("skillInfo") is Dictionary and data.skillInfo.get("target")=="self"):
 		if data.get("choices",{}).get("skill",[]).has(state().get("actor")):
 			pending=state().actor;await request_preview("attack")
+func select_return_skill(key: String):
+	if locked or presenting or closing or hud.menu_transition:return
+	invalidate_preview();command="return";hud.action_menu=false;hud.item_list=false;hud.skill_list=false
+	await update({"op":"select_return_skill","skillId":key})
 func deployment_assigned(uid: String,pos):
 	if locked or presenting or closing or campaign().get("phase")!="deployment":return
 	selected=uid

@@ -6,6 +6,11 @@ const Presentation = require('./battle-presentation.cjs');
 const Battle = (() => {
   const {definitions:equipmentSkills}=require('./equipment-skills.js');
   const hasEffect=(a,id)=>(a.effects||[]).includes(id);
+  // Equipped contributions remain distinct. Legacy standalone fixtures have
+  // no source metadata and retain one contribution per enabled effect.
+  const effectCount=(a,id)=>Array.isArray(a.skillSources)?a.skillSources.filter(x=>x.id===id).length:(hasEffect(a,id)?1:0);
+  const percentageIncrease=(a,id,percent)=>effectCount(a,id)*percent;
+
   const moveReach=a=>(hasEffect(a,'firstStride')&&!a.firstMoveUsed?3:2)+(hasEffect(a,'swift')?1:0);
   const skillCost=a=>equipmentSkills[activeSkill(a)]?.cost??1;
   function itemCount(s,a,id) {
@@ -41,14 +46,14 @@ const Battle = (() => {
     if(a.job==='porter')return {base:0,weapons:[],bonus:0};
     if(!a.attackWeapons)return {base:a.atk,weapons:[],bonus:0};
     const skill=kind==='skill'?activeSkill(a):null;
-    const weapons=a.attackWeapons.filter(w=>range(a,target)<=w.reach+(skill==='archer'?1:0)||(skill==='stamp'&&w.skill==='stamp'));
+    const weapons=a.attackWeapons.filter(w=>range(a,target)<=w.reach+(skill==='archer'?1:0)||(skill==='stamp'&&(w.skill==='stamp'||(a.skillSources||[]).some(source=>source.id==='stamp'&&source.slot===w.slot&&source.itemId===w.itemId))));
     const bonus=weapons.length?(a.attackBonus||0):0;
     return {base:weapons.reduce((n,w)=>n+w.atk,0)+bonus,weapons,bonus};
   }
   function power(s,a,base=a.atk,emitEvent=true){
     let p=base*(formation(s,a.side)?boosted(s,a.side)?1.75:1.5:1);
     if(hasEffect(a,'loneWolf')&&!alive(s).some(u=>u.side===a.side&&u.id!==a.id&&range(a,u)===1)){
-      p*=1.25;if(emitEvent)emit(s,a,'loneWolf');
+      p*=1+percentageIncrease(a,'loneWolf',25)/100;if(emitEvent)emit(s,a,'loneWolf');
     }
     return p;
   }
@@ -74,18 +79,74 @@ const Battle = (() => {
   const formation = (s,side="ally") => formationSlots(s)[side].every(p=>alive(s).some(u=>u.side===side&&u.pos===p));
   // 仮接続：槌装備でスタンプを試せる。完成版の習得・使用条件は未決定。
   const activeSkills = a => a.activeSkills||[a.job==='porter'?'porter':(a.equippedSkill || (a.weapon==='hammer'?'stamp':a.job))];
-  const activeSkill = a => activeSkills(a).includes(a.selectedSkill)?a.selectedSkill:(a.activeSkills?activeSkills(a)[0]||null:a.job==='porter'?'porter':(a.equippedSkill || (a.weapon==='hammer'?'stamp':a.job)));
-  function selectSkill(s,id){const a=s.units.find(u=>u.id===s.actor);if(s.deploying||s.result||!a||a.hp<=0||!activeSkills(a).includes(id))return false;a.selectedSkill=id;return true;}
+  // A grant has an identity independent of the shared effect definition.
+  // The slot ordinal also distinguishes repeated grants within one item.
+  function grantOptions(a,ids) {
+    const occurrences=new Map(),options=[];
+    for(const source of a.skillSources||[]){
+      const owner=JSON.stringify([source.slot||'',source.itemId||'']);
+      const ordinal=(occurrences.get(owner)||0)+1;occurrences.set(owner,ordinal);
+      if(!ids.includes(source.id))continue;
+      const grantSlot=source.grantSlot??ordinal;
+      const key=JSON.stringify([source.slot||'',source.itemId||'',grantSlot]);
+      options.push({key,id:source.id,level:source.level??1,slot:source.slot||'',itemId:source.itemId||'',grantSlot,cooldown:a.skillCooldowns?.[key]||0});
+    }
+    for(const id of ids)if(!options.some(o=>o.id===id)){
+      const key='legacy:'+id;options.push({key,id,level:1,slot:'',itemId:'',grantSlot:1,cooldown:a.skillCooldowns?.[key]||0});
+    }
+    return options.sort((left,right)=>ids.indexOf(left.id)-ids.indexOf(right.id));
+  }
+  const activeSkillOptions=a=>grantOptions(a,activeSkills(a));
+  const returnSkillOptions=a=>grantOptions(a,hasEffect(a,'returnHome')?['returnHome']:[]).map(option=>({...option,used:a.returnUsedGrants?!!a.returnUsedGrants[option.key]:!!a.returnUsed}));
+  function returnSkillOption(a){const options=returnSkillOptions(a);return options.find(o=>o.key===a.selectedReturnSkillKey)||options[0]||null;}
+  function selectReturnSkill(s,key){
+    const a=s.units.find(u=>u.id===s.actor);
+    if(s.deploying||s.result||!a||a.hp<=0)return false;
+    const options=returnSkillOptions(a),option=options.find(o=>o.key===key)||(key==='returnHome'?options[0]:null);
+    if(!option)return false;a.selectedReturnSkillKey=option.key;return true;
+  }
+  function selectedSkillOption(a) {
+    const options=activeSkillOptions(a);
+    return options.find(o=>o.key===a.selectedSkillKey&&o.id===a.selectedSkill)||options.find(o=>o.id===a.selectedSkill)||options[0]||null;
+  }
+  const activeSkill = a => selectedSkillOption(a)?.id||null;
+  function selectSkill(s,id){
+    const a=s.units.find(u=>u.id===s.actor);
+    if(s.deploying||s.result||!a||a.hp<=0)return false;
+    const options=activeSkillOptions(a),option=options.find(o=>o.key===id)||options.find(o=>o.id===id);
+    if(!option)return false;
+    a.selectedSkill=option.id;a.selectedSkillKey=option.key;return true;
+  }
   const skillName = a => equipmentSkills[activeSkill(a)]?.name||({guard:"かばう",archer:"スナイプ",mage:"ヒール",scout:"奇襲",porter:"陣形強化",stamp:"スタンプ"})[activeSkill(a)]||'';
   function skillLevel(a,id=activeSkill(a)) {
-    // Higher equipment levels include lower-level directions; never add levels.
-    return Math.max(1,...(a.skillSources||[]).filter(source=>source.id===id).map(source=>source.level??1));
+    const selected=selectedSkillOption(a);
+    return selected?.id===id?selected.level:activeSkillOptions(a).find(o=>o.id===id)?.level||1;
+  }
+  function itemSkillOption(a) {
+    const selected=selectedSkillOption(a);
+    return selected?.id==='itemUse'?selected:activeSkillOptions(a).find(o=>o.id==='itemUse')||null;
+  }
+  function actionSkillOption(a,kind) {
+    return kind==='skill'?selectedSkillOption(a):['item','ether'].includes(kind)?itemSkillOption(a):null;
+  }
+  function startSkillCooldown(s,a,kind) {
+    if(s.skillCooldownVersion!==1)return;
+    const option=actionSkillOption(a,kind);
+    if(option)(a.skillCooldowns||(a.skillCooldowns={}))[option.key]=2;
+  }
+  function finishOpportunity(a) {
+    if(!a.skillCooldowns)return;
+    for(const key of Object.keys(a.skillCooldowns)){
+      if(a.skillCooldowns[key]>1)a.skillCooldowns[key]--;
+      else delete a.skillCooldowns[key];
+    }
+    if(!Object.keys(a.skillCooldowns).length)delete a.skillCooldowns;
   }
   function itemUseLevel(a) {
     // Campaign equipment requires a fist in at least one hand. Old standalone
     // battles without equipment metadata retain their original rules.
     if(a.side==='ally'&&a.equipment&&!['rightHand','leftHand'].some(slot=>(a.skillSources||[]).some(source=>source.id==='itemUse'&&source.slot===slot&&(source.itemId===`empty-${slot}`||/^fist(?:-[12])?$/.test(source.itemId||'')))))return 0;
-    return a.side!=='ally'||a.skillSources===undefined?3:activeSkills(a).includes('itemUse')?skillLevel(a,'itemUse'):0;
+    return a.side!=='ally'||a.skillSources===undefined?3:itemSkillOption(a)?.level||0;
   }
   function itemInRange(a,b) {
     const level=itemUseLevel(a);
@@ -168,7 +229,7 @@ const Battle = (() => {
     return {destination,path:route};
   }
   function inRange(a,side,pos,kind,s) {
-    if(kind==='return')return hasEffect(a,'returnHome')&&!a.returnUsed&&pos!==a.pos&&boardOf(pos)===a.side&&(!s||freeCell(s,pos));
+    if(kind==='return')return hasEffect(a,'returnHome')&&!(s?.skillCooldownVersion===1?returnSkillOption(a)?.used:a.returnUsed)&&pos!==a.pos&&boardOf(pos)===a.side&&(!s||freeCell(s,pos));
     if(kind==='skill'&&activeSkill(a)==='stamp')return stampCells(a,pos).length>0;
     if(kind==='skill'&&activeSkill(a)==='grapple')return grappleCell(a,{side,pos,hp:1})!==null;
     if(kind==='skill'&&activeSkill(a)==='itemUse')return false;
@@ -182,6 +243,7 @@ const Battle = (() => {
   function legalFor(s,a,kind,target) {
     if(s.deploying||s.result||!a||a.hp<=0)return false;
     if(kind==='skill'&&!activeSkill(a))return false;
+    if(s.skillCooldownVersion===1&&actionSkillOption(a,kind)?.cooldown>0)return false;
     if(kind==='guard')return true;
     if(kind==='move')return target!==a.pos&&(paths(s,a,moveReach(a)).has(target)||!!swapTarget(s,a,target));
     if(kind==='return')return Number.isInteger(target)&&target>=0&&target<50&&inRange(a,a.side,target,kind,s);
@@ -230,7 +292,8 @@ const Battle = (() => {
   }
   function apply(s,a,kind,target,landing,fixedCells,random=Math.random) {
     Presentation.mark(s,a,kind,target,{activeSkill,skillName});
-    if(kind==='return'){a.pos=target;a.returnUsed=true;emit(s,a,'returnHome',{target});log(s,`${a.name}の帰還 → (${x(target)+1},${y(target)+1})`);return;}
+    startSkillCooldown(s,a,kind);
+    if(kind==='return'){a.pos=target;if(s.skillCooldownVersion===1){const option=returnSkillOption(a);(a.returnUsedGrants||(a.returnUsedGrants={}))[option.key]=true;}else a.returnUsed=true;emit(s,a,'returnHome',{target});log(s,`${a.name}の帰還 → (${x(target)+1},${y(target)+1})`);return;}
     if(kind==='skill'&&equipmentSkills[activeSkill(a)]){
       const id=activeSkill(a),b=s.units.find(u=>u.id===target),d=equipmentSkills[id];
       a.mp-=d.cost;emit(s,a,id,{target});log(s,`${a.name}の${d.name}`);
@@ -324,6 +387,7 @@ const Battle = (() => {
   function enemyAction(s,a) {
     Presentation.mark(s,a,a.intent.kind,a.intent.target,{activeSkill,skillName});
     const i=a.intent;s.recentEnemies.push({name:a.name,action:i.name});
+    if(s.skillCooldownVersion===1&&actionSkillOption(a,i.kind)?.cooldown>0){log(s,`${a.name}の${i.name}は再使用待ち。`);return;}
     // 攻撃の予告は人物追尾せずセル固定。奇襲の着地点も固定。
     if(i.cells.length){
       if(i.kind==='skill'&&activeSkill(a)==='stamp'){
@@ -336,7 +400,7 @@ const Battle = (() => {
         a.pos=i.destination;
       }
       const b=alive(s).find(u=>u.side!==a.side&&u.pos===i.cells[0]);
-      if(!b||range(a,b)>attackReach(a,i.kind)){if(i.kind==='skill'&&activeSkill(a)==='scout')a.mp--;log(s,`${a.name}の${i.name}は空振り。`);return;}
+      if(!b||range(a,b)>attackReach(a,i.kind)){if(i.kind==='skill'&&activeSkill(a)==='scout'){a.mp--;startSkillCooldown(s,a,i.kind);}log(s,`${a.name}の${i.name}は空振り。`);return;}
       if(i.kind==='skill'&&a.mp<=0){log(s,`${a.name}の${i.name}はMP不足で見送り。`);return;}
       apply(s,a,i.kind,b.id,i.destination);return;
     }
@@ -346,7 +410,7 @@ const Battle = (() => {
   const order=(a,b)=>a.next-b.next||b.agi-a.agi||a.tie-b.tie;
   function check(s){const fallen=s.units.find(u=>u.side==='ally'&&u.job==='porter'&&u.hp<=0);if(fallen){s.failure='porter';s.result=`クエスト失敗。${fallen.name}が倒れ、荷物を運べなくなった。`;}else if(!alive(s).some(u=>u.side==='enemy'))s.result='勝利！ ミラーマッチを制した。';else if(!alive(s).some(u=>u.side==='ally'))s.result='敗北。配置と連携を変えて再挑戦しよう。';
     if(s.result){
-      for(const u of s.units)if(u.covers)u.covers=[];
+      for(const u of s.units){if(u.covers)u.covers=[];delete u.skillCooldowns;}
       if(!s.failure&&!alive(s).some(u=>u.side==='enemy')&&!s.victoryEffectsApplied&&s.units.some(u=>hasEffect(u,'victoryBreath'))){
         s.victoryEffectsApplied=true;
         for(const u of alive(s).filter(u=>u.side==='ally'&&hasEffect(u,'victoryBreath'))){const amount=Math.min(2,u.maxMp-u.mp);u.mp+=amount;emit(s,u,'victoryBreath',{amount});log(s,`${u.name}の一息：MP＋${amount}`);}
@@ -358,17 +422,17 @@ const Battle = (() => {
       const a=alive(s).sort(order)[0];a.guard=false;a.cover=null;if(a.covers)a.covers=[];a.boost=false;s.actor=a.id;
       if(a.skipNextTurn){
         Presentation.mark(s,a,'skip',null,{activeSkill,skillName});
-        delete a.skipNextTurn;a.next+=100/a.agi;
+        delete a.skipNextTurn;finishOpportunity(a);a.next+=100/a.agi;
         log(s,`${a.name}：足払いで手番をスキップ。`);
         if(a.side==='enemy')plan(s,a);
         continue;
       }
       if(a.side==='ally'||Presentation.isStepping(s))return;
-      enemyAction(s,a);a.next+=100/a.agi;if(check(s))break;plan(s,a);
+      enemyAction(s,a);finishOpportunity(a);a.next+=100/a.agi;if(check(s))break;plan(s,a);
     }
     s.actor=null;
   }
-  function stepEnemy(s){const a=s.units.find(u=>u.id===s.actor);if(!a||a.side!=='enemy'||s.result)return false;enemyAction(s,a);a.next+=100/a.agi;if(!check(s))plan(s,a);advance(s);return true;}
+  function stepEnemy(s){const a=s.units.find(u=>u.id===s.actor);if(!a||a.side!=='enemy'||s.result)return false;enemyAction(s,a);finishOpportunity(a);a.next+=100/a.agi;if(!check(s))plan(s,a);advance(s);return true;}
   function create(options={}){
     const units=[];
     for(const side of ['ally','enemy']){
@@ -398,8 +462,8 @@ const Battle = (() => {
     if(new Set(units.map(u=>u.pos)).size!==units.length||units.some(u=>!Number.isInteger(u.pos)||u.pos<0||u.pos>=50||boardOf(u.pos)!==u.side))return false;
     s.deploying=false;units.filter(u=>u.side==='enemy').forEach(u=>plan(s,u));advance(s);return true;
   }
-  function act(s,kind,target,random=Math.random){if(!legal(s,kind,target))return false;const a=s.units.find(u=>u.id===s.actor);s.recentEnemies=[];const jump=kind==='skill'&&activeSkill(a)==='scout'?ambush(s,a,s.units.find(u=>u.id===target)):null;apply(s,a,kind,target,jump?.destination,undefined,random);a.next+=100/a.agi;s.actions++;advance(s);return true;}
+  function act(s,kind,target,random=Math.random){if(!legal(s,kind,target))return false;const a=s.units.find(u=>u.id===s.actor);s.recentEnemies=[];const jump=kind==='skill'&&activeSkill(a)==='scout'?ambush(s,a,s.units.find(u=>u.id===target)):null;apply(s,a,kind,target,jump?.destination,undefined,random);finishOpportunity(a);a.next+=100/a.agi;s.actions++;advance(s);return true;}
   function queue(s){const copies=alive(s).map(u=>({...u})),result=[];for(let i=0;i<10&&copies.length;i++){copies.sort(order);result.push({id:copies[0].id,name:copies[0].name,side:copies[0].side,...(copies[0].skipNextTurn?{skip:true}:{})});delete copies[0].skipNextTurn;copies[0].next+=100/copies[0].agi;}return result;}
-  return {sweepCells,sweepChance,sweepTargets,vaultCell,itemUseLevel,itemInRange,grappleCell,skillLevel,skillInfo,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
+  return {returnSkillOptions,returnSkillOption,selectReturnSkill,activeSkillOptions,selectedSkillOption,itemSkillOption,sweepCells,sweepChance,sweepTargets,vaultCell,itemUseLevel,itemInRange,grappleCell,skillLevel,skillInfo,effectCount,percentageIncrease,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
 })();
 if(typeof module!=='undefined')module.exports=Battle;

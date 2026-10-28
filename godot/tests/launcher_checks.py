@@ -21,6 +21,7 @@ with tempfile.TemporaryDirectory(prefix='5525-launcher-discovery-') as temporary
     project=Path(temporary)
     for relative in ['Start-5525.cmd','Start-5525-Godot.cmd','godot/launch.ps1',
                      'godot/project.godot','native/bridge.cjs','native/godot_files.py',
+                     'native/master-data.cjs','native/master_data.py','native/data/master.sqlite',
                      'native/assets/music/manifest.json','godot/assets/quest_music.json']:
         target=project/relative;target.parent.mkdir(parents=True,exist_ok=True)
         shutil.copy2(ROOT/relative,target)
@@ -40,6 +41,19 @@ with tempfile.TemporaryDirectory(prefix='5525-launcher-discovery-') as temporary
         # Hosted Windows TEMP may use an 8.3 alias while PowerShell returns
         # the long path. Require the same filesystem directory, not spelling.
         item['passed'] &= Path(data['godot']['path']).parent.samefile(runtime)
+        item['passed'] &= bool(data['python'].get('sqlite'))
+    master=project/'native/data/master.sqlite'
+    original=master.read_bytes()
+    try:
+        master.unlink()
+        missing=run('Reject missing master before launch','Start-5525.cmd',['-Check'],auto,1,project=project)
+        missing['passed'] &= 'Missing project file: native/data/master.sqlite' in missing['stderr']
+        master.write_bytes(b'not a SQLite database')
+        invalid=run('Reject corrupt master before launch','Start-5525.cmd',['-Check'],auto,1,project=project)
+        invalid['passed'] &= 'Master data could not be read' in invalid['stderr']
+        invalid['passed'] &= master.read_bytes()==b'not a SQLite database'
+    finally:
+        master.write_bytes(original)
 explicit=run('Godot entry accepts explicit runtime','Start-5525-Godot.cmd',['-Check'],env)
 for key in ['GODOT_BIN','NATIVE5525_NODE','NATIVE5525_PYTHON']:
     item=run('Reject missing explicit '+key,'Start-5525-Godot.cmd',['-Check'],{**env,key:str(ROOT/'nonexistent-runtime.exe')},1)

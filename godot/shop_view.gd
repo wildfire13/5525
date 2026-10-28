@@ -167,12 +167,7 @@ func purchase_consumable(id: String,count: int):
 	ui.render()
 func configure_tooltip(button,item: Dictionary):
 	button.set_script(preload("res://equipment_tooltip.gd"))
-	var descriptions={};var levels={}
-	for field in ["skill","effect"]:
-		if item.get(field)==null:continue
-		var id=str(item[field]);var level=int(item.get("skillLevel",1));levels[id]=level
-		descriptions[id]=pages.skill_description(id,level)
-	button.configure(str(item.name),item,{"names":c().get("skillNames",{}),"definitions":c().get("skillDefinitions",{}),"descriptions":descriptions,"effective_levels":levels,"title_size":24 if ui.size.x>=1800 else 20,"detail_size":18 if ui.size.x>=1800 else 16})
+	button.configure(str(item.name),item,{"names":c().get("skillNames",{}),"definitions":c().get("skillDefinitions",{}),"title_size":24 if ui.size.x>=1800 else 20,"detail_size":18 if ui.size.x>=1800 else 16})
 func cancel_pending():
 	# Quotes are pure; an in-flight committed purchase must not be discarded here.
 	if stage!="S1":return

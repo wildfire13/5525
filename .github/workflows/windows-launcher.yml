@@ -48,6 +48,18 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python .github/scripts/install_godot.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify SQLite master and grant compatibility
+        run: |
+          python -m unittest discover -s native -p test_master_data.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node native/test_sqlite_grant_save.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node native/test_skill_cooldowns.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node native/test_sqlite_passive_grants.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node native/test_sqlite_grant_combat.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Check real CMD and PowerShell launcher
         env:
           APPDATA: ${{ runner.temp }}\5525-profile\Roaming

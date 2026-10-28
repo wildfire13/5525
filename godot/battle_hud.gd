@@ -338,18 +338,42 @@ func item_count(id: String) -> int:
 	if ui.state().has("itemInventories"):return int(ui.state().itemInventories.get(acting().get("id",""),{}).get(id,0))
 	return int(ui.state().get("ethers",0)) if id=="ether" else int(ui.state().get("potions",{}).get("ally",0))
 func item_range_text() -> String:
-	var level=0
-	for source in acting().get("skillSources",[]):
-		if source.id=="itemUse":level=maxi(level,int(source.get("level",1)))
+	var info=ui.data.get("itemUseInfo")
+	var level=int(info.get("level",0)) if info is Dictionary else 0
 	return ["使用スキルなし","自分のみ","自分と縦横隣接の味方","射程無限"][clampi(level,0,3)]
+func skill_source_text(skill: Dictionary) -> String:
+	var parts=[]
+	for source in skill.get("sources",[]):
+		parts.append(str(ui.campaign().get("slots",{}).get(source.slot,source.slot))+"・"+str(source.get("itemName",source.get("itemId","")))+" / 付与%d" % int(source.get("grantSlot",1)))
+	return " / ".join(parts)
+func skill_source_short(skill: Dictionary) -> String:
+	var slot=str(skill.get("slot",""))
+	if slot.is_empty():return ""
+	var label=str(ui.campaign().get("slots",{}).get(slot,slot))
+	var options=ui.data.get("skillset",[])+ui.data.get("returnSkillset",[])
+	var same_source=options.filter(func(other):return other.get("slot","")==slot and other.get("id","")==skill.get("id",""))
+	if same_source.size()>1:label+="・付与%d" % int(skill.get("grantSlot",1))
+	return label
 func render_items():
 	var list=menu_content(bottom_commands,"BattleItemList")
+	var grants=ui.data.get("skillset",[]).filter(func(skill):return skill.id=="itemUse")
+	var item_info=ui.data.get("itemUseInfo")
+	if grants.size()>1:
+		l(list,"使用するスキル")
+		for grant in grants:
+			var selected=item_info is Dictionary and item_info.get("key","")==grant.get("key","")
+			var text=("● " if selected else "")+"アイテム使用 Lv%d（" % int(grant.get("level",1))+skill_source_short(grant)+"）"
+			if int(grant.get("cooldown",0))>0:text+="\nクールタイム中"
+			var choice=b(list,text,ui.select_skill.bind(str(grant.get("key",grant.id))),int(grant.get("cooldown",0))>0)
+			choice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;choice.tooltip_text=skill_source_text(grant)
+			ui.memory.key(choice,"item_skill_"+str(grant.get("key",grant.id)))
 	for item in ItemMenu.definitions(ui.campaign()):
 		var kind=str(item.get("battleKind",""))
 		if kind.is_empty():continue
 		var count=item_count(str(item.id))
 		var reason=""
 		if not acting().get("activeSkills",["itemUse"]).has("itemUse"):reason="アイテム使用スキルなし"
+		elif item_info is Dictionary and int(item_info.get("cooldown",0))>0:reason="使用スキルはクールタイム中"
 		elif item.get("battleRole","")=="porter" and acting().get("job")!="porter":reason="ポーター専用"
 		elif count<=0:reason="在庫なし"
 		elif ui.data.get("choices",{}).get(kind,[]).is_empty():reason="回復できる生存味方なし"
@@ -358,8 +382,12 @@ func render_items():
 		control.name="BattleItem_"+str(item.id);ui.icons.apply(control,str(item.id))
 
 func skill_unavailable_reason() -> String:
-	if ui.command=="return":return "この戦闘で帰還は使用済みです" if acting().get("returnUsed",false) else ""
+	if ui.command=="return":
+		var selected=ui.data.get("returnSkillInfo")
+		return "この付与元の帰還は使用済みです" if selected is Dictionary and selected.get("used",false) else ""
 	if ui.command!="skill":return ""
+	for option in ui.data.get("skillset",[]):
+		if option.get("selected",false) and int(option.get("cooldown",0))>0:return "クールタイム中：次の行動機会から使用できます"
 	var info=ui.data.get("skillInfo");var cost=int(info.get("cost",1)) if info is Dictionary else 1
 	if int(acting().get("mp",0))<cost:return "MP不足（現在%d／必要%d）" % [acting().get("mp",0),cost]
 	if ui.data.get("skill")=="陣形強化" and not ui.data.get("formed",{}).get("ally",false):return "護送陣が未成立のため実行できません"
@@ -458,8 +486,8 @@ func render_prediction(main,facts):
 	if ui.preview_ready and not ui.preview.get("cells",[]).is_empty():l(facts,("影響 %dマス / 全マスは下へ" if ui.command=="skill" else "影響 %dマス / 全マスは内訳へ") % ui.preview.cells.size())
 func render_skill_breakdown(parent):
 	if ui.command=="return":
-		for source in acting().get("skillSources",[]):
-			if source.id=="returnHome":l(parent,"由来: "+str(ui.campaign().get("slots",{}).get(source.slot,source.slot))+" / "+str(ui.campaign().get("roster",[]).filter(func(u):return u.id==acting().id)[0].get("equipmentDetails",{}).get(source.slot,{}).get("name",source.itemId)))
+		for option in ui.data.get("returnSkillset",[]):
+			if option.get("selected",false):l(parent,"由来: "+skill_source_text(option))
 		return
 	for hit in ui.preview.get("damagePreview",[]):
 		l(parent,"指定: %s → 予測受領者: %s / HP −%d" % [hit.get("targetName",hit.get("recipientName","")),hit.get("recipientName",""),hit.hpLoss])
@@ -468,7 +496,7 @@ func render_skill_breakdown(parent):
 		l(parent," + ".join(parts)+" / 成長補正+%d" % hit.get("bonus",0))
 	if not ui.preview.get("cells",[]).is_empty():l(parent,"影響マス: "+" / ".join(ui.preview.cells.map(coord)))
 	for skill in ui.data.get("skillset",[]):
-		if skill.name!=ui.data.get("skill"):continue
+		if not skill.get("selected",false):continue
 		for source in skill.get("sources",[]):l(parent,"由来: "+str(ui.campaign().get("slots",{}).get(source.slot,source.slot))+" / "+str(source.get("itemName",source.get("itemId",""))))
 func cost_text() -> String:
 	if ui.command in ["item","ether"]:return "本人の所持品を消費: 1個・1行動 / 残り%d個" % item_count("ether" if ui.command=="ether" else "potion")
@@ -478,24 +506,37 @@ func render_skills(parent):
 	var list=menu_content(parent,"BattleSkillList")
 	for skill in ui.data.get("skillset",[]):
 		var line=ui.row(list)
-		var control=b(line,("● " if not skill_list and acting().get("selectedSkill","")==skill.id else "")+str(skill.name),ui.select_skill.bind(str(skill.id)))
-		control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		control.name="BattleSkill_"+str(skill.id)
-		var level=1
-		for source in skill.get("sources",[]):level=maxi(level,int(source.get("level",1)))
+		var key=str(skill.get("key",skill.id))
+		var cooling=int(skill.get("cooldown",0))>0
+		var text=("● " if not skill_list and skill.get("selected",false) else "")+str(skill.name)
+		var level=int(skill.get("level",1))
 		var has_level=not ui.icons.approved.skills.get(str(skill.id),{}).get("levels",{}).is_empty()
-		if has_level:control.text+=" Lv%d" % level
-		ui.icons.apply(control,ui.icons.skill(str(skill.id),level),32 if has_level else 24)
-		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip(str(skill.id),str(skill.name),level)
-		ui.memory.key(control,"battle_skill_"+str(skill.id))
-		var info=ui.local_button(line,"説明",ui.show_skill_details.bind(str(skill.id),str(skill.name),level));info.name="BattleSkillDetails_"+str(skill.id)
-		ui.memory.key(info,"battle_skill_details_"+str(skill.id))
-	if has_return():
-		var line=ui.row(list)
-		var control=b(line,("● " if ui.command=="return" and not skill_list else "")+"帰還",ui.select_skill.bind("returnHome"));control.name="BattleSkill_returnHome";ui.icons.apply(control,ui.icons.skill("returnHome"),24)
+		if has_level:text+=" Lv%d" % level
+		var source=skill_source_text(skill)
+		var short_source=skill_source_short(skill)
+		if not short_source.is_empty():text+="（"+short_source+"）"
+		if cooling:text+="\nクールタイム中"
+		var control=b(line,text,ui.select_skill.bind(key),cooling)
 		control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip("returnHome","帰還",1)
-		ui.local_button(line,"説明",ui.show_skill_details.bind("returnHome","帰還",1)).name="BattleSkillDetails_returnHome"
+		control.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+		control.name="BattleSkill_"+str(skill.id)
+		ui.icons.apply(control,ui.icons.skill(str(skill.id),level),32 if has_level else 24)
+		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip(str(skill.id),str(skill.name),level)+"\n"+source+("\nクールタイム中：次の行動機会から使用できます" if cooling else "")
+		ui.memory.key(control,"battle_skill_"+key)
+		var info=ui.local_button(line,"説明",ui.show_skill_details.bind(str(skill.id),str(skill.name),level));info.name="BattleSkillDetails_"+str(skill.id)
+		ui.memory.key(info,"battle_skill_details_"+key)
+	for skill in ui.data.get("returnSkillset",[]):
+		var line=ui.row(list)
+		var key=str(skill.key)
+		var source=skill_source_text(skill)
+		var text=("● " if ui.command=="return" and not skill_list and skill.get("selected",false) else "")+"帰還（"+skill_source_short(skill)+"）"
+		if skill.get("used",false):text+="\n使用済み"
+		var control=b(line,text,ui.select_return_skill.bind(key),skill.get("used",false));control.name="BattleSkill_returnHome";ui.icons.apply(control,ui.icons.skill("returnHome"),24)
+		control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip("returnHome","帰還",1)+"\n"+source+"\nこの付与元は1戦闘に1回"
+		ui.memory.key(control,"battle_return_"+key)
+		var info=ui.local_button(line,"説明",ui.show_skill_details.bind("returnHome","帰還",1));info.name="BattleSkillDetails_returnHome"
+		ui.memory.key(info,"battle_return_details_"+key)
 func has_return() -> bool:return acting().get("effects",[]).has("returnHome")
 func command_name() -> String:
 	if ui.command=="return":return "帰還"
