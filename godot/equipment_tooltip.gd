@@ -72,6 +72,9 @@ func configure(title: String,gear: Dictionary,context: Dictionary):
 		if not doc.range.is_empty():line("スキル射程："+doc.range)
 		line(copy.body(doc),"[color="+SKILL+"]"+colored_effect(copy.body(doc))+"[/color]")
 	if not has_skill:line("付与スキル：なし")
+	if not str(gear.get("flavor","")).is_empty():
+		line("説明")
+		line(str(gear.flavor))
 	if gear.has("note") and not str(gear.note).is_empty():
 		line("装備メモ（原文）")
 		line(str(gear.note))
@@ -93,6 +96,8 @@ func detail_document(entry: Dictionary) -> Dictionary:
 	var doc=preload("res://skill_text.gd").document("",str(entry.name),1,{})
 	doc.window_title="所持品の説明";doc.summary_text="所持 %d個" % entry.count
 	var note_index=plain_details.find("装備メモ（原文）")
+	var flavor_index=plain_details.find("説明") if entry.get("kind")=="equipment" and not str(entry.get("definition",{}).get("flavor","")).is_empty() else -1
+	if flavor_index>=0 and (note_index<0 or flavor_index<note_index):note_index=flavor_index
 	doc.body_text="\n".join(plain_details.slice(0,note_index) if note_index>=0 else plain_details)
 	return doc
 func connect_hover():

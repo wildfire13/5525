@@ -30,7 +30,8 @@ func render(parent):
  if not shown:
   var speech=pages.facility_entry.make_speech(dialogue if not dialogue.is_empty() else pages.facility_entry.greeting_text(),"normal")
   pages.facility_entry.fit_inline_speech(speech);parent.add_child(speech)
- pages.l(parent,"パーティ全員で%dG（仮料金）" % q.price)
+ # A fully recovered party is not charged by the existing inn action.
+ if q.get("needsRecovery",false):pages.l(parent,"パーティ全員で%dG" % q.price)
  pages.muted(parent,"編成中の全員のHP・MPを全回復。控えは対象外、時間は経過しません。")
  cards(parent)
  if not q.get("needsRecovery",false):

@@ -186,7 +186,9 @@ func button(parent: Node,text: String,fn: Callable,disabled:=false) -> Button:
 	b.set_meta("base_disabled",disabled);b.disabled=disabled or locked or presenting or (engine!=null and engine.disconnected)
 	parent.add_child(b);widgets.append(b)
 	b.pressed.connect(func():
-		if not closing and (b.get_meta("read_only",false) or (not locked and not presenting and not b.disabled)):status_override="";fn.call())
+		if not closing and (b.get_meta("read_only",false) or (not locked and not presenting and not b.disabled)):
+			if hud!=null:hud.clear_inspection()
+			status_override="";fn.call())
 	b.focus_entered.connect(func():
 		# Popup-local controls must not replace the underlying screen explanation.
 		if b.get_window()!=get_window() or b.get_meta("no_status_hint",false):return
@@ -592,6 +594,7 @@ func render_unit_details(parent: Node,s: Dictionary):
 			if intent.get("destination")!=null:label_(parent,"移動予定: X%d,Y%d" % [int(intent.destination)%10,4-int(int(intent.destination)/10)])
 func choose_command(value: String):
 	if locked or presenting or closing or hud.range_reference or hud.menu_transition:return
+	hud.clear_inspection()
 	if value not in ["skill","items","item","ether","return"]:hud.expanded_menu=""
 	if value=="items":hud.open_items();return
 	if value=="skill" and data.get("skillset",[]).is_empty() and hud.has_return():value="return"
@@ -630,7 +633,7 @@ func on_cell(pos: int):
 	if locked or presenting or closing or hud.range_reference or hud.item_list or hud.skill_list:return
 	var s=state();var u=board.unit_at(pos)
 	hud.selected_cell=pos
-	if hud.action_menu and not s.get("deploying",false):render();return
+	if hud.action_menu and not s.get("deploying",false):hud.pin_inspection(pos);render();return
 	if u.get("side")=="enemy":hud.selected_enemy=str(u.id)
 	if s.get("deploying",false):
 		if u.get("side")=="enemy":hud.render_person();return
@@ -897,7 +900,7 @@ func show_skill_details(id: String,title_: String,level: int=1,gear: Dictionary=
 	var detail=preload("res://skill_details.gd").new();host.add_child(detail)
 	var context=member_name(str(state().get("actor",""))) if view_kind=="battle" else member_name(pages.party_view.detail_uid)
 	if not gear.is_empty():context+=" / "+str(gear.get("name",""))
-	detail.configure(self,preload("res://skill_text.gd").document(id,title_,level,campaign(),gear),context,str(gear.get("note","")))
+	detail.configure(self,preload("res://skill_text.gd").document(id,title_,level,campaign(),gear),context,str(gear.get("note","")),str(gear.get("flavor","")))
 func show_equipment_details(entry: Dictionary):
 	if locked or presenting or closing:return
 	var existing=find_child("SkillDetailsWindow",true,false)
@@ -906,4 +909,4 @@ func show_equipment_details(entry: Dictionary):
 	var doc=helper.detail_document(entry);helper.free()
 	var host=dialog.window if is_instance_valid(dialog.window) else self
 	var detail=preload("res://skill_details.gd").new();host.add_child(detail)
-	detail.configure(self,doc,member_name(pages.party_view.detail_uid)+" / "+str(entry.name),str(entry.get("definition",{}).get("note","")) if entry.kind=="equipment" else "")
+	detail.configure(self,doc,member_name(pages.party_view.detail_uid)+" / "+str(entry.name),str(entry.get("definition",{}).get("note","")) if entry.kind=="equipment" else "",str(entry.get("definition",{}).get("flavor","")) if entry.kind=="equipment" else "")
