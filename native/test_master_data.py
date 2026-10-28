@@ -1,9 +1,11 @@
 import copy
+from contextlib import closing
 import json
 import pathlib
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 from master_data import ROOT, build, read
 
 class MasterTests(unittest.TestCase):
@@ -26,10 +28,10 @@ class MasterTests(unittest.TestCase):
         self.db.write_bytes(b'not a database')
         with self.assertRaises(sqlite3.DatabaseError):read(self.db)
     def test_foreign_key_corruption(self):
-        with sqlite3.connect(self.db) as db:db.execute("UPDATE equipment_skill SET skill_id='missing'")
+        with closing(sqlite3.connect(self.db)) as db, db:db.execute("UPDATE equipment_skill SET skill_id='missing'")
         with self.assertRaises(ValueError):read(self.db)
     def test_duplicate_grants_preserved(self):
-        with sqlite3.connect(self.db) as db:
+        with closing(sqlite3.connect(self.db)) as db, db:
             db.execute('PRAGMA foreign_keys=ON')
             row=db.execute("SELECT equipment_id,skill_id,level,source_field,explicit_level FROM equipment_skill WHERE equipment_id='kungfu-pants'").fetchone()
             db.execute('INSERT INTO equipment_skill VALUES(?,2,?,?,?,?)',row)
@@ -42,11 +44,11 @@ class MasterTests(unittest.TestCase):
         self.source['gear'][0]['skill']='unknown'
         with self.assertRaises(ValueError):self.write()
     def test_wrong_version(self):
-        with sqlite3.connect(self.db) as db:
+        with closing(sqlite3.connect(self.db)) as db, db:
             db.execute('PRAGMA ignore_check_constraints=ON');db.execute('UPDATE metadata SET schema_version=99')
         with self.assertRaises(ValueError):read(self.db)
     def test_shadowed_fields(self):
-        with sqlite3.connect(self.db) as db:db.execute('UPDATE equipment SET properties=? WHERE ordinal=0',(json.dumps({'price':99}),))
+        with closing(sqlite3.connect(self.db)) as db, db:db.execute('UPDATE equipment SET properties=? WHERE ordinal=0',(json.dumps({'price':99}),))
         with self.assertRaises(ValueError):read(self.db)
     def test_null_not_silently_zero(self):
         self.source['gear'][0]['price']=None
@@ -61,13 +63,13 @@ class MasterTests(unittest.TestCase):
         for field,value in [('atk','bad'),('allowedSlots',['unknown']),('virtualDefault',1)]:
             with self.subTest(field=field):
                 self.write()
-                with sqlite3.connect(self.db) as db:
+                with closing(sqlite3.connect(self.db)) as db, db:
                     props=json.loads(db.execute('SELECT properties FROM equipment WHERE ordinal=0').fetchone()[0]);props[field]=value
                     db.execute('UPDATE equipment SET properties=? WHERE ordinal=0',(json.dumps(props),))
                 with self.assertRaises(ValueError):read(self.db)
     def test_first_grant_keeps_its_level(self):
         # Later slots must not silently raise the level of the legacy first-slot projection.
-        with sqlite3.connect(self.db) as db:
+        with closing(sqlite3.connect(self.db)) as db, db:
             db.execute('PRAGMA foreign_keys=ON')
             db.execute("INSERT INTO equipment_skill VALUES('kungfu-pants',2,'legSweep',3,'skill',1)")
         actual=read(self.db)
@@ -82,7 +84,7 @@ class MasterTests(unittest.TestCase):
         self.write()
         self.assertEqual(len(read(self.db)['grantsByEquipment']['kungfu-pants']),2)
     def test_runtime_rejects_invalid_skill_definition(self):
-        with sqlite3.connect(self.db) as db:
+        with closing(sqlite3.connect(self.db)) as db, db:
             definition=json.loads(db.execute("SELECT definition FROM skill WHERE id='legSweep'").fetchone()[0]);definition['reach']='near'
             db.execute("UPDATE skill SET definition=? WHERE id='legSweep'",(json.dumps(definition),))
         with self.assertRaises(ValueError):read(self.db)
@@ -98,14 +100,69 @@ class MasterTests(unittest.TestCase):
         self.write();actual=read(self.db)
         self.assertEqual(next(g for g in actual['gear'] if g['id']==sword['id'])['legacySkill'],'guard')
         self.assertEqual([g['slotNo'] for g in actual['grantsByEquipment'][sword['id']]],[1,2,3])
-        with sqlite3.connect(self.db) as db:
+        with closing(sqlite3.connect(self.db)) as db, db:
             self.assertEqual(db.execute('SELECT skill_id FROM equipment_legacy_skill WHERE equipment_id=?',(sword['id'],)).fetchone(),('guard',))
     def test_legacy_reference_corruption_rejected(self):
-        with sqlite3.connect(self.db) as db:db.execute("UPDATE equipment_legacy_skill SET skill_id='missing'")
+        with closing(sqlite3.connect(self.db)) as db, db:db.execute("UPDATE equipment_legacy_skill SET skill_id='missing'")
         with self.assertRaises(ValueError):read(self.db)
     def test_legacy_reference_cannot_be_a_real_grant(self):
         self.source['equipmentGrants'].append(dict(equipmentId='sword-wood',slotNo=1,id='guard',level=1,sourceField='legacySkill',explicitLevel=False))
         with self.assertRaises(ValueError):self.write()
+    def tracked_connections(self, fail_insert=False):
+        opened=[]
+        real_connect=sqlite3.connect
+        class TrackedConnection(sqlite3.Connection):
+            closed=False
+            def close(self):
+                super().close();self.closed=True
+            def execute(self, statement, *args, **kwargs):
+                if fail_insert and statement.startswith('INSERT INTO metadata'):
+                    raise sqlite3.OperationalError('injected write failure')
+                return super().execute(statement,*args,**kwargs)
+        def connect(*args,**kwargs):
+            connection=real_connect(*args,**kwargs,factory=TrackedConnection)
+            opened.append(connection);return connection
+        return opened,connect
+    def assert_connections_closed(self, opened):
+        self.assertTrue(opened)
+        for connection in opened:
+            self.assertTrue(connection.closed)
+            with self.assertRaises(sqlite3.ProgrammingError):connection.execute('SELECT 1')
+    def test_success_closes_writer_and_reader_before_atomic_replace(self):
+        opened,connect=self.tracked_connections()
+        real_replace=pathlib.Path.replace
+        def replace(path,target):
+            self.assertEqual(len(opened),2)
+            self.assert_connections_closed(opened)
+            return real_replace(path,target)
+        with patch('master_data.sqlite3.connect',side_effect=connect),patch.object(pathlib.Path,'replace',replace):
+            build(self.src,self.db)
+        self.assert_connections_closed(opened)
+        opened.clear()
+        with patch('master_data.sqlite3.connect',side_effect=connect):read(self.db)
+        self.assertEqual(len(opened),1);self.assert_connections_closed(opened)
+    def test_read_validation_failure_closes_connection(self):
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute('PRAGMA ignore_check_constraints=ON');db.execute('UPDATE metadata SET schema_version=99')
+        opened,connect=self.tracked_connections()
+        with patch('master_data.sqlite3.connect',side_effect=connect):
+            with self.assertRaises(ValueError):read(self.db)
+        self.assert_connections_closed(opened)
+    def test_build_write_failure_closes_before_cleanup_and_preserves_previous(self):
+        original=self.db.read_bytes();before=set(self.root.iterdir())
+        opened,connect=self.tracked_connections(fail_insert=True)
+        with patch('master_data.sqlite3.connect',side_effect=connect):
+            with self.assertRaises(sqlite3.OperationalError):build(self.src,self.db)
+        self.assert_connections_closed(opened)
+        self.assertEqual(self.db.read_bytes(),original);self.assertEqual(set(self.root.iterdir()),before)
+    def test_projection_failure_closes_both_connections_and_preserves_previous(self):
+        original=self.db.read_bytes();before=set(self.root.iterdir())
+        self.source['gear'][0]['skill']='mage';self.src.write_text(json.dumps(self.source))
+        opened,connect=self.tracked_connections()
+        with patch('master_data.sqlite3.connect',side_effect=connect):
+            with self.assertRaises(ValueError):build(self.src,self.db)
+        self.assertEqual(len(opened),2);self.assert_connections_closed(opened)
+        self.assertEqual(self.db.read_bytes(),original);self.assertEqual(set(self.root.iterdir()),before)
     def test_no_new_gear(self):
         self.assertEqual(len(read(self.db)['gear']),58)
 if __name__=='__main__':unittest.main()
