@@ -10,6 +10,10 @@ BASE=Path(__file__).resolve().parent
 steps=[
  ('Python syntax',[sys.executable,'-m','compileall','-q','app.py','journey_app.py','tiny_poc.py','tk_bootstrap.py','campaign_app.py','voice.py','music.py']),
  ('Python rules/adapter/preview tests',[sys.executable,'-m','unittest','-v']),
+ ('SQLite grant/save compatibility',['node','test_sqlite_grant_save.cjs']),
+ ('Per-source active cooldowns',['node','test_skill_cooldowns.cjs']),
+ ('Additive passive grants',['node','test_sqlite_passive_grants.cjs']),
+ ('Secondary grant combat',['node','test_sqlite_grant_combat.cjs']),
  ('Campaign battle extension',['node','test_campaign_battle.cjs']),
  ('Equipment-level ambush and DEF contract',['node','test_equipment_ambush_def.cjs']),
  ('Individual growth and inert legacy team fields',['node','test_team_growth.cjs']),

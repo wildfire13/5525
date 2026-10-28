@@ -128,7 +128,9 @@ test('purchase and trial all eleven; actual actions isolated from campaign',()=>
 test('save/load battle flags, effects and covers; old saves; malformed extension rejected',()=>{
  const s=C.create();s.gold=1000;s.location='east';assert(C.buyGear(s,'guard','battleline-shield'));s.location='north';assert(C.buyGear(s,'guard','return-ring-1'));assert(C.buyGear(s,'guard','pioneer-gloves-2'));C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
  const a=s.battle.units.find(u=>u.id==='guard');a.returnUsed=true;a.firstMoveUsed=true;a.covers=['archer','mage'];
- const saved=C.serialize(s),loaded=C.deserialize(saved);assert.deepEqual(loaded,clone(s));assert.equal(B.legalFor(loaded.battle,loaded.battle.units.find(u=>u.id==='guard'),'return',0),false);
+ const saved=C.serialize(s),loaded=C.deserialize(saved),expected=clone(s);
+ expected.battle.units.find(u=>u.id==='guard').returnUsedGrants=Object.fromEntries(B.returnSkillOptions(a).map(o=>[o.key,true]));
+ assert.deepEqual(loaded,expected);assert.equal(B.legalFor(loaded.battle,loaded.battle.units.find(u=>u.id==='guard'),'return',0),false);
  for(const change of [u=>u.returnUsed='no',u=>u.firstMoveUsed=1,u=>u.effects=['loneWolf'],u=>u.covers=['missing'],u=>u.covers=['mage','mage']]){const bad=JSON.parse(saved);change(bad.state.battle.units.find(u=>u.id==='guard'));assert.throws(()=>C.deserialize(bad));}
  const old=C.create();assert.deepEqual(C.deserialize(C.serialize(old)),old);
  assert.equal(C.retreat(loaded),true);assert.equal(loaded.result.outcome,'failed');assert.equal(loaded.battle,null);
@@ -142,10 +144,10 @@ test('public battle actions save real once-per-battle flags and retreat resets n
  C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
  function guardTurn(){for(let i=0;i<30&&s.battle.actor!=='guard'&&!s.battle.result;i++)assert.equal(C.act(s,'guard'),true);assert.equal(s.battle.actor,'guard');}
  guardTurn();assert.equal(C.act(s,'return',0),true);guardTurn();assert.equal(C.act(s,'move',1),true);
- const loaded=C.deserialize(C.serialize(s)),hero=loaded.battle.units.find(u=>u.id==='guard');assert.equal(hero.returnUsed,true);assert.equal(hero.firstMoveUsed,true);
+ const loaded=C.deserialize(C.serialize(s)),hero=loaded.battle.units.find(u=>u.id==='guard');assert.ok(B.returnSkillOptions(hero).every(o=>o.used));assert.equal(Object.keys(hero.returnUsedGrants).length,1);assert.equal(hero.firstMoveUsed,true);
  assert.deepEqual(loaded.battle.skillEvents.map(e=>e.skillId),['returnHome','firstStride']);
  assert.equal(C.retreat(s),true);C.acknowledge(s);C.depart(s,'astaris');C.travel(s,'safe',()=>.2);
- const fresh=s.battle.units.find(u=>u.id==='guard');assert.equal(fresh.returnUsed,undefined);assert.equal(fresh.firstMoveUsed,undefined);assert.equal(B.moveReach(fresh),3);
+ const fresh=s.battle.units.find(u=>u.id==='guard');assert.equal(fresh.returnUsed,undefined);assert.equal(fresh.returnUsedGrants,undefined);assert.equal(fresh.firstMoveUsed,undefined);assert.equal(B.moveReach(fresh),3);
 });
 test('victory reward passes into campaign party once and survives reload',()=>{
  const s=C.create();s.location='north';C.buyGear(s,'guard','victory-earring-1');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);

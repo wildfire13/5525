@@ -56,6 +56,13 @@ jobs:
           if rg 'SCRIPT ERROR:|ERROR:' "$RUNNER_TEMP/godot-import.log"; then exit 1; fi
       - name: Run all 16 current UI and startup checks
         run: python godot/tests/run_inventory_header_261020.py --evidence "$RUNNER_TEMP/5525-regression"
+      - name: Verify SQLite master and grant compatibility
+        run: |
+          python -m unittest discover -s native -p test_master_data.py
+          node native/test_sqlite_grant_save.cjs
+          node native/test_skill_cooldowns.cjs
+          node native/test_sqlite_passive_grants.cjs
+          node native/test_sqlite_grant_combat.cjs
       - name: Retain synthetic test summary
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

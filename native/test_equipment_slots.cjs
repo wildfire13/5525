@@ -23,10 +23,10 @@ test('two hands preserve sources; selection spends nothing and each action pays 
  turn(b,a.id);const before=clone(b);assert.equal(B.selectSkill(b,'splitShot'),false);assert.deepEqual(clone(b),before);roundtrip(s);
  assert.deepEqual(b.skillEvents.filter(x=>x.actorId===a.id&&x.classification==='active').map(x=>x.skillId),['healingCross','knockback']);
 });
-test('same item and invalid slots rejected atomically; same skill different sources retained',()=>{
- const s=town();const before=clone(s);assert.equal(C.buyGear(s,'guard','sword-wood','leftHand'),false);assert.deepEqual(s,before);
+test('separate hand copies allowed; invalid slots rejected atomically and sources retained',()=>{
+ const s=town(),gold=s.gold;assert.ok(C.buyGear(s,'guard','sword-wood','leftHand'));assert.equal(s.gold,gold-C.gear.find(g=>g.id==='sword-wood').price);
  assert.ok(C.buyGear(s,'mage','staff-silver-1','leftHand'));const st=C.stats(s.characters.mage);assert.deepEqual(st.activeSkills,['mage']);assert.equal(st.skillSources.length,2);
- const bad=clone(s);bad.characters.guard.leftHand='sword-wood';assert.equal(C.validate(bad).ok,false);
+ const bad=clone(s);bad.characters.guard.head='sword-wood';assert.equal(C.validate(bad).ok,false);
  for(const slot of ['head','accessory1','nonsense','__proto__']){const old=clone(s);assert.equal(C.buyGear(s,'guard','breaker-hammer',slot),false);assert.deepEqual(s,old);}
  roundtrip(s);
 });
@@ -38,7 +38,7 @@ test('passives coexist, legacy duplicate effect copies load without stacking',()
 test('return remains once per battle across selection changes and save reload',()=>{
  const s=town('north');C.buyGear(s,'guard','return-ring-1');s.location='east';C.buyGear(s,'guard','undertow-sword','rightHand');C.buyGear(s,'guard','battleline-shield','leftHand');
  const b=battle(s),a=turn(b,'guard');assert.ok(B.selectSkill(b,'defenseLine'));assert.ok(C.act(s,'return',0));turn(b,'guard');assert.ok(B.selectSkill(b,'retreatSlash'));assert.equal(B.legal(b,'return',1),false);
- const loaded=C.deserialize(C.serialize(s));assert.equal(loaded.battle.units.find(u=>u.id==='guard').returnUsed,true);assert.equal(B.legal(loaded.battle,'return',1),false);
+ const loaded=C.deserialize(C.serialize(s));assert.ok(B.returnSkillOptions(loaded.battle.units.find(u=>u.id==='guard')).every(option=>option.used));assert.equal(B.legal(loaded.battle,'return',1),false);
 });
 test('unequip removes only that source; stats and HP/MP do not regenerate',()=>{
  const s=town();C.buyGear(s,'mage','sharing-tome','leftHand');const c=s.characters.mage;c.mp=1;c.hp=10;

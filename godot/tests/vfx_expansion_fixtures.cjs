@@ -45,7 +45,7 @@ function build(spec){
  if(skill==='archer'){a.pos=23;find('mage').pos=13;}
  if(skill==='scout'){a.pos=22;find('mage').pos=13;find('guard').pos=2;}
  if(skill==='porter'){target=a.id;find('guard').pos=23;find('archer').pos=12;find('mage').pos=32;find('porter').pos=22;if(variant==='broken')find('guard').pos=24;if(variant==='repeat')a.boost=true;}
- if(skill==='returnHome'){target=variant==='edge'?0:variant==='occupied'?14:variant==='enemy'?25:variant==='same'?a.pos:22;if(variant==='used')a.returnUsed=true;}
+ if(skill==='returnHome'){target=variant==='edge'?0:variant==='occupied'?14:variant==='enemy'?25:variant==='same'?a.pos:22;if(variant==='used'){a.returnUsed=true;a.returnUsedGrants=Object.fromEntries(B.returnSkillOptions(a).map(option=>[option.key,true]));}}
  if(kind==='item'||kind==='ether'){target=a.id;if(kind==='item')a.hp-=variant==='cap'?7:70;else a.mp-=variant==='cap'?1:4;if(variant==='full'){a.hp=a.max;a.mp=a.maxMp;}if(variant==='empty'){const item=kind==='item'?'potion':'ether';b.itemInventories[a.id][item]=0;if(item==='potion')b.potions.ally=Object.values(b.itemInventories).reduce((n,x)=>n+x.potion,0);else b.ethers=Object.values(b.itemInventories).reduce((n,x)=>n+x.ether,0);}}
  if(skill==='loneWolf'){find('mage').pos=12;find('archer').pos=13;find('scout').pos=3;if(variant==='adjacent')find('mage').pos=23;}
  if(skill==='firstStride'){target=variant==='swap'?24:variant==='short'?22:variant==='used'?21:20;a.pos=23;find('mage').pos=12;if(variant==='used')a.firstMoveUsed=true;}

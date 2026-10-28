@@ -26,6 +26,9 @@ assert.equal(preview.base,23+14);assert.equal(preview.weapons.length,2);
 const priorHp=victim.hp;assert(C.trialAct(t,'skill',victim.id));
 assert.equal(priorHp-victim.hp,37);
 console.log(JSON.stringify({test:'mixed reach 1+2 at original distance 3',weaponContribution:preview.base,ambushDamage:priorHp-victim.hp,weapons:preview.weapons.map(w=>w.itemId)}));
+// A completed personal opportunity releases the used grant before the next cast.
+assert.equal(B.legal(t.battle,'skill',victim.id),false);
+assert(C.trialAct(t,'guard'));
 victim.def=5;
 const reduced=B.damagePreview(t.battle,actor,'skill',victim.id)[0],beforeDefHit=victim.hp;
 assert.equal(reduced.damage,32);assert(C.trialAct(t,'skill',victim.id));assert.equal(beforeDefHit-victim.hp,32);

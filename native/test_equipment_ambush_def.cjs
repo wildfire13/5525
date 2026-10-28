@@ -33,7 +33,8 @@ for(const side of ['ally','enemy'])for(const def of [0,7,100]){
  const a=unit('a','enemy',21),b=unit('b','ally',22),guard=unit('guard','ally',32);b.def=99;guard.def=4;guard.cover='b';
  const s={units:[a,b,guard],log:[]};B.receive(s,b,23);check(b.hp===100&&guard.hp===81,'cover uses actual recipient DEF and preserves redirection');
 }
-const dagger=C.gear.find(g=>g.id==='dagger-wood'),originalLevel=dagger.skillLevel;
+const master=require('./master-data.cjs').getMaster();
+const dagger=C.gear.find(g=>g.id==='dagger-wood'),originalLevel=dagger.skillLevel,daggerGrants=structuredClone(master.grantsByEquipment[dagger.id]);
 {
  const s=C.create();s.location='east';s.gold=1000;
  check(C.buyGear(s,'scout','sword-wood','rightHand'),'actual weapon change succeeds');
@@ -43,7 +44,7 @@ const dagger=C.gear.find(g=>g.id==='dagger-wood'),originalLevel=dagger.skillLeve
 }
 try{
  for(const level of [1,2,3]){
-  dagger.skillLevel=level;
+  dagger.skillLevel=level;master.grantsByEquipment[dagger.id][0].level=level;
   const s=C.create();s.xp=9900;s.level=100;s.characters.scout.xp=200;s.characters.scout.level=3;s.characters.scout.statPoints=4;s.characters.scout.skillPoints=2;
   C.depart(s,'east');C.travel(s,'safe',()=>.3);
   const actor=s.battle.units.find(u=>u.id==='scout');
@@ -53,33 +54,47 @@ try{
   s.location='east';s.phase='town';s.journey=null;s.battle=null;s.rollback=null;
   const t=C.trial(s,'scout','dagger-wood');check(B.skillLevel(t.battle.units.find(u=>u.id==='scout'))===level,'trial uses same gear level');
  }
-}finally{dagger.skillLevel=originalLevel;}
+}finally{dagger.skillLevel=originalLevel;master.grantsByEquipment[dagger.id]=structuredClone(daggerGrants);}
 {
- const staff=C.gear.find(g=>g.id==='staff-wood'),oldSkill=staff.skill,oldLevel=staff.skillLevel;
+ const staff=C.gear.find(g=>g.id==='staff-wood'),oldSkill=staff.skill,oldLevel=staff.skillLevel,staffGrants=structuredClone(master.grantsByEquipment[staff.id]);
  try{
   staff.skill='scout';
-  for(const [right,left,expected] of [[1,2,2],[2,3,3],[2,2,2]]){
+  for(const [right,left] of [[1,2],[2,3],[2,2]]){
    dagger.skillLevel=right;staff.skillLevel=left;
+   master.grantsByEquipment[dagger.id][0].level=right;
+   master.grantsByEquipment[staff.id]=[{slotNo:1,id:'scout',level:left,sourceField:'skill',explicitLevel:true}];
    const s=C.create();s.location='east';s.gold=2000;
    check(C.buyGear(s,'mage','dagger-wood','rightHand')&&C.buyGear(s,'mage','staff-wood','leftHand'),'two distinct equipped skill sources');
    C.depart(s,'astaris');C.travel(s,'safe',()=>.3);
    const actor=s.battle.units.find(u=>u.id==='mage');
-   check(B.skillLevel(actor)===expected&&B.skillInfo(actor).level===expected,'normal battle/description use maximum');
+   check(B.activeSkillOptions(actor).filter(o=>o.id==='scout').length===2,'normal battle retains both grants');
+   for(const [index,expected] of [right,left].entries()){
+    const option=B.activeSkillOptions(actor).filter(o=>o.id==='scout')[index];actor.selectedSkill='scout';actor.selectedSkillKey=option.key;
+    check(B.skillLevel(actor)===expected&&B.skillInfo(actor).level===expected,'normal battle/description use selected grant level');
+   }
    const copy=C.create();copy.location='east';copy.characters.mage.weapon='dagger-wood';copy.characters.mage.leftHand='staff-wood';
    const trial=C.trial(copy,'mage','dagger-wood','rightHand'),hero=trial.battle.units.find(u=>u.id==='mage');
-   check(B.skillLevel(hero)===expected&&B.skillInfo(hero).level===expected,'trial/description use same maximum');
+   for(const [index,expected] of [right,left].entries()){
+    const option=B.activeSkillOptions(hero).filter(o=>o.id==='scout')[index];hero.selectedSkill='scout';hero.selectedSkillKey=option.key;
+    check(B.skillLevel(hero)===expected&&B.skillInfo(hero).level===expected,'trial/description use selected grant level');
+   }
   }
  }finally{
   dagger.skillLevel=originalLevel;staff.skill=oldSkill;
+  master.grantsByEquipment[dagger.id]=structuredClone(daggerGrants);master.grantsByEquipment[staff.id]=staffGrants;
   if(oldLevel===undefined)delete staff.skillLevel;else staff.skillLevel=oldLevel;
  }
 }
 {
  const a=unit('a','ally',22);a.skillSources=[{id:'scout',level:1},{id:'scout',level:1}];check(B.skillLevel(a)===1,'duplicate equal levels do not accumulate');
- for(const [left,right,expected] of [[1,2,2],[2,3,3],[2,2,2]]){
+ for(const [left,right] of [[1,2],[2,3],[2,2]]){
   a.skillSources=[{id:'scout',level:left},{id:'scout',level:right}];
-  check(B.skillLevel(a)===expected,'mixed levels choose maximum, never sum');
-  check(B.skillInfo(a).level===expected,'description agrees with maximum');
+  const options=B.activeSkillOptions(a);check(options.length===2&&options[0].key!==options[1].key,'distinct buttons for mixed or equal levels');
+  for(const [index,expected] of [left,right].entries()){
+   a.selectedSkill='scout';a.selectedSkillKey=options[index].key;
+   check(B.skillLevel(a)===expected,'mixed levels use selected source, never max or sum');
+   check(B.skillInfo(a).level===expected,'description agrees with selected source');
+  }
  }
 }
 {

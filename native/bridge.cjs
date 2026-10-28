@@ -3,7 +3,9 @@ const LegacyB = require('./battle.js');
 const VoiceEvents = require('./voice-events.cjs');
 const presentation = new (require('./battle-presentation.cjs').Presentation)();
 let B = LegacyB;
-const CampaignB = require('./campaign-battle.js');
+let CampaignB,masterStartupError=null;
+try { CampaignB=require('./campaign-battle.js'); }
+catch (_) { masterStartupError='ゲームデータを読み込めません。配布ファイルを確認してください。セーブデータは変更していません。'; }
 let campaign=null,trial=null;
 const campaignEngine=()=>require('./campaign.js');
 const campaignSummary=()=>campaign?{location:campaign.location,phase:campaign.phase,gold:campaign.gold,xp:campaign.xp,level:campaign.level,selected:campaign.selected,inventory:campaignEngine().inventoryTotals(campaign),activeQuest:campaign.activeQuest,characters:campaign.characters}:null;
@@ -60,7 +62,7 @@ function view(ok=true, error=null) {
   if(a)for(const kind of ['attack','skill',...(campaign?['return']:[])])ranges[kind]=Array.from({length:50},(_,p)=>p).filter(p=>{const u=state.units.find(u=>u.hp>0&&u.pos===p),support=kind==='skill'&&['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(B.activeSkill(a));return B.inRange(a,u?.side||(support?'ally':'enemy'),p,kind,state);});
   const deployment=state.deploying?Object.fromEntries(state.units.filter(u=>u.side==='ally'&&u.hp>0).map(u=>[u.id,{ranges:Array.from({length:50},(_,p)=>p).filter(p=>B.inRange(u,p%10<5?'ally':'enemy',p,'attack',state)),ambush:state.units.filter(t=>t.hp>0&&B.ambush(state,u,t)).map(t=>t.pos)}])):{};
   const stampAreas=a&&B.activeSkill(a)==='stamp'?Object.fromEntries(choices.skill.map(p=>[p,B.stampCells(a,p)])):{};
-  return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillReach:a?B.attackReach(a,'skill'):0,normalAttackReach:a?B.attackReach(a,'attack'):0,skillset:a?B.activeSkills(a).map(id=>({id,name:B.skillName({...a,selectedSkill:id}),sources:(a.skillSources||[]).filter(x=>x.id===id).map(x=>({...x,itemName:x.id==='itemUse'&&x.itemId.startsWith('empty-')?(a.job==='porter'?'拳＋2':'拳'):campaignEngine().gear.find(g=>g.id===x.itemId)?.name||x.itemId}))})):[],skillInfo:a?B.skillInfo(a):null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),formationSlots:B.formationSlots?B.formationSlots(state):B.slots,enemyInfo:state.units.filter(u=>u.side==='enemy').map(u=>require('./intent-info.cjs').describe(B,state,u)),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
+  return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillReach:a?B.attackReach(a,'skill'):0,normalAttackReach:a?B.attackReach(a,'attack'):0,skillset:a?B.activeSkillOptions(a).map(option=>({...option,name:B.skillName({...a,selectedSkill:option.id,selectedSkillKey:option.key}),selected:B.selectedSkillOption(a)?.key===option.key,sources:option.itemId?[{id:option.id,slot:option.slot,itemId:option.itemId,grantSlot:option.grantSlot,level:option.level,itemName:option.id==='itemUse'&&option.itemId.startsWith('empty-')?(a.job==='porter'?'拳＋2':'拳'):campaignEngine().gear.find(g=>g.id===option.itemId)?.name||option.itemId}]:[]})):[],itemUseInfo:a?B.itemSkillOption(a):null,returnSkillset:a?B.returnSkillOptions(a).map(option=>({...option,name:'帰還',selected:B.returnSkillOption(a)?.key===option.key,sources:option.itemId?[{...option,itemName:campaignEngine().gear.find(g=>g.id===option.itemId)?.name||option.itemId}]:[]})):[],returnSkillInfo:a?B.returnSkillOption(a):null,skillInfo:a?B.skillInfo(a):null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),formationSlots:B.formationSlots?B.formationSlots(state):B.slots,enemyInfo:state.units.filter(u=>u.side==='enemy').map(u=>require('./intent-info.cjs').describe(B,state,u)),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
 }
 function preview(kind,target,previewKind='attack') {
   if(!state||!B.legal(state,kind,target))return {ok:false,error:'無効なプレビュー'};
@@ -130,6 +132,7 @@ function trip(action,args=[]) {
 readline.createInterface({input:process.stdin}).on('line',line=>{
   try {
     const r=JSON.parse(line);let response;
+    if(masterStartupError){console.log(JSON.stringify({ok:false,error:masterStartupError,state:null}));return;}
     if(presentation.pending&&!['view','presentation_next','presentation_finish','record'].includes(r.op))
       throw Error('演出中です。完了してから操作・保存してください');
     if(r.op==='presentation_next'||r.op==='presentation_finish') {
@@ -196,6 +199,11 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       if(r.action==='forecast')response={...view(),forecast:result};
       else {record('journey.'+r.action,{args:r.args,accepted:result});response=view(!!result,result?null:'現在の状態では実行できません');}
       if(captured)response.voiceEvents=captured.events;
+    }
+    else if(r.op==='select_return_skill') {
+      const ok=!!campaign&&!!state&&B.selectReturnSkill(state,r.skillId);
+      if(ok)record('battle.skill.selected',{skillId:'returnHome'});
+      response=view(ok,ok?null:'装備中の帰還スキルを選んでください');
     }
     else if(r.op==='select_skill') {
       const ok=!!campaign&&!!state&&B.selectSkill(state,r.skillId);

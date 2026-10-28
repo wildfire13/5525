@@ -54,6 +54,17 @@ func run():
 			game.hud.open_skills();await settle();await click("BattleSkillDetails_legSweep");await click("SkillDetailsBack")
 			protected_controls("skill explanation closed "+label)
 			await game.select_skill("legSweep");await settle()
+			# Selection now persists an exact grant key. Reading windows must stay
+			# pure after that deliberate selection; no resources may change here.
+			var selected_save=await saved();var expected=before.duplicate(true)
+			var actor_id=str(selected_save.state.battle.actor)
+			var selected_units=selected_save.state.battle.units.filter(func(unit):return str(unit.id)==actor_id)
+			check(selected_units.size()==1 and not str(selected_units[0].get("selectedSkillKey","")).is_empty(),"F2 selection identifies exact grant "+label)
+			if selected_units.size()==1:
+				for unit in expected.state.battle.units:
+					if str(unit.id)==actor_id:unit.selectedSkillKey=selected_units[0].get("selectedSkillKey","")
+			check(selected_save==expected,"F2 selection changes only grant identity, never resources "+label)
+			before=selected_save
 			for id in ["battle_commit","battle_cancel"]:
 				var controls=game.find_children("*","Button",true,false).filter(func(button):return button.get_meta("ui_key","")==id)
 				check(controls.size()==1 and controls[0].is_visible_in_tree() and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(controls[0].get_global_rect()),"F2 existing action "+id+" still visible "+label)

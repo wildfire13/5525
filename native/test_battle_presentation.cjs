@@ -146,6 +146,7 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  // Reuse the same Presentation, then save/reload it, without leaking old results.
  const campaign=sweep(),direct=C.deserialize(C.serialize(campaign)),p=new Presentation();let earlier;
  for(const values of [[.1,.1,.1],[.99,.99,.99]]){
+  if(earlier){assert(!B.legal(direct.battle,'skill','guard'));assert(B.act(direct.battle,'guard'));assert(B.act(campaign.battle,'guard'));}
   const a={count:0},b={count:0};assert(B.act(direct.battle,'skill','guard',rng(values,a)));
   assert(p.start(campaign.battle,B,()=>B.act(campaign.battle,'skill','guard',rng(values,b))));
   const info=p.info();
@@ -156,6 +157,7 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  }
  const loaded=C.deserialize(C.serialize(campaign)),loadedDirect=C.deserialize(C.serialize(campaign));
  assert.deepEqual(loaded,campaign,'save/load restores ordinary status fields, not observation metadata');
+ assert(!B.legal(loaded.battle,'skill','guard'));assert(B.act(loaded.battle,'guard'));assert(B.act(loadedDirect.battle,'guard'));
  const loadedP=new Presentation(),a={count:0},b={count:0};assert(B.act(loadedDirect.battle,'skill','guard',rng([.1,.1,.1],a)));
  assert(loadedP.start(loaded.battle,B,()=>B.act(loaded.battle,'skill','guard',rng([.1,.1,.1],b))));
  assert(loadedP.info().resolved_status.every(x=>x.success&&x.already_active));assert(loadedP.finish(loadedP.info().id));

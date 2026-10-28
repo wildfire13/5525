@@ -91,14 +91,7 @@ func equipment(parent,u: Dictionary):
 		var btn=b(grid,title,open_equipment.bind(u,e));btn.custom_minimum_size.y=56;btn.size_flags_horizontal=Control.SIZE_EXPAND_FILL;btn.clip_text=true;ui.memory.key(btn,"equipment_"+str(e.slot))
 		btn.set_script(preload("res://equipment_tooltip.gd"))
 		var item: Dictionary=u.get("equipmentDetails",{}).get(e.slot,{})
-		var descriptions={};var effective_levels={}
-		for field in ["skill","effect"]:
-			if item.get(field)==null:continue
-			var id=str(item[field]);var level=int(item.get("skillLevel",1));effective_levels[id]=level
-			for source in u.get("stats",{}).get("skillSources",[]):
-				if source.id==id:effective_levels[id]=maxi(effective_levels[id],int(source.get("level",1)))
-			descriptions[id]=pages.skill_description(id,effective_levels[id])
-		btn.configure(equipment_name(e),item,{"names":pages.c().get("skillNames",{}),"definitions":pages.c().get("skillDefinitions",{}),"descriptions":descriptions,"effective_levels":effective_levels,"occupied":e.get("occupiedBy")!=null,"job":u.get("job"),"title_size":24 if ui.size.x>=1800 else 20,"detail_size":18 if ui.size.x>=1800 else 16})
+		btn.configure(equipment_name(e),item,{"names":pages.c().get("skillNames",{}),"definitions":pages.c().get("skillDefinitions",{}),"occupied":e.get("occupiedBy")!=null,"job":u.get("job"),"title_size":24 if ui.size.x>=1800 else 20,"detail_size":18 if ui.size.x>=1800 else 16})
 		ui.icons.apply(btn,"" if e.get("occupiedBy")!=null else ui.icons.equipment(item))
 		preload("res://item_drag.gd").target(btn,
 			func(data):return owned_equipment_view.can_drop(data,str(u.id),str(e.slot)),
@@ -138,20 +131,18 @@ func growth(parent,u: Dictionary):
 func skills(parent,u: Dictionary):
 	var s=u.get("stats",u);var names=pages.c().get("skillNames",{})
 	l(parent,"使用可能: "+" / ".join(u.get("activeSkillNames",[])));l(parent,"効果: "+" / ".join(u.get("effectNames",[])))
-	var groups={}
+	var seen={}
 	for source in s.get("skillSources",[]):
-		if not groups.has(source.id):groups[source.id]=[]
-		groups[source.id].append(source)
-	for id in groups:
-		var level=1
-		for source in groups[id]:level=maxi(level,int(source.get("level",1)))
+		var id=str(source.id);var level=int(source.get("level",1))
+		var occurrence=int(seen.get(id,0));seen[id]=occurrence+1
 		var heading=ui.row(parent)
-		ui.icons.line(ui,heading,ui.icons.skill(str(id),level),str(names.get(id,id)),true)
-		ui.local_button(heading,"説明",ui.show_skill_details.bind(str(id),str(names.get(id,id)),level,u.get("equipmentDetails",{}).get(groups[id][0].slot,{}))).name="PartySkillDetails_"+str(id)
-		l(parent,preload("res://skill_text.gd").plain(preload("res://skill_text.gd").document(str(id),str(names.get(id,id)),level,pages.c())))
-		for source in groups[id]:
-			l(parent,"由来: "+str(pages.c().slots.get(source.slot,source.slot))+" / "+str(u.get("equipmentDetails",{}).get(source.slot,{}).get("name",source.itemId)))
-			if id=="scout":l(parent,"装備の奇襲Lv%d / 使用する奇襲Lv%d" % [source.get("level",1),level])
+		var title=str(names.get(id,id))+(" Lv%d" % level if preload("res://skill_text.gd").LEVELLED.has(id) else "")
+		ui.icons.line(ui,heading,ui.icons.skill(id,level),title,true)
+		var gear=u.get("equipmentDetails",{}).get(source.slot,{})
+		ui.local_button(heading,"説明",ui.show_skill_details.bind(id,str(names.get(id,id)),level,gear)).name="PartySkillDetails_"+id+("_%d" % occurrence if occurrence>0 else "")
+		l(parent,preload("res://skill_text.gd").plain(preload("res://skill_text.gd").document(id,str(names.get(id,id)),level,pages.c(),gear)))
+		l(parent,"由来: "+str(pages.c().slots.get(source.slot,source.slot))+" / "+str(gear.get("name",source.itemId)))
+
 	if u.get("job")=="porter":l(parent,"ポーターは武器交換後も攻撃・攻撃スキルを使用できません。陣形強化は既存条件に従います。")
 
 func identity(parent,u: Dictionary):

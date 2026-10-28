@@ -29,7 +29,10 @@ test('rollback snapshot independently retains its original first member and exac
   const old=legacyTown();old.state.rollback=clone(old.state);old.state.selected=['porter','guard'];
   old.state.sequence++;old.state.activeQuest={...C.board(old.state)[0],token:old.state.sequence};
   old.state.inventory={potion:5,ether:2};old.state.rollback.inventory={potion:9,ether:4};
-  const s=C.deserialize(old);assert.deepEqual(s.characters.porter.inventory,{potion:5,ether:2});
+  const s=C.deserialize(old);
+  // Existing cargo migration issues the accepted legacy quest exactly once.
+  assert.equal(s.activeQuest.cargoItemId,'quest-cargo:1');
+  assert.deepEqual(s.characters.porter.inventory,{potion:5,ether:2,'quest-cargo:1':1});
   assert.deepEqual(s.rollback.characters.guard.inventory,{potion:9,ether:4});okay(s);
 });
 test('quote/cancel never mutates; transfer is conserved and stale confirmation cannot replay',()=>{
