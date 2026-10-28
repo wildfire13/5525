@@ -45,7 +45,7 @@ func run():
 		if u.id=="mage":u.next=1;u.hp=20
 	await game.update({"op":"campaign_load","data":heal});await settle()
 	game.hud.open_skills();await settle();await click("BattleSkill_mage")
-	check(node("BattleSkill_mage").text.begins_with("● ") and not game.hud.buttons.skill.text.begins_with("● "),"selection mark belongs to individual skill")
+	check(node("BattleSkill_mage").text.begins_with("● ") and game.hud.buttons.skill.text.begins_with("● "),"selected skill and its parent category both carry selection marks")
 	check(node("ActionCost").text=="消費MP: 1" and node("TargetSummary").text=="クリックしてターゲットを選択してください。","actual MP cost and single targeting instruction")
 	await game.on_cell(int(game.hud.acting().pos));await settle()
 	check(node("Inspect_hp")!=null and not game.find_children("*","Button",true,false).any(func(b):return b.text=="能力・詳細"),"target abilities displayed inline without detail button")

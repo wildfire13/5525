@@ -25,6 +25,12 @@ class MasterTests(unittest.TestCase):
         original=self.db.read_bytes();self.write();self.assertEqual(original,self.db.read_bytes())
     def test_read_does_not_write(self):
         original=self.db.read_bytes();read(self.db);self.assertEqual(original,self.db.read_bytes())
+    def test_flavor_roundtrip_and_type_validation(self):
+        self.source['gear'][0]['flavor']='既存の原稿。'
+        self.write()
+        self.assertEqual(read(self.db)['gear'][0]['flavor'],'既存の原稿。')
+        self.source['gear'][0]['flavor']={'not':'text'}
+        with self.assertRaises(ValueError):self.write()
     def test_missing_and_corrupt(self):
         with self.assertRaises(ValueError):read(self.root/'absent.sqlite')
         self.db.write_bytes(b'not a database')

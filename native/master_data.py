@@ -47,7 +47,7 @@ def validate_equipment(g):
         if not isinstance(slots,list) or not slots or any(not isinstance(x,str) or x not in SLOTS-{'weapon','armor'} for x in slots) or len(slots)!=len(set(slots)): raise ValueError('invalid allowed slots')
     for key in ('starterOnly','virtualDefault'):
         if key in g and type(g[key]) is not bool: raise ValueError('invalid equipment flag')
-    for key in ('material','note','shopProductId'):
+    for key in ('material','note','flavor','shopProductId'):
         if key in g and not isinstance(g[key],str): raise ValueError('invalid equipment text')
     if 'material' in g and g['material'] not in ('cloth','iron','leather','silver','wood'): raise ValueError('invalid material')
     if 'jobOnly' in g and g['jobOnly'] not in ('porter','guard','scout','mage','archer'): raise ValueError('invalid equipment job')

@@ -87,7 +87,7 @@ func map(parent):
 	if quest is Dictionary:
 		l(parent,"受注中: %s → %s" % [quest.name,town(quest.to)])
 	if not available.has(ui.destination):ui.destination=str(available[0]) if not available.is_empty() else ""
-	muted(parent,"接続・距離・方角は試作用の模式図です。各移動は二つの区間を通ります。")
+	muted(parent,"地図は模式図です。各移動は二つの区間を通ります。")
 	shop_guide(parent)
 	var chart=preload("res://town_map.gd").new();chart.name="TownMap"
 	chart.towns=c().get("locations",[]);chart.current=c().location;chart.selected=ui.destination;chart.available=available;chart.routes=c().get("routes",{});chart.icons=ui.icons
@@ -289,6 +289,7 @@ func describe_gear(parent,gear: Dictionary):
 		if gear.get(field)!=null:
 			ui.icons.line(ui,parent,ui.icons.skill(str(gear[field]),int(gear.get("skillLevel",1))),("スキル: " if field=="skill" else "効果: ")+str(c().get("skillNames",{}).get(gear[field],gear[field])))
 			l(parent,skill_description(str(gear[field]),int(gear.get("skillLevel",1))))
+	if not str(gear.get("flavor","")).is_empty():l(parent,"説明\n"+str(gear.flavor))
 	if gear.has("note"):l(parent,gear.note)
 
 func skill_description(id: String,stage: int=1) -> String:

@@ -60,6 +60,8 @@ func render():
 		ui.label_(body,copy.plain(copy.document(id,str(shop.c().get("skillNames",{}).get(id,id)),int(grant.get("level",1)),shop.c(),gear))).name="ShopComparisonSkill_"+id+"_"+str(grant.get("slotNo",1))
 	var conditions=ui.label_(body,"条件を確認中…");conditions.name="ShopComparisonConditions"
 	ui.label_(body,"補足：装備した場合の比較です。購入では自動装備しません。受取可否は購入確定時に確認します。")
+	if not str(gear.get("flavor","")).is_empty():
+		ui.label_(body,"説明\n"+str(gear.flavor)).name="ShopComparisonFlavor"
 	if gear.has("note") and not str(gear.note).is_empty():
 		ui.label_(body,"装備メモ（原文）\n"+str(gear.note)).name="ShopComparisonNotes"
 	var buy=ui.button(body,ui.member_name(owner_id)+"への購入を確認",purchase,true);buy.name="ShopComparisonBuy"

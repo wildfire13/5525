@@ -59,6 +59,7 @@ var partybar_reserved_height := 0.0:
 var left_info: VBoxContainer
 var person_box: VBoxContainer
 var inspected_uid := ""
+var inspection_pinned := false
 var hover_generation := 0
 var hover_stamp := ""
 var skill_content_open := false
@@ -94,7 +95,7 @@ func state_id() -> String:
 func reset_context():
 	clear_opening_visual()
 	expanded_menu="";menu_transition=false;menu_ticket+=1;clear_action_visual();shifted_action="";queue_distance=0;animation_trace.clear()
-	inspected_uid="";invalidate_hover();skill_content_open=false
+	inspected_uid="";inspection_pinned=false;invalidate_hover();skill_content_open=false
 	discard_reference();item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";last_actor="";last_action_count=-1;presentation_action={};queue_at_start=[];intent_versions.clear();intent_updated.clear()
 func mount():
 	deployment_layout=false
@@ -153,7 +154,8 @@ func render():
 	if not (phase is Dictionary) and not ui.presenting:queue_at_start=ui.data.get("queue",[]).duplicate(true)
 	if not s.get("deploying",false) and s.get("result")==null and not ui.presenting and not phase is Dictionary and (a.get("id","")!=last_actor or int(s.get("actions",0))!=last_action_count):
 		opening=true
-		expanded_menu="";item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";inspected_uid="";range_reference=false;ui.invalidate_preview();last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0));ui.memory.request_focus("command_attack")
+		expanded_menu="";item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";inspected_uid="";inspection_pinned=false;range_reference=false;ui.invalidate_preview();last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0));ui.memory.request_focus("command_attack")
+	if s.get("result")!=null or phase is Dictionary or ui.presenting:clear_inspection()
 	var deploying=bool(s.get("deploying",false))
 	if deploying!=deployment_layout:
 		deployment_layout=deploying
@@ -301,19 +303,25 @@ func render_bottom_commands():
 	var a=acting()
 	for pair in COMMANDS:
 		var eligible=pair[0] in ["guard","items"] or not ui.data.get("choices",{}).get(pair[0],[]).is_empty() or pair[0]=="skill" and (not ui.data.get("skillset",[]).is_empty() or has_return())
-		var selected=pair[0]!="skill" and not action_menu and (ui.command==pair[0] or pair[0]=="skill" and ui.command=="return" or pair[0]=="items" and ui.command in ["item","ether"])
+		var selected=not action_menu and (ui.command==pair[0] or pair[0]=="skill" and ui.command=="return" or pair[0]=="items" and ui.command in ["item","ether"])
 		var control=ui.icons.apply(b(bottom_commands,("● " if selected else "")+pair[1],choose_command.bind(pair[0]),a.get("side")!="ally" or ui.state().get("deploying",false) or ui.state().get("result")!=null or ui.data.get("presentation") is Dictionary or range_reference),ui.icons.command(pair[0]),40 if ui.size.x>=1800 else 24);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.y=64 if ui.ui_size_mode=="standard" else 44
 		control.tooltip_text=pair[1]+(" / 今は合法な対象なし。条件を詳細で確認" if not eligible else "");ui.memory.key(control,"command_"+pair[0]);buttons[pair[0]]=control
 		control.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
 		control.add_theme_constant_override("h_separation",8)
-		if selected:
-			for state_ in ["normal","hover","pressed"]:
-				var style=control.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
-				style.bg_color=Color("#615640" if state_=="hover" else "#494336");style.border_color=Color("#d8bd86");style.border_width_bottom=3
-				control.add_theme_stylebox_override(state_,style)
-			for color_ in ["font_color","font_hover_color","font_pressed_color"]:control.add_theme_color_override(color_,Color("#f5dfae"))
+		mark_selected(control,selected)
 		if pair[0]=="skill" and expanded_menu=="skill" and ui.command in ["skill","return"] and not action_menu:render_skills(bottom_commands)
 		if pair[0]=="items" and expanded_menu=="items" and ui.command in ["items","item","ether"] and not action_menu:render_items()
+func mark_selected(control: Button,selected: bool):
+	control.set_meta("battle_selected",selected)
+	if not selected:return
+	# Parent category, source and concrete action use the same persistent selection.
+	# Hover alone never adds the dot or this fill.
+	for state_ in ["normal","hover","pressed"]:
+		var style=control.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
+		style.bg_color=Color("#ecd4a1" if state_=="hover" else "#d8bd86")
+		style.border_color=Color("#f2dcae");style.border_width_bottom=3
+		control.add_theme_stylebox_override(state_,style)
+	for color_ in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:control.add_theme_color_override(color_,Color("#252830"))
 func choose_command(kind: String):
 	if menu_transition:return
 	if kind in ["skill","items"] and expanded_menu==kind:
@@ -366,6 +374,7 @@ func render_items():
 			if int(grant.get("cooldown",0))>0:text+="\nクールタイム中"
 			var choice=b(list,text,ui.select_skill.bind(str(grant.get("key",grant.id))),int(grant.get("cooldown",0))>0)
 			choice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;choice.tooltip_text=skill_source_text(grant)
+			mark_selected(choice,selected)
 			ui.memory.key(choice,"item_skill_"+str(grant.get("key",grant.id)))
 	for item in ItemMenu.definitions(ui.campaign()):
 		var kind=str(item.get("battleKind",""))
@@ -377,9 +386,10 @@ func render_items():
 		elif item.get("battleRole","")=="porter" and acting().get("job")!="porter":reason="ポーター専用"
 		elif count<=0:reason="在庫なし"
 		elif ui.data.get("choices",{}).get(kind,[]).is_empty():reason="回復できる生存味方なし"
-		var control=b(list,"%s / %d個" % [item.name,count],ui.choose_command.bind(kind),not reason.is_empty())
+		var selected=not item_list and ui.command==kind
+		var control=b(list,("● " if selected else "")+"%s / %d個" % [item.name,count],ui.choose_command.bind(kind),not reason.is_empty())
 		control.tooltip_text=ItemMenu.effect(item)+" / "+item_range_text()+" / 1個・1行動"+(" / "+reason if not reason.is_empty() else "")
-		control.name="BattleItem_"+str(item.id);ui.icons.apply(control,str(item.id))
+		control.name="BattleItem_"+str(item.id);ui.icons.apply(control,str(item.id));mark_selected(control,selected)
 
 func skill_unavailable_reason() -> String:
 	if ui.command=="return":
@@ -508,7 +518,8 @@ func render_skills(parent):
 		var line=ui.row(list)
 		var key=str(skill.get("key",skill.id))
 		var cooling=int(skill.get("cooldown",0))>0
-		var text=("● " if not skill_list and skill.get("selected",false) else "")+str(skill.name)
+		var selected=ui.command=="skill" and not skill_list and skill.get("selected",false)
+		var text=("● " if selected else "")+str(skill.name)
 		var level=int(skill.get("level",1))
 		var has_level=not ui.icons.approved.skills.get(str(skill.id),{}).get("levels",{}).is_empty()
 		if has_level:text+=" Lv%d" % level
@@ -519,7 +530,7 @@ func render_skills(parent):
 		var control=b(line,text,ui.select_skill.bind(key),cooling)
 		control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		control.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-		control.name="BattleSkill_"+str(skill.id)
+		control.name="BattleSkill_"+str(skill.id);mark_selected(control,selected)
 		ui.icons.apply(control,ui.icons.skill(str(skill.id),level),32 if has_level else 24)
 		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip(str(skill.id),str(skill.name),level)+"\n"+source+("\nクールタイム中：次の行動機会から使用できます" if cooling else "")
 		ui.memory.key(control,"battle_skill_"+key)
@@ -529,9 +540,10 @@ func render_skills(parent):
 		var line=ui.row(list)
 		var key=str(skill.key)
 		var source=skill_source_text(skill)
-		var text=("● " if ui.command=="return" and not skill_list and skill.get("selected",false) else "")+"帰還（"+skill_source_short(skill)+"）"
+		var selected=ui.command=="return" and not skill_list and skill.get("selected",false)
+		var text=("● " if selected else "")+"帰還（"+skill_source_short(skill)+"）"
 		if skill.get("used",false):text+="\n使用済み"
-		var control=b(line,text,ui.select_return_skill.bind(key),skill.get("used",false));control.name="BattleSkill_returnHome";ui.icons.apply(control,ui.icons.skill("returnHome"),24)
+		var control=b(line,text,ui.select_return_skill.bind(key),skill.get("used",false));control.name="BattleSkill_returnHome";ui.icons.apply(control,ui.icons.skill("returnHome"),24);mark_selected(control,selected)
 		control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip("returnHome","帰還",1)+"\n"+source+"\nこの付与元は1戦闘に1回"
 		ui.memory.key(control,"battle_return_"+key)
@@ -611,7 +623,8 @@ func render_presentation(phase: Dictionary):
 	elif presentation_action.get("action_id")!=phase.get("action_id"):presentation_action={}
 	l(target_box,"実行中" if phase.get("phase")=="action" else "実結果",true)
 	var action=l(target_box,str(presentation_action.get("label",phase.get("label",""))));action.name="PresentationAction"
-	l(target_box,str(phase.get("label","")))
+	var phase_label=str(phase.get("label",""))
+	if phase_label!=action.text:l(target_box,phase_label)
 	if phase.get("unit_id")!=null and phase.get("phase") in ["hurt","heal"]:
 		var u=unit(phase.unit_id);ui.icons.line(ui,target_box,"healing" if phase.phase=="heal" else "damage","実受領者: "+str(u.get("name","対象不明"))+" / 現在HP%d/%d" % [u.get("hp",0),u.get("max",0)])
 	var target=presentation_action.get("target");var names=[]
@@ -699,6 +712,8 @@ func render_person(hover_only := false):
 	if not live_board() or not is_instance_valid(person_box) or not person_box.is_inside_tree() or person_box.is_queued_for_deletion():return
 	ui.clear(person_box)
 	person_box.remove_meta("inspected_unit")
+	if inspection_pinned and inspected_uid.is_empty():
+		l(person_box,"このマスに人物はいません。");return
 	if hover_only and inspected_uid.is_empty():
 		l(person_box,"人物にカーソルを合わせると情報を表示します。");return
 	if ui.state().get("deploying",false):
@@ -753,13 +768,23 @@ func render_person_content(parent,u: Dictionary,expanded:=false):
 		elif part.has("equipment"):suffix="装備%+d / AGI%d" % [part.equipment,part.agi]
 		ui.icons.line(ui,parent,pair[2],pair[1]+" "+("未取得" if value==null else str(int(value)))+"（"+suffix+"）")
 	if ui.state().get("formationVersion")==1:l(parent,"旧戦闘の陣形条件を継続中")
+func pin_inspection(pos: int):
+	inspection_pinned=true
+	inspected_uid=str(ui.board.unit_at(pos).get("id",""))
+	render_person()
+func clear_inspection():
+	if not inspection_pinned:return
+	inspection_pinned=false;inspected_uid="";selected_cell=-1
+	render_person(true)
 func inspect_hover(uid: String,source=null):
 	# A queued callback may carry an already freed Node. Validate this Variant
 	# before calling any method or passing it through an Object-typed argument.
 	if typeof(source)!=TYPE_NIL and not is_instance_valid(source):return
 	var source_id: int=source.get_instance_id() if typeof(source)!=TYPE_NIL else 0
 	if not live_board(source_id):return
-	inspected_uid=uid;render_person(true);refresh_hover()
+	if not inspection_pinned:
+		inspected_uid=uid;render_person(true)
+	refresh_hover()
 func invalidate_hover():
 	hover_generation+=1;hover_stamp=""
 	if is_instance_valid(ui.board):ui.board.hover_caption=""

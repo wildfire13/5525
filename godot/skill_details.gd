@@ -8,7 +8,7 @@ var epoch := 0
 var connection := 0
 var context_stamp := ""
 func stamp() -> String:return JSON.stringify([ui.page,ui.state().get("actor"),ui.state().get("actions"),ui.pages.party_view.detail_uid,ui.campaign().get("inventoryToken")])
-func configure(frontend,doc: Dictionary,context: String,note: String=""):
+func configure(frontend,doc: Dictionary,context: String,note: String="",flavor: String=""):
  ui=frontend;epoch=ui.pages.epoch;connection=ui.engine.connection_generation;context_stamp=stamp()
  name="SkillDetailsWindow";title=doc.get("window_title","スキルの説明");exclusive=true;transient=true
  origin=get_parent().gui_get_focus_owner() if get_parent() is Window else ui.get_viewport().gui_get_focus_owner()
@@ -22,6 +22,7 @@ func configure(frontend,doc: Dictionary,context: String,note: String=""):
  var summary=ui.label_(column,doc.get("summary_text",preload("res://skill_text.gd").summary(doc)));summary.name="SkillDetailsSummary"
  var tabs=TabContainer.new();tabs.name="SkillDetailsTabs";tabs.size_flags_vertical=Control.SIZE_EXPAND_FILL;column.add_child(tabs)
  var pages=[["効果",doc.get("body_text",preload("res://skill_text.gd").body(doc)),"SkillDetailsBody"],["用語",preload("res://skill_text.gd").glossary(),"SkillDetailsGlossary"]]
+ if not flavor.is_empty():pages.append(["説明",flavor,"SkillDetailsFlavor"])
  if not note.is_empty():pages.append(["装備メモ（原文）",note,"SkillDetailsNote"])
  for spec in pages:
   var scroll=ScrollContainer.new();scroll.name=spec[0];scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;tabs.add_child(scroll)
