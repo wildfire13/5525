@@ -1,8 +1,10 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 let count=0;function test(name,fn){fn();count++;console.log('PASS '+name);}
-function town(location='east'){const s=C.create();s.location=location;s.gold=5000;return s;}
+function town(location='east'){const s=require('./test-current-fixture.cjs')();s.location=location;s.gold=5000;return s;}
 function roundtrip(s){assert.deepEqual(C.deserialize(C.serialize(s)),clone(s));}
 function battle(s){assert.ok(C.depart(s,'astaris'));assert.ok(C.travel(s,'safe',()=>.2));assert.ok(C.begin(s));return s.battle;}
 function turn(b,id){b.actor=id;for(const u of b.units)u.next=u.id===id?1:100000;return b.units.find(u=>u.id===id);}
@@ -15,7 +17,7 @@ test('eight distinct slots, old keys map losslessly and all body slots exchange'
 });
 test('two hands preserve sources; selection spends nothing and each action pays its cost',()=>{
  const s=town();assert.ok(C.buyGear(s,'mage','rest-staff','rightHand'));assert.ok(C.buyGear(s,'mage','breaker-hammer','leftHand'));
- const st=C.stats(s.characters.mage);assert.deepEqual(st.activeSkills,['healingCross','knockback']);assert.deepEqual(st.skillSources.map(x=>x.slot),['rightHand','leftHand']);
+ const st=C.stats(s.characters.mage);assert.deepEqual(st.activeSkills,['healingCross','knockback']);assert.deepEqual(st.skillSources.filter(x=>x.classification==='active').map(x=>x.slot),['rightHand','leftHand']);
  const b=battle(s),a=turn(b,'mage'),e=b.units.find(u=>u.side==='enemy');b.units.find(u=>u.id==='guard').pos=a.pos;a.pos=24;e.pos=25;a.hp-=40;
  const actions=b.actions,mp=a.mp;assert.ok(B.selectSkill(b,'healingCross'));assert.equal(b.actions,actions);assert.equal(a.mp,mp);
  assert.ok(C.act(s,'skill',a.id));assert.equal(a.mp,mp-2);
@@ -25,7 +27,7 @@ test('two hands preserve sources; selection spends nothing and each action pays 
 });
 test('separate hand copies allowed; invalid slots rejected atomically and sources retained',()=>{
  const s=town(),gold=s.gold;assert.ok(C.buyGear(s,'guard','sword-wood','leftHand'));assert.equal(s.gold,gold-C.gear.find(g=>g.id==='sword-wood').price);
- assert.ok(C.buyGear(s,'mage','staff-silver-1','leftHand'));const st=C.stats(s.characters.mage);assert.deepEqual(st.activeSkills,['mage']);assert.equal(st.skillSources.length,2);
+ assert.ok(C.buyGear(s,'mage','staff-silver-1','leftHand'));const st=C.stats(s.characters.mage);assert.deepEqual(st.activeSkills,['mage']);assert.equal(st.skillSources.filter(x=>x.id==='mage').length,2);
  const bad=clone(s);bad.characters.guard.head='sword-wood';assert.equal(C.validate(bad).ok,false);
  for(const slot of ['head','accessory1','nonsense','__proto__']){const old=clone(s);assert.equal(C.buyGear(s,'guard','breaker-hammer',slot),false);assert.deepEqual(s,old);}
  roundtrip(s);
@@ -42,14 +44,14 @@ test('return remains once per battle across selection changes and save reload',(
 });
 test('unequip removes only that source; stats and HP/MP do not regenerate',()=>{
  const s=town();C.buyGear(s,'mage','sharing-tome','leftHand');const c=s.characters.mage;c.mp=1;c.hp=10;
- assert.ok(C.stats(c).activeSkills.includes('manaGift'));assert.ok(C.buyGear(s,'mage','empty-leftHand','leftHand'));assert.deepEqual(C.stats(c).activeSkills,['mage','itemUse']);assert.equal(c.mp,1);assert.equal(c.hp,10);roundtrip(s);
+ assert.ok(C.stats(c).activeSkills.includes('manaGift'));assert.ok(C.buyGear(s,'mage','empty-leftHand','leftHand'));assert.deepEqual(C.stats(c).activeSkills,['mage']);assert.equal(c.mp,1);assert.equal(c.hp,10);roundtrip(s);
 });
 test('empty hands expose item use rather than inherited job skill; left-only weapon becomes primary',()=>{
  const s=town();assert.ok(C.buyGear(s,'mage','empty-rightHand','rightHand'));
- assert.deepEqual(C.stats(s.characters.mage).activeSkills,['itemUse']);
+ assert.deepEqual(C.stats(s.characters.mage).activeSkills,[]);
  const t=C.trial(s,'mage','empty-leftHand','leftHand'),a=t.battle.units.find(u=>u.id==='mage');
- assert.equal(B.activeSkill(a),'itemUse');assert.equal(B.skillName(a),'アイテム使用');assert.deepEqual(B.skillTargets(t.battle,a),[]);
- assert.ok(C.buyGear(s,'mage','breaker-hammer','leftHand'));assert.equal(C.stats(s.characters.mage).atk,29);assert.deepEqual(C.stats(s.characters.mage).activeSkills,['itemUse','knockback']);roundtrip(s);
+ assert.equal(B.activeSkill(a),null);assert.equal(B.itemUseLevel(a),1);assert.deepEqual(B.skillTargets(t.battle,a),[]);
+ assert.ok(C.buyGear(s,'mage','breaker-hammer','leftHand'));assert.equal(C.stats(s.characters.mage).atk,29);assert.deepEqual(C.stats(s.characters.mage).activeSkills,['knockback']);roundtrip(s);
 });
 test('race and ability restrictions unchanged; porter cannot select offensive skills',()=>{
  const s=town();assert.ok(C.buyGear(s,'mage','hammer-wood','leftHand'));assert.equal(C.buyGear(s,'mage','hammer-iron-1','leftHand'),false);assert.equal(C.buyGear(s,'scout','hammer-wood','leftHand'),false);

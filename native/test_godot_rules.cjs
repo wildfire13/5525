@@ -1,14 +1,16 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js'),I=require('./intent-info.cjs');
 let checks=0;const test=(name,fn)=>{fn();checks++;console.log('PASS '+name)};
 const clone=x=>JSON.parse(JSON.stringify(x));
 test('potion proposal changes purchase price only, same initial resources and cap',()=>{
- const s=C.create();assert.deepEqual(C.inventoryTotals(s),{potion:3,ether:1});s.location='south';
+ const s=require('./test-current-fixture.cjs')();assert.deepEqual(C.inventoryTotals(s),{potion:3,ether:1});s.location='south';
  const item=C.items.find(i=>i.id==='potion');assert.equal(item.price,40);assert.equal(item.amount,55);
  assert(C.buyItem(s,'potion',2,'guard',C.inventoryToken(s)));assert.equal(s.gold,100);assert.equal(C.inventoryTotals(s).potion,5);
  s.characters.guard.inventory.potion=99;assert(!C.buyItem(s,'potion',1,'guard',C.inventoryToken(s)));assert.equal(C.inventoryTotals(s).potion,99);
 });
-function battle(){const s=C.create();assert(C.inventoryAction(s,'guard','ether','transfer','porter',1,null,C.inventoryToken(s)));C.depart(s,'north');C.travel(s,'safe',()=>.2);C.begin(s);const b=s.battle;for(const u of b.units)u.next=1e6;const p=b.units.find(u=>u.job==='porter'&&u.side==='ally');p.next=1;b.actor=p.id;return {s,b,p};}
+function battle(){const s=require('./test-current-fixture.cjs')();assert(C.inventoryAction(s,'guard','ether','transfer','porter',1,null,C.inventoryToken(s)));C.depart(s,'north');C.travel(s,'safe',()=>.2);C.begin(s);const b=s.battle;for(const u of b.units)u.next=1e6;const p=b.units.find(u=>u.job==='porter'&&u.side==='ally');p.next=1;b.actor=p.id;return {s,b,p};}
 test('ether porter only, infinite distance, MP+3 bounded, one item/action',()=>{
  const {s,b,p}=battle(),ally=b.units.find(u=>u.id==='guard'),enemy=b.units.find(u=>u.side==='enemy');
  p.pos=0;ally.pos=49;ally.mp=0;p.mp=4;
@@ -33,7 +35,7 @@ test('victory transfers remaining ether without duplicating item',()=>{
  b.result='test victory';assert(C.finishBattle(s));assert.equal(C.inventoryTotals(s).ether,0);assert.equal(s.characters.porter.inventory.ether,undefined);assert(!C.finishBattle(s));
 });
 test('swift feet adds one movement; firstStride adds another only first move',()=>{
- const s=C.create();s.location='west';assert(C.buyGear(s,'porter','swift-boots','feet'));
+ const s=require('./test-current-fixture.cjs')();s.location='west';assert(C.buyGear(s,'porter','swift-boots','feet'));
  assert(C.stats(s.characters.porter).effects.includes('swift'));
  s.characters.porter.accessory1='pioneer-gloves-1';C.depart(s,'astaris');C.travel(s,'safe',()=>.2);
  const p=s.battle.units.find(u=>u.id==='porter');assert.equal(B.moveReach(p),4);p.firstMoveUsed=true;assert.equal(B.moveReach(p),3);

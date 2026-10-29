@@ -22,14 +22,15 @@ func text_checks():
  check(gift.cost==0 and gift.original.contains("最大2") and Copy.glossary().contains("使用者の残量から減"),"zero skill cost is distinguished from transferred MP")
  check(Copy.document("returnHome","帰還",1,c).classification=="active" and Copy.document("returnHome","帰還",1,c).cost==0,"return is active despite equipment effect source")
  check(Copy.document("missing","未知",1,c).cost==null and Copy.document("missing","未知",1,c).classification.is_empty(),"unknown metadata does not acquire guessed values")
- check(Copy.description("invasion",1,c).contains("ポーターは侵入不可"),"existing invasion permission and porter exclusion are explicit")
+ check(Copy.description("invasion",1,c).contains("ポーターは対象外"),"existing invasion permission and porter exclusion are explicit")
  var item=Copy.document("itemUse","アイテム使用",2,c)
- check(item.range.contains("隣接") and item.original.contains("本人の所持品") and not item.original.contains("共有"),"item level and personal inventory semantics retained")
+ check(item.classification=="passive" and item.target.contains("隣接") and item.range=="該当なし（パッシブ）" and item.original.contains("本人の所持品") and not item.original.contains("共有"),"item level and personal inventory semantics retained")
 func run():
  create_timer(180).timeout.connect(func():print("FAIL descriptions watchdog");quit(2))
  if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
+ await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true;await settle();text_checks()
  var original=await saved();var cases=fixtures2()
  for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:

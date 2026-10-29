@@ -4,6 +4,7 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1364,1024);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle();var before=await saved()
 	game.pages.party_view.open_detail("guard");await settle();game.dialog.window.size=Vector2i(1364,662);await settle()
 	await click("PartyFace_archer")

@@ -53,6 +53,7 @@ func run():
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.audio.fast_mode=true;game.checks_fast=true;actual=game.engine
 	var seed=await saved();seed.state.characters.guard.inventory={"potion":2};seed.state.characters["guard-2"].inventory={"ether":4};seed.state.characters.warrior.inventory={"potion":1,"sword-wood":1};seed.state.characters.warrior.statPoints=2
 	seed.state.characters.warrior.xp=100;seed.state.characters.warrior.level=2;seed.state.characters.warrior.skillPoints=1
@@ -66,7 +67,9 @@ func run():
 	var guild=game.pages.guild_view;recorder=RecordedEngine.new();recorder.actual=actual;game.add_child(recorder);game.engine=recorder
 	var before=await saved()
 	check(game.page=="party" and game.header.text=="アスタリス" and node("PartyFacilityHeading").text=="ギルド / パーティー編成","G01 formation service opens named formation page")
-	check(ids("GuildCurrentScroll")==game.campaign().selected and ids("GuildReserveScroll")==["guard-2","archer-2","mage-2","scout-2","porter-2","warrior"],"G02 lists retain selected and reserve order")
+	var reserve_ids=game.campaign().roster.filter(func(member):return not game.campaign().selected.has(member.id)).map(func(member):return str(member.id))
+	check(game.campaign().roster.size()==35 and reserve_ids.size()==30,"G02 migrated fixture retains eleven historical and twenty-four new people")
+	check(ids("GuildCurrentScroll")==game.campaign().selected and ids("GuildReserveScroll")==reserve_ids,"G02 lists retain selected and complete reserve order")
 	check(node("GuildVitals_guard").text.contains("Lv.1") and not node("GuildStatus_porter").text.contains("編成固定"),"G02 rows show resources and level without job-based lock")
 	await tap("GuildMember_guard")
 	check((await saved())==before and guild.chosen_id=="guard","G05 first row selection is pure")

@@ -1,18 +1,22 @@
 extends RefCounted
 ## Read-only presentation of existing descriptions. No legality or damage rules.
-const LEVELLED=["scout","itemUse","legSweep"]
+const LEVELLED=["scout","archer","itemUse","legSweep","secretPouch","holePouch"]
 static func legacy(name_: String,stage:=1) -> String:
  return {
   "かばう":"かばう: 隣接する自分以外の味方を、次の本人の番まで肩代わり。MP1",
   "ヒール":"ヒール: 射程2の傷ついた味方/自分のHPを60回復（最大HPまで）。MP1",
   "スナイプ":"スナイプ: その一撃だけ各武器の射程+1、届くATK合算。MP1",
-  "スタンプ":"スタンプ: 縦横の隣接中心から3マス。空/味方中心も可。敵のみ通常威力。空振りでもMP1",
+  "スタンプ":"スタンプ: 右隣と、その上下の計3マスを指定。次の本人の行動で指定マスの敵へ通常威力。対象を追尾せず、構え開始時にMP1を消費し、中断しても戻らない。使用後は次の本人の行動1回再使用不可。",
   "奇襲":"奇襲Lv%d: " % stage+("前方のみ（味方は右、敵は左）" if stage==1 else "同じ横列の左右" if stage==2 else "上下左右の直線")+"。遮るキャラなしで手前に着地+距離1の通常攻撃。MP1",
   "陣形強化":"陣形強化: 味方全員が対象（陣形の3マス外も含む）。護送陣が成立している間だけ、通常の攻撃×1.5／被ダメージ×0.75を、攻撃×1.75／被ダメージ×0.65に置き換えます。効果は使用者の次の番まで。陣形が崩れている間は適用されず、重ねても倍率は加算されません。MP1・1行動。",
   "侵入":"敵陣侵入を許可。ポーターは侵入不可。"
  }.get(name_,"")
 static func description(id: String,level: int,campaign: Dictionary) -> String:
- if id=="itemUse":return "バトル中にもアイテムを使用できる。アイテム使用Lv%d：%s。本人の所持品1個・MP0・1行動。" % [level,["自分のみ","自分と縦横隣接の味方","距離制限なしの味方"][clampi(level-1,0,2)]]
+ if id=="archer":return "スナイプLv%d：その一撃だけ各武器の射程+%s。届く武器のATKを合算して通常威力。MP%d。" % [level,str([1,1.5,2][clampi(level-1,0,2)]),2 if level>=3 else 1]
+ if id=="scout":return legacy("奇襲",level).replace("MP1","MP2" if level>=3 else "MP1")
+ if id in ["secretPouch","holePouch"]:return "異なる種類の品物を持てるインベントリ枠を%d%s。" % [[1,3,5][clampi(level-1,0,2)],"減らす" if id=="holePouch" else "増やす"]
+ if id=="invasion":return "敵陣へ移動できる。ポーターは対象外。"
+ if id=="itemUse":return "バトル中にもアイテムを使用できる。拳Lv%d：%s。本人の所持品1個・MP0・1行動。" % [level,["自分のみ","自分と縦横隣接の味方","距離制限なしの味方"][clampi(level-1,0,2)]]
  if id=="legSweep":return "足払いLv%d：周囲8マスの敵にそれぞれ%d%%で次の1手番をスキップ（重複なし）。ダメージ0・MP1。" % [level,[50,75,100][clampi(level-1,0,2)]]
  var definition=campaign.get("skillDefinitions",{}).get(id,{})
  return str(definition.description) if definition.has("description") else legacy(str(campaign.get("skillNames",{}).get(id,id)),level)
@@ -28,11 +32,11 @@ static func range_text(id: String,gear: Dictionary,definition: Dictionary,passiv
  if id=="returnHome":return "距離制限なし（自陣の空きマス）"
  if id=="porter":return "成立中の陣形・味方全員"
  if definition.get("reach")!=null:return str(definition.reach)
- if id=="archer":return str(int(gear.reach)+1)+"（各攻撃武器の射程+1）" if gear.has("reach") else "各攻撃武器の通常射程+1"
- return {"guard":"1","mage":"2","stamp":"1（中心指定・3マス範囲）"}.get(id,"")
+ if id=="archer":return "各攻撃武器の通常射程+%s" % str([1,1.5,2][clampi(level-1,0,2)])
+ return {"guard":"1","mage":"2","stamp":"右側3マス"}.get(id,"")
 static func target_text(id: String,definition: Dictionary,level: int) -> String:
  if id=="itemUse":return range_text(id,{},definition,false,level)
- return {"guard":"隣接する自分以外の味方1人","archer":"射程内の敵1人","mage":"傷ついた生存味方1人（自身を含む）","scout":"方向・経路条件を満たす敵1人","stamp":"隣接マスを中心に3マス内の敵（空・味方の中心指定も可）","porter":"使用者自身を指定・陣形中の味方全員","returnHome":"自陣の空きマス","retreatSlash":"射程内の敵1人","knockback":"射程内の敵1人","pincer":"射程内の敵1人","healingCross":"生存味方を中心に十字範囲の生存味方","manaGift":"別の生存味方1人","grapple":"右2マス先の敵または味方","legSweep":"使用者自身（中心指定） / 効果対象は周囲8マスの敵"}.get(id,{"pair":"異なる敵2人","upToTwo":"縦横隣接の味方1～2人","cell":"指定マス","self":"自身","unit":"射程・条件を満たす人物"}.get(definition.get("target"),""))
+ return {"guard":"隣接する自分以外の味方1人","archer":"射程内の敵1人","mage":"傷ついた生存味方1人（自身を含む）","scout":"方向・経路条件を満たす敵1人","stamp":"右隣と、その上下の計3マスにいる敵（空マスでも指定可）","porter":"使用者自身を指定・陣形中の味方全員","returnHome":"自陣の空きマス","retreatSlash":"射程内の敵1人","knockback":"射程内の敵1人","pincer":"射程内の敵1人","healingCross":"生存味方を中心に十字範囲の生存味方","manaGift":"別の生存味方1人","grapple":"右2マス先の敵または味方","legSweep":"使用者自身（中心指定） / 効果対象は周囲8マスの敵"}.get(id,{"pair":"異なる敵2人","upToTwo":"縦横隣接の味方1～2人","cell":"指定マス","self":"自身","unit":"射程・条件を満たす人物"}.get(definition.get("target"),""))
 static func document(id: String,title: String,level: int,campaign: Dictionary,gear: Dictionary={},source: String="") -> Dictionary:
  var definition=campaign.get("skillDefinitions",{}).get(id,{})
  var kind=classification(id,definition);var original=description(id,level,campaign) if source.is_empty() else source

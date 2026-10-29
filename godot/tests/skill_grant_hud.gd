@@ -15,8 +15,9 @@ func run():
  if OS.get_environment("NATIVE5525_AUDIO_OFF")!="1":push_error("Audio OFF required");quit(2);return
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
+ await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true
- await game.update({"op":"campaign_start"});await settle()
+ await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
  var save=(await game.engine.request({"op":"campaign_save"})).data
  save.state.location="east";save.state.gold=9999
  await game.update({"op":"campaign_load","data":save})

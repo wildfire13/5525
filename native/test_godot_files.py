@@ -27,6 +27,17 @@ class GodotFilesTests(unittest.TestCase):
         with self.assertRaises(ValueError):prepare_portraits(meta,['porter'])
         result['sha256']='0'*64
         with self.assertRaises(ValueError):prepare_portraits(meta,['guard'])
+    def test_portrait_read_uses_incoming_save_members_not_current_roster(self):
+        portrait=run({'action':'portrait','path':str(Path(__file__).parent/'assets/knight.png')})
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'legacy.json'
+            data={'format':'5525-native-campaign','state':{'characters':{'guard':{}}},'nativePortraits':{'version':1,'characters':{'guard':portrait}}}
+            path.write_text(json.dumps(data))
+            self.assertEqual(run({'action':'read','path':str(path),'allowed':['recruit-new']})['nativePortraits'],data['nativePortraits'])
+            data['nativePortraits']['characters']={'not-in-save':portrait}
+            path.write_text(json.dumps(data))
+            with self.assertRaises(ValueError):run({'action':'read','path':str(path),'allowed':['not-in-save']})
+
     @unittest.skipUnless(os.name == 'nt', 'Windows no-replace rename')
     def test_windows_does_not_require_hardlinks(self):
         with tempfile.TemporaryDirectory() as folder, patch('godot_files.os.link',side_effect=OSError(errno.ENOTSUP,'hardlinks unavailable')):

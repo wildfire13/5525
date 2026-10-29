@@ -20,7 +20,7 @@ func fixture_cases() -> Dictionary:
 	var script="""
 const C=require(process.argv[1]),a=require('node:assert/strict');
 const out={};function save(key,s){a(C.validate(s).ok,C.validate(s).error);out[key]=JSON.parse(C.serialize(s));}
-let s=C.create();save('town',s);s.location='east';save('shop',s);
+let s=require(require('node:path').join(require('node:path').dirname(process.argv[1]),'test-current-fixture.cjs'))();save('town',s);s.location='east';save('shop',s);
 s=C.create();a(C.depart(s,'east'));save('road',s);a(C.travel(s,'safe',()=>0));save('deployment',s);a(C.begin(s));save('battle',s);
 for(const u of s.battle.units)if(u.side==='enemy')u.hp=0;s.battle.actor=null;s.battle.result='勝利！ 街道を切り抜けた。';save('victory1',s);
 a(C.finishBattle(s));save('camp',s);a(C.onward(s));a(C.travel(s,'safe',()=>0));a(C.begin(s));for(const u of s.battle.units)if(u.side==='enemy')u.hp=0;s.battle.actor=null;s.battle.result='勝利！ 街道を切り抜けた。';save('victory2',s);
@@ -56,6 +56,7 @@ func run():
 		push_error("Isolated XDG profile and NATIVE5525_AUDIO_OFF=1 required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var loading=game.loading_screen;loading.frame_presented.connect(observed)
 	check(not loading.active and not loading.panel.visible,"loading overlay is absent at ordinary startup")

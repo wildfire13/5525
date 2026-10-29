@@ -1,4 +1,6 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 function fight(s){
@@ -19,7 +21,7 @@ function trip(s,to){
  const cash=s.gold,bag=clone(s.characters);assert(C.arrive(s));assert.equal(s.phase,'town');assert.equal(s.gold,cash);assert.deepEqual(s.characters,bag);
  assert.deepEqual(C.deserialize(C.serialize(s)),s);
 }
-const s=C.create();assert(C.accept(s,C.board(s)[0].id,'porter'));const id=s.activeQuest.cargoItemId;
+const s=require('./test-current-fixture.cjs')();assert(C.accept(s,C.board(s)[0].id,'porter'));const id=s.activeQuest.cargoItemId;
 assert(C.select(s,['guard','archer','mage','scout']));trip(s,'east');
 assert(!C.completeQuest(s));assert(s.activeQuest&&s.characters.porter.inventory[id]===1);
 trip(s,'astaris');assert(C.select(s,['guard','archer','mage','scout','porter']));assert(C.inn(s));

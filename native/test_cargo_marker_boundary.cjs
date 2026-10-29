@@ -1,9 +1,11 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),{spawnSync}=require('node:child_process'),C=require('./campaign.js');
 const absent=Symbol('absent'),values=[absent,0,1,2,null,'1'];
 let checks=0;const invalid=[];
 for(const outer of values)for(const inner of values){
- const e=JSON.parse(C.serialize(C.create()));
+ const e=JSON.parse(C.serialize(C.createLegacy()));
  if(outer===absent)delete e.cargoRevision;else e.cargoRevision=outer;
  if(inner===absent)delete e.state.cargoRevision;else e.state.cargoRevision=inner;
  const original=JSON.stringify(e),accepted=(outer===absent&&(inner===absent||inner===1))||(outer===1&&inner===1);
@@ -14,12 +16,12 @@ for(const outer of values)for(const inner of values){
  console.log('PASS outer='+String(outer)+' state='+String(inner)+' '+(accepted?'roundtrip':'rejected unchanged'));
 }
 for(const revision of [absent,0,2,null,'1']){
- const s=C.create();assert(C.accept(s,C.board(s)[0].id,'porter'));const e=JSON.parse(C.serialize(s));
+ const s=C.createLegacy();assert(C.accept(s,C.board(s)[0].id,'porter'));const e=JSON.parse(C.serialize(s));
  if(revision===absent)delete e.state.rollback.cargoRevision;else e.state.rollback.cargoRevision=revision;
  const original=JSON.stringify(e);assert.throws(()=>C.deserialize(e));assert.equal(JSON.stringify(e),original);invalid.push(e);checks++;
  console.log('PASS mismatched rollback marker '+String(revision));
 }
-const old=JSON.parse(C.serialize(C.create()));delete old.cargoRevision;delete old.state.cargoRevision;
+const old=JSON.parse(C.serialize(C.createLegacy()));delete old.cargoRevision;delete old.state.cargoRevision;
 assert.throws(()=>C.serialize(old.state));assert.deepEqual(C.deserialize(C.serialize(C.deserialize(old))),C.deserialize(old));checks++;
 const requests=[{op:'campaign_start'},{op:'campaign_save'},...invalid.flatMap(data=>[{op:'campaign_load',data},{op:'campaign_save'}])];
 const process=spawnSync(global.process.execPath,['native/bridge.cjs'],{input:requests.map(r=>JSON.stringify(r)).join('\n')+'\n',encoding:'utf8',timeout:20000,maxBuffer:8*1024*1024});

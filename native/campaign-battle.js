@@ -10,9 +10,11 @@ const Battle = (() => {
   // no source metadata and retain one contribution per enabled effect.
   const effectCount=(a,id)=>Array.isArray(a.skillSources)?a.skillSources.filter(x=>x.id===id).length:(hasEffect(a,id)?1:0);
   const percentageIncrease=(a,id,percent)=>effectCount(a,id)*percent;
+  const evasionChance=a=>Math.min(1,percentageIncrease(a,'evasion',10)/100);
 
   const moveReach=a=>(hasEffect(a,'firstStride')&&!a.firstMoveUsed?3:2)+(hasEffect(a,'swift')?1:0);
-  const skillCost=a=>equipmentSkills[activeSkill(a)]?.cost??1;
+  const skillCost=a=>['archer','scout'].includes(activeSkill(a))&&skillLevel(a)>=3?2:(equipmentSkills[activeSkill(a)]?.cost??1);
+  const snipeExtension=a=>[1,1.5,2][Math.min(3,skillLevel(a,'archer'))-1];
   function itemCount(s,a,id) {
     if(a.side==='ally'&&s.itemInventories)return s.itemInventories[a.id]?.[id]||0;
     return id==='ether'?(s.ethers||0):(s.potions[a.side]||0);
@@ -46,7 +48,7 @@ const Battle = (() => {
     if(a.job==='porter')return {base:0,weapons:[],bonus:0};
     if(!a.attackWeapons)return {base:a.atk,weapons:[],bonus:0};
     const skill=kind==='skill'?activeSkill(a):null;
-    const weapons=a.attackWeapons.filter(w=>range(a,target)<=w.reach+(skill==='archer'?1:0)||(skill==='stamp'&&(w.skill==='stamp'||(a.skillSources||[]).some(source=>source.id==='stamp'&&source.slot===w.slot&&source.itemId===w.itemId))));
+    const weapons=a.attackWeapons.filter(w=>skill==='spearThrow'?w.slot===selectedSkillOption(a)?.slot&&range(a,target)===4:range(a,target)<=w.reach+(skill==='archer'?snipeExtension(a):0)||(skill==='stamp'&&(w.skill==='stamp'||(a.skillSources||[]).some(source=>source.id==='stamp'&&source.slot===w.slot&&source.itemId===w.itemId))));
     const bonus=weapons.length?(a.attackBonus||0):0;
     return {base:weapons.reduce((n,w)=>n+w.atk,0)+bonus,weapons,bonus};
   }
@@ -101,7 +103,7 @@ const Battle = (() => {
   function returnSkillOption(a){const options=returnSkillOptions(a);return options.find(o=>o.key===a.selectedReturnSkillKey)||options[0]||null;}
   function selectReturnSkill(s,key){
     const a=s.units.find(u=>u.id===s.actor);
-    if(s.deploying||s.result||!a||a.hp<=0)return false;
+    if(s.deploying||s.result||!a||a.hp<=0||a.pendingStamp)return false;
     const options=returnSkillOptions(a),option=options.find(o=>o.key===key)||(key==='returnHome'?options[0]:null);
     if(!option)return false;a.selectedReturnSkillKey=option.key;return true;
   }
@@ -112,7 +114,7 @@ const Battle = (() => {
   const activeSkill = a => selectedSkillOption(a)?.id||null;
   function selectSkill(s,id){
     const a=s.units.find(u=>u.id===s.actor);
-    if(s.deploying||s.result||!a||a.hp<=0)return false;
+    if(s.deploying||s.result||!a||a.hp<=0||a.pendingStamp)return false;
     const options=activeSkillOptions(a),option=options.find(o=>o.key===id)||options.find(o=>o.id===id);
     if(!option)return false;
     a.selectedSkill=option.id;a.selectedSkillKey=option.key;return true;
@@ -124,13 +126,14 @@ const Battle = (() => {
   }
   function itemSkillOption(a) {
     const selected=selectedSkillOption(a);
-    return selected?.id==='itemUse'?selected:activeSkillOptions(a).find(o=>o.id==='itemUse')||null;
+    const options=grantOptions(a,(a.skillSources||[]).some(source=>source.id==='itemUse')?['itemUse']:[]);
+    return options.sort((left,right)=>right.level-left.level)[0]||null;
   }
   function actionSkillOption(a,kind) {
     return kind==='skill'?selectedSkillOption(a):['item','ether'].includes(kind)?itemSkillOption(a):null;
   }
   function startSkillCooldown(s,a,kind) {
-    if(s.skillCooldownVersion!==1)return;
+    if(s.skillCooldownVersion!==1||['item','ether'].includes(kind)||kind==='skill'&&activeSkill(a)==='spearThrow')return;
     const option=actionSkillOption(a,kind);
     if(option)(a.skillCooldowns||(a.skillCooldowns={}))[option.key]=2;
   }
@@ -164,21 +167,24 @@ const Battle = (() => {
     return canEnter(a,p)&&range(a,{pos:p})===2&&(x(a.pos)===x(p)||y(a.pos)===y(p))&&freeCell(s,p);
   }
   function skillInfo(a) {
+    if(activeSkill(a)==='archer')return {name:'スナイプ',level:skillLevel(a),cost:skillCost(a),target:'unit',reach:attackReach(a,'skill'),description:`各武器の射程をこの一撃だけ+${snipeExtension(a)}。届く武器のATKを合算。MP${skillCost(a)}。`};
+    if(activeSkill(a)==='stamp')return {name:'スタンプ',level:1,cost:1,target:'cell',description:'右隣と、その上下の計3マスを指定。次の本人の行動で指定マスへ発動。対象を追尾せず、構え開始時にMP1を消費し、中断しても戻らない。使用後は次の本人の行動1回再使用不可。'};
     if(activeSkill(a)!=='scout'){const d=equipmentSkills[activeSkill(a)];return d?{...d,level:skillLevel(a)}:null;}
     const level=skillLevel(a);
-    return {name:'奇襲',level,cost:1,target:'unit',description:'奇襲Lv'+level+': '+(level===1?'前方のみ（味方は右、敵は左）':level===2?'同じ横列の左右':'上下左右の直線')+'。遮るキャラなしで手前に着地し、距離1の通常攻撃相当。MP1。'};
+    return {name:'奇襲',level,cost:skillCost(a),target:'unit',description:'奇襲Lv'+level+': '+(level===1?'前方のみ（味方は右、敵は左）':level===2?'同じ横列の左右':'上下左右の直線')+'。遮るキャラなしで手前に着地し、距離1の通常攻撃相当。MP'+skillCost(a)+'。'};
   }
   function attackReach(a,kind='attack') {
     const skill=kind==='skill'?activeSkill(a):null;
     // Support skills have their own specified reach, independent of hand order.
     if(skill==='guard')return 1;
     if(skill==='mage')return 2;
-    if((kind==='attack'||skill==='archer')&&a.attackWeapons)return Math.max(0,...a.attackWeapons.map(w=>w.reach+(skill==='archer'?1:0)));
+    if(skill==='spearThrow')return 4;
+    if((kind==='attack'||skill==='archer')&&a.attackWeapons)return Math.max(0,...a.attackWeapons.map(w=>w.reach+(skill==='archer'?snipeExtension(a):0)));
     if(skill&&equipmentSkills[skill])return equipmentSkills[skill].reach;
-    return a.reach+(skill==='archer'?1:0);
+    return a.reach+(skill==='archer'?snipeExtension(a):0);
   }
   function stampCells(a,center) {
-    if(!Number.isInteger(center)||center<0||center>=50||range(a,{pos:center})!==1)return [];
+    if(!Number.isInteger(center)||center<0||center>=50||x(a.pos)>=9||center!==a.pos+1)return [];
     const dx=x(center)-x(a.pos),dy=y(center)-y(a.pos);
     return [-1,0,1].map(offset=>({x:x(center)+(dy?offset:0),y:y(center)+(dx?offset:0)}))
       .filter(p=>p.x>=0&&p.x<10&&p.y>=0&&p.y<5).map(p=>p.y*10+p.x);
@@ -192,7 +198,9 @@ const Battle = (() => {
     {job:"porter",name:"トワ",role:"ポーター",icon:"運",pos:22,max:110,atk:0,agi:12,reach:0,mp:6,image:"porter.png"},
     {job:"warrior",name:"槌戦士（仮）",role:"槌戦士",icon:"槌",weapon:"hammer",pos:24,max:180,atk:26,agi:10,reach:1,mp:6,image:"warrior.png"}
   ];
-  const roster=templates.flatMap((t,i)=>t.job==='warrior'?[{...t,id:t.job}]:[{...t,id:t.job},{...t,id:t.job+'-2',name:['バルト','セナ','ユイ','ルカ','ハル'][i]}]);
+  const legacyRoster=templates.flatMap((t,i)=>t.job==='warrior'?[{...t,id:t.job}]:[{...t,id:t.job},{...t,id:t.job+'-2',name:['バルト','セナ','ユイ','ルカ','ハル'][i]}]);
+  const recruitRoster=require('./recruit-roster.js')(templates);
+  const roster=[...legacyRoster,...recruitRoster];
   const defaultJobs=['guard','archer','mage','scout'];
   function swapTarget(s,a,p){
     if(a.job!=='porter'||!canEnter(a,p)||p===a.pos)return null;
@@ -231,6 +239,7 @@ const Battle = (() => {
   function inRange(a,side,pos,kind,s) {
     if(kind==='return')return hasEffect(a,'returnHome')&&!(s?.skillCooldownVersion===1?returnSkillOption(a)?.used:a.returnUsed)&&pos!==a.pos&&boardOf(pos)===a.side&&(!s||freeCell(s,pos));
     if(kind==='skill'&&activeSkill(a)==='stamp')return stampCells(a,pos).length>0;
+    if(kind==='skill'&&activeSkill(a)==='spearThrow')return side!==a.side&&range(a,{pos})===4;
     if(kind==='skill'&&activeSkill(a)==='grapple')return grappleCell(a,{side,pos,hp:1})!==null;
     if(kind==='skill'&&activeSkill(a)==='itemUse')return false;
     if(kind==='skill'&&activeSkill(a)==='legSweep')return sweepCells(a).includes(pos);
@@ -241,15 +250,16 @@ const Battle = (() => {
     return (support?side===a.side:side!==a.side)&&range(a,{pos})<=attackReach(a,kind)&&(support||kind!=='skill'||reachFilteredPower(a,{pos},kind).base>0);
   }
   function legalFor(s,a,kind,target) {
-    if(s.deploying||s.result||!a||a.hp<=0)return false;
+    if(s.deploying||s.result||!a||a.hp<=0||a.pendingStamp)return false;
     if(kind==='skill'&&!activeSkill(a))return false;
-    if(s.skillCooldownVersion===1&&actionSkillOption(a,kind)?.cooldown>0)return false;
+    if(s.skillCooldownVersion===1&&kind==='skill'&&actionSkillOption(a,kind)?.cooldown>0)return false;
     if(kind==='guard')return true;
     if(kind==='move')return target!==a.pos&&(paths(s,a,moveReach(a)).has(target)||!!swapTarget(s,a,target));
     if(kind==='return')return Number.isInteger(target)&&target>=0&&target<50&&inRange(a,a.side,target,kind,s);
     if(kind==='skill'&&equipmentSkills[activeSkill(a)]){
       const id=activeSkill(a),d=equipmentSkills[id];if(a.mp<d.cost||id==='itemUse')return false;
       if(id==='legSweep')return target===a.id;
+      if(id==='spearThrow'){const option=selectedSkillOption(a),b=alive(s).find(u=>u.id===target);return !!b&&b.side!==a.side&&range(a,b)===4&&['rightHand','leftHand'].includes(option?.slot)&&a.equipment?.[option.slot]===option.itemId&&option.itemId==='javelin-wood';}
       if(id==='poleVault')return vaultCell(s,a,target);
       if(d.target==='pair'||d.target==='upToTwo'){
         return Array.isArray(target)&&target.length>0&&target.length<=2&&(d.target!=='pair'||target.length===2)&&new Set(target).size===target.length&&target.every(t=>{const b=alive(s).find(u=>u.id===t);return b&&b.id!==a.id&&inRange(a,b.side,b.pos,kind,s);});
@@ -265,7 +275,7 @@ const Battle = (() => {
     if(kind==='ether')return a.side==='ally'&&a.job==='porter'&&itemCount(s,a,'ether')>0&&itemInRange(a,b)&&b.mp<b.maxMp;
     if(kind==='item')return itemCount(s,a,'potion')>0&&itemInRange(a,b)&&b.hp<b.max;
     if(kind==='attack')return a.job!=='porter'&&b.side!==a.side&&range(a,b)<=attackReach(a,'attack');
-    if(kind!=='skill'||a.mp<=0)return false;
+    if(kind!=='skill'||a.mp<skillCost(a))return false;
     if(a.job==='porter')return b.id===a.id&&formation(s,a.side);
     if(activeSkill(a)==='scout')return !!ambush(s,a,b);
     if(!inRange(a,b.side,b.pos,kind,s))return false;
@@ -281,7 +291,7 @@ const Battle = (() => {
   function attackPreview(s,a,target) {
     if(!legalFor(s,a,'attack',target.id))return null;
     const contribution=reachFilteredPower(a,target),{recipient,hit}=damageResult(s,target,power(s,a,contribution.base,false));
-    return {targetId:target.id,targetName:target.name,recipientId:recipient.id,recipientName:recipient.name,damage:hit,hpLoss:Math.min(recipient.hp,hit),...contribution};
+    return {targetId:target.id,targetName:target.name,recipientId:recipient.id,recipientName:recipient.name,damage:hit,hpLoss:Math.min(recipient.hp,hit),evasionChance:evasionChance(recipient),...contribution};
   }
   function receive(s,target,power,formed=formation(s,target.side),contribution=null) {
     const {protector,recipient,hit}=damageResult(s,target,power,formed);
@@ -290,13 +300,33 @@ const Battle = (() => {
     if(recipient.hp===0&&recipient.covers)recipient.covers=[];
     log(s,`${protector?`${recipient.name}が${target.name}をかばう：`:""}${recipient.name}に${hit}ダメージ${recipient.hp===0?"・戦闘不能":""}`);
   }
-  function apply(s,a,kind,target,landing,fixedCells,random=Math.random) {
-    Presentation.mark(s,a,kind,target,{activeSkill,skillName});
+  function apply(s,a,kind,target,landing,fixedCells,random=Math.random,resolvingCast=false) {
+    if(kind==='skill'&&activeSkill(a)==='stamp'&&!resolvingCast){
+      const option=selectedSkillOption(a);
+      a.pendingStamp={key:option.key,center:target,origin:a.pos,cells:[...(fixedCells||stampCells(a,target))]};
+      Presentation.mark(s,a,'cast',target,{activeSkill,skillName});a.mp-=skillCost(a);log(s,`${a.name}はスタンプを構えた。次の本人の行動で指定マスへ発動する。`);return;
+    }
+    Presentation.mark(s,a,kind,target,{activeSkill,skillName,...(resolvingCast?{resolvedCells:fixedCells}:{})});
     startSkillCooldown(s,a,kind);
     if(kind==='return'){a.pos=target;if(s.skillCooldownVersion===1){const option=returnSkillOption(a);(a.returnUsedGrants||(a.returnUsedGrants={}))[option.key]=true;}else a.returnUsed=true;emit(s,a,'returnHome',{target});log(s,`${a.name}の帰還 → (${x(target)+1},${y(target)+1})`);return;}
     if(kind==='skill'&&equipmentSkills[activeSkill(a)]){
       const id=activeSkill(a),b=s.units.find(u=>u.id===target),d=equipmentSkills[id];
       a.mp-=d.cost;emit(s,a,id,{target});log(s,`${a.name}の${d.name}`);
+      if(id==='spearThrow'){
+        const option=selectedSkillOption(a),weapon=a.attackWeapons.find(w=>w.slot===option.slot&&w.itemId===option.itemId);
+        const contribution={base:weapon.atk+(a.attackBonus||0),weapons:[weapon],bonus:a.attackBonus||0};
+        receive(s,b,power(s,a,contribution.base),undefined,contribution);
+        (a.thrownWeapons||(a.thrownWeapons={}))[option.slot]=option.itemId;
+        a.equipment[option.slot]='empty-'+option.slot;
+        a.attackWeapons=a.attackWeapons.filter(w=>w.slot!==option.slot);
+        a.skillSources=a.skillSources.flatMap(source=>source.slot===option.slot?(source.grantSlot===1?[{id:'itemUse',slot:option.slot,itemId:'empty-'+option.slot,grantSlot:1,classification:'passive',level:a.job==='porter'?3:1}]:[]):[source]);
+        a.activeSkills=[...new Set(a.skillSources.filter(source=>source.classification==='active'&&source.id!=='returnHome').map(source=>source.id))];
+        a.effects=[...new Set(a.skillSources.filter(source=>source.classification==='passive'||source.id==='returnHome').map(source=>source.id))];
+        a.equippedSkill=a.activeSkills[0]||null;delete a.selectedSkill;delete a.selectedSkillKey;
+        const first=a.attackWeapons[0];a.weapon=first?require('./master-data.cjs').getMaster().gear.find(g=>g.id===first.itemId)?.type:'empty';a.atk=first?first.atk+(a.attackBonus||0):(a.attackBonus||0);a.reach=first?.reach||1;
+        if(a.skillCooldowns)delete a.skillCooldowns[option.key];
+        log(s,'投げた手は拳になった。槍は戦闘後に回収する。');return;
+      }
       if(id==='legSweep'){
         for(const u of sweepTargets(s,a)){
           const success=random()<sweepChance(a);
@@ -325,7 +355,7 @@ const Battle = (() => {
     const b=s.units.find(u=>u.id===target);
     if(kind==='ether'){consumeItem(s,a,'ether');const heal=Math.min(3,b.maxMp-b.mp);b.mp+=heal;log(s,`${a.name}のエーテル：${b.name}のMP＋${heal}`);return;}
     if(kind==='item'){consumeItem(s,a,'potion');const heal=Math.min(55,b.max-b.hp);b.hp+=heal;log(s,`${a.name}の回復薬：${b.name}のHP＋${heal}`);return;}
-    if(kind==='skill')a.mp--;
+    if(kind==='skill'&&!resolvingCast)a.mp-=skillCost(a);
     if(kind==='skill'&&activeSkill(a)==='stamp'){
       const cells=fixedCells||stampCells(a,target),targets=alive(s).filter(u=>u.side!==a.side&&cells.includes(u.pos));
       // 各対象へ通常威力。陣形・かばう・防御は既存のダメージ処理を使う。
@@ -340,15 +370,17 @@ const Battle = (() => {
     if(kind==='skill'&&activeSkill(a)==='scout')a.pos=landing;
     log(s,`${a.name}の${kind==='skill'?skillName(a):'攻撃'} → ${b.name}`);
     const contribution=reachFilteredPower(a,b,kind);
+    if(kind==='attack'){const recipient=damageResult(s,b,0).recipient,chance=evasionChance(recipient);if(chance>0&&random()<chance){emit(s,recipient,'evasion',{sourceId:a.id});log(s,`${recipient.name}は攻撃を回避した。`);return;}}
     if(contribution.base>0)receive(s,b,power(s,a,contribution.base),undefined,contribution);
   }
   // Run the exact action on a detached copy; no turn advance or live events.
   function effectPreview(s,a,kind,target) {
     if(!legalFor(s,a,kind,target))return [];
+    if(kind==='skill'&&activeSkill(a)==='stamp')return [{id:a.id,cast:true,cells:stampCells(a,target),mp:-1}];
     if(kind==='skill'&&activeSkill(a)==='legSweep')return [{id:a.id,mp:-1},...sweepTargets(s,a).map(u=>({id:u.id,skipChance:sweepChance(a),alreadySkipping:!!u.skipNextTurn}))];
     const copy=JSON.parse(JSON.stringify(s)),actor=copy.units.find(u=>u.id===a.id);
     const landing=kind==='skill'&&activeSkill(actor)==='scout'?ambush(copy,actor,copy.units.find(u=>u.id===target))?.destination:undefined;
-    apply(copy,actor,kind,target,landing);
+    apply(copy,actor,kind,target,landing,undefined,()=>1);
     return copy.units.map(u=>{const old=s.units.find(v=>v.id===u.id);return {id:u.id,position:u.pos!==old.pos?u.pos:null,hp:u.hp-old.hp,mp:u.mp-old.mp,guard:u.guard&&!old.guard,boost:u.boost&&!old.boost,cover:u.cover!==old.cover?u.cover:null,covers:JSON.stringify(u.covers)!==JSON.stringify(old.covers)?u.covers:[]};}).filter(e=>e.position!==null||e.hp||e.mp||e.guard||e.boost||e.cover||e.covers?.length);
   }
   function damagePreview(s,a,kind,target) {
@@ -356,8 +388,8 @@ const Battle = (() => {
     const copy=JSON.parse(JSON.stringify(s)),actor=copy.units.find(u=>u.id===a.id);
     copy.damagePreviewEvents=[];
     const landing=kind==='skill'&&activeSkill(actor)==='scout'?ambush(copy,actor,copy.units.find(u=>u.id===target))?.destination:undefined;
-    apply(copy,actor,kind,target,landing);
-    return copy.damagePreviewEvents;
+    apply(copy,actor,kind,target,landing,undefined,()=>1);
+    return copy.damagePreviewEvents.map(hit=>({...hit,...(kind==='attack'?{evasionChance:evasionChance(copy.units.find(u=>u.id===hit.recipientId))}:{})}));
   }
   function plan(s,a) {
     const friends=alive(s).filter(u=>u.side===a.side), enemies=alive(s).filter(u=>u.side!==a.side).sort((l,r)=>l.hp-r.hp);
@@ -385,7 +417,7 @@ const Battle = (() => {
     make('guard',null,'次の機会に備える');
   }
   function enemyAction(s,a) {
-    Presentation.mark(s,a,a.intent.kind,a.intent.target,{activeSkill,skillName});
+    Presentation.mark(s,a,a.intent.kind==='skill'&&activeSkill(a)==='stamp'?'cast':a.intent.kind,a.intent.target,{activeSkill,skillName});
     const i=a.intent;s.recentEnemies.push({name:a.name,action:i.name});
     if(s.skillCooldownVersion===1&&actionSkillOption(a,i.kind)?.cooldown>0){log(s,`${a.name}の${i.name}は再使用待ち。`);return;}
     // 攻撃の予告は人物追尾せずセル固定。奇襲の着地点も固定。
@@ -400,7 +432,7 @@ const Battle = (() => {
         a.pos=i.destination;
       }
       const b=alive(s).find(u=>u.side!==a.side&&u.pos===i.cells[0]);
-      if(!b||range(a,b)>attackReach(a,i.kind)){if(i.kind==='skill'&&activeSkill(a)==='scout'){a.mp--;startSkillCooldown(s,a,i.kind);}log(s,`${a.name}の${i.name}は空振り。`);return;}
+      if(!b||range(a,b)>attackReach(a,i.kind)){if(i.kind==='skill'&&activeSkill(a)==='scout'){a.mp-=skillCost(a);startSkillCooldown(s,a,i.kind);}log(s,`${a.name}の${i.name}は空振り。`);return;}
       if(i.kind==='skill'&&a.mp<=0){log(s,`${a.name}の${i.name}はMP不足で見送り。`);return;}
       apply(s,a,i.kind,b.id,i.destination);return;
     }
@@ -410,7 +442,7 @@ const Battle = (() => {
   const order=(a,b)=>a.next-b.next||b.agi-a.agi||a.tie-b.tie;
   function check(s){const fallen=s.units.find(u=>u.side==='ally'&&u.job==='porter'&&u.hp<=0);if(fallen){s.failure='porter';s.result=`クエスト失敗。${fallen.name}が倒れ、荷物を運べなくなった。`;}else if(!alive(s).some(u=>u.side==='enemy'))s.result='勝利！ ミラーマッチを制した。';else if(!alive(s).some(u=>u.side==='ally'))s.result='敗北。配置と連携を変えて再挑戦しよう。';
     if(s.result){
-      for(const u of s.units){if(u.covers)u.covers=[];delete u.skillCooldowns;}
+      for(const u of s.units){if(u.covers)u.covers=[];delete u.skillCooldowns;delete u.pendingStamp;}
       if(!s.failure&&!alive(s).some(u=>u.side==='enemy')&&!s.victoryEffectsApplied&&s.units.some(u=>hasEffect(u,'victoryBreath'))){
         s.victoryEffectsApplied=true;
         for(const u of alive(s).filter(u=>u.side==='ally'&&hasEffect(u,'victoryBreath'))){const amount=Math.min(2,u.maxMp-u.mp);u.mp+=amount;emit(s,u,'victoryBreath',{amount});log(s,`${u.name}の一息：MP＋${amount}`);}
@@ -421,11 +453,19 @@ const Battle = (() => {
     while(!check(s)){
       const a=alive(s).sort(order)[0];a.guard=false;a.cover=null;if(a.covers)a.covers=[];a.boost=false;s.actor=a.id;
       if(a.skipNextTurn){
+        if(a.pendingStamp){delete a.pendingStamp;log(s,`${a.name}のスタンプの構えは足払いで中断された。`);}
         Presentation.mark(s,a,'skip',null,{activeSkill,skillName});
         delete a.skipNextTurn;finishOpportunity(a);a.next+=100/a.agi;
         log(s,`${a.name}：足払いで手番をスキップ。`);
         if(a.side==='enemy')plan(s,a);
         continue;
+      }
+      if(a.pendingStamp){
+        const reserved=a.pendingStamp;delete a.pendingStamp;
+        const option=activeSkillOptions(a).find(option=>option.key===reserved.key&&option.id==='stamp');
+        if(option){a.selectedSkill=option.id;a.selectedSkillKey=option.key;apply(s,a,'skill',reserved.center,undefined,reserved.cells,Math.random,true);}
+        else log(s,`${a.name}のスタンプは使用条件を満たさないため中止。`);
+        finishOpportunity(a);a.next+=100/a.agi;s.actions++;if(a.side==='enemy')plan(s,a);continue;
       }
       if(a.side==='ally'||Presentation.isStepping(s))return;
       enemyAction(s,a);finishOpportunity(a);a.next+=100/a.agi;if(check(s))break;plan(s,a);
@@ -464,6 +504,6 @@ const Battle = (() => {
   }
   function act(s,kind,target,random=Math.random){if(!legal(s,kind,target))return false;const a=s.units.find(u=>u.id===s.actor);s.recentEnemies=[];const jump=kind==='skill'&&activeSkill(a)==='scout'?ambush(s,a,s.units.find(u=>u.id===target)):null;apply(s,a,kind,target,jump?.destination,undefined,random);finishOpportunity(a);a.next+=100/a.agi;s.actions++;advance(s);return true;}
   function queue(s){const copies=alive(s).map(u=>({...u})),result=[];for(let i=0;i<10&&copies.length;i++){copies.sort(order);result.push({id:copies[0].id,name:copies[0].name,side:copies[0].side,...(copies[0].skipNextTurn?{skip:true}:{})});delete copies[0].skipNextTurn;copies[0].next+=100/copies[0].agi;}return result;}
-  return {returnSkillOptions,returnSkillOption,selectReturnSkill,activeSkillOptions,selectedSkillOption,itemSkillOption,sweepCells,sweepChance,sweepTargets,vaultCell,itemUseLevel,itemInRange,grappleCell,skillLevel,skillInfo,effectCount,percentageIncrease,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
+  return {returnSkillOptions,returnSkillOption,selectReturnSkill,activeSkillOptions,selectedSkillOption,itemSkillOption,sweepCells,sweepChance,sweepTargets,vaultCell,itemUseLevel,itemInRange,grappleCell,skillLevel,skillInfo,effectCount,percentageIncrease,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,legacyRoster,recruitRoster,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,plan};
 })();
 if(typeof module!=='undefined')module.exports=Battle;

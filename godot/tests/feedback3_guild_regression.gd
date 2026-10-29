@@ -8,6 +8,7 @@ func run():
  if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
  root.size=Vector2i(1180,812);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
+ await preload("res://tests/current_historical_fixture.gd").install(game)
  game.audio.fast_mode=true;game.checks_fast=true;actual=game.engine;recorder=RecordedEngine.new();recorder.actual=actual;game.add_child(recorder);game.engine=recorder;await settle();var seed=await saved()
  game.navigate("party");await settle();await tap("FacilityChoice_guild");var guild=game.pages.guild_view
  var selected=game.campaign().selected.duplicate();var payload=guild.drag_payload("guard-2")

@@ -47,7 +47,7 @@ for(const skill of ['manaGift','healingCross','archer','scout','poleVault','grap
  if(skill==='retreatSlash')b.pos=12;
  if(skill==='pincer')b.pos=15;
  const frames=parity(s,'skill',target);
- assert(frames.length>1,skill);assert(frames[0].resolved);assert(frames[0].attack_visual);
+ assert(frames.length>1,skill);assert(frames[0].resolved);if(skill==='stamp'){assert.equal(frames[0].kind,'cast');assert(!frames[0].attack_visual);assert(frames.some(f=>f.kind==='skill'&&f.attack_visual));}else assert(frames[0].attack_visual);
  if(skill==='healingCross')assert.deepEqual(frames[0].resolved.cells,B.crossCells(b.pos));
  if(skill==='manaGift'){const packet=frames.find(f=>f.phase==='resource');assert.equal(packet.resource,'mp');assert.equal(packet.skill_id,skill);assert.equal(packet.to-packet.from,2);assert.equal(packet.donor_amount,-2);assert.equal(packet.source_actor_id,a.id);assert.equal(packet.source_cell,24);}
  if(skill==='pincer'){assert.equal(frames[0].resolved.pincer_success,true);assert.equal(frames[0].resolved.pincer_helpers[0].unit_id,b.id);}

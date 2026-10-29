@@ -36,6 +36,7 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):push_error("Isolated F4 profile required");quit(2);return
 	root.size=Vector2i(1280,800);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var seed=await saved();seed.state.location="east"
 	var hero=seed.state.characters.guard;hero.level=29;hero.xp=2800;hero.allocations.str=2;hero.allocations.agi=1;hero.statPoints=53;hero.skillPoints=28;hero.leftHand="empty-leftHand"

@@ -1,7 +1,12 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),B=require('./campaign-battle.js'),C=require('./campaign.js'),E=require('./equipment-skills.js');
 let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS '+name);};
 const clone=x=>JSON.parse(JSON.stringify(x));
+function transferInventory(s,from,to){
+ for(const [id,amount] of Object.entries(s.characters[from].inventory))assert(C.inventoryAction(s,from,id,'transfer',to,amount,null,C.inventoryToken(s)),id);
+}
 function scene(skill='retreatSlash'){
  const s=B.create({ally:['guard','archer','mage','porter'],enemy:['guard','archer'],enemyPotions:0,deployment:true,skillStage:1});
  const [a,f,g,p,e,e2]=s.units;a.pos=24;f.pos=14;g.pos=34;p.pos=2;e.pos=25;e2.pos=15;
@@ -57,8 +62,8 @@ test('return: exact home cell, occupancy, 1/battle, zero MP, second slot invasio
  const {s,a,f}=scene();a.effects=['returnHome'];a.mp=0;a.pos=27;
  for(const p of [27,25,f.pos,-1,50,'3'])assert.equal(B.legal(s,'return',p),false);
  once(s,a,'return',3);assert.equal(a.pos,3);assert.equal(a.mp,0);assert.equal(a.returnUsed,true);assert.equal(B.legal(s,'return',4),false);
- const c=C.create();c.location='north';assert.equal(C.buyGear(c,'scout','return-ring-2'),true);assert.deepEqual(C.stats(c.characters.scout).effects,['invasion','returnHome']);
- assert.equal(C.buyGear(c,'scout','empty-accessory1'),true);assert.deepEqual(C.stats(c.characters.scout).effects,['returnHome']);
+ const c=C.createLegacy();c.location='north';assert.equal(C.buyGear(c,'scout','return-ring-2'),true);assert.deepEqual(C.stats(c.characters.scout).effects,['itemUse','invasion','returnHome']);
+ assert.equal(C.buyGear(c,'scout','empty-accessory1'),true);assert.deepEqual(C.stats(c.characters.scout).effects,['itemUse','returnHome']);
 });
 test('lone wolf: living orthogonal friend suppresses; duplicate effect no stacking',()=>{
  for(const [pos,hp,damage] of [[14,100,40],[13,100,40],[13,0,40]]){
@@ -79,7 +84,7 @@ test('victory breath: once, capped, living only; defeat and retreat have no rewa
 });
 test('passive trial works for melee/ranged and porter keeps attack ban',()=>{
  for(const id of ['guard','warrior','mage','porter']){
-  const s=C.create();s.location='north';s.selected=[id,...['porter','guard'].filter(x=>x!==id)];
+  const s=C.createLegacy();s.location='north';s.selected=[id,...['porter','guard'].filter(x=>x!==id)];
   const before=C.serialize(s),t=C.trial(s,id,'victory-earring-1');assert.ok(t,id);
   const hero=t.battle.units.find(u=>u.id===id),dummy=t.battle.units.find(u=>u.side==='enemy');
   assert.equal(t.battle.units.filter(u=>u.side==='enemy').length,1);
@@ -110,7 +115,9 @@ test('purchase and trial all eleven; actual actions isolated from campaign',()=>
  const rows=E.gear.filter(g=>g.slot==='weapon'||g.slot==='accessory1'&&g.effect&&g.effect!=='invasion');
  assert.equal(rows.length,11);
  for(const gear of rows){
-  const s=C.create();s.location=gear.slot==='weapon'?'east':'north';s.gold=500;
+  // Commerce roundtrips exercise current saves; initial migration has its own
+  // assertions below. The shared fixture supplies real inventory capacity.
+  const s=require('./test-current-fixture.cjs')();s.location=gear.slot==='weapon'?'east':'north';s.gold=500;
   const id=gear.skill==='splitShot'||gear.skill==='pincer'?'archer':'mage';
   const before=C.serialize(s),t=C.trial(s,id,gear.id);assert.ok(t,gear.id);assert.equal(C.serialize(s),before);
   const a=t.battle.units.find(u=>u.id===id),sid=B.activeSkill(a);
@@ -126,22 +133,25 @@ test('purchase and trial all eleven; actual actions isolated from campaign',()=>
  }
 });
 test('save/load battle flags, effects and covers; old saves; malformed extension rejected',()=>{
- const s=C.create();s.gold=1000;s.location='east';assert(C.buyGear(s,'guard','battleline-shield'));s.location='north';assert(C.buyGear(s,'guard','return-ring-1'));assert(C.buyGear(s,'guard','pioneer-gloves-2'));C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
+ const s=require('./test-current-fixture.cjs')();s.characters.guard.lowerBody='cloth-lowerBody';s.gold=1000;s.location='east';assert(C.buyGear(s,'guard','battleline-shield'));s.location='north';assert(C.buyGear(s,'guard','return-ring-1'));assert(C.buyGear(s,'guard','pioneer-gloves-2'));
+ // Both accessories are under test, so the replaced capacity pouch and other
+ // carried supplies move to the porter before departure.
+ transferInventory(s,'guard','porter');assert(C.depart(s,'astaris'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
  const a=s.battle.units.find(u=>u.id==='guard');a.returnUsed=true;a.firstMoveUsed=true;a.covers=['archer','mage'];
  const saved=C.serialize(s),loaded=C.deserialize(saved),expected=clone(s);
  expected.battle.units.find(u=>u.id==='guard').returnUsedGrants=Object.fromEntries(B.returnSkillOptions(a).map(o=>[o.key,true]));
  assert.deepEqual(loaded,expected);assert.equal(B.legalFor(loaded.battle,loaded.battle.units.find(u=>u.id==='guard'),'return',0),false);
  for(const change of [u=>u.returnUsed='no',u=>u.firstMoveUsed=1,u=>u.effects=['loneWolf'],u=>u.covers=['missing'],u=>u.covers=['mage','mage']]){const bad=JSON.parse(saved);change(bad.state.battle.units.find(u=>u.id==='guard'));assert.throws(()=>C.deserialize(bad));}
- const old=C.create();assert.deepEqual(C.deserialize(C.serialize(old)),old);
+ const old=C.createLegacy(),migrated=C.deserialize(C.serialize(old));assert.equal(Object.keys(migrated.characters).length,35);assert.equal(migrated.phase,'town');assert.deepEqual(C.deserialize(C.serialize(migrated)),migrated);
  assert.equal(C.retreat(loaded),true);assert.equal(loaded.result.outcome,'failed');assert.equal(loaded.battle,null);
 });
 test('porter never attacks or gains offensive weapon skill; separate return remains usable',()=>{
- const s=C.create();s.location='east';s.gold=500;C.buyGear(s,'porter','breaker-hammer');s.location='north';C.buyGear(s,'porter','return-ring-1');C.buyGear(s,'porter','invasion-charm-2');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
+ const s=C.createLegacy();s.location='east';s.gold=500;C.buyGear(s,'porter','breaker-hammer');s.location='north';C.buyGear(s,'porter','return-ring-1');C.buyGear(s,'porter','invasion-charm-2');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
  const p=s.battle.units.find(u=>u.id==='porter');assert.equal(B.activeSkill(p),'porter');assert.equal(p.atk,0);assert.equal(p.canInvade,false);assert.equal(B.legalFor(s.battle,p,'attack','enemy-guard'),false);assert.equal(B.legalFor(s.battle,p,'return',0),true);
 });
 test('public battle actions save real once-per-battle flags and retreat resets next encounter',()=>{
- const s=C.create();s.location='north';C.buyGear(s,'guard','return-ring-1');C.buyGear(s,'guard','pioneer-gloves-2');
- C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
+ const s=require('./test-current-fixture.cjs')();s.characters.guard.lowerBody='cloth-lowerBody';s.location='north';C.buyGear(s,'guard','return-ring-1');C.buyGear(s,'guard','pioneer-gloves-2');
+ transferInventory(s,'guard','porter');assert(C.depart(s,'astaris'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
  function guardTurn(){for(let i=0;i<30&&s.battle.actor!=='guard'&&!s.battle.result;i++)assert.equal(C.act(s,'guard'),true);assert.equal(s.battle.actor,'guard');}
  guardTurn();assert.equal(C.act(s,'return',0),true);guardTurn();assert.equal(C.act(s,'move',1),true);
  const loaded=C.deserialize(C.serialize(s)),hero=loaded.battle.units.find(u=>u.id==='guard');assert.ok(B.returnSkillOptions(hero).every(o=>o.used));assert.equal(Object.keys(hero.returnUsedGrants).length,1);assert.equal(hero.firstMoveUsed,true);
@@ -150,7 +160,7 @@ test('public battle actions save real once-per-battle flags and retreat resets n
  const fresh=s.battle.units.find(u=>u.id==='guard');assert.equal(fresh.returnUsed,undefined);assert.equal(fresh.returnUsedGrants,undefined);assert.equal(fresh.firstMoveUsed,undefined);assert.equal(B.moveReach(fresh),3);
 });
 test('victory reward passes into campaign party once and survives reload',()=>{
- const s=C.create();s.location='north';C.buyGear(s,'guard','victory-earring-1');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
+ const s=require('./test-current-fixture.cjs')();s.location='north';C.buyGear(s,'guard','victory-earring-1');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
  for(let i=0;i<250&&!s.battle.result;i++){const copy=clone(s.battle),a=copy.units.find(u=>u.id===copy.actor);B.plan(copy,a);assert.equal(C.act(s,a.intent.kind,a.intent.target),true);}
  assert.ok(s.battle.result);assert.equal(s.battle.failure,undefined);
  const hero=s.battle.units.find(u=>u.id==='guard');assert.ok(hero.hp>0);const mp=hero.mp;

@@ -14,6 +14,7 @@ var shop_view
 var facility_entry
 var party_view
 var guild_view
+var warehouse_view
 var hub_view
 var quest_board
 var inn_view
@@ -27,6 +28,7 @@ func _init(frontend):
 	inn_view=preload("res://inn_view.gd").new(self)
 	hub_view=preload("res://town_hub.gd").new(frontend)
 	ui=frontend;shop_view=preload("res://shop_view.gd").new(self);party_view=preload("res://party_view.gd").new(self);guild_view=preload("res://guild_view.gd").new(self);facility_entry=preload("res://facility_entry.gd").new(self)
+	warehouse_view=preload("res://warehouse_view.gd").new(self)
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func row(parent):return ui.row(parent)
@@ -95,7 +97,9 @@ func map(parent):
 	parent.add_child(chart);chart.destination_selected.connect(select_destination)
 	for id in chart.buttons:ui.widgets.append(chart.buttons[id])
 	muted(parent,"未受注での移動も戦闘・消耗があります。配達報酬はありません。追加の移動料金はありません。")
-	var depart=b(parent,town(ui.destination)+"へ出発" if not ui.destination.is_empty() else "行先がありません",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty());depart.name="DepartButton"
+	var over=c().get("inventoryOverflow",[])
+	if not over.is_empty():l(parent,"インベントリ枠を超えている仲間がいます。出発する前に、受け渡し・売却・倉庫への預け入れなどで整理してください。")
+	var depart=b(parent,town(ui.destination)+"へ出発" if not ui.destination.is_empty() else "行先がありません",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not over.is_empty());depart.name="DepartButton"
 	depart.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;depart.custom_minimum_size=Vector2(280,44)
 	for state_ in ["normal","hover","pressed"]:
 		var style=depart.get_theme_stylebox(state_).duplicate();style.bg_color=Color("#2f7652") if state_=="hover" else Color("#236044");depart.add_theme_stylebox_override(state_,style)
@@ -251,6 +255,7 @@ func invalidate_quote(clear_id:=false):
 	quote_generation+=1;quote_pending=false;quote_stamp="";ui.gear_preview={}
 	if clear_id:gear_id=""
 func reset_context(plan_mode: String="discard",campaign_id: String=""):
+	warehouse_view.reset()
 	quest_board.reset();inn_view.reset()
 	hub_view.reset()
 	facility_art.reset()

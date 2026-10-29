@@ -27,8 +27,8 @@ FIELDS = ('skill','effect')
 REFERENCE_FIELDS = FIELDS+('legacySkill',)
 SLOTS = {'weapon','armor','head','upperBody','lowerBody','rightHand','leftHand','feet','accessory1','accessory2'}
 KINDS = {'accessory','armor','book','bow','dagger','empty','fist','greatsword','hammer','other','rope','shield','spear','staff','sword'}
-LEVELLED = {'itemUse','scout','legSweep','grapple','poleVault'}
-NUMERIC_FIELDS = {'atk','hp','mp','str','int','agi','reach'}
+LEVELLED = {'itemUse','scout','archer','legSweep','grapple','poleVault','secretPouch','holePouch'}
+NUMERIC_FIELDS = {'atk','hp','mp','str','int','agi','reach','weight'}
 SIGNED_FIELDS = {'agiBonus'}
 
 def number(v, minimum=None):
@@ -45,11 +45,17 @@ def validate_equipment(g):
     if 'allowedSlots' in g:
         slots=g['allowedSlots']
         if not isinstance(slots,list) or not slots or any(not isinstance(x,str) or x not in SLOTS-{'weapon','armor'} for x in slots) or len(slots)!=len(set(slots)): raise ValueError('invalid allowed slots')
-    for key in ('starterOnly','virtualDefault'):
+    for key in ('starterOnly','virtualDefault','purchasable','sellable','transferable','removable'):
         if key in g and type(g[key]) is not bool: raise ValueError('invalid equipment flag')
+    if 'salePrice' in g and not integer(g['salePrice']): raise ValueError('invalid sale price')
+    if 'raceOnly' in g and g['raceOnly'] not in ('human','elf','dwarf'): raise ValueError('invalid equipment race')
+    if 'sexOnly' in g and g['sexOnly'] not in ('male','female'): raise ValueError('invalid equipment sex')
+    if 'excludedRaces' in g:
+        races=g['excludedRaces']
+        if not isinstance(races,list) or any(not isinstance(x,str) or x not in ('human','elf','dwarf') for x in races) or len(races)!=len(set(races)): raise ValueError('invalid excluded races')
     for key in ('material','note','flavor','shopProductId'):
         if key in g and not isinstance(g[key],str): raise ValueError('invalid equipment text')
-    if 'material' in g and g['material'] not in ('cloth','iron','leather','silver','wood'): raise ValueError('invalid material')
+    if 'material' in g and g['material'] not in ('cloth','iron','leather','silver','wood','glass','steel'): raise ValueError('invalid material')
     if 'jobOnly' in g and g['jobOnly'] not in ('porter','guard','scout','mage','archer'): raise ValueError('invalid equipment job')
 
 def integer(v, minimum=0):

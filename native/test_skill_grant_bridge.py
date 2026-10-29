@@ -1,4 +1,5 @@
 """Per-grant bridge contracts; real request process, isolated in-memory campaigns."""
+from test_current_fixture import current_campaign
 import json
 import shutil
 import subprocess
@@ -12,7 +13,7 @@ BASE = Path(__file__).resolve().parent
 class SkillGrantBridgeTests(unittest.TestCase):
     def test_two_heal_buttons_have_independent_selection_and_cooldown(self):
         bridge=Session();self.addCleanup(bridge.close)
-        bridge.call(op='campaign_start')
+        current_campaign(bridge)
         save=bridge.call(op='campaign_save')['data'];save['state'].update(location='east',gold=9999)
         self.assertTrue(bridge.call(op='campaign_load',data=save)['ok'])
         self.assertTrue(bridge.call(op='campaign',action='buyGear',args=['mage','staff-silver-1','leftHand'])['ok'])
@@ -42,7 +43,7 @@ class SkillGrantBridgeTests(unittest.TestCase):
 
     def test_return_buttons_remain_independent_once_per_battle(self):
         bridge=Session();self.addCleanup(bridge.close)
-        bridge.call(op='campaign_start')
+        current_campaign(bridge)
         save=bridge.call(op='campaign_save')['data'];save['state'].update(location='north',gold=9999)
         self.assertTrue(bridge.call(op='campaign_load',data=save)['ok'])
         for gear,slot in [('return-ring-1','accessory1'),('return-ring-2','accessory2')]:

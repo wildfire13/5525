@@ -47,7 +47,7 @@ func causal_after(expected: Dictionary,label: String):
  check(not rows.is_empty() and rows[-1].request_id==observed[-1].request_id,"final state links to originating action: "+label)
 func source_case() -> Dictionary:
  var script="""const C=require(process.argv[1]),B=require(process.argv[2]),assert=require('node:assert/strict');
-const s=C.create();Object.assign(s.characters.mage,{leftHand:'staff-wood',accessory1:'return-ring-1',accessory2:'return-ring-2'});
+const s=require(require('node:path').join(require('node:path').dirname(process.argv[1]),'test-current-fixture.cjs'))();Object.assign(s.characters.mage,{leftHand:'staff-wood',accessory1:'return-ring-1',accessory2:'return-ring-2'});
 assert(C.validate(s).ok);assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));
 const a=s.battle.units.find(u=>u.id==='mage'),b=s.battle.units.find(u=>u.id==='guard');a.pos=23;b.pos=24;b.hp-=80;
 for(const u of s.battle.units)u.next=100000;a.next=1;s.battle.actor=a.id;assert(C.validate(s).ok);

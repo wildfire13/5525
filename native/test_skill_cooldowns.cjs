@@ -1,4 +1,6 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),B=require('./campaign-battle.js');
 let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS '+name);};
 const clone=x=>JSON.parse(JSON.stringify(x));
@@ -28,12 +30,12 @@ test('grant levels independent; repeated same-item grant slots remain distinct',
  assert.notEqual(options[0].key,options[1].key);B.selectSkill(s,options[0].key);assert.equal(B.skillLevel(a),1);assert.equal(B.sweepChance(a),.5);
  B.selectSkill(s,options[1].key);assert.equal(B.skillLevel(a),3);assert.equal(B.sweepChance(a),1);
 });
-test('item use is tied to selected grant; consumption once, other hand remains available',()=>{
- const {s,a,b}=scene(['itemUse','itemUse']);a.equipment={rightHand:'empty-rightHand',leftHand:'empty-leftHand'};
- a.skillSources.forEach((x,i)=>{x.itemId=i?'empty-leftHand':'empty-rightHand';x.level=i?3:1;});
- const options=B.activeSkillOptions(a);B.selectSkill(s,options[0].key);assert.equal(B.legal(s,'item',b.id),false);
- const n=s.potions.ally;assert.ok(B.act(s,'item',a.id));assert.equal(s.potions.ally,n-1);assert.equal(B.legal(s,'item',a.id),false);
- B.selectSkill(s,options[1].key);assert.equal(B.itemUseLevel(a),3);assert.ok(B.legal(s,'item',b.id));
+test('passive fists grant the available item range without active buttons or cooldown',()=>{
+ const {s,a,b}=scene([]);a.equipment={rightHand:'empty-rightHand',leftHand:'empty-leftHand'};
+ a.skillSources=[{id:'itemUse',slot:'rightHand',itemId:'empty-rightHand',grantSlot:1,level:1,classification:'passive'},{id:'itemUse',slot:'leftHand',itemId:'empty-leftHand',grantSlot:1,level:3,classification:'passive'}];
+ assert.equal(B.activeSkillOptions(a).length,0);assert.equal(B.itemUseLevel(a),3);assert(B.legal(s,'item',b.id));
+ const n=s.potions.ally;assert(B.act(s,'item',a.id));assert.equal(s.potions.ally,n-1);assert.equal(a.skillCooldowns,undefined);
+ assert(B.legal(s,'item',b.id));a.skillSources.pop();assert.equal(B.itemUseLevel(a),1);assert.equal(B.legal(s,'item',b.id),false);
 });
 test('skipped personal opportunity consumes cooldown; other actors do not',()=>{
  const {s,a,b,options}=scene(['mage']);b.next=2;B.selectSkill(s,options[0].key);B.act(s,'skill',b.id);assert.equal(s.actor,b.id);assert.equal(B.activeSkillOptions(a)[0].cooldown,1);
@@ -51,11 +53,11 @@ test('enemy planned skill cannot bypass cooldown and expires on completed opport
 test('real campaign entry, action and save/load enforce cooldown and clean next battle',()=>{
  const C=require('./campaign.js');let s=C.create();assert.ok(C.depart(s,'east'));assert.ok(C.travel(s,'safe',()=>0));assert.ok(C.begin(s));
  assert.equal(s.battle.skillCooldownVersion,1);
- const a=s.battle.units.find(u=>u.id==='mage'),g=s.battle.units.find(u=>u.id==='guard');
+ const a=s.battle.units.find(u=>u.id==='recruit-mage-elf-female'),g=s.battle.units.find(u=>u.id==='recruit-guard-human-female');
  for(const u of s.battle.units)u.next=100000;a.next=1;s.battle.actor=a.id;a.pos=23;g.pos=24;g.hp-=80;
  const option=B.activeSkillOptions(a).find(o=>o.id==='mage');assert.ok(option);assert.ok(B.selectSkill(s.battle,option.key));assert.ok(C.act(s,'skill',g.id));
  assert.equal(B.selectedSkillOption(a).cooldown,1);assert.equal(C.validate(s).ok,true,C.validate(s).error);
- s=C.deserialize(C.serialize(s));const loaded=s.battle.units.find(u=>u.id==='mage');
+ s=C.deserialize(C.serialize(s));const loaded=s.battle.units.find(u=>u.id==='recruit-mage-elf-female');
  assert.equal(B.selectedSkillOption(loaded).key,option.key);assert.equal(B.selectedSkillOption(loaded).cooldown,1);assert.equal(C.act(s,'skill',g.id),false);
  assert.ok(C.act(s,'guard'));assert.equal(B.selectedSkillOption(loaded).cooldown,0);
  assert.ok(C.retreat(s));assert.ok(C.acknowledge(s));assert.ok(C.depart(s,'east'));assert.ok(C.travel(s,'safe',()=>0));

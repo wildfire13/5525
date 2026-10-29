@@ -1,7 +1,7 @@
 'use strict';
 const C=require('../../native/campaign.js'),assert=require('node:assert/strict');
 function make(actor){
- const s=C.create();s.characters.guard.leftHand='empty-leftHand';assert(C.inventoryAction(s,'guard','ether','transfer','porter',1,null,C.inventoryToken(s)));
+ const s=require('../../native/test-current-fixture.cjs')();s.characters.guard.leftHand='empty-leftHand';assert(C.inventoryAction(s,'guard','ether','transfer','porter',1,null,C.inventoryToken(s)));
  assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));
  const b=s.battle;for(const u of b.units)u.next=1000;
  const a=b.units.find(u=>u.id===actor);a.next=1;b.actor=actor;

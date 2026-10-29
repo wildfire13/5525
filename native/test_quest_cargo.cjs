@@ -1,8 +1,10 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js');
 let checks=0;const test=(label,fn)=>{fn();checks++;console.log('PASS '+label);};
 const round=s=>assert.deepEqual(C.deserialize(C.serialize(s)),JSON.parse(JSON.stringify(s)));
-const make=()=>{const s=C.create();C.select(s,['guard','porter','porter-2']);return s;};
+const make=()=>{const s=require('./test-current-fixture.cjs')();C.select(s,['guard','porter','porter-2']);return s;};
 let s=make(),id=C.board(s)[0].id,before=C.serialize(s);
 test('no owner does not accept or issue cargo',()=>assert(!C.accept(s,id)&&C.serialize(s)===before));
 test('non porter and reserve owners rejected atomically',()=>{assert(!C.accept(s,id,'guard'));C.select(s,['guard','porter']);before=C.serialize(s);assert(!C.accept(s,id,'porter-2')&&C.serialize(s)===before);C.select(s,['guard','porter','porter-2']);});

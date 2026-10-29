@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "contentVersion": 2,
+  "contentVersion": 3,
   "gear": [
     {
       "id": "empty-rightHand",
@@ -136,8 +136,11 @@
       "int": 0,
       "agi": 0,
       "hp": 0,
-      "note": "能力補正・付与スキルなし。",
-      "flavor": "一般的な作業用のズボン。"
+      "flavor": "一般的な作業用のズボン。",
+      "weight": 2,
+      "sexOnly": "male",
+      "salePrice": 15,
+      "effect": "secretPouch"
     },
     {
       "id": "cloth-feet",
@@ -145,13 +148,16 @@
       "slot": "feet",
       "type": "armor",
       "material": "cloth",
-      "price": 30,
+      "price": 20,
       "grade": 0,
       "str": 0,
       "int": 0,
       "agi": 0,
       "hp": 0,
-      "note": "能力補正・付与スキルなし。"
+      "note": "能力補正・付与スキルなし。",
+      "weight": 1,
+      "salePrice": 10,
+      "flavor": "一般的な靴。"
     },
     {
       "id": "greatsword-wood",
@@ -210,14 +216,16 @@
       "type": "spear",
       "hands": 1,
       "atk": 21,
-      "reach": 3,
+      "reach": 1,
       "str": 10,
       "price": 100,
       "int": 0,
       "agi": 0,
       "grade": 0,
       "material": "wood",
-      "note": "片手の1枠を使います。付与スキルなし。投擲では弾数・消耗品・MPを消費しません。"
+      "note": "投げることもできる木製の槍。戦闘後に回収する。",
+      "weight": 7,
+      "skill": "spearThrow"
     },
     {
       "id": "swift-boots",
@@ -933,12 +941,366 @@
       "int": 0,
       "agi": 0,
       "note": "装備すると「かばう」を使用できます。"
+    },
+    {
+      "slot": "accessory1",
+      "type": "accessory",
+      "material": "cloth",
+      "price": 100,
+      "grade": 0,
+      "str": 0,
+      "int": 0,
+      "agi": 0,
+      "id": "pouch-belt",
+      "name": "ポーチ付きベルト",
+      "weight": 1,
+      "salePrice": 50,
+      "hp": 0,
+      "flavor": "インベントリ枠数を1拡張できるベルト。",
+      "effect": "secretPouch"
+    },
+    {
+      "slot": "accessory1",
+      "type": "accessory",
+      "material": "cloth",
+      "price": 200,
+      "grade": 0,
+      "str": 0,
+      "int": 0,
+      "agi": 0,
+      "id": "pouch-belt-1",
+      "name": "ポーチ付きベルト＋1",
+      "weight": 1,
+      "salePrice": 100,
+      "hp": 10,
+      "flavor": "インベントリ枠数を1拡張できるベルト。",
+      "effect": "secretPouch"
+    },
+    {
+      "slot": "accessory1",
+      "type": "accessory",
+      "material": "cloth",
+      "price": 300,
+      "grade": 0,
+      "str": 0,
+      "int": 0,
+      "agi": 0,
+      "id": "pouch-belt-2",
+      "name": "ポーチ付きベルト＋2",
+      "weight": 1,
+      "salePrice": 150,
+      "hp": 0,
+      "flavor": "インベントリ枠数を3拡張できるベルト。",
+      "effect": "secretPouch",
+      "skillLevel": 2
+    },
+    {
+      "slot": "accessory1",
+      "type": "accessory",
+      "material": "cloth",
+      "price": 400,
+      "grade": 0,
+      "str": 0,
+      "int": 0,
+      "agi": 0,
+      "id": "pouch-belt-3",
+      "name": "ポーチ付きベルト＋3",
+      "weight": 1,
+      "salePrice": 200,
+      "hp": 0,
+      "flavor": "インベントリ枠数を5拡張できるベルト。",
+      "effect": "secretPouch",
+      "skillLevel": 3
+    },
+    {
+      "slot": "accessory2",
+      "type": "accessory",
+      "material": "cloth",
+      "price": 0,
+      "grade": 0,
+      "str": 0,
+      "int": 0,
+      "agi": 0,
+      "id": "porter-bag",
+      "name": "ポーターバッグ",
+      "allowedSlots": [
+        "accessory2"
+      ],
+      "weight": 10,
+      "jobOnly": "porter",
+      "purchasable": false,
+      "sellable": false,
+      "transferable": false,
+      "removable": false,
+      "flavor": "ポーターが装備する不思議なリュック。",
+      "effect": "fourDimensional"
+    },
+    {
+      "id": "porter-whistle",
+      "slot": "weapon",
+      "name": "ホイッスル",
+      "type": "other",
+      "material": "wood",
+      "grade": 0,
+      "price": 0,
+      "atk": 0,
+      "reach": 0,
+      "str": 0,
+      "int": 0,
+      "agi": 0,
+      "weight": 1,
+      "jobOnly": "porter",
+      "purchasable": false,
+      "sellable": false,
+      "transferable": false,
+      "removable": false,
+      "flavor": "ポーターが指示を送る笛。",
+      "skill": "porter"
+    },
+    {
+      "id": "bow-wood-2",
+      "slot": "weapon",
+      "name": "木製の遠見弓＋2",
+      "type": "bow",
+      "hands": 2,
+      "material": "wood",
+      "grade": 2,
+      "price": 300,
+      "atk": 25,
+      "reach": 3,
+      "str": 8,
+      "int": 0,
+      "agi": 10,
+      "weight": 10,
+      "jobOnly": "scout",
+      "salePrice": 150,
+      "skill": "archer",
+      "skillLevel": 2
+    },
+    {
+      "id": "bow-wood-3",
+      "slot": "weapon",
+      "name": "木製の遠見弓＋3",
+      "type": "bow",
+      "hands": 2,
+      "material": "wood",
+      "grade": 3,
+      "price": 400,
+      "atk": 25,
+      "reach": 3,
+      "str": 8,
+      "int": 0,
+      "agi": 10,
+      "weight": 10,
+      "jobOnly": "scout",
+      "salePrice": 200,
+      "raceOnly": "elf",
+      "skill": "archer",
+      "skillLevel": 3
+    },
+    {
+      "id": "dagger-wood-1",
+      "slot": "weapon",
+      "name": "木製の奇襲短剣＋1",
+      "type": "dagger",
+      "material": "wood",
+      "grade": 0,
+      "price": 200,
+      "atk": 30,
+      "reach": 1,
+      "str": 0,
+      "int": 0,
+      "agi": 11,
+      "weight": 5,
+      "salePrice": 100,
+      "flavor": "木で作られた模擬戦用の短剣。",
+      "skill": "scout",
+      "skillLevel": 2
+    },
+    {
+      "id": "dagger-wood-2",
+      "slot": "weapon",
+      "name": "木製の奇襲短剣＋2",
+      "type": "dagger",
+      "material": "wood",
+      "grade": 0,
+      "price": 300,
+      "atk": 40,
+      "reach": 1,
+      "str": 0,
+      "int": 0,
+      "agi": 11,
+      "weight": 5,
+      "salePrice": 150,
+      "flavor": "木で作られた模擬戦用の短剣。",
+      "jobOnly": "scout",
+      "skill": "scout",
+      "skillLevel": 2
+    },
+    {
+      "id": "dagger-glass",
+      "slot": "weapon",
+      "name": "ガラスの奇襲短剣",
+      "type": "dagger",
+      "material": "glass",
+      "grade": 0,
+      "price": 400,
+      "atk": 50,
+      "reach": 1,
+      "str": 0,
+      "int": 0,
+      "agi": 11,
+      "weight": 3,
+      "salePrice": 200,
+      "flavor": "目を凝らさないと見えない短剣。",
+      "jobOnly": "scout",
+      "raceOnly": "elf",
+      "skill": "scout",
+      "skillLevel": 3
+    },
+    {
+      "id": "dagger-steel",
+      "slot": "weapon",
+      "name": "鋼の奇襲短剣",
+      "type": "dagger",
+      "material": "steel",
+      "grade": 0,
+      "price": 400,
+      "atk": 60,
+      "reach": 1,
+      "str": 0,
+      "int": 0,
+      "agi": 11,
+      "weight": 10,
+      "salePrice": 200,
+      "flavor": "重いが上等な金属で作られた戦闘用の短剣。",
+      "jobOnly": "scout",
+      "excludedRaces": [
+        "elf"
+      ],
+      "skill": "scout",
+      "skillLevel": 3
+    },
+    {
+      "slot": "accessory2",
+      "type": "accessory",
+      "material": "cloth",
+      "price": 0,
+      "grade": 0,
+      "str": 0,
+      "int": 0,
+      "agi": 0,
+      "id": "stealth-cloak",
+      "name": "ステルスマント",
+      "allowedSlots": [
+        "accessory2"
+      ],
+      "weight": 2,
+      "jobOnly": "scout",
+      "purchasable": false,
+      "sellable": false,
+      "transferable": false,
+      "removable": false,
+      "flavor": "スカウトが装備するマント。",
+      "effect": "invasion"
+    },
+    {
+      "id": "cloth-skirt",
+      "name": "布のスカート",
+      "slot": "lowerBody",
+      "type": "armor",
+      "material": "cloth",
+      "price": 30,
+      "grade": 0,
+      "str": 0,
+      "int": 0,
+      "agi": 0,
+      "hp": 0,
+      "weight": 2,
+      "sexOnly": "female",
+      "salePrice": 15,
+      "flavor": "一般的な作業用スカート。",
+      "effect": "secretPouch"
+    },
+    {
+      "id": "leggings",
+      "name": "レギンスパンツ",
+      "slot": "lowerBody",
+      "type": "armor",
+      "material": "cloth",
+      "price": 300,
+      "grade": 0,
+      "str": 0,
+      "int": 0,
+      "agi": 0,
+      "hp": 0,
+      "weight": 2,
+      "salePrice": 150,
+      "flavor": "駆け出し冒険者たちが愛用する動きやすいズボン。防御力は皆無。",
+      "effect": "evasion"
+    },
+    {
+      "id": "elf-hair-ornament",
+      "name": "エルフの髪飾り",
+      "slot": "head",
+      "type": "armor",
+      "material": "cloth",
+      "price": 0,
+      "grade": 0,
+      "str": 0,
+      "int": 0,
+      "agi": 0,
+      "hp": 0,
+      "weight": 0,
+      "raceOnly": "elf",
+      "purchasable": false,
+      "sellable": false,
+      "transferable": false,
+      "removable": true,
+      "flavor": "エルフの風習として親から贈られる髪飾り。",
+      "effect": "elfProof"
+    },
+    {
+      "id": "dwarf-hair-ornament",
+      "name": "ドワーフの髪飾り",
+      "slot": "head",
+      "type": "armor",
+      "material": "cloth",
+      "price": 0,
+      "grade": 0,
+      "str": 0,
+      "int": 0,
+      "agi": 0,
+      "hp": 0,
+      "weight": 0,
+      "raceOnly": "dwarf",
+      "purchasable": false,
+      "sellable": false,
+      "transferable": false,
+      "removable": true,
+      "flavor": "ドワーフの風習として親から贈られる髪飾り。",
+      "effect": "dwarfProof"
+    },
+    {
+      "id": "onehand-hammer-wood",
+      "slot": "weapon",
+      "name": "木製の片手槌",
+      "type": "hammer",
+      "material": "wood",
+      "grade": 0,
+      "price": 70,
+      "atk": 26,
+      "reach": 1,
+      "str": 8,
+      "int": 0,
+      "agi": 0,
+      "legacySkill": "guard"
     }
   ],
   "definitions": {
     "itemUse": {
-      "name": "アイテム使用",
-      "classification": "active",
+      "name": "拳",
+      "classification": "passive",
       "cost": 0,
       "target": "item",
       "description": "バトル中にもアイテムを使用できる。本人の所持品を1個使用。Lv1は自身のみ、Lv2は自身と隣接する味方、Lv3は距離制限なし。MP0。"
@@ -1050,6 +1412,54 @@
       "name": "先駆け",
       "classification": "passive",
       "description": "各戦闘の最初の移動だけ経路3まで。短い移動・入替でも消費。侵入制限は変わらない。"
+    },
+    "secretPouch": {
+      "name": "秘密のポーチ",
+      "classification": "passive",
+      "description": "インベントリ枠を増やす。Lv1：+1、Lv2：+3、Lv3：+5。同じ効果は加算する。"
+    },
+    "holePouch": {
+      "name": "穴開きポーチ",
+      "classification": "passive",
+      "description": "インベントリ枠を減らす。Lv1：-1、Lv2：-3、Lv3：-5。枠数は0未満にならない。"
+    },
+    "fourDimensional": {
+      "name": "四次元空間",
+      "classification": "passive",
+      "description": "インベントリの枠数制限がなくなる。"
+    },
+    "evasion": {
+      "name": "回避",
+      "classification": "passive",
+      "description": "通常攻撃を10%の確率で回避する。"
+    },
+    "speedUp": {
+      "name": "＋スピード",
+      "classification": "passive",
+      "description": "SPD+10。"
+    },
+    "speedDown": {
+      "name": "－スピード",
+      "classification": "passive",
+      "description": "SPD-10。"
+    },
+    "elfProof": {
+      "name": "エルフの証明",
+      "classification": "passive",
+      "description": "INTがキャラクターレベルと同じ値だけ上がる。装備を外すと補正を失う。"
+    },
+    "dwarfProof": {
+      "name": "ドワーフの証明",
+      "classification": "passive",
+      "description": "STRがキャラクターレベルと同じ値だけ上がる。装備を外すと補正を失う。"
+    },
+    "spearThrow": {
+      "name": "槍投げ",
+      "classification": "active",
+      "cost": 0,
+      "reach": 4,
+      "target": "unit",
+      "description": "距離4の敵に通常攻撃と同じ威力で槍を投げる。付与元ごとに1戦1回。投げた手は拳となり、戦闘後に槍が戻る。"
     }
   },
   "groups": {
@@ -1075,7 +1485,25 @@
       "fist",
       "fist-1",
       "fist-2",
-      "grappling-rope"
+      "grappling-rope",
+      "pouch-belt",
+      "pouch-belt-1",
+      "pouch-belt-2",
+      "pouch-belt-3",
+      "porter-bag",
+      "porter-whistle",
+      "bow-wood-2",
+      "bow-wood-3",
+      "dagger-wood-1",
+      "dagger-wood-2",
+      "dagger-glass",
+      "dagger-steel",
+      "stealth-cloak",
+      "cloth-skirt",
+      "leggings",
+      "elf-hair-ornament",
+      "dwarf-hair-ornament",
+      "onehand-hammer-wood"
     ],
     "equipmentSkills": [
       "undertow-sword",
@@ -1110,12 +1538,28 @@
   },
   "equipmentGrants": [
     {
+      "equipmentId": "cloth-lowerBody",
+      "slotNo": 1,
+      "id": "secretPouch",
+      "level": 1,
+      "sourceField": "effect",
+      "explicitLevel": false
+    },
+    {
       "equipmentId": "longspear-wood",
       "slotNo": 1,
       "id": "poleVault",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": true
+    },
+    {
+      "equipmentId": "javelin-wood",
+      "slotNo": 1,
+      "level": 1,
+      "sourceField": "skill",
+      "id": "spearThrow",
+      "explicitLevel": false
     },
     {
       "equipmentId": "swift-boots",
@@ -1411,6 +1855,158 @@
       "id": "guard",
       "level": 1,
       "sourceField": "skill",
+      "explicitLevel": false
+    },
+    {
+      "equipmentId": "pouch-belt",
+      "slotNo": 1,
+      "id": "secretPouch",
+      "level": 1,
+      "sourceField": "effect",
+      "explicitLevel": false
+    },
+    {
+      "equipmentId": "pouch-belt-1",
+      "slotNo": 1,
+      "id": "secretPouch",
+      "level": 1,
+      "sourceField": "effect",
+      "explicitLevel": false
+    },
+    {
+      "equipmentId": "pouch-belt-2",
+      "slotNo": 1,
+      "id": "secretPouch",
+      "level": 2,
+      "sourceField": "effect",
+      "explicitLevel": true
+    },
+    {
+      "equipmentId": "pouch-belt-3",
+      "slotNo": 1,
+      "id": "secretPouch",
+      "level": 3,
+      "sourceField": "effect",
+      "explicitLevel": true
+    },
+    {
+      "equipmentId": "porter-bag",
+      "slotNo": 1,
+      "id": "fourDimensional",
+      "level": 1,
+      "sourceField": "effect",
+      "explicitLevel": false
+    },
+    {
+      "equipmentId": "porter-whistle",
+      "slotNo": 1,
+      "id": "porter",
+      "level": 1,
+      "sourceField": "skill",
+      "explicitLevel": false
+    },
+    {
+      "equipmentId": "bow-wood-2",
+      "slotNo": 1,
+      "id": "archer",
+      "level": 2,
+      "sourceField": "skill",
+      "explicitLevel": true
+    },
+    {
+      "equipmentId": "bow-wood-3",
+      "slotNo": 1,
+      "id": "archer",
+      "level": 3,
+      "sourceField": "skill",
+      "explicitLevel": true
+    },
+    {
+      "equipmentId": "dagger-wood-1",
+      "slotNo": 1,
+      "id": "scout",
+      "level": 2,
+      "sourceField": "skill",
+      "explicitLevel": true
+    },
+    {
+      "equipmentId": "dagger-wood-2",
+      "slotNo": 1,
+      "id": "scout",
+      "level": 2,
+      "sourceField": "skill",
+      "explicitLevel": true
+    },
+    {
+      "equipmentId": "dagger-glass",
+      "slotNo": 1,
+      "id": "scout",
+      "level": 3,
+      "sourceField": "skill",
+      "explicitLevel": true
+    },
+    {
+      "equipmentId": "dagger-steel",
+      "slotNo": 1,
+      "id": "scout",
+      "level": 3,
+      "sourceField": "skill",
+      "explicitLevel": true
+    },
+    {
+      "equipmentId": "stealth-cloak",
+      "slotNo": 1,
+      "id": "invasion",
+      "level": 1,
+      "sourceField": "effect",
+      "explicitLevel": false
+    },
+    {
+      "equipmentId": "cloth-skirt",
+      "slotNo": 1,
+      "id": "secretPouch",
+      "level": 1,
+      "sourceField": "effect",
+      "explicitLevel": false
+    },
+    {
+      "equipmentId": "leggings",
+      "slotNo": 1,
+      "id": "evasion",
+      "level": 1,
+      "sourceField": "effect",
+      "explicitLevel": false
+    },
+    {
+      "equipmentId": "elf-hair-ornament",
+      "slotNo": 1,
+      "id": "elfProof",
+      "level": 1,
+      "sourceField": "effect",
+      "explicitLevel": false
+    },
+    {
+      "equipmentId": "elf-hair-ornament",
+      "slotNo": 2,
+      "id": "speedUp",
+      "level": 1,
+      "sourceField": "effect",
+      "explicitLevel": false
+    },
+    {
+      "equipmentId": "dwarf-hair-ornament",
+      "slotNo": 1,
+      "id": "dwarfProof",
+      "level": 1,
+      "sourceField": "effect",
+      "explicitLevel": false
+    },
+    {
+      "equipmentId": "dwarf-hair-ornament",
+      "slotNo": 2,
+      "id": "speedDown",
+      "level": 1,
+      "sourceField": "effect",
       "explicitLevel": false
     }
   ]

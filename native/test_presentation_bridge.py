@@ -1,4 +1,5 @@
 """Real bridge protocol tests, no files or user saves."""
+from test_current_fixture import current_campaign
 import copy
 import unittest
 from test_journey_bridge import Session
@@ -9,7 +10,7 @@ class PresentationBridgeTests(unittest.TestCase):
     def setUp(self):
         self.bridge = Session()
         self.addCleanup(self.bridge.close)
-        self.bridge.call(op='campaign_start')
+        current_campaign(self.bridge)
         saved = self.bridge.call(op='campaign_save')['data']
         saved['state']['location'] = 'east'
         self.bridge.call(op='campaign_load', data=saved)
@@ -54,7 +55,7 @@ class PresentationBridgeTests(unittest.TestCase):
 
     def test_opening_enemy_turn_and_save_resume_only_after_completion(self):
         bridge = Session(5525);self.addCleanup(bridge.close)
-        bridge.call(op='campaign_start')
+        current_campaign(bridge)
         for action,args in [('select',[['guard','porter']]),('depart',['east']),
                             ('travel',['safe']),('deploy',['guard',4])]:
             self.assertTrue(bridge.call(op='campaign',action=action,args=args)['ok'])

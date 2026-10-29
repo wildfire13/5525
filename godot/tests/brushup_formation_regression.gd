@@ -30,15 +30,18 @@ func run():
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.audio.fast_mode=true;game.checks_fast=true;await enter_facility("party");await settle()
 	check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"A1 all three audio channels remain muted")
 	var seed=await saved();var guild=game.pages.guild_view
-	check(ids("GuildCurrentScroll")==game.campaign().selected and ids("GuildReserveScroll").size()==6,"A1 default filter retains complete existing party and reserve order")
+	var reserve_ids=game.campaign().roster.filter(func(member):return not game.campaign().selected.has(member.id)).map(func(member):return str(member.id))
+	check(game.campaign().roster.size()==35 and reserve_ids.size()==30,"A1 migrated fixture contains eleven historical people plus twenty-four new candidates")
+	check(ids("GuildCurrentScroll")==game.campaign().selected and ids("GuildReserveScroll")==reserve_ids,"A1 default filter retains complete existing party and reserve order")
 	check(node("GuildCapacity").text.contains("残り7枠") and node("GuildReserveJobFilter").item_count==7,"A1 capacity and only existing six job categories shown")
 	await tap("GuildMember_warrior");await filter_job("archer")
 	check(guild.chosen_id.is_empty() and guild.notice.contains("槌戦士") and guild.notice.contains("選択を解除"),"A1 hidden reserve selection clears with named explanation")
 	check(ids("GuildReserveScroll")==["archer-2"] and ids("GuildCurrentScroll")==seed.state.selected,"A1 reserve-only filter keeps all current swap targets visible")
-	check(node("GuildReserveHeading").text.contains("1/6人表示") and (await saved())==seed,"A1 filtered count and preview have no campaign or save side effects")
+	check(node("GuildReserveHeading").text.contains("1/30人表示") and (await saved())==seed,"A1 filtered count and preview have no campaign or save side effects")
 	guild.choose("warrior");await settle()
 	check(guild.chosen_id.is_empty() and (await saved())==seed,"A1 stale hidden reserve callback cannot select or swap another target")
 	await tap("GuildMember_archer-2");await filter_job("")

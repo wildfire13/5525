@@ -172,11 +172,12 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       else if(r.action==='forecast'){response={...view(),forecast:C.forecast(campaign,...args)};}
       else if(r.action==='previewGear'){response={...view(),previewGear:C.previewGear(campaign,...args)};}
       else if(r.action==='inventoryQuote'){response={...view(),inventoryQuote:C.inventoryQuote(campaign,...args)};}
+      else if(r.action==='warehouseQuote'){response={...view(),warehouseQuote:C.warehouseQuote(campaign,...args)};}
       else if(r.action==='purchasePlan'){response={...view(),purchasePlan:C.purchasePlan(campaign,...args)};}
       else if(r.action==='saleQuote'){response={...view(),saleQuote:C.saleQuote(campaign,...args)};}
       else if(r.action==='purchaseQuote'){response={...view(),purchaseQuote:C.purchaseQuote(campaign,...args)};}
       else if(r.action==='trial'){trial=C.trial(campaign,...args);result=!!trial;}
-      else if(['accept','select','depart','travel','deploy','deployment_assign','chooseFormation','deployment_reset','begin','retreat','finishBattle','rest','onward','arrive','completeQuest','acknowledge','buyGear','buyInventory','buyItem','inn','useItem','inventoryAction','buyPlan','sellInventory','allocate','allocateBatch'].includes(r.action)) {
+      else if(['accept','select','depart','travel','deploy','deployment_assign','chooseFormation','deployment_reset','begin','retreat','finishBattle','rest','onward','arrive','completeQuest','acknowledge','buyGear','buyInventory','buyItem','inn','useItem','inventoryAction','warehouseAction','buyPlan','sellInventory','allocate','allocateBatch'].includes(r.action)) {
         if(r.action==='begin'&&r.presentation) {
           result=presentation.start(state,B,()=>C.begin(campaign,...args),()=>record('campaign.begin',{args,accepted:true}));
         } else if(r.action==='begin') {
@@ -239,7 +240,7 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       const support=r.kind!=='attack'&&(r.kind!=='skill'||['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(skill));
       const recovery=r.kind==='item'||r.kind==='ether'||r.kind==='skill'&&['mage','healingCross','manaGift'].includes(skill);
       const fullHealth=!!a&&a===u&&a.side==='ally'&&a.hp>0&&a.hp===a.max&&a.mp>0&&!state.deploying&&!state.result&&r.kind==='skill'&&skill==='mage';
-      response={ok:true,hover:{status:legal||fullHealth?'ready':shape==='pair'&&target?.length<2?'needs_targets':'unavailable',fullHealth,accuracy:legal&&r.kind==='skill'&&skill==='legSweep'?B.sweepChance(a)*100:legal&&(!support||recovery)||fullHealth?100:null,...(legal?preview(r.kind,target).preview:{})}};
+      response={ok:true,hover:{status:legal||fullHealth?'ready':shape==='pair'&&target?.length<2?'needs_targets':'unavailable',fullHealth,accuracy:legal&&r.kind==='skill'&&skill==='stamp'?null:legal&&r.kind==='attack'?Math.round(100*(1-(B.attackPreview(state,a,u)?.evasionChance||0))):legal&&r.kind==='skill'&&skill==='legSweep'?B.sweepChance(a)*100:legal&&(!support||recovery)||fullHealth?100:null,...(legal?preview(r.kind,target).preview:{})}};
     }
     else if(r.op==='preview')response=preview(r.kind,r.target,r.previewKind);
     else if(r.op==='godot_io')response=require('./godot-io.cjs')(r);

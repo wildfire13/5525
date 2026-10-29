@@ -11,6 +11,7 @@ func run():
  if not generated is Dictionary:quit(2);return
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
+ await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true
  while game.locked or game.engine.busy or game.presenting or game.loading_screen.active:await process_frame
  board=load("res://battle_board.gd").new();board.portraits=game.portraits;board.size=Vector2(1180,812);root.add_child(board)

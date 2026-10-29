@@ -71,6 +71,6 @@ func run():
 	check(game.campaign().gold==99,"approved load roundtrips selected JSON through adapter")
 	DirAccess.remove_absolute(path)
 	print(JSON.stringify({"suite":"native_file_dialog","checks":checks,"failures":failures,"display_server":DisplayServer.get_name(),"native_file_feature":DisplayServer.has_feature(DisplayServer.FEATURE_NATIVE_DIALOG_FILE),"os_picker_interaction":false}))
-	game.save_notice.dismiss();game.audio.close_audio();game.engine.close_engine();await create_timer(.2).timeout
+	game.closing=true;game.save_notice.dismiss();await game.audio.finish_audio();await game.engine.finish_diagnostics();game.engine.close_engine();await create_timer(.2).timeout
 	game.queue_free();await process_frame;await process_frame
 	quit(0 if failures.is_empty() else 1)

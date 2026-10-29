@@ -1,10 +1,12 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js');
 const copy=x=>JSON.parse(JSON.stringify(x));
 let passed=0;
 function test(name,fn){fn();passed++;console.log('PASS '+name);}
 function fixture(){
-  const s=C.create(),c=s.characters.warrior;
+  const s=require('./test-current-fixture.cjs')(),c=s.characters.warrior;
   c.inventory={potion:7,ether:2,'sword-wood':2};c.hp=31;c.mp=1;
   c.level=2;c.xp=100;c.statPoints=2;c.skillPoints=1;
   s.characters.guard.hp=20;s.characters.guard.mp=1;

@@ -1,11 +1,13 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict');
 const C=require('./campaign.js'),B=require('./campaign-battle.js');
 const fixtures=require('../godot/tests/feedback_261019_fixtures.cjs');
 let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS '+name);};
 test('Lv3 fists reject every non-porter through eligibility, equip quotes and saved equipment validation',()=>{
  for(const id of ['guard','archer','mage','scout']){
-  const s=C.create(),before=C.serialize(s);const result=C.eligibility(s,id,'fist-2');
+  const s=C.createLegacy(),before=C.serialize(s);const result=C.eligibility(s,id,'fist-2');
   assert(!result.ok);assert(result.reason.includes('ポーター専用'));
   for(const slot of ['rightHand','leftHand'])assert(!C.inventoryQuote(s,id,'fist-2','equip',null,1,slot).ok);
   assert.equal(C.serialize(s),before);
@@ -13,7 +15,7 @@ test('Lv3 fists reject every non-porter through eligibility, equip quotes and sa
  }
 });
 test('porter defaults expose Lv3 without generating stock or permitting attack',()=>{
- const s=C.create(),st=C.stats(s.characters.porter);assert.equal(B.skillLevel(st,'itemUse'),3);assert.deepEqual(st.attackWeapons,[]);
+ const s=C.createLegacy(),st=C.stats(s.characters.porter);assert.equal(B.itemUseLevel(st),3);assert.deepEqual(st.attackWeapons,[]);
  assert.equal(s.characters.porter.inventory['fist-2'],undefined);assert(!C.shop(s).some(g=>g.id==='fist-2'));
  const b=C.deserialize(fixtures.item3).battle,a=b.units.find(u=>u.id==='porter'),enemy=b.units.find(u=>u.side==='enemy');
  assert(!B.legalFor(b,a,'attack',enemy.id));

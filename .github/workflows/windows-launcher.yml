@@ -62,6 +62,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node native/test_sqlite_grant_combat.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node native/test_updateplan_roster.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node native/test_updateplan_combat.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node native/test_warehouse.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Check real CMD and PowerShell launcher
         env:
           APPDATA: ${{ runner.temp }}\5525-profile\Roaming

@@ -1,9 +1,11 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),fs=require('node:fs'),C=require('./campaign.js'),B=require('./campaign-battle.js'),{Presentation}=require('./battle-presentation.cjs');
 const clone=x=>JSON.parse(JSON.stringify(x));let passed=0;const test=(name,fn)=>{fn();passed++;console.log('PASS '+name);};
 const transfer=(s,id,target,n=1)=>C.inventoryAction(s,'guard',id,'transfer',target,n,null,C.inventoryToken(s));
 function battle(){
-  const s=C.create();s.characters.archer.weapon='fist-1';assert(transfer(s,'potion','archer'));assert(transfer(s,'ether','porter'));assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));return s;
+  const s=require('./test-current-fixture.cjs')();s.characters.archer.weapon='fist-1';assert(transfer(s,'potion','archer'));assert(transfer(s,'ether','porter'));assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));return s;
 }
 function choose(s,id){for(const u of s.battle.units)u.next=100000;const a=s.battle.units.find(u=>u.id===id);a.next=1;s.battle.actor=id;if(id==='archer'){const g=s.battle.units.find(u=>u.id==='guard');a.pos=23;g.pos=24;}return a;}
 function okay(s){assert.equal(C.validate(s).ok,true,C.validate(s).error);const before=clone(s),loaded=C.deserialize(C.serialize(s));assert.deepEqual(clone(s),before);assert.deepEqual(C.deserialize(C.serialize(loaded)),clone(loaded));}
@@ -46,8 +48,8 @@ test('presentation frames conserve owner counts and cannot accept a duplicate pe
 test('v1 active battle preserves spent amounts and original source; v2 reload never redistributes',()=>{
   const original=JSON.parse(fs.readFileSync(require.resolve('./test_fixtures/campaign-a51a773-battle.json'),'utf8'));original.state.inventory.potion=3;original.state.battle.potions.ally=1;
   const before=JSON.stringify(original),s=C.deserialize(original),first=s.selected[0];assert.equal(JSON.stringify(original),before);
-  assert.equal(s.characters[first].inventory.potion,3,'prebattle ownership snapshot retained');assert.equal(s.battle.itemInventories[first].potion,1,'only unspent stock remains usable');
-  assert(s.selected.filter(id=>id!==first).every(id=>s.battle.itemInventories[id].potion===0));okay(s);
+  assert.equal(s.characters[first].inventory.potion,1,'one-time trip reset retains only unspent stock');
+  assert.equal(s.battle,null);assert.equal(s.phase,'town');assert.equal(s.location,'astaris');okay(s);
 });
 test('forged ownership, totals and missing battle inventory reject without changing running state',()=>{
   const original=battle();for(const edit of [s=>delete s.battle.itemInventories,s=>s.battle.itemInventories.mage.potion=1,s=>s.battle.potions.ally++,s=>s.battle.itemInventories.archer.potion=-1,s=>delete s.battle.itemInventories.archer]){

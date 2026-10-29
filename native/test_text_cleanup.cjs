@@ -1,7 +1,9 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js');
 const legacy='繰り返しの受注・移動・買い替えを確かめる仮の配達依頼です。急ぎは納期6時間・報酬180G、通常は10時間・150G。';
-const s=C.create(),q=C.board(s)[0];
+const s=require('./test-current-fixture.cjs')(),q=C.board(s)[0];
 assert.equal(q.text,`${q.cargo}を${C.locations.find(x=>x.id===q.to).name}まで届けてください。`);
 assert.ok(C.accept(s,q.id,'porter'));
 s.activeQuest.text=legacy;
@@ -14,5 +16,5 @@ assert.equal(C.view(loaded).activeQuest.text,q.text);
 assert.deepEqual(C.serialize(loaded),before,'reload/view retains original quest state');
 loaded.activeQuest.text='別の依頼文を残す。';assert.equal(C.view(loaded).activeQuest.text,loaded.activeQuest.text);
 loaded.activeQuest.text=legacy;loaded.activeQuest.id='custom';assert.equal(C.view(loaded).activeQuest.text,legacy,'unknown template is preserved');
-assert.equal(C.view(C.create()).activeQuest,null);
+assert.equal(C.view(require('./test-current-fixture.cjs')()).activeQuest,null);
 console.log('PASS new quest copy, exact known legacy display, save immutability, unknown text/id preserved');

@@ -1,6 +1,6 @@
 extends "res://tests/guild_regression.gd"
-## Canonical 6..11-member operations; 12-member display boundary uses explicit
-## synthetic UI-only rows because the current product roster has 11 people.
+## Canonical 6..12-member operations on the migrated 35-person roster.
+## Separate view-only capacity overrides never write back to the engine.
 var geometry=[]
 func current_ids() -> Array:return ids("GuildCurrentScroll")
 func check_layout(tag: String):
@@ -43,6 +43,7 @@ func run():
  while game.data.is_empty():
   if game.engine!=null and game.engine.disconnected:check(false,"test startup: "+game.engine.last_error);quit(2);return
   await process_frame
+ await preload("res://tests/current_historical_fixture.gd").install(game)
  game.audio.fast_mode=true;game.checks_fast=true;actual=game.engine;await settle();var seed=await saved()
  game.navigate("party");await settle();var guild=game.pages.guild_view
  if node("FacilityChoice_guild")!=null:await tap("FacilityChoice_guild")
@@ -54,21 +55,27 @@ func run():
  await pure_ui_boundaries()
  check((await saved())==seed,"synthetic display/candidate boundaries never write engine save or ownership")
  if game.campaign().get("partyLimit",0)!=12:
-  check(false,"native partyLimit12 integration must be available before canonical 6..11 operations")
+  check(false,"native partyLimit12 integration must be available before canonical 6..12 operations")
  else:
   var roster_ids=game.campaign().roster.map(func(member):return str(member.id));var wanted=game.campaign().selected.duplicate();var added=0
   for id in roster_ids:
+   if wanted.size()==original_limit:break
    if wanted.has(id):continue
    await tap("GuildMember_"+id);check(not node("GuildAdd").disabled,"canonical reserve add stays available above five")
    await tap("GuildAdd");wanted.append(id);added+=1
    check(game.campaign().selected==wanted,"canonical membership count "+str(wanted.size())+" commits ordered personal IDs")
-  check(wanted.size()==11 and added==6,"all eleven existing characters can join without inventing a twelfth character")
-  var full=await saved();check(full.state.characters==seed.state.characters and full.state.gold==seed.state.gold,"joining six additional people preserves equipment inventories growth and money")
+  check(roster_ids.size()==35 and wanted.size()==12 and added==7,"twelve real people join while other migrated candidates remain in reserve")
+  var full=await saved();check(full.state.characters==seed.state.characters and full.state.gold==seed.state.gold,"joining seven additional people preserves equipment inventories growth and money")
+  var extra=roster_ids.filter(func(id):return not wanted.has(id))[0];guild.choose(extra);await settle()
+  check(node("GuildAdd").disabled and guild.candidate("add","",extra).is_empty() and (await saved())==full,"canonical full party rejects a thirteenth member without mutation")
+  # The capacity probe selected a reserve. Clear that selection so the next
+  # current-member click opens its details instead of performing a legal swap.
+  guild.cancel_selection();await settle();check((await saved())==full,"ending capacity probe preserves full party before details checks")
   var scroll=node("GuildCurrentScroll");scroll.scroll_vertical=500;await frames();var chosen=roster_ids[7];guild.choose(chosen);await settle();var position=node("GuildCurrentScroll").scroll_vertical
   await tap("GuildDetails");check(game.pages.party_view.detail_uid==chosen,"central details opens the selected personal identity")
   game.dialog.close(false);await settle();check(guild.chosen_id==chosen and node("GuildCurrentScroll").scroll_vertical==position,"details close preserves selected identity and list position")
   guild.cancel_selection();await settle();await tap("GuildMember_"+wanted[0]);await tap("GuildMember_"+wanted[7]);var swap=wanted[0];wanted[0]=wanted[7];wanted[7]=swap
-  check(game.campaign().selected==wanted,"eleven-member reorder retains exact slot order through normal two-row flow")
+  check(game.campaign().selected==wanted,"twelve-member reorder retains exact slot order through normal two-row flow")
   await tap("GuildMember_"+wanted[3]);var removed=wanted[3];await tap("GuildRemove");wanted.erase(removed)
   check(game.campaign().selected==wanted,"central remove acts on selected member and preserves others")
   await tap("GuildMember_"+removed);await tap("GuildAdd");wanted.append(removed)

@@ -1,5 +1,6 @@
 extends SceneTree
-## Synthetic twelfth card is a UI boundary only; the shipped roster stays eleven.
+## Eleven-to-twelve card boundaries use real migrated candidates; view-only
+## changes are checked separately from canonical save state.
 var game
 var checks=[]
 var evidence=OS.get_environment("INVENTORY_QA_ROOT")
@@ -17,8 +18,10 @@ func run():
 	create_timer(120).timeout.connect(func():print("FAIL strip watchdog");quit(2))
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
-	var ids=game.roster().map(func(m):return str(m.id));check(ids.size()==11,"eleven real people, no invented twelfth character")
+	var roster_ids=game.roster().map(func(m):return str(m.id));check(roster_ids.size()==35,"eleven historical people and twenty-four new candidates")
+	var ids=roster_ids.slice(0,11)
 	await game.act("select",[ids]);await settle()
 	var before=await saved()
 	for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540),Vector2i(1920,1080)]:
@@ -43,11 +46,11 @@ func run():
 	check(touch_scroll.scroll_horizontal==150,"second touch step stays monotonic after card itself moves")
 	touch.pressed=false;touch_card._gui_input(touch)
 	check(game.pages.party_view.detail_uid.is_empty() and await saved()==before,"simulated touch swipe does not activate person or mutate save")
-	root.size=Vector2i(960,540);await frames();var synthetic=game.campaign().roster[0].duplicate(true);synthetic.id="qa-ui-twelfth";synthetic.name="表示境界12"
-	game.data.campaign.roster.append(synthetic);game.data.campaign.selected.append(synthetic.id);game.render();await settle()
-	check(node("PartyFaces").get_child_count()==12,"explicit synthetic twelfth UI card")
-	node("PartyFace_qa-ui-twelfth").grab_focus();await frames();check(node("PartyFacesScroll").get_global_rect().intersects(node("PartyFace_qa-ui-twelfth").get_global_rect()),"synthetic twelfth reachable")
-	check(await saved()==before,"synthetic UI boundary never alters backend")
+	root.size=Vector2i(960,540);await frames();var twelfth=roster_ids[11]
+	game.data.campaign.selected.append(twelfth);game.render();await settle()
+	check(node("PartyFaces").get_child_count()==12,"real twelfth candidate renders at UI capacity boundary")
+	node("PartyFace_"+twelfth).grab_focus();await frames();check(node("PartyFacesScroll").get_global_rect().intersects(node("PartyFace_"+twelfth).get_global_rect()),"real twelfth card reachable")
+	check(await saved()==before,"view-only twelfth card never alters backend")
 	var east=before.duplicate(true);east.state.location="east";east.state.characters.guard.inventory["spear-wood"]=3
 	game.save_notice.display("前のプロフィールの取引")
 	await game.update({"op":"campaign_load","data":east});check(not game.save_notice.visible and game.save_notice.caption.text.is_empty(),"load clears previous campaign toast");game.navigate("shop");await settle()

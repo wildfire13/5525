@@ -8,13 +8,13 @@ func run():
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
-	var seed=await saved();seed.state.characters.guard.inventory={"potion":3,"spear-wood":1,"kungfu-pants":1,"fist-1":1}
+	var seed=await saved();seed.state.characters.guard.inventory={"potion":3,"spear-wood":1,"kungfu-pants":1,"javelin-wood":1}
 	await game.update({"op":"campaign_load","data":seed});await settle()
 	var menu_button=node("CommonMenuButton");var rect=menu_button.get_global_rect()
 	check(rect.position.x>1700 and rect.position.y>1000 and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(rect),"menu fixed in FHD bottom right: "+str(rect))
 	var party=game.pages.party_view;party.open_detail("guard");await settle()
 	check(node("StatusEquipped").get_global_rect().end.x<=node("StatusOwnedInventory").global_position.x,"owned inventory alongside equipped slots")
-	check(node("OwnedEquipment_potion")!=null and node("OwnedEquipment_fist-1")!=null,"equipment view includes consumables and equipment")
+	check(node("OwnedEquipment_potion")!=null and node("OwnedEquipment_javelin-wood")!=null,"equipment view includes consumables and equipment")
 	# Stress only the view projection; never send synthetic item IDs to the engine.
 	var original_entries=game.campaign().inventoryByCharacter.guard.entries.duplicate(true)
 	var long_entries=[]

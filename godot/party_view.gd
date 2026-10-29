@@ -20,6 +20,7 @@ func _init(owner):owner_ref=weakref(owner);ui=owner.ui;inventory_view=preload("r
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func render(parent):
+	if pages.warehouse_view.available():pages.warehouse_view.render(parent);return
 	l(parent,"ギルド / パーティー編成" if pages.c().get("guildAvailable",false) else "仲間・装備",true).name="PartyFacilityHeading"
 	if pages.c().get("guildAvailable",false):pages.guild_view.render(parent);return
 	var c=pages.c();var members=ui.visible_roster();var ids=c.get("selected",[])
@@ -269,6 +270,7 @@ func tint(control: Button,color: Color):
 		style.bg_color=color.lightened(.12) if state_=="hover" else color
 		control.add_theme_stylebox_override(state_,style)
 func portrait_pressed(uid: String):
+	if detail_uid.is_empty() and pages.warehouse_view.available():pages.warehouse_view.select_owner(uid);return
 	if detail_uid.is_empty() and pages.shop_view.sale_mode() and pages.shop_view.owner_pressed(uid):return
 	if detail_uid.is_empty():open_detail(uid);return
 	if uid==detail_uid or ui.locked or ui.presenting or committing or leave_pending or inventory_view.stage in ["pending","unknown","confirm"]:return

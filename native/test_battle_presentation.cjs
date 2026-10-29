@@ -1,4 +1,6 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict');
 const B=require('./campaign-battle.js'),{Presentation,capture}=require('./battle-presentation.cjs');
 const clone=x=>JSON.parse(JSON.stringify(x));
@@ -49,7 +51,8 @@ for(const skill of ['stamp','splitShot','healingCross','retreatSlash','knockback
  const target=skill==='stamp'?25:skill==='splitShot'?[e.id,f.id]:skill==='healingCross'?b.id:e.id;
  const expected=clone(s);assert(B.act(expected,'skill',target),skill);
  const p=new Presentation();assert(p.start(s,B,()=>B.act(s,'skill',target)));const frames=drain(p);
- assert.equal(frames[0].phase,'action');assert.equal(frames.filter(f=>f.phase==='action').length,1);
+ assert.equal(frames[0].phase,'action');assert.equal(frames.filter(f=>f.phase==='action').length,skill==='stamp'?2:1);
+ if(skill==='stamp'){assert.equal(frames[0].kind,'cast');assert.equal(frames.filter(f=>f.phase==='action')[1].kind,'skill');}
  if(skill==='healingCross'){assert(frames.some(f=>f.phase==='heal'));assert(!frames.some(f=>f.phase==='hurt'));}
  if(['stamp','splitShot'].includes(skill))assert.equal(frames.filter(f=>f.phase==='hurt').length,2);
  if(['retreatSlash','knockback'].includes(skill))assert(frames.findIndex(f=>f.phase==='hurt')<frames.findIndex(f=>f.phase==='move'));
@@ -74,11 +77,13 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  const preview=B.damagePreview(s,a,'skill',target),q=new Presentation();
  assert(q.start(s,B,()=>B.act(s,'skill',target)));const frames=drain(q),hits=frames.filter(x=>x.phase==='hurt');
  assert.deepEqual(hits.map(x=>x.from-x.to),expected,skill);
- assert.deepEqual(hits.map(x=>x.from-x.to),preview.map(x=>x.hpLoss));
+ if(skill==='stamp')assert.deepEqual(preview,[],'cast reservation does not preview immediate damage');
+ else assert.deepEqual(hits.map(x=>x.from-x.to),preview.map(x=>x.hpLoss));
  assert(hits.every(x=>x.actor_id==='guard'));
  assert.equal(new Set(hits.map(x=>x.action_id)).size,1);
- assert.equal(frames[0].skill_id,skill);assert.deepEqual(frames[0].voiceEvents,[{character_id:'guard',cue:'skill:'+skill}]);
- assert.equal(s.units.find(u=>u.id==='guard').mp,7);assert.equal(s.actions,1);
+ assert.equal(frames[0].skill_id,skill);assert.deepEqual(frames[0].voiceEvents,skill==='stamp'?[]:[{character_id:'guard',cue:'skill:'+skill}]);
+ if(skill==='stamp')assert.deepEqual(frames.find(f=>f.phase==='action'&&f.kind==='skill').resolved.cells,[15,25,35]);
+ assert.equal(s.units.find(u=>u.id==='guard').mp,7);assert.equal(s.actions,skill==='stamp'?2:1);
 }
 
 // Resolved status metadata is presentation-only. The native success assignment
@@ -87,7 +92,7 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  const C=require('./campaign.js');
  const {mark}=require('./battle-presentation.cjs');
  function sweep(level=1,already=false,consume=false){
-  const campaign=C.create();campaign.characters.guard.lowerBody=level===1?'kungfu-pants':`kungfu-pants-${level}`;
+  const campaign=C.deserialize(C.serialize(C.createLegacy()));for(const c of Object.values(campaign.characters))c.inventory={};campaign.characters.guard.lowerBody=level===1?'kungfu-pants':`kungfu-pants-${level}`;
   assert(C.depart(campaign,'east'));assert(C.travel(campaign,'short',()=>0));assert(C.begin(campaign));
   const b=campaign.battle,positions={guard:24,archer:12,mage:13,scout:4,porter:32};
   for(const u of b.units){u.next=10000;if(u.side==='ally')u.pos=positions[u.id];}
@@ -182,7 +187,7 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
 {
  const C=require('./campaign.js');
  function attackCampaign({mixed=false,actor='guard',targetCell=25,covered=false}={}){
-  const s=C.create();if(mixed)s.characters.guard.leftHand='staff-wood';
+  const s=C.deserialize(C.serialize(C.createLegacy()));for(const c of Object.values(s.characters))c.inventory={};if(mixed)s.characters.guard.leftHand='staff-wood';
   assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>0));assert(C.begin(s));
   const positions={guard:actor==='archer'?22:24,archer:actor==='archer'?24:12,mage:13,scout:4,porter:32};
   const b=s.battle;for(const u of b.units){u.next=10000;if(u.side==='ally')u.pos=positions[u.id];}

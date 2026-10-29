@@ -1,8 +1,10 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),clone=x=>JSON.parse(JSON.stringify(x));
 const row=(characterId,gearId,slot='rightHand')=>({characterId,gearId,slot});
 let passed=0;const test=(name,fn)=>{fn();passed++;console.log('PASS '+name);};
-function town(){const s=C.create();s.location='east';return s;}
+function town(){const s=require('./test-current-fixture.cjs')();s.location='east';return s;}
 function okay(s){assert.equal(C.validate(s).ok,true,C.validate(s).error);assert.deepEqual(C.deserialize(C.serialize(s)),s);}
 test('inventory sale display uses the same quote and price as the transaction',()=>{
   const s=town();s.characters.guard.inventory={'sword-wood':2,potion:3};

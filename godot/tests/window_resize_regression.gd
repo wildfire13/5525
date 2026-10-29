@@ -6,6 +6,7 @@ func run():
  create_timer(150).timeout.connect(func():print("FAIL window resize watchdog");quit(2))
  root.size=Vector2i(1180,812);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
+ await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true;await settle();var original=await saved();var town=original.duplicate(true);town.state.location="east"
  await game.update({"op":"campaign_load","data":town});await enter_facility("shop");game.pages.party_view.open_detail("guard");await settle();await click("StatusTab_2");node("PartySkillDetails_guard").grab_focus();await click("PartySkillDetails_guard");var before=await saved()
  var detail=node("SkillDetailsWindow")

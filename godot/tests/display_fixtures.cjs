@@ -14,16 +14,16 @@ for(const [name,right,left,growth,id='guard'] of [
  ['two-handed-sword','greatsword-wood','empty-leftHand',0],
  ['porter','porter-kit','empty-leftHand',6,'porter'],
 ]){
- const s=C.create(),c=s.characters[id];c.weapon=right;c.leftHand=left;c.allocations.str=growth;
+ const s=require('../../native/test-current-fixture.cjs')(),c=s.characters[id];c.weapon=right;c.leftHand=left;c.allocations.str=growth;
  const stats=C.stats(c),actor={...stats,job:id,pos:0};
  const powers=[1,2,3,4].map(d=>B.reachFilteredPower(actor,{pos:d},'attack').base);
  profiles.push({name,stats,powers,reach:B.attackReach(actor,'attack')});
 }
-const s=C.create();s.location='east';s.gold=250;
+const s=require('../../native/test-current-fixture.cjs')();s.location='east';s.gold=250;
 assert(C.buyGear(s,'guard','spear-wood','rightHand'));
 const quote=C.previewGear(s,'guard','javelin-wood','leftHand');
 assert.equal(quote.before.atk,23);assert.equal(quote.after.atk,23);
-assert.deepEqual(profiles.find(p=>p.name==='mixed-reach').powers,[44,44,21,0]);
+assert.deepEqual(profiles.find(p=>p.name==='mixed-reach').powers,[44,23,0,0]); // The thrown spear's normal reach is now 1.
 const shop=JSON.parse(C.serialize(s));
 assert(C.buyGear(s,'guard','javelin-wood','leftHand'));
 assert(C.depart(s,'astaris'));assert(C.travel(s,'short',()=>0));
