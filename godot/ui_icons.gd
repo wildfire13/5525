@@ -3,6 +3,7 @@ extends RefCounted
 var cache: Dictionary={}
 var approved: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://assets/approved_v56/recipes.json"))
 var equipment_paths: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://assets/equipment_icons_placeholder/mapping.json"))
+const TEMP_BADGE="res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
 const ROOT="res://assets/ui_icons/icons64/"
 const SLOTS={"rightHand":"right_hand","leftHand":"left_hand","head":"head","upperBody":"body","lowerBody":"trousers","feet":"feet","accessory1":"accessory","accessory2":"accessory"}
 const JOBS={"guard":"warrior","warrior":"warrior","archer":"scout","scout":"scout","mage":"mage","porter":"porter"}
@@ -15,6 +16,9 @@ func texture(id: String) -> Texture2D:
 		if id.begins_with("approved:"):
 			cache[id]=compose_approved(id)
 			return cache[id]
+		if id.begins_with("placeholder:"):
+			cache[id]=compose_placeholder(id.trim_prefix("placeholder:"))
+			return cache[id]
 		var path=path_for(id)
 		if not ResourceLoader.exists(path):push_error("Unknown adopted UI icon: "+id);return null
 		cache[id]=load(path)
@@ -26,7 +30,10 @@ func equipment(item: Dictionary) -> String:
 	if item.get("virtualDefault",false) or item.get("type")=="fist":return "approved:fist"
 	if item.get("type")=="empty":return ""
 	if approved.equipment.has(id):return "approved:equipment:"+id
-	return "equipment:"+id if equipment_paths.has(id) else gear(item)
+	if equipment_paths.has(id):return "equipment:"+id
+	var category=gear(item)
+	if category.is_empty():category=slot("rightHand" if item.get("slot")=="weapon" else str(item.get("slot","")))
+	return "placeholder:"+(category if not category.is_empty() else "accessory")
 func add(parent: Node,id: String,pixels:=32) -> TextureRect:
 	var image=TextureRect.new();image.name="Icon_"+id;image.set_meta("ui_icon_id",id)
 	image.texture=texture(id);image.custom_minimum_size=Vector2(pixels,pixels)
@@ -76,6 +83,16 @@ func compose_approved(id: String) -> Texture2D:
 	if has_level:
 		var badge=fit_image(approved_image(levels[level]),21)
 		canvas.blend_rect(badge,Rect2i(Vector2i.ZERO,badge.get_size()),Vector2i(43,0))
+	return ImageTexture.create_from_image(canvas)
+# Equipment-only fallback. Shared category icons and approved artwork stay exact.
+func compose_placeholder(category: String) -> Texture2D:
+	var canvas=Image.create(64,64,false,Image.FORMAT_RGBA8)
+	canvas.fill(Color("#59451d"))
+	canvas.fill_rect(Rect2i(2,2,60,60),Color("#f2cc51"))
+	var base=fit_image(approved_image({"base":ROOT+category+".png"}),54)
+	canvas.blend_rect(base,Rect2i(Vector2i.ZERO,base.get_size()),Vector2i((64-base.get_width())/2,3))
+	var badge=fit_image(approved_image({"base":TEMP_BADGE}),30)
+	canvas.blend_rect(badge,Rect2i(Vector2i.ZERO,badge.get_size()),Vector2i(63-badge.get_width(),63-badge.get_height()))
 	return ImageTexture.create_from_image(canvas)
 func job(id: String) -> String:return JOBS.get(id,"")
 func race(id: String) -> String:return id+"_blank_face" if id in ["human","elf","dwarf"] else ""
