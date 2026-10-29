@@ -1,4 +1,5 @@
 """Audio/controller tests use temporary synthetic WAVs, never substitute game assets."""
+from test_current_fixture import current_campaign
 import json
 import hashlib
 from pathlib import Path
@@ -153,7 +154,7 @@ class VoiceTests(unittest.TestCase):
     def test_campaign_opening_enemy_hit_only_after_begin(self):
         bridge = Session(5525)
         self.addCleanup(bridge.close)
-        bridge.call(op='campaign_start')
+        current_campaign(bridge)
         for action, args in [('select', [['guard', 'porter']]), ('depart', ['east']),
                              ('travel', ['safe']), ('deploy', ['guard', 4])]:
             response = bridge.call(op='campaign', action=action, args=args)
@@ -206,7 +207,7 @@ class VoiceTests(unittest.TestCase):
                  ('mage', 'sharing-tome', 'manaGift'), ('porter', 'return-ring-1', 'returnHome')]
         for uid, gear, skill in cases:
             with self.subTest(skill=skill):
-                bridge.call(op='campaign_start')
+                current_campaign(bridge)
                 saved = bridge.call(op='campaign_save')['data']
                 saved['state']['location'] = 'north' if skill == 'returnHome' else 'east'
                 self.assertTrue(bridge.call(op='campaign_load', data=saved)['ok'])
@@ -244,7 +245,7 @@ class VoiceTests(unittest.TestCase):
         for gear, skill, action in [('victory-earring-1', 'victoryBreath', 'attack'),
                                     ('lone-ring-1', 'loneWolf', 'attack'),
                                     ('pioneer-gloves-1', 'firstStride', 'move')]:
-            bridge.call(op='campaign_start')
+            current_campaign(bridge)
             saved = bridge.call(op='campaign_save')['data']
             saved['state']['location'] = 'north'
             self.assertTrue(bridge.call(op='campaign_load', data=saved)['ok'])

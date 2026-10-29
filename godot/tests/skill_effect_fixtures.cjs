@@ -12,7 +12,7 @@ const clone=value=>JSON.parse(JSON.stringify(value));
 const validate=(state,label)=>assert(C.validate(state).ok,`${label}: ${C.validate(state).error}`);
 
 function campaign(kind){
-  const s=C.create(),guard=s.characters.guard;
+  const s=require('../../native/test-current-fixture.cjs')(),guard=s.characters.guard;
   if(kind.startsWith('sweep'))guard.lowerBody=kind==='sweep100'?'kungfu-pants-3':'kungfu-pants';
   if(kind.startsWith('stamp'))guard.weapon='hammer-wood';
   assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>0));assert(C.begin(s));
@@ -42,7 +42,7 @@ function campaign(kind){
   if(kind==='sweepEmpty')enemies.forEach((u,i)=>{u.pos=[29,19,39][i];});
   if(kind==='sweepEdge')actor.pos=0;
   if(kind==='sweepAlreadySet')enemies[0].skipNextTurn=true;
-  if(kind==='stampMiss')target=23; // Empty/friendly center is legal; no enemies in these cells.
+  if(kind==='stampMiss'){actor.pos=22;target=23;} // Fixed right-hand column contains no enemies.
   if(kind==='stampEdge'){actor.pos=0;target=1;}
   if(['stampCover','attackCover','attackCoverGuarded'].includes(kind)){
     enemies.forEach((u,i)=>{u.pos=[26,25,36][i];});
@@ -115,7 +115,12 @@ function observe(name){
   if(accepted){
     assert.equal(frames[0].presentation.phase,'action');assert.equal(frames[0].presentation.skill_id,expected.skill_id);
     assert(frames.filter(f=>f.presentation.phase!=='action').every(f=>f.presentation.skill_id===undefined),`${name} skill_id belongs only to action`);
-    if(!['attackFixedMiss','attackSequence'].includes(name))assert.equal(new Set(frames.map(f=>f.presentation.action_id)).size,1,`${name} one causal action id`);
+    if(name.startsWith('stamp')){
+      const actions=frames.filter(f=>f.presentation.phase==='action');
+      assert.deepEqual(actions.map(f=>f.presentation.kind),name==='stampNextActor'?['cast']:['cast','skill'],`${name} reservation precedes personal-opportunity resolution`);
+      assert.equal(new Set(actions.map(f=>f.presentation.action_id)).size,actions.length,`${name} distinct reservation and resolution identities`);
+      assert.equal(initial.units.find(u=>u.id===initial.actor).mp-observed.battle.units.find(u=>u.id===initial.actor).mp,1,`${name} reservation is charged once`);
+    }else if(!['attackFixedMiss','attackSequence'].includes(name))assert.equal(new Set(frames.map(f=>f.presentation.action_id)).size,1,`${name} one causal action id`);
   }else{assert.equal(frames.length,0);assert.deepEqual(JSON.parse(C.serialize(observed)),save);}
   if(name==='sweep50')assert.deepEqual(newSkips,[]);
   if(name==='sweep100')assert.equal(newSkips.length,3);
@@ -137,6 +142,7 @@ function observe(name){
   if(name==='stampEdge')assert.deepEqual(expected.cells,[1,11]);
   if(name==='stampNextActor'){
     assert.equal(expected.final_actor,'archer');assert.deepEqual(geometry(observed.battle).stampAreas,{});
+    assert.equal(impacts.length,0);assert(observed.battle.units.find(u=>u.id===initial.actor).pendingStamp);
   }
   const actions=frames.filter(f=>f.presentation.phase==='action');
   expected.actions=actions.map(f=>({action_id:f.presentation.action_id,kind:f.presentation.kind,skill_id:f.presentation.skill_id,actor_id:f.presentation.actor_id,target:f.presentation.target}));

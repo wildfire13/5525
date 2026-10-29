@@ -23,11 +23,11 @@ function capture(state,engine,run) {
   };
   const observer={action(actor,kind,target,eng=engine){
     // enemyAction marks even misses; its nested apply must not duplicate it.
-    if(current===actor)return;
+    if(current===actor&&statusAction?.kind===kind)return;
     current=actor;actionNumber++;spoken.clear();
     const cue=kind==='return'?'skill:returnHome':kind==='skill'?'skill:'+eng.activeSkill(actor):'attack';
-    add('action',actor,{kind,skill_id:kind==='skill'?eng.activeSkill(actor):kind==='return'?'returnHome':null,target:clone(target??null),label:actor.name+'：'+
-      (kind==='skill'?eng.skillName(actor):({attack:'攻撃',move:'移動',guard:'防御',item:'回復薬',ether:'エーテル',return:'帰還',skip:'足払いで手番をスキップ'}[kind]||kind)),
+    add('action',actor,{kind,skill_id:['skill','cast'].includes(kind)?eng.activeSkill(actor):kind==='return'?'returnHome':null,target:clone(target??null),label:actor.name+'：'+
+      (kind==='skill'?eng.skillName(actor):({attack:'攻撃',move:'移動',guard:'防御',item:'回復薬',ether:'エーテル',return:'帰還',skip:'足払いで手番をスキップ',cast:'スタンプの構え'}[kind]||kind)),
       voiceEvents:actor.side==='ally'&&['attack','skill','return'].includes(kind)?[{character_id:actor.id,cue}]:[]});
     statusAction=frames[frames.length-1];
     const targets=(Array.isArray(target)?target:[target]).flatMap(id=>{
@@ -37,6 +37,7 @@ function capture(state,engine,run) {
     const helpers=kind==='skill'&&statusAction.skill_id==='pincer'&&targets.length&&typeof engine.range==='function'
       ?state.units.filter(unit=>unit.hp>0&&unit.side===actor.side&&unit.id!==actor.id&&engine.range(unit,{pos:targets[0].cell})===1).map(unit=>({unit_id:unit.id,cell:unit.pos})):[];
     statusAction.resolved={targets,pincer_success:helpers.length>0,pincer_helpers:helpers};
+    if(statusAction.skill_id==='stamp'&&Array.isArray(eng.resolvedCells))statusAction.resolved.cells=clone(eng.resolvedCells);
     if(kind==='skill'&&statusAction.skill_id==='healingCross'&&targets.length&&typeof engine.crossCells==='function')statusAction.resolved.cells=clone(engine.crossCells(targets[0].cell));
     if(kind==='attack'||kind==='skill'){
       // Enemy plans reserve a cell; the original unit id may have moved away.

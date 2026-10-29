@@ -46,6 +46,7 @@ func run():
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.audio.fast_mode=true;game.checks_fast=true
 	var seed=await saved();seed.state.gold=0;seed.state.characters.guard.inventory={"potion":2,"ether":1,"spear-wood":2,"swift-boots":1,"bow-wood":1,"lone-ring-2":1}
 	check((await game.update({"op":"campaign_load","data":seed})).get("ok",false),"valid fixture with zero gold outside equipment shop")

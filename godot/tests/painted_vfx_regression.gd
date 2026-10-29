@@ -58,16 +58,17 @@ func run():
    check(fx.emitters.is_empty() and fx.captions.is_empty() and fx.reactions.is_empty() and fx.stage.get_child_count()==0,key+" repeat "+str(repeat)+" clears every effect node")
   check((await game.engine.request({"op":"campaign_save"})).data==native_before,key+" render-only replay has exact native save parity")
  # Pose ownership: only the supplied default knight and wood hammer receive wood art.
- var c=cases.stamp;await game.update({"op":"campaign_load","data":c.save});load_frame(c,c.frames[0],0)
- var actor=str(c.frames[0].presentation.actor_id);var original=board.actors[actor].sprite.texture
- board.animate(c.frames[0].presentation);fx.set_process(false);fx._process(.2)
+ var c=cases.stamp;var stamp_frame=c.frames.filter(func(f):return f.presentation.phase=="action" and f.presentation.kind=="skill")[0]
+ await game.update({"op":"campaign_load","data":c.save});load_frame(c,stamp_frame,0)
+ var actor=str(stamp_frame.presentation.actor_id);var original=board.actors[actor].sprite.texture
+ board.animate(stamp_frame.presentation);fx.set_process(false);fx._process(.2)
  check(board.actors[actor].sprite.texture==fx.textures.pose_stamp_lift,"default wood hammer has genuine raised pose")
  fx.clear();check(board.actors[actor].sprite.texture==original,"pose returns exact source texture")
- board.portraits.overrides[actor]="qa-custom-placeholder";board.last_animated_phase="";board.animate(c.frames[0].presentation);fx.set_process(false);fx._process(.2)
+ board.portraits.overrides[actor]="qa-custom-placeholder";board.last_animated_phase="";board.animate(stamp_frame.presentation);fx.set_process(false);fx._process(.2)
  check(board.actors[actor].sprite.texture==original,"custom portrait is never replaced by generated knight")
  fx.clear();board.portraits.overrides.erase(actor)
  # Restore must use the current compact geometry, never stale start dimensions.
- board.last_animated_phase="";board.animate(c.frames[0].presentation);fx.set_process(false);fx._process(.2)
+ board.last_animated_phase="";board.animate(stamp_frame.presentation);fx.set_process(false);fx._process(.2)
  board.size=Vector2(960,200);board.update_camera();fx._process(.05)
  check(is_equal_approx(board.actors[actor].sprite.pixel_size,board.texture_pixel_size(board.actors[actor].sprite.texture)),"in-flight pose follows compact sizing")
  fx.clear()

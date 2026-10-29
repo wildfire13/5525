@@ -1,7 +1,7 @@
 'use strict';
 const C=require('../../native/campaign.js'),B=require('../../native/campaign-battle.js'),assert=require('node:assert/strict');
 function battle(actor='guard',mp=3,formed=true){
- const s=C.create();
+ const s=require('../../native/test-current-fixture.cjs')();
  s.characters.guard.weapon='hammer-wood';s.characters.guard.leftHand='guard-shield-wood';
  // Synthetic four-ether fixture now has an explicit owner before battle starts.
  delete s.characters.guard.inventory.ether;s.characters.porter.inventory.ether=4;
@@ -27,7 +27,7 @@ function camp(){
  assert(C.validate(s).ok,C.validate(s).error);return JSON.parse(C.serialize(s));
 }
 function support(right,left,skill){
- const s=C.create();s.characters.mage.weapon=right;s.characters.mage.leftHand=left;
+ const s=require('../../native/test-current-fixture.cjs')();s.characters.mage.weapon=right;s.characters.mage.leftHand=left;
  assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>.5));assert(C.begin(s));
  const b=s.battle;for(const u of b.units)u.next=u.side==='ally'?2:10000;
  const mage=b.units.find(u=>u.id==='mage');mage.next=1;mage.pos=22;mage.selectedSkill=skill;b.actor=mage.id;

@@ -1,4 +1,5 @@
 """Real Node-process campaign boundaries. These are not GUI tests."""
+from test_current_fixture import current_campaign
 import copy
 import json
 import subprocess
@@ -13,7 +14,7 @@ console.log(JSON.stringify({kind,target:target??null}));
 class CampaignBridgeTests(unittest.TestCase):
     def setUp(self):
         self.bridge=Session(5525)
-        self.data=self.bridge.call(op='campaign_start')
+        self.data=current_campaign(self.bridge)
         self.assertTrue(self.data['ok'])
     def tearDown(self):self.bridge.close()
     def action(self,action,*args,ok=True):

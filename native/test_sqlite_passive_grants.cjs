@@ -1,9 +1,11 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const master=require('./master-data.cjs').getMaster();
 let count=0;function test(name,fn){fn();count++;console.log('PASS '+name);}
 function trial(accessory2){
- const s=C.create();s.location='east';s.characters.guard.accessory1='lone-ring-1';
+ const s=C.createLegacy();s.location='east';s.characters.guard.accessory1='lone-ring-1';
  if(accessory2)s.characters.guard.accessory2=accessory2;
  const t=C.trial(s,'guard','sword-wood','rightHand');assert.ok(t);
  const b=t.battle,a=b.units.find(u=>u.id==='guard'),enemy=b.units.find(u=>u.side==='enemy');

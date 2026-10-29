@@ -456,7 +456,8 @@ func effect_event(p: Dictionary) -> Dictionary:
 		if skill=="healingCross":cells=p.get("resolved_heals",[]).map(func(row):return int(row.cell))
 		elif skill=="legSweep":cells=data.get("ranges",{}).get("skill",[]).duplicate()
 		elif skill=="stamp":
-			cell=int(p.get("target",-1));cells=intent.get("cells",[]).duplicate() if actor.get("side")=="enemy" and intent.get("kind")=="skill" else data.get("stampAreas",{}).get(str(cell),[]).duplicate()
+			cell=int(p.get("target",-1))
+			if cells.is_empty():cells=intent.get("cells",[]).duplicate() if actor.get("side")=="enemy" and intent.get("kind")=="skill" else data.get("stampAreas",{}).get(str(cell),[]).duplicate()
 		if kind=="attack":
 			if p.get("attack_visual") is Dictionary:
 				cell=int(p.attack_visual.get("target_cell",-1));target_id=str(p.attack_visual.get("target_unit_id") if p.attack_visual.get("target_unit_id")!=null else "")

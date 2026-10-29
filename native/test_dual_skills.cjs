@@ -13,7 +13,7 @@ test('splitShot computes each target separately and emits loneWolf once',()=>{
  const {s,a,e,e2}=scene('splitShot',[weapon('rightHand',25,3,'splitShot'),weapon('leftHand',26,1)]);a.effects=['loneWolf'];e2.pos=27;const previews=actAndCompare(s,a,[e.id,e2.id]);assert.deepEqual(previews.map(x=>x.base),[51,25]);assert.deepEqual(previews.map(x=>x.damage),[38,19]);assert.equal(a.mp,7);assert.equal(s.skillEvents.filter(x=>x.skillId==='loneWolf').length,1);
 });
 test('stamp source hammer covers all three cells, other sword only near target',()=>{
- const {s,a}=scene('stamp',[weapon('rightHand',29,1,'stamp'),weapon('leftHand',26,1)]);const previews=actAndCompare(s,a,25);assert.deepEqual(previews.map(x=>x.base),[55,29,29]);assert.equal(a.mp,7);
+ const {s,a}=scene('stamp',[weapon('rightHand',29,1,'stamp'),weapon('leftHand',26,1)]);const before=s.units.map(u=>u.hp);assert.deepEqual(B.damagePreview(s,a,'skill',25),[]);assert(B.act(s,'skill',25));assert.deepEqual(s.units.slice(3).map((u,i)=>before[i+3]-u.hp),[55,29,29]);assert.equal(a.mp,7);assert.equal(s.actions,2,'reservation plus next personal opportunity');
 });
 test('ambush sums after landing; passive, MP and movement remain single action',()=>{
  const {s,a,e}=scene('scout',[weapon('rightHand',23,1,'scout'),weapon('leftHand',14,2)]);a.canInvade=true;e.pos=27;const previews=actAndCompare(s,a,e.id);assert.equal(a.pos,26);assert.equal(previews[0].base,37);assert.equal(a.mp,7);assert.equal(s.actions,1);

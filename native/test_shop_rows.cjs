@@ -1,7 +1,9 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js');
 let checks=0;function check(ok,label){assert.ok(ok,label);checks++;console.log('PASS '+label);}
-const snapshot=s=>C.serialize(s),make=()=>{const s=C.create();s.location='east';s.gold=500;return s;};
+const snapshot=s=>C.serialize(s),make=()=>{const s=C.createLegacy();s.location='east';s.gold=500;return s;};
 let s=make(),before=snapshot(s),q=C.purchaseQuote(s,'javelin-wood');
 check(q.ok&&q.count===1&&q.cost===100&&q.goldBefore===500&&q.afterGold===400,'single-unit consent contains exact payment');
 check(snapshot(s)===before,'quote/consent alone does not change save');

@@ -43,10 +43,10 @@ func run():
 		check(game.state().units.filter(func(u):return u.id==enemy.id)[0].pos==(23 if id=="grapple" else 24) and game.state().actions==1,"grapple moves or consumes without movement "+id)
 	for id in ["item1","item2","item3"]:
 		await game.update({"op":"campaign_load","data":cases[id]});await settle()
-		await game.select_skill("itemUse");await settle()
-		check(game.hud.item_list and node("BattleItemList")!=null,"item-use skill opens item selection "+id)
-		check(node("BattleItem_potion").tooltip_text.contains("自分のみ" if id=="item1" else "隣接" if id=="item2" else "射程無限"),"item tooltip uses equipped level "+id)
-		await click("BattleItem_potion");var target=game.hud.acting() if id=="item1" else game.state().units.filter(func(u):return u.id=="mage")[0]
+		await game.choose_command("item");await settle()
+		check(game.hud.item_list and node("BattleItemList")!=null,"passive fist permits item command "+id)
+		check(node("BattleItem_potion").tooltip_text.contains("射程無限" if id=="item3" else "自分のみ"),"item tooltip uses equipped level "+id)
+		await click("BattleItem_potion");var target=game.hud.acting() if id!="item3" else game.state().units.filter(func(u):return u.id=="mage")[0]
 		await game.on_cell(int(target.pos));await settle();before=await saved()
 		check(game.can_commit() and game.preview.effectPreview.any(func(e):return e.get("hp",0)>0),"level permits selected healing target "+id)
 		game.cancel();await settle();check(await saved()==before,"cancel item use keeps owner stock and actions "+id)

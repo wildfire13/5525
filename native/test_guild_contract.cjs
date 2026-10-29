@@ -1,7 +1,9 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js');
 let checks=0;function check(ok,label){assert.ok(ok,label);checks++;console.log('PASS '+label);}
-const make=()=>{const s=C.create();s.characters.guard.inventory={potion:2};s.characters['guard-2'].inventory={ether:4};return s;};
+const make=()=>{const s=require('./test-current-fixture.cjs')();s.characters.guard.inventory={potion:2};s.characters['guard-2'].inventory={ether:4};return s;};
 const snap=s=>C.serialize(s);
 for(const ids of [[],['porter','porter'],['porter','missing']]){
  const s=make(),before=snap(s);check(!C.select(s,ids)&&snap(s)===before,'invalid composition rejected '+JSON.stringify(ids));

@@ -1,4 +1,6 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict');
 const C=require('./campaign.js'),B=require('./campaign-battle.js');
 let groups=0;
@@ -14,26 +16,27 @@ function battle(skill='grapple',level=1){
 function inventory(s,uid,id,action,slot){const q=C.inventoryQuote(s,uid,id,action,null,1,slot);assert(q.ok,q.reason);assert(C.inventoryAction(s,uid,id,action,null,1,slot,q.token));assert(!C.inventoryAction(s,uid,id,action,null,1,slot,q.token),'duplicate token must reject');}
 test('equipment values and independently selected level sources',()=>{
  for(const [id,hp,level] of [['kungfu-pants',5,1],['kungfu-pants-1',25,1],['kungfu-pants-2',25,2],['kungfu-pants-3',25,3]]){
-  const s=C.create(),c=s.characters.guard,base=C.stats(c).max;c.inventory[id]=1;
+  const s=require('./test-current-fixture.cjs')(),c=s.characters.guard,base=C.stats(c).max;c.inventory[id]=1;
   inventory(s,'guard',id,'equip','lowerBody');const st=C.stats(s.characters.guard);
   assert.equal(st.max,base+hp);assert.equal(st.skillSources.find(x=>x.id==='legSweep').level,level);assert(C.validate(s).ok);
  }
- const actor={side:'ally',activeSkills:['itemUse'],skillSources:[{id:'itemUse',level:1},{id:'itemUse',level:2}]};
- const options=B.activeSkillOptions(actor);assert.equal(options.length,2);assert.notEqual(options[0].key,options[1].key);
- for(const [i,level] of [1,2].entries()){actor.selectedSkill='itemUse';actor.selectedSkillKey=options[i].key;assert.equal(B.skillLevel(actor,'itemUse'),level);assert.equal(B.itemUseLevel(actor),level);}
+ const actor={side:'ally',activeSkills:[],skillSources:[{id:'itemUse',level:1,classification:'passive'},{id:'itemUse',level:2,classification:'passive'}]};
+ assert.equal(B.activeSkillOptions(actor).length,0);assert.equal(B.itemUseLevel(actor),2);
+ actor.skillSources.pop();assert.equal(B.itemUseLevel(actor),1);
+
 });
 test('virtual fists appear on empty hands, cannot generate stock; two handed weapons suppress both',()=>{
- const s=C.create();inventory(s,'guard','guard-shield-wood','unequip','leftHand');
- assert(C.stats(s.characters.guard).activeSkills.includes('itemUse'));
+ const s=require('./test-current-fixture.cjs')();inventory(s,'guard','guard-shield-wood','unequip','leftHand');
+ assert(C.stats(s.characters.guard).effects.includes('itemUse'));
  assert.equal(C.view(s).roster.find(u=>u.id==='guard').equipmentDetails.leftHand.name,'拳');
  assert(!C.inventoryQuote(s,'guard','empty-leftHand','unequip',null,1,'leftHand').ok);
  for(let i=0;i<3;i++){inventory(s,'guard','guard-shield-wood','equip','leftHand');inventory(s,'guard','guard-shield-wood','unequip','leftHand');}
  assert.equal(s.characters.guard.inventory['guard-shield-wood'],1);assert.equal(s.characters.guard.inventory.fist,undefined);
  s.characters.guard.inventory['longspear-wood']=1;inventory(s,'guard','longspear-wood','equip','rightHand');
- assert(!C.stats(s.characters.guard).activeSkills.includes('itemUse'));assert(C.stats(s.characters.guard).activeSkills.includes('poleVault'));
+ assert(!C.stats(s.characters.guard).effects.includes('itemUse'));assert(C.stats(s.characters.guard).activeSkills.includes('poleVault'));
  assert.equal(C.stats(s.characters.guard).attackWeapons.length,1);assert.equal(C.stats(s.characters.guard).attackWeapons[0].atk,34);
- inventory(s,'guard','longspear-wood','unequip','rightHand');assert(C.stats(s.characters.guard).activeSkills.includes('itemUse'));
- assert.equal(B.skillLevel(C.stats(s.characters.porter),'itemUse'),3);
+ inventory(s,'guard','longspear-wood','unequip','rightHand');assert(C.stats(s.characters.guard).effects.includes('itemUse'));
+ assert.equal(B.itemUseLevel(C.stats(s.characters.porter)),3);
  assert.deepEqual(C.deserialize(C.serialize(s)),JSON.parse(JSON.stringify(s)));
  for(const id of ['fist','fist-2']){const bad=clone(s);bad.characters.guard.inventory[id]=1;assert(!C.validate(bad).ok);assert(!C.eligibility(s,'guard',id).ok);}
 });
@@ -43,8 +46,8 @@ test('item levels restrict self / orthogonal adjacent / unlimited and no skill m
   a.skillSources[0].level=level;assert(B.legalFor(s,a,'item',a.id));
   for(const pos of [22,31,32,49]){b.pos=pos;assert.equal(B.legalFor(s,a,'item',b.id),level===3||level===2&&[22,31].includes(pos));}
  }
- a.activeSkills=[];assert(!B.legalFor(s,a,'item',a.id));
- a.activeSkills=['itemUse'];a.skillSources[0].level=3;s.itemInventories.guard.potion=0;assert(!B.legalFor(s,a,'item',b.id));
+ const grants=a.skillSources;a.skillSources=[];a.effects=[];assert(!B.legalFor(s,a,'item',a.id));
+ a.skillSources=grants;a.skillSources[0].level=3;s.itemInventories.guard.potion=0;assert(!B.legalFor(s,a,'item',b.id));
 });
 test('item preview/cancel is pure and consumes only owner stock with MP0',()=>{
  const s=battle('itemUse',2),a=s.units[0],b=s.units[1];b.pos=22;b.hp-=40;
@@ -118,7 +121,7 @@ test('pole vault ignores intermediate enemy, ally or empty; rejects diagonal, wr
  a.pos=29;assert(!B.legalFor(s,a,'skill',31));a.pos=0;assert(!B.legalFor(s,a,'skill',-2));a.mp=0;assert(!B.act(s,'skill',2));
 });
 test('new battle skills and pending skips survive save/reload; invalid stacked counters reject',()=>{
- const s=C.create();s.characters.guard.lowerBody='kungfu-pants-3';s.characters.guard.weapon='longspear-wood';s.characters.guard.leftHand='empty-leftHand';
+ const s=require('./test-current-fixture.cjs')();s.characters.guard.lowerBody='kungfu-pants-3';s.characters.guard.weapon='longspear-wood';s.characters.guard.leftHand='empty-leftHand';
  assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));
  const a=s.battle.units.find(u=>u.id==='guard'),e=s.battle.units.find(u=>u.side==='enemy');e.skipNextTurn=true;
  assert(a.activeSkills.includes('poleVault')&&a.activeSkills.includes('legSweep'));assert.equal(C.validate(s).ok,true,C.validate(s).error);

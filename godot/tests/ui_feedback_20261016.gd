@@ -28,6 +28,7 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.audio.fast_mode=true;game.checks_fast=true
 	var baseline=await saved();baseline.state.characters.guard.inventory={"potion":2,"spear-wood":2,"swift-boots":1}
 	await game.update({"op":"campaign_load","data":baseline});await settle()

@@ -8,6 +8,7 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	check(game.audio.muted.values().all(func(v):return v),"playtest starts with all audio muted")
 	var menu_labels=game.menu.find_children("*","Button",true,false).map(func(b):return b.text)
@@ -56,7 +57,7 @@ func run():
 		check(node("OwnedInventorySell_sword-wood").get_global_rect().end.x<=game.dialog.window.size.x,"sale fits whole status "+str(resolution))
 	game.dialog.window.size=Vector2i(1100,700);game.dialog.close();await settle();game.pages.party_view.open_detail("guard");await settle()
 	check(game.dialog.window.size==Vector2i(1100,700),"manual resize after migration remains saved")
-	game.dialog.close();await game.new_game();await settle()
+	game.dialog.close();await game.new_game();await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
 	await game.act("accept",[game.campaign().board[0].id,"porter"]);var gold=game.campaign().gold;await game.act("depart",["east"])
 	var arrival=await saved();arrival.state.phase="arrival";arrival.state.journey.phase="delivery";arrival.state.journey.stage=2;arrival.state.journey.hours=4;arrival.state.journey.party=game.roster().filter(func(u):return game.campaign().selected.has(u.id)).duplicate(true)
 	await game.update({"op":"campaign_load","data":arrival});await settle()

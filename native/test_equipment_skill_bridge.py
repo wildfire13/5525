@@ -1,4 +1,5 @@
 """Real Node bridge + Tk-controller doubles. Not human GUI playtest evidence."""
+from test_current_fixture import current_campaign
 import copy
 from types import SimpleNamespace
 import unittest
@@ -11,7 +12,7 @@ class EquipmentSkillBridgeTests(unittest.TestCase):
     def setUp(self):
         self.bridge = Session()
         self.addCleanup(self.bridge.close)
-        self.bridge.call(op='campaign_start')
+        current_campaign(self.bridge)
 
     def town(self, location):
         saved = self.bridge.call(op='campaign_save')['data']
@@ -125,11 +126,19 @@ class EquipmentSkillBridgeTests(unittest.TestCase):
         self.town('north')
         for gear in ['lone-ring-1', 'lone-ring-2']:
             self.assertTrue(self.bridge.call(op='campaign', action='buyGear', args=['mage', gear])['ok'])
+        # Both rings replace the fixture's capacity accessory. Transfer the
+        # retained pouch through normal inventory rules before leaving town.
+        bag = self.bridge.call(op='campaign_save')['data']['state']['characters']['mage']['inventory']
+        for item, amount in bag.items():
+            quote = self.bridge.call(op='campaign', action='inventoryQuote', args=['mage', item, 'transfer', 'porter', amount])['inventoryQuote']
+            self.assertTrue(quote['ok'])
+            self.assertTrue(self.bridge.call(op='campaign', action='inventoryAction', args=['mage', item, 'transfer', 'porter', amount, None, quote['token']])['ok'])
         for action, args in [('depart', ['astaris']), ('travel', ['safe']), ('begin', [])]:
             self.assertTrue(self.bridge.call(op='campaign', action=action, args=args)['ok'])
         before = self.bridge.call(op='view')
         hero = next(u for u in before['state']['units'] if u['id'] == 'mage')
-        self.assertEqual(hero['effects'], ['loneWolf'])
+        self.assertEqual(hero['effects'], ['itemUse', 'loneWolf'])
+        self.assertEqual(len([source for source in hero['skillSources'] if source['id']=='loneWolf']), 2)
         saved = self.bridge.call(op='campaign_save')['data']
         self.bridge.close()
         self.bridge = Session(2)

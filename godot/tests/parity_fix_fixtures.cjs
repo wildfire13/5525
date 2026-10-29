@@ -1,7 +1,7 @@
 'use strict';
 const C=require('../../native/campaign.js'),B=require('../../native/campaign-battle.js'),assert=require('assert/strict');
 function battle(actor='guard',gear=null){
- const s=C.create();s.location='east';s.gold=1000;
+ const s=require('../../native/test-current-fixture.cjs')();s.location='east';s.gold=1000;
  if(gear)assert(C.buyGear(s,actor,gear,'rightHand'));
  assert(C.depart(s,'astaris'));assert(C.travel(s,'short',()=>0));assert(C.begin(s));
  const b=s.battle,unit=b.units.find(u=>u.id===actor);

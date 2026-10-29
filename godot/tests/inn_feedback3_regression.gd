@@ -11,9 +11,10 @@ func run():
  var output=[]
  var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/inn_twelve_fixture.cjs")]),output,true,false)
  var twelve=JSON.parse_string("".join(output))
- check(code==0 and twelve is Dictionary and twelve.get("passed",false) and twelve.members==12,"synthetic twelve-member canonical inn heals all once and survives reload")
+ check(code==0 and twelve is Dictionary and twelve.get("passed",false) and twelve.members==12,"twelve-member production canonical inn heals all once and survives reload")
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
+ await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
  var seed=await saved();seed.state.gold=500;seed.state.characters.guard.hp=1;seed.state.characters.archer.mp=0
  await reload_inn(seed);var inn=game.pages.inn_view;var before=await saved()
@@ -38,22 +39,21 @@ func run():
  before=await saved();inn.stay();await settle();check(await saved()==before and consent()==null,"full recovery click is free with no confirmation")
  check(node("InnRecoveryStatus").text.contains("料金はかかりません"),"full-health free action explicitly reports no fee")
  check(inn.dialogue==inn.FULL_GREETING and inn.recovered.is_empty() and inn.healing_party.is_empty() and inn.recovery_started==0,"full recovery uses dedicated dialogue without recovery effect")
- # All real roster members, then a presentation-only twelfth card boundary.
+ # Twelve real selected members, including the second-row boundary.
  var all_ids=[]
- for u in game.roster():all_ids.append(u.id)
+ for u in game.roster().slice(0,12):all_ids.append(u.id)
  await game.act("select",[all_ids]);await settle()
  for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
   root.size=dims;game.render();await frames(12)
   var grid=node("InnParty");check(grid.columns==6 and grid.get_child_count()==all_ids.size(),str(dims)+" six-column real roster grid")
   check(absf(grid.get_child(0).position.y-grid.get_child(5).position.y)<1 and grid.get_child(6).position.y>grid.get_child(0).position.y,str(dims)+" seventh member starts second row")
   check(node("InnPartyScroll").size.x<=node("InnPartyScroll").get_parent().size.x+1,str(dims)+" grid stays within scroll region")
-  var phantom=grid.get_child(0).duplicate();grid.add_child(phantom);await frames(12)
-  check(grid.get_child_count()==12 and absf(grid.get_child(11).position.y-grid.get_child(6).position.y)<1,str(dims)+" twelfth synthetic presentation card stays in row two")
+  check(grid.get_child_count()==12 and absf(grid.get_child(11).position.y-grid.get_child(6).position.y)<1,str(dims)+" twelfth real member card stays in row two")
  var eleven=await saved()
  for uid in eleven.state.selected:eleven.state.characters[uid].hp=1;eleven.state.characters[uid].mp=0
  await reload_inn(eleven);inn.stay();await settle();consent().confirmed.emit();await settle()
- check(int(game.campaign().gold)==int(eleven.state.gold)-30 and inn.recovered.size()==11 and game.find_children("InnHeal_*","Control",true,false).size()==11,"eleven injured members heal in one canonical payment")
- for u in game.roster():check(int(u.hp)==int(u.max) and int(u.mp)==int(u.maxMp),"eleven-member simultaneous HP and MP recovery "+str(u.id))
+ check(int(game.campaign().gold)==int(eleven.state.gold)-30 and inn.recovered.size()==12 and game.find_children("InnHeal_*","Control",true,false).size()==12,"twelve injured members heal in one canonical payment")
+ for u in game.roster().filter(func(member):return all_ids.has(member.id)):check(int(u.hp)==int(u.max) and int(u.mp)==int(u.maxMp),"twelve-member simultaneous HP and MP recovery "+str(u.id))
  await reload_inn(seed);inn.stay();await settle();var token=game.campaign().inventoryToken;var epoch=game.pages.epoch;var connection=game.engine.connection_generation;var sequence=inn.sequence
  consent().canceled.emit();game.navigate("hub");await settle();before=await saved();await inn.commit(token,epoch,connection,sequence);check(await saved()==before,"stale confirmation after departure cannot charge")
  await reload_inn(seed);token=game.campaign().inventoryToken;epoch=game.pages.epoch;connection=game.engine.connection_generation;sequence=inn.sequence

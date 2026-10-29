@@ -14,6 +14,9 @@ const campaign=(action,args)=>request({op:'campaign',action,args});
 (async()=>{
   try{
     let view=await request({op:'campaign_start'});assert(view.ok);assert.equal(view.campaign.version,2);
+    // Current start has 24 new IDs and empty inventories. Seed this inventory
+    // transaction fixture explicitly; do not assume old default gifts.
+    assert((await request({op:'campaign_load',data:JSON.parse(require('./campaign.js').serialize(require('./test-current-fixture.cjs')()))})).ok);
     const initial=(await request({op:'campaign_save'})).data;
     const q=(await campaign('inventoryQuote',['guard','potion','transfer','mage',2,null])).inventoryQuote;
     assert(q.ok);assert.deepEqual((await request({op:'campaign_save'})).data,initial,'readonly confirmation/cancel leaves saved state exact');

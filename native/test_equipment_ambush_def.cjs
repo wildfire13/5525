@@ -1,4 +1,6 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),fs=require('node:fs'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 let checks=0;
 function check(ok,message){assert(ok,message);checks++;}
@@ -36,7 +38,7 @@ for(const side of ['ally','enemy'])for(const def of [0,7,100]){
 const master=require('./master-data.cjs').getMaster();
 const dagger=C.gear.find(g=>g.id==='dagger-wood'),originalLevel=dagger.skillLevel,daggerGrants=structuredClone(master.grantsByEquipment[dagger.id]);
 {
- const s=C.create();s.location='east';s.gold=1000;
+ const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=1000;
  check(C.buyGear(s,'scout','sword-wood','rightHand'),'actual weapon change succeeds');
  check(!C.stats(s.characters.scout).activeSkills.includes('scout'),'removing ambush weapon removes its skill');
  check(C.inventoryAction(s,'scout','dagger-wood','equip',null,1,'rightHand',C.inventoryToken(s)),'owned dagger can be re-equipped');
@@ -45,7 +47,7 @@ const dagger=C.gear.find(g=>g.id==='dagger-wood'),originalLevel=dagger.skillLeve
 try{
  for(const level of [1,2,3]){
   dagger.skillLevel=level;master.grantsByEquipment[dagger.id][0].level=level;
-  const s=C.create();s.xp=9900;s.level=100;s.characters.scout.xp=200;s.characters.scout.level=3;s.characters.scout.statPoints=4;s.characters.scout.skillPoints=2;
+  const s=require('./test-current-fixture.cjs')();s.xp=9900;s.level=100;s.characters.scout.xp=200;s.characters.scout.level=3;s.characters.scout.statPoints=4;s.characters.scout.skillPoints=2;
   C.depart(s,'east');C.travel(s,'safe',()=>.3);
   const actor=s.battle.units.find(u=>u.id==='scout');
   check(B.skillLevel(actor)===level,'normal battle uses gear level independent of team/personal levels');
@@ -63,7 +65,7 @@ try{
    dagger.skillLevel=right;staff.skillLevel=left;
    master.grantsByEquipment[dagger.id][0].level=right;
    master.grantsByEquipment[staff.id]=[{slotNo:1,id:'scout',level:left,sourceField:'skill',explicitLevel:true}];
-   const s=C.create();s.location='east';s.gold=2000;
+   const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=2000;
    check(C.buyGear(s,'mage','dagger-wood','rightHand')&&C.buyGear(s,'mage','staff-wood','leftHand'),'two distinct equipped skill sources');
    C.depart(s,'astaris');C.travel(s,'safe',()=>.3);
    const actor=s.battle.units.find(u=>u.id==='mage');
@@ -72,7 +74,7 @@ try{
     const option=B.activeSkillOptions(actor).filter(o=>o.id==='scout')[index];actor.selectedSkill='scout';actor.selectedSkillKey=option.key;
     check(B.skillLevel(actor)===expected&&B.skillInfo(actor).level===expected,'normal battle/description use selected grant level');
    }
-   const copy=C.create();copy.location='east';copy.characters.mage.weapon='dagger-wood';copy.characters.mage.leftHand='staff-wood';
+   const copy=require('./test-current-fixture.cjs')();copy.location='east';copy.characters.mage.weapon='dagger-wood';copy.characters.mage.leftHand='staff-wood';
    const trial=C.trial(copy,'mage','dagger-wood','rightHand'),hero=trial.battle.units.find(u=>u.id==='mage');
    for(const [index,expected] of [right,left].entries()){
     const option=B.activeSkillOptions(hero).filter(o=>o.id==='scout')[index];hero.selectedSkill='scout';hero.selectedSkillKey=option.key;
@@ -98,7 +100,7 @@ try{
  }
 }
 {
- const s=C.create();check(Object.values(s.characters).every(c=>c.def===0),'all new character DEF zero');
+ const s=require('./test-current-fixture.cjs')();check(Object.values(s.characters).every(c=>c.def===0),'all new character DEF zero');
  s.characters.guard.def=5;C.depart(s,'east');C.travel(s,'safe',()=>.0);
  check(s.battle.units.filter(u=>u.side==='enemy').every(u=>u.def===0),'all enemy DEF defaults zero');
  check(s.battle.units.find(u=>u.id==='guard').def===5,'character DEF copied to combat');
@@ -107,8 +109,8 @@ try{
 {
  const old=JSON.parse(fs.readFileSync(require.resolve('./test_fixtures/campaign-a51a773-battle.json'),'utf8')),bytes=JSON.stringify(old),s=C.deserialize(old);
  check(JSON.stringify(old)===bytes,'old save source untouched');
- check(Object.values(s.characters).every(c=>c.def===0)&&s.battle.units.every(u=>u.def===0),'old missing DEF defaults zero for both sides');
+ check(Object.values(s.characters).every(c=>c.def===0)&&s.battle===null,'old missing DEF defaults zero; old battle is cleared by update migration');
  check(C.deserialize(C.serialize(s)).characters.guard.def===0,'normalized old save reloads');
- for(const value of [-1,.5,'4']){const bad=C.create();bad.characters.guard.def=value;check(!C.validate(bad).ok,'invalid DEF rejected');}
+ for(const value of [-1,.5,'4']){const bad=require('./test-current-fixture.cjs')();bad.characters.guard.def=value;check(!C.validate(bad).ok,'invalid DEF rejected');}
 }
 console.log('PASS '+checks+' scoped equipment-level/DEF checks (Lv2/3 definitions changed in-memory only; no new priced items)');

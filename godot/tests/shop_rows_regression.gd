@@ -29,6 +29,7 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(evidence.to_lower()+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.audio.fast_mode=true;game.checks_fast=true;seed=await saved()
 	await load_at("east")
 	var shop=game.pages.shop_view
@@ -37,7 +38,7 @@ func run():
 	check(not exists("Product_empty-rightHand"),"empty equipment slots are not purchase products")
 	check(button("ProductBuy_javelin-wood")!=null and button("ProductTrial_javelin-wood")!=null,"purchase and trial are per product row")
 	var info=button("Product_javelin-wood")
-	check(info.heading=="木製の投げ槍" and info.tooltip_text.contains("通常攻撃射程：3") and info.get_script().resource_path=="res://equipment_tooltip.gd","product hover reuses real equipment tooltip")
+	check(info.heading=="木製の投げ槍" and info.tooltip_text.contains("通常攻撃射程：1") and info.get_script().resource_path=="res://equipment_tooltip.gd","product hover reuses real equipment tooltip")
 	shop.select_slot("spear");await settle()
 	check(not exists("Product_greatsword-wood") and exists("Product_javelin-wood") and game.shop_slot=="rightHand","filter changes product list, not equipment destination")
 	shop.select_slot("all");await settle()

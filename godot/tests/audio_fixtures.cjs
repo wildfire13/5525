@@ -2,7 +2,7 @@
 // Synthetic validated saves; no personal files and no writes.
 const C=require('../../native/campaign.js'),B=require('../../native/campaign-battle.js');
 const assert=require('node:assert/strict');
-const s=C.create();
+const s=require('../../native/test-current-fixture.cjs')();
 assert(C.depart(s,'north'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));
 const b=s.battle,g=b.units.find(u=>u.id==='guard'),e=b.units.find(u=>u.side==='enemy');
 for(const u of b.units){u.next=1000000;if(u.side==='enemy')u.hp=0;}

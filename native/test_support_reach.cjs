@@ -1,10 +1,12 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 let checks=0;const test=(name,fn)=>{fn();checks++;console.log('PASS '+name);};
 function setup(right,left,skill){
  const s=B.create({ally:['guard','mage','archer','porter'],enemy:['guard'],deployment:true});
  const a=s.units.find(u=>u.id==='guard'),t=s.units.find(u=>u.id==='mage'),p=s.units.find(u=>u.id==='porter');
- const char=C.create().characters.guard;char.weapon=right;char.leftHand=left;
+ const char=C.createLegacy().characters.guard;char.weapon=right;char.leftHand=left;
  // These are canonical equipment-stat calculations, not a purchase/requirements bypass test.
  const stats=C.stats(char);Object.assign(a,{attackWeapons:stats.attackWeapons,attackBonus:stats.attackBonus,activeSkills:stats.activeSkills,reach:stats.reach});
  a.selectedSkill=skill;a.pos=22;a.mp=3;a.next=0;t.pos=23;t.hp=20;t.mp=0;t.next=1;p.pos=0;p.next=2;

@@ -25,6 +25,7 @@ func run():
 		push_error("Refusing UI test: user data must be isolated inside INVENTORY_QA_ROOT");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true
 	var seed=await saved();seed.state.location="east";seed.state.characters.mage.hp=1
 	await game.update({"op":"campaign_load","data":seed})

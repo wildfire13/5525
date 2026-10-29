@@ -64,6 +64,13 @@ jobs:
           node native/test_skill_cooldowns.cjs
           node native/test_sqlite_passive_grants.cjs
           node native/test_sqlite_grant_combat.cjs
+          node native/test_updateplan_roster.cjs
+          node native/test_inventory_capacity.cjs
+          node native/test_equipment_permissions.cjs
+          node native/test_warehouse.cjs
+          node native/test_updateplan_skill_levels.cjs
+          node native/test_updateplan_combat.cjs
+          node native/test_updateplan_flow.cjs
       - name: Retain synthetic test summary
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

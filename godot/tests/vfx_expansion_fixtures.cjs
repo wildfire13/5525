@@ -19,7 +19,7 @@ for(const variant of ['normal','adjacent'])add('loneWolf_'+variant,'loneWolf',va
 for(const variant of ['normal','used','short'])add('firstStride_'+variant,'firstStride',variant,'guard','move');
 for(const variant of ['normal','cap','full','dead'])add('victoryBreath_'+variant,'victoryBreath',variant,'guard','attack');
 function build(spec){
- const {skill,variant,actor:actorId,kind}=spec,s=C.create();
+ const {skill,variant,actor:actorId,kind}=spec,s=require('../../native/test-current-fixture.cjs')();
  if(equipment[skill])s.characters[actorId].weapon=equipment[skill];
  if(['poleVault','splitShot'].includes(skill))s.characters[actorId].leftHand='empty-leftHand';
  if(['returnHome','loneWolf','firstStride'].includes(skill))s.characters[actorId].accessory1={returnHome:'return-ring-1',loneWolf:'lone-ring-1',firstStride:'pioneer-gloves-1'}[skill];

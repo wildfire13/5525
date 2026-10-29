@@ -1,6 +1,8 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
-const s=C.create();s.location='east';
+const s=C.createLegacy();s.location='east';
 const trial=C.trial(s,'scout','dagger-wood','rightHand');assert(trial);
 const b=trial.battle,a=b.units.find(u=>u.id==='scout'),target=b.units.find(u=>u.side==='enemy');
 a.pos=23;target.pos=26;
@@ -14,7 +16,7 @@ assert.equal(prediction[0].damage,attack.damage);assert.equal(prediction[0].base
 const hp=target.hp;assert(C.trialAct(trial,'skill',target.id));assert.equal(hp-target.hp,attack.damage);
 assert.equal(target.def,0);assert.equal(C.stats(s.characters.scout).def,0);
 console.log(JSON.stringify({test:'ambush equals ordinary attack from landing',weaponContribution:attack.base,ordinaryDamage:attack.damage,ambushDamage:hp-target.hp,DEF:0}));
-const dual=C.create();dual.location='east';dual.gold=2000;
+const dual=C.createLegacy();dual.location='east';dual.gold=2000;
 assert(C.buyGear(dual,'mage','sword-wood','rightHand'));assert(C.buyGear(dual,'mage','staff-wood','leftHand'));
 const t=C.trial(dual,'mage','dagger-wood','rightHand'),actor=t.battle.units.find(u=>u.id==='mage'),victim=t.battle.units.find(u=>u.side==='enemy');
 actor.pos=21;victim.pos=24;extra=0;

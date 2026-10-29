@@ -1,4 +1,5 @@
 """Read-only formation label checks against actual bridge state (not GUI)."""
+from test_current_fixture import current_campaign
 import unittest
 from copy import deepcopy
 from app import App, Bridge
@@ -7,7 +8,7 @@ from campaign_app import campaign_formation_info, TrialBattleApp, CampaignBattle
 class CampaignFormationTests(unittest.TestCase):
     def setUp(self):
         self.bridge=Bridge();self.addCleanup(self.bridge.close)
-        self.bridge.call(op='campaign_start')
+        current_campaign(self.bridge)
         for action,args in [('depart',['north']),('travel',['safe']),('begin',[])]:
             self.assertTrue(self.bridge.call(op='campaign',action=action,args=args)['ok'])
         # R04: retained Python label regression resumes an already-started legacy battle.

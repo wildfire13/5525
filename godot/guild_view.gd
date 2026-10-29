@@ -20,7 +20,7 @@ func party_limit() -> int:
 	return int(value) if (value is int or value is float) and value>=1 else LEGACY_PARTY_LIMIT
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
-func available() -> bool:return ui.page=="party" and c().get("guildAvailable",false) and c().get("phase")=="town" and c().get("location")=="astaris"
+func available() -> bool:return ui.page=="party" and pages.facility_entry.view!="warehouse" and c().get("guildAvailable",false) and c().get("phase")=="town" and c().get("location")=="astaris"
 func busy() -> bool:return ui.locked or ui.presenting or ui.closing or ui.engine.disconnected or stage in ["pending","unknown","animating"]
 func reset():
 	generation+=1;chosen_id="";origin_id="";mode="";stage="idle";notice="";reserve_job=""

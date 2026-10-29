@@ -1,4 +1,6 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js');
 const J=require('./journey.js');
 function acceptWithPorter(s,id){return C.accept(s,id,s.selected.find(uid=>C.view(s).roster.find(u=>u.id===uid)?.job==='porter'));}
@@ -28,7 +30,7 @@ for(const args of [['missing','convoy'],['medicine','missing']]){
  unchanged=JSON.stringify(journey);
  check(!J.depart(journey,...args)&&JSON.stringify(journey)===unchanged,'legacy invalid departure option rejected without mutation');
 }
-let s=C.create();
+let s=require('./test-current-fixture.cjs')();
 check(s.selected.join(',')==='guard,archer,mage,scout,porter','initial cast unchanged');
 const people=JSON.stringify(s.characters),gold=s.gold;
 check(C.select(s,['guard','archer','mage','scout']),'remove last porter while other members remain');
@@ -39,7 +41,7 @@ check(!acceptWithPorter(s,C.board(s)[0].id)&&C.serialize(s)===before,'zero porte
 check(C.depart(s,'east'),'zero porter free departure');
 check(roundtrip(s).journey.selected.length===4,'zero porter journey and rollback save roundtrip');
 check(!C.select(s,['guard']),'road composition remains forbidden');
-s=C.create();
+s=require('./test-current-fixture.cjs')();
 check(C.select(s,['guard','porter','porter-2']),'two porter composition');
 check(C.select(s,['guard','porter-2']),'two to one porter');
 check(C.select(s,['guard','porter']),'porter to porter exchange');
@@ -57,6 +59,6 @@ const loaded=roundtrip(s);
 check(loaded.activeQuest.cargoOwnerId===owner&&loaded.characters[owner].inventory[quest.cargoItemId]===1,'accepted quest zero porter save retains cargo and owner');
 check(C.depart(s,s.activeQuest.to),'accepted quest departure does not extend acceptance rule');
 roundtrip(s);
-s=C.create();s.characters.porter.hp=0;
+s=require('./test-current-fixture.cjs')();s.characters.porter.hp=0;
 check(!C.depart(s,'east'),'dead porter departure restriction preserved');
 console.log(JSON.stringify({suite:'porter-acceptance',passed:true,checks}));

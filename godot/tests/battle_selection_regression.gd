@@ -7,13 +7,15 @@ func run():
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true
- await game.update({"op":"campaign_start"});await settle()
+ await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
  var save=(await game.engine.request({"op":"campaign_save"})).data
  save.state.location="east";save.state.gold=9999
  await game.update({"op":"campaign_load","data":save})
  await game.update({"op":"campaign","action":"buyGear","args":["mage","staff-silver-1","leftHand"]})
- await game.update({"op":"campaign","action":"trial","args":["mage","staff-wood","rightHand"]});await settle()
+ var dual=(await game.engine.request({"op":"campaign_save"})).data
  for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
+  await game.update({"op":"campaign_load","data":dual})
+  await game.update({"op":"campaign","action":"trial","args":["mage","staff-wood","rightHand"]});await settle()
   root.size=dims;game.hud.back_to_commands();await settle()
   var ally=game.state().units.filter(func(u):return u.side=="ally")[0]
   var enemy=game.state().units.filter(func(u):return u.side=="enemy")[0]
@@ -33,6 +35,10 @@ func run():
   await game.select_skill(choices[1].key);await settle()
   var children=skill_buttons()
   check(children.size()==2 and children.filter(func(b):return selected_button(b)).size()==1,"only selected grant has dot and yellow "+str(dims))
+  # Two staves leave no fist: use the original one-staff owner for item selection.
+  await game.act("endTrial",[])
+  await game.update({"op":"campaign_load","data":save})
+  await game.act("trial",["mage","staff-wood","rightHand"]);await settle()
   game.hud.buttons.items.pressed.emit();await settle()
   check(selected_button(game.hud.buttons.items) and not selected_button(game.hud.buttons.skill),"item parent uses same selection "+str(dims))
   await game.choose_command("item");await settle()
@@ -44,6 +50,7 @@ func run():
   game.find_child("BattleDetails",true,false).pressed.emit();await settle()
   check(not game.hud.inspection_pinned,"non-command button clears pin "+str(dims))
   game.dialog.close();await settle()
+  if dims!=Vector2i(960,540):await game.act("endTrial",[])
  game.hud.back_to_commands();await settle()
  var u=game.state().units[0];await game.on_cell(int(u.pos));await settle()
  game.hud.last_action_count=-1;game.render();await settle()

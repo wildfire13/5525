@@ -1,7 +1,7 @@
 extends RefCounted
 ## Only fixed enums and bounded numeric snapshots cross the diagnostics boundary.
 const OPS=["campaign_start","campaign_save","campaign_load","select_skill","select_return_skill","preview","hover_preview","reset","journey_start","export"]
-const CAMPAIGN=["select","accept","depart","travel","deploy","deployment_assign","chooseFormation","deployment_reset","begin","retreat","finishBattle","rest","onward","arrive","acknowledge","completeQuest","buyGear","buyItem","inn","useItem","inventoryAction","buyInventory","buyPlan","sellInventory","allocate","allocateBatch","trial","endTrial"]
+const CAMPAIGN=["select","accept","depart","travel","deploy","deployment_assign","chooseFormation","deployment_reset","begin","retreat","finishBattle","rest","onward","arrive","acknowledge","completeQuest","buyGear","buyItem","inn","useItem","inventoryAction","warehouseAction","buyInventory","buyPlan","sellInventory","allocate","allocateBatch","trial","endTrial"]
 const READ_ONLY=["forecast","previewGear","inventoryQuote","purchasePlan","saleQuote","purchaseQuote"]
 const ACTIONS=["attack","move","skill","item","ether","guard","return"]
 const FILES=["read","write","write_target","recover_write","portrait"]

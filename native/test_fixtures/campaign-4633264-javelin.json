@@ -1,0 +1,1035 @@
+{
+  "format": "5525-native-campaign",
+  "version": 2,
+  "cargoRevision": 1,
+  "state": {
+    "version": 2,
+    "phase": "battle",
+    "location": "astaris",
+    "gold": 180,
+    "xp": 0,
+    "level": 1,
+    "hours": 4,
+    "selected": [
+      "guard",
+      "archer",
+      "mage",
+      "scout",
+      "porter"
+    ],
+    "characters": {
+      "guard": {
+        "id": "guard",
+        "equipmentRevision": 2,
+        "combatRevision": 1,
+        "inventory": {
+          "potion": 3,
+          "ether": 1
+        },
+        "leftHand": "guard-shield-wood",
+        "race": "human",
+        "weapon": "javelin-wood",
+        "armor": "armor-cloth",
+        "hp": 180,
+        "mp": 6,
+        "def": 0,
+        "xp": 0,
+        "level": 1,
+        "statPoints": 0,
+        "skillPoints": 0,
+        "allocations": {
+          "str": 0,
+          "int": 0,
+          "agi": 0
+        }
+      },
+      "guard-2": {
+        "id": "guard-2",
+        "equipmentRevision": 2,
+        "combatRevision": 1,
+        "inventory": {},
+        "leftHand": "guard-shield-wood",
+        "race": "human",
+        "weapon": "sword-wood",
+        "armor": "armor-cloth",
+        "hp": 180,
+        "mp": 6,
+        "def": 0,
+        "xp": 0,
+        "level": 1,
+        "statPoints": 0,
+        "skillPoints": 0,
+        "allocations": {
+          "str": 0,
+          "int": 0,
+          "agi": 0
+        }
+      },
+      "archer": {
+        "id": "archer",
+        "equipmentRevision": 2,
+        "combatRevision": 1,
+        "inventory": {},
+        "race": "human",
+        "weapon": "bow-wood",
+        "armor": "armor-cloth",
+        "hp": 100,
+        "mp": 4,
+        "def": 0,
+        "xp": 0,
+        "level": 1,
+        "statPoints": 0,
+        "skillPoints": 0,
+        "allocations": {
+          "str": 0,
+          "int": 0,
+          "agi": 0
+        }
+      },
+      "archer-2": {
+        "id": "archer-2",
+        "equipmentRevision": 2,
+        "combatRevision": 1,
+        "inventory": {},
+        "race": "human",
+        "weapon": "bow-wood",
+        "armor": "armor-cloth",
+        "hp": 100,
+        "mp": 4,
+        "def": 0,
+        "xp": 0,
+        "level": 1,
+        "statPoints": 0,
+        "skillPoints": 0,
+        "allocations": {
+          "str": 0,
+          "int": 0,
+          "agi": 0
+        }
+      },
+      "mage": {
+        "id": "mage",
+        "equipmentRevision": 2,
+        "combatRevision": 1,
+        "inventory": {},
+        "race": "elf",
+        "weapon": "staff-wood",
+        "armor": "armor-cloth",
+        "hp": 100,
+        "mp": 8,
+        "def": 0,
+        "xp": 0,
+        "level": 1,
+        "statPoints": 0,
+        "skillPoints": 0,
+        "allocations": {
+          "str": 0,
+          "int": 0,
+          "agi": 0
+        }
+      },
+      "mage-2": {
+        "id": "mage-2",
+        "equipmentRevision": 2,
+        "combatRevision": 1,
+        "inventory": {},
+        "race": "elf",
+        "weapon": "staff-wood",
+        "armor": "armor-cloth",
+        "hp": 100,
+        "mp": 8,
+        "def": 0,
+        "xp": 0,
+        "level": 1,
+        "statPoints": 0,
+        "skillPoints": 0,
+        "allocations": {
+          "str": 0,
+          "int": 0,
+          "agi": 0
+        }
+      },
+      "scout": {
+        "id": "scout",
+        "equipmentRevision": 2,
+        "combatRevision": 1,
+        "inventory": {},
+        "race": "elf",
+        "weapon": "dagger-wood",
+        "armor": "armor-cloth",
+        "hp": 105,
+        "mp": 5,
+        "def": 0,
+        "xp": 0,
+        "level": 1,
+        "statPoints": 0,
+        "skillPoints": 0,
+        "allocations": {
+          "str": 0,
+          "int": 0,
+          "agi": 0
+        }
+      },
+      "scout-2": {
+        "id": "scout-2",
+        "equipmentRevision": 2,
+        "combatRevision": 1,
+        "inventory": {},
+        "race": "elf",
+        "weapon": "dagger-wood",
+        "armor": "armor-cloth",
+        "hp": 105,
+        "mp": 5,
+        "def": 0,
+        "xp": 0,
+        "level": 1,
+        "statPoints": 0,
+        "skillPoints": 0,
+        "allocations": {
+          "str": 0,
+          "int": 0,
+          "agi": 0
+        }
+      },
+      "porter": {
+        "id": "porter",
+        "equipmentRevision": 2,
+        "combatRevision": 1,
+        "inventory": {},
+        "race": "human",
+        "weapon": "porter-kit",
+        "armor": "armor-cloth",
+        "hp": 110,
+        "mp": 6,
+        "def": 0,
+        "xp": 0,
+        "level": 1,
+        "statPoints": 0,
+        "skillPoints": 0,
+        "allocations": {
+          "str": 0,
+          "int": 0,
+          "agi": 0
+        }
+      },
+      "porter-2": {
+        "id": "porter-2",
+        "equipmentRevision": 2,
+        "combatRevision": 1,
+        "inventory": {},
+        "race": "human",
+        "weapon": "porter-kit",
+        "armor": "armor-cloth",
+        "hp": 110,
+        "mp": 6,
+        "def": 0,
+        "xp": 0,
+        "level": 1,
+        "statPoints": 0,
+        "skillPoints": 0,
+        "allocations": {
+          "str": 0,
+          "int": 0,
+          "agi": 0
+        }
+      },
+      "warrior": {
+        "id": "warrior",
+        "equipmentRevision": 2,
+        "combatRevision": 1,
+        "inventory": {},
+        "race": "dwarf",
+        "weapon": "hammer-iron-1",
+        "armor": "armor-cloth",
+        "hp": 180,
+        "mp": 6,
+        "def": 0,
+        "xp": 0,
+        "level": 1,
+        "statPoints": 0,
+        "skillPoints": 0,
+        "allocations": {
+          "str": 0,
+          "int": 0,
+          "agi": 0
+        }
+      }
+    },
+    "activeQuest": null,
+    "journey": {
+      "phase": "battle",
+      "job": {
+        "name": "未受注の移動",
+        "deadline": 100000000,
+        "reward": 0
+      },
+      "hours": 4,
+      "gold": 0,
+      "xp": 0,
+      "level": 1,
+      "stage": 0,
+      "rested": false,
+      "kit": "campaign",
+      "formation": "convoy",
+      "selected": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "porter"
+      ],
+      "party": null,
+      "potions": 3,
+      "history": [
+        "1区間：川沿いの迂回路（4時間）。"
+      ],
+      "outcome": null,
+      "origin": "astaris",
+      "destination": "east",
+      "token": 1,
+      "questless": true,
+      "route": "safe"
+    },
+    "battle": {
+      "formationVersion": 2,
+      "formationKind": "convoy",
+      "units": [
+        {
+          "job": "guard",
+          "name": "ガロ",
+          "role": "盾役",
+          "icon": "盾",
+          "pos": 24,
+          "max": 180,
+          "atk": 21,
+          "agi": 10,
+          "reach": 3,
+          "mp": 6,
+          "image": "knight.png",
+          "id": "guard",
+          "side": "ally",
+          "hp": 180,
+          "maxMp": 6,
+          "def": 0,
+          "next": 10,
+          "guard": false,
+          "cover": null,
+          "tie": 1,
+          "equippedSkill": "guard",
+          "attackWeapons": [
+            {
+              "slot": "rightHand",
+              "itemId": "javelin-wood",
+              "name": "木製の投げ槍",
+              "atk": 21,
+              "reach": 3,
+              "skill": null
+            }
+          ],
+          "attackBonus": 0,
+          "activeSkills": [
+            "guard"
+          ],
+          "skillSources": [
+            {
+              "id": "guard",
+              "slot": "leftHand",
+              "itemId": "guard-shield-wood",
+              "grantSlot": 1,
+              "classification": "active"
+            }
+          ],
+          "effects": [],
+          "canInvade": false,
+          "weapon": "spear",
+          "race": "human",
+          "str": 16,
+          "int": 8,
+          "equipment": {
+            "rightHand": "javelin-wood",
+            "leftHand": "guard-shield-wood",
+            "head": "empty-head",
+            "upperBody": "armor-cloth",
+            "lowerBody": "empty-lowerBody",
+            "feet": "empty-feet",
+            "accessory1": "empty-accessory1",
+            "accessory2": "empty-accessory2"
+          }
+        },
+        {
+          "job": "archer",
+          "name": "リノ",
+          "role": "弓手",
+          "icon": "弓",
+          "pos": 13,
+          "max": 100,
+          "atk": 25,
+          "agi": 14,
+          "reach": 3,
+          "mp": 4,
+          "image": "archer.png",
+          "id": "archer",
+          "side": "ally",
+          "hp": 100,
+          "maxMp": 4,
+          "def": 0,
+          "next": 7.142857142857143,
+          "guard": false,
+          "cover": null,
+          "tie": 4.01,
+          "equippedSkill": "archer",
+          "attackWeapons": [
+            {
+              "slot": "rightHand",
+              "itemId": "bow-wood",
+              "name": "木製の遠見弓",
+              "atk": 25,
+              "reach": 3,
+              "skill": "archer"
+            }
+          ],
+          "attackBonus": 0,
+          "activeSkills": [
+            "archer"
+          ],
+          "skillSources": [
+            {
+              "id": "archer",
+              "slot": "rightHand",
+              "itemId": "bow-wood",
+              "grantSlot": 1,
+              "classification": "active"
+            }
+          ],
+          "effects": [],
+          "canInvade": false,
+          "weapon": "bow",
+          "race": "human",
+          "str": 12,
+          "int": 8,
+          "equipment": {
+            "rightHand": "bow-wood",
+            "leftHand": "empty-leftHand",
+            "head": "empty-head",
+            "upperBody": "armor-cloth",
+            "lowerBody": "empty-lowerBody",
+            "feet": "empty-feet",
+            "accessory1": "empty-accessory1",
+            "accessory2": "empty-accessory2"
+          },
+          "boost": false
+        },
+        {
+          "job": "mage",
+          "name": "ミオ",
+          "role": "ヒーラー",
+          "icon": "癒",
+          "pos": 33,
+          "max": 100,
+          "atk": 14,
+          "agi": 11,
+          "reach": 2,
+          "mp": 8,
+          "image": "healer.png",
+          "id": "mage",
+          "side": "ally",
+          "hp": 100,
+          "maxMp": 8,
+          "def": 0,
+          "next": 9.090909090909092,
+          "guard": false,
+          "cover": null,
+          "tie": 9.02,
+          "equippedSkill": "mage",
+          "attackWeapons": [
+            {
+              "slot": "rightHand",
+              "itemId": "staff-wood",
+              "name": "木製の癒し杖",
+              "atk": 14,
+              "reach": 2,
+              "skill": "mage"
+            }
+          ],
+          "attackBonus": 0,
+          "activeSkills": [
+            "mage",
+            "itemUse"
+          ],
+          "skillSources": [
+            {
+              "id": "mage",
+              "slot": "rightHand",
+              "itemId": "staff-wood",
+              "grantSlot": 1,
+              "classification": "active"
+            },
+            {
+              "id": "itemUse",
+              "slot": "leftHand",
+              "itemId": "empty-leftHand",
+              "grantSlot": 1,
+              "classification": "active",
+              "level": 1
+            }
+          ],
+          "effects": [],
+          "canInvade": false,
+          "weapon": "staff",
+          "race": "elf",
+          "str": 14,
+          "int": 16,
+          "equipment": {
+            "rightHand": "staff-wood",
+            "leftHand": "empty-leftHand",
+            "head": "empty-head",
+            "upperBody": "armor-cloth",
+            "lowerBody": "empty-lowerBody",
+            "feet": "empty-feet",
+            "accessory1": "empty-accessory1",
+            "accessory2": "empty-accessory2"
+          }
+        },
+        {
+          "job": "scout",
+          "name": "ニカ",
+          "role": "スカウト",
+          "icon": "斥",
+          "pos": 4,
+          "max": 105,
+          "atk": 23,
+          "agi": 13,
+          "reach": 1,
+          "mp": 5,
+          "image": "scout.png",
+          "id": "scout",
+          "side": "ally",
+          "hp": 105,
+          "maxMp": 5,
+          "def": 0,
+          "next": 7.6923076923076925,
+          "guard": false,
+          "cover": null,
+          "tie": 12.03,
+          "equippedSkill": "scout",
+          "attackWeapons": [
+            {
+              "slot": "rightHand",
+              "itemId": "dagger-wood",
+              "name": "木製の奇襲短剣",
+              "atk": 23,
+              "reach": 1,
+              "skill": "scout"
+            }
+          ],
+          "attackBonus": 0,
+          "activeSkills": [
+            "scout",
+            "itemUse"
+          ],
+          "skillSources": [
+            {
+              "id": "scout",
+              "slot": "rightHand",
+              "itemId": "dagger-wood",
+              "grantSlot": 1,
+              "classification": "active",
+              "level": 1
+            },
+            {
+              "id": "itemUse",
+              "slot": "leftHand",
+              "itemId": "empty-leftHand",
+              "grantSlot": 1,
+              "classification": "active",
+              "level": 1
+            },
+            {
+              "id": "invasion",
+              "slot": "accessory1",
+              "itemId": "invasion-charm-1",
+              "grantSlot": 1,
+              "classification": "passive"
+            }
+          ],
+          "effects": [
+            "invasion"
+          ],
+          "canInvade": true,
+          "weapon": "dagger",
+          "race": "elf",
+          "str": 10,
+          "int": 9,
+          "equipment": {
+            "rightHand": "dagger-wood",
+            "leftHand": "empty-leftHand",
+            "head": "empty-head",
+            "upperBody": "armor-cloth",
+            "lowerBody": "empty-lowerBody",
+            "feet": "empty-feet",
+            "accessory1": "invasion-charm-1",
+            "accessory2": "empty-accessory2"
+          }
+        },
+        {
+          "job": "porter",
+          "name": "トワ",
+          "role": "ポーター",
+          "icon": "運",
+          "pos": 22,
+          "max": 110,
+          "atk": 0,
+          "agi": 12,
+          "reach": 0,
+          "mp": 6,
+          "image": "porter.png",
+          "id": "porter",
+          "side": "ally",
+          "hp": 110,
+          "maxMp": 6,
+          "def": 0,
+          "next": 8.333333333333334,
+          "guard": false,
+          "cover": null,
+          "tie": 17.04,
+          "equippedSkill": "porter",
+          "attackWeapons": [],
+          "attackBonus": 0,
+          "activeSkills": [
+            "porter",
+            "itemUse"
+          ],
+          "skillSources": [
+            {
+              "id": "porter",
+              "slot": "rightHand",
+              "itemId": "porter-kit",
+              "grantSlot": 1,
+              "classification": "active"
+            },
+            {
+              "id": "itemUse",
+              "slot": "leftHand",
+              "itemId": "empty-leftHand",
+              "grantSlot": 1,
+              "classification": "active",
+              "level": 3
+            }
+          ],
+          "effects": [],
+          "canInvade": false,
+          "race": "human",
+          "str": 14,
+          "int": 10,
+          "equipment": {
+            "rightHand": "porter-kit",
+            "leftHand": "empty-leftHand",
+            "head": "empty-head",
+            "upperBody": "armor-cloth",
+            "lowerBody": "empty-lowerBody",
+            "feet": "empty-feet",
+            "accessory1": "empty-accessory1",
+            "accessory2": "empty-accessory2"
+          }
+        },
+        {
+          "job": "mage",
+          "name": "敵ヒーラー 1",
+          "role": "ヒーラー",
+          "icon": "癒",
+          "pos": 36,
+          "max": 100,
+          "atk": 14,
+          "agi": 11,
+          "reach": 2,
+          "mp": 8,
+          "image": "healer.png",
+          "id": "enemy-mage",
+          "side": "enemy",
+          "hp": 100,
+          "maxMp": 8,
+          "def": 0,
+          "next": 9.090909090909092,
+          "guard": false,
+          "cover": null,
+          "tie": 8,
+          "intent": {
+            "kind": "move",
+            "target": 25,
+            "reason": "届く位置へ接近",
+            "name": "移動",
+            "cells": [],
+            "destination": 25
+          }
+        },
+        {
+          "job": "archer",
+          "name": "敵弓手 2",
+          "role": "弓手",
+          "icon": "弓",
+          "pos": 16,
+          "max": 100,
+          "atk": 25,
+          "agi": 14,
+          "reach": 3,
+          "mp": 4,
+          "image": "archer.png",
+          "id": "enemy-archer",
+          "side": "enemy",
+          "hp": 100,
+          "maxMp": 4,
+          "def": 0,
+          "next": 7.142857142857143,
+          "guard": false,
+          "cover": null,
+          "tie": 5.01,
+          "intent": {
+            "kind": "skill",
+            "target": "archer",
+            "reason": "射程内の弱った敵を狙う",
+            "name": "スナイプ",
+            "cells": [
+              13
+            ]
+          }
+        }
+      ],
+      "actor": "archer",
+      "result": null,
+      "potions": {
+        "ally": 3,
+        "enemy": 0
+      },
+      "log": [
+        "荷物を守り、街道を切り抜けよう。"
+      ],
+      "actions": 0,
+      "recentEnemies": [],
+      "ethers": 1,
+      "deploying": false,
+      "itemInventories": {
+        "guard": {
+          "potion": 3,
+          "ether": 1
+        },
+        "archer": {
+          "potion": 0,
+          "ether": 0
+        },
+        "mage": {
+          "potion": 0,
+          "ether": 0
+        },
+        "scout": {
+          "potion": 0,
+          "ether": 0
+        },
+        "porter": {
+          "potion": 0,
+          "ether": 0
+        }
+      },
+      "skillCooldownVersion": 1,
+      "campaignToken": 1,
+      "campaignStage": 0,
+      "deploymentInitial": [
+        {
+          "id": "guard",
+          "pos": 24
+        },
+        {
+          "id": "archer",
+          "pos": 13
+        },
+        {
+          "id": "mage",
+          "pos": 33
+        },
+        {
+          "id": "scout",
+          "pos": 4
+        },
+        {
+          "id": "porter",
+          "pos": 22
+        }
+      ]
+    },
+    "rollback": {
+      "version": 2,
+      "phase": "town",
+      "location": "astaris",
+      "gold": 180,
+      "xp": 0,
+      "level": 1,
+      "hours": 0,
+      "selected": [
+        "guard",
+        "archer",
+        "mage",
+        "scout",
+        "porter"
+      ],
+      "characters": {
+        "guard": {
+          "id": "guard",
+          "equipmentRevision": 2,
+          "combatRevision": 1,
+          "inventory": {
+            "potion": 3,
+            "ether": 1
+          },
+          "leftHand": "guard-shield-wood",
+          "race": "human",
+          "weapon": "javelin-wood",
+          "armor": "armor-cloth",
+          "hp": 180,
+          "mp": 6,
+          "def": 0,
+          "xp": 0,
+          "level": 1,
+          "statPoints": 0,
+          "skillPoints": 0,
+          "allocations": {
+            "str": 0,
+            "int": 0,
+            "agi": 0
+          }
+        },
+        "guard-2": {
+          "id": "guard-2",
+          "equipmentRevision": 2,
+          "combatRevision": 1,
+          "inventory": {},
+          "leftHand": "guard-shield-wood",
+          "race": "human",
+          "weapon": "sword-wood",
+          "armor": "armor-cloth",
+          "hp": 180,
+          "mp": 6,
+          "def": 0,
+          "xp": 0,
+          "level": 1,
+          "statPoints": 0,
+          "skillPoints": 0,
+          "allocations": {
+            "str": 0,
+            "int": 0,
+            "agi": 0
+          }
+        },
+        "archer": {
+          "id": "archer",
+          "equipmentRevision": 2,
+          "combatRevision": 1,
+          "inventory": {},
+          "race": "human",
+          "weapon": "bow-wood",
+          "armor": "armor-cloth",
+          "hp": 100,
+          "mp": 4,
+          "def": 0,
+          "xp": 0,
+          "level": 1,
+          "statPoints": 0,
+          "skillPoints": 0,
+          "allocations": {
+            "str": 0,
+            "int": 0,
+            "agi": 0
+          }
+        },
+        "archer-2": {
+          "id": "archer-2",
+          "equipmentRevision": 2,
+          "combatRevision": 1,
+          "inventory": {},
+          "race": "human",
+          "weapon": "bow-wood",
+          "armor": "armor-cloth",
+          "hp": 100,
+          "mp": 4,
+          "def": 0,
+          "xp": 0,
+          "level": 1,
+          "statPoints": 0,
+          "skillPoints": 0,
+          "allocations": {
+            "str": 0,
+            "int": 0,
+            "agi": 0
+          }
+        },
+        "mage": {
+          "id": "mage",
+          "equipmentRevision": 2,
+          "combatRevision": 1,
+          "inventory": {},
+          "race": "elf",
+          "weapon": "staff-wood",
+          "armor": "armor-cloth",
+          "hp": 100,
+          "mp": 8,
+          "def": 0,
+          "xp": 0,
+          "level": 1,
+          "statPoints": 0,
+          "skillPoints": 0,
+          "allocations": {
+            "str": 0,
+            "int": 0,
+            "agi": 0
+          }
+        },
+        "mage-2": {
+          "id": "mage-2",
+          "equipmentRevision": 2,
+          "combatRevision": 1,
+          "inventory": {},
+          "race": "elf",
+          "weapon": "staff-wood",
+          "armor": "armor-cloth",
+          "hp": 100,
+          "mp": 8,
+          "def": 0,
+          "xp": 0,
+          "level": 1,
+          "statPoints": 0,
+          "skillPoints": 0,
+          "allocations": {
+            "str": 0,
+            "int": 0,
+            "agi": 0
+          }
+        },
+        "scout": {
+          "id": "scout",
+          "equipmentRevision": 2,
+          "combatRevision": 1,
+          "inventory": {},
+          "race": "elf",
+          "weapon": "dagger-wood",
+          "armor": "armor-cloth",
+          "hp": 105,
+          "mp": 5,
+          "def": 0,
+          "xp": 0,
+          "level": 1,
+          "statPoints": 0,
+          "skillPoints": 0,
+          "allocations": {
+            "str": 0,
+            "int": 0,
+            "agi": 0
+          }
+        },
+        "scout-2": {
+          "id": "scout-2",
+          "equipmentRevision": 2,
+          "combatRevision": 1,
+          "inventory": {},
+          "race": "elf",
+          "weapon": "dagger-wood",
+          "armor": "armor-cloth",
+          "hp": 105,
+          "mp": 5,
+          "def": 0,
+          "xp": 0,
+          "level": 1,
+          "statPoints": 0,
+          "skillPoints": 0,
+          "allocations": {
+            "str": 0,
+            "int": 0,
+            "agi": 0
+          }
+        },
+        "porter": {
+          "id": "porter",
+          "equipmentRevision": 2,
+          "combatRevision": 1,
+          "inventory": {},
+          "race": "human",
+          "weapon": "porter-kit",
+          "armor": "armor-cloth",
+          "hp": 110,
+          "mp": 6,
+          "def": 0,
+          "xp": 0,
+          "level": 1,
+          "statPoints": 0,
+          "skillPoints": 0,
+          "allocations": {
+            "str": 0,
+            "int": 0,
+            "agi": 0
+          }
+        },
+        "porter-2": {
+          "id": "porter-2",
+          "equipmentRevision": 2,
+          "combatRevision": 1,
+          "inventory": {},
+          "race": "human",
+          "weapon": "porter-kit",
+          "armor": "armor-cloth",
+          "hp": 110,
+          "mp": 6,
+          "def": 0,
+          "xp": 0,
+          "level": 1,
+          "statPoints": 0,
+          "skillPoints": 0,
+          "allocations": {
+            "str": 0,
+            "int": 0,
+            "agi": 0
+          }
+        },
+        "warrior": {
+          "id": "warrior",
+          "equipmentRevision": 2,
+          "combatRevision": 1,
+          "inventory": {},
+          "race": "dwarf",
+          "weapon": "hammer-iron-1",
+          "armor": "armor-cloth",
+          "hp": 180,
+          "mp": 6,
+          "def": 0,
+          "xp": 0,
+          "level": 1,
+          "statPoints": 0,
+          "skillPoints": 0,
+          "allocations": {
+            "str": 0,
+            "int": 0,
+            "agi": 0
+          }
+        }
+      },
+      "activeQuest": null,
+      "journey": null,
+      "battle": null,
+      "rollback": null,
+      "sequence": 0,
+      "boardRound": 0,
+      "completed": 0,
+      "result": null,
+      "history": [
+        "アスタリスに到着。繰り返し遊べる試作を開始。"
+      ],
+      "cargoRevision": 1
+    },
+    "sequence": 1,
+    "boardRound": 0,
+    "completed": 0,
+    "result": null,
+    "history": [
+      "アスタリスに到着。繰り返し遊べる試作を開始。",
+      "イースへ出発（未受注：配達報酬なし）。",
+      "1区間目：迂回で遭遇。"
+    ],
+    "cargoRevision": 1
+  }
+}

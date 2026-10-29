@@ -1,6 +1,6 @@
 'use strict';
 // Quotes are pure. Every multi-owner mutation validates a complete detached state.
-module.exports=function({I,S,clone,record,integer,getGear,template,shop,equipment,eligibility,stats,syncCharacter,validate,inventoryToken,commitInventory,note,createHash}) {
+module.exports=function({I,S,clone,record,integer,getGear,template,shop,equipment,eligibility,stats,syncCharacter,validate,inventoryToken,inventoryCapacity,commitInventory,note,createHash}) {
   function saleAvailable(s){return s.phase==='town'&&['east','west','north'].includes(s.location);}
   // Consent covers this exact single-item payment, before a recipient is chosen.
   function purchaseQuote(s,id) {
@@ -8,12 +8,13 @@ module.exports=function({I,S,clone,record,integer,getGear,template,shop,equipmen
     if(!saleAvailable(s)||!g||g.type==='empty'||!shop(s).some(item=>item.id===id))return {...q,reason:'この店で購入できる商品を選んでください'};
     q.token=createHash('sha256').update(JSON.stringify([inventoryToken(s),id,g.price])).digest('hex');
     if(s.gold<q.cost)return {...q,reason:'所持金が不足しています'};
-    if(!s.selected.some(owner=>I.add(s.characters[owner].inventory,id,1)))return {...q,reason:'受取可能なインベントリがありません'};
+    if(!s.selected.some(owner=>I.canReceive(s.characters[owner].inventory,id,1,inventoryCapacity(s,owner))))return {...q,reason:'受取可能なインベントリがありません'};
     return {...q,ok:true};
   }
   function buyInventory(s,ownerId,id,token) {
     const q=purchaseQuote(s,id);
     if(!q.ok||token!==q.token||!template(ownerId)||!s.selected.includes(ownerId))return false;
+    if(!I.canReceive(s.characters[ownerId].inventory,id,1,inventoryCapacity(s,ownerId)))return false;
     return commitInventory(s,draft=>{
       const owner=draft.characters[ownerId],bag=I.add(owner.inventory,id,1);if(!bag)return false;
       owner.inventory=bag;draft.gold=q.afterGold;
@@ -31,6 +32,7 @@ module.exports=function({I,S,clone,record,integer,getGear,template,shop,equipmen
       keys.add(key);
       if(!template(characterId)||!c||!s.selected.includes(characterId)||!g||!S.allowed(g).includes(slot))return {...plan,reason:'購入先または装備枠を確認してください'};
       const old=getGear(equipment(c)[slot]),eligible=eligibility(s,characterId,gearId),available=shop(s).some(item=>item.id===gearId);
+      if(old.removable===false&&old.id!==g.id){eligible.ok=false;eligible.reason='この装備は外せません';}
       const row={characterId,gearId,slot,characterName:template(characterId).name,gear:clone(g),current:clone(old),oldGearId:old.id,cost:g.price,retained:old.type!=='empty',ok:eligible.ok&&available&&old.id!==g.id,reason:!eligible.ok?eligible.reason:!available?'この店の取扱外':old.id===g.id?'すでに装備しています':''};
       const owner=draft.characters[characterId];
       if(row.retained){const bag=I.add(owner.inventory,old.id,1);if(!bag)return {...plan,reason:'所持品を保存できる範囲を超えます'};owner.inventory=bag;}
@@ -69,10 +71,12 @@ module.exports=function({I,S,clone,record,integer,getGear,template,shop,equipmen
   }
   function saleQuote(s,ownerId,id,count=1) {
     const g=getGear(id),owner=template(ownerId)&&s.characters[ownerId],amount=owner?I.count(owner.inventory,id):0;
-    const q={ok:false,reason:'',ownerId,itemId:id,count,name:g?.name||id,ownerName:template(ownerId)?.name||ownerId,available:amount,price:g?.price||0,proceeds:(g?.price||0)*count,goldBefore:s.gold,afterGold:s.gold+(g?.price||0)*count,token:inventoryToken(s)};
+    const price=g?.salePrice??g?.price??0;
+    const q={ok:false,reason:'',ownerId,itemId:id,count,name:g?.name||id,ownerName:template(ownerId)?.name||ownerId,available:amount,price,proceeds:price*count,goldBefore:s.gold,afterGold:s.gold+price*count,token:inventoryToken(s)};
     if(!saleAvailable(s))return {...q,reason:'装備店（イース・ウエス・ノース）で売却できます'};
     if(!owner||!s.selected.includes(ownerId))return {...q,reason:'編成中の所持者を選んでください'};
     if(!g||g.type==='empty')return {...q,reason:'売却できる装備品を選んでください'};
+    if(g.sellable===false)return {...q,reason:'この装備は売却できません'};
     if(!I.quantity(count)||count>amount)return {...q,reason:'所持数を確認してください。装備中の品は先に外してください'};
     if(!integer(q.afterGold))return {...q,reason:'所持金を保存できる範囲を超えます'};
     return {...q,ok:true};

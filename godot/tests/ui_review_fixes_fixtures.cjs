@@ -5,7 +5,7 @@ function acceptWithPorter(s,id){return C.accept(s,id,s.selected.find(uid=>C.view
 const followup=require('./followup_ui_fixtures.cjs');
 function save(s){assert(C.validate(s).ok,C.validate(s).error);return JSON.parse(C.serialize(s));}
 function result(destination,accepted=false){
- const s=C.create();s.location=['east','west'].includes(destination)?'north':'east';
+ const s=require('../../native/test-current-fixture.cjs')();s.location=['east','west'].includes(destination)?'north':'east';
  if(accepted)assert(acceptWithPorter(s,C.board(s).find(q=>q.to===destination).id));
  assert(C.depart(s,destination));
  for(let stage=0;stage<2;stage++){
@@ -16,9 +16,9 @@ function result(destination,accepted=false){
  }
  assert(C.arrive(s));if(accepted)assert(C.completeQuest(s));return save(s);
 }
-const town=C.create();town.characters.guard.hp=60;town.characters.guard.mp=0;town.characters.mage.hp=0;
-const four=C.create();assert(C.select(four,['guard','mage','scout','porter']));
-const road=C.create();assert(C.depart(road,'east'));
+const town=require('../../native/test-current-fixture.cjs')();town.characters.guard.hp=60;town.characters.guard.mp=0;town.characters.mage.hp=0;
+const four=require('../../native/test-current-fixture.cjs')();assert(C.select(four,['guard','mage','scout','porter']));
+const road=require('../../native/test-current-fixture.cjs')();assert(C.depart(road,'east'));
 const results=Object.fromEntries(['north','east','west','south','astaris'].map(id=>[id+'_travel',result(id)]));
 const fixtures={...followup,...results,north_delivery:result('north',true),town:save(town),four:save(four),road:save(road)};
 if(require.main===module)console.log(JSON.stringify(fixtures).replace(/[^\x00-\x7f]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0')));

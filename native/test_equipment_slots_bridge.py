@@ -1,3 +1,4 @@
+from test_current_fixture import current_campaign
 import copy
 import unittest
 from unittest.mock import Mock
@@ -7,7 +8,7 @@ from app import App
 class EquipmentSlotsBridgeTests(unittest.TestCase):
     def setUp(self):
         self.bridge=Session();self.addCleanup(self.bridge.close)
-        self.bridge.call(op='campaign_start')
+        current_campaign(self.bridge)
         saved=self.bridge.call(op='campaign_save')['data'];saved['state']['location']='east';saved['state']['gold']=1000
         self.assertTrue(self.bridge.call(op='campaign_load',data=saved)['ok'])
 
@@ -47,9 +48,9 @@ class EquipmentSlotsBridgeTests(unittest.TestCase):
     def test_all_four_new_weapons_in_shop_purchase_and_trial(self):
         cases=[
             ('greatsword-wood',50,1,2,[]),
-            ('spear-wood',23,2,1,[('itemUse','leftHand','empty-leftHand',1)]),
+            ('spear-wood',23,2,1,[]),  # Empty-hand item use is passive.
             ('longspear-wood',34,2,2,[('poleVault','rightHand','longspear-wood',1)]),
-            ('javelin-wood',21,3,1,[('itemUse','leftHand','empty-leftHand',1)]),
+            ('javelin-wood',21,1,1,[('spearThrow','rightHand','javelin-wood',1)]),
         ]
         for gear,damage,reach,hands,skills in cases:
             snapshot=self.bridge.call(op='campaign_save')['data']

@@ -309,6 +309,8 @@ func render_bottom_commands():
 		control.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
 		control.add_theme_constant_override("h_separation",8)
 		mark_selected(control,selected)
+		if pair[0]=="items" and not ui.data.get("itemUseInfo") is Dictionary:
+			control.modulate=Color(0.55,0.55,0.55);control.tooltip_text="拳の効果がないため使用できません。クリックで説明"
 		if pair[0]=="skill" and expanded_menu=="skill" and ui.command in ["skill","return"] and not action_menu:render_skills(bottom_commands)
 		if pair[0]=="items" and expanded_menu=="items" and ui.command in ["items","item","ether"] and not action_menu:render_items()
 func mark_selected(control: Button,selected: bool):
@@ -339,6 +341,8 @@ func back_to_commands():
 	ui.invalidate_preview();expanded_menu="";item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";ui.audio.ui("cancel");ui.render()
 func open_items():
 	if menu_transition:return
+	if not ui.data.get("itemUseInfo") is Dictionary:
+		ui.notice="拳の効果がないためアイテムを使用できません。片手を空けるか、拳を装備してください。";ui.render();return
 	expanded_menu="items";animate_menu=true
 	if ui.locked or ui.presenting or ui.closing or range_reference:return
 	ui.invalidate_preview();action_menu=false;skill_list=false;item_list=true;selected_cell=-1;selected_enemy="";ui.command="items";ui.render()
@@ -381,7 +385,7 @@ func render_items():
 		if kind.is_empty():continue
 		var count=item_count(str(item.id))
 		var reason=""
-		if not acting().get("activeSkills",["itemUse"]).has("itemUse"):reason="アイテム使用スキルなし"
+		if not item_info is Dictionary:reason="拳の効果なし"
 		elif item_info is Dictionary and int(item_info.get("cooldown",0))>0:reason="使用スキルはクールタイム中"
 		elif item.get("battleRole","")=="porter" and acting().get("job")!="porter":reason="ポーター専用"
 		elif count<=0:reason="在庫なし"
@@ -471,7 +475,8 @@ func render_prediction(main,facts):
 			var prediction=ui.icons.line(ui,main,"damage" if effect.hp<0 else "healing","%s HP %d → %d（%+d）" % [recipient.get("name",effect.id),before,after,effect.hp],true)
 			prediction.name="PredictionSummary" if i==0 else "PredictionSummary_"+str(effect.id);prediction.add_theme_font_size_override("font_size",30 if ui.size.x>=1800 else 25)
 			prediction.add_theme_color_override("font_color",Color("#ffc7b4") if effect.hp<0 else Color("#b6f0db"))
-		l(facts,"命中100% / 現在の対象・条件での予測")
+		var chance=100.0*(1.0-float(hits[0].get("evasionChance",0))) if not hits.is_empty() else 100.0
+		l(facts,"命中%d%% / 命中した場合の予測" % roundi(chance))
 		if hits.size()>1:l(facts,"予測 %d件: " % hits.size()+" / ".join(hits.map(func(h):return str(h.get("targetName",h.get("recipientName","未確認")))))+(" / 全対象は下へ" if ui.command=="skill" else " / 全対象は内訳へ" if ui.ui_size_mode=="standard" else ""))
 		for entry in hits:
 			if entry.get("targetName")!=entry.get("recipientName"):l(facts,"⚠ 肩代わり: "+str(entry.get("targetName",""))+" → "+str(entry.get("recipientName","")))
@@ -480,6 +485,7 @@ func render_prediction(main,facts):
 	if ui.command=="guard":ui.icons.line(ui,main,"defense_up","被ダメージ半減 / 次の本人の番まで")
 	if ui.preview_ready:
 		for effect in ui.preview.get("effectPreview",[]):
+			if effect.get("cast",false):l(main,"次の本人の行動で指定マスへ発動 / 構え開始時MP1（中断時も返却なし） / 対象は追尾しません")
 			if effect.has("skipChance"):l(main,"%s：次の手番スキップ 成功率%d%%（対象ごとに判定）%s" % [target_name(effect.id),roundi(effect.skipChance*100)," / すでに次回スキップ（重複なし）" if effect.get("alreadySkipping",false) else ""])
 			if effect.get("position")!=null:l(main,target_name(effect.id)+" → "+coord(int(effect.position)))
 			if effect.get("mp",0)>0:
@@ -764,7 +770,9 @@ func render_person_content(parent,u: Dictionary,expanded:=false):
 	for pair in [["str","STR","strength"],["int","INT","intelligence"],["speed","SPD（行動速度）","speed"]]:
 		var value=u.get("agi") if pair[0]=="speed" else stats.get(pair[0],u.get(pair[0]))
 		var part=breakdown.get(pair[0],{});var suffix="補正：未取得"
-		if part.has("growth"):suffix="成長＋%d / 基礎%d" % [part.growth,part.base]
+		if part.has("growth"):
+			suffix="成長＋%d / 基礎%d" % [part.growth,part.base]
+			if int(part.get("equipment",0))!=0:suffix+=" / 装備%+d" % int(part.equipment)
 		elif part.has("equipment"):suffix="装備%+d / AGI%d" % [part.equipment,part.agi]
 		ui.icons.line(ui,parent,pair[2],pair[1]+" "+("未取得" if value==null else str(int(value)))+"（"+suffix+"）")
 	if ui.state().get("formationVersion")==1:l(parent,"旧戦闘の陣形条件を継続中")
@@ -818,6 +826,7 @@ func request_hover(uid: String,token: int,generation: int,connection: int,source
 	if prediction.get("fullHealth",false):parts.append("HP ＋0（HP満タン）")
 	if parts.is_empty():
 		for effect in prediction.get("effectPreview",[]):
+			if effect.get("cast",false):parts.append("次の本人の行動で指定マスへ発動・MP1")
 			if effect.get("hp",0)>0:parts.append("HP ＋%d" % effect.hp)
 			if effect.has("skipChance"):parts.append("%s 次回スキップ %d%%" % [target_name(effect.id),roundi(effect.skipChance*100)])
 			if effect.get("position")!=null:parts.append(target_name(effect.id)+" → "+coord(int(effect.position)))

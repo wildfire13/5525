@@ -35,6 +35,23 @@ class MasterTests(unittest.TestCase):
         with self.assertRaises(ValueError):read(self.root/'absent.sqlite')
         self.db.write_bytes(b'not a database')
         with self.assertRaises(sqlite3.DatabaseError):read(self.db)
+    def test_updateplan_properties_roundtrip(self):
+        properties=dict(weight=0,salePrice=0,purchasable=False,sellable=False,
+                        transferable=False,removable=True,raceOnly='elf',sexOnly='female',excludedRaces=['dwarf'])
+        self.source['gear'][0].update(properties)
+        self.write()
+        actual=read(self.db)['gear'][0]
+        for key,value in properties.items():self.assertEqual(actual[key],value)
+    def test_updateplan_bad_properties_preserve_master(self):
+        pristine=copy.deepcopy(self.source);original=self.db.read_bytes()
+        for key,value in [('weight',-1),('weight',True),('weight',None),('salePrice',-1),
+                          ('salePrice',1.5),('purchasable','false'),('sellable',0),
+                          ('transferable',1),('removable',None),('raceOnly','unknown'),
+                          ('sexOnly','unknown'),('excludedRaces',['elf','elf']),('excludedRaces','elf')]:
+            with self.subTest(key=key,value=value):
+                self.source=copy.deepcopy(pristine);self.source['gear'][0][key]=value
+                with self.assertRaises(ValueError):self.write()
+                self.assertEqual(self.db.read_bytes(),original)
     def test_foreign_key_corruption(self):
         with closing(sqlite3.connect(self.db)) as db, db:db.execute("UPDATE equipment_skill SET skill_id='missing'")
         with self.assertRaises(ValueError):read(self.db)
@@ -188,6 +205,15 @@ class MasterTests(unittest.TestCase):
         result=subprocess.run([sys.executable,'-S','-B',str(ROOT.parent/'master_data.py'),'probe'],capture_output=True,text=True,timeout=10)
         self.assertNotEqual(result.returncode,0)
         self.assertEqual(result.stdout,'');self.assertIn('runtime dependencies',result.stderr)
-    def test_no_new_gear(self):
-        self.assertEqual(len(read(self.db)['gear']),58)
+    def test_updateplan_catalog_and_confirmed_belt_level(self):
+        actual=read(self.db);gear={g['id']:g for g in actual['gear']}
+        self.assertEqual(len(gear),76)
+        self.assertEqual(actual['grantsByEquipment']['pouch-belt-3'][0]['level'],3)
+        self.assertEqual(gear['porter-bag']['allowedSlots'],['accessory2'])
+        self.assertEqual(gear['stealth-cloak']['allowedSlots'],['accessory2'])
+        for key in ('atk','reach','str','int','agi','price'):
+            self.assertEqual(gear['onehand-hammer-wood'][key],gear['sword-wood'][key])
+        self.assertEqual(gear['onehand-hammer-wood']['type'],'hammer')
+        self.assertNotIn('skill',gear['onehand-hammer-wood'])
+        self.assertNotIn('effect',gear['onehand-hammer-wood'])
 if __name__=='__main__':unittest.main()

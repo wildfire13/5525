@@ -33,7 +33,7 @@ func back():
   pages.shop_view.cancel_pending();pages.shop_view.sale.reset();view="top";ui.render()
  else:ui.navigate("hub")
 func choose(value: String):
- if value not in ["buy","sell","inn","guild"] or value=="sell" and not pages.c().get("saleAvailable",false):return
+ if value not in ["buy","sell","inn","guild","warehouse"] or value=="sell" and not pages.c().get("saleAvailable",false):return
  if ui.locked or ui.presenting or ui.modal_open() or pages.shop_view.busy():return
  view=value;pages.shop_view.sale.reset();ui.memory.focus_key="";ui.render()
 func render_top(parent: Control,page: String) -> bool:
@@ -50,7 +50,7 @@ func render_top(parent: Control,page: String) -> bool:
   if pages.c().get("location")!="south":choices.append(["強化する（未実装）","upgrade",false])
   choices.append(["納品する（未実装）","delivery",false])
  elif page=="inn":choices=[["宿泊する","inn",true]]
- else:choices=[["パーティーを編成する","guild",true],["納品する（未実装）","delivery",false]]
+ else:choices=[["パーティーを編成する","guild",true],["倉庫を利用する","warehouse",true],["納品する（未実装）","delivery",false]]
  for choice in choices:
   var button=ui.button(options,choice[0],choose.bind(choice[1]),not choice[2]);button.name="FacilityChoice_"+str(choice[1]);button.custom_minimum_size=Vector2(280,54);ui.memory.key(button,"facility_"+str(choice[1]))
   if not choice[2]:

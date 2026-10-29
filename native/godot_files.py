@@ -122,7 +122,12 @@ def run(r):
         if path.stat().st_size>MAX_SAVE: raise ValueError('保存サイズ超過')
         data=json.loads(path.read_text(encoding='utf-8-sig'))
         if not isinstance(data,dict): raise ValueError('保存形式が不正です')
-        data['nativePortraits']=prepare_portraits(data.get('nativePortraits'),r.get('allowed',[]))
+        # Character membership belongs to the incoming save, not the currently
+        # open/new game's roster. Full campaign validation still precedes adoption.
+        state=data.get('state')
+        saved_characters=state.get('characters') if isinstance(state,dict) else None
+        allowed=saved_characters.keys() if data.get('format')=='5525-native-campaign' and isinstance(saved_characters,dict) else r.get('allowed',[])
+        data['nativePortraits']=prepare_portraits(data.get('nativePortraits'),allowed)
         return data
     if r['action']=='write_target': return write_target(r['path'])
     if r['action']=='write':

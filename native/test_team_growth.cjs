@@ -1,7 +1,9 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),fs=require('node:fs'),C=require('./campaign.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
-const s=C.create();s.xp=730;s.level=999;
+const s=require('./test-current-fixture.cjs')();s.xp=730;s.level=999;
 for(const c of Object.values(s.characters))c.xp=80;
 assert(C.validate(s).ok,'obsolete team fields do not constrain individual growth');
 const old=clone(s.characters),saved=C.serialize(s),loaded=C.deserialize(saved);

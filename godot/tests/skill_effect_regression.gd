@@ -121,7 +121,8 @@ func boundaries(fixture: Dictionary):
 func geometry_boundaries(stamp: Dictionary,sweep: Dictionary):
 	# Controlled event-parser boundary: an enemy uses its already reserved cells,
 	# never a current ally selector. This is not a claim of playing a new action.
-	var frame=stamp.frames[0].duplicate(true)
+	var frame=stamp.frames.filter(func(f):return f.presentation.phase=="action" and f.presentation.kind=="skill")[0].duplicate(true)
+	frame.presentation.erase("resolved")
 	var enemy=frame.state.units.filter(func(u):return u.side=="enemy")[0]
 	enemy.intent={"kind":"skill","cells":[15,25,35],"target":25}
 	frame.presentation.actor_id=enemy.id;frame.presentation.unit_id=enemy.id
@@ -153,6 +154,7 @@ func run():
 	check(generated.meta.count==23 and generated.cases.size()==23,"all 23 canonical fixture cases present")
 	root.size=Vector2i(1180,812);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true
 	check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"BGM voice and SE all OFF")
 	var saved=(await game.engine.request({"op":"campaign_save"})).data

@@ -16,9 +16,10 @@ func run():
 	if qa.is_empty() or not OS.get_user_data_dir().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1180,812);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true
 	var output=[];var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray(["-e","const C=require(process.argv[1]);process.stdout.write(JSON.stringify(C.gear.filter(g=>!g.virtualDefault&&g.type!=='empty'&&!g.id.startsWith('fist-')).map(g=>g.id)));",ProjectSettings.globalize_path("res://../native/campaign.js")]),output,true,false)
-	var gear=JSON.parse_string("".join(output));check(code==0 and gear.size()==47,"F3 fixture uses 47 real gear definitions")
+	var gear=JSON.parse_string("".join(output));check(code==0 and gear.size()==65,"F3 fixture uses 65 real gear definitions")
 	var seed=await saved();seed.state.location="east";seed.state.gold=500;seed.state.characters.guard.inventory={}
 	for id in gear:seed.state.characters.guard.inventory[id]=3
 	seed.state.characters.guard.inventory.potion=5;seed.state.characters.guard.inventory.ether=2
@@ -27,7 +28,7 @@ func run():
 		root.size=dims;await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle();game.pages.party_view.open_detail("guard");await settle()
 		game.dialog.window.size=spec[1];await frames(24)
 		var before=await saved();var inv=game.pages.party_view.inventory_view;var owned=game.pages.party_view.owned_equipment_view
-		check(owned.entries("guard").size()==49,"F3 fixture has all 49 distinct personal items "+str(dims.x))
+		check(owned.entries("guard").size()==gear.size()+2,"F3 fixture has every gear and both consumable types "+str(dims.x))
 		owned.actions("guard","kungfu-pants");await settle()
 		visible_actions("equipment-before-details-"+str(dims.x),["InventoryDetails","InventoryEquip","InventoryList"])
 		await tap("InventoryDetails");check(node("SkillDetailsWindow")!=null,"F3 equipment explanation opens "+str(dims.x));await tap("SkillDetailsBack")

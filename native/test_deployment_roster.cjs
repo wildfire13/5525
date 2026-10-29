@@ -1,20 +1,22 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 let passed=0;
 function test(name,fn){fn();console.log('PASS '+name);passed++;}
 function okay(s){assert.equal(C.validate(s).ok,true,C.validate(s).error);assert.deepEqual(C.deserialize(C.serialize(s)),clone(s));}
-function prep(){const s=C.create();assert(C.select(s,C.view(s).roster.map(u=>u.id)));assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>.2));okay(s);return s;}
+function prep(){const s=require('./test-current-fixture.cjs')();assert(C.select(s,C.view(s).roster.map(u=>u.id).slice(0,12)));assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>.2));okay(s);return s;}
 function reject(s,id,pos){const old=structuredClone(s);assert.equal(C.deployment_assign(s,id,pos),false);assert.deepEqual(s,old);}
-test('eleven real travellers, twelve cap, five combat slots and strict legacy saves',()=>{
- const s=prep(),v=C.view(s);assert.equal(s.selected.length,11);assert.equal(v.partyLimit,12);assert.equal(v.battleLimit,5);assert.equal(v.deploymentRoster.remaining,0);assert.equal(v.deploymentRoster.reserves.length,6);
- const legacy=C.create();assert(!Object.hasOwn(legacy,'battleSelected'));okay(legacy);C.depart(legacy,'east');C.travel(legacy,'safe',()=>.2);legacy.battle.units=legacy.battle.units.filter(u=>u.id!=='guard');assert.equal(C.validate(legacy).ok,false);
+test('twelve real travellers, twelve cap, five combat slots and strict legacy saves',()=>{
+ const s=prep(),v=C.view(s);assert.equal(s.selected.length,12);assert.equal(v.partyLimit,12);assert.equal(v.battleLimit,5);assert.equal(v.deploymentRoster.remaining,0);assert.equal(v.deploymentRoster.reserves.length,7);
+ const legacy=require('./test-current-fixture.cjs')();assert(!Object.hasOwn(legacy,'battleSelected'));okay(legacy);C.depart(legacy,'east');C.travel(legacy,'safe',()=>.2);legacy.battle.units=legacy.battle.units.filter(u=>u.id!=='guard');assert.equal(C.validate(legacy).ok,false);
  const before=structuredClone(s);assert.equal(C.select(s,[]),false);assert.deepEqual(s,before);
  // Cap-only boundary uses temporary synthetic templates, restored in finally;
  // the product roster remains eleven members.
  const B=require('./campaign-battle.js'),length=B.roster.length;
  try{for(const id of ['synthetic-12','synthetic-13'])B.roster.push({...B.roster[0],id});
-  const town=C.create(),ids=B.roster.map(u=>u.id);assert(C.select(town,ids.slice(0,12)));okay(town);
+  const town=require('./test-current-fixture.cjs')(),ids=B.roster.map(u=>u.id);assert(C.select(town,ids.slice(0,12)));okay(town);
   const before=structuredClone(town);assert.equal(C.select(town,ids),false);assert.deepEqual(town,before);
  }finally{B.roster.length=length;}
 
@@ -31,13 +33,13 @@ test('empty preparation persists, cannot start, reset/formation do not resurrect
 });
 test('reserves keep HP/MP/items; EXP and camp recovery retain travelling-party policy',()=>{
  const s=prep();const reserve=s.characters['guard-2'];reserve.hp-=20;reserve.mp=0;const inv=clone(reserve.inventory),hp=reserve.hp,xp=reserve.xp;
- assert(C.begin(s));for(const u of s.battle.units)if(u.side==='enemy')u.hp=0;s.battle.result='勝利';assert(C.finishBattle(s));assert.equal(reserve.hp,hp);assert.equal(reserve.mp,0);assert.deepEqual(reserve.inventory,inv);assert.equal(reserve.xp,xp+20);assert.equal(s.journey.party.length,11);okay(s);
+ assert(C.begin(s));for(const u of s.battle.units)if(u.side==='enemy')u.hp=0;s.battle.result='勝利';assert(C.finishBattle(s));assert.equal(reserve.hp,hp);assert.equal(reserve.mp,0);assert.deepEqual(reserve.inventory,inv);assert.equal(reserve.xp,xp+20);assert.equal(s.journey.party.length,12);okay(s);
  assert(C.rest(s));assert.equal(reserve.hp,Math.min(C.stats(reserve).max,hp+60));assert.equal(reserve.mp,Math.min(C.stats(reserve).maxMp,2));okay(s);assert(C.onward(s));assert(C.travel(s,'safe',()=>.2));assert.equal(s.battleSelected.length,5);okay(s);
 });
 test('porter acceptance and deployed-death failure unchanged; bench porter not mandatory',()=>{
  const s=prep();assert(C.deployment_assign(s,'porter',null));assert(C.begin(s));okay(s);
- const town=C.create();assert(C.select(town,['guard']));assert.equal(C.accept(town,C.board(town)[0].id,'guard'),false);
- const dead=C.create();dead.characters.porter.hp=0;assert.equal(C.depart(dead,'east'),false);
+ const town=require('./test-current-fixture.cjs')();assert(C.select(town,['guard']));assert.equal(C.accept(town,C.board(town)[0].id,'guard'),false);
+ const dead=require('./test-current-fixture.cjs')();dead.characters.porter.hp=0;assert.equal(C.depart(dead,'east'),false);
  const fail=prep();assert(C.begin(fail));fail.battle.units.find(u=>u.id==='porter').hp=0;fail.battle.failure=true;fail.battle.result='敗北';assert(C.finishBattle(fail));assert.equal(fail.result.outcome,'failed');okay(fail);
 });
 
@@ -72,7 +74,7 @@ test('same-job member tie uses canonical nonzero index after replace/remove/re-a
  assert(C.chooseFormation(s,'flank'));assert(C.deployment_reset(s));ties();assert(C.begin(s));okay(s);
 });
 test('dead non-porter occupies legacy slot but can be explicitly removed without revival',()=>{
- const s=C.create();assert(C.select(s,['guard','archer','mage','scout','warrior','guard-2']));s.characters.warrior.hp=0;assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>.2));
+ const s=require('./test-current-fixture.cjs')();assert(C.select(s,['guard','archer','mage','scout','warrior','guard-2']));s.characters.warrior.hp=0;assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>.2));
  assert(s.battleSelected.includes('warrior'));assert.equal(s.battleSelected.length,5);okay(s);const chars=structuredClone(s.characters);reject(s,'guard-2',0);
  assert(C.deployment_assign(s,'warrior',null));assert.equal(s.characters.warrior.hp,0);assert.equal(C.view(s).deploymentRoster.remaining,1);okay(s);
  assert(C.deployment_assign(s,'guard-2',0));assert.deepEqual(s.characters,chars);assert(C.begin(s));okay(s);
@@ -81,7 +83,7 @@ test('dead non-porter occupies legacy slot but can be explicitly removed without
 
 test('flank initial/reset collisions relocate only conflicting allies and keep scout anchor',()=>{
  for(const ids of [['guard-2','scout','guard','mage','archer'],['scout-2','scout','guard-2','porter','warrior']]){
-  const s=C.create();assert(C.select(s,ids));assert(C.depart(s,'east','flank'));assert(C.travel(s,'safe',()=>.2));
+  const s=require('./test-current-fixture.cjs')();assert(C.select(s,ids));assert(C.depart(s,'east','flank'));assert(C.travel(s,'safe',()=>.2));
   const positions=()=>s.battle.units.filter(u=>u.side==='ally').map(u=>u.pos);
   assert.equal(new Set(positions()).size,ids.length);assert.equal(s.battle.units.find(u=>u.job==='scout').pos,14);okay(s);
   assert(C.chooseFormation(s,'convoy'));assert(C.deployment_reset(s));okay(s);assert(C.chooseFormation(s,'flank'));assert(C.deployment_reset(s));okay(s);assert(C.begin(s));okay(s);

@@ -1,7 +1,7 @@
 "use strict";
 const C=require('../../native/campaign.js'),B=require('../../native/campaign-battle.js'),assert=require('assert/strict');
 function fixture(selfHeal){
- const s=C.create();assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>.5));assert(C.begin(s));
+ const s=require('../../native/test-current-fixture.cjs')();assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>.5));assert(C.begin(s));
  const b=s.battle, mage=b.units.find(u=>u.id==='mage'), guard=b.units.find(u=>u.id==='guard');
  b.units.forEach(u=>{u.next=10000;u.hp=u.max;});mage.next=1;mage.hp=70;guard.hp=60;b.actor=mage.id;
  const healer=b.units.find(u=>u.side==='enemy'&&u.job==='mage'),enemy=b.units.find(u=>u.side==='enemy'&&u.job==='guard');

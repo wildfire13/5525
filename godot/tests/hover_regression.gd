@@ -18,6 +18,7 @@ func run():
 	create_timer(120).timeout.connect(func():print("FAIL floor hover watchdog");quit(2))
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	await game.update({"op":"campaign_load","data":battle_fixture().guard});await settle()
 	await game.choose_command("attack");await settle()

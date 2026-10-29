@@ -1,4 +1,5 @@
 """Headless inn controller/real Node tests; modal rendering still needs GUI QA."""
+from test_current_fixture import current_campaign
 from copy import deepcopy
 import unittest
 from unittest.mock import Mock, patch
@@ -11,7 +12,7 @@ class CampaignInnTests(unittest.TestCase):
     def setUp(self):
         self.engine = Bridge()
         self.addCleanup(self.engine.close)
-        self.engine.call(op='campaign_start')
+        current_campaign(self.engine)
         damaged = self.save()
         damaged['state']['characters']['guard']['hp'] = 0
         damaged['state']['characters']['mage']['mp'] = 0

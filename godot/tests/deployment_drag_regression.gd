@@ -4,7 +4,7 @@ const Drag=preload("res://deployment_drag.gd")
 var drops=[]
 var layouts=[]
 func fixtures() -> Dictionary:
-	var code="const C=require(process.argv[1]),a=require('node:assert/strict');let s=C.create();a(C.select(s,['guard','archer','mage','scout','porter','guard-2','mage-2']));a(C.depart(s,'east'));a(C.travel(s,'safe',()=>0));a(C.validate(s).ok,C.validate(s).error);console.log(C.serialize(s));"
+	var code="const C=require(process.argv[1]),a=require('node:assert/strict');let s=require(require('node:path').join(require('node:path').dirname(process.argv[1]),'test-current-fixture.cjs'))();a(C.select(s,['guard','archer','mage','scout','porter','guard-2','mage-2']));a(C.depart(s,'east'));a(C.travel(s,'safe',()=>0));a(C.validate(s).ok,C.validate(s).error);console.log(C.serialize(s));"
 	var output=[];var exit=OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray(["-e",code,ProjectSettings.globalize_path("res://../native/campaign.js")]),output,true,false)
 	check(exit==0,"seven-member fixture uses canonical selection travel and validation")
 	return JSON.parse_string("".join(output))
@@ -46,6 +46,7 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle();var sample=fixtures()
 	check((await game.update({"op":"campaign_load","data":sample})).get("ok",false),"valid seven-member deployment restored")
 	await settle();game.board.deployment_assigned.connect(func(uid,pos):drops.append([uid,pos]))

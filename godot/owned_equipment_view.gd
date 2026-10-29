@@ -77,6 +77,11 @@ func target(entry: Dictionary) -> String:
 	var choices=entry.get("equipSlots",[])
 	return str(choices[0].slot) if choices.size()==1 else ""
 func render_header(parent,u: Dictionary):
+	var inventory=ui.campaign().get("inventoryByCharacter",{}).get(str(u.id),{})
+	var capacity=inventory.get("capacity",{})
+	if not capacity.is_empty():ui.label_(parent,"インベントリ枠 %s / %s" % [str(capacity.get("used",0)),"制限なし" if capacity.get("limit")==null else str(capacity.limit)]).name="InventoryCapacity"
+	var weight=inventory.get("weight",{})
+	if not weight.is_empty():ui.label_(parent,"Wt %s" % [str(weight.total) if weight.get("total")!=null else str(weight.get("known",0))+"（重量未設定の品物あり）"]).name="InventoryWeight"
 	var heading=ui.row(parent);heading.name="OwnedInventoryHeader"
 	var title=ui.label_(heading,str(u.name)+"のインベントリ",true);title.name="OwnedEquipmentOwner";title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ui.short_name(title,title.text);title.autowrap_mode=TextServer.AUTOWRAP_OFF;title.clip_text=true;title.max_lines_visible=1
 	var chooser=OptionButton.new();chooser.name="OwnedEquipmentSlot";chooser.fit_to_longest_item=false;chooser.clip_text=true;chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_child(chooser);chooser.custom_minimum_size.x=160
@@ -107,6 +112,10 @@ func render(parent,u: Dictionary):
 		var row=list
 		var selected=party.inventory_view.owner_id==str(u.id) and party.inventory_view.item_id==str(entry.id) and party.inventory_view.stage!="list"
 		var button=ui.button(row,("選択中 / " if selected else "")+"%s　%d個" % [entry.name,entry.count],actions.bind(str(u.id),str(entry.id)));button.name="OwnedEquipment_"+str(entry.id);ui.memory.key(button,"inventory_"+str(u.id)+"_"+str(entry.id));button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;button.alignment=HORIZONTAL_ALIGNMENT_LEFT;button.set_meta("selected_inventory_item",selected)
+		if entry.get("overCapacity",false):
+			button.text="枠超過 / "+button.text
+			for state_ in ["normal","hover","pressed"]:
+				var overflow_style=button.get_theme_stylebox(state_).duplicate();overflow_style.bg_color=overflow_style.bg_color.blend(Color(0.65,0.06,0.04,0.45));button.add_theme_stylebox_override(state_,overflow_style)
 		if selected:
 			for state_ in ["normal","hover","pressed"]:
 				var style=button.get_theme_stylebox(state_).duplicate();style.border_color=Color("#91dacf");style.set_border_width_all(2);button.add_theme_stylebox_override(state_,style)

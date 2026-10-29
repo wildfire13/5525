@@ -19,11 +19,14 @@ func run():
 	game.audio.ui_sound_started.connect(func(id):ui_events.append(id))
 	check(game.campaign().location=="astaris","single-window campaign initial state")
 	game.navigate("party");await process_frame
-	check(game.roster().size()==11,"eleven party portrait cards")
+	check(game.roster().size()==24,"24 new guild candidates")
 	game.navigate("items");await process_frame
 	var source=ProjectSettings.globalize_path("res://../native/test_fixtures/campaign-a51a773-battle.json")
 	await game.load_game(source)
-	check(game.campaign().phase=="battle","legacy battle save via real file adapter")
+	check(game.campaign().phase=="town" and game.roster().size()==35,"legacy battle migrates once to town and preserves old actors")
+	# Migrated inventories may exceed new capacity; use the capacity-equipped historical scenario for battle UI checks.
+	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.act("depart",["east"]);await game.act("travel",["safe"]);await game.act("begin",[])
 	check(game.state().units.filter(func(u):return u.side=="ally").all(func(u):return u.has("attackWeapons")),"legacy equipment migration")
 	check(game.board!=null,"battle uses same root window")
 	await process_frame;await process_frame
@@ -64,6 +67,7 @@ func run():
 	DirAccess.remove_absolute(battle_file)
 	await game.act("retreat",[])
 	await game.act("acknowledge",[])
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	var copy=await game.engine.request({"op":"campaign_save"})
 	copy.data.state.location="west"
 	await game.update({"op":"campaign_load","data":copy.data})

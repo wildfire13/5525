@@ -4,6 +4,7 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var baseline=await saved();var seed=baseline.duplicate(true);seed.state.location="west"
 	seed.state.characters.guard.inventory["sword-wood"]=1
@@ -54,7 +55,7 @@ func run():
 	hud.choose_command("skill");await settle();hud.choose_command("attack");await settle();check(node("BattleSkillList")==null and node("BattleItemList")==null,"another command closes both lists")
 	hud.choose_command("skill");await settle()
 	var description=node("BattleSkill_archer").tooltip_text
-	check(description.begins_with("[スナイプ]") and description.contains("消費MP:") and description.contains("対象:") and description.contains("スキル効果:"),"skill tooltip follows requested four-part template")
+	check(description.begins_with("[スナイプLv1]") and description.contains("消費MP:") and description.contains("対象:") and description.contains("スキル効果:"),"skill tooltip follows requested four-part template")
 	var tooltip=node("BattleSkill_archer")._make_custom_tooltip(description.repeat(8));root.add_child(tooltip);await frames()
 	check(tooltip.autowrap_mode==TextServer.AUTOWRAP_WORD_SMART and tooltip.size.x<=520 and tooltip.size.y>50,"skill tooltip wraps lengthy text without ellipsis");tooltip.queue_free()
 	var porter=fixtures.porter

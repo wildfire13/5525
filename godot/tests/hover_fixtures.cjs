@@ -1,6 +1,6 @@
 'use strict';
 const C=require('../../native/campaign.js'),assert=require('node:assert/strict');
-const town=C.create(),battle=C.create();
+const town=require('../../native/test-current-fixture.cjs')(),battle=require('../../native/test-current-fixture.cjs')();
 assert(C.depart(battle,'east'));assert(C.travel(battle,'short',()=>.25));
 const deployment=JSON.parse(C.serialize(battle));
 assert(C.begin(battle));battle.battle.formationVersion=1;

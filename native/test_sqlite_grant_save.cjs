@@ -1,8 +1,10 @@
 'use strict';
+// Historical-ID fixtures retain the old roster; new-game/one-time migration
+// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 let count=0;function test(name,fn){fn();count++;console.log('PASS '+name);}
-function town(){const s=C.create();s.location='east';s.gold=5000;return s;}
+function town(){const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=5000;return s;}
 function battle(s){assert.ok(C.depart(s,'astaris'));assert.ok(C.travel(s,'safe',()=>.2));assert.ok(C.begin(s));return s.battle;}
 function roundtrip(s){const result=C.deserialize(C.serialize(s));assert.deepEqual(result,clone(s));return result;}
 test('two owned copies equip separately and inventory consumption is atomic',()=>{
@@ -12,7 +14,7 @@ test('two owned copies equip separately and inventory consumption is atomic',()=
  assert.ok(C.inventoryAction(s,'mage','staff-wood','equip',null,1,'leftHand',q.token));
  assert.equal(c.inventory['staff-wood']||0,0);assert.equal(c.weapon,'staff-wood');assert.equal(c.leftHand,'staff-wood');
  const st=C.stats(c);assert.equal(st.skillSources.filter(x=>x.id==='mage').length,2);
- assert.deepEqual(st.skillSources.map(x=>x.grantSlot),[1,1]);
+ assert.deepEqual(st.skillSources.filter(x=>x.id==='mage').map(x=>x.grantSlot),[1,1]);
  const before=clone(s);assert.equal(C.inventoryAction(s,'mage','staff-wood','equip',null,1,'leftHand',q.token),false);assert.deepEqual(s,before);
  assert.equal(C.inventoryQuote(s,'mage','staff-wood','equip',null,1,'rightHand').ok,false);roundtrip(s);
 });
@@ -52,7 +54,7 @@ test('product trials opt in and retreat/new battle does not carry cooldown',()=>
  const bad=clone(s);bad.battle.skillCooldownVersion=2;assert.equal(C.validate(bad).ok,false);
 });
 test('return grants preserve independent used states and reject forged keys',()=>{
- const s=town();s.location='north';assert.ok(C.buyGear(s,'guard','return-ring-1','accessory1'));assert.ok(C.buyGear(s,'guard','return-ring-2','accessory2'));
+ const s=town();s.location='north';s.characters.guard.inventory={};s.characters.guard.lowerBody='cloth-lowerBody';assert.ok(C.buyGear(s,'guard','return-ring-1','accessory1'));assert.ok(C.buyGear(s,'guard','return-ring-2','accessory2'));
  const b=battle(s),a=b.units.find(u=>u.id==='guard'),options=B.returnSkillOptions(a);assert.equal(options.length,2);
  b.actor=a.id;for(const u of b.units)u.next=u.id===a.id?1:100000;
  assert.ok(B.selectReturnSkill(b,options[1].key));assert.ok(C.act(s,'return',0));
@@ -63,7 +65,7 @@ test('return grants preserve independent used states and reject forged keys',()=
  }
 });
 test('old actor-wide used return remains consumed for every grant after load',()=>{
- const s=town();s.location='north';C.buyGear(s,'guard','return-ring-1','accessory1');C.buyGear(s,'guard','return-ring-2','accessory2');battle(s);
+ const s=town();s.location='north';s.characters.guard.inventory={};s.characters.guard.lowerBody='cloth-lowerBody';C.buyGear(s,'guard','return-ring-1','accessory1');C.buyGear(s,'guard','return-ring-2','accessory2');battle(s);
  const a=s.battle.units.find(u=>u.id==='guard');a.returnUsed=true;
  const source=C.serialize(s),loaded=C.deserialize(source),hero=loaded.battle.units.find(u=>u.id==='guard');
  assert.equal(hero.returnUsed,true);assert.ok(B.returnSkillOptions(hero).every(o=>o.used));assert.equal(JSON.stringify(s),JSON.stringify(JSON.parse(source).state));

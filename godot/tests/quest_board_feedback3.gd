@@ -7,6 +7,7 @@ func run():
  root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1920,1080)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
+ await preload("res://tests/current_historical_fixture.gd").install(game)
  game.audio.fast_mode=true;game.checks_fast=true;await settle()
  await game.act("select",[["guard","porter","porter-2"]]);game.navigate("board");await settle()
  var seed=await saved()

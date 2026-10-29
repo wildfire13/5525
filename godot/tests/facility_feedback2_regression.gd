@@ -6,6 +6,7 @@ func run():
  if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
+ await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true;await settle();var seed=await saved();seed.state.characters.guard.inventory={"potion":8,"spear-wood":3};seed.state.characters.archer.inventory={"potion":2};seed.state.gold=1000
  var facility=game.pages.facility_entry;var shop=game.pages.shop_view
  for place in ["east","west","north","south"]:

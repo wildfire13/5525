@@ -42,7 +42,7 @@ func build(owner):
 					for state_ in ["normal","hover","pressed","disabled"]:
 						var style=remove.get_theme_stylebox(state_).duplicate();style.content_margin_top=0;style.content_margin_bottom=0;remove.add_theme_stylebox_override(state_,style)
 			else:control.tooltip_text+=" / 盤面から一覧へドラッグで控えに戻す" if deployed.has(str(id)) else " / 盤面へ上向きにドラッグで出場・入替"
-		if str(id)==view.detail_uid or (ui.pages.shop_view.sale_mode() and str(id)==ui.pages.shop_view.selected_owner()):view.tint(control,Color("#243c68"))
+		if str(id)==view.detail_uid or (ui.pages.shop_view.sale_mode() and str(id)==ui.pages.shop_view.selected_owner()) or (ui.pages.warehouse_view.available() and str(id)==ui.pages.warehouse_view.owner_id):view.tint(control,Color("#243c68"))
 		elif ui.pages.guild_view.available() and str(id)==ui.pages.guild_view.chosen_id:view.tint(control,Color("#236044"))
 		elif deployed.has(str(id)):view.tint(control,Color("#294b51"))
 		ui.memory.key(control,"face_"+str(id));ui.memory.item(control,str(id))
