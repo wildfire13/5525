@@ -3,12 +3,13 @@
 module.exports=function({I,S,clone,record,integer,getGear,template,shop,equipment,eligibility,stats,syncCharacter,validate,inventoryToken,inventoryCapacity,commitInventory,note,createHash}) {
   function saleAvailable(s){return s.phase==='town'&&['east','west','north'].includes(s.location);}
   // Consent covers this exact single-item payment, before a recipient is chosen.
-  function purchaseQuote(s,id) {
+  function purchaseQuote(s,id,ownerId=null) {
     const g=getGear(id),q={ok:false,reason:'',gearId:id,count:1,gear:g?clone(g):null,cost:g?.price||0,goldBefore:s.gold,afterGold:s.gold-(g?.price||0),token:''};
     if(!saleAvailable(s)||!g||g.type==='empty'||!shop(s).some(item=>item.id===id))return {...q,reason:'この店で購入できる商品を選んでください'};
     q.token=createHash('sha256').update(JSON.stringify([inventoryToken(s),id,g.price])).digest('hex');
     if(s.gold<q.cost)return {...q,reason:'所持金が不足しています'};
     if(!s.selected.some(owner=>I.canReceive(s.characters[owner].inventory,id,1,inventoryCapacity(s,owner))))return {...q,reason:'受取可能なインベントリがありません'};
+    if(ownerId!==null&&(!s.selected.includes(ownerId)||!s.characters[ownerId]||!I.canReceive(s.characters[ownerId].inventory,id,1,inventoryCapacity(s,ownerId))))return {...q,reason:'選択した人物のインベントリに空きがありません'};
     return {...q,ok:true};
   }
   function buyInventory(s,ownerId,id,token) {

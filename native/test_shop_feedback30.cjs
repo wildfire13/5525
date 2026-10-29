@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict'),C=require('./campaign.js');
+const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=1000;
+s.characters.guard.xp=100;s.characters.guard.level=2;s.characters.guard.allocations.agi=1;s.characters.guard.statPoints=1;s.characters.guard.skillPoints=1;
+assert.equal(C.eligibility(s,'guard','dagger-steel').reason,'スカウト専用です');
+assert(C.purchaseQuote(s,'dagger-steel','guard').ok,'purchase does not require equip eligibility');
+s.characters.guard.inventory={'sword-wood':1,'spear-wood':1,'potion':1,'ether':1,'cloth-head':1};
+assert.equal(C.inventoryCapacity(s,'guard'),5);
+const before=C.serialize(s);
+assert(C.purchaseQuote(s,'dagger-steel').ok,'another member has space');
+assert.equal(C.purchaseQuote(s,'dagger-steel','guard').ok,false,'selected receiver full');
+assert(C.purchaseQuote(s,'sword-wood','guard').ok,'existing item stack does not require another slot');
+assert.equal(C.purchaseQuote(s,'sword-wood','missing').ok,false);
+assert.equal(C.serialize(s),before,'all quotes pure');
+const q=C.purchaseQuote(s,'sword-wood','guard');assert(C.buyInventory(s,'guard','sword-wood',q.token));assert.equal(s.gold,930);assert.equal(s.characters.guard.inventory['sword-wood'],2);
+assert.equal(C.buyInventory(s,'guard','sword-wood',q.token),false,'stale confirmation cannot buy twice');
+assert(C.validate(s).ok);assert.deepEqual(C.deserialize(C.serialize(s)),s);
+console.log('PASS shop feedback30 conditions, recipient capacity, pure quote, exact payment, duplicate rejection, save roundtrip');
