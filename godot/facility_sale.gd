@@ -44,18 +44,23 @@ func render(parent):
  if stage!="pending" and observed_token!=token:
   observed_token=token;quote={};generation+=1;previewing=false
   if not item_id.is_empty() and selected().is_empty():item_id="";stage="list";amount=1
- var compact=ui.size.y<720;var panel=PanelContainer.new();panel.name="FacilitySalePanel";panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;panel.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;panel.custom_minimum_size.x=maxf(600,ui.size.x*2.0/3.0-parent.global_position.x);var style=StyleBoxFlat.new();style.bg_color=Color("#173750ed");style.border_color=Color("#5384ab");style.set_border_width_all(1);style.set_corner_radius_all(8);style.set_content_margin_all(14);panel.add_theme_stylebox_override("panel",style);parent.add_child(panel)
+ var compact=ui.size.y<720;var panel=PanelContainer.new();panel.name="FacilitySalePanel";panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;panel.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;panel.custom_minimum_size.x=maxf(600,ui.size.x*2.0/3.0-parent.global_position.x);var style=StyleBoxFlat.new();style.bg_color=Color("#1e232bed");style.border_color=Color("#666b73");style.set_border_width_all(1);style.set_corner_radius_all(8);style.set_content_margin_all(14);panel.add_theme_stylebox_override("panel",style);parent.add_child(panel)
  var body=VBoxContainer.new();body.add_theme_constant_override("separation",8 if compact else 12);panel.add_child(body)
  var heading=ui.row(body);var title=ui.label_(heading,"売却",true);title.name="FacilitySaleHeading";title.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;title.autowrap_mode=TextServer.AUTOWRAP_OFF
- if owner_id.is_empty():ui.label_(body,"下の人物を選ぶと、その人物の所持品がここに表示されます。");return
- var owner=ui.label_(heading," / "+ui.member_name(owner_id)+"の所持品",true);owner.name="FacilitySaleOwner";owner.size_flags_horizontal=Control.SIZE_EXPAND_FILL;owner.max_lines_visible=2;owner.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;owner.tooltip_text=owner.text
+ var close=ui.button(heading,"×",finish,busy());close.name="FacilitySaleClose";close.tooltip_text="売却を終了する";close.custom_minimum_size.x=44
+ var end=ui.button(body,"売却を終了する",finish,busy());end.name="FacilitySaleEnd";end.size_flags_horizontal=Control.SIZE_SHRINK_END
+ if owner_id.is_empty():
+  ui.label_(body,"下の人物を選ぶと、その人物の所持品がここに表示されます。");body.move_child(end,-1);return
+ var owner=ui.label_(heading," / "+ui.member_name(owner_id)+"の所持品",true);owner.name="FacilitySaleOwner";owner.size_flags_horizontal=Control.SIZE_EXPAND_FILL;owner.max_lines_visible=2;owner.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;owner.tooltip_text=owner.text;heading.move_child(close,-1)
  var list=ui.scroller(body);list.get_parent().name="FacilitySaleScroll";list.get_parent().custom_minimum_size.y=80 if compact else 100;list.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(list.get_parent(),"facility_sale")
  for item in entries():row(list,item)
  if entries().is_empty():ui.label_(list,"この人物の所持品はありません。")
+ body.move_child(end,-1)
  if item_id.is_empty():return
  var item=selected()
  if item.is_empty():return
  var actions=VBoxContainer.new();actions.name="FacilitySaleActions";body.add_child(actions)
+ body.move_child(end,-1)
  var target=ui.label_(actions,ui.member_name(owner_id)+" / "+str(item.name),true);target.name="FacilitySaleTarget"
  if compact:target.add_theme_font_size_override("font_size",18)
  var controls=ui.row(actions);ui.label_(controls,"売却個数")
@@ -101,3 +106,7 @@ func commit(confirmed: Dictionary,ticket: int,epoch: int,connection: int):
   stage="list";item_id="";amount=1;quote={};shop.record_sale(confirmed)
  else:stage="selected";message=str(reply.get("error","売却できません。"));quote={}
  generation+=1;ui.render()
+
+func finish():
+ if busy() or ui.locked or ui.modal_open():return
+ shop.pages.facility_entry.back()

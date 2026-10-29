@@ -183,7 +183,7 @@ func escaped(value) -> String:return str(value).replace("[","[lb]")
 func change(title: String,before,after) -> String:
 	var delta=int(after)-int(before);var color="#8ee6ab" if delta>0 else "#ffb1a6" if delta<0 else "#d5dbe2"
 	return "%s: %d → %d [color=%s](%+d)[/color]" % [title,before,after,color,delta]
-func comparison(u: Dictionary,entry: Dictionary,chosen: String,q: Dictionary) -> String:
+func comparison(u: Dictionary,entry: Dictionary,chosen: String,q: Dictionary,shop_compact:=false) -> String:
 	var a: Dictionary=q.before;var z: Dictionary=q.after;
 	var lines=[]
 	for pair in [["HP上限","max"],["MP上限","maxMp"],["行動速度","speed"],["DEF","def"]]:
@@ -196,23 +196,25 @@ func comparison(u: Dictionary,entry: Dictionary,chosen: String,q: Dictionary) ->
 	for pair in [["現在HP","hp","max"],["現在MP","mp","maxMp"]]:
 		var before=int(u.get(pair[1],0));var after=mini(before,int(z.get(pair[2],before)))
 		if before!=after:lines.append(change(pair[0],before,after))
-	var names=ui.campaign().get("skillNames",{})
-	for field in ["activeSkills","effects"]:
-		for id in z.get(field,[]):
-			if not a.get(field,[]).has(id):lines.append("[color=#8ee6ab]＋ "+escaped(names.get(id,id))+"[/color]")
-		for id in a.get(field,[]):
-			if not z.get(field,[]).has(id):lines.append("[color=#ffb1a6]− "+escaped(names.get(id,id))+"[/color]")
-	for id in ["scout","itemUse","legSweep"]:
-		var before_level=0;var after_level=0
-		for source in a.get("skillSources",[]):
-			if source.id==id:before_level=maxi(before_level,int(source.get("level",1)))
-		for source in z.get("skillSources",[]):
-			if source.id==id:after_level=maxi(after_level,int(source.get("level",1)))
-		if before_level>0 and after_level>0 and before_level!=after_level:lines.append(change(str(names.get(id,id))+" Lv",before_level,after_level))
+	if not shop_compact:
+		var names=ui.campaign().get("skillNames",{})
+		for field in ["activeSkills","effects"]:
+			for id in z.get(field,[]):
+				if not a.get(field,[]).has(id):lines.append("[color=#8ee6ab]＋ "+escaped(names.get(id,id))+"[/color]")
+			for id in a.get(field,[]):
+				if not z.get(field,[]).has(id):lines.append("[color=#ffb1a6]− "+escaped(names.get(id,id))+"[/color]")
+		for id in ["scout","itemUse","legSweep"]:
+			var before_level=0;var after_level=0
+			for source in a.get("skillSources",[]):
+				if source.id==id:before_level=maxi(before_level,int(source.get("level",1)))
+			for source in z.get("skillSources",[]):
+				if source.id==id:after_level=maxi(after_level,int(source.get("level",1)))
+			if before_level>0 and after_level>0 and before_level!=after_level:lines.append(change(str(names.get(id,id))+" Lv",before_level,after_level))
 	for candidate in entry.equipSlots:
 		if candidate.slot==chosen and not candidate.ok:lines.append("装備不可: "+escaped(candidate.reason))
 	var heading="対象：%s / %s\n現在：%s → 候補：%s" % [escaped(u.get("name",ui.member_name(str(u.get("id",""))))),escaped(ui.campaign().get("slots",{}).get(chosen,chosen)),escaped(q.get("current",{}).get("name","現在の装備")),escaped(entry.get("name",q.get("gear",{}).get("name","候補装備")))]
-	return heading+"\n"+("\n".join(lines) if not lines.is_empty() else "能力値・スキルの変化なし")
+	if shop_compact:heading=heading.get_slice("\n",1)
+	return heading+"\n"+("\n".join(lines) if not lines.is_empty() else ("能力値の変化なし" if shop_compact else "能力値・スキルの変化なし"))
 func equip(u: Dictionary,entry: Dictionary,panel):
 	var chosen=target(entry)
 	var text=await inspect(u,entry,panel)

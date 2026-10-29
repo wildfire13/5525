@@ -11,6 +11,7 @@ var generation := 0
 var money_label
 var comparison_label
 var condition_label
+var skill_rows
 var buy_button
 func _init(owner):shop_ref=weakref(owner);ui=owner.ui
 func invalidate():generation+=1
@@ -53,18 +54,13 @@ func render():
 	positions.item_selected.connect(func(i):switch_target(owner_id,str(positions.get_item_metadata(i))))
 	var money=ui.label_(body,"費用を確認中…");money.name="ShopComparisonPayment"
 	var comparison=RichTextLabel.new();comparison.name="ShopComparisonStats";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.scroll_active=false;comparison.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(comparison);comparison.text="比較を読み込み中…"
-	ui.label_(body,"装備の基礎能力："+shop.product_summary(gear)).name="ShopComparisonEffects"
-	for grant in preload("res://equipment_grants.gd").list(gear):
-		var id=str(grant.id)
-		var copy=preload("res://skill_text.gd")
-		ui.label_(body,copy.plain(copy.document(id,str(shop.c().get("skillNames",{}).get(id,id)),int(grant.get("level",1)),shop.c(),gear))).name="ShopComparisonSkill_"+id+"_"+str(grant.get("slotNo",1))
+	skill_rows=VBoxContainer.new();skill_rows.name="ShopComparisonSkills";body.add_child(skill_rows)
 	var conditions=ui.label_(body,"条件を確認中…");conditions.name="ShopComparisonConditions"
-	ui.label_(body,"補足：装備した場合の比較です。購入では自動装備しません。受取可否は購入確定時に確認します。")
 	if not str(gear.get("flavor","")).is_empty():
 		ui.label_(body,"説明\n"+str(gear.flavor)).name="ShopComparisonFlavor"
 	if gear.has("note") and not str(gear.note).is_empty():
 		ui.label_(body,"装備メモ（原文）\n"+str(gear.note)).name="ShopComparisonNotes"
-	var buy=ui.button(body,ui.member_name(owner_id)+"への購入を確認",purchase,true);buy.name="ShopComparisonBuy"
+	var buy=ui.button(ui.dialog.actions,"確認中…",purchase,true);buy.name="ShopComparisonBuy";ui.icons.apply(buy,"money");buy.size_flags_horizontal=Control.SIZE_SHRINK_END;buy.custom_minimum_size.x=220
 	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
 	refresh(money,comparison,conditions,buy)
 func switch_target(uid: String,position: String):
@@ -72,7 +68,7 @@ func switch_target(uid: String,position: String):
 	# Keep the selectors alive: replacing an open popup can replay Enter on the
 	# new control and lose keyboard focus. Clear old values before any request.
 	comparison_label.text="比較を読み込み中…";money_label.text="費用を確認中…";condition_label.text="条件を確認中…"
-	buy_button.text=ui.member_name(uid)+"への購入を確認";buy_button.disabled=true
+	ui.clear(skill_rows);buy_button.disabled=true;buy_button.set_meta("base_disabled",true)
 	refresh(money_label,comparison_label,condition_label,buy_button)
 func valid(ticket: int,window,epoch: int,connection: int,token) -> bool:
 	return ticket==generation and is_instance_valid(window) and window==ui.dialog.window and ui.page=="shop" and not ui.closing and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and token==shop.c().get("inventoryToken")
@@ -91,17 +87,59 @@ func refresh(money,comparison,conditions,buy):
 	for u in ui.roster():
 		if u.id==owner_id:person=u;break
 	var entry={"name":item().name,"equipSlots":[]}
-	comparison.text=ui.pages.party_view.owned_equipment_view.comparison(person,entry,slot,q)
+	comparison.text=ui.pages.party_view.owned_equipment_view.comparison(person,entry,slot,q,true)
+	render_skills(q)
 	conditions.text="条件：装備可能" if q.get("eligible",false) else "条件：装備不可 / "+str(q.get("reason","正規判定を確認できません"))
-	var payment=await ui.engine.request({"op":"campaign","action":"purchaseQuote","args":[item_id]})
+	var payment=await ui.engine.request({"op":"campaign","action":"purchaseQuote","args":[item_id,owner_id]})
 	if not valid(ticket,window,epoch,connection,token):return
 	if ui.handle_connection_loss(payment,connection):return
 	var cost=payment.get("purchaseQuote",{})
 	if cost.is_empty():money.text="費用を取得できません。";return
 	money.text="1個 / 支払 %dG / 所持金 %d → 購入後 %dG" % [cost.cost,cost.goldBefore,cost.afterGold] if cost.get("ok",false) else "購入不可："+str(cost.reason)+" / 価格 %dG / 所持金 %dG" % [cost.cost,cost.goldBefore]
-	buy.disabled=not cost.get("ok",false) or shop.busy()
+	buy.text="%dGで購入する" % int(cost.cost)
+	buy.disabled=not cost.get("ok",false) or shop.busy();buy.set_meta("base_disabled",buy.disabled)
+	buy.tooltip_text="購入品はインベントリへ入ります。" if not buy.disabled else str(cost.get("reason","購入できません"))
+	for state in ["normal","hover","pressed","disabled"]:
+		var style=StyleBoxFlat.new();style.bg_color=Color("#246044") if not buy.disabled else Color("#783b3b");style.set_corner_radius_all(5);style.set_content_margin_all(8);buy.add_theme_stylebox_override(state,style)
+	buy.add_theme_color_override("font_disabled_color",Color.WHITE)
 func purchase():
 	if shop.busy():return
 	var id=item_id;var uid=owner_id
 	invalidate();ui.dialog.close(false)
 	shop.confirm_purchase(id,uid)
+
+func source_key(source: Dictionary) -> String:
+	return str(source.id)+":"+str(int(source.get("level",1)))
+func removed_sources(before: Array,after: Array) -> Array:
+	var remaining=after.duplicate(true);var result=[]
+	for source in before:
+		var found=-1
+		for i in range(remaining.size()):
+			if source_key(source)==source_key(remaining[i]):found=i;break
+		if found<0:result.append(source)
+		else:remaining.remove_at(found)
+	return result
+func render_skills(q: Dictionary):
+	ui.clear(skill_rows)
+	var before=q.before.get("skillSources",[]);var after=q.after.get("skillSources",[])
+	for group in [["追加",removed_sources(after,before),"#8ee6ab"],["失う",removed_sources(before,after),"#ffb1a6"]]:
+		if group[1].is_empty():continue
+		var label=ui.label_(skill_rows,group[0]+"スキル");label.add_theme_color_override("font_color",Color(group[2]))
+		var line=HFlowContainer.new();line.add_theme_constant_override("h_separation",8);skill_rows.add_child(line)
+		for source in group[1]:
+			var id=str(source.id);var level=int(source.get("level",1));var name_=str(shop.c().get("skillNames",{}).get(id,id))
+			var gear=q.get("gear",{}) if group[0]=="追加" else q.get("current",{})
+			var doc=preload("res://skill_text.gd").document(id,name_,level,shop.c(),gear)
+			var button=preload("res://comparison_skill_icon.gd").new();line.add_child(button);button.name="ComparisonSkill_"+group[0]+"_"+id+"_"+str(line.get_child_count());button.text="Lv%d" % level
+			button.custom_minimum_size=Vector2(96,52);button.icon=skill_texture(id,level);button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40)
+			button.tooltip_text=group[0]+"："+str(shop.c().get("slots",{}).get(source.get("slot",""),source.get("slot","")))+" / 付与枠%d\n" % int(source.get("grantSlot",1))+preload("res://skill_text.gd").plain(doc)
+			button.pressed.connect(func():
+				var detail=preload("res://skill_details.gd").new();ui.dialog.window.add_child(detail);detail.configure(ui,doc,group[0]+"スキル / "+name_))
+
+func skill_texture(id: String,level: int) -> Texture2D:
+	# Older adopted recipes may only have a Lv1 badge. Use the unchanged art
+	# without that badge; the adjacent Lv label remains the authoritative level.
+	var spec: Dictionary=ui.icons.approved.skills.get(id,{})
+	if not spec.is_empty() and not spec.get("levels",{}).has(str(level)):
+		return ImageTexture.create_from_image(ui.icons.fit_image(ui.icons.approved_image(spec),64))
+	return ui.icons.texture(ui.icons.skill(id,level))

@@ -396,7 +396,7 @@ const Campaign = (() => {
     const sex=c.sex??t.sex;
     if(g.sexOnly&&sex!==undefined&&g.sexOnly!==sex)return {ok:false,reason:'性別の装備条件を満たしていません'};
     for(const key of ['str','int','agi'])if(st[key]<g[key])return {ok:false,reason:`必要${key.toUpperCase()} ${g[key]}／現在${st[key]}`};
-    if(g.jobOnly&&g.jobOnly!==t.job)return {ok:false,reason:'ポーター専用です'};
+    if(g.jobOnly&&g.jobOnly!==t.job)return {ok:false,reason:`${{porter:'ポーター',guard:'戦士',scout:'スカウト',archer:'スカウト',mage:'魔法使い'}[g.jobOnly]||g.jobOnly}専用です`};
     if(g.virtualDefault)return {ok:false,reason:'装備なし時の既定性能です。所持品として装備できません'};
     if(g.starterOnly&&g.id!==bases[template(charId).job].weapon)return {ok:false,reason:'この職の初期装備ではありません'};
     return {ok:true,reason:t.job==='porter'?'C01保留：手道具交換後も攻撃・攻撃スキルは使えません':null};

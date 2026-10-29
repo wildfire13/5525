@@ -35,6 +35,7 @@ var top: HBoxContainer
 var header: Label
 var resource_header: HBoxContainer
 var gold_header: Label
+var gold_feedback=preload("res://gold_feedback.gd").new(self)
 var content: VBoxContainer
 var battle_row: Control
 var board
@@ -357,6 +358,9 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 			if arrived or request.get("action")=="arrive":
 				pages.hub_view.reset();page="hub"
 			invalidate_preview();data=reply
+			if request.get("op")=="campaign" and request.get("action") not in ["trial","endTrial"]:
+				gold_feedback.change(int(result_before.get("gold",0)),int(campaign().get("gold",0)))
+			else:gold_feedback.reset(int(campaign().get("gold",0)))
 			for receipt in receipts:results_view.enqueue(receipt)
 			if request.get("op")=="campaign_load":results_view.restore_quest(campaign())
 		notice=""
@@ -446,7 +450,7 @@ func render():
 	header.text=town_name(place)
 	location_label.text=town_name(place)+location_suffix(phase,c)
 	location_label.tooltip_text=location_label.text
-	gold_header.text="%dG" % c.get("gold",0)
+	gold_feedback.sync(int(c.get("gold",0)))
 	header.tooltip_text=header.text
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
