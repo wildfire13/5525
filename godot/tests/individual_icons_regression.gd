@@ -70,6 +70,25 @@ func run():
 	check(icons.equipment({"type":"empty","virtualDefault":true,"id":"empty-leftHand"})=="approved:fist","virtual fist retained")
 	check(icons.texture("approved:fist").get_size()==Vector2(64,64),"virtual fist canvas64")
 	check(icons.skill("")=="" and icons.texture("")==null,"empty skill does not invent artwork")
+	var source=JSON.parse_string(FileAccess.get_file_as_string("res://../native/data/master-source.json"))
+	var missing=0
+	for item in source.gear:
+		if item.get("virtualDefault",false) or item.type in ["fist","empty"] or icons.approved.equipment.has(item.id) or icons.equipment_paths.has(item.id):continue
+		missing+=1
+		var key=icons.equipment(item);var category=icons.gear(item)
+		if item.id=="porter-whistle":category="right_hand"
+		check(key=="placeholder:"+category,"unmade gear retains category, marked separately "+item.id)
+		var texture=icons.texture(key);var pixels=texture.get_image()
+		check(texture.get_size()==Vector2(64,64) and pixels.get_pixel(2,2).is_equal_approx(Color("#f2cc51")),"unmade gear yellow canvas64 "+item.id)
+		check(icons.texture(key)==texture,"placeholder cache "+item.id)
+		var plain=load(icons.ROOT+category+".png").get_image()
+		check(icons.texture(category).get_image().get_data()==plain.get_data(),"shared category pixels unchanged "+item.id)
+		check(pixels.get_data()!=plain.get_data(),"unmade marker distinct from category "+item.id)
+		for size_ in [24,32,64]:
+			var small=pixels.duplicate();small.resize(size_,size_,Image.INTERPOLATE_LANCZOS)
+			check(small.get_size()==Vector2i(size_,size_),"bounded scaled placeholder "+item.id+" "+str(size_))
+		pixels.save_png(evidence.path_join("placeholder-"+item.id+".png"))
+	check(missing==18,"all eighteen unmade equipment IDs covered")
 	check(icons.approved==originals,"rendering does not mutate recipes")
 	var file=FileAccess.open(evidence.path_join("individual-icons-checks.json"),FileAccess.WRITE)
 	file.store_string(JSON.stringify(checks,"\t"));file.close()
