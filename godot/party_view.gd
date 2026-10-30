@@ -235,14 +235,17 @@ func refresh_modal():
 	# The left tabs select character detail; the right column is always inventory.
 	if inventory_view.owner_id!=detail_uid:inventory_view.reset();inventory_view.owner_id=detail_uid
 	var split=GridContainer.new();split.columns=2;split.name="StatusEquipmentSplit";split.add_theme_constant_override("h_separation",16);body.add_child(split)
-	var left_tabs=ui.row(split);left_tabs.name="StatusLeftTabs";left_tabs.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	var right_header=VBoxContainer.new();right_header.name="StatusInventoryHeading";right_header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(right_header)
+	var left_column=VBoxContainer.new();left_column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(left_column)
+	var right_column=VBoxContainer.new();right_column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(right_column)
+	var left_tabs=ui.row(left_column);left_tabs.name="StatusLeftTabs";left_tabs.size_flags_horizontal=Control.SIZE_EXPAND_FILL;left_tabs.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+	var right_header=VBoxContainer.new();right_header.name="StatusInventoryHeading";right_header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;right_column.add_child(right_header)
 	owned_equipment_view.render_header(right_header,u)
 	for i in range(3):
 		var tab_button=b(left_tabs,("● " if detail_tab==i else "")+["装備","能力・成長","スキル・効果"][i],func():detail_tab=i;detail_gear={};refresh_modal())
-		tab_button.name="StatusTab_"+str(i);tab_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	var equipped=VBoxContainer.new();equipped.name="StatusEquipped";equipped.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(equipped)
-	var owned=VBoxContainer.new();owned.name="StatusOwnedInventory";owned.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(owned)
+		tab_button.name="StatusTab_"+str(i);tab_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;tab_button.custom_minimum_size.y=44
+		ui.mark_selected(tab_button,detail_tab==i)
+	var equipped=VBoxContainer.new();equipped.name="StatusEquipped";equipped.size_flags_horizontal=Control.SIZE_EXPAND_FILL;left_column.add_child(equipped)
+	var owned=VBoxContainer.new();owned.name="StatusOwnedInventory";owned.size_flags_horizontal=Control.SIZE_EXPAND_FILL;right_column.add_child(owned)
 	match detail_tab:
 		0:
 			equipment(equipped,u)

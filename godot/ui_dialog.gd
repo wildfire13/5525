@@ -26,7 +26,7 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 	var margin=preload("res://modal_input.gd").new();margin.owner_ref=weakref(self);window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,12)
 	var box=VBoxContainer.new();box.add_theme_constant_override("separation",8);margin.add_child(box)
-	if title not in [STATUS_TITLE,"行動ログ","商品と装備の比較"]:ui.label_(box,title,true)
+	if title not in [STATUS_TITLE,"行動ログ","商品と装備の比較","荷物を持つポーターを選択"]:ui.label_(box,title,true)
 	body=ui.scroller(box);body.get_parent().name="ModalDetailScroll";body.get_parent().custom_minimum_size.y=80
 	if title==STATUS_TITLE:
 		body.get_parent().horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
@@ -63,6 +63,7 @@ func resize():
 	if not is_instance_valid(window):return
 	var status=window.title==STATUS_TITLE
 	var extent=Vector2(2080,780) if status else Vector2(1280,680) if window.title=="商品と装備の比較" else Vector2(840,620)
+	if window.title=="荷物を持つポーターを選択":extent=Vector2(840,420)
 	var rect=ui.preferences.rect_for(layout_key(),Rect2((ui.size-extent)/2,extent),ui.size,Vector2(420,300))
 	# One-time widening of a pre-feedback3 saved status; later manual sizes remain saved.
 	if status and not ui.preferences.config.get_value("migration","status_feedback3",false):
