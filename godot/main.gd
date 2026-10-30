@@ -496,7 +496,7 @@ func render():
 			var nb=button(nav,("● " if page==tab[0] else "")+tab[1],navigate.bind(tab[0]),phase!="town" and tab[0]=="items" and phase!="camp");memory.key(nb,"nav_"+tab[0])
 		var body: VBoxContainer
 		var body_parent=pages.facility_art.backdrop(content)
-		if phase=="town" and page in ["party","shop"]:
+		if phase=="town" and page in ["party","shop","board"]:
 			body=VBoxContainer.new();body.size_flags_vertical=Control.SIZE_EXPAND_FILL;body_parent.add_child(body)
 		else:body=scroller(body_parent);memory.watch(body.get_parent(),"page_"+phase+"_"+page)
 		if phase=="town":
@@ -810,6 +810,15 @@ func primary(control: Button) -> Button:
 		control.add_theme_stylebox_override(state_,style)
 	for color_ in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:control.add_theme_color_override(color_,Color("#252830"))
 	return control
+func mark_selected(control: Button,selected: bool):
+	# Shared presentation for list choices and navigation; blue means selected.
+	control.set_meta("selected",selected)
+	for state_ in ["normal","hover","pressed"]:
+		if not selected:control.remove_theme_stylebox_override(state_);continue
+		var style=control.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
+		style.bg_color=Color("#35577d" if state_=="hover" else "#294568")
+		style.border_color=Color("#a4c9e9");style.set_border_width_all(2)
+		control.add_theme_stylebox_override(state_,style)
 func short_name(control: Label,full: String):
 	control.max_lines_visible=2;control.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;control.tooltip_text=full
 	control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
