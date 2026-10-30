@@ -11,6 +11,18 @@ func select_option(name_: String,value: String):
   if str(chooser.get_item_metadata(i))==value:
    chooser.select(i);chooser.item_selected.emit(i);await settle();return
  check(false,"option exists "+name_+" "+value)
+# Owner identity belongs to the selector; the compact body deliberately omits it.
+# Fetch an independent canonical preview for the requested owner, not the shop's
+# cached response, and compare the complete displayed result against that oracle.
+func expected_comparison(uid: String,position: String="rightHand"):
+ var q=(await game.engine.request({"op":"campaign","action":"previewGear","args":[uid,"spear-wood",position]})).previewGear
+ var person={}
+ for u in game.roster():
+  if u.id==uid:person=u;break
+ return game.pages.party_view.owned_equipment_view.comparison(person,{"name":"木製の片手槍","equipSlots":[]},position,q,true)
+func selected_owner_is(uid: String) -> bool:
+ var chooser=node("ShopComparisonOwner")
+ return str(chooser.get_selected_metadata())==uid and chooser.get_item_text(chooser.selected)==game.member_name(uid)
 func run():
  create_timer(150).timeout.connect(func():print("FAIL comparison watchdog");quit(2))
  if out.is_empty() or not OS.get_user_data_dir().begins_with(out+"/"):quit(2);return
@@ -27,14 +39,16 @@ func run():
   var before=await saved();var shop=game.pages.shop_view
   await tap("Product_spear-wood")
   var window=game.dialog.window;var rect=Rect2(Vector2(window.position),Vector2(window.size))
-  check(node("ShopComparisonStats").text.contains("ガロ") and node("ShopComparisonStats").text.contains("木製の片手槍"),"comparison names owner and item "+str(dims.x))
+  var guard_expected=await expected_comparison("guard")
+  check(selected_owner_is("guard") and node("ShopComparisonProduct").text=="木製の片手槍" and node("ShopComparisonStats").text==guard_expected,"owner selector and product match canonical guard comparison "+str(dims.x))
   check(node("ShopComparisonPayment").text.contains("500 → 購入後 410G"),"purchaseQuote supplies exact payment")
   var canonical=(await game.engine.request({"op":"campaign","action":"previewGear","args":["guard","spear-wood","rightHand"]})).previewGear
   var shown=node("ShopComparisonStats").text
   check(shown.contains("26 → 23") and shown.contains("(+1)") and shown.contains("(-3)"),"canonical numeric changes include arrows and signed deltas")
   check(canonical.after.attackWeapons[0].atk==23,"comparison checked against canonical attack stats")
   await select_option("ShopComparisonOwner","mage")
-  check(node("ShopComparisonStats").text.contains("ミオ") and not node("ShopComparisonStats").text.contains("ガロ"),"owner switch replaces old comparison")
+  var mage_expected=await expected_comparison("mage")
+  check(selected_owner_is("mage") and mage_expected!=guard_expected and node("ShopComparisonStats").text==mage_expected,"owner switch replaces guard result with canonical mage comparison")
   check(node("ShopComparisonOwner").has_focus(),"owner keyboard focus survives rebuild")
   check(Rect2(Vector2(window.position),Vector2(window.size))==rect,"owner switch preserves window position and size")
   await select_option("ShopComparisonSlot","leftHand")
@@ -77,8 +91,12 @@ func run():
  game.shop_uid="guard";game.pages.shop_view.open_comparison("spear-wood")
  while not delayed.held:await process_frame
  await select_option("ShopComparisonOwner","mage")
- var latest=node("ShopComparisonStats").text;delayed.release=true;await settle()
- check(latest.contains("ミオ") and node("ShopComparisonStats").text==latest,"late old owner response cannot overwrite current comparison")
+ var mage_expected=await expected_comparison("mage",game.shop_slot)
+ var guard_expected=await expected_comparison("guard",game.shop_slot)
+ var latest=node("ShopComparisonStats").text
+ check(selected_owner_is("mage") and latest==mage_expected and latest!=guard_expected,"new owner canonical result is shown while old response is held")
+ delayed.release=true;await settle()
+ check(not delayed.held and selected_owner_is("mage") and node("ShopComparisonStats").text==mage_expected and node("ShopComparisonStats").text!=guard_expected,"released old owner response cannot overwrite current canonical comparison")
  game.engine=actual;delayed.queue_free();game.dialog.close();await settle()
  # Canonical purchaseQuote cannot predict a chosen recipient's save-size limit.
  # The UI labels confirmation, and rejection must remain atomic and repeat-safe.
