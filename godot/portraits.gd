@@ -23,12 +23,13 @@ func image_for(u: Dictionary) -> Image:
 		return overrides[u.id]
 	var file = str(u.get("image","knight.png"))
 	# Saved journey/battle snapshots can still contain the old generic image.
-	# Only the six known recruit IDs are remapped; personal overrides stay first.
+	# Only known scout/porter recruit IDs are remapped; personal overrides stay first.
 	if u.get("side","ally") != "enemy":
-		for race in ["human","elf","dwarf"]:
-			for sex in ["male","female"]:
-				if str(u.get("id","")) == "recruit-scout-" + race + "-" + sex:
-					file = "characters/scout-" + race + "-" + sex + "-01.png"
+		for job in ["scout","porter"]:
+			for race in ["human","elf","dwarf"]:
+				for sex in ["male","female"]:
+					if str(u.get("id","")) == "recruit-" + job + "-" + race + "-" + sex:
+						file = "characters/" + job + "-" + race + "-" + sex + "-01.png"
 	if u.get("side","ally") == "enemy": file = "enemy/enemy_" + file
 	var path = ProjectSettings.globalize_path("res://../native/assets/").path_join(file)
 	if not FileAccess.file_exists(path): return null
