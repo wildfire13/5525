@@ -14,7 +14,10 @@ func run():
   await game.update({"op":"campaign_load","data":injured});await enter_facility("inn");await settle()
   check(labels().has("パーティ全員で%dG" % game.campaign().inn.price) and not labels().any(func(s):return s.contains("仮料金")),"injured party retains exact price "+str(dims))
   game.page="map";game.render();await settle()
-  check(labels().has("地図は模式図です。各移動は二つの区間を通ります。"),"map warning and travel count retained "+str(dims))
+  check(labels().any(func(s):return s.contains("未受注でも戦闘・消耗あり")),"map risk remains visible "+str(dims))
+  await click("MapLegend")
+  check(labels().any(func(s):return s.contains("各移動は二つの区間を通ります。") and s.contains("上で縮小、下で拡大")),"map legend retains travel count and zoom instructions "+str(dims))
+  game.dialog.close();await settle()
  var gear={"id":"test","name":"試験装備","slot":"lowerBody","flavor":"一般的な作業用のズボン。","note":"必要な効果の注記"}
  var entry={"kind":"equipment","name":gear.name,"count":1,"definition":gear}
  var tip=preload("res://equipment_tooltip.gd").new();tip.configure_entry(entry,game.campaign())
