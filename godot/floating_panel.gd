@@ -16,6 +16,9 @@ var origin := Rect2()
 var pointer := Vector2.ZERO
 var pending_restore = null
 var restore_frames := 0
+var preferred_rect := Rect2()
+var applied_rect := Rect2()
+var applied_bounds := Rect2()
 func configure(prefs,key: String,title: String,fallback: Rect2):
 	preferences=prefs;layout_key=key;name=key
 	mouse_filter=Control.MOUSE_FILTER_STOP
@@ -32,7 +35,8 @@ func restore_rect(fallback: Rect2):
 	var stored=preferences.config.get_value("windows",layout_key,fallback)
 	var rect=bound_rect(stored if stored is Rect2 else fallback,true)
 	position=rect.position;size=rect.size
-	pending_restore=stored if stored is Rect2 else fallback;restore_frames=2
+	preferred_rect=stored if stored is Rect2 else fallback
+	pending_restore=preferred_rect;restore_frames=2
 func _process(_delta):
 	if pending_restore==null:return
 	restore_frames-=1
@@ -54,15 +58,21 @@ func bound_rect(rect: Rect2,preserve_top:=false) -> Rect2:
 		return Rect2(bounded.position-offset,bounded.size)
 	return preferences.bounded(rect,get_parent_control().size,minimum)
 func constrain():
-	var rect=bound_rect(Rect2(position,size),true)
-	if viewport_bounds:position=rect.position;size=rect.size;return
+	var current=Rect2(position,size)
+	var bounds=Rect2(get_parent_control().global_position,get_viewport_rect().size-Vector2(0,reserved_bottom))
+	if applied_bounds==bounds and current!=applied_rect and pending_restore==null:preferred_rect=current
+	var rect=bound_rect(Rect2(position,size) if dragging else preferred_rect,true)
+	if viewport_bounds:
+		position=rect.position;size=rect.size;applied_rect=Rect2(position,size);applied_bounds=bounds;return
 	rect.position.y=maxf(reserved_top,rect.position.y)
 	rect.size.y=minf(rect.size.y,maxf(minimum.y,get_parent_control().size.y-rect.position.y))
 	if layout_bounds.has_area():
 		rect=preferences.bounded(Rect2(rect.position-layout_bounds.position,rect.size),layout_bounds.size,minimum)
 		rect.position+=layout_bounds.position
 	position=rect.position;size=rect.size
-func persist():preferences.store_rect(layout_key,Rect2(position,size))
+func persist():
+	preferred_rect=Rect2(position,size)
+	preferences.store_rect(layout_key,preferred_rect)
 func handle(event,header: bool):
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
 		if event.pressed:

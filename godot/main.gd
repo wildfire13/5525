@@ -129,7 +129,7 @@ func _ready():
 		var callback: Callable=item[1]
 		button(menu_body,item[0],func():menu.hide();callback.call())
 	local_button(menu_body,"直近のリザルト",func():menu.hide();results_view.reopen()).name="ReopenResults"
-	local_button(menu_body,"操作説明",func():menu.hide();show_status_details())
+	local_button(menu_body,"操作説明",func():menu.hide();show_help())
 	local_button(menu_body,"全画面 F11",func():menu.hide();fullscreen())
 	for pair in [["bgm","BGM"],["voice","ボイス"],["se","SE"]]:
 		var kind=str(pair[0]);var caption=str(pair[1]);var controls=VBoxContainer.new();menu_body.add_child(controls)
@@ -207,11 +207,22 @@ func set_status(message: String):
 	footer.focus_mode=Control.FOCUS_NONE if message.is_empty() else Control.FOCUS_ALL
 	footer.mouse_filter=Control.MOUSE_FILTER_IGNORE if message.is_empty() else Control.MOUSE_FILTER_STOP
 	if view_kind=="page":footer.visible=page not in ["shop","party"]
+func show_help():
+	dialog.open("操作説明",func(body,actions):
+		for section in [
+			["町・施設", "下部の人物を選ぶと詳細を開けます。装備・インベントリは人物画面のタブから操作します。売却中は、人物を1回選ぶと売却対象が切り替わり、同じ人物をもう一度選ぶと詳細を開きます。"],
+			["編成・配置", "ギルドでは人物を選ぶかドラッグして編成を変更します。戦闘準備では控えを有効マスへドラッグして追加・交換、配置済みの人物を盤面外へドラッグして除外できます。"],
+			["地図・出発", "行先を選んで『出発する』で移動します。地図内のホイールは上で縮小、下で拡大。『全体表示』で元に戻せます。"],
+			["戦闘", "行動を選んで対象マスを指定し、確認して実行します。コマンド未選択で人物のマスをクリックすると右側に情報を固定します。右ドラッグで盤面移動、中ドラッグで角度、ホイールで拡大縮小できます。"],
+			["詳細・取消・保存", "アイコンや無効な操作にカーソルを合わせると説明を確認できます。戻る・キャンセル、またはEscで閉じます。未確定の編集は確認に従ってください。保存・読込はメニューから行います。"]]:
+			label_(body,section[0],true);label_(body,section[1])
+		local_button(actions,"通知の詳細",show_status_details)
+		local_button(actions,"閉じる",dialog.close))
 func show_status_details():
 	var message=str(footer.get_meta("full_message",footer.text))
 	var saved_notice=notice;var saved_hint=focus_hint;var epoch=pages.epoch;var generation=engine.connection_generation
-	dialog.open("操作説明",func(body,actions):
-		label_(body,message)
+	dialog.open("通知の詳細",func(body,actions):
+		label_(body,message if not message.is_empty() else "現在の通知はありません。")
 		local_button(actions,"閉じる",dialog.close),func():
 		if not closing and pages.epoch==epoch and engine.connection_generation==generation and notice==saved_notice:
 			focus_hint=saved_hint;status_override=message;set_status(message);footer.grab_focus())
@@ -221,6 +232,11 @@ func portrait(parent: Node,u: Dictionary,face:=false,size_:=72) -> TextureRect:
 	var p=TextureRect.new();p.custom_minimum_size=Vector2(size_,size_);p.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
 	p.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;p.texture=portraits.texture(u,face)
 	parent.add_child(p);return p
+func member_grid(parent: Node,grid_name: String,min_card_width:=170.0,max_columns:=6) -> GridContainer:
+	var grid=GridContainer.new();grid.name=grid_name;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation",8);grid.add_theme_constant_override("v_separation",8);parent.add_child(grid)
+	var fit=func():grid.columns=clampi(int(grid.size.x/min_card_width),1,max_columns)
+	grid.resized.connect(fit);fit.call();return grid
 func card(parent: Node) -> VBoxContainer:
 	var p=PanelContainer.new();var style=StyleBoxFlat.new();style.bg_color=Color("#20242bed");style.border_color=Color("#626976");style.set_border_width_all(1)
 	style.set_corner_radius_all(5);style.set_content_margin_all(8)
@@ -238,8 +254,17 @@ func confirm(text: String,fn: Callable):
 	var epoch=pages.epoch;var generation=engine.connection_generation
 	var origin=get_viewport().gui_get_focus_owner()
 	var origin_key=str(origin.get_meta("ui_key","")) if origin!=null else memory.focus_key
-	var d=ConfirmationDialog.new();d.exclusive=true;d.title="確認";d.dialog_text=text;d.ok_button_text="はい";d.cancel_button_text="戻る"
-	for button_ in [d.get_ok_button(),d.get_cancel_button()]:button_.custom_minimum_size=Vector2(96,56) if size.x>=1800 else Vector2(80,44)
+	var d=ConfirmationDialog.new();d.exclusive=true;d.title="確認";d.dialog_text=text;d.ok_button_text="実行する";d.cancel_button_text="キャンセル"
+	d.dialog_autowrap=true;d.add_theme_font_size_override("font_size",18)
+	d.get_label().add_theme_font_size_override("font_size",18)
+	# Keep dialog_text for the confirmation contract; a scrollable copy prevents
+	# long paths or explanations from forcing buttons outside a short window.
+	d.get_label().hide()
+	var message_scroll=ScrollContainer.new();message_scroll.name="ConfirmationTextScroll";message_scroll.custom_minimum_size=Vector2(0,100);message_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;d.add_child(message_scroll)
+	var message_label=Label.new();message_label.name="ConfirmationMessage";message_label.text=text;message_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;message_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;message_label.add_theme_font_size_override("font_size",18);message_scroll.add_child(message_label)
+	for button_ in [d.get_ok_button(),d.get_cancel_button()]:
+		button_.custom_minimum_size=Vector2(96,48) if size.x>=1800 else Vector2(80,44)
+		button_.add_theme_font_size_override("font_size",18)
 	if is_instance_valid(dialog.window) and dialog.window.visible:dialog.window.add_child(d)
 	else:add_child(d)
 	d.confirmed.connect(func():
@@ -496,7 +521,7 @@ func render():
 			var nb=button(nav,("● " if page==tab[0] else "")+tab[1],navigate.bind(tab[0]),phase!="town" and tab[0]=="items" and phase!="camp");memory.key(nb,"nav_"+tab[0])
 		var body: VBoxContainer
 		var body_parent=pages.facility_art.backdrop(content)
-		if phase=="town" and page in ["party","shop","board"]:
+		if phase=="town" and page in ["party","shop","board","map","inn"]:
 			body=VBoxContainer.new();body.size_flags_vertical=Control.SIZE_EXPAND_FILL;body_parent.add_child(body)
 		else:body=scroller(body_parent);memory.watch(body.get_parent(),"page_"+phase+"_"+page)
 		if phase=="town":
@@ -715,18 +740,30 @@ func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback
 	d.use_native_dialog=true;d.exclusive=true;d.set_meta("file_dialog_active",true)
 	if is_instance_valid(dialog.window) and dialog.window.visible and dialog.window.exclusive:dialog.window.add_child(d)
 	else:add_child(d)
+	d.title="保存先を選択" if mode==FileDialog.FILE_MODE_SAVE_FILE else "ファイルを選択"
+	d.ok_button_text="保存" if mode==FileDialog.FILE_MODE_SAVE_FILE else "開く";d.cancel_button_text="キャンセル"
+	d.add_theme_font_size_override("font_size",18)
 	d.current_dir=ProjectSettings.globalize_path("user://")
 	if not filename.is_empty():d.current_file=filename;d.title="保存先を選択";d.overwrite_warning_enabled=false
 	var diagnostic_kind="file_save" if mode==FileDialog.FILE_MODE_SAVE_FILE else "file_open"
 	record_debug_event(diagnostic_kind,"start")
 	d.file_selected.connect(func(path):record_debug_event(diagnostic_kind,"success");d.set_meta("file_dialog_active",false);d.hide();d.queue_free();callback.call(path));d.canceled.connect(func():record_debug_event(diagnostic_kind,"cancel");d.set_meta("file_dialog_active",false);d.hide();d.queue_free())
-	preferences.bind_window(d,"file_dialog",size,size*.75);d.popup()
+	preferences.bind_window(d,"file_dialog",size,size*.85);d.popup()
+	localize_file_dialog(d)
+func localize_file_dialog(d: FileDialog):
+	# Native dialogs are owned/localized by the OS; these are fallback children.
+	var words={"Path:":"場所:","File:":"ファイル名:","Filter:":"種類:","All Files (*)":"すべてのファイル (*)","Create Folder":"フォルダーを作成","Show Hidden Files":"隠しファイルを表示","Favorites":"お気に入り","Favorites:":"お気に入り:","Recent":"最近使った場所","Recent:":"最近使った場所:","Directories & Files:":"フォルダーとファイル:","Name":"名前","Size":"サイズ","Type":"種類","Date Modified":"更新日時","Open":"開く","Save":"保存","Cancel":"キャンセル","Go to previous folder.":"前のフォルダーへ","Go to next folder.":"次のフォルダーへ","Go to parent folder.":"親フォルダーへ","Refresh files.":"更新"}
+	for control in d.find_children("*","Control",true,false):
+		control.add_theme_font_size_override("font_size",18)
+		if control is Label or control is Button:
+			if words.has(control.text):control.text=words[control.text]
+		if words.has(control.tooltip_text):control.tooltip_text=words[control.tooltip_text]
 func save_game():
 	var r=await update({"op":"campaign_save"})
 	if not r.get("ok",false):return
 	var envelope: Dictionary=campaign_identity.save_metadata(r.data)
 	envelope.nativePortraits=portraits.metadata.duplicate(true);envelope.godotFrontend=audio.frontend_save()
-	file_dialog(FileDialog.FILE_MODE_SAVE_FILE,PackedStringArray(["*.json ; 5525進行セーブ"]),write_snapshot.bind(envelope,"進行"),"5525-godot-%d-%d.json" % [Time.get_unix_time_from_system(),Time.get_ticks_usec()])
+	file_dialog(FileDialog.FILE_MODE_SAVE_FILE,PackedStringArray(["*.json ; 5525進行セーブ"]),write_snapshot.bind(envelope,"進行"),"5525-"+Time.get_datetime_string_from_system().replace(":","").replace("-","").replace("T","-")+"-%03d.json" % (Time.get_ticks_msec()%1000))
 func write_snapshot(path: String,envelope: Dictionary,kind: String):
 	var target=await update({"op":"godot_io","action":"write_target","path":path})
 	if not target.get("ok",false):return
@@ -853,7 +890,7 @@ func queue_layout():
 func refresh_layout():
 	layout_queued=false
 	if not closing:
-		dialog.remember();render();dialog.resize()
+		render();dialog.resize()
 func _process(_delta):
 	if menu.visible:fit_menu()
 	for child in find_children("*","Window",true,false):

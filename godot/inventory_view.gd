@@ -198,7 +198,7 @@ func show_confirmation():
 	var ticket=generation;var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation
 	confirmation=ui.confirm(text,func():
 		if ticket==generation and epoch==ui.pages.epoch and connection==ui.engine.connection_generation:commit())
-	confirmation.name="InventoryConfirmation";confirmation.ok_button_text="YES";confirmation.cancel_button_text="NO"
+	confirmation.name="InventoryConfirmation";confirmation.ok_button_text=verb+"する";confirmation.cancel_button_text="キャンセル"
 	confirmation.get_ok_button().name="InventoryConfirm";confirmation.get_cancel_button().name="InventoryCancel"
 	var cancel=func():
 		if ticket==generation and epoch==ui.pages.epoch and connection==ui.engine.connection_generation:cancel_confirmation()

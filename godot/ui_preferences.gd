@@ -31,9 +31,12 @@ func bind_window(window: Window,key: String,available: Vector2,extent: Vector2,m
 	# Stored positions already include the title-bar margin. Bound in the
 	# usable coordinate space, then convert back exactly once.
 	var rect=bounded(Rect2(value.position-margin,value.size),area,minimum)
+	window.set_meta("layout_preferred",value)
 	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position+margin)
+	window.set_meta("layout_applied",Rect2(Vector2(window.position),Vector2(window.size)))
+	window.set_meta("layout_area",area)
 	# tree_exiting covers close, cancel, selection and application teardown.
-	window.tree_exiting.connect(func():store_rect(key,Rect2(Vector2(window.position),Vector2(window.size))))
+	window.tree_exiting.connect(func():remember_window(window,key))
 
 func keep_visible(window: Window,available: Vector2):
 	if not is_instance_valid(window) or not window.visible:return
@@ -45,5 +48,18 @@ func keep_visible(window: Window,available: Vector2):
 	var minimum=Vector2(window.get_meta("layout_minimum")).min(area)
 	if window.min_size!=Vector2i(minimum) or window.max_size!=Vector2i(area):
 		window.min_size=Vector2i.ONE;window.max_size=Vector2i(area);window.min_size=Vector2i(minimum)
-	var rect=bounded(Rect2(Vector2(window.position)-margin,Vector2(window.size)),area,Vector2(window.min_size))
+	var current=Rect2(Vector2(window.position),Vector2(window.size))
+	var preferred=window.get_meta("layout_preferred",current)
+	# Only a user resize/move in an unchanged parent updates the preference.
+	# Clamping a window to a smaller screen must not become its permanent size.
+	if area==window.get_meta("layout_area",area) and current!=window.get_meta("layout_applied",current):preferred=current
+	window.set_meta("layout_preferred",preferred)
+	var rect=bounded(Rect2(preferred.position-margin,preferred.size),area,Vector2(window.min_size))
 	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position+margin)
+
+	window.set_meta("layout_applied",Rect2(Vector2(window.position),Vector2(window.size)))
+	window.set_meta("layout_area",area)
+func remember_window(window: Window,key: String):
+	var current=Rect2(Vector2(window.position),Vector2(window.size))
+	if current!=window.get_meta("layout_applied",current):window.set_meta("layout_preferred",current)
+	store_rect(key,window.get_meta("layout_preferred",current))

@@ -91,7 +91,7 @@ func request_quote():
 func confirm_sale():
  if busy() or ui.locked or ui.modal_open() or previewing or not quote.get("ok",false):return
  stage="confirm";var ticket=generation;var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation;var confirmed=quote.duplicate(true)
- var dialog=ui.confirm("売却しますか？\n%sの %s ×%d\n受取 %dG / 所持金 %d → %dG" % [confirmed.ownerName,confirmed.name,confirmed.count,confirmed.proceeds,confirmed.goldBefore,confirmed.afterGold],commit.bind(confirmed,ticket,epoch,connection));confirmation=dialog;dialog.name="FacilitySaleConfirmation";dialog.ok_button_text="YES";dialog.cancel_button_text="NO"
+ var dialog=ui.confirm("売却しますか？\n%sの %s ×%d\n受取 %dG / 所持金 %d → %dG" % [confirmed.ownerName,confirmed.name,confirmed.count,confirmed.proceeds,confirmed.goldBefore,confirmed.afterGold],commit.bind(confirmed,ticket,epoch,connection));confirmation=dialog;dialog.name="FacilitySaleConfirmation";dialog.ok_button_text="売却する";dialog.cancel_button_text="キャンセル"
  dialog.get_ok_button().name="FacilitySaleConfirm";dialog.get_cancel_button().name="FacilitySaleCancel"
  var cancel=func():
   if ticket==generation and stage=="confirm":stage="selected";ui.render()

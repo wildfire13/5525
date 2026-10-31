@@ -88,7 +88,7 @@ func render(parent):
 	var header=VBoxContainer.new();header.name="ShopListHeader";header.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;parent.add_child(header);product_filter(header)
 	if c().get("location")=="south":render_recipient(header)
 	var body=ui.scroller(parent);var scroll=body.get_parent();scroll.name="ShopProductsScroll"
-	scroll.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;scroll.custom_minimum_size.x=maxf(600,ui.size.x*2.0/3.0-parent.global_position.x);scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"shop_products")
+	scroll.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;scroll.custom_minimum_size.x=maxf(600,(ui.size.x-48 if ui.size.x<1300 else ui.size.x*2.0/3.0)-parent.global_position.x);scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"shop_products")
 	var align=func():
 		if is_instance_valid(header) and is_instance_valid(body):header.custom_minimum_size.x=body.size.x;header.size.x=body.size.x
 	body.resized.connect(align,CONNECT_DEFERRED)
@@ -101,7 +101,8 @@ func render(parent):
 		var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;info.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,48 if side=="left" else 8)
 		var copy=HBoxContainer.new();copy.mouse_filter=Control.MOUSE_FILTER_IGNORE;copy.add_theme_constant_override("separation",0);margin.add_child(copy)
-		var name_label=l(copy,str(item.name)+"　› 比較");name_label.name="ProductName_"+str(item.id);name_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;name_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;name_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		var name_label=l(copy,str(item.name));name_label.name="ProductName_"+str(item.id);name_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;name_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;name_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		var compare_hint=l(copy,"比較 ›");compare_hint.autowrap_mode=TextServer.AUTOWRAP_OFF;compare_hint.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		configure_tooltip(info,item)
 		preload("res://item_drag.gd").source(info,func():
 			if busy():return null
@@ -114,10 +115,10 @@ func render(parent):
 		copy.resized.connect(fit,CONNECT_DEFERRED)
 		copy.minimum_size_changed.connect(fit,CONNECT_DEFERRED)
 		var buy=b(line,"購入",confirm_purchase.bind(str(item.id)),busy() or int(c().gold)<int(item.price));buy.name="ProductBuy_"+str(item.id)
-		ui.memory.key(buy,"buy_"+str(item.id));buy.custom_minimum_size=Vector2(130,64)
+		ui.memory.key(buy,"buy_"+str(item.id));buy.custom_minimum_size=Vector2(90,64)
 		if int(c().gold)<int(item.price):buy.tooltip_text="所持金が不足しています"
 		var trial_button=b(line,"木人で試す",start_trial.bind(str(item.id)),busy());trial_button.name="ProductTrial_"+str(item.id)
-		ui.memory.key(trial_button,"trial_"+str(item.id));trial_button.custom_minimum_size=Vector2(170,64)
+		ui.memory.key(trial_button,"trial_"+str(item.id));trial_button.custom_minimum_size=Vector2(120,64)
 func product_summary(item: Dictionary) -> String:
 	var parts=[]
 	if item.get("atk",0)>0:parts.append("ATK %d / 通常射程%d" % [item.atk,item.get("reach",0)])
@@ -196,7 +197,7 @@ func confirm_purchase(id: String="",recipient: String=""):
 		l(body,str(q.gear.name)+" / 1個",true)
 		l(body,"支払 %dG / 所持金 %d → %dG" % [q.cost,q.goldBefore,q.afterGold],true).name="PurchasePayment"
 		l(body,ui.member_name(recipient)+"のインベントリへ購入しますか？" if not recipient.is_empty() else "購入しますか？ 同意後に受取人を選びます。自動装備はしません。")
-		b(actions,"購入しない",ui.dialog.close).name="PurchaseDecline"
+		b(actions,"キャンセル",ui.dialog.close).name="PurchaseDecline"
 		ui.primary(b(actions,"購入する",func():
 			if ticket!=generation or stage!="S4":return
 			ui.dialog.close(false);stage="S9"
@@ -287,7 +288,7 @@ func confirm_consumable(id: String,uid: String):
 	generation+=1;var ticket=generation;stage="S4"
 	ui.dialog.open("購入の確認",func(body,actions):
 		l(body,"%s 1個 / 支払%dG / %sのインベントリへ" % [item.name,item.price,ui.member_name(uid)],true)
-		b(actions,"購入しない",ui.dialog.close).name="PurchaseDecline"
+		b(actions,"キャンセル",ui.dialog.close).name="PurchaseDecline"
 		b(actions,"購入する",func():
 			if stage!="S4" or ticket!=generation:return
 			stage="S5";ui.dialog.close(false)

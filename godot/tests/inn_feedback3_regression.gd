@@ -45,10 +45,11 @@ func run():
  await game.act("select",[all_ids]);await settle()
  for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
   root.size=dims;game.render();await frames(12)
-  var grid=node("InnParty");check(grid.columns==6 and grid.get_child_count()==all_ids.size(),str(dims)+" six-column real roster grid")
-  check(absf(grid.get_child(0).position.y-grid.get_child(5).position.y)<1 and grid.get_child(6).position.y>grid.get_child(0).position.y,str(dims)+" seventh member starts second row")
+  var grid=node("InnParty");check(grid.columns>=1 and grid.columns<=6 and grid.get_child_count()==all_ids.size(),str(dims)+" responsive grid retains every real member")
+  if dims.x==1920:check(grid.columns==6,"FHD retains six-column layout")
+  check(absf(grid.get_child(0).position.y-grid.get_child(grid.columns-1).position.y)<1 and grid.get_child(grid.columns).position.y>grid.get_child(0).position.y,str(dims)+" first full row wraps to next row")
   check(node("InnPartyScroll").size.x<=node("InnPartyScroll").get_parent().size.x+1,str(dims)+" grid stays within scroll region")
-  check(grid.get_child_count()==12 and absf(grid.get_child(11).position.y-grid.get_child(6).position.y)<1,str(dims)+" twelfth real member card stays in row two")
+  check(grid.get_child_count()==12 and grid.get_child(11).position.x+grid.get_child(11).size.x<=grid.size.x+1,str(dims)+" twelfth real member stays within horizontal grid bounds")
  var eleven=await saved()
  for uid in eleven.state.selected:eleven.state.characters[uid].hp=1;eleven.state.characters[uid].mp=0
  await reload_inn(eleven);inn.stay();await settle();consent().confirmed.emit();await settle()

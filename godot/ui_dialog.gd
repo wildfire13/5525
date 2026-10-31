@@ -44,7 +44,7 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 func layout_key() -> String:
 	return "status" if window.title==STATUS_TITLE else "dialog:"+window.title.get_slice(" / ",0)
 func remember():
-	if is_instance_valid(window):keep_visible();ui.preferences.store_rect(layout_key(),Rect2(Vector2(window.position),Vector2(window.size)))
+	if is_instance_valid(window):keep_visible();ui.preferences.remember_window(window,layout_key())
 func keep_visible():
 	if not is_instance_valid(window):return
 	var available=ui.size
@@ -61,6 +61,8 @@ func keep_visible():
 	ui.preferences.keep_visible(window,available)
 func resize():
 	if not is_instance_valid(window):return
+	if window.has_meta("layout_preferred"):
+		keep_visible();return
 	var status=window.title==STATUS_TITLE
 	var extent=Vector2(2080,780) if status else Vector2(1280,680) if window.title=="商品と装備の比較" else Vector2(840,620)
 	if window.title=="荷物を持つポーターを選択":extent=Vector2(840,420)
@@ -73,6 +75,10 @@ func resize():
 		rect.size.x=maxf(rect.size.x,minf(1280,ui.size.x-32));rect=ui.preferences.bounded(rect,ui.size,Vector2(420,300))
 		ui.preferences.config.set_value("migration","shop_feedback30",true);ui.preferences.store_rect(layout_key(),rect)
 	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position.max(Vector2(0,36)))
+	var preferred=ui.preferences.config.get_value("windows",layout_key(),rect)
+	window.set_meta("layout_preferred",preferred if preferred is Rect2 else rect)
+	window.set_meta("layout_applied",Rect2(Vector2(window.position),Vector2(window.size)))
+	window.set_meta("layout_area",Vector2(-1,-1))
 func escape():
 	# Window and its input margin can both receive the same key event.
 	var frame=Engine.get_process_frames()

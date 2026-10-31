@@ -68,10 +68,10 @@ func reserve_filter(parent):
 func render(parent):
 	var compact=ui.size.y<720
 	var limit=party_limit()
-	var header=Control.new();header.name="GuildRules";header.custom_minimum_size.y=56 if compact else 80;parent.add_child(header)
-	var rules=VBoxContainer.new();header.add_child(rules);rules.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var header=PanelContainer.new();header.name="GuildRules";header.custom_minimum_size.y=44 if compact else 64;parent.add_child(header)
+	var rules=VBoxContainer.new();header.add_child(rules)
 	var capacity=l(rules,"現在%d/%d人（最大%d人） / 残り%d枠 / ポーター%d人" % [c().get("selected",[]).size(),limit,limit,maxi(0,limit-c().get("selected",[]).size()),porter_count()]);capacity.name="GuildCapacity";capacity.add_theme_font_size_override("font_size",16 if compact else 20)
-	var hint=l(rules,"編成変更は無料。ポーターは受注時のみ最低1人必要。ドラッグか2人選択で入替。");hint.add_theme_font_size_override("font_size",16 if compact else 18)
+	var hint=l(rules,"編成変更は無料。ポーターは受注時のみ最低1人必要。ドラッグか2人選択で入替。");hint.add_theme_font_size_override("font_size",14 if compact else 16)
 	var split=HBoxContainer.new();split.name="GuildColumns";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",12);parent.add_child(split)
 	var actions_column=VBoxContainer.new();actions_column.name="GuildActionColumn";actions_column.custom_minimum_size.x=188;actions_column.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;actions_column.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	var upper_space=Control.new();upper_space.size_flags_vertical=Control.SIZE_EXPAND_FILL;actions_column.add_child(upper_space)
@@ -81,7 +81,7 @@ func render(parent):
 	for side in range(2):
 		var column=VBoxContainer.new();column.name="GuildReserveColumn" if side==0 else "GuildCurrentColumn";column.custom_minimum_size.x=240;column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(column)
 		if side==0:split.add_child(actions_column)
-		var title=l(column,("控え %d人" % reserve_count if reserve_job.is_empty() else "控え %d/%d人表示" % [lists[0].size(),reserve_count]) if side==0 else "現在のパーティー %d/%d人" % [lists[1].size(),limit],true);title.name="GuildReserveHeading" if side==0 else "GuildCurrentHeading";title.add_theme_font_size_override("font_size",18 if compact else 22);title.autowrap_mode=TextServer.AUTOWRAP_OFF;title.clip_text=true;title.tooltip_text=title.text
+		var title=l(column,("控え %d人" % reserve_count if reserve_job.is_empty() else "控え %d/%d人表示" % [lists[0].size(),reserve_count]) if side==0 else "現在のパーティー %d/%d人" % [lists[1].size(),limit],true);title.name="GuildReserveHeading" if side==0 else "GuildCurrentHeading";title.add_theme_font_size_override("font_size",14 if compact else 16);title.autowrap_mode=TextServer.AUTOWRAP_OFF;title.clip_text=true;title.tooltip_text=title.text;title.add_theme_color_override("font_outline_color",Color("#18212a"));title.add_theme_constant_override("outline_size",4)
 		if side==0:filter_height=reserve_filter(column).get_combined_minimum_size().y
 		else:
 			var spacer=Control.new();spacer.custom_minimum_size.y=filter_height;column.add_child(spacer)
@@ -91,7 +91,7 @@ func render(parent):
 		for u in lists[side]:
 			var id=str(u.id);var selected=id==chosen_id or stage=="confirm" and id==origin_id
 			var disabled=busy() or stage=="confirm"
-			var button=b(body,"",choose.bind(id),disabled);button.name="GuildMember_"+id;button.custom_minimum_size.y=124 if compact else 132;button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;buttons[id]=button
+			var button=b(body,"",choose.bind(id),disabled);button.name="GuildMember_"+id;button.custom_minimum_size.y=80 if compact else 104;button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;buttons[id]=button
 			button.set_script(preload("res://guild_member_card.gd"));button.configure(self,id)
 			button.set_meta("member_id",id);button.set_meta("guild_active",side==1);ui.memory.key(button,"guild_member_"+id);ui.memory.item(button,id)
 			if selected:
@@ -102,9 +102,9 @@ func render(parent):
 			var row=ui.row(margin);row.mouse_filter=Control.MOUSE_FILTER_IGNORE
 			var face=ui.portrait(row,u,false,48 if compact else 64);face.mouse_filter=Control.MOUSE_FILTER_IGNORE
 			var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;copy.mouse_filter=Control.MOUSE_FILTER_IGNORE;copy.add_theme_constant_override("separation",0);row.add_child(copy)
-			var name_=l(copy,str(u.name)+" / "+str(u.get("role",u.get("job",""))));name_.name="GuildName_"+id;name_.add_theme_font_size_override("font_size",18 if compact else 22);name_.autowrap_mode=TextServer.AUTOWRAP_OFF;name_.clip_text=true;name_.mouse_filter=Control.MOUSE_FILTER_IGNORE
-			var stats=l(copy,"Lv.%d   HP %d/%d\nMP %d/%d" % [u.get("level",1),u.hp,u.max,u.mp,u.maxMp]);stats.name="GuildVitals_"+id;stats.add_theme_font_size_override("font_size",16 if compact else 18);stats.autowrap_mode=TextServer.AUTOWRAP_OFF;stats.clip_text=true;stats.mouse_filter=Control.MOUSE_FILTER_IGNORE
-			var status=l(copy,("選択中 / " if selected else "")+("現在のパーティー" if side==1 else "控え"));status.name="GuildStatus_"+id;status.add_theme_font_size_override("font_size",14 if compact else 18);status.autowrap_mode=TextServer.AUTOWRAP_OFF;status.clip_text=true;status.mouse_filter=Control.MOUSE_FILTER_IGNORE
+			var name_=l(copy,str(u.name)+" / "+str(u.get("role",u.get("job",""))));name_.name="GuildName_"+id;name_.add_theme_font_size_override("font_size",14 if compact else 16);name_.autowrap_mode=TextServer.AUTOWRAP_OFF;name_.clip_text=true;name_.mouse_filter=Control.MOUSE_FILTER_IGNORE
+			var stats=l(copy,"Lv.%d  HP %d/%d  MP %d/%d" % [u.get("level",1),u.hp,u.max,u.mp,u.maxMp]);stats.name="GuildVitals_"+id;stats.add_theme_font_size_override("font_size",14 if compact else 16);stats.autowrap_mode=TextServer.AUTOWRAP_OFF;stats.clip_text=true;stats.mouse_filter=Control.MOUSE_FILTER_IGNORE
+			var status=l(copy,("選択中 / " if selected else "")+("現在のパーティー" if side==1 else "控え"));status.name="GuildStatus_"+id;status.add_theme_font_size_override("font_size",14 if compact else 16);status.autowrap_mode=TextServer.AUTOWRAP_OFF;status.clip_text=true;status.mouse_filter=Control.MOUSE_FILTER_IGNORE;status.visible=not compact
 			button.tooltip_text=name_.text+"\n"+stats.text+"\n"+status.text
 	for side in range(2):
 		for i in range(lists[side].size()):
@@ -115,14 +115,14 @@ func render(parent):
 				var other=buttons[str(lists[1-side][mini(i,lists[1-side].size()-1)].id)]
 				if side==0:button.focus_neighbor_right=button.get_path_to(other)
 				else:button.focus_neighbor_left=button.get_path_to(other)
-	var footer=Control.new();footer.name="GuildOperations";footer.custom_minimum_size.y=56 if compact else 64;footer.clip_contents=true;parent.add_child(footer)
-	var controls=VBoxContainer.new();footer.add_child(controls);controls.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);controls.add_theme_constant_override("separation",4)
+	var footer=PanelContainer.new();footer.name="GuildOperations";footer.custom_minimum_size.y=40 if compact else 56;footer.clip_contents=true;parent.add_child(footer)
+	var controls=VBoxContainer.new();footer.add_child(controls);controls.add_theme_constant_override("separation",4)
 	var u=person(chosen_id)
 	var instruction="人物を選択してください。" if u.is_empty() else "選択中：%s / %s" % [u.name,"現在のパーティー" if active(chosen_id) else "控え"]
 	if not u.is_empty() and active(chosen_id) and c().selected.size()==1:instruction+=" / パーティーは最低1人です。控えの人物と入れ替えできます。"
 	elif not u.is_empty() and not active(chosen_id) and c().selected.size()>=limit:instruction+=" / %d/%d人。入れ替える人物を選んでください。" % [limit,limit]
-	var description=l(controls,instruction);description.name="GuildSelection";description.autowrap_mode=TextServer.AUTOWRAP_OFF;description.clip_text=true;description.tooltip_text=instruction;description.add_theme_font_size_override("font_size",18 if compact else 20)
-	var result=l(controls,notice);result.name="GuildNotice";result.autowrap_mode=TextServer.AUTOWRAP_OFF;result.clip_text=true;result.add_theme_font_size_override("font_size",16 if compact else 18)
+	var description=l(controls,instruction);description.name="GuildSelection";description.autowrap_mode=TextServer.AUTOWRAP_OFF;description.clip_text=true;description.tooltip_text=instruction;description.add_theme_font_size_override("font_size",16 if compact else 18)
+	var result=l(controls,notice);result.name="GuildNotice";result.autowrap_mode=TextServer.AUTOWRAP_OFF;result.clip_text=true;result.add_theme_font_size_override("font_size",14 if compact else 16)
 	var blocked=busy() or stage!="idle"
 	var add=b(actions,"編成に加える",prepare.bind("add","",chosen_id),u.is_empty() or active(chosen_id) or c().selected.size()>=limit or blocked);add.name="GuildAdd"
 	var details=b(actions,"人物詳細",pages.party_view.open_detail.bind(chosen_id),u.is_empty() or busy() or stage=="confirm");details.name="GuildDetails"
