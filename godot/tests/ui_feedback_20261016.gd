@@ -41,7 +41,7 @@ func run():
 	check(not node("OwnedEquipmentComparison").text.is_empty() and not node("OwnedEquipmentComparison").text.contains("+0"),"S5/S9 equip hover contains only changed character comparison")
 	check(node("OwnedEquipment_spear-wood").alignment==HORIZONTAL_ALIGNMENT_LEFT and node("OwnedEquipment_spear-wood").icon!=null,"S4 item names left aligned with placeholder item icon")
 	var before=await saved();await click("OwnedEquipmentActions_spear-wood")
-	check(p.inventory_view.stage=="confirm" and node("InventoryConfirm").text=="YES" and node("InventoryCancel").text=="NO","S10 explicit YES/NO confirmation")
+	check(p.inventory_view.stage=="confirm" and node("InventoryConfirm").text=="装備する" and node("InventoryCancel").text=="キャンセル","S10 explicit equip/cancel confirmation")
 	await click("InventoryCancel");check((await saved())==before,"S10 NO preserves inventory and equipment")
 	await click("StatusTab_0");await click("OwnedEquipmentActions_spear-wood");await click("InventoryConfirm")
 	check((await saved()).state.characters.guard.inventory["spear-wood"]==1,"S10 YES equips exactly one")
