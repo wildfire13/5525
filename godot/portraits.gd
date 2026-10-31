@@ -28,7 +28,6 @@ func image_for(u: Dictionary) -> Image:
 		for job in ["scout","porter","guard","mage"]:
 			for race in ["human","elf","dwarf"]:
 				for sex in ["male","female"]:
-					if job == "mage" and race == "elf" and sex == "male":continue
 					if str(u.get("id","")) == "recruit-" + job + "-" + race + "-" + sex:
 						file = "characters/" + job + "-" + race + "-" + sex + "-01.png"
 	if u.get("side","ally") == "enemy": file = "enemy/enemy_" + file

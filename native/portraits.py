@@ -86,8 +86,6 @@ def resolve_portrait(images, member):
         for job in ('scout', 'porter', 'guard', 'mage'):
             for race in ('human', 'elf', 'dwarf'):
                 for sex in ('male', 'female'):
-                    if (job, race, sex) == ('mage', 'elf', 'male'):
-                        continue
                     if member.get('id') == f'recruit-{job}-{race}-{sex}':
                         key = f'characters/{job}-{race}-{sex}-01.png'
     return images.get(key)
