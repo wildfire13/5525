@@ -1,0 +1,52 @@
+extends "res://tests/ui_feedback_20261016.gd"
+func run():
+ create_timer(120).timeout.connect(func():print("FAIL audit improvements watchdog");quit(2))
+ root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
+ while game.data.is_empty():await process_frame
+ game.checks_fast=true;game.audio.fast_mode=true;await settle()
+ var before=await saved();var uid=str(game.campaign().selected[0])
+ game.pages.party_view.open_detail(uid);await settle()
+ var original=game.dialog.window.size
+ root.size=Vector2i(960,540);await settle()
+ check(game.dialog.window.size.y<original.y,"status fits small viewport")
+ root.size=Vector2i(1920,1080);await settle()
+ check(game.dialog.window.size==original,"status restores intended extent on growth")
+ game.dialog.close();game.pages.party_view.open_detail(uid);await settle()
+ check(game.dialog.window.size==original,"status reopen preserves preferred extent")
+ root.size=Vector2i(960,540);await settle();game.dialog.close();await settle();game.pages.party_view.open_detail(uid);await settle()
+ root.size=Vector2i(1920,1080);await settle()
+ print("REOPEN preferred=",game.preferences.config.get_value("windows","status")," actual=",game.dialog.window.size," expected=",original," metadata=",game.dialog.window.get_meta("layout_preferred"))
+ check(game.dialog.window.size==original,"close and reopen while constrained does not discard preferred extent")
+ game.dialog.close();await settle()
+ var d=game.confirm("長い確認文です。".repeat(60),func():pass);await settle()
+ for dims in [Vector2i(960,540),Vector2i(1180,812),Vector2i(1920,1080)]:
+  root.size=dims;await settle()
+  check(Rect2(Vector2.ZERO,Vector2(dims)).encloses(Rect2(Vector2(d.position),Vector2(d.size))),"wrapped confirmation fits "+str(dims))
+  var text_scroll=d.get_node("ConfirmationTextScroll");text_scroll.scroll_vertical=100000;await frames()
+  check(text_scroll.get_node("ConfirmationMessage").text.ends_with("長い確認文です。") and text_scroll.get_node("ConfirmationMessage").get_global_rect().end.y<=text_scroll.get_global_rect().end.y+2,"long confirmation end remains reachable "+str(dims))
+  check(d.get_label().get_theme_font_size("font_size")==18 and d.dialog_autowrap,"confirmation readable wrapped font")
+ d.canceled.emit();await settle()
+ game.navigate("map");await settle()
+ for dims in [Vector2i(960,540),Vector2i(1180,812),Vector2i(1920,1080)]:
+  root.size=dims;await settle();var chart=node("TownMap")
+  check(chart.zoom==1.0,"map starts fitted "+str(dims))
+  for b in chart.buttons.values():check(Rect2(Vector2.ZERO,chart.size).encloses(Rect2(b.position,b.size*b.scale)),"fitted destination visible "+str(b.name)+str(dims))
+  var wheel=InputEventMouseButton.new();wheel.pressed=true;wheel.position=chart.size/2;wheel.button_index=MOUSE_BUTTON_WHEEL_UP;chart._gui_input(wheel)
+  check(chart.zoom<1.0,"wheel UP zooms OUT")
+  wheel.button_index=MOUSE_BUTTON_WHEEL_DOWN;chart._gui_input(wheel);chart._gui_input(wheel)
+  check(chart.zoom>1.0,"wheel DOWN zooms IN")
+  for i in range(50):chart._gui_input(wheel)
+  check(chart.zoom==2.5,"zoom upper limit")
+  wheel.button_index=MOUSE_BUTTON_WHEEL_UP
+  for i in range(50):chart._gui_input(wheel)
+  check(chart.zoom==0.65,"zoom lower limit")
+  chart.reset_view();check(chart.pan==Vector2.ZERO and chart.zoom==1.0,"fit resets zoom and pan")
+ game.show_help();await settle()
+ var help_text=""
+ for label in game.dialog.body.find_children("*","Label",true,false):help_text+=label.text
+ check(help_text.contains("戦闘") and help_text.contains("キャンセル") and help_text.contains("下で拡大"),"help includes actual operation guidance")
+ game.dialog.close();game.set_status("通知の検証");game.show_status_details();await settle()
+ check(game.dialog.window.title=="通知の詳細","notice detail distinct from help")
+ game.dialog.close();await settle()
+ check(await saved()==before,"layout, zoom and help preserve exact campaign")
+ game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

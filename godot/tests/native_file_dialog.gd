@@ -31,7 +31,7 @@ func run():
 			root.get_texture().get_image().save_png(OS.get_environment("NATIVE_DIALOG_EVIDENCE").path_join("linux-save-picker.png"))
 		check(d.use_native_dialog and d.access==FileDialog.ACCESS_FILESYSTEM,"save requests OS filesystem chooser")
 		check(d.file_mode==FileDialog.FILE_MODE_SAVE_FILE and d.filters==PackedStringArray(["*.json ; 5525進行セーブ"]),"save retains JSON filter and mode")
-		check(d.current_file.begins_with("5525-godot-") and d.current_file.ends_with(".json"),"unique JSON default name retained")
+		check(d.current_file.begins_with("5525-") and d.current_file.ends_with(".json") and d.current_file.length()<=30,"short timestamped JSON default name")
 		check(d.current_dir==ProjectSettings.globalize_path("user://").trim_suffix("/"),"existing save directory hint retained")
 		d.hide() # Native OS picker visibility is external to Window.visible.
 		check(game.file_dialog_open() and game.modal_open(),"hidden native picker still blocks game modal operations")

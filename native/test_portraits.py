@@ -35,6 +35,22 @@ class PortraitTests(unittest.TestCase):
         Image.new('RGBA', size, color).save(path)
         return path
 
+    def test_scout_defaults_old_snapshots_and_override_priority(self):
+        for race in ('human', 'elf', 'dwarf'):
+            for sex in ('male', 'female'):
+                uid = f'recruit-scout-{race}-{sex}'
+                key = f'characters/scout-{race}-{sex}-01.png'
+                self.store[key] = object()
+                member = {'id': uid, 'image': 'scout.png', 'side': 'ally'}
+                self.assertIs(resolve_portrait(self.store, member), self.store[key])
+                self.store.photos[uid] = object()
+                self.assertIs(resolve_portrait(self.store, member), self.store.photos[uid])
+                with Image.open(Path(__file__).parent / 'assets' / key) as image:
+                    self.assertEqual(image.mode, 'RGBA')
+                    self.assertEqual(image.width, 1024)
+        self.store['scout.png'] = 'legacy'
+        self.assertEqual(resolve_portrait(self.store, {'id': 'scout', 'image': 'scout.png'}), 'legacy')
+
     def test_transparency_aspect_metadata_and_original_deletion(self):
         path = self.fixture(size=(640, 320))
         self.store.assign('guard', path)

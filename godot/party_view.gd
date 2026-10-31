@@ -174,7 +174,7 @@ func confirm_allocation(u: Dictionary):
 	if ui.locked or committing or draft_total()<=0 or pages.c().get("phase")!="town" or not ui.active_member(str(u.id)):return
 	var delta=draft.duplicate(true);var token=draft_token;var uid=str(u.id)
 	var text="ステータスポイントの割り振りを確定しますか？\n%s\nSTR＋%d / INT＋%d / AGI＋%d\n使用 %d点 / 確定後の残り %d点" % [u.name,delta.str,delta.int,delta.agi,draft_total(),int(u.statPoints)-draft_total()]
-	var dialog=ui.confirm(text,submit_allocation.bind(uid,delta,token));dialog.name="AllocationConfirmation";dialog.ok_button_text="YES";dialog.cancel_button_text="NO";dialog.get_cancel_button().grab_focus()
+	var dialog=ui.confirm(text,submit_allocation.bind(uid,delta,token));dialog.name="AllocationConfirmation";dialog.ok_button_text="割り振りを確定";dialog.cancel_button_text="キャンセル";dialog.get_cancel_button().grab_focus()
 func submit_allocation(uid: String,delta: Dictionary,token: String):
 	if committing or ui.locked or uid!=draft_uid or token!=draft_token or not ui.active_member(uid):return
 	committing=true

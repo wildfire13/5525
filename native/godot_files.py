@@ -134,6 +134,23 @@ def run(r):
         write_save(r['path'],r['data'],r.get('operation'),r.get('overwrite',False),r.get('expected_sha256'),r.get('resolved_target'));return {'path':r['path'], 'outcome':'saved'}
     if r['action']=='recover_write':return recover_write(r['path'],r['data'],r['operation'],r.get('resolved_target'))
     raise ValueError('Unknown file operation')
+def player_error(error):
+    if isinstance(error, FileNotFoundError): return 'ファイルが見つかりません。場所とファイル名を確認し、選び直してください。'
+    if isinstance(error, PermissionError): return 'ファイルにアクセスできません。別の保存場所を選ぶか、アクセス権を確認してください。'
+    if isinstance(error, FileExistsError): return '同名のファイルがあります。保存先を選び直して上書きを確認してください。'
+    if isinstance(error, IsADirectoryError): return 'フォルダーではなくファイルを選んでください。'
+    if isinstance(error, OSError): return 'ファイルを処理できませんでした。保存場所と空き容量を確認し、もう一度お試しください。'
+    if isinstance(error, (json.JSONDecodeError, UnicodeError)): return 'ファイルを読み取れません。5525の進行セーブを選んでください。'
+    # Only developer-authored validation messages can reach the player.
+    if type(error) is ValueError and str(error) in PLAYER_VALIDATION_MESSAGES: return str(error)
+    return 'ファイルの形式が正しくありません。5525の対応するファイルを選び直してください。'
+
+PLAYER_VALIDATION_MESSAGES = {
+    '保存画像の形式が不正です', '保存画像のキャラIDが不正です', '保存画像のサイズが不正です', '保存画像が破損しています',
+    '保存サイズ超過', '保存要求の識別子が不正です', 'JSONファイル名を指定してください', '保存先の確認情報が不正です',
+    '確認後に保存先の実体が変わりました。保存先を選び直してください。', '保存先に通常ファイルを指定してください', '既存ファイルが大きすぎます',
+    '確認後に保存先の内容が変わりました。保存先を選び直してください。', '上書き確認が不正です', '上書きには保存先の確認が必要です', '保存形式が不正です',
+}
 if __name__=='__main__':
     try: print(json.dumps({'ok':True,'data':run(json.loads(sys.stdin.readline()))},ensure_ascii=False))
-    except (OSError,ValueError,KeyError,TypeError) as e: print(json.dumps({'ok':False,'error':str(e)},ensure_ascii=False))
+    except (OSError,ValueError,KeyError,TypeError) as e: print(json.dumps({'ok':False,'error':player_error(e)},ensure_ascii=False))

@@ -6,6 +6,7 @@ module.exports=function(templates){
   return Object.entries(roles).flatMap(([job,role])=>Object.entries(races).flatMap(([race,label])=>['male','female'].map(sex=>{
     const base=templates.find(t=>t.job===job);
     return {...base,id:`recruit-${job}-${race}-${sex}`,job,role,race,sex,recruitRevision:1,
+      image:job==='scout'?`characters/scout-${race}-${sex}-01.png`:base.image,
       name:`${label}の${role}（${sex==='male'?'男':'女'}）`};
   })));
 };

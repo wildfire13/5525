@@ -80,23 +80,32 @@ func hub(parent):hub_view.render(parent)
 func board(parent):quest_board.render(parent)
 func accept(id: String):quest_board.open_picker(id)
 func select_destination(id: String):
+	var chart=ui.find_child("TownMap",true,false)
+	var view_zoom=chart.zoom if is_instance_valid(chart) else 1.0
+	var view_pan=chart.pan if is_instance_valid(chart) else Vector2.ZERO
 	ui.destination=id;ui.render()
+	chart=ui.find_child("TownMap",true,false)
+	if is_instance_valid(chart):chart.zoom=view_zoom;chart.pan=view_pan;chart.layout()
 func map(parent):
-	l(parent,"次の行先を選ぶ",true)
+	var tools=row(parent);tools.name="MapControls"
+	l(tools,"次の行先を選ぶ",true)
 	var available=[]
 	for place in c().get("destinations",[]):available.append(place.id if place is Dictionary else place)
 	var quest=c().get("activeQuest")
 	if quest is Dictionary:
-		l(parent,"受注中: %s → %s" % [quest.name,town(quest.to)])
+		var quest_hint=l(parent,"受注中: %s → %s" % [quest.name,town(quest.to)]);quest_hint.add_theme_font_size_override("font_size",16)
 	if not available.has(ui.destination):ui.destination=str(available[0]) if not available.is_empty() else ""
-	muted(parent,"地図は模式図です。各移動は二つの区間を通ります。")
-	shop_guide(parent)
-	var chart=preload("res://town_map.gd").new();chart.name="TownMap"
+	var zoom_hint=l(tools,"↑ 縮小 / ↓ 拡大 ・ 中ドラッグで移動");zoom_hint.add_theme_font_size_override("font_size",16)
+	var chart=preload("res://town_map.gd").new();chart.name="TownMap";chart.tooltip_text="各移動は二つの区間を通ります。ホイール上で縮小、下で拡大。中ドラッグで移動。"
 	chart.towns=c().get("locations",[]);chart.current=c().location;chart.selected=ui.destination;chart.available=available;chart.routes=c().get("routes",{});chart.icons=ui.icons
 	chart.quest_destination=str(quest.to) if quest is Dictionary else ""
 	parent.add_child(chart);chart.destination_selected.connect(select_destination)
+	var fit=b(tools,"全体表示",chart.reset_view);fit.name="MapFit";fit.add_theme_font_size_override("font_size",16);fit.custom_minimum_size.y=32
+	var legend=b(tools,"凡例",func():ui.dialog.open("地図の見方",func(body,actions):
+		shop_guide(body);l(body,"各移動は二つの区間を通ります。地図内のホイールは上で縮小、下で拡大。中ドラッグで移動し、全体表示で戻せます。");ui.local_button(actions,"閉じる",ui.dialog.close)))
+	legend.name="MapLegend";legend.add_theme_font_size_override("font_size",16);legend.custom_minimum_size.y=32
 	for id in chart.buttons:ui.widgets.append(chart.buttons[id])
-	muted(parent,"未受注での移動も戦闘・消耗があります。配達報酬はありません。追加の移動料金はありません。")
+	var risk=muted(parent,"未受注でも戦闘・消耗あり / 未受注の配達報酬なし / 追加の移動料金なし");risk.add_theme_font_size_override("font_size",16)
 	var over=c().get("inventoryOverflow",[])
 	if not over.is_empty():l(parent,"インベントリ枠を超えている仲間がいます。出発する前に、受け渡し・売却・倉庫への預け入れなどで整理してください。")
 	var depart=b(parent,town(ui.destination)+"へ出発" if not ui.destination.is_empty() else "行先がありません",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not over.is_empty());depart.name="DepartButton"
@@ -161,16 +170,16 @@ func items(parent):
 	if c().phase not in ["town","camp"]:l(parent,"町・野営で使用できます");return
 	if c().has("inventoryByCharacter"):
 		l(parent,"インベントリ / 所持者を選択",true)
-		var members=row(parent);members.name="CampParty" if c().phase=="camp" else "ItemParty"
+		var members=ui.member_grid(parent,"CampParty" if c().phase=="camp" else "ItemParty")
 		for uid in c().get("selected",[]):
 			var u=roster().filter(func(member):return member.id==uid)[0]
 			var member=card(members);member.name="ItemMember_"+str(uid);member.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
-			var portrait=ui.portrait(member,u,false,64);portrait.name="FullBodyPortrait";portrait.custom_minimum_size=Vector2(64,160 if ui.ui_size_mode=="standard" else 96);portrait.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-			var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;ui.short_name(name_label,str(u.name))
+			var portrait=ui.portrait(member,u,false,64);portrait.name="FullBodyPortrait";portrait.custom_minimum_size=Vector2(64,160 if ui.ui_size_mode=="standard" else 48);portrait.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+			var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;ui.short_name(name_label,str(u.name));name_label.add_theme_font_size_override("font_size",16)
 			var hp=ui.icons.line(ui,member,"hp","HP %d/%d" % [u.hp,u.max]);ui.emphasize_low_hp(hp,u)
 			ui.icons.line(ui,member,"mp","MP %d/%d" % [u.mp,u.maxMp])
 			if u.hp<=0:l(member,"戦闘不能")
-			b(member,"インベントリ",party_view.open_inventory.bind(str(uid))).name="InventoryOwner_"+str(uid)
+			var open_inventory=b(member,"インベントリ",party_view.open_inventory.bind(str(uid)));open_inventory.name="InventoryOwner_"+str(uid);open_inventory.add_theme_font_size_override("font_size",16)
 		return
 	var catalog=ItemMenu.definitions(c());var inventory: Dictionary=c().inventory
 	var selected_item={}
@@ -190,12 +199,12 @@ func items(parent):
 		ui.icons.line(ui,controls,str(selected_item.id),"%s / 対象を選択" % selected_item.name,true)
 		l(controls,"%s / 残り%d個。生存している編成中の仲間に使用します。" % [ItemMenu.effect(selected_item),inventory.get(item_id,0)])
 		b(controls,"アイテム一覧へ",show_items.bind("list"))
-	var members=row(parent);members.name="CampParty" if c().phase=="camp" else "ItemParty"
+	var members=ui.member_grid(parent,"CampParty" if c().phase=="camp" else "ItemParty")
 	for u in roster():
 		if not c().selected.has(u.id):continue
 		var member=card(members);member.name="ItemMember_"+str(u.id);member.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		var portrait=ui.portrait(member,u,false,64);portrait.name="FullBodyPortrait";portrait.custom_minimum_size=Vector2(64,160 if ui.ui_size_mode=="standard" else 96);portrait.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;ui.short_name(name_label,str(u.name))
+		var portrait=ui.portrait(member,u,false,64);portrait.name="FullBodyPortrait";portrait.custom_minimum_size=Vector2(64,160 if ui.ui_size_mode=="standard" else 48);portrait.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;ui.short_name(name_label,str(u.name));name_label.add_theme_font_size_override("font_size",16)
 		var hp=ui.icons.line(ui,member,"hp","HP %d/%d" % [u.hp,u.max]);ui.emphasize_low_hp(hp,u)
 		ui.icons.line(ui,member,"mp","MP %d/%d" % [u.mp,u.maxMp])
 		if u.hp<=0:l(member,"戦闘不能")
