@@ -37,3 +37,12 @@
 - FHD GUI: 人物29確認/OSクリック2回/3画像、店舗79確認/OSクリック7回/7画像が成功。新NPC5画面を実見し顔・本文の非重複と尾の方向を確認。証跡 `/workspace/new-character-assets-20261031/{gui-final,npc-gui}`。
 - FHD 1920×1080、音3種OFF。本人PC不使用。Windowsの実UIは未確認。
 - CIは現行workflowの全63実行＋後続SQLite検査をそのまま使用（--onlyなし）、15分上限も変更しない。正確なpush SHAのLinux/Windows終端と所要時間を別途報告。
+
+## 追加提供：エルフ男性魔法使い
+
+16枚のpush後にユーザーが追加した原本を採用。最終構成は戦士6・魔法使い6・店舗5の17枚。未提供時の例外分岐を解除し、全24候補を同じ職業/種族/性別規則で解決する。
+
+- 原本: エルフ_男_魔法使い_01.png、Drive ID `1VdV6SU6-UCc7pmwVdTWyGx1XfWmlBgzG`。
+- 採用先: `native/assets/characters/mage-elf-male-01.png`。1024×1536 RGBA、2,611,907 bytes。SHA-256 `7b40c38080b450eec097199c3ff7769288540ffbdc9e08abde524e96a059488a`。原本変更なし。
+- 先行CIを取消せず終端確認後に追加pushし、最終SHAも全項目・15分上限で検証。
+- 追加後Python10・Node6成功。魔法使い6枚のFHD実レンダー18確認/OSクリック2回/2画像成功。足元・杖の外形と顔縮小を実見。

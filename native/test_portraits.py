@@ -39,8 +39,6 @@ class PortraitTests(unittest.TestCase):
         for job in ('scout', 'porter', 'guard', 'mage'):
             for race in ('human', 'elf', 'dwarf'):
                 for sex in ('male', 'female'):
-                    if (job, race, sex) == ('mage', 'elf', 'male'):
-                        continue
                     uid = f'recruit-{job}-{race}-{sex}'
                     key = f'characters/{job}-{race}-{sex}-01.png'
                     self.store[key] = object()
@@ -51,8 +49,6 @@ class PortraitTests(unittest.TestCase):
                     with Image.open(Path(__file__).parent / 'assets' / key) as image:
                         self.assertEqual(image.mode, 'RGBA')
                         self.assertEqual(image.width, 1024)
-        self.store['healer.png'] = 'missing-original'
-        self.assertEqual(resolve_portrait(self.store, {'id':'recruit-mage-elf-male','image':'healer.png'}), 'missing-original')
         self.store['scout.png'] = 'legacy'
         self.assertEqual(resolve_portrait(self.store, {'id': 'scout', 'image': 'scout.png'}), 'legacy')
 
