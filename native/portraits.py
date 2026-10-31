@@ -83,9 +83,11 @@ def resolve_portrait(images, member):
             return override
     key = ('enemy/enemy_' if member.get('side') == 'enemy' else '') + member.get('image', '')
     if member.get('side') != 'enemy':
-        for job in ('scout', 'porter'):
+        for job in ('scout', 'porter', 'guard', 'mage'):
             for race in ('human', 'elf', 'dwarf'):
                 for sex in ('male', 'female'):
+                    if (job, race, sex) == ('mage', 'elf', 'male'):
+                        continue
                     if member.get('id') == f'recruit-{job}-{race}-{sex}':
                         key = f'characters/{job}-{race}-{sex}-01.png'
     return images.get(key)

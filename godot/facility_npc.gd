@@ -2,8 +2,8 @@ extends RefCounted
 ## Visit-only decoration. Selection never consumes campaign or background RNG.
 const ROOT="res://assets/facility_npcs/"
 const CATALOG={"weapon":["weapon1.png","weapon2.png"],"armor":["armor.png"],"item":["item.png"],"accessory":["accessory.png"],"inn":["inn.png"],"guild":["guild.png"]}
-# Mouth landmarks measured on the seven unchanged 1024x1536 source portraits.
-const MOUTHS={"weapon1.png":Vector2(504,480),"weapon2.png":Vector2(488,565),"armor.png":Vector2(536,252),"item.png":Vector2(516,255),"accessory.png":Vector2(462,162),"inn.png":Vector2(514,226),"guild.png":Vector2(512,228)}
+# Mouth landmarks measured on the current 1024x1536 source portraits (five replaced 2026-10-31).
+const MOUTHS={"weapon1.png":Vector2(490,180),"weapon2.png":Vector2(500,280),"armor.png":Vector2(520,265),"item.png":Vector2(515,260),"accessory.png":Vector2(462,162),"inn.png":Vector2(490,260),"guild.png":Vector2(512,228)}
 var visit_key := ""
 var selected_path := ""
 var texture: Texture2D

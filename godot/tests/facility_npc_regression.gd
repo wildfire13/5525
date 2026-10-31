@@ -41,7 +41,7 @@ func run():
 		var path=str(entry.path);var bytes=FileAccess.get_file_as_bytes(path);total+=bytes.size()
 		var image=Image.new();var decoded=image.load_png_from_buffer(bytes)
 		check(FileAccess.get_sha256(path)==entry.sha256 and decoded==OK and image.get_size()==Vector2i(entry.width,entry.height) and image.get_format()==Image.FORMAT_RGBA8,"NPC original SHA256 dimensions and RGBA "+path.get_file())
-	check(total==13515244,"NPC original seven PNG files retain exact delivered total byte count")
+	check(total==14539472,"NPC original seven PNG files retain exact delivered total byte count")
 	var art=game.pages.facility_art;var seed=await saved();seed.state.gold=500;seed.state.characters.guard.inventory={"spear-wood":3,"potion":2}
 	var isolated=preload("res://facility_npc.gd").new();var expected=RandomNumberGenerator.new();isolated.rng.seed=5525;expected.seed=5525;var observed={};var exact=true
 	var background_state=art.rng.state;var campaign_before=await saved()

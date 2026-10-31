@@ -6,6 +6,12 @@ test('new game has exactly 24 distinct candidates, four roles, two sexes, three 
  assert.equal(roster.length,24);assert.equal(new Set(roster.map(c=>`${c.job}/${c.race}/${c.sex}`)).size,24);
  assert.deepEqual(new Set(roster.map(c=>c.job)),new Set(['porter','guard','scout','mage']));
  assert.equal(s.selected.length,5);assert.equal(C.view(s).partyLimit,12);assert.equal(C.view(s).battleLimit,5);
+ for(const c of B.recruitRoster){
+  const missing=c.job==='mage'&&c.race==='elf'&&c.sex==='male';
+  if(missing)assert(!c.image.startsWith('characters/'));
+  else assert.equal(c.image,`characters/${c.job}-${c.race}-${c.sex}-01.png`);
+  assert(require('node:fs').existsSync(require('node:path').join(__dirname,'assets',c.image)));
+ }
  assert(C.validate(s).ok);assert.deepEqual(C.deserialize(C.serialize(s)),s);
 });
 test('initial gear matches race, sex, job; dwarf sword restriction remains',()=>{
