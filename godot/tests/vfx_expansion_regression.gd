@@ -14,7 +14,7 @@ func run():
  await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true
  while game.locked or game.engine.busy or game.presenting or game.loading_screen.active:await process_frame
- board=load("res://battle_board.gd").new();board.portraits=game.portraits;board.size=Vector2(1180,812);root.add_child(board)
+ board=load("res://battle_board.gd").new();board.portraits=game.portraits;board.size=Vector2(1920,1080);root.add_child(board)
  for i in range(5):await process_frame
  var saved=(await game.engine.request({"op":"campaign_save"})).data
  var fx=board.skill_effects

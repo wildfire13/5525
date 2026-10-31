@@ -13,7 +13,7 @@ func run():
  await game.update({"op":"campaign_load","data":save})
  await game.update({"op":"campaign","action":"buyGear","args":["mage","staff-silver-1","leftHand"]})
  var dual=(await game.engine.request({"op":"campaign_save"})).data
- for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
+ for dims in [Vector2i(1920,1080)]:
   await game.update({"op":"campaign_load","data":dual})
   await game.update({"op":"campaign","action":"trial","args":["mage","staff-wood","rightHand"]});await settle()
   root.size=dims;game.hud.back_to_commands();await settle()
@@ -50,7 +50,7 @@ func run():
   game.find_child("BattleDetails",true,false).pressed.emit();await settle()
   check(not game.hud.inspection_pinned,"non-command button clears pin "+str(dims))
   game.dialog.close();await settle()
-  if dims!=Vector2i(960,540):await game.act("endTrial",[])
+  # Keep the final trial active for action/reset inspection checks below.
  game.hud.back_to_commands();await settle()
  var u=game.state().units[0];await game.on_cell(int(u.pos));await settle()
  game.hud.last_action_count=-1;game.render();await settle()

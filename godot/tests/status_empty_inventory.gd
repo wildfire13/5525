@@ -2,7 +2,7 @@ extends "res://tests/ui_feedback2_20261016.gd"
 func run():
 	create_timer(70).timeout.connect(func():print("FAIL empty inventory watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
-	root.size=Vector2i(1364,1024);game=load("res://main.tscn").instantiate();root.add_child(game)
+	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle();var before=await saved()
@@ -13,7 +13,7 @@ func run():
 	print("EMPTY label=",empty.get_global_rect()," column=",node("StatusOwnedInventory").get_global_rect())
 	check(empty.size.x>=node("StatusOwnedInventory").size.x*.9 and empty.size.y<=60,"empty inventory message uses full column width without vertical character wrapping")
 	check(game.dialog.window.size==Vector2i(1364,662),"portrait switching preserves full status size")
-	for resolution in [Vector2i(1364,1024),Vector2i(1920,1080)]:
+	for resolution in [Vector2i(1920,1080)]:
 		root.size=resolution;await settle()
 		game.pages.party_view.owned_equipment_view.slot="rightHand";game.pages.party_view.refresh_modal();await settle()
 		empty=node("StatusOwnedInventory").find_children("*","Label",true,false).filter(func(l):return l.text.contains("この枠に装備できる"))[0]

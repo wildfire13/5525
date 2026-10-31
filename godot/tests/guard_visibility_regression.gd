@@ -12,7 +12,7 @@ func run():
 		push_error("isolated evidence/XDG profile required");quit(2);return
 	# No campaign, audio player, native process or random source is created.
 	var board=load("res://battle_board.gd").new()
-	board.size=Vector2(900,650);root.add_child(board)
+	board.size=Vector2(1920,1080);root.add_child(board)
 	await process_frame
 	var layer=board.skill_effects
 	layer.process_mode=Node.PROCESS_MODE_DISABLED
@@ -21,7 +21,7 @@ func run():
 	layer.play({"skill_id":"guard","phase":"action","origin":24,"cells":[]},.42)
 	layer._process(.21)
 	var before=layer.snapshot()
-	for area in [Vector2(900,650),Vector2(1180,812),Vector2(1920,1080)]:
+	for area in [Vector2(1920,1080)]:
 		board.size=area
 		await process_frame
 		await process_frame

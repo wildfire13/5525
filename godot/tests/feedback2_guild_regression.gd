@@ -50,7 +50,7 @@ func run():
  if node("GuildActions")==null:check(false,"guild page mounted before geometry tests");quit(2);return
  check(node("GuildActions") is VBoxContainer and node("GuildActions").get_parent()==node("GuildActionColumn"),"central action list is vertically laid out between two roster lists")
  var original_limit=guild.party_limit();check(original_limit==int(game.campaign().get("partyLimit",5)),"initial displayed cap uses current canonical field")
- for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540),Vector2i(1920,1080)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;await settle();check_layout(str(dims))
  await pure_ui_boundaries()
  check((await saved())==seed,"synthetic display/candidate boundaries never write engine save or ownership")

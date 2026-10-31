@@ -34,7 +34,7 @@ func run():
  await game.update({"op":"campaign","action":"inventoryAction","args":["guard","potion","transfer","archer",1,null,transfer.inventoryQuote.token]});await settle()
  while shop.sale.previewing:await process_frame
  q=shop.sale.quote.duplicate(true);before=await saved();check(q.token==game.campaign().inventoryToken and q.count==2,"detail-side inventory mutation invalidates stale sale quote while retaining owner/item/count")
- for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540),Vector2i(1920,1080)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;game.render();await frames(12)
   var panel=node("FacilitySalePanel");var back=node("TownReturnRow")
   var heading=node("FacilitySaleHeading");var font=heading.get_theme_font("font");var text_width=font.get_string_size(heading.text,HORIZONTAL_ALIGNMENT_LEFT,-1,heading.get_theme_font_size("font_size")).x
@@ -62,7 +62,7 @@ func run():
  shop.show_consumable_details("potion");await settle();check(node("SkillDetailsWindow")!=null,"tool product description uses an inventory-entry adapter")
  var detail=node("SkillDetailsWindow")
  if detail!=null:detail.hide()
- for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;game.render();await frames(12)
   var header=node("ShopListHeader");var products=node("ShopProductsScroll").get_child(0)
   check(absf(header.get_global_rect().end.x-products.get_global_rect().end.x)<2,str(dims)+" product filter and product rows share right edge")

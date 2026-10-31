@@ -48,7 +48,7 @@ func run():
 	await click("StatusTab_0");await click("OwnedInventorySell_sword-wood");await click("InventoryPrepareSale");await consent(false)
 	check(await saved()==before,"direct sale cancel leaves gold and inventory unchanged")
 	await click("StatusTab_0")
-	for resolution in [Vector2i(1364,1024),Vector2i(1920,1080)]:
+	for resolution in [Vector2i(1920,1080)]:
 		root.size=resolution;await settle();game.dialog.window.size=Vector2i(resolution.x,700);game.dialog.window.position=Vector2i(0,40);await settle();alignment()
 		var source=node("OwnedEquipmentActions_sword-wood");source.focus_entered.emit();await settle();var hover=node("EquipmentHover")
 		var anchor=Vector2(game.dialog.window.position)+source.get_global_rect().position

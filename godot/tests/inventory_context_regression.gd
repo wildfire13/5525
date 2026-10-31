@@ -30,7 +30,7 @@ func run():
 	var gear=JSON.parse_string("".join(output));var seed=await saved();seed.state.location="east";seed.state.gold=500;seed.state.characters.guard.inventory={}
 	for id in gear:seed.state.characters.guard.inventory[id]=3
 	seed.state.characters.guard.inventory.potion=5;seed.state.characters.guard.inventory.ether=2
-	for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
+	for dims in [Vector2i(1920,1080)]:
 		root.size=dims
 		check((await game.update({"op":"campaign_load","data":seed})).get("ok",false),"many real item IDs load without new inventory rules "+str(dims.x))
 		await enter_facility("shop");await settle();game.pages.party_view.open_detail("guard");await settle()

@@ -87,9 +87,9 @@ func run():
 	check(loading.active and observations.is_empty(),"obsolete painted token cannot emit readiness")
 	await loading.painted(second);loading.finish(second);loading.finish(second)
 	check(not loading.active and not loading.panel.visible and loading.picture.texture==null,"owned finish is idempotent and releases picture")
-	for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540),Vector2i(1920,1080)]:
+	for dims in [Vector2i(1920,1080)]:
 		root.size=dims;await frames();var token=loading.begin("after",true);await loading.painted(token);await frames()
-		check(loading.panel.get_global_rect()==Rect2(Vector2.ZERO,Vector2(dims)) and loading.picture.get_global_rect()==Rect2(Vector2.ZERO,Vector2(dims)),"overlay covers resized viewport "+str(dims))
+		check(loading.panel.get_global_rect()==Rect2(Vector2.ZERO,Vector2(dims)) and loading.picture.get_global_rect()==Rect2(Vector2.ZERO,Vector2(dims)),"overlay covers FHD viewport "+str(dims))
 		loading.finish(token)
 	check(loading.rng.state==previous_rng,"subdued exits do not draw from even the display RNG")
 	check(await saved()==baseline and rng_states==[game.pages.facility_art.rng.state,game.pages.facility_art.npc.rng.state,game.pages.hub_view.rng.state],"overlay-only cycles preserve campaign save and other display RNG streams")

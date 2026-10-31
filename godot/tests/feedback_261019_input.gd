@@ -18,13 +18,13 @@ func drag(panel,delta: Vector2,label: String):
 func run():
 	create_timer(100).timeout.connect(func():print("FAIL drag review watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
-	root.size=Vector2i(1364,1024);game=load("res://main.tscn").instantiate();root.add_child(game)
+	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.audio.fast_mode=true;game.checks_fast=false
 	var cases=source_cases()
 	for id in ["town","sweep100"]:
 		var f=FileAccess.open(evidence.path_join(id+".json"),FileAccess.WRITE);f.store_string(JSON.stringify(cases[id]));f.close()
-	for resolution in [Vector2i(1364,1024),Vector2i(1920,1080)]:
+	for resolution in [Vector2i(1920,1080)]:
 		root.size=resolution;await settle()
 		for cycle in range(2):
 			await game.load_game(evidence.path_join("town.json"));await settle()

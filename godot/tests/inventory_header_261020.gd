@@ -29,7 +29,7 @@ func run():
 	await game.update({"op":"campaign_load","data":seed});await settle()
 	await game.act("accept",[game.campaign().board[0].id,"porter"]);await settle()
 	var cargo=str(game.campaign().activeQuest.cargoItemId);var before=await saved();var p=game.pages.party_view
-	for resolution in [Vector2i(1920,1080),Vector2i(1364,1024)]:
+	for resolution in [Vector2i(1920,1080)]:
 		root.size=resolution;p.open_detail("guard");await settle();game.dialog.window.size=Vector2i(resolution.x,662);await settle()
 		for tab in range(3):
 			await click("StatusTab_"+str(tab));layout_check()

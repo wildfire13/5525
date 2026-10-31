@@ -14,7 +14,7 @@ func settle():
 func chooser():return game.find_children("*","FileDialog",true,false)[0]
 func snapshot():return (await game.engine.request({"op":"campaign_save"})).data
 func run():
-	root.size=Vector2i(1280,800)
+	root.size=Vector2i(1920,1080)
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	var deadline=Time.get_ticks_msec()+20000
 	while game.data.is_empty() and Time.get_ticks_msec()<deadline:await process_frame

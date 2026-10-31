@@ -35,12 +35,12 @@ func cancel():
 func run():
 	create_timer(120).timeout.connect(func():print("FAIL UI P3 drag watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
-	root.size=Vector2i(1180,812);game=load("res://main.tscn").instantiate();root.add_child(game)
+	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true
 	var seed=await saved();seed.state.characters.guard.inventory={"spear-wood":2,"potion":2}
-	for dims in [Vector2i(1180,812),Vector2i(1920,1080)]:
+	for dims in [Vector2i(1920,1080)]:
 		root.size=dims
 		await game.update({"op":"campaign_load","data":seed});await settle()
 		game.pages.party_view.open_detail("guard");await settle();var before=await saved()

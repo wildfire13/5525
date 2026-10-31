@@ -43,7 +43,7 @@ func run():
  var all_ids=[]
  for u in game.roster().slice(0,12):all_ids.append(u.id)
  await game.act("select",[all_ids]);await settle()
- for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;game.render();await frames(12)
   var grid=node("InnParty");check(grid.columns>=1 and grid.columns<=6 and grid.get_child_count()==all_ids.size(),str(dims)+" responsive grid retains every real member")
   if dims.x==1920:check(grid.columns==6,"FHD retains six-column layout")

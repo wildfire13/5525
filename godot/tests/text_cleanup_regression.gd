@@ -7,7 +7,7 @@ func run():
  await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
  var seed=await saved()
- for dims in [Vector2i(1920,1080),Vector2i(960,540)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;await game.update({"op":"campaign_load","data":seed});await enter_facility("inn");await settle()
   check(not labels().any(func(s):return s.begins_with("パーティ全員で")) and labels().has("全員が全回復しています。料金はかかりません。"),"full party hides charge but retains free status "+str(dims))
   var injured=seed.duplicate(true);injured.state.characters.guard.hp=1

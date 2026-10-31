@@ -8,7 +8,7 @@ func check(ok: bool,label: String):
 	print(("PASS " if ok else "FAIL ")+label)
 func _initialize():call_deferred("run")
 func run():
-	root.size=Vector2i(1440,900)
+	root.size=Vector2i(1920,1080)
 	var game=load("res://main.tscn").instantiate();root.add_child(game)
 	var deadline=Time.get_ticks_msec()+15000
 	while game.data.is_empty() and Time.get_ticks_msec()<deadline:await process_frame

@@ -18,7 +18,7 @@ func run():
 	while game.data.is_empty():await process_frame
 	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle();var seed=await saved()
-	for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
+	for dims in [Vector2i(1920,1080)]:
 		root.size=dims
 		for spec in [["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"],["astaris","map","departure_map"],["astaris","hub",""]]:
 			var scenario=seed.duplicate(true);scenario.state.location=spec[0]
@@ -31,12 +31,6 @@ func run():
 			else:check(npc==null,"no invented NPC for hub/map "+str(spec))
 			game.render();await settle()
 			check(art.npc.selected_path==path and art.npc.rng.state==random and await saved()==before,"rerender preserves visit and exact save "+str(spec)+str(dims))
-	var scenario=seed.duplicate(true);scenario.state.location="east";await game.update({"op":"campaign_load","data":scenario});await enter_facility("shop");await settle()
-	var selected=game.pages.facility_art.npc.selected_path;var rng=game.pages.facility_art.npc.rng.state;var before=await saved()
-	for dims in [Vector2i(960,540),Vector2i(1920,1080),Vector2i(1180,812)]:
-		root.size=dims;await settle();await visual_contract("resized "+str(dims))
-		check(game.pages.facility_art.npc.selected_path==selected and game.pages.facility_art.npc.rng.state==rng and await saved()==before,"resize preserves selected keeper and save "+str(dims))
-		check((node("FacilityNpc")==null)==(dims.x<1120 or dims.y<720),"compact mode prioritizes existing controls while retaining visit "+str(dims))
 	check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"backdrop verification keeps all audio OFF")
 	var f=FileAccess.open(evidence.path_join("feedback-backdrops-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

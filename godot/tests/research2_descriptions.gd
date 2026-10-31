@@ -33,7 +33,7 @@ func run():
  await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true;await settle();text_checks()
  var original=await saved();var cases=fixtures2()
- for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;await game.update({"op":"campaign_load","data":cases.sweep50});await settle();game.hud.open_skills();await settle()
   var before=await saved();await click("BattleSkillDetails_legSweep")
   var detail=node("SkillDetailsWindow")

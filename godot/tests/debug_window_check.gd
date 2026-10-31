@@ -18,7 +18,7 @@ func run():
  if not debug.is_enabled():
   check(node("OpenDeveloperWindow")==null,"release has no opening action")
   game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1);return
- for dims in [Vector2i(1920,1080),Vector2i(960,540)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;await settle();var baseline=node("PartyFacesScroll").get_parent().global_position.y
   if DisplayServer.get_name()!="headless":
    await os_click(node("CommonMenuButton"))

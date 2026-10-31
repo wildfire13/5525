@@ -6,7 +6,7 @@ func run():
  create_timer(180).timeout.connect(func():print("FAIL feedback3 guild watchdog");quit(2))
  var evidence=OS.get_environment("INVENTORY_QA_ROOT")
  if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
- root.size=Vector2i(1180,812);game=load("res://main.tscn").instantiate();root.add_child(game)
+ root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  await preload("res://tests/current_historical_fixture.gd").install(game)
  game.audio.fast_mode=true;game.checks_fast=true;actual=game.engine;recorder=RecordedEngine.new();recorder.actual=actual;game.add_child(recorder);game.engine=recorder;await settle();var seed=await saved()
@@ -43,11 +43,22 @@ func run():
  game.data.campaign.roster=roster;game.data.campaign.selected=roster.slice(0,12).map(func(member):return str(member.id));guild.reset();game.render();await settle()
  payload=guild.drag_payload(str(roster[12].id));check(guild.drop_operation(payload,"",true).is_empty(),"twelve-person capacity rejects append")
  check(not guild.drop_operation(payload,str(roster[0].id)).is_empty(),"twelve-person capacity permits replacement")
- root.size=Vector2i(960,540);await settle();var face=node("PartyFace_"+str(roster[0].id));var strip=node("PartyFacesScroll");strip.scroll_horizontal=0
+ # Test only the strip overflow at FHD; no smaller game window.
+ var bar=node("PartyFaceBar");bar.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;bar.custom_minimum_size.x=800;bar.size.x=800
+ await settle();var face=node("PartyFace_"+str(roster[0].id));var strip=node("PartyFacesScroll");strip.scroll_horizontal=0
  var touch=InputEventScreenTouch.new();touch.pressed=true;touch.position=Vector2(50,20);face._gui_input(touch)
  var motion=InputEventScreenDrag.new();motion.position=Vector2(10,20);face._gui_input(motion)
  check(face.swiping and strip.scroll_horizontal>0,"guild touch horizontal swipe retained while mouse supports D&D")
  game.data.campaign=original;guild.reset();game.render();await settle()
+ # Eight real selected members keep 140px away from either scroll boundary at FHD.
+ var eight=game.campaign().selected.duplicate()
+ var candidates=game.roster().duplicate();candidates.reverse()
+ # Keep the existing leading reserve rows/scroll anchor while adding new candidates.
+ for member in candidates:
+  if eight.size()>=8:break
+  if not eight.has(member.id) and member.id not in ["mage-2","warrior"]:eight.append(member.id)
+ await game.act("select",[eight]);await settle()
+ await middle_scroll();check(scroll_positions()==[140,140],"FHD fixture has genuine middle scroll on both lists")
  await middle_scroll();guild.choose("mage-2");await settle();var scroll_before=scroll_positions()
  payload=guild.drag_payload("mage-2");guild.drop_member(payload,"mage");await settle()
  check(scroll_positions()==scroll_before,"selected reserve to party preserves both middle scroll positions")

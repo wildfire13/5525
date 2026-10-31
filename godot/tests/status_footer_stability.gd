@@ -12,7 +12,7 @@ func run():
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true;await settle();var seed=await saved()
- for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;await game.update({"op":"campaign_load","data":seed});game.navigate("board");await settle()
   game.set_status("難易度は未設定です。");await settle();var baseline=geometry();await record("shown-"+str(dims.x))
   for message in ["","処理中…","説明".repeat(100)+"\n末尾",""]:

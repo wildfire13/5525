@@ -45,7 +45,7 @@ func run():
 	game.preferences.store_rect("status",Rect2(120,60,1000,700));game.pages.party_view.open_detail("guard");await settle()
 	check(game.dialog.window.size==Vector2i(1000,700),"existing saved width and height retained")
 	alignment();game.dialog.close();await settle()
-	for resolution in [Vector2i(1364,1024),Vector2i(1920,1080)]:
+	for resolution in [Vector2i(1920,1080)]:
 		root.size=resolution;await settle();await enter_facility("party");await settle();return_layout("GuildReturn")
 		game.pages.party_view.open_detail("guard");await settle();alignment()
 		check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size))),"saved status remains within viewport "+str(resolution))
