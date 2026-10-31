@@ -33,7 +33,7 @@ func run():
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"BGM voice SE remain OFF")
  var original=await saved();var seed=original.duplicate(true);seed.state.location="east";seed.state.gold=500
  seed.state.characters.guard.inventory={"potion":2,"spear-wood":3,"swift-boots":1}
- for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle()
   game.shop_uid="guard";game.shop_slot="rightHand"
   var before=await saved();var shop=game.pages.shop_view

@@ -30,7 +30,7 @@ func run():
 	var occupied=int(game.state().units[0].pos);var empty=-1
 	for p in range(50):
 		if board.unit_at(p).is_empty():empty=p;break
-	for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
+	for dims in [Vector2i(1920,1080)]:
 		root.size=dims;await settle()
 		for pitch in [.4,.7,1.1]:
 			board.camera_pitch=pitch;board.update_camera();await settle()

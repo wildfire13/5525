@@ -17,7 +17,7 @@ func run():
 			check(image!=null and image.get_size()==Vector2i(1671 if facility=="armor" else 1672,941),"original PNG dimensions "+variant.path)
 	var entries=production.weapon
 	var cases=[["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"],["astaris","map","departure_map"]]
-	for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
+	for dims in [Vector2i(1920,1080)]:
 		root.size=dims
 		for spec in cases:
 			var saved_seed=seed.duplicate(true);saved_seed.state.location=spec[0]

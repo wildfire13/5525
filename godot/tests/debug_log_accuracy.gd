@@ -55,7 +55,7 @@ func run():
  check(debug.history.text==history,"hidden window skips text widget updates")
  debug.open();await frames()
  check(debug.history.text=="\n".join(debug.entries),"reopening displays current bounded history")
- root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(960,540)
+ root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1920,1080)
  debug.window.position=Vector2i(20,20);debug.window.size=Vector2i(440,480)
  for i in range(220):debug.append_entry(debug.state_text(debug.sample()))
  debug.request_finished(true,false,123456);await frames(16)

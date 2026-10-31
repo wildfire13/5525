@@ -9,7 +9,7 @@ func run():
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true
- board=load("res://battle_board.gd").new();board.portraits=game.portraits;board.size=Vector2(1180,812);root.add_child(board)
+ board=load("res://battle_board.gd").new();board.portraits=game.portraits;board.size=Vector2(1920,1080);root.add_child(board)
  for i in range(5):await process_frame
  var fx=board.skill_effects;fx.set_process(false)
  var manifest=JSON.parse_string(FileAccess.get_file_as_string("res://assets/vfx_production/manifest.json"))
@@ -67,14 +67,14 @@ func run():
  board.portraits.overrides[actor]="qa-custom-placeholder";board.last_animated_phase="";board.animate(stamp_frame.presentation);fx.set_process(false);fx._process(.2)
  check(board.actors[actor].sprite.texture==original,"custom portrait is never replaced by generated knight")
  fx.clear();board.portraits.overrides.erase(actor)
- # Restore must use the current compact geometry, never stale start dimensions.
+ # Restore must use the current camera geometry, never stale start projection.
  board.last_animated_phase="";board.animate(stamp_frame.presentation);fx.set_process(false);fx._process(.2)
- board.size=Vector2(960,200);board.update_camera();fx._process(.05)
- check(is_equal_approx(board.actors[actor].sprite.pixel_size,board.texture_pixel_size(board.actors[actor].sprite.texture)),"in-flight pose follows compact sizing")
+ board.camera_yaw=.35;board.camera_pitch=.6;board.update_camera();fx._process(.05)
+ check(is_equal_approx(board.actors[actor].sprite.pixel_size,board.texture_pixel_size(board.actors[actor].sprite.texture)),"in-flight pose follows FHD sizing")
  fx.clear()
- check(board.actors[actor].sprite.texture==original and is_equal_approx(board.actors[actor].sprite.pixel_size,board.texture_pixel_size(original)),"compact cleanup preserves current scale and original artwork")
- check(board.actors[actor].sprite.position.is_equal_approx(board.sprite_origin(board.actors[actor].sprite)),"compact cleanup restores current camera-aware foot anchor")
- board.size=Vector2(1180,812)
+ check(board.actors[actor].sprite.texture==original and is_equal_approx(board.actors[actor].sprite.pixel_size,board.texture_pixel_size(original)),"FHD cleanup preserves current scale and original artwork")
+ check(board.actors[actor].sprite.position.is_equal_approx(board.sprite_origin(board.actors[actor].sprite)),"FHD cleanup restores current camera-aware foot anchor")
+ board.size=Vector2(1920,1080)
  for yaw in [-.45,0.0,.45]:
   board.camera_yaw=yaw;board.update_camera()
   var from=board.point(23)+Vector3(0,.83,0);var to=board.point(25)+Vector3(0,.83,0);var direction=(board.project(to)-board.project(from)).normalized()

@@ -14,6 +14,12 @@ func settle():
 	await frames()
 func node(name_):return game.find_child(name_,true,false)
 func saved():return (await game.engine.request({"op":"campaign_save"})).data
+func overflow_fixture():
+	# Component-only fixture: the parent window remains FHD.
+	var bar=node("PartyFaceBar")
+	bar.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+	bar.custom_minimum_size.x=800
+	bar.size.x=800
 func run():
 	create_timer(120).timeout.connect(func():print("FAIL strip watchdog");quit(2))
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
@@ -24,20 +30,20 @@ func run():
 	var ids=roster_ids.slice(0,11)
 	await game.act("select",[ids]);await settle()
 	var before=await saved()
-	for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540),Vector2i(1920,1080)]:
+	for dims in [Vector2i(1920,1080)]:
 		root.size=dims;await frames(8);game.render();await settle()
 		var bar=node("PartyFaceBar");var scroll=node("PartyFacesScroll")
 		check(node("PartyFaces").get_child_count()==11,"all eleven short cards at "+str(dims))
 		check(bar.get_global_rect().end.x<=game.size.x+1 and bar.get_global_rect().end.y<=game.size.y+1,"strip contained at "+str(dims))
 		check(node("PartySlideLeft")!=null and node("PartySlideRight")!=null,"both slide buttons exist "+str(dims))
-		if dims.x==960:
-			check(scroll.get_h_scroll_bar().max_value>scroll.size.x,"real eleven cards overflow narrow strip")
-			bar.slide(1);await frames();check(scroll.scroll_horizontal>0,"right arrow scrolls real roster")
-			var offset=scroll.scroll_horizontal;game.render();await settle();check(node("PartyFacesScroll").scroll_horizontal==offset,"rerender restores horizontal context")
-			node("PartyFace_"+ids[-1]).grab_focus();await frames();var face=node("PartyFace_"+ids[-1]);check(node("PartyFacesScroll").get_global_rect().intersects(face.get_global_rect()),"keyboard focus reaches last card")
+		overflow_fixture();await frames()
+		check(scroll.get_h_scroll_bar().max_value>scroll.size.x,"real eleven cards overflow constrained component in FHD")
+		bar.slide(1);await frames();check(scroll.scroll_horizontal>0,"right arrow scrolls real roster")
+		var offset=scroll.scroll_horizontal;game.render();overflow_fixture();await settle();check(node("PartyFacesScroll").scroll_horizontal==offset,"rerender restores horizontal context")
+		node("PartyFace_"+ids[-1]).grab_focus();await frames();var face=node("PartyFace_"+ids[-1]);check(node("PartyFacesScroll").get_global_rect().intersects(face.get_global_rect()),"keyboard focus reaches last card")
 		check(await saved()==before,"scroll and layout preserve exact save "+str(dims))
 	# Simulated touch positions are local to a card that moves while scrolling.
-	root.size=Vector2i(960,540);await frames();var touch_scroll=node("PartyFacesScroll");touch_scroll.scroll_horizontal=0;await frames()
+	root.size=Vector2i(1920,1080);await frames();var touch_scroll=node("PartyFacesScroll");touch_scroll.scroll_horizontal=0;await frames()
 	var touch_card=node("PartyFace_guard");var origin=touch_scroll.get_global_rect().get_center()
 	var touch=InputEventScreenTouch.new();touch.pressed=true;touch.position=touch_card.get_global_transform_with_canvas().affine_inverse()*origin;touch_card._gui_input(touch)
 	var motion=InputEventScreenDrag.new();motion.position=touch_card.get_global_transform_with_canvas().affine_inverse()*(origin-Vector2(100,0));touch_card._gui_input(motion);await frames()
@@ -46,7 +52,7 @@ func run():
 	check(touch_scroll.scroll_horizontal==150,"second touch step stays monotonic after card itself moves")
 	touch.pressed=false;touch_card._gui_input(touch)
 	check(game.pages.party_view.detail_uid.is_empty() and await saved()==before,"simulated touch swipe does not activate person or mutate save")
-	root.size=Vector2i(960,540);await frames();var twelfth=roster_ids[11]
+	root.size=Vector2i(1920,1080);await frames();var twelfth=roster_ids[11]
 	game.data.campaign.selected.append(twelfth);game.render();await settle()
 	check(node("PartyFaces").get_child_count()==12,"real twelfth candidate renders at UI capacity boundary")
 	node("PartyFace_"+twelfth).grab_focus();await frames();check(node("PartyFacesScroll").get_global_rect().intersects(node("PartyFace_"+twelfth).get_global_rect()),"real twelfth card reachable")

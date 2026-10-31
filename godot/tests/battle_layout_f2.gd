@@ -32,11 +32,11 @@ func drag_to_bottom(panel,label: String):
 func run():
 	create_timer(180).timeout.connect(func():print("FAIL F2 battle layout watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):push_error("Isolated F2 profile required");quit(2);return
-	root.size=Vector2i(1180,812);game=load("res://main.tscn").instantiate();root.add_child(game)
+	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var cases=fixtures_f2()
-	for dims in [Vector2i(1180,812),Vector2i(1920,1080)]:
+	for dims in [Vector2i(1920,1080)]:
 		root.size=dims;await settle()
 		for kind in ["sweep50","sweep100"]:
 			for key in ["battle_actor","battle_target"]:

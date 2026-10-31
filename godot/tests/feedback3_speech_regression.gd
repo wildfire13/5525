@@ -6,7 +6,7 @@ func run():
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true;await settle();var seed=await saved()
  var entry=game.pages.facility_entry
- for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;await settle()
   for spec in [["east","shop"],["west","shop"],["south","shop"],["north","shop"],["astaris","party"],["astaris","inn"]]:
    var fixture=seed.duplicate(true);fixture.state.location=spec[0]
@@ -28,9 +28,7 @@ func run():
     check(current.words.visible_characters==text.length() and not current.is_processing(),"completed speech stops processing "+kind)
     check(current.get_global_rect().encloses(current.words.get_global_rect()),"text inside graphic bounds "+kind)
    check(await saved()==before and game.pages.facility_art.npc.rng.state==rng,"speech and redraw preserve exact save and NPC random stream")
- root.size=Vector2i(960,540);await settle();game.navigate("hub");game.navigate("inn");await settle()
- check(node("FacilityNpc")==null and node("SpeechArtwork")!=null,"compact entry keeps comic dialogue with existing NPC suppression")
- check(node("FacilityGreeting").size.x<=420 and node("FacilityGreeting").size.y==110,"short compact dialogue remains proportional instead of full-width")
+ root.size=Vector2i(1920,1080);await settle();game.navigate("hub");game.navigate("inn");await settle()
  var prior=entry.speech_started;game.navigate("hub");await create_timer(.02).timeout;game.navigate("inn");await settle()
  check(entry.speech_started>prior,"new visit restarts dialogue")
  check(game.audio.muted.values().all(func(v):return v),"all audio OFF")

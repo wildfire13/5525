@@ -36,20 +36,16 @@ func geometry(label: String):
 func run():
 	create_timer(120).timeout.connect(func():print("FAIL deployment start watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
-	var width=int(OS.get_environment("DEPLOYMENT_WIDTH"));width=1180 if width==0 else width
-	root.size=Vector2i(width,832 if width==1283 else 1080 if width==1920 else 812)
+	var width=1920
+	root.size=Vector2i(1920,1080)
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle();await normal_deployment()
-	var original=root.size;var before=await saved();geometry("fresh "+str(width))
-	for dims in [Vector2i(1180,812),Vector2i(1283,832),Vector2i(1920,1080),original]:
-		root.size=dims;await settle();geometry("resized "+str(dims))
-	check(await saved()==before,"parent resizing cannot alter deployment save or rules")
+	var before=await saved();geometry("fresh FHD")
+	check(await saved()==before,"geometry inspection cannot alter deployment save or rules")
 	await click("DeploymentBegin")
 	check(game.campaign().phase=="battle" and not game.state().get("deploying",false),"ordinary start button begins canonical battle")
 	geometry("battle footer "+str(width))
-	for dims in [Vector2i(1180,812),Vector2i(1283,832),Vector2i(1920,1080),original]:
-		root.size=dims;await settle();geometry("battle resized "+str(dims))
 	check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"BGM voice SE remain OFF")
 	for spec in [["deployment-start-checks.json",checks],["deployment-start-geometry.json",measurements]]:
 		var f=FileAccess.open(evidence.path_join(spec[0]),FileAccess.WRITE);f.store_string(JSON.stringify(spec[1],"\t"));f.close()

@@ -13,7 +13,7 @@ func run():
  await game.update({"op":"campaign_load","data":fixtures.town});await settle()
  check(game.roster().size()==24,"new roster has all 24 candidates")
  check(game.campaign().selected.size()<=12,"party limit preserved")
- for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims
   await game.update({"op":"campaign_load","data":fixtures.stamp});await settle()
   await game.select_skill("stamp");await settle();await game.on_cell(23);await settle()

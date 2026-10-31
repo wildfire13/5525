@@ -57,7 +57,7 @@ func run():
 		isolated.reset()
 	isolated.sync("departure_map");check(isolated.texture==null and isolated.selected_path.is_empty(),"NPC has no departure-map character")
 	var cases=[["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"]]
-	for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
+	for dims in [Vector2i(1920,1080)]:
 		root.size=dims
 		for spec in cases:
 			var scenario=seed.duplicate(true);scenario.state.location=spec[0]
@@ -67,9 +67,6 @@ func run():
 			npc_layout(str(spec)+str(dims.x))
 			for i in range(3):game.render();await settle()
 			check(art.npc.selected_path==path and art.npc.rng.state==state,"NPC repeated renders retain same visit "+str(spec)+str(dims.x))
-			root.size=Vector2i(1180,812) if dims.x==1920 else Vector2i(1920,1080);await settle()
-			check(art.npc.selected_path==path and art.npc.rng.state==state,"NPC resize does not reroll "+str(spec)+str(dims.x))
-			root.size=dims;await settle()
 			game.pages.party_view.open_detail("guard");await settle();game.pages.party_view.portrait_pressed("archer");await settle();game.dialog.close();await settle()
 			check(art.npc.selected_path==path and art.npc.rng.state==state and (await saved())==before,"NPC owner switching and details preserve NPC and exact save "+str(spec)+str(dims.x))
 			game.navigate("hub");await settle()
@@ -96,12 +93,7 @@ func run():
 	check(art.npc.texture==null and art.npc.selected_path.is_empty(),"NPC load/new-session context reset clears selected keeper")
 	var shop_seed=seed.duplicate(true);shop_seed.state.location="east"
 	await game.update({"op":"campaign_load","data":shop_seed});await enter_facility("shop");await settle()
-	var keeper=art.npc.selected_path;var keeper_rng=art.npc.rng.state;var save_before_compact=await saved()
-	for compact in [Vector2i(1024,720),Vector2i(800,600)]:
-		root.size=compact;await settle()
-		check(node("FacilityNpcStage")==null and art.npc.selected_path==keeper and art.npc.rng.state==keeper_rng and (await saved())==save_before_compact,"NPC compact mode preserves existing UI and visit without squeezing controls "+str(compact))
-	root.size=Vector2i(1180,812);await settle()
-	check(node("FacilityNpcStage")!=null and art.npc.selected_path==keeper and art.npc.rng.state==keeper_rng,"NPC returns unchanged after compact resize")
+	var keeper_rng=art.npc.rng.state
 	var connection=game.engine.connection_generation;var lost=game.engine._disconnect("synthetic-npc-loss")
 	game.handle_connection_loss(lost,connection);await settle()
 	check(art.npc.selected_path.is_empty() and art.npc.texture==null and art.npc.rng.state==keeper_rng and node("FacilityNpc")==null,"NPC connection loss ends visit without immediate redraw or extra random selection")

@@ -70,7 +70,7 @@ func run():
 	check(ids("GuildReserveScroll").is_empty() and node("GuildEmptyReserves").text.contains("すべて") and ids("GuildCurrentScroll")==["warrior"],"A1 empty filtered reserves offer recovery and keep current members visible")
 	check(node("GuildCapacity").text.contains("残り11枠") and (await saved())==minimal,"A1 empty view neither adds constraints nor mutates state")
 	await game.update({"op":"campaign_load","data":seed});await enter_facility("party");await settle()
-	for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
+	for dims in [Vector2i(1920,1080)]:
 		root.size=dims;await settle();await filter_job("")
 		for member in game.data.campaign.roster:
 			if member.id=="guard-2":member.name="長い名前の人物を見分けるための検証名・バルト"

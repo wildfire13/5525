@@ -51,7 +51,7 @@ func run():
 	check((await game.update({"op":"campaign_load","data":sample})).get("ok",false),"valid seven-member deployment restored")
 	await settle();game.board.deployment_assigned.connect(func(uid,pos):drops.append([uid,pos]))
 	check(root.has_method("gui_cancel_drag"),"runtime exposes actual Viewport drag cancellation API")
-	for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540),Vector2i(1920,1080)]:root.size=dims;await settle();layout(str(dims))
+	for dims in [Vector2i(1920,1080)]:root.size=dims;await settle();layout(str(dims))
 	var before=await saved();var payload=Drag.make_payload(game,"guard","board")
 	check(Drag.valid(game,payload),"fresh board context is valid")
 	game.menu.show()

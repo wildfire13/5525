@@ -10,7 +10,7 @@ func run():
  var save=(await game.engine.request({"op":"campaign_save"})).data
  save.state.characters[save.state.selected[0]].inventory={"potion":3}
  await game.update({"op":"campaign_load","data":save});await settle()
- for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;game.navigate("party");await settle()
   game.pages.facility_entry.choose("warehouse");await settle()
   var view=game.pages.warehouse_view

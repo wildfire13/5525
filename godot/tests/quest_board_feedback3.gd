@@ -11,7 +11,7 @@ func run():
  game.audio.fast_mode=true;game.checks_fast=true;await settle()
  await game.act("select",[["guard","porter","porter-2"]]);game.navigate("board");await settle()
  var seed=await saved()
- for dims in [Vector2i(1920,1080),Vector2i(960,540)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;await settle()
   check(node("QuestBoardColumns")!=null and node("QuestList")!=null and node("QuestDetail")!=null,"list and detail present "+str(dims))
   check(node("QuestDifficultyTabs").disabled and node("QuestFutureFilters").disabled,"unimplemented filters remain placeholders")

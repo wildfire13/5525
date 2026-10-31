@@ -9,19 +9,25 @@ func queue_wheel(point: Vector2):
 func run():
  create_timer(120).timeout.connect(func():print("FAIL queue keyboard watchdog");quit(2))
  if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
- root.size=Vector2i(1180,812);game=load("res://main.tscn").instantiate();root.add_child(game)
+ root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true
  var fixtures=battle_fixture();await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
  var before=await saved()
- for dims in [Vector2i(1180,812),Vector2i(960,540),Vector2i(1920,1080)]:
-  root.size=dims;await settle()
+ for constrained in [false,true]:
+  var dims=Vector2i(1920,1080)
+  game.render();await settle()
+  if constrained:
+   # Component overflow at fixed FHD: preserve keyboard/wheel boundaries.
+   var overflow=Control.new();overflow.custom_minimum_size.x=game.hud.QUEUE_PITCH*2
+   node("TurnOrder").add_child(overflow)
+   await settle()
   var queue=node("TurnOrderViewport");var details=node("BattleOrderDetails");var reference=details.get_global_rect()
   var board=game.board;var original_cell=board.keyboard_cell
   queue.scroll_horizontal=0;queue.grab_focus();await frames()
   var limit=maxi(0,int(queue.get_h_scroll_bar().max_value-queue.get_h_scroll_bar().page))
-  check(limit>0 if dims.x<1800 else limit==0,"queue test has real overflow only in narrow window "+str(dims))
+  check(limit>0 if constrained else limit==0,"FHD queue overflow fixture / default fit "+str(dims))
   await queue_key(KEY_RIGHT);await queue_key(KEY_RIGHT,false)
   check(queue.scroll_horizontal==mini(game.hud.QUEUE_PITCH,limit),"focused right arrow scrolls one existing card pitch "+str(dims))
   check(queue.has_focus() and board.keyboard_cell==original_cell,"right arrow stays in queue without moving board focus "+str(dims))

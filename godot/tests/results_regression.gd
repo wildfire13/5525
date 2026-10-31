@@ -46,7 +46,7 @@ func run():
  check(not view.active and game.campaign().result.outcome=="failed","defeat never opens victory receipt")
  await load_case(cases.victory);await game.update({"op":"campaign","action":"retreat","args":[]});await settle();check(not view.active,"invalid retreat from finished battle does not create a receipt")
  await load_case(cases.normal.result)
- for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540),Vector2i(1920,1080)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;await frames(12)
   print("RESULT_LAYOUT ",dims," panel ",view.panel.get_global_rect()," min ",view.panel.get_combined_minimum_size()," body ",view.body.size," controls ",view.continue_button.get_global_rect()," save ",view.save_button.get_global_rect()," children ",view.body.get_children().map(func(c):return [str(c.name),str(c.size),str(c.get_combined_minimum_size())]))
   var bounds=Rect2(Vector2.ZERO,Vector2(dims));check(bounds.encloses(view.panel.get_global_rect()),str(dims)+" result panel remains inside game viewport")

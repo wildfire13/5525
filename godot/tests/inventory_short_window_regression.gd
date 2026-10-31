@@ -14,7 +14,7 @@ func run():
 	create_timer(150).timeout.connect(func():print("FAIL F3 watchdog");quit(2))
 	var qa=OS.get_environment("INVENTORY_QA_ROOT")
 	if qa.is_empty() or not OS.get_user_data_dir().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
-	root.size=Vector2i(1180,812);game=load("res://main.tscn").instantiate();root.add_child(game)
+	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true
@@ -23,7 +23,7 @@ func run():
 	var seed=await saved();seed.state.location="east";seed.state.gold=500;seed.state.characters.guard.inventory={}
 	for id in gear:seed.state.characters.guard.inventory[id]=3
 	seed.state.characters.guard.inventory.potion=5;seed.state.characters.guard.inventory.ether=2
-	for spec in [[Vector2i(1180,812),Vector2i(1180,619)],[Vector2i(1920,1080),Vector2i(1920,780)],[Vector2i(1920,1080),Vector2i(1180,619)]]:
+	for spec in [[Vector2i(1920,1080),Vector2i(1920,780)],[Vector2i(1920,1080),Vector2i(1180,619)]]:
 		var dims: Vector2i=spec[0]
 		root.size=dims;await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle();game.pages.party_view.open_detail("guard");await settle()
 		game.dialog.window.size=spec[1];await frames(24)
