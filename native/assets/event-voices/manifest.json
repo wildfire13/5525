@@ -1,0 +1,1021 @@
+{
+  "schema": 1,
+  "source_commit": "77e90016aa4432b8024baa515738d3cad7954568",
+  "characters": {
+    "recruit-guard-human-male": {
+      "attack": {
+        "file": "01_human-male-warrior__attack.mp3",
+        "text": "はあっ！",
+        "sha256": "935d234a64dfb1aa16dcd36d10b699f6c206e305eaaa211b671f2457c4aec5a9",
+        "seconds": 0.76,
+        "source_character": "human-male-warrior",
+        "reference_wav_sha256": "4eb23aedb0295a9e274e80fb4be09890a6590e538962c397ece305ebe6049c05"
+      },
+      "damage": {
+        "file": "01_human-male-warrior__damage.mp3",
+        "text": "ぐっ！",
+        "sha256": "48dc1007251ce4cabdd200ab6ade69c296d483e217f5e6f8b252d33b8eb4121f",
+        "seconds": 0.52,
+        "source_character": "human-male-warrior",
+        "reference_wav_sha256": "4eb23aedb0295a9e274e80fb4be09890a6590e538962c397ece305ebe6049c05"
+      },
+      "quest_clear": {
+        "file": "01_human-male-warrior__quest_clear.mp3",
+        "text": "依頼は果たした。皆、よくやった。",
+        "sha256": "6ae05e4846635089562901d05a03694ffca76b534607d8da82c786ef3e3cb603",
+        "seconds": 3.48,
+        "source_character": "human-male-warrior",
+        "reference_wav_sha256": "4eb23aedb0295a9e274e80fb4be09890a6590e538962c397ece305ebe6049c05"
+      },
+      "battle_win": {
+        "file": "01_human-male-warrior__battle_win.mp3",
+        "text": "勝ったぞ。まずは負傷者の確認だ。",
+        "sha256": "3757d9dbdaf1ae75da4d459f77b16de4ffe3c0a8969ef70785927f59550bd61f",
+        "seconds": 3.6,
+        "source_character": "human-male-warrior",
+        "reference_wav_sha256": "4eb23aedb0295a9e274e80fb4be09890a6590e538962c397ece305ebe6049c05"
+      },
+      "incapacitated": {
+        "file": "01_human-male-warrior__incapacitated.mp3",
+        "text": "すまない……あとは頼む。",
+        "sha256": "b998a19c43eecb60759fba8960c25db5a044db0c712bd9c3d7d89d03b7af8a7c",
+        "seconds": 2.68,
+        "source_character": "human-male-warrior",
+        "reference_wav_sha256": "4eb23aedb0295a9e274e80fb4be09890a6590e538962c397ece305ebe6049c05"
+      }
+    },
+    "recruit-guard-human-female": {
+      "attack": {
+        "file": "02_human-female-warrior__attack.mp3",
+        "text": "えいっ！",
+        "sha256": "e98577b753b479fed91ec785fcf0d8ab30defc308ea3445c40d99830f8dc679e",
+        "seconds": 0.6,
+        "source_character": "human-female-warrior",
+        "reference_wav_sha256": "30ebef84feddcd60e192b5eb9d21d34ce96edbd4eeb8736f5905c58ad113e858"
+      },
+      "damage": {
+        "file": "02_human-female-warrior__damage.mp3",
+        "text": "いたっ！",
+        "sha256": "c576d2c0dfdbe54db724eb51f13173e293ed74356580d2d22aa7fc905c3aae28",
+        "seconds": 0.64,
+        "source_character": "human-female-warrior",
+        "reference_wav_sha256": "30ebef84feddcd60e192b5eb9d21d34ce96edbd4eeb8736f5905c58ad113e858"
+      },
+      "quest_clear": {
+        "file": "02_human-female-warrior__quest_clear.mp3",
+        "text": "これで終わり？ えへへ、やったね！",
+        "sha256": "7726e86712ef95b42746aa1ac1ca32c55e09d49e32fe5def99cecb41752fd925",
+        "seconds": 3.56,
+        "source_character": "human-female-warrior",
+        "reference_wav_sha256": "30ebef84feddcd60e192b5eb9d21d34ce96edbd4eeb8736f5905c58ad113e858"
+      },
+      "battle_win": {
+        "file": "02_human-female-warrior__battle_win.mp3",
+        "text": "あれ、勝った？ 私、ちゃんとできてた？",
+        "sha256": "7caf386e0ef8dc2ec1c7015cba116b29d373b6538c9a28d69cf4d5fefef6fa27",
+        "seconds": 4.4,
+        "source_character": "human-female-warrior",
+        "reference_wav_sha256": "30ebef84feddcd60e192b5eb9d21d34ce96edbd4eeb8736f5905c58ad113e858"
+      },
+      "incapacitated": {
+        "file": "02_human-female-warrior__incapacitated.mp3",
+        "text": "あれれ……足に力が入らないや。",
+        "sha256": "0547df80f42732e93a6582e6e22e471024d81c95c9e65cbbba7c8effd84d9927",
+        "seconds": 4.04,
+        "source_character": "human-female-warrior",
+        "reference_wav_sha256": "30ebef84feddcd60e192b5eb9d21d34ce96edbd4eeb8736f5905c58ad113e858"
+      }
+    },
+    "recruit-guard-elf-male": {
+      "attack": {
+        "file": "03_elf-male-warrior__attack.mp3",
+        "text": "せいっ！",
+        "sha256": "f9ccf93b4bc120af3031eb86476316e521e5d0342a3ae9d41fee702414d6e7e7",
+        "seconds": 0.72,
+        "source_character": "elf-male-warrior",
+        "reference_wav_sha256": "075fa459f0dfa000fc2d0310d56bc9817cf8ff83a1e0bf1830020e3a375f574c"
+      },
+      "damage": {
+        "file": "03_elf-male-warrior__damage.mp3",
+        "text": "くっ！",
+        "sha256": "d1944bff80a7945852761de594ced3d15b94cc8d0ee2e239f51d2296de50f3a9",
+        "seconds": 0.72,
+        "source_character": "elf-male-warrior",
+        "reference_wav_sha256": "075fa459f0dfa000fc2d0310d56bc9817cf8ff83a1e0bf1830020e3a375f574c"
+      },
+      "quest_clear": {
+        "file": "03_elf-male-warrior__quest_clear.mp3",
+        "text": "約束は果たせました。帰りましょう。",
+        "sha256": "1a5317ef854db3a864c05ccfb7c4aef82d8c7ecd2bfe0322157faed777a9c393",
+        "seconds": 2.8,
+        "source_character": "elf-male-warrior",
+        "reference_wav_sha256": "075fa459f0dfa000fc2d0310d56bc9817cf8ff83a1e0bf1830020e3a375f574c"
+      },
+      "battle_win": {
+        "file": "03_elf-male-warrior__battle_win.mp3",
+        "text": "見事な連携でした。皆に感謝します。",
+        "sha256": "f532bca7ea69824300c20c074ce70311ab97d59f2ad05a0e64c2e88d034ac9b9",
+        "seconds": 3.32,
+        "source_character": "elf-male-warrior",
+        "reference_wav_sha256": "075fa459f0dfa000fc2d0310d56bc9817cf8ff83a1e0bf1830020e3a375f574c"
+      },
+      "incapacitated": {
+        "file": "03_elf-male-warrior__incapacitated.mp3",
+        "text": "ここまで、ですね……どうか無事で。",
+        "sha256": "4c87b5a0b1dad8c54f97a41eadd13c558d255b9ce10b13886fe8a365192dca5f",
+        "seconds": 3.52,
+        "source_character": "elf-male-warrior",
+        "reference_wav_sha256": "075fa459f0dfa000fc2d0310d56bc9817cf8ff83a1e0bf1830020e3a375f574c"
+      }
+    },
+    "recruit-guard-elf-female": {
+      "attack": {
+        "file": "04_elf-female-warrior__attack.mp3",
+        "text": "やあっ！",
+        "sha256": "0427f320328aeffce8ddaf8d1e66df33c16b8ae415d6c13ca925e1be3833d685",
+        "seconds": 0.92,
+        "source_character": "elf-female-warrior",
+        "reference_wav_sha256": "66a8d9591d01cf322ffac8608fd86a94a8333238bbf54caf44d6eb13146cbee3"
+      },
+      "damage": {
+        "file": "04_elf-female-warrior__damage.mp3",
+        "text": "あっ！",
+        "sha256": "2d1518eae924d61787c4a8f7f69fba842f4803b41a5576d42d2ef3b3ed3d745b",
+        "seconds": 0.8,
+        "source_character": "elf-female-warrior",
+        "reference_wav_sha256": "66a8d9591d01cf322ffac8608fd86a94a8333238bbf54caf44d6eb13146cbee3"
+      },
+      "quest_clear": {
+        "file": "04_elf-female-warrior__quest_clear.mp3",
+        "text": "やり遂げましたね。胸を張って帰りましょう。",
+        "sha256": "29ab09b788741032cca8b7cab34c793d2cb009e64b77a16f7fb9bf381b655268",
+        "seconds": 3.96,
+        "source_character": "elf-female-warrior",
+        "reference_wav_sha256": "66a8d9591d01cf322ffac8608fd86a94a8333238bbf54caf44d6eb13146cbee3"
+      },
+      "battle_win": {
+        "file": "04_elf-female-warrior__battle_win.mp3",
+        "text": "道は開けました。私たちの勝利です！",
+        "sha256": "2ad956951c0f31a4031f70408027939667e6db4420d395fb744680ce230df1f8",
+        "seconds": 4.04,
+        "source_character": "elf-female-warrior",
+        "reference_wav_sha256": "66a8d9591d01cf322ffac8608fd86a94a8333238bbf54caf44d6eb13146cbee3"
+      },
+      "incapacitated": {
+        "file": "04_elf-female-warrior__incapacitated.mp3",
+        "text": "まだ、立たなければ……。",
+        "sha256": "33d5c54f7f3e8877c66990219385b46ae96f6fa1f2d03257146117b078703f54",
+        "seconds": 2.4,
+        "source_character": "elf-female-warrior",
+        "reference_wav_sha256": "66a8d9591d01cf322ffac8608fd86a94a8333238bbf54caf44d6eb13146cbee3"
+      }
+    },
+    "recruit-guard-dwarf-male": {
+      "attack": {
+        "file": "05_dwarf-male-warrior__attack.mp3",
+        "text": "どおりゃ！",
+        "sha256": "ec80357722f3adff7ec2494689ce0a8ba11e225c8d421e4d22f79e24364ae726",
+        "seconds": 1.4,
+        "source_character": "dwarf-male-warrior",
+        "reference_wav_sha256": "9775e3c2991814b5d444f01bb92bc27ae37fe77b40c41f5f22d8dc2d6eedb9dd"
+      },
+      "damage": {
+        "file": "05_dwarf-male-warrior__damage.mp3",
+        "text": "ぬうっ！",
+        "sha256": "bc7528912131293c9a5f640101028d08e4fa883aa5cfb5b7bf146df4494ce186",
+        "seconds": 1.08,
+        "source_character": "dwarf-male-warrior",
+        "reference_wav_sha256": "9775e3c2991814b5d444f01bb92bc27ae37fe77b40c41f5f22d8dc2d6eedb9dd"
+      },
+      "quest_clear": {
+        "file": "05_dwarf-male-warrior__quest_clear.mp3",
+        "text": "これで一仕事じゃな。皆、ご苦労だった。",
+        "sha256": "4e2ea01d4a45da61ffe280242ae12f0fe147812fded07ae3fa38742cae76ce16",
+        "seconds": 6.28,
+        "source_character": "dwarf-male-warrior",
+        "reference_wav_sha256": "9775e3c2991814b5d444f01bb92bc27ae37fe77b40c41f5f22d8dc2d6eedb9dd"
+      },
+      "battle_win": {
+        "file": "05_dwarf-male-warrior__battle_win.mp3",
+        "text": "はっは、まだまだ腕は鈍っとらんぞ。",
+        "sha256": "4daf544b6aa4f8cdd5bf8f2ea3a3e9e8139e762ccfc846077281525b16d10171",
+        "seconds": 5.48,
+        "source_character": "dwarf-male-warrior",
+        "reference_wav_sha256": "9775e3c2991814b5d444f01bb92bc27ae37fe77b40c41f5f22d8dc2d6eedb9dd"
+      },
+      "incapacitated": {
+        "file": "05_dwarf-male-warrior__incapacitated.mp3",
+        "text": "いかんな……膝が言うことをきかん。",
+        "sha256": "408ff6da6ba32b2808670159e43d5b36af5b0658edfc56182fac34c71766528f",
+        "seconds": 5.12,
+        "source_character": "dwarf-male-warrior",
+        "reference_wav_sha256": "9775e3c2991814b5d444f01bb92bc27ae37fe77b40c41f5f22d8dc2d6eedb9dd"
+      }
+    },
+    "recruit-guard-dwarf-female": {
+      "attack": {
+        "file": "06_dwarf-female-warrior__attack.mp3",
+        "text": "そりゃっ！",
+        "sha256": "271842dbad0ede864c0a37f13dc7f9b3202071911ea2ed0a1825732dc19719be",
+        "seconds": 0.72,
+        "source_character": "dwarf-female-warrior",
+        "reference_wav_sha256": "b6aa131f8799609ee6fcbbe1e8ecb04daa04bcf1c7656794cf7d92fe8045eb5a"
+      },
+      "damage": {
+        "file": "06_dwarf-female-warrior__damage.mp3",
+        "text": "うぐっ！",
+        "sha256": "b31dee6709400f334a15a277b4fb6b64d67cafc8c561962b8b22077cf4b61649",
+        "seconds": 0.56,
+        "source_character": "dwarf-female-warrior",
+        "reference_wav_sha256": "b6aa131f8799609ee6fcbbe1e8ecb04daa04bcf1c7656794cf7d92fe8045eb5a"
+      },
+      "quest_clear": {
+        "file": "06_dwarf-female-warrior__quest_clear.mp3",
+        "text": "上出来だね！ 帰ったらひと息つこうか。",
+        "sha256": "cf9c87a0d262856f1836c749f83f0f5002f16461160684a22eed27cc75b306e8",
+        "seconds": 3.44,
+        "source_character": "dwarf-female-warrior",
+        "reference_wav_sha256": "b6aa131f8799609ee6fcbbe1e8ecb04daa04bcf1c7656794cf7d92fe8045eb5a"
+      },
+      "battle_win": {
+        "file": "06_dwarf-female-warrior__battle_win.mp3",
+        "text": "よし、片づいた！ みんな、いい腕だね。",
+        "sha256": "62aa1dc9ba18956848d50eff5d1f04d7e212a93e87a97e58a7412bf9027eff68",
+        "seconds": 4.32,
+        "source_character": "dwarf-female-warrior",
+        "reference_wav_sha256": "b6aa131f8799609ee6fcbbe1e8ecb04daa04bcf1c7656794cf7d92fe8045eb5a"
+      },
+      "incapacitated": {
+        "file": "06_dwarf-female-warrior__incapacitated.mp3",
+        "text": "ちぇっ……あたしとしたことが。",
+        "sha256": "325aee43715eca2699d768ec22a2190eac2e051b0636e36cc9adfd3f73591d5a",
+        "seconds": 2.48,
+        "source_character": "dwarf-female-warrior",
+        "reference_wav_sha256": "b6aa131f8799609ee6fcbbe1e8ecb04daa04bcf1c7656794cf7d92fe8045eb5a"
+      }
+    },
+    "recruit-scout-human-male": {
+      "attack": {
+        "file": "07_human-male-scout__attack.mp3",
+        "text": "はっ！",
+        "sha256": "17cc0f0f775135ae71056e7fca176fbdeffccc35adb7da3184baf5ff683108c5",
+        "seconds": 0.52,
+        "source_character": "human-male-scout",
+        "reference_wav_sha256": "cc12a9f5f2270f88d934e11e2ba86ef2f4e2eae5ac743f70e273a71a2d931cf9"
+      },
+      "damage": {
+        "file": "07_human-male-scout__damage.mp3",
+        "text": "ぐあっ！",
+        "sha256": "f6c3e1b93c7681a24d652238b2cf77a293e3fa2f7157c6d5755d793be4e050af",
+        "seconds": 0.52,
+        "source_character": "human-male-scout",
+        "reference_wav_sha256": "cc12a9f5f2270f88d934e11e2ba86ef2f4e2eae5ac743f70e273a71a2d931cf9"
+      },
+      "quest_clear": {
+        "file": "07_human-male-scout__quest_clear.mp3",
+        "text": "用は済んだ。帰り道も俺が見る。",
+        "sha256": "12eebd35445f4c463352984647fd9e5497b206ef2284424f33bc41828980c57d",
+        "seconds": 2.68,
+        "source_character": "human-male-scout",
+        "reference_wav_sha256": "cc12a9f5f2270f88d934e11e2ba86ef2f4e2eae5ac743f70e273a71a2d931cf9"
+      },
+      "battle_win": {
+        "file": "07_human-male-scout__battle_win.mp3",
+        "text": "片づいたな。周囲も異常なし。",
+        "sha256": "6b01e40d2636b26643b6877398acd4b40fd3c4dac550b22f30195401e48751a4",
+        "seconds": 2.64,
+        "source_character": "human-male-scout",
+        "reference_wav_sha256": "cc12a9f5f2270f88d934e11e2ba86ef2f4e2eae5ac743f70e273a71a2d931cf9"
+      },
+      "incapacitated": {
+        "file": "07_human-male-scout__incapacitated.mp3",
+        "text": "見切れなかった……悪い。",
+        "sha256": "56910aad535db7ef351a519b9c4cb73e46aa1658fc3631af458f2dbd646c9ad5",
+        "seconds": 2.08,
+        "source_character": "human-male-scout",
+        "reference_wav_sha256": "cc12a9f5f2270f88d934e11e2ba86ef2f4e2eae5ac743f70e273a71a2d931cf9"
+      }
+    },
+    "recruit-scout-human-female": {
+      "attack": {
+        "file": "08_human-female-scout__attack.mp3",
+        "text": "それっ！",
+        "sha256": "f19b1e0aa8301ec698077cc1c539b05213b64ac86b30149681189f8b1c541513",
+        "seconds": 0.64,
+        "source_character": "human-female-scout",
+        "reference_wav_sha256": "de7d38c86452582aceab8dd77f4c67c78545fd87b83c3e66b484faf10eec7bc4"
+      },
+      "damage": {
+        "file": "08_human-female-scout__damage.mp3",
+        "text": "きゃっ！",
+        "sha256": "8da779e1cf7f3c0bc5fcb4b5f8c04344c72f1d2e96a24498e48ad7e1aa9cb284",
+        "seconds": 0.52,
+        "source_character": "human-female-scout",
+        "reference_wav_sha256": "de7d38c86452582aceab8dd77f4c67c78545fd87b83c3e66b484faf10eec7bc4"
+      },
+      "quest_clear": {
+        "file": "08_human-female-scout__quest_clear.mp3",
+        "text": "任務完了！ 帰り道はこっちだよ。",
+        "sha256": "b43481680c803a08d6158bcdccede94f0001f3664be4808301d720dd685624f2",
+        "seconds": 3.0,
+        "source_character": "human-female-scout",
+        "reference_wav_sha256": "de7d38c86452582aceab8dd77f4c67c78545fd87b83c3e66b484faf10eec7bc4"
+      },
+      "battle_win": {
+        "file": "08_human-female-scout__battle_win.mp3",
+        "text": "やったね！ みんな、けがはない？",
+        "sha256": "fa674a6dc0d0ed11baefa028be18e41fde08bfdb80a443e7a8f46b2614edc963",
+        "seconds": 3.08,
+        "source_character": "human-female-scout",
+        "reference_wav_sha256": "de7d38c86452582aceab8dd77f4c67c78545fd87b83c3e66b484faf10eec7bc4"
+      },
+      "incapacitated": {
+        "file": "08_human-female-scout__incapacitated.mp3",
+        "text": "ごめん……少し、休ませて。",
+        "sha256": "1b30318a0144ec9bbee98b05e0726e189a8aae74b2a14b41b82c63e9376b8964",
+        "seconds": 2.6,
+        "source_character": "human-female-scout",
+        "reference_wav_sha256": "de7d38c86452582aceab8dd77f4c67c78545fd87b83c3e66b484faf10eec7bc4"
+      }
+    },
+    "recruit-scout-elf-male": {
+      "attack": {
+        "file": "09_elf-male-scout__attack.mp3",
+        "text": "ふっ！",
+        "sha256": "76f1896b730dc214983537faafba58a68ee8a1b456fea9b9a51640ccf20e13e1",
+        "seconds": 0.52,
+        "source_character": "elf-male-scout",
+        "reference_wav_sha256": "9a092c0f62bf9dc427170d21c6bd6345b739cf51693c66722160032491b90141"
+      },
+      "damage": {
+        "file": "09_elf-male-scout__damage.mp3",
+        "text": "くうっ！",
+        "sha256": "9847779e1bd48b837e9caa4d2bc83606991a91d60965624363dfc84b3ad33975",
+        "seconds": 0.6,
+        "source_character": "elf-male-scout",
+        "reference_wav_sha256": "9a092c0f62bf9dc427170d21c6bd6345b739cf51693c66722160032491b90141"
+      },
+      "quest_clear": {
+        "file": "09_elf-male-scout__quest_clear.mp3",
+        "text": "目的は達した。足音に気をつけて戻ろう。",
+        "sha256": "455462d0fe0ce3ca2c2d3fe1d0d462dde3140d9d716d3d465f78407d755ba831",
+        "seconds": 3.56,
+        "source_character": "elf-male-scout",
+        "reference_wav_sha256": "9a092c0f62bf9dc427170d21c6bd6345b739cf51693c66722160032491b90141"
+      },
+      "battle_win": {
+        "file": "09_elf-male-scout__battle_win.mp3",
+        "text": "静かになったな。もう、出てきて大丈夫だ。",
+        "sha256": "34cc252bd0c9640b6a1d6deac956761b450dc265330d2d80269a398ca484e363",
+        "seconds": 3.64,
+        "source_character": "elf-male-scout",
+        "reference_wav_sha256": "9a092c0f62bf9dc427170d21c6bd6345b739cf51693c66722160032491b90141"
+      },
+      "incapacitated": {
+        "file": "09_elf-male-scout__incapacitated.mp3",
+        "text": "油断した……君たちは、下がって。",
+        "sha256": "d695e922e60625440e9b3aec646d9231e3bfcbb85a03501329ad3a530abb2d83",
+        "seconds": 3.04,
+        "source_character": "elf-male-scout",
+        "reference_wav_sha256": "9a092c0f62bf9dc427170d21c6bd6345b739cf51693c66722160032491b90141"
+      }
+    },
+    "recruit-scout-elf-female": {
+      "attack": {
+        "file": "10_elf-female-scout__attack.mp3",
+        "text": "えいっ！",
+        "sha256": "35c955a7e2e73da40a092d5abc169952bf84aa455630ac0af1ad88646fcffdcf",
+        "seconds": 0.92,
+        "source_character": "elf-female-scout",
+        "reference_wav_sha256": "e9a0fc36c18b6eb95fbbdbb60ceeef69d5d22fbee7a16fd2199f62477908f27b"
+      },
+      "damage": {
+        "file": "10_elf-female-scout__damage.mp3",
+        "text": "あっ！",
+        "sha256": "5e31d2251001d886dcb2e82dc8cb12f49463f52939a408f3f7c86320c395d6f8",
+        "seconds": 0.84,
+        "source_character": "elf-female-scout",
+        "reference_wav_sha256": "e9a0fc36c18b6eb95fbbdbb60ceeef69d5d22fbee7a16fd2199f62477908f27b"
+      },
+      "quest_clear": {
+        "file": "10_elf-female-scout__quest_clear.mp3",
+        "text": "無事に終わって、よかった。帰りましょう。",
+        "sha256": "f87ed3f31b2649b4b00c6b282ad19498cded3d8863daf3be01a41e0b7167fe8c",
+        "seconds": 4.36,
+        "source_character": "elf-female-scout",
+        "reference_wav_sha256": "e9a0fc36c18b6eb95fbbdbb60ceeef69d5d22fbee7a16fd2199f62477908f27b"
+      },
+      "battle_win": {
+        "file": "10_elf-female-scout__battle_win.mp3",
+        "text": "もう大丈夫。みんな、ありがとう。",
+        "sha256": "3f0162611d0b5abab7bbd6b9481893bb4a7458a2591822224511ef6a50b483b5",
+        "seconds": 4.44,
+        "source_character": "elf-female-scout",
+        "reference_wav_sha256": "e9a0fc36c18b6eb95fbbdbb60ceeef69d5d22fbee7a16fd2199f62477908f27b"
+      },
+      "incapacitated": {
+        "file": "10_elf-female-scout__incapacitated.mp3",
+        "text": "ごめんなさい……もう、動けなくて。",
+        "sha256": "86e61ae1ee115d311577e129ecd2cfda6e2d527256dab0834bdca1aa3daca4c3",
+        "seconds": 4.52,
+        "source_character": "elf-female-scout",
+        "reference_wav_sha256": "e9a0fc36c18b6eb95fbbdbb60ceeef69d5d22fbee7a16fd2199f62477908f27b"
+      }
+    },
+    "recruit-scout-dwarf-male": {
+      "attack": {
+        "file": "11_dwarf-male-scout__attack.mp3",
+        "text": "やあっ！",
+        "sha256": "1c57cf407f1e9d6e91b87d72da2bfd4d5239ba53e0b3ca139b2533bd756e50d6",
+        "seconds": 0.52,
+        "source_character": "dwarf-male-scout",
+        "reference_wav_sha256": "30f49c0363627298c38e8db2ded875f22b946512ca501aa3aa2171733c002bb9"
+      },
+      "damage": {
+        "file": "11_dwarf-male-scout__damage.mp3",
+        "text": "うわっ！",
+        "sha256": "a2ce8b37a8c75641824d910ff28b9cfaf15e6859f8b7f2bfb2e54c7cd1266b7b",
+        "seconds": 0.52,
+        "source_character": "dwarf-male-scout",
+        "reference_wav_sha256": "30f49c0363627298c38e8db2ded875f22b946512ca501aa3aa2171733c002bb9"
+      },
+      "quest_clear": {
+        "file": "11_dwarf-male-scout__quest_clear.mp3",
+        "text": "やった！ ぼくだって、ちゃんと役に立つだろ！",
+        "sha256": "4475b119bd2b7149c636845a5c7b11b00bc158d98c3d51fcce8d3d2769eddd67",
+        "seconds": 3.36,
+        "source_character": "dwarf-male-scout",
+        "reference_wav_sha256": "30f49c0363627298c38e8db2ded875f22b946512ca501aa3aa2171733c002bb9"
+      },
+      "battle_win": {
+        "file": "11_dwarf-male-scout__battle_win.mp3",
+        "text": "どうだ！ ぼくのこと、見直した？",
+        "sha256": "4b9bab99715818a47bad1a2196ed7f561389f1e91fdce3179da04baaac931a89",
+        "seconds": 2.48,
+        "source_character": "dwarf-male-scout",
+        "reference_wav_sha256": "30f49c0363627298c38e8db2ded875f22b946512ca501aa3aa2171733c002bb9"
+      },
+      "incapacitated": {
+        "file": "11_dwarf-male-scout__incapacitated.mp3",
+        "text": "まだ、負けたく……ないのに。",
+        "sha256": "ce29a410602bbb3342bc2add6cc47c10680b4201535fc5f77f06a670f120aa27",
+        "seconds": 2.84,
+        "source_character": "dwarf-male-scout",
+        "reference_wav_sha256": "30f49c0363627298c38e8db2ded875f22b946512ca501aa3aa2171733c002bb9"
+      }
+    },
+    "recruit-scout-dwarf-female": {
+      "attack": {
+        "file": "12_dwarf-female-scout__attack.mp3",
+        "text": "えいさっ！",
+        "sha256": "ee0fb0ad233538c2e2d776b5daf275e0e961daec3a0cf24dd6766c2493b01a37",
+        "seconds": 0.84,
+        "source_character": "dwarf-female-scout",
+        "reference_wav_sha256": "e77042a1ab8fab1410efb095d56119ee44046070a126c17552ca2203e392d57e"
+      },
+      "damage": {
+        "file": "12_dwarf-female-scout__damage.mp3",
+        "text": "いたたっ！",
+        "sha256": "72742360bfc431df57ab51360162c65dbde8c2bdbd666b848fa5ab625b31482f",
+        "seconds": 1.2,
+        "source_character": "dwarf-female-scout",
+        "reference_wav_sha256": "e77042a1ab8fab1410efb095d56119ee44046070a126c17552ca2203e392d57e"
+      },
+      "quest_clear": {
+        "file": "12_dwarf-female-scout__quest_clear.mp3",
+        "text": "ばっちりだね！ 次の道も任せてよ！",
+        "sha256": "25ac802b2d95e1fb9367d88a9847c4ed67c01aa842d386c5a5b8ef7f41ccfc88",
+        "seconds": 3.16,
+        "source_character": "dwarf-female-scout",
+        "reference_wav_sha256": "e77042a1ab8fab1410efb095d56119ee44046070a126c17552ca2203e392d57e"
+      },
+      "battle_win": {
+        "file": "12_dwarf-female-scout__battle_win.mp3",
+        "text": "へへっ、こっちの動きについてこれなかったね！",
+        "sha256": "a6244971975f7c73232b23ac1b04c27b0fcc56ea441f0e42c52c48d254024d21",
+        "seconds": 3.56,
+        "source_character": "dwarf-female-scout",
+        "reference_wav_sha256": "e77042a1ab8fab1410efb095d56119ee44046070a126c17552ca2203e392d57e"
+      },
+      "incapacitated": {
+        "file": "12_dwarf-female-scout__incapacitated.mp3",
+        "text": "あちゃあ……先を急ぎすぎたかな。",
+        "sha256": "c0bd2ae2ade3d8499a612a2933bc9df5dcfa6f5ea4da1788d6c05b1c8d33c6ba",
+        "seconds": 3.6,
+        "source_character": "dwarf-female-scout",
+        "reference_wav_sha256": "e77042a1ab8fab1410efb095d56119ee44046070a126c17552ca2203e392d57e"
+      }
+    },
+    "recruit-porter-human-male": {
+      "attack": {
+        "file": "13_human-male-porter__attack.mp3",
+        "text": "よいしょっ！",
+        "sha256": "51cfd808c7ab072c234b7f2a685d6c6e604d7d6fde6076e942f182f6e135bc33",
+        "seconds": 0.72,
+        "source_character": "human-male-porter",
+        "reference_wav_sha256": "d14e9ec4563d1a8d4c1f7aec8adad433c0c4e5bd074c88f60735f694fe2fc530"
+      },
+      "damage": {
+        "file": "13_human-male-porter__damage.mp3",
+        "text": "うわっ！",
+        "sha256": "f2a5744c317eeeebc3a01ac16c6be045645596f304c61f6a0b972b4eac3e3005",
+        "seconds": 0.52,
+        "source_character": "human-male-porter",
+        "reference_wav_sha256": "d14e9ec4563d1a8d4c1f7aec8adad433c0c4e5bd074c88f60735f694fe2fc530"
+      },
+      "quest_clear": {
+        "file": "13_human-male-porter__quest_clear.mp3",
+        "text": "荷物もみんなも無事！ いい仕事になったね。",
+        "sha256": "1ec14f4ee0791bcee99a086c9231ff09976539cdff0fd6abe058f1e06e262138",
+        "seconds": 3.68,
+        "source_character": "human-male-porter",
+        "reference_wav_sha256": "d14e9ec4563d1a8d4c1f7aec8adad433c0c4e5bd074c88f60735f694fe2fc530"
+      },
+      "battle_win": {
+        "file": "13_human-male-porter__battle_win.mp3",
+        "text": "助かったよ！ みんな、本当に頼りになるなあ。",
+        "sha256": "9e51c30f528f4cf9cf896a7b299cf2402b544699fe8d4e1f95afbe45c7cf99bf",
+        "seconds": 4.24,
+        "source_character": "human-male-porter",
+        "reference_wav_sha256": "d14e9ec4563d1a8d4c1f7aec8adad433c0c4e5bd074c88f60735f694fe2fc530"
+      },
+      "incapacitated": {
+        "file": "13_human-male-porter__incapacitated.mp3",
+        "text": "ごめん……荷物、頼めるかな。",
+        "sha256": "960f01593f60993d01bf5b9fffea29ee742e956655d67cd187dfee22df620986",
+        "seconds": 3.36,
+        "source_character": "human-male-porter",
+        "reference_wav_sha256": "d14e9ec4563d1a8d4c1f7aec8adad433c0c4e5bd074c88f60735f694fe2fc530"
+      }
+    },
+    "recruit-porter-human-female": {
+      "attack": {
+        "file": "14_human-female-porter__attack.mp3",
+        "text": "えいっ！",
+        "sha256": "9987dcdd4cd090a2395f37891cc004174aea67266e0050199a4a379e1b8a233d",
+        "seconds": 0.56,
+        "source_character": "human-female-porter",
+        "reference_wav_sha256": "211c23d0b11019bfc3412f0b3ff1945c5b3888327bc6fa0a48bafb9f342f2664"
+      },
+      "damage": {
+        "file": "14_human-female-porter__damage.mp3",
+        "text": "あいたっ！",
+        "sha256": "dea4c87e6feec015907532a10aa879ae1b167dcdcc46686c70718669f7ad7c6c",
+        "seconds": 0.68,
+        "source_character": "human-female-porter",
+        "reference_wav_sha256": "211c23d0b11019bfc3412f0b3ff1945c5b3888327bc6fa0a48bafb9f342f2664"
+      },
+      "quest_clear": {
+        "file": "14_human-female-porter__quest_clear.mp3",
+        "text": "お疲れさま。忘れ物がないか見ておこうね。",
+        "sha256": "4b53abb7f08e3fde2b1f011e37973bd96b88aec29a73a2e6051f4e51ffbb5099",
+        "seconds": 3.84,
+        "source_character": "human-female-porter",
+        "reference_wav_sha256": "211c23d0b11019bfc3412f0b3ff1945c5b3888327bc6fa0a48bafb9f342f2664"
+      },
+      "battle_win": {
+        "file": "14_human-female-porter__battle_win.mp3",
+        "text": "よかった！ さあ、けがの手当てをしよう。",
+        "sha256": "635067347c8ee41fdb722ed05699d0c44b5879e805ec38e429a6ddd2d00ee4de",
+        "seconds": 3.76,
+        "source_character": "human-female-porter",
+        "reference_wav_sha256": "211c23d0b11019bfc3412f0b3ff1945c5b3888327bc6fa0a48bafb9f342f2664"
+      },
+      "incapacitated": {
+        "file": "14_human-female-porter__incapacitated.mp3",
+        "text": "ごめんね……少し、手を貸して。",
+        "sha256": "ab2ea8dd869fa2472517cf41af315851193c6b95b17b9dcc9d1ecdd555b2e514",
+        "seconds": 2.84,
+        "source_character": "human-female-porter",
+        "reference_wav_sha256": "211c23d0b11019bfc3412f0b3ff1945c5b3888327bc6fa0a48bafb9f342f2664"
+      }
+    },
+    "recruit-porter-elf-male": {
+      "attack": {
+        "file": "15_elf-male-porter__attack.mp3",
+        "text": "はっ！",
+        "sha256": "a727019b1a891079952bafa664d016d5c3d8eaf7d4e6b9e0b7e11e8e71169af7",
+        "seconds": 0.52,
+        "source_character": "elf-male-porter",
+        "reference_wav_sha256": "592746a8fb316e41cf44b61ca0a67b026435bfe289e109cb2e433927194e6b3e"
+      },
+      "damage": {
+        "file": "15_elf-male-porter__damage.mp3",
+        "text": "うっ！",
+        "sha256": "626c8b0935d4034dec2bd03b511b3a0ccfb0ff207dd5371c218ca88ab49c0d7b",
+        "seconds": 0.52,
+        "source_character": "elf-male-porter",
+        "reference_wav_sha256": "592746a8fb316e41cf44b61ca0a67b026435bfe289e109cb2e433927194e6b3e"
+      },
+      "quest_clear": {
+        "file": "15_elf-male-porter__quest_clear.mp3",
+        "text": "必要な物は、すべてそろいましたね。",
+        "sha256": "a9ace409439345956c6be6f594789007f02a62155cfde982a029fc4865d27247",
+        "seconds": 2.92,
+        "source_character": "elf-male-porter",
+        "reference_wav_sha256": "592746a8fb316e41cf44b61ca0a67b026435bfe289e109cb2e433927194e6b3e"
+      },
+      "battle_win": {
+        "file": "15_elf-male-porter__battle_win.mp3",
+        "text": "みなさんの無事が、何よりです。",
+        "sha256": "2252767dd0e8ab1e02ff3b7b03e74daf3d9de718a27442c095885f62bfee7347",
+        "seconds": 2.48,
+        "source_character": "elf-male-porter",
+        "reference_wav_sha256": "592746a8fb316e41cf44b61ca0a67b026435bfe289e109cb2e433927194e6b3e"
+      },
+      "incapacitated": {
+        "file": "15_elf-male-porter__incapacitated.mp3",
+        "text": "すみません……荷を、下ろさせてください。",
+        "sha256": "a6550474c613b2b756383fb8027dc9c8d295a53e9bd56bd55319833104c92475",
+        "seconds": 3.92,
+        "source_character": "elf-male-porter",
+        "reference_wav_sha256": "592746a8fb316e41cf44b61ca0a67b026435bfe289e109cb2e433927194e6b3e"
+      }
+    },
+    "recruit-porter-elf-female": {
+      "attack": {
+        "file": "16_elf-female-porter__attack.mp3",
+        "text": "やっ！",
+        "sha256": "e4fcd9a8d7bb49b989664d782ede68a4b91a4f86c898859c4dd636d3d3cd7f00",
+        "seconds": 0.72,
+        "source_character": "elf-female-porter",
+        "reference_wav_sha256": "a5265fcf8e438a6620e370f044308dd9a15979b762681d2c448b336a643335ee"
+      },
+      "damage": {
+        "file": "16_elf-female-porter__damage.mp3",
+        "text": "きゃあっ！",
+        "sha256": "4ab14e8e73e43315e80c56a82e5c312c98e232bf08e1360cf892f308d30f6a52",
+        "seconds": 0.92,
+        "source_character": "elf-female-porter",
+        "reference_wav_sha256": "a5265fcf8e438a6620e370f044308dd9a15979b762681d2c448b336a643335ee"
+      },
+      "quest_clear": {
+        "file": "16_elf-female-porter__quest_clear.mp3",
+        "text": "できました！ 早く、喜ぶ顔が見たいですね！",
+        "sha256": "90a110b973eece675e8b623764255be1887ac528f423a2e90140f5c2571e816b",
+        "seconds": 4.56,
+        "source_character": "elf-female-porter",
+        "reference_wav_sha256": "a5265fcf8e438a6620e370f044308dd9a15979b762681d2c448b336a643335ee"
+      },
+      "battle_win": {
+        "file": "16_elf-female-porter__battle_win.mp3",
+        "text": "わあ、勝ちました！ みなさん、すごいです！",
+        "sha256": "f52bcb3625403ecf4ca1dd94ec4b5a7fec6cd6712727197f2604d027786bd05b",
+        "seconds": 4.44,
+        "source_character": "elf-female-porter",
+        "reference_wav_sha256": "a5265fcf8e438a6620e370f044308dd9a15979b762681d2c448b336a643335ee"
+      },
+      "incapacitated": {
+        "file": "16_elf-female-porter__incapacitated.mp3",
+        "text": "あれ……もう少し、頑張りたかったのに。",
+        "sha256": "4b2aa7ebf636450ffa1083fb93aee139c4fcc25f2deeccf5957b51a79caa8d65",
+        "seconds": 4.4,
+        "source_character": "elf-female-porter",
+        "reference_wav_sha256": "a5265fcf8e438a6620e370f044308dd9a15979b762681d2c448b336a643335ee"
+      }
+    },
+    "recruit-porter-dwarf-male": {
+      "attack": {
+        "file": "17_dwarf-male-porter__attack.mp3",
+        "text": "どっこいしょ！",
+        "sha256": "66f8a5fba4b10514df448a611a7411308f0af614d723cabb8dab2b1bbf3a00c5",
+        "seconds": 1.64,
+        "source_character": "dwarf-male-porter",
+        "reference_wav_sha256": "48da8189f0f76a3a53012fa852b1261e706e7897389a5a4e896de695898df8f8"
+      },
+      "damage": {
+        "file": "17_dwarf-male-porter__damage.mp3",
+        "text": "ぐおっ！",
+        "sha256": "f98766ef6b684e3a18101378e5b19e0c6d25c56be0a339d5f40d67d8dadf4b39",
+        "seconds": 0.8,
+        "source_character": "dwarf-male-porter",
+        "reference_wav_sha256": "48da8189f0f76a3a53012fa852b1261e706e7897389a5a4e896de695898df8f8"
+      },
+      "quest_clear": {
+        "file": "17_dwarf-male-porter__quest_clear.mp3",
+        "text": "よしよし、無事に届けられるな。",
+        "sha256": "4c930e72544b46faada1a86f979b4df1f9ecc1795cace9ce141c69f02c9355e5",
+        "seconds": 4.36,
+        "source_character": "dwarf-male-porter",
+        "reference_wav_sha256": "48da8189f0f76a3a53012fa852b1261e706e7897389a5a4e896de695898df8f8"
+      },
+      "battle_win": {
+        "file": "17_dwarf-male-porter__battle_win.mp3",
+        "text": "はっはっは！ みんな大したもんだ！",
+        "sha256": "4dd1adf351fb0a61c6c8ae0e7cab5fa032574845b87cca991af917a9cdebf930",
+        "seconds": 5.08,
+        "source_character": "dwarf-male-porter",
+        "reference_wav_sha256": "48da8189f0f76a3a53012fa852b1261e706e7897389a5a4e896de695898df8f8"
+      },
+      "incapacitated": {
+        "file": "17_dwarf-male-porter__incapacitated.mp3",
+        "text": "すまんのう……しばし、腰を下ろすぞ。",
+        "sha256": "865f484c95d1ab0bc1e69e1f4810946fdaaaa28190f1df80d3305f1e2d46d266",
+        "seconds": 5.16,
+        "source_character": "dwarf-male-porter",
+        "reference_wav_sha256": "48da8189f0f76a3a53012fa852b1261e706e7897389a5a4e896de695898df8f8"
+      }
+    },
+    "recruit-porter-dwarf-female": {
+      "attack": {
+        "file": "18_dwarf-female-porter__attack.mp3",
+        "text": "それっ！",
+        "sha256": "a2f10007cc31e8d592847f7c5a0c47b13782607bbc3af2b5fbad30115df40a9a",
+        "seconds": 0.72,
+        "source_character": "dwarf-female-porter",
+        "reference_wav_sha256": "f8bef2acec6142806dffd3a27cfb55941fdb72cdb9c72f6d4dbf19f38b261d97"
+      },
+      "damage": {
+        "file": "18_dwarf-female-porter__damage.mp3",
+        "text": "うっ！",
+        "sha256": "104452cec50a5bd6d37c6fca528850f28d5e07ddba38e255a7491a713794014d",
+        "seconds": 0.72,
+        "source_character": "dwarf-female-porter",
+        "reference_wav_sha256": "f8bef2acec6142806dffd3a27cfb55941fdb72cdb9c72f6d4dbf19f38b261d97"
+      },
+      "quest_clear": {
+        "file": "18_dwarf-female-porter__quest_clear.mp3",
+        "text": "数も中身も、よし。これで依頼は完了だね。",
+        "sha256": "4b2d151ea938187210e067a8e9baf2d873ae57fdfbd86ec213c40495386461a5",
+        "seconds": 4.36,
+        "source_character": "dwarf-female-porter",
+        "reference_wav_sha256": "f8bef2acec6142806dffd3a27cfb55941fdb72cdb9c72f6d4dbf19f38b261d97"
+      },
+      "battle_win": {
+        "file": "18_dwarf-female-porter__battle_win.mp3",
+        "text": "もう平気みたい。荷物も、ちゃんと守れたよ。",
+        "sha256": "8f365f5561c0d1a5a12d0b06c043b622d99b71061aead3cc8ff3ad3c63edc65a",
+        "seconds": 3.8,
+        "source_character": "dwarf-female-porter",
+        "reference_wav_sha256": "f8bef2acec6142806dffd3a27cfb55941fdb72cdb9c72f6d4dbf19f38b261d97"
+      },
+      "incapacitated": {
+        "file": "18_dwarf-female-porter__incapacitated.mp3",
+        "text": "力が抜けて……荷物、落としちゃう。",
+        "sha256": "1cb6aa40b20b5490d2734d6798e38cb1c55317c8e1415487b9820a058bbc02df",
+        "seconds": 3.68,
+        "source_character": "dwarf-female-porter",
+        "reference_wav_sha256": "f8bef2acec6142806dffd3a27cfb55941fdb72cdb9c72f6d4dbf19f38b261d97"
+      }
+    },
+    "recruit-mage-human-male": {
+      "attack": {
+        "file": "19_human-male-mage__attack.mp3",
+        "text": "はあっ！",
+        "sha256": "cc3559fd577bae7fe2a0bc1678161121e50a0a5fc59d17d9851c8252d682a8cb",
+        "seconds": 0.88,
+        "source_character": "human-male-mage",
+        "reference_wav_sha256": "c2d2d70c6b6cb866607feffea36c1144954b339e0a3780194549b0a2b7c8f974"
+      },
+      "damage": {
+        "file": "19_human-male-mage__damage.mp3",
+        "text": "むうっ！",
+        "sha256": "bf24062beed8390b329b0df790af5e42bddcf9f5cff053975e39048ae5ebd7fe",
+        "seconds": 0.8,
+        "source_character": "human-male-mage",
+        "reference_wav_sha256": "c2d2d70c6b6cb866607feffea36c1144954b339e0a3780194549b0a2b7c8f974"
+      },
+      "quest_clear": {
+        "file": "19_human-male-mage__quest_clear.mp3",
+        "text": "よい経験になりました。皆さん、お疲れさま。",
+        "sha256": "638f62b4fa468aa2298bac33509ee4ab7d75fe4e8e7770008c76e327b3d595c1",
+        "seconds": 4.64,
+        "source_character": "human-male-mage",
+        "reference_wav_sha256": "c2d2d70c6b6cb866607feffea36c1144954b339e0a3780194549b0a2b7c8f974"
+      },
+      "battle_win": {
+        "file": "19_human-male-mage__battle_win.mp3",
+        "text": "互いの力を生かせましたね。見事です。",
+        "sha256": "fa99fda8c100b8e66322f690ee0d870c3e2d0441036e0dbb78e028b387460045",
+        "seconds": 3.96,
+        "source_character": "human-male-mage",
+        "reference_wav_sha256": "c2d2d70c6b6cb866607feffea36c1144954b339e0a3780194549b0a2b7c8f974"
+      },
+      "incapacitated": {
+        "file": "19_human-male-mage__incapacitated.mp3",
+        "text": "ふむ……少々、力を使いすぎましたか。",
+        "sha256": "ffee990cb54947908dbfbe474dc72e662d2f43ee896f2f39546b1d7e1e60c229",
+        "seconds": 4.48,
+        "source_character": "human-male-mage",
+        "reference_wav_sha256": "c2d2d70c6b6cb866607feffea36c1144954b339e0a3780194549b0a2b7c8f974"
+      }
+    },
+    "recruit-mage-human-female": {
+      "attack": {
+        "file": "20_human-female-mage__attack.mp3",
+        "text": "ふっ！",
+        "sha256": "f492ab2ed71ba6365f53bfb51ae3de6ff664e1cc58600c927df69b19ed3a3947",
+        "seconds": 0.96,
+        "source_character": "human-female-mage",
+        "reference_wav_sha256": "893477935c7e16c75412757710c1cc87feb1261748b06484d5f1a47135dce4d6"
+      },
+      "damage": {
+        "file": "20_human-female-mage__damage.mp3",
+        "text": "あっ！",
+        "sha256": "f714e49e012c34952c8f4abc9e29c2f2725c68e6b8cf2f38a3a3f833b0b3aafa",
+        "seconds": 0.72,
+        "source_character": "human-female-mage",
+        "reference_wav_sha256": "893477935c7e16c75412757710c1cc87feb1261748b06484d5f1a47135dce4d6"
+      },
+      "quest_clear": {
+        "file": "20_human-female-mage__quest_clear.mp3",
+        "text": "これで一安心ね。お茶でもいかが？",
+        "sha256": "09706759a7bd53fdc50052b9c48160454a802671506538af120cffcb8ddf1a05",
+        "seconds": 4.08,
+        "source_character": "human-female-mage",
+        "reference_wav_sha256": "893477935c7e16c75412757710c1cc87feb1261748b06484d5f1a47135dce4d6"
+      },
+      "battle_win": {
+        "file": "20_human-female-mage__battle_win.mp3",
+        "text": "ふふ、息が合ってきたわね。",
+        "sha256": "674fb7549c19dec4567b64d70ae1127739474d7c2e68f705128cd93a7e32beb6",
+        "seconds": 3.28,
+        "source_character": "human-female-mage",
+        "reference_wav_sha256": "893477935c7e16c75412757710c1cc87feb1261748b06484d5f1a47135dce4d6"
+      },
+      "incapacitated": {
+        "file": "20_human-female-mage__incapacitated.mp3",
+        "text": "困ったわ……少し、任せてもいい？",
+        "sha256": "cd8b5ac4e4a3ebf79452de661888ab14a5bd0c0e82463441ce9e6fc058941411",
+        "seconds": 4.28,
+        "source_character": "human-female-mage",
+        "reference_wav_sha256": "893477935c7e16c75412757710c1cc87feb1261748b06484d5f1a47135dce4d6"
+      }
+    },
+    "recruit-mage-elf-male": {
+      "attack": {
+        "file": "21_elf-male-mage__attack.mp3",
+        "text": "はっ！",
+        "sha256": "0b5f2c84fdb7a99f1dc5946b77d7e8fbbe10bfad44b2b80b4134f2ce5530c5ff",
+        "seconds": 0.52,
+        "source_character": "elf-male-mage",
+        "reference_wav_sha256": "b45b468277d9c2670c3ca525426471398f6f8536da83fc6bd7d6003736737fbd"
+      },
+      "damage": {
+        "file": "21_elf-male-mage__damage.mp3",
+        "text": "くっ！",
+        "sha256": "1abdc2341c486415555a12a266589edfed3adaea7b17fc7f585fbacea1e59537",
+        "seconds": 0.64,
+        "source_character": "elf-male-mage",
+        "reference_wav_sha256": "b45b468277d9c2670c3ca525426471398f6f8536da83fc6bd7d6003736737fbd"
+      },
+      "quest_clear": {
+        "file": "21_elf-male-mage__quest_clear.mp3",
+        "text": "望んだ結果に届いたね。戻ろうか。",
+        "sha256": "c0284c8b6fb166638ec39d22b5a588cb7f75c8abc3ded5f038d9d2cc91f37467",
+        "seconds": 3.56,
+        "source_character": "elf-male-mage",
+        "reference_wav_sha256": "b45b468277d9c2670c3ca525426471398f6f8536da83fc6bd7d6003736737fbd"
+      },
+      "battle_win": {
+        "file": "21_elf-male-mage__battle_win.mp3",
+        "text": "流れを読めば、道は見えるものだよ。",
+        "sha256": "2171c26a50773e5b89a3e3ff3088371842a80aee122fdd6f4f037969bec9ac16",
+        "seconds": 3.52,
+        "source_character": "elf-male-mage",
+        "reference_wav_sha256": "b45b468277d9c2670c3ca525426471398f6f8536da83fc6bd7d6003736737fbd"
+      },
+      "incapacitated": {
+        "file": "21_elf-male-mage__incapacitated.mp3",
+        "text": "読み違えたか……後は、君たちに。",
+        "sha256": "7558b7bd4c45b3f813a5d82b553b07437df8f388ec20939f068608a55ce9a69d",
+        "seconds": 4.12,
+        "source_character": "elf-male-mage",
+        "reference_wav_sha256": "b45b468277d9c2670c3ca525426471398f6f8536da83fc6bd7d6003736737fbd"
+      }
+    },
+    "recruit-mage-elf-female": {
+      "attack": {
+        "file": "22_elf-female-mage__attack.mp3",
+        "text": "えいっ！",
+        "sha256": "2e782bf6ca75599c39a238bf6bcc0f334f5bd2dfd9645de852a9733ef397f308",
+        "seconds": 0.8,
+        "source_character": "elf-female-mage",
+        "reference_wav_sha256": "093429afc2ac50a2e61316547e997854c8751b931456cd6dcd3f2bc4bf4e28ae"
+      },
+      "damage": {
+        "file": "22_elf-female-mage__damage.mp3",
+        "text": "うっ！",
+        "sha256": "13623070abd1c6ff07c6c9310aab219682295730beb99f297c366201f4b1e8e1",
+        "seconds": 0.72,
+        "source_character": "elf-female-mage",
+        "reference_wav_sha256": "093429afc2ac50a2e61316547e997854c8751b931456cd6dcd3f2bc4bf4e28ae"
+      },
+      "quest_clear": {
+        "file": "22_elf-female-mage__quest_clear.mp3",
+        "text": "誰かの助けになれたなら、嬉しいですね。",
+        "sha256": "b140e44a949ee057a08a439f5a86fa8e7e54e9ab90f03fb55e7af1628598d3b7",
+        "seconds": 4.28,
+        "source_character": "elf-female-mage",
+        "reference_wav_sha256": "093429afc2ac50a2e61316547e997854c8751b931456cd6dcd3f2bc4bf4e28ae"
+      },
+      "battle_win": {
+        "file": "22_elf-female-mage__battle_win.mp3",
+        "text": "みんな、よく頑張りました。もう安心して。",
+        "sha256": "2451265a34209446d96ee90c8dcec3948465c646dddadf923d2e6602b9b1bcb6",
+        "seconds": 5.8,
+        "source_character": "elf-female-mage",
+        "reference_wav_sha256": "093429afc2ac50a2e61316547e997854c8751b931456cd6dcd3f2bc4bf4e28ae"
+      },
+      "incapacitated": {
+        "file": "22_elf-female-mage__incapacitated.mp3",
+        "text": "ごめんなさい……あなたを、守りたかった。",
+        "sha256": "eba413c683cc6585b9c7911a5e13ef5479bb385d8731a26eec17f38f885ea19e",
+        "seconds": 5.84,
+        "source_character": "elf-female-mage",
+        "reference_wav_sha256": "093429afc2ac50a2e61316547e997854c8751b931456cd6dcd3f2bc4bf4e28ae"
+      }
+    },
+    "recruit-mage-dwarf-male": {
+      "attack": {
+        "file": "23_dwarf-male-mage__attack.mp3",
+        "text": "ぬんっ！",
+        "sha256": "1dc5aba093fe2022e05ccdd2287cb73a383847ef6d285656dae92b6026b4450d",
+        "seconds": 1.28,
+        "source_character": "dwarf-male-mage",
+        "reference_wav_sha256": "f50d7c3b7e31561b18afc948e54e5b29d8f0c9dca3fea0d98733c0355b2ab828"
+      },
+      "damage": {
+        "file": "23_dwarf-male-mage__damage.mp3",
+        "text": "ぐぬっ！",
+        "sha256": "4ecaf4f9256a544cf59579676c23a6bc56ea94af38d9bcd5f87019eaeae37adc",
+        "seconds": 0.84,
+        "source_character": "dwarf-male-mage",
+        "reference_wav_sha256": "f50d7c3b7e31561b18afc948e54e5b29d8f0c9dca3fea0d98733c0355b2ab828"
+      },
+      "quest_clear": {
+        "file": "23_dwarf-male-mage__quest_clear.mp3",
+        "text": "務めは果たした。報告を怠るでないぞ。",
+        "sha256": "490ebfcd30ffe8d22c66b1688dde8f86dd60f19dbb8586504cfb798b7d0a78c7",
+        "seconds": 5.56,
+        "source_character": "dwarf-male-mage",
+        "reference_wav_sha256": "f50d7c3b7e31561b18afc948e54e5b29d8f0c9dca3fea0d98733c0355b2ab828"
+      },
+      "battle_win": {
+        "file": "23_dwarf-male-mage__battle_win.mp3",
+        "text": "うむ。力任せでは、こうはいかん。",
+        "sha256": "2f21ec58aecac1b740dc25a8f3408b8ef74c4f4cce7cbe08e9209e1bf3e7a7c5",
+        "seconds": 5.6,
+        "source_character": "dwarf-male-mage",
+        "reference_wav_sha256": "f50d7c3b7e31561b18afc948e54e5b29d8f0c9dca3fea0d98733c0355b2ab828"
+      },
+      "incapacitated": {
+        "file": "23_dwarf-male-mage__incapacitated.mp3",
+        "text": "不覚……備えが、足りなんだか。",
+        "sha256": "3c75c9d8ec2275c6db5deda28da163a330fe43e3ca7340e64033fbb24c11663d",
+        "seconds": 5.16,
+        "source_character": "dwarf-male-mage",
+        "reference_wav_sha256": "f50d7c3b7e31561b18afc948e54e5b29d8f0c9dca3fea0d98733c0355b2ab828"
+      }
+    },
+    "recruit-mage-dwarf-female": {
+      "attack": {
+        "file": "24_dwarf-female-mage__attack.mp3",
+        "text": "やあっ！",
+        "sha256": "0d604d0a3c505dba9073089d999b3fdb0cba14b47d4bf60ed2e9a28eac092651",
+        "seconds": 1.2,
+        "source_character": "dwarf-female-mage",
+        "reference_wav_sha256": "22142c4bcd5fab6ec163b2cbaf4e224c41f392809965f4a09358be34410ab320"
+      },
+      "damage": {
+        "file": "24_dwarf-female-mage__damage.mp3",
+        "text": "ひゃっ！",
+        "sha256": "0caf9ea4d6a54de35c6a3c24f5222211f0831fac1c86fb09ca3f2b61953064f0",
+        "seconds": 0.52,
+        "source_character": "dwarf-female-mage",
+        "reference_wav_sha256": "22142c4bcd5fab6ec163b2cbaf4e224c41f392809965f4a09358be34410ab320"
+      },
+      "quest_clear": {
+        "file": "24_dwarf-female-mage__quest_clear.mp3",
+        "text": "確認できました。これで全部、解決です！",
+        "sha256": "be69a3038c56b81578d7830d6af03ee0c77a3666e505af7ecfd9affb3b22a608",
+        "seconds": 3.92,
+        "source_character": "dwarf-female-mage",
+        "reference_wav_sha256": "22142c4bcd5fab6ec163b2cbaf4e224c41f392809965f4a09358be34410ab320"
+      },
+      "battle_win": {
+        "file": "24_dwarf-female-mage__battle_win.mp3",
+        "text": "うまくいきましたね！ 次も落ち着いていきましょう。",
+        "sha256": "d6ec6374a250feefe057ead63a903aba4e802772ffc79a0f70d683afe102367f",
+        "seconds": 3.84,
+        "source_character": "dwarf-female-mage",
+        "reference_wav_sha256": "22142c4bcd5fab6ec163b2cbaf4e224c41f392809965f4a09358be34410ab320"
+      },
+      "incapacitated": {
+        "file": "24_dwarf-female-mage__incapacitated.mp3",
+        "text": "おかしいな……計算では、まだ……。",
+        "sha256": "1863d1e58cbe08760eed287c98f1869e5468d9968d87651bd6da6feea0858629",
+        "seconds": 3.56,
+        "source_character": "dwarf-female-mage",
+        "reference_wav_sha256": "22142c4bcd5fab6ec163b2cbaf4e224c41f392809965f4a09358be34410ab320"
+      }
+    }
+  },
+  "excluded_variants": [
+    "dwarf-female-warrior-02",
+    "elf-female-scout-02",
+    "elf-female-mage-02",
+    "human-female-mage-02",
+    "dwarf-female-mage-02"
+  ]
+}

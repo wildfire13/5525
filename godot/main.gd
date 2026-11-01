@@ -371,6 +371,9 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		audio.ui("confirm" if reply.get("ok",false) else "cancel")
 	if reply.get("ok",false):
 		if reply.has("campaign"):
+			if request.get("op") in ["campaign_load","campaign_start"]:
+				audio.reset_character_events()
+				audio.suppress_result_voice_once=request.get("op")=="campaign_load"
 			if frontend.has("images"):
 				portraits.activate(frontend.images);audio.restore(frontend.music)
 			if request.get("op")=="campaign_load":
@@ -399,6 +402,8 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		await loading_screen.painted(loading_token)
 		loading_screen.finish(loading_token)
 	results_view.present_pending()
+	if request.get("op")=="campaign" and request.get("action")=="completeQuest" and reply.get("ok",false):
+		audio.quest_completed(campaign())
 	if arrived:save_notice.display(town_name(campaign().get("location",""))+"に到着しました")
 	if data.get("presentation")!=null and not presenting and not engine.disconnected:await present()
 	return reply

@@ -6,6 +6,10 @@ var effects: Array[AudioStreamPlayer] = []
 var ui_player: AudioStreamPlayer
 var bgm_catalog: Dictionary = {}
 var voices: Dictionary = {}
+var event_voices: Dictionary = {}
+var voice_queue: Array = []
+var quest_voice_keys: Dictionary = {}
+var suppress_result_voice_once := false
 var sounds: Dictionary = {}
 var streams: Dictionary = {}
 var quest_slots: Array = []
@@ -31,7 +35,8 @@ signal phase_sound_started(id: String)
 func follow_connection(generation: int):
 	if generation==connection_generation:return
 	connection_generation=generation;seen.clear();result_key=""
-	voice.stop()
+	stop_voice()
+	quest_voice_keys.clear()
 	for sound in effects:sound.stop()
 func player(volume: float) -> AudioStreamPlayer:
 	var p = AudioStreamPlayer.new()
@@ -40,6 +45,7 @@ func player(volume: float) -> AudioStreamPlayer:
 	return p
 func _ready():
 	bgm=player(-6); quest=player(-6); voice=player(0); ui_player=player(-6)
+	voice.finished.connect(_next_voice)
 	for i in range(4): effects.append(player(-4))
 	load_settings()
 	# QA silence is an explicit process override; it never resets saved choices.
@@ -54,6 +60,11 @@ func _ready():
 	var v = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("voices/manifest.json")))
 	for c in v.characters:
 		for cue in c.prepared: voices[c.id+"/"+cue] = base.path_join("voices").path_join(c.prepared[cue].path)
+	var event_base=base.path_join("event-voices")
+	var event_manifest=JSON.parse_string(FileAccess.get_file_as_string(event_base.path_join("manifest.json")))
+	for uid in event_manifest.characters:
+		for cue in event_manifest.characters[uid]:
+			event_voices[uid+"/"+cue]=event_base.path_join(event_manifest.characters[uid][cue].file)
 	var s = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("se/manifest.json")))
 	for e in s.se: sounds[e.id]=base.path_join("se").path_join(e.filename)
 	quest_slots = JSON.parse_string(FileAccess.get_file_as_string("res://assets/quest_music.json")).tracks
@@ -133,7 +144,11 @@ func sync(d: Dictionary) -> void:
 		var rk=str(connection_generation)+":"+str(state.get("campaignToken","trial"))+":"+str(state.get("campaignStage",0))+":"+str(state.result)
 		if rk!=result_key:
 			result_key=rk; ui("failure" if state.get("failure") else "victory")
+			if not suppress_result_voice_once and not state.get("failure") and not state.get("units",[]).any(func(u):return u.get("side")=="enemy" and u.get("hp",0)>0):
+				celebrate(state.get("units",[]),"battle_win")
+	suppress_result_voice_once=false
 func close_audio() -> void:
+	voice_queue.clear()
 	for p in [bgm,quest,voice,ui_player]+effects:
 		if is_instance_valid(p):p.stop();p.stream=null
 	streams.clear()
@@ -169,7 +184,7 @@ func apply_levels():
 		p.volume_db=float(MIX_DB[pair[2]])+(linear_to_db(percent/100.0) if percent>0 else -80.0)
 	for p in effects:p.volume_db=float(MIX_DB.se)+(linear_to_db(int(volumes.se)/100.0) if int(volumes.se)>0 else -80.0)
 	if not audible("bgm"):bgm.stream_paused=true;quest.stream_paused=true
-	if not audible("voice"):voice.stop()
+	if not audible("voice"):stop_voice()
 	if not audible("se"):
 		for p in effects: p.stop()
 		ui_player.stop()
@@ -199,11 +214,9 @@ func phase(p: Dictionary) -> float:
 	seen[key]=true
 	if seen.size()>800: seen.erase(seen.keys()[0])
 	var duration := 0.22
-	if audible("voice"):
-		for e in p.get("voiceEvents",[]):
-			voice.stream=load_wav(str(voices.get(str(e.character_id)+"/"+str(e.cue),"")))
-			if voice.stream:
-				voice.play();phase_voice_started.emit(str(e.character_id),str(e.cue));duration=maxf(duration,voice.stream.get_length()+0.04)
+	if not p.get("voiceEvents",[]).is_empty():
+		stop_voice()
+		duration=maxf(duration,queue_voices(p.voiceEvents))
 	var se_id=""
 	if p.phase=="action":
 		if p.get("kind")=="attack":se_id="attack"
@@ -219,3 +232,54 @@ func phase(p: Dictionary) -> float:
 		sound.stream=load_wav(str(sounds.get(se_id,"")))
 		if sound.stream: sound.play();phase_sound_started.emit(se_id);duration=maxf(duration,sound.stream.get_length())
 	return 0.0 if fast_mode else duration
+
+# New roster voices are exact-ID assets, never inferred from an unknown portrait/job.
+func voice_stream(uid: String,cue: String) -> AudioStream:
+	var event_cue="attack" if cue.begins_with("skill:") else "damage" if cue=="hurt" else cue
+	var path=str(event_voices.get(uid+"/"+event_cue,""))
+	if path.is_empty():return load_wav(str(voices.get(uid+"/"+cue,"")))
+	if not streams.has(path):streams[path]=AudioStreamMP3.load_from_file(path)
+	return streams[path]
+func stop_voice() -> void:
+	voice_queue.clear()
+	if is_instance_valid(voice):voice.stop()
+func reset_character_events() -> void:
+	stop_voice();quest_voice_keys.clear();result_key=""
+func _next_voice() -> void:
+	if not audible("voice"):stop_voice();return
+	if voice_queue.is_empty():return
+	var entry=voice_queue.pop_front()
+	voice.stream=entry.stream;voice.play()
+	phase_voice_started.emit(entry.uid,entry.cue)
+func queue_voices(events: Array) -> float:
+	if not audible("voice"):return 0.0
+	var seconds:=0.0
+	var added: Dictionary={}
+	for e in events:
+		var uid=str(e.get("character_id",""));var cue=str(e.get("cue",""))
+		var key=uid+"/"+cue
+		if added.has(key):continue
+		added[key]=true
+		var stream=voice_stream(uid,cue)
+		if stream==null:continue
+		voice_queue.append({"uid":uid,"cue":cue,"stream":stream})
+		seconds+=stream.get_length()+0.04
+	if not voice.playing:_next_voice()
+	return seconds
+func celebrate(units: Array,cue: String) -> void:
+	# One random mapped participant per accepted event; result keys prevent rerolls.
+	var candidates: Array=[]
+	for u in units:
+		var uid=str(u.get("id",""))
+		if u.get("side","ally")=="ally" and (cue!="battle_win" or u.get("hp",0)>0) and event_voices.has(uid+"/"+cue):
+			candidates.append(uid)
+	if not candidates.is_empty():queue_voices([{"character_id":candidates[randi()%candidates.size()],"cue":cue}])
+func quest_completed(c: Dictionary) -> void:
+	var key=str(c.get("completed",0))
+	if quest_voice_keys.has(key):return
+	quest_voice_keys[key]=true
+	var units: Array=[]
+	for uid in c.get("selected",[]):
+		for u in c.get("roster",[]):
+			if u.get("id")==uid:units.append(u);break
+	celebrate(units,"quest_clear")

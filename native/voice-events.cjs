@@ -17,8 +17,10 @@ function capture(state, engine, kind, run) {
       Object.defineProperty(unit, 'hp', {configurable: true, enumerable: true,
         get: () => hp,
         set: value => {
-          if (value < hp && unit.side === 'ally')
+          if (value < hp && unit.side === 'ally') {
             events.push({character_id: unit.id, cue: 'hurt'});
+            if (hp > 0 && value <= 0) events.push({character_id: unit.id, cue: 'incapacitated'});
+          }
           hp = value;
         }});
     }
