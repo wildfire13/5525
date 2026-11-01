@@ -79,7 +79,7 @@ function capture(state,engine,run) {
           ...(phase==='move'?{source_skill:statusAction?.skill_id||null,source_actor_id:current?.id||null,target_id:unit.id}:{}),
           ...(phase==='move'&&unit===current&&statusAction?.skill_id==='poleVault'?{jump:true}:{}),from:previous,to:next,label:unit.name+'：'+
           (phase==='move'?'移動':phase==='resource'?'MP回復 '+(next-previous):phase==='hurt'?'被ダメージ '+(previous-next):'HP回復 '+(next-previous)),
-          voiceEvents:phase==='hurt'&&unit.side==='ally'?[{character_id:unit.id,cue:'hurt'}]:[]});
+          voiceEvents:phase==='hurt'&&unit.side==='ally'?[{character_id:unit.id,cue:'hurt'},...(previous>0&&next<=0?[{character_id:unit.id,cue:'incapacitated'}]:[])]:[]});
       }});
     }
     for(const unit of state.units)for(const key of ['cover','covers','boost']){
