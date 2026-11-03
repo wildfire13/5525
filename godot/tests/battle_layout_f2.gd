@@ -42,6 +42,8 @@ func run():
 			for key in ["battle_actor","battle_target"]:
 				if game.preferences.config.has_section_key("windows",key):game.preferences.config.erase_section_key("windows",key)
 			await game.update({"op":"campaign_load","data":cases[kind]});await settle()
+			check(node("ElementalCombatProfile")!=null and node("ElementalCombatProfile").get_child_count()>=7,"FHD battle actor shows icon-coded fire/water/earth ATK and DEF")
+			check(node("ElementalCombatProfile").tooltip_text.contains("相性有利×1.25"),"FHD battle combat profile explains the existing matchup rule")
 			game.hud.left_panel.restore_rect(Rect2(0,76,320,650))
 			game.hud.right_panel.restore_rect(Rect2(maxf(0,game.size.x-380),76,330,620));await settle()
 			var before=await saved();var label=kind+" "+str(dims.x)

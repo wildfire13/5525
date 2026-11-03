@@ -13,10 +13,10 @@ check('R08 villages have center plus exactly two adjacent villages; unchanged of
   const s=require('./test-current-fixture.cjs')();
   for(const [id,expected] of Object.entries({east:['north','astaris','south'],north:['east','astaris','west'],west:['north','astaris','south'],south:['east','astaris','west']})){
     s.location=id;assert.deepEqual(C.destinations(s).map(p=>p.id),expected);
-    for(const round of [0,1]){s.boardRound=round;const offers=C.board(s);assert.deepEqual(offers.map(q=>q.to),expected);assert.equal(new Set(offers.map(q=>q.id)).size,3);
-      for(const q of offers){assert.deepEqual([q.reward,q.deadline,q.weight,q.xp],round%2?[150,10,5,100]:[180,6,3,100]);assert(C.destinations({...s,location:q.to}).some(p=>p.id===id));}}
+    for(const round of [0,1]){s.boardRound=round;const offers=C.board(s),roadOffers=offers.filter(q=>!q.scenario);assert.deepEqual(roadOffers.map(q=>q.to),expected);assert.equal(new Set(roadOffers.map(q=>q.id)).size,3);
+      for(const q of roadOffers){assert.deepEqual([q.reward,q.deadline,q.weight,q.xp],round%2?[150,10,5,100]:[180,6,3,100]);assert(C.destinations({...s,location:q.to}).some(p=>p.id===id));}}
   }
-  s.location='astaris';assert.equal(C.board(s).length,2);assert.equal(C.destinations(s).length,4);
+  s.location='astaris';assert.equal(C.board(s).filter(q=>!q.scenario).length,2);assert.equal(C.board(s).filter(q=>q.scenario).length,1);assert.equal(C.destinations(s).length,4);
 });
 check('R09 shops and retained unequipped gear; R10 two slots remain',()=>{
   const s=require('./test-current-fixture.cjs')();s.location='west';assert(!C.shop(s).some(g=>g.type==='accessory'));

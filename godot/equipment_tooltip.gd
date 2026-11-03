@@ -1,5 +1,6 @@
 extends Button
 ## Read-only equipment hover, hosted by the game window rather than its status child.
+const ElementBadges=preload("res://element_badges.gd")
 const POSITIVE="#8ac7ff"
 const NEGATIVE="#ff9494"
 const SKILL="#c7a5ff"
@@ -47,8 +48,9 @@ func configure(title: String,gear: Dictionary,context: Dictionary):
 	var attacks=gear.get("type")!="empty" and int(gear.get("atk",0))>0
 	if gear.get("type")!="empty":
 		line("Wt：%s" % str(gear.get("weight",1)))
-		line("ATK 物%d / 火%d / 水%d / 地%d" % [gear.get("atk",0),gear.get("atkFire",0),gear.get("atkWater",0),gear.get("atkEarth",0)])
-		line("DEF 物%d / 火%d / 水%d / 地%d" % [gear.get("def",0),gear.get("defFire",0),gear.get("defWater",0),gear.get("defEarth",0)])
+		line("ATK 物%d / 火%d / 水%d / 地%d" % [gear.get("atk",0),gear.get("atkFire",0),gear.get("atkWater",0),gear.get("atkEarth",0)],"ATK 物%d / %s%d / %s%d / %s%d" % [gear.get("atk",0),ElementBadges.inline("fire"),gear.get("atkFire",0),ElementBadges.inline("water"),gear.get("atkWater",0),ElementBadges.inline("earth"),gear.get("atkEarth",0)])
+		line("DEF 物%d / 火%d / 水%d / 地%d" % [gear.get("def",0),gear.get("defFire",0),gear.get("defWater",0),gear.get("defEarth",0)],"DEF 物%d / %s%d / %s%d / %s%d" % [gear.get("def",0),ElementBadges.inline("fire"),gear.get("defFire",0),ElementBadges.inline("water"),gear.get("defWater",0),ElementBadges.inline("earth"),gear.get("defEarth",0)])
+		line("属性相性：有利×1.25 / 不利×0.75。攻撃ATK−対応DEF後に適用。物理・同属性・無属性は等倍。")
 	if attacks:line("通常攻撃射程："+str(int(gear.get("reach",1))))
 	var modifiers={"atk":"武器ATK","hp":"HP上限","mp":"MP上限","agiBonus":"行動速度"}
 	var count=0

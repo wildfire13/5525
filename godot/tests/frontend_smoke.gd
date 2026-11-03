@@ -20,6 +20,8 @@ func run():
 	check(game.campaign().location=="astaris","single-window campaign initial state")
 	game.navigate("party");await process_frame
 	check(game.roster().size()==24,"24 new guild candidates")
+	var named_guard=game.roster().filter(func(member):return member.id=="recruit-guard-human-male")
+	check(named_guard.size()==1 and named_guard[0].name=="ガレス" and named_guard[0].image=="characters/guard-human-male-01.png" and game.member_name("recruit-guard-human-male")=="ガレス","proposal name follows the existing male human guard ID and portrait")
 	game.navigate("items");await process_frame
 	var source=ProjectSettings.globalize_path("res://../native/test_fixtures/campaign-a51a773-battle.json")
 	await game.load_game(source)

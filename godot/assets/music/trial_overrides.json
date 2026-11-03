@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "experimental_unheard",
+  "notes": "Only route a candidate to its clearly named context. Subjective listening is unavailable in this execution environment; this is not an adoption or quality claim.",
+  "tracks": [
+    {
+      "id": "astaris",
+      "source_library_id": "libfile_80057d994f288191b8a0f138c67221ad",
+      "source_name": "5525_C01_都市_室内楽.mp3",
+      "path": "res://assets/music/trials/5525_C01_都市_室内楽.mp3",
+      "sha256": "9f7ebb0c350037e5ba55a0d91edcbf707b91c1f3b5bc05ff536306e9ae496918",
+      "duration_seconds": 99.0,
+      "sample_rate_hz": 48000,
+      "channels": 2,
+      "loop_entire_file": true,
+      "route_reason": "The filename identifies this as a city chamber-music track; Astaris is the game's city hub."
+    }
+  ]
+}

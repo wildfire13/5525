@@ -8,6 +8,12 @@ func run():
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	game.preferences.store_rect("status",Rect2(100,80,800,600));game.preferences.config.set_value("migration","status_feedback3",false)
 	game.pages.party_view.open_detail("guard");await settle()
+	var identity_badge=node("ElementIcon_earth")
+	check(identity_badge!=null and identity_badge.texture!=null,"element icon is visible beside the character identity at FHD")
+	var identity_tooltip=identity_badge.tooltip_text if identity_badge!=null else ""
+	node("StatusTab_1").pressed.emit();await settle()
+	check(node("ElementalCombatProfile")!=null and node("ElementalCombatProfile").get_child_count()>=7,"FHD status includes icon-coded fire/water/earth ATK and DEF")
+	check(identity_tooltip.contains("地属性") and node("ElementalCombatProfile").tooltip_text.contains("×1.25"),"element icons and combat row explain matchup semantics")
 	check(game.dialog.window.size==Vector2i(1760,600),"old800x600 migrates width only")
 	game.preferences.store_camera({"pan":Vector2(1.5,-2),"yaw":.35,"pitch":.6,"zoom":14.0})
 	var before=await saved();var camera=game.preferences.camera().duplicate(true)

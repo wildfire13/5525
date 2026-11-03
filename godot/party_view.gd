@@ -1,4 +1,5 @@
 extends RefCounted
+const ElementBadges=preload("res://element_badges.gd")
 var owner_ref: WeakRef
 var pages:
 	get:return owner_ref.get_ref()
@@ -128,6 +129,7 @@ func growth(parent,u: Dictionary):
 	if draft_total()>0:tint(confirm,Color("#236044"))
 	if not editable:l(parent,"控えは編成してから操作できます。" if not ui.active_member(str(u.id)) else "成長の配分は町にいる時だけ編集できます。" if pages.c().get("phase")!="town" else "確定結果を確認しています。")
 	l(parent,pages.stats_text(stats,str(u.id)));l(parent,"Wt上限はSTR。戦闘不能者の装備・所持重量は生存者に分配されます。SPD（行動速度）はAGIと装備補正から算出します。")
+	pages.elemental_combat_line(parent,stats)
 	l(parent,"編成はアスタリスのギルドで変更できます。")
 func skills(parent,u: Dictionary):
 	var s=u.get("stats",u);var names=pages.c().get("skillNames",{})
@@ -151,6 +153,7 @@ func identity(parent,u: Dictionary):
 	var race=str(u.get("race",""));var job=str(u.get("job",""))
 	if not race.is_empty():ui.icons.add(r,ui.icons.race(race),24)
 	ui.icons.add(r,ui.icons.job(job),24)
+	ElementBadges.add(r,str(u.get("element","none")),28)
 	var label=l(r,{"human":"人間","elf":"エルフ","dwarf":"ドワーフ"}.get(race,"種族未取得")+" / "+str(u.get("role",job)))
 	label.autowrap_mode=TextServer.AUTOWRAP_OFF
 func draft_total() -> int:return int(draft.str)+int(draft.int)+int(draft.agi)

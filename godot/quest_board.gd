@@ -8,7 +8,11 @@ var selected_id := ""
 var picker_generation := 0
 var picker_owner := ""
 var submitted := false
+var dialogue
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
+func _dialogue():
+	if not is_instance_valid(dialogue):dialogue=preload("res://quest_dialogue.gd").new(ui,self)
+	return dialogue
 func reset():
 	selected_id="";picker_generation+=1;picker_owner="";submitted=false
 func render(parent):
@@ -18,19 +22,27 @@ func render(parent):
 	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;filters.add_child(spacer)
 	var future=pages.b(filters,"絞り込み —",func():pass,true);future.name="QuestFutureFilters"
 	var quests: Array=pages.c().get("board",[])
+	var aftermath: Array=pages.c().get("scenarioAftermath",[])
 	var active=pages.c().get("activeQuest")
 	if active is Dictionary:quests=[active]
-	if quests.is_empty():pages.l(parent,"いま受注できる依頼はありません。");return
+	if quests.is_empty() and aftermath.is_empty():pages.l(parent,"いま受注できる依頼はありません。");return
+	if quests.is_empty():pages.l(parent,"いま受注できる依頼はありません。")
+	if quests.is_empty():
+		for entry in aftermath:
+			var after=pages.card(parent);after.name="QuestAftermath_"+str(entry.id);pages.l(after,str(entry.name),true);pages.b(after,"出来事を知る",func():play_scene(entry.story,str(entry.get("portrait","")))).name="QuestAftermathStory_"+str(entry.id)
+		return
 	if not quests.any(func(q):return str(q.id)==selected_id):selected_id=str(quests[0].id)
 	var split=pages.row(parent);split.name="QuestBoardColumns";split.add_theme_constant_override("separation",16);split.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	var list=ui.scroller(split);list.name="QuestList";list.get_parent().custom_minimum_size=Vector2(240 if ui.size.x<1120 else 340,0);list.get_parent().size_flags_horizontal=Control.SIZE_FILL
 	ui.memory.watch(list.get_parent(),"quest_board_list")
 	var detail=pages.card(split);detail.name="QuestDetail";detail.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	for q in quests:
-		var choice=pages.b(list,("● " if str(q.id)==selected_id else "")+str(q.name)+"\n難易度 —",choose.bind(str(q.id)))
+		var choice=pages.b(list,("● " if str(q.id)==selected_id else "")+str(q.name)+("\n単発の出来事" if q.get("scenario",false) else "\n難易度 —"),choose.bind(str(q.id)))
 		choice.name="QuestChoice_"+str(q.id);choice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;choice.alignment=HORIZONTAL_ALIGNMENT_LEFT;choice.custom_minimum_size.y=92;ui.mark_selected(choice,str(q.id)==selected_id)
 		ui.memory.key(choice,"quest_choice_"+str(q.id))
 		if str(q.id)==selected_id:render_detail(detail,q,active is Dictionary)
+	for entry in aftermath:
+		var after=pages.card(parent);after.name="QuestAftermath_"+str(entry.id);pages.l(after,str(entry.name),true);pages.b(after,"出来事を知る",func():play_scene(entry.story,str(entry.get("portrait","")))).name="QuestAftermathStory_"+str(entry.id)
 	if not pages.c().get("hasPorter",false):pages.l(parent,"受注には編成中のポーターが必要です。")
 func choose(id: String):
 	if ui.locked or ui.modal_open():return
@@ -40,7 +52,11 @@ func render_detail(parent,q: Dictionary,active: bool):
 	var summary=HFlowContainer.new();summary.name="QuestSummary";summary.add_theme_constant_override("h_separation",24);summary.add_theme_constant_override("v_separation",8);parent.add_child(summary)
 	var reward=pages.l(summary,"報酬 %dG" % q.get("reward",0),true);reward.add_theme_color_override("font_color",Color("#ecd4a1"))
 	pages.l(summary,"配達先: "+pages.town(q.get("to","")))
-	pages.l(summary,"納期: %d時間" % q.get("deadline",0))
+	if q.get("scenario",false):
+		var remaining=maxi(0,int(q.get("deadlineAt",0))-int(pages.c().get("worldTime",0)))
+		pages.l(summary,"掲載から%d時間以内" % q.get("deadline",0))
+		pages.l(summary,"世界時刻まで残り %d時間" % remaining)
+	else:pages.l(summary,"納期: %d時間" % q.get("deadline",0))
 	for fact in summary.get_children():
 		fact.autowrap_mode=TextServer.AUTOWRAP_OFF;fact.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 	var details=ui.scroller(parent);details.name="QuestDetailBody";details.get_parent().custom_minimum_size.y=64
@@ -49,14 +65,31 @@ func render_detail(parent,q: Dictionary,active: bool):
 	pages.l(details,"配達品: %s × 1" % q.get("cargo","荷物"))
 	pages.l(details,"総重量: "+(str(q.weight) if q.has("weight") and q.weight!=null else "未設定"))
 	pages.l(details,"依頼者: "+str(q.get("client","")))
+	if q.get("scenario",false):
+		var npc_names={"turnip":"農夫・計量係","kiln":"若い陶工・陶工の師匠","wheel":"車輪職人・行商人"}
+		pages.l(details,"登場人物: "+str(npc_names.get(str(q.get("eventId","")),q.get("client",""))))
+		var story=pages.b(details,"話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);story.custom_minimum_size.y=44
 	var actions=pages.row(parent);actions.name="QuestDetailActions"
 	if active:
 		if pages.c().location==q.to:
 			if not pages.c().get("cargoAboard",false):pages.l(details,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
 			ui.primary(pages.b(actions,"拠点で荷物を届ける",ui.navigate.bind("hub")))
 		else:pages.l(actions,"受注中 — 配達先へ向かいましょう。")
+		if q.get("eventId","")=="wheel" and pages.c().get("location")=="north" and int(pages.c().get("worldTime",0))<int(q.get("eventEpoch",0))+10:
+			ui.primary(pages.b(actions,"予定まで%d時間待つ" % (int(q.eventEpoch)+10-int(pages.c().get("worldTime",0))),ui.act.bind("waitForEvent",[]))).name="WaitForMerchant"
 	else:
 		var accept=ui.primary(pages.b(actions,"この依頼を引き受ける",open_picker.bind(str(q.id)),not pages.c().get("hasPorter",false)));accept.name="QuestAccept";accept.size_flags_horizontal=Control.SIZE_SHRINK_END;accept.custom_minimum_size.x=280
+
+func open_story(q: Dictionary):
+	if ui.locked or ui.modal_open() or ui.presenting:return
+	var scene=_dialogue()
+	if scene.get_parent()==null:ui.add_child(scene)
+	scene.open(q,func():open_picker(str(q.id)))
+func play_scene(story: Array,portrait_key: String,cast: Array=[]):
+	if story.is_empty():return
+	var scene=_dialogue()
+	if scene.get_parent()==null:ui.add_child(scene)
+	scene.open({"name":"依頼のあと","story":story,"portrait":portrait_key,"cast":cast})
 func open_picker(id: String):
 	if ui.locked or ui.modal_open() or pages.c().get("phase")!="town" or pages.c().get("activeQuest") is Dictionary:return
 	picker_generation+=1;picker_owner="";submitted=false

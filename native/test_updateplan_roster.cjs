@@ -12,6 +12,22 @@ test('new game has exactly 24 distinct candidates, four roles, two sexes, three 
  }
  assert(C.validate(s).ok);assert.deepEqual(C.deserialize(C.serialize(s)),s);
 });
+test('proposal names match only implemented 01 roster IDs and their portraits',()=>{
+ const names={
+  guard:{human:{male:'ガレス',female:'ミレイ'},elf:{male:'レオン',female:'セラ'},dwarf:{male:'グラント',female:'オルガ'}},
+  scout:{human:{male:'カイル',female:'リオ'},elf:{male:'シオン',female:'ルシア'},dwarf:{male:'フィノ',female:'ネル'}},
+  porter:{human:{male:'テオ',female:'ユノ'},elf:{male:'エルネ',female:'マリナ'},dwarf:{male:'バルト',female:'リッカ'}},
+  mage:{human:{male:'カシアン',female:'ロゼ'},elf:{male:'イゼル',female:'メリナ'},dwarf:{male:'オルム',female:'フェリ'}},
+ };
+ assert.equal(B.recruitRoster.length,24);
+ for(const t of B.recruitRoster){
+  assert.equal(t.name,names[t.job][t.race][t.sex],t.id);
+  assert.equal(t.image,`characters/${t.job}-${t.race}-${t.sex}-01.png`,t.id);
+  assert(require('node:fs').existsSync(require('node:path').join(__dirname,'assets',t.image)),t.image);
+ }
+ assert(!B.recruitRoster.some(t=>t.image.endsWith('-02.png')));
+ assert.deepEqual(C.view(C.create()).roster.map(t=>t.name),B.recruitRoster.map(t=>t.name));
+});
 test('initial gear matches race, sex, job; dwarf sword restriction remains',()=>{
  const s=C.create();
  for(const t of B.recruitRoster){const c=s.characters[t.id],eq=C.equipment(c);

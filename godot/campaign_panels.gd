@@ -1,4 +1,5 @@
 extends RefCounted
+const ElementBadges=preload("res://element_badges.gd")
 ## Presentation of existing Campaign.view fields. Mutations stay in the bridge.
 var ui
 var party_uid := ""
@@ -66,6 +67,17 @@ func defense_profile(stats: Dictionary) -> String:
 	return "DEF 物%d 火%d 水%d 地%d" % [stats.get("def",0),stats.get("defFire",0),stats.get("defWater",0),stats.get("defEarth",0)]
 func element_name(element) -> String:
 	return {"fire":"火","water":"水","earth":"地","none":"無属性"}.get(str(element),"無属性")
+func elemental_combat_line(parent,stats: Dictionary):
+	var detail=row(parent);detail.name="ElementalCombatProfile"
+	var explanation="各属性攻撃は対応する属性DEFを引いてから相性を適用。火＞地＞水＞火。相性有利×1.25、不利×0.75。同属性・無属性・物理は等倍。"
+	var title=l(detail,"属性 ATK/DEF",false);title.tooltip_text=explanation
+	for element in ["fire","water","earth"]:
+		ElementBadges.add(detail,element,24)
+		var values=l(detail,"%d / %d" % [stats.get("atk"+element.capitalize(),0),stats.get("def"+element.capitalize(),0)])
+		values.tooltip_text=explanation
+	detail.tooltip_text=explanation
+func elemental_badge(parent,element: String,pixels:=24):
+	if element in ["fire","water","earth"]:ElementBadges.add(parent,element,pixels)
 func stats_text(stats: Dictionary,character_id: String="") -> String:
 	var text="HP上限 %d / MP上限 %d / %s / %s / SPD %d / 属性 %s" % [stats.get("max",0),stats.get("maxMp",0),attack_profile(stats),defense_profile(stats),stats.get("speed",stats.get("agi",0)),element_name(stats.get("element","none"))]
 	if not character_id.is_empty():
