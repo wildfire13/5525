@@ -57,6 +57,24 @@ const Campaign = (() => {
     porter:{race:'human',str:14,int:10,agi:12,weapon:'porter-kit'},
     warrior:{race:'dwarf',str:18,int:8,agi:10,weapon:'hammer-iron-1'},
   };
+  // Standalone story calendars are a playtest schedule. New games start at
+  // world hour 0; an older save receives the calendar at its current hour.
+  const STANDALONE_QUESTS = [
+    {eventId:'turnip',from:'north',to:'astaris',name:'世界一のカブ',client:'農夫',cargo:'大きなカブ',weight:8,deadline:18,reward:240,xp:100,portrait:'farmer',cast:['farmer','weigher'],story:[['farmer','今年のは勝つ。持てば分かる。'],['farmer','アスタリスの品評会まで、丸ごと頼めるか。俺は先に行って、受付を済ませる。'],['farmer','計量が終わったら、どんな大物でも出せない。そこだけは頼むぞ。']],successStory:[['weigher','出品のカブですね。こちらへ。'],['narration','カブを載せると、秤の針が大きく振れた。'],['farmer','見たか。……まだ他にも来るのか？'],['weigher','締切までは受け付けます。'],['farmer','ともかく、間に合った。約束の礼だ。']]},
+    {eventId:'kiln',from:'astaris',to:'east',name:'最後の窯',client:'若い陶工',cargo:'包みの器',weight:2,deadline:20,reward:150,xp:100,portrait:'apprentice',cast:['apprentice','master'],story:[['narration','若い陶工が、包みの結び目を確かめている。'],['apprentice','師匠が、最後に窯を焚くんだ。'],['apprentice','これを一つ、入れてもらいたくて。最後まで直していたら、こんな時間だ。'],['apprentice','イースの工房まで、届けてくれる？']],successStory:[['master','あの子のかい。見せてごらん。'],['master','底が厚い。昔からだ。'],['narration','師匠は器を傾けて見てから、ほかの器の隣へ置いた。'],['master','入るよ。まだ閉じてない。'],['master','次は薄く作れ、と伝えておくれ。']]},
+    {eventId:'wheel',from:'east',to:'astaris',name:'宛先は、こっちへ来る',client:'車輪職人',cargo:'替えの車輪',weight:6,deadline:24,reward:220,xp:100,lateDeadline:36,lateReward:110,portrait:'wheelwright',cast:['wheelwright','merchant'],story:[['narration','職人が、完成した車輪を立てて転がりを確かめている。'],['wheelwright','替えの車輪だ。あの行商人に届けてくれ。'],['wheelwright','本人から、受け取る場所と時刻が届いてる。追うより、先で待つ方が早いかもな。'],['wheelwright','今の輪は、ひびが入ってる。次の市までは、持たんかもしれん。']],successStory:[['merchant','あっ、それ！ 助かった。走るたびに音がしてたのよ。'],['narration','行商人が古い車輪を外し、新しい輪を取り付ける。'],['merchant','これなら、市に間に合う。'],['merchant','約束の分ね。今度は、うちで買い物もしていって。']],lateStory:[['narration','傾いた荷車の脇で、行商人が荷物を下ろしている。'],['merchant','……ああ、替えの車輪ね。見てのとおりよ。'],['merchant','市には、もう間に合わない。でも、ここからは動ける。'],['merchant','報酬は約束どおり、半分。車輪は受け取るわ。']]}
+  ];
+  const SCENARIO_BY_ID=Object.fromEntries(STANDALONE_QUESTS.map(q=>[q.eventId,q]));
+  function freshWorldEvents(epoch=0){return {epoch,events:Object.fromEntries(STANDALONE_QUESTS.map(q=>[q.eventId,{status:'available'}]))};}
+  function syncWorld(s){
+    if(!Number.isSafeInteger(s.worldTime))s.worldTime=s.hours;
+    if(!s.standaloneEvents||typeof s.standaloneEvents!=='object')s.standaloneEvents=freshWorldEvents(s.worldTime);
+    for(const q of STANDALONE_QUESTS){const e=s.standaloneEvents.events?.[q.eventId];if(e?.status==='available'&&s.worldTime>s.standaloneEvents.epoch+q.deadline)e.status='missed';}
+  }
+  function tickWorld(s,hours){syncWorld(s);s.worldTime+=hours;syncWorld(s);}
+  function worldAge(s,id){syncWorld(s);return s.worldTime-s.standaloneEvents.epoch;}
+  function merchantAt(s){const age=worldAge(s,'wheel');return age<10?null:age<18?'astaris':age<36?'south':null;}
+  function merchantNextStop(s){const age=worldAge(s,'wheel');return age<18?'astaris':age<36?'south':null;}
   const elements={guard:'earth',archer:'water',mage:'fire',scout:'earth',porter:'none',warrior:'earth'};
   const enemyLoadout={guard:{weapon:'sword-wood',shield:'guard-shield-wood',inventory:{potion:99}},archer:{weapon:'bow-wood',inventory:{potion:99}},mage:{weapon:'staff-wood',inventory:{potion:99}},scout:{weapon:'dagger-wood',inventory:{potion:99}},porter:{weapon:'porter-kit',inventory:{potion:99}},warrior:{weapon:'hammer-iron-1',inventory:{potion:99}}};
   function equipment(c,replacement) {
@@ -136,7 +154,7 @@ const Campaign = (() => {
     return c;
   }
   function createLegacy() {
-    const state={version:VERSION,phase:'town',location:'astaris',gold:180,xp:0,level:1,hours:0,
+    const state={version:VERSION,phase:'town',location:'astaris',gold:180,xp:0,level:1,hours:0,worldTime:0,standaloneEvents:freshWorldEvents(0),
       selected:['guard','archer','mage','scout','porter'],characters:Object.fromEntries(B.legacyRoster.map(t=>[t.id,character(t.id)])),
       activeQuest:null,journey:null,battle:null,rollback:null,
       sequence:0,boardRound:0,completed:0,result:null,history:['アスタリスに到着。繰り返し遊べる試作を開始。']};
@@ -186,7 +204,7 @@ const Campaign = (() => {
   function board(s) {
     if(s.phase!=='town'||s.activeQuest)return [];
     const choices=s.location==='astaris'?[locations[1+s.boardRound%4],locations[1+(s.boardRound+1)%4]]:destinations(s);
-    return choices.map((p,i)=>{
+    const offers=choices.map((p,i)=>{
       const urgent=s.location==='astaris'?i===0:s.boardRound%2===0;
       const flavors={east:['鍛冶職人リタ','鍛冶場の包帯'],west:['仕立屋エマ','染料の小瓶'],south:['薬師イネス','診療所の薬箱'],north:['村の世話役ノア','雪道の灯油'],astaris:['ギルド受付サラ','村からの修理部品']},[client,cargo]=flavors[p.id];
       return {id:`${s.location}-${p.id}-${s.boardRound}-${i}`,from:s.location,to:p.id,
@@ -194,6 +212,27 @@ const Campaign = (() => {
         cargo:urgent?cargo:'修理用の部品箱',weight:urgent?3:5,deadline:urgent?6:10,reward:urgent?180:150,xp:100,
         text:questText({to:p.id,cargo:urgent?cargo:'修理用の部品箱'})};
     });
+    syncWorld(s);
+    for(const q of STANDALONE_QUESTS){
+      if(q.from!==s.location||s.standaloneEvents.events[q.eventId]?.status!=='available')continue;
+      const event={...clone(q),id:`standalone-${q.eventId}`,text:`${q.cargo}を${getPlace(q.to).name}まで届けてください。`,scenario:true,postedAt:s.standaloneEvents.epoch,deadlineAt:s.standaloneEvents.epoch+q.deadline};
+      if(q.eventId==='wheel')event.to=merchantNextStop(s)||'south';
+      offers.push(event);
+    }
+    return offers;
+  }
+  function scenarioAftermath(s){
+    syncWorld(s);const out=[],events=s.standaloneEvents.events,here=s.location;
+    if(events.turnip?.status==='missed'&&here==='north')out.push({id:'turnip-aftermath',name:'品評会のあと',portrait:'farmer',story:[['narration','畑の脇に、今年の一位を知らせる札が掛かっている。'],['farmer','見たか、今年の一位。あれなら……いや、何でもない。']]});
+    if(events.turnip?.status==='completed'&&worldAge(s,'turnip')>=18&&here==='north')out.push({id:'turnip-result',name:'品評会の後日談',portrait:'farmer',story:[['narration','畑の脇に、二位の札が飾ってある。'],['farmer','雨で傷むといかんからな。屋根だけ付けた。']]});
+    if(events.kiln?.status==='missed'&&here==='east')out.push({id:'kiln-aftermath',name:'窯のあと',portrait:'',story:[['narration','工房の戸口には、看板を外した跡が残っている。']]});
+    if(events.kiln?.status==='completed'&&worldAge(s,'kiln')>=23&&here==='east')out.push({id:'kiln-return',name:'窯焚きの後日談',portrait:'apprentice',story:[['narration','棚には、一客だけ値札のない器が置かれている。'],['apprentice','売るつもりだったんだけどね。'],['apprentice','……次のを売るよ。']]});
+    if(events.wheel?.status==='missed'&&here==='south')out.push({id:'wheel-aftermath',name:'荷車のあと',portrait:'',story:[['narration','休憩場所には荷車の跡と、道脇へ寄せられた車輪の破片が残っている。']]});
+    return out;
+  }
+  function scenarioStages(s){
+    syncWorld(s);const age=worldAge(s,'turnip'),kilnAge=worldAge(s,'kiln'),wheelAge=worldAge(s,'wheel'),events=s.standaloneEvents.events;
+    return {turnip:events.turnip.status==='completed'&&age>=18?'second':events.turnip.status,kiln:kilnAge<20?'open':kilnAge<21?'closed':kilnAge<22?'fired':kilnAge<23?'cooling':'returned',wheel:wheelAge<10?'in_transit':wheelAge<18?'astaris':wheelAge<24?'south_full':wheelAge<36?'south_late':'departed'};
   }
   function snapshot(s) {const saved=clone(s);saved.rollback=null;saved.battle=null;saved.journey=null;saved.result=null;return saved;}
   const PARTY_LIMIT=12,BATTLE_LIMIT=5;
@@ -208,7 +247,9 @@ const Campaign = (() => {
     const quest=board(s).find(q=>q.id===id);if(!quest)return false;
     if(!s.selected.includes(ownerId)||template(ownerId)?.job!=='porter')return false;
     if(!I.canReceive(s.characters[ownerId].inventory,Cargo.key(s.sequence+1),1,inventoryCapacity(s,ownerId)))return false;
-    s.rollback=snapshot(s);s.sequence++;s.activeQuest={...quest,token:s.sequence};Cargo.issue(s,ownerId);invalidateInventory(s);note(s,quest.name+'を受注。'+template(ownerId).name+'が「荷物」を受け取りました。');return true;
+    s.rollback=snapshot(s);s.sequence++;s.activeQuest={...quest,token:s.sequence};
+    if(quest.scenario){const event=s.standaloneEvents.events[quest.eventId];if(!event||event.status!=='available')return false;event.status='accepted';s.activeQuest.eventEpoch=s.standaloneEvents.epoch;}
+    Cargo.issue(s,ownerId);invalidateInventory(s);note(s,quest.name+'を受注。'+template(ownerId).name+'が「荷物」を受け取りました。');return true;
   }
   function depart(s,destination,formation='convoy') {
     if(s.phase!=='town'||!destinations(s).some(p=>p.id===destination)||!['convoy','flank'].includes(formation))return false;
@@ -299,7 +340,7 @@ const Campaign = (() => {
     const j=s.journey,count=route==='short'?(j.stage===0?3:4):(j.stage===0?2:3);
     let enemies;try{enemies=J.randomEnemies(count,()=>{const n=random();if(typeof n!=='number'||!Number.isFinite(n)||n<0||n>=1)throw new Error('Random value out of range');return n;});}catch(e){return false;}
     if(!J.travel(s.journey,route))return false;
-    s.hours+=route==='short'?2:4;
+    s.hours+=route==='short'?2:4;tickWorld(s,route==='short'?2:4);
     const ids=battleIds(s),b=B.create({ally:ids,enemy:enemies,formation:j.formation,formationVersion:2,
       potions:inventoryTotals(s,ids).potion,ethers:inventoryTotals(s,ids).ether,enemyPotions:j.stage===0?0:1,deployment:true});
     b.itemInventories=Object.fromEntries(ids.map(id=>[id,Object.fromEntries(items.map(item=>[item.id,I.count(s.characters[id].inventory,item.id)]))]));
@@ -363,7 +404,9 @@ const Campaign = (() => {
   }
   function rollbackFailure(s,reason) {
     const failedTrip={origin:s.journey.origin,destination:s.journey.destination,hours:s.journey.hours};
+    const failedEvent=s.activeQuest?.eventId,elapsedWorld=s.worldTime??s.hours,events=clone(s.standaloneEvents||freshWorldEvents(s.hours));
     const old=clone(s.rollback);for(const key of Object.keys(s))delete s[key];Object.assign(s,old);
+    s.worldTime=elapsedWorld;s.standaloneEvents=events;if(failedEvent&&s.standaloneEvents.events[failedEvent]?.status==='accepted')s.standaloneEvents.events[failedEvent].status='available';syncWorld(s);
     invalidateInventory(s);
     s.phase='result';s.result={outcome:'failed',reason,restored:true,trip:failedTrip,gold:0,xp:0};
     note(s,reason+' 受注／出発前の状態を復元しました。');return true;
@@ -389,7 +432,7 @@ const Campaign = (() => {
     });
     for(const u of allies){s.characters[u.id].hp=u.hp;s.characters[u.id].mp=u.mp;}
     for(const u of allies)for(const item of items){const count=b.itemInventories[u.id][item.id];if(count)s.characters[u.id].inventory[item.id]=count;else delete s.characters[u.id].inventory[item.id];}
-    s.hours+=1;
+    s.hours+=1;tickWorld(s,1);
     const reward={xp:20,gold:8};gainXp(s,reward.xp);s.gold+=reward.gold;
     note(s,`戦闘勝利：戦闘EXP＋${reward.xp}・戦利品${reward.gold}G（配達報酬とは別）。`);
     s.battle=null;s.phase=j.phase==='delivery'?'arrival':j.phase;return true;
@@ -397,9 +440,14 @@ const Campaign = (() => {
   function rest(s) {
     if(inventoryOverflow(s).length)return false;
     if(s.phase!=='camp'||!s.journey||!J.rest(s.journey))return false;
-    s.hours+=2;
+    s.hours+=2;tickWorld(s,2);
     for(const u of s.journey.party){const c=s.characters[u.id];c.hp=u.hp>0?u.hp:0;c.mp=u.mp;}
     note(s,'野営で休息（2時間・HP＋60／MP＋2）。');return true;
+  }
+  function waitForEvent(s){
+    const q=s.activeQuest;if(s.phase!=='town'||q?.eventId!=='wheel'||s.location!=='north'||worldAge(s,'wheel')>=10)return false;
+    const hours=10-worldAge(s,'wheel');s.hours+=hours;tickWorld(s,hours);q.to=merchantAt(s)||'south';
+    note(s,`行商人の到着予定まで${hours}時間待ちました。`);return true;
   }
   function onward(s) {if(s.phase!=='camp'||inventoryOverflow(s).length||!J.onward(s.journey))return false;s.phase='road';return true;}
   function forecast(s,choice) {
@@ -412,6 +460,7 @@ const Campaign = (() => {
     s.location=j.destination;
     if(s.activeQuest){
       s.activeQuest.elapsedHours=(s.activeQuest.elapsedHours||0)+j.hours;
+      if(s.activeQuest.eventId==='wheel')s.activeQuest.to=merchantNextStop(s)||'south';
       s.journey=null;s.battle=null;s.result=null;s.phase='town';
       note(s,getPlace(s.location).name+'に到着。依頼は未完了です。');return true;
     }
@@ -420,13 +469,27 @@ const Campaign = (() => {
   }
   function completeQuest(s){
     const q=s.activeQuest;
-    if(s.phase!=='town'||!q||s.location!==q.to||!Cargo.aboard(s))return false;
-    const hours=q.elapsedHours||0,late=hours>q.deadline,gold=Math.floor(q.reward*(late?.65:1)),xp=late?60:q.xp;
+    if(s.phase!=='town'||!q||!Cargo.aboard(s))return false;
+    const age=q.eventId?worldAge(s,q.eventId):null;
+    const handoffLocation=q.eventId==='wheel'?merchantAt(s):q.to;
+    const overdueWheel=q.eventId==='wheel'&&age>q.lateDeadline&&s.location==='south';
+    if(s.location!==handoffLocation&&!overdueWheel)return false;
+    if(q.eventId==='wheel'&&age<10)return false;
+    const hours=q.elapsedHours||0,late=q.eventId?age>q.deadline:hours>q.deadline;
+    const scenarioFailure=!!q.eventId&&(q.eventId==='wheel'?age>q.lateDeadline:late);
+    if(scenarioFailure){
+      const currentWorld=s.worldTime,events=clone(s.standaloneEvents),old=clone(s.rollback);
+      for(const key of Object.keys(s))delete s[key];Object.assign(s,old);s.worldTime=currentWorld;s.standaloneEvents=events;s.standaloneEvents.events[q.eventId].status='failed';syncWorld(s);
+      s.phase='result';s.result={outcome:'failed',gold:0,xp:0,hours,worldTime:currentWorld,location:s.location,quest:q.name,scenario:q.eventId,restored:true};note(s,`${q.name}は期限を過ぎ、荷物と受注前の状態を戻しました。報酬はありません。`);s.activeQuest=null;s.rollback=null;s.journey=null;s.battle=null;return true;
+    }
+    const gold=scenarioFailure?0:q.eventId==='wheel'&&late?q.lateReward:q.eventId?q.reward:Math.floor(q.reward*(late?.65:1)),xp=scenarioFailure?0:late?60:q.xp;
     if(!Cargo.consume(s))return false;
     invalidateInventory(s);s.gold+=gold;if(xp)gainXp(s,xp);s.completed++;s.boardRound++;
     note(s,'「荷物」を渡しました。'+q.cargo+'を引き渡しました。');
     note(s,`配達完了：${gold}G・依頼EXP＋${xp}${late?'（遅配）':''}。`);
-    s.phase='result';s.result={outcome:late?'late':'success',gold,xp,hours,location:s.location,quest:q.name,restored:false};
+    if(q.eventId){s.standaloneEvents.events[q.eventId].status=scenarioFailure?'failed':'completed';}
+    const resultStory=q.eventId?(q.eventId==='wheel'&&late?q.lateStory:q.successStory):null;
+    s.phase='result';s.result={outcome:late?'late':'success',gold,xp,hours,worldTime:s.worldTime,location:s.location,quest:q.name,scenario:q.eventId||null,portrait:q.portrait||null,cast:q.cast||[],story:resultStory||null,restored:false};
     s.activeQuest=null;s.rollback=null;s.journey=null;s.battle=null;return true;
   }
   function acknowledge(s) {
@@ -689,8 +752,9 @@ const Campaign = (() => {
     return true;
   }
   function view(s) {
+    syncWorld(s);
     const ids=battleIds(s),deployed=s.battle?s.battle.units.filter(u=>u.side==='ally').map(u=>u.id):[...ids];
-    return {...clone(s),activeQuest:displayQuest(s.activeQuest),partyLimit:PARTY_LIMIT,battleLimit:BATTLE_LIMIT,battleSelected:[...ids],deploymentRoster:{deployed,reserves:s.selected.filter(id=>!deployed.includes(id)),remaining:BATTLE_LIMIT-deployed.length,minimum:1,canBegin:s.phase==='deployment'&&!!s.battle?.units.some(u=>u.side==='ally'&&u.hp>0)&&validate(s).ok},cargoAboard:Cargo.aboard(s),cargoCarriers:Cargo.carriers(s),inventory:inventoryTotals(s),inventoryTotals:inventoryTotals(s,Object.keys(s.characters)),inventoryToken:inventoryToken(s),saleAvailable:saleAvailable(s),inventoryByCharacter:Object.fromEntries(Object.keys(s.characters).map(id=>[id,inventoryView(s,id)])),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),routes:clone(routes),destinations:clone(destinations(s)),board:board(s),shop:shop(s),itemDefinitions:clone(items),provisional:[...provisional],
+    return {...clone(s),activeQuest:displayQuest(s.activeQuest),partyLimit:PARTY_LIMIT,battleLimit:BATTLE_LIMIT,battleSelected:[...ids],deploymentRoster:{deployed,reserves:s.selected.filter(id=>!deployed.includes(id)),remaining:BATTLE_LIMIT-deployed.length,minimum:1,canBegin:s.phase==='deployment'&&!!s.battle?.units.some(u=>u.side==='ally'&&u.hp>0)&&validate(s).ok},cargoAboard:Cargo.aboard(s),cargoCarriers:Cargo.carriers(s),inventory:inventoryTotals(s),inventoryTotals:inventoryTotals(s,Object.keys(s.characters)),inventoryToken:inventoryToken(s),saleAvailable:saleAvailable(s),inventoryByCharacter:Object.fromEntries(Object.keys(s.characters).map(id=>[id,inventoryView(s,id)])),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),routes:clone(routes),destinations:clone(destinations(s)),board:board(s),scenarioAftermath:scenarioAftermath(s),scenarioStages:scenarioStages(s),shop:shop(s),itemDefinitions:clone(items),provisional:[...provisional],
       slots:S.slots,skillNames:{...skills,invasion:'潜入'},skillDefinitions:clone(E.definitions),roster:rosterFor(s).map(t=>{const c=s.characters[t.id];const st=stats(c);return {...t,...clone(c),allocationToken:allocationToken(s,t.id),max:st.max,maxMp:st.maxMp,atk:st.atk,agi:st.speed,reach:st.reach,stats:st,equipmentDetails:Object.fromEntries(Object.entries(st.equipment).map(([slot,id])=>[slot,displayGear(slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?getGear(st.equipment.rightHand):effectiveGear(c,slot,id))])),equipmentSlots:Object.entries(st.equipment).map(([slot,id])=>({slot,label:S.slots[slot],id,name:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?getGear(st.equipment.rightHand).name+'（両手装備で使用中）':effectiveGear(c,slot,id).name,occupiedBy:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?'rightHand':null})),activeSkillNames:st.activeSkills.map(id=>skills[id]),weaponName:getGear(c.weapon).name,armorName:getGear(c.armor).name,accessoryNames:['accessory1','accessory2'].map(slot=>getGear(c[slot]||defaultAccessory(c,slot)).name),skillName:st.activeSkills.map(id=>skills[id]).join(' / '),effectNames:st.effects.map(id=>skills[id]||'侵入')};}),
       inventoryOverflow:inventoryOverflow(s),warehouseView:warehouseView(s),guildAvailable:s.phase==='town'&&s.location==='astaris',hasPorter:hasPorter(s)};
   }
@@ -728,6 +792,8 @@ const Campaign = (() => {
     demand(!!getPlace(s.location),'拠点');
     for(const key of ['gold','xp','hours','sequence','boardRound','completed'])demand(integer(s[key]),key);
     demand(integer(s.level,1),'旧隊レベル');demand(validSelection(s.selected),'編成');
+    demand(s.worldTime===undefined||integer(s.worldTime),'世界時刻');
+    if(s.standaloneEvents!==undefined){demand(record(s.standaloneEvents)&&integer(s.standaloneEvents.epoch)&&record(s.standaloneEvents.events),'単発依頼予定');for(const q of STANDALONE_QUESTS){const event=s.standaloneEvents.events[q.eventId];demand(record(event)&&['available','accepted','completed','failed','missed'].includes(event.status),'単発依頼状態');}}
     demand(s.battleSelected===undefined?s.selected.length<=BATTLE_LIMIT:Array.isArray(s.battleSelected)&&s.battleSelected.length<=BATTLE_LIMIT&&new Set(s.battleSelected).size===s.battleSelected.length&&s.battleSelected.every(id=>s.selected.includes(id)),'戦闘出場者');
     if(version===1)demand(record(s.inventory)&&Object.keys(s.inventory).length===2&&integer(s.inventory.potion,0,99)&&integer(s.inventory.ether,0,99),'アイテム');
     else demand(!Object.hasOwn(s,'inventory'),'旧共通在庫と個人所持の重複');
@@ -975,6 +1041,12 @@ const Campaign = (() => {
     delete s.inventory;s.version=VERSION;
     if(s.rollback)migrateInventory(s.rollback);
   }
+  function migrateWorldEvents(s){
+    if(!Number.isSafeInteger(s.worldTime))s.worldTime=s.hours;
+    if(!s.standaloneEvents)s.standaloneEvents=freshWorldEvents(s.worldTime);
+    if(s.rollback)migrateWorldEvents(s.rollback);
+    syncWorld(s);
+  }
   function deserialize(input) {
     let envelope;
     if(typeof input==='string'){demand(Buffer.byteLength(input,'utf8')<=MAX_SAVE_BYTES,'保存サイズ');try{envelope=JSON.parse(input);}catch(e){throw new Error('セーブJSONを読み取れません');}}
@@ -1101,13 +1173,14 @@ const Campaign = (() => {
       loaded.warehouse??={};loaded.updatePlanRevision=1;loaded.inventoryRevision=1;
       note(loaded,'アスタリスに戻りました。受注中の依頼と荷物を解除し、ギルドに新たな候補者が加わりました。');
     }
+    migrateWorldEvents(loaded);
     const checked=validate(loaded);if(!checked.ok)throw new Error(checked.error);
     if(loaded.battle)B.trimLog(loaded.battle);return loaded;
   }
   const {purchaseQuote,buyInventory,purchasePlan,buyPlan,saleQuote,sellInventory,saleAvailable}=require('./shop-transactions.js')({I,S,clone,record,integer,getGear,template,shop,equipment,eligibility,stats,syncCharacter,validate,inventoryToken,inventoryCapacity,commitInventory,note,createHash});
   const {warehouseQuote,warehouseAction,warehouseView}=require('./warehouse.js')({I,getGear,items,template,inventoryToken,commitInventory,inventoryCapacity,note});
-  return {warehouseQuote,warehouseAction,inventoryCapacity,VERSION,MAX_SAVE_BYTES,equipment,slots:S.slots,locations,gear,items,materials,provisional,create,createLegacy,view,board,destinations,hasPorter,stats,
-    select,accept,depart,travel,deploy,deployment_assign,chooseFormation,deployment_reset,begin,act,retreat,finishBattle,rest,onward,forecast,arrive,acknowledge,
+  return {warehouseQuote,warehouseAction,inventoryCapacity,VERSION,MAX_SAVE_BYTES,equipment,slots:S.slots,locations,gear,items,materials,provisional,create,createLegacy,view,board,scenarioAftermath,scenarioStages,destinations,hasPorter,stats,
+    select,accept,depart,travel,deploy,deployment_assign,chooseFormation,deployment_reset,begin,act,retreat,finishBattle,rest,waitForEvent,onward,forecast,arrive,acknowledge,
     completeQuest,eligibility,shop,quote,buyGear,buyItem,inn,useItem,inventoryTotals,inventoryToken,inventoryQuote,inventoryAction,inventoryView,purchaseQuote,buyInventory,purchasePlan,buyPlan,saleQuote,sellInventory,saleAvailable,allocate,allocateBatch,allocationToken,previewGear,trial,trialAct,validate,serialize,deserialize};
 })();
 module.exports = Campaign;

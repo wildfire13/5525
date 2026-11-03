@@ -54,9 +54,10 @@ func run():
 	hud.choose_command("items");await settle();hud.choose_command("items");await settle();check(node("BattleItemList")==null,"second item command closes list")
 	hud.choose_command("skill");await settle();hud.choose_command("attack");await settle();check(node("BattleSkillList")==null and node("BattleItemList")==null,"another command closes both lists")
 	hud.choose_command("skill");await settle()
-	var description=node("BattleSkill_archer").tooltip_text
-	check(description.begins_with("[スナイプLv1]") and description.contains("消費MP:") and description.contains("対象:") and description.contains("スキル効果:"),"skill tooltip follows requested four-part template")
-	var tooltip=node("BattleSkill_archer")._make_custom_tooltip(description.repeat(8));root.add_child(tooltip);await frames()
+	var skill_button=node("BattleSkill_scout")
+	var description=skill_button.tooltip_text
+	check(description.begins_with("[奇襲Lv1]") and description.contains("消費MP:") and description.contains("対象:") and description.contains("スキル効果:"),"skill tooltip follows requested four-part template")
+	var tooltip=skill_button._make_custom_tooltip(description.repeat(8));root.add_child(tooltip);await frames()
 	check(tooltip.autowrap_mode==TextServer.AUTOWRAP_WORD_SMART and tooltip.size.x<=520 and tooltip.size.y>50,"skill tooltip wraps lengthy text without ellipsis");tooltip.queue_free()
 	var porter=fixtures.porter
 	# Keep a legal save while filling all three basic formation cells.

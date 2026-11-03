@@ -1,4 +1,5 @@
 extends RefCounted
+const ElementBadges=preload("res://element_badges.gd")
 ## State-focused display. Choices, predictions and results remain engine-owned.
 var ui
 var middle: Control
@@ -185,7 +186,10 @@ func render():
 	if a.get("side")=="ally":
 		var hero=ui.row(left_info);ui.portrait(hero,a,true,48);l(hero,str(a.name),true)
 		var health=l(left_info,"HP %d/%d   MP %d/%d" % [a.hp,a.max,a.mp,a.maxMp]);ui.emphasize_low_hp(health,a)
-		l(left_info,"%s / SPD %s / 属性 %s" % [ui.pages.defense_profile(a),a.get("agi",0),ui.pages.element_name(a.get("element","none"))])
+		var battle_stats=ui.row(left_info);ElementBadges.add(battle_stats,str(a.get("element","none")),28)
+		var defender=l(battle_stats,"%s / SPD %s / 属性 %s" % [ui.pages.defense_profile(a),a.get("agi",0),ui.pages.element_name(a.get("element","none"))])
+		defender.tooltip_text="キャラクター属性は受ける属性攻撃の相性判定に使用。"
+		ui.pages.elemental_combat_line(left_info,a)
 		if a.has("carriedWeight"):
 			var carried=float(a.get("carriedWeight",0))+float(a.get("fallenWeightShare",0));var limit=float(a.get("weightLimit",0))
 			l(left_info,"Wt %.1f / STR上限 %.1f%s" % [carried,limit,"（超過: SPD 50%）" if a.get("overburdened",false) else ""])
@@ -771,7 +775,10 @@ func render_person_content(parent,u: Dictionary,expanded:=false):
 		l(parent,"予告："+str(u.intent.get("name","")))
 		l(parent,intent_target_text(u.intent))
 	var stats=character.get("stats",{});var breakdown=stats.get("attributeBreakdown",{})
-	l(parent,"%s / 属性 %s" % [ui.pages.defense_profile(u),ui.pages.element_name(u.get("element","none"))])
+	var inspected_stats=ui.row(parent);ElementBadges.add(inspected_stats,str(u.get("element","none")),24)
+	var defense=l(inspected_stats,"%s / 属性 %s" % [ui.pages.defense_profile(u),ui.pages.element_name(u.get("element","none"))])
+	defense.tooltip_text="キャラクター属性は受ける属性攻撃の相性判定に使用。"
+	ui.pages.elemental_combat_line(parent,u)
 	if u.has("carriedWeight"):
 		var carried=float(u.get("carriedWeight",0))+float(u.get("fallenWeightShare",0));var limit=float(u.get("weightLimit",0))
 		l(parent,"Wt %.1f / STR上限 %.1f%s" % [carried,limit,"（超過: SPD 50%）" if u.get("overburdened",false) else ""])

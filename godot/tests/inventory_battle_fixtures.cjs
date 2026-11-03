@@ -2,6 +2,9 @@
 const C=require('../../native/campaign.js'),assert=require('node:assert/strict');
 function make(actor){
  const s=require('../../native/test-current-fixture.cjs')();s.characters.guard.leftHand='empty-leftHand';assert(C.inventoryAction(s,'guard','ether','transfer','porter',1,null,C.inventoryToken(s)));
+ // The archer case compares another owner's stock. Keep it one-handed so
+ // the empty off-hand grants item-use while the bow remains correctly two-handed.
+ if(actor==='archer'){s.characters.archer.weapon='dagger-wood';s.characters.archer.leftHand='empty-leftHand';}
  assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));
  const b=s.battle;for(const u of b.units)u.next=1000;
  const a=b.units.find(u=>u.id===actor);a.next=1;b.actor=actor;

@@ -69,6 +69,8 @@ func _ready():
 	for e in s.se: sounds[e.id]=base.path_join("se").path_join(e.filename)
 	quest_slots = JSON.parse_string(FileAccess.get_file_as_string("res://assets/quest_music.json")).tracks
 	for track in quest_slots:bgm_catalog[track.id]=track.path
+	var trial_music=JSON.parse_string(FileAccess.get_file_as_string("res://assets/music/trial_overrides.json"))
+	for track in trial_music.get("tracks",[]):bgm_catalog[str(track.id)]=str(track.path)
 func load_wav(path: String, loop := false) -> AudioStreamWAV:
 	if path.is_empty() or not FileAccess.file_exists(path): return null
 	var key = path + str(loop)
@@ -80,6 +82,17 @@ func load_wav(path: String, loop := false) -> AudioStreamWAV:
 		stream.loop_end=int(round(stream.get_length()*stream.mix_rate))
 	streams[key]=stream
 	return stream
+func load_bgm(path: String,loop:=true) -> AudioStream:
+	if path.get_extension().to_lower()=="mp3":
+		var key=path+str(loop)
+		if streams.has(key):return streams[key]
+		var stream=load(path) as AudioStreamMP3
+		if stream!=null:
+			stream.loop=loop
+			if loop:stream.loop_offset=0.0
+			streams[key]=stream
+		return stream
+	return load_wav(path,loop)
 func quest_stream(track: Dictionary) -> AudioStreamWAV:
 	var stream=load_wav(str(bgm_catalog.get(track.id,"")),true)
 	if stream!=null:
@@ -127,7 +140,7 @@ func sync(d: Dictionary) -> void:
 	if phase=="arrival": key=str(c.get("journey",{}).get("destination",key))
 	if key != current_bgm:
 		bgm.stop();current_bgm=key
-		bgm.stream=load_wav(str(bgm_catalog.get(key,"")),true)
+		bgm.stream=load_bgm(str(bgm_catalog.get(key,"")),true)
 		if bgm.stream: bgm.play()
 	bgm.stream_paused=not audible("bgm")
 	if on_road:

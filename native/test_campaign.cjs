@@ -86,11 +86,11 @@ test('deployment can reset without rerolling enemies or spending resources',()=>
 });
 test('quest failure restores snapshot from immediately before acceptance',()=>{
   const s=require('./test-current-fixture.cjs')();C.select(s,['porter']);const before=clone(s);acceptWithPorter(s,C.board(s)[0].id);C.depart(s,'east');C.travel(s,'short',random());fight(s,true);assert.equal(s.result.outcome,'failed');assert.equal(s.result.restored,true);C.acknowledge(s);
-  for(const key of ['gold','xp','level','hours','selected','characters','inventory','sequence','completed','boardRound','location'])assert.deepEqual(s[key],before[key],key);okay(s);
+  for(const key of ['gold','xp','level','hours','selected','characters','inventory','sequence','completed','boardRound','location'])assert.deepEqual(s[key],before[key],key);assert(s.worldTime>before.worldTime,'world calendar continues while failed trip restores gameplay state');okay(s);
 });
 test('questless failure restores departure snapshot',()=>{
   const s=require('./test-current-fixture.cjs')();C.select(s,['porter']);const before=clone(s);C.depart(s,'north');C.travel(s,'short',random());fight(s,true);assert.equal(s.result.outcome,'failed');C.acknowledge(s);
-  for(const key of ['gold','xp','level','hours','selected','characters','inventory','sequence','completed','location'])assert.deepEqual(s[key],before[key],key);okay(s);
+  for(const key of ['gold','xp','level','hours','selected','characters','inventory','sequence','completed','location'])assert.deepEqual(s[key],before[key],key);assert(s.worldTime>before.worldTime,'world calendar continues while questless trip restores gameplay state');okay(s);
 });
 test('R09 shops stock their source-map categories; accessories belong to North',()=>{
   assert.ok(C.shop(town('east')).every(g=>['weapon','leftHand'].includes(g.slot)));assert.ok(C.shop(town('west')).every(g=>['armor','head','lowerBody','feet'].includes(g.slot)));
@@ -213,7 +213,8 @@ test('normal and questless retreats restore pretrip state and cannot double appl
     assert.equal(s.result.gold,0);assert.equal(s.result.xp,0);okay(s);
     const finished=clone(s);assert.equal(C.retreat(s),false);assert.equal(C.finishBattle(s),false);assert.deepEqual(s,finished);
     assert(C.acknowledge(s));
-    for(const key of Object.keys(before).filter(k=>k!=='history'))assert.deepEqual(s[key],before[key],key);
+    for(const key of Object.keys(before).filter(k=>!['history','worldTime','standaloneEvents'].includes(k)))assert.deepEqual(s[key],before[key],key);
+    assert(s.worldTime>before.worldTime,'world calendar advances through retreat');
     okay(s);
   }
 });
@@ -227,7 +228,8 @@ test('R04 retained legacy porter-only stalemate keeps C01 and can retreat after 
   assert.equal(s.battle.result,null);okay(s);s=C.deserialize(C.serialize(s));
   for(const enemy of s.battle.units.filter(u=>u.side==='enemy'))assert.equal(B.legal(s.battle,'attack',enemy.id),false);
   assert(C.retreat(s));assert(C.acknowledge(s));
-  for(const key of Object.keys(before).filter(k=>k!=='history'))assert.deepEqual(s[key],before[key],key);
+  for(const key of Object.keys(before).filter(k=>!['history','worldTime','standaloneEvents'].includes(k)))assert.deepEqual(s[key],before[key],key);
+  assert(s.worldTime>before.worldTime,'world calendar advances through legacy retreat');
   okay(s);
 });
 
@@ -266,7 +268,8 @@ test('village-origin failure and result reload restore origin, not attempted cit
     assert(C.depart(s,'astaris'));assert(C.travel(s,'short',random()));fight(s,true);
     assert.equal(s.result.outcome,'failed');assert.equal(s.location,id);
     s=C.deserialize(C.serialize(s));assert(C.acknowledge(s));assertLocalTown(s,id);
-    for(const key of Object.keys(before).filter(k=>k!=='history'))assert.deepEqual(s[key],before[key],key);
+    for(const key of Object.keys(before).filter(k=>!['history','worldTime','standaloneEvents'].includes(k)))assert.deepEqual(s[key],before[key],key);
+    assert(s.worldTime>before.worldTime,'world calendar advances through village-origin failure');
   }
 });
 test('inn charges once for selected party, revives KO and honors equipment/growth maxima',()=>{
@@ -324,6 +327,7 @@ test('accepted quest inn cost and recovery roll back exactly on expedition failu
   assert.deepEqual(s.rollback,accepted.rollback);assert.deepEqual(s.activeQuest,accepted.activeQuest);okay(s);
   s=C.deserialize(C.serialize(s));assert(C.depart(s,'east'));assert(C.travel(s,'short',random()));fight(s,true);
   assert.equal(s.result.outcome,'failed');assert(C.acknowledge(s));
-  for(const key of Object.keys(before).filter(k=>k!=='history'))assert.deepEqual(s[key],before[key],key);okay(s);
+  for(const key of Object.keys(before).filter(k=>!['history','worldTime','standaloneEvents'].includes(k)))assert.deepEqual(s[key],before[key],key);
+  assert(s.worldTime>before.worldTime,'world calendar advances while accepted-quest rollback restores gameplay state');okay(s);
 });
 console.log(`\n${passed} campaign checks passed (actual Battle actions; no GUI or final-balance claim).`);
