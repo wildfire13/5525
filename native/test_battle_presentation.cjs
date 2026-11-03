@@ -230,7 +230,8 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
   const frames=drain(p),attack=frames.find(f=>f.phase==='action'&&f.kind==='attack'&&f.actor_id===enemy.id);
   assert(attack,'canonical enemy step exposes reserved attack after player action');
   const visual=clone(attack.attack_visual);
-  assert.deepEqual(visual,{source_cell:25,target_cell:24,target_unit_id:occupied?'archer':null,targeting:'reserved_cell',weapons:[],abstract:true});
+  assert.equal(visual.source_cell,25);assert.equal(visual.target_cell,24);assert.equal(visual.target_unit_id,occupied?'archer':null);assert.equal(visual.targeting,'reserved_cell');
+  assert.equal(visual.abstract,false,'enemy now has a real equipment loadout');assert.equal(visual.weapons[0].itemId,'sword-wood');
   assert.notEqual(visual.target_cell,guard.pos,'never follows the old target id after it moved');
   const hits=frames.filter(f=>f.phase==='hurt');
   if(occupied)assert.equal(hits[0].unit_id,'archer');else assert.equal(hits.length,0,'empty reservation is a miss, never a success flash');

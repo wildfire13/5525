@@ -61,7 +61,9 @@ func run():
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true;await settle();store=game.engine.debug_store;db_path=ProjectSettings.globalize_path(store.PATH)
- check(store!=null and store.active,"debug build starts local recorder without opening window")
+ var store_started=store!=null and store.active
+ var store_detail="debug=%s store=%s active=%s status=%s env_disabled=%s window=%s" % [OS.is_debug_build(),store!=null,store.active if store!=null else false,store.status if store!=null else "missing",store.disabled_by_environment if store!=null else false,game.debug_view.window!=null]
+ check(store_started and game.debug_view.window==null,"debug build starts local recorder without opening window "+store_detail)
  check(game.debug_view.window==null,"persistent collection does not create window")
  await drain();read_db();check(readback.sessions.any(func(s):return s.session==store.session and s.clean_closed==0),"active session stored as not cleanly closed")
  var seed=(await request({"op":"campaign_save"},"campaign_save")).data

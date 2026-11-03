@@ -17,7 +17,7 @@ for(const side of ['ally','enemy'])for(const level of [1,2,3]){
 }
 for(const side of ['ally','enemy'])for(const def of [0,7,100]){
  const a=unit('a',side,21),b=unit('b',side==='ally'?'enemy':'ally',22);b.def=def;
- const s={units:[a,b],log:[]},prediction=B.attackPreview(s,a,b);check(prediction.damage===Math.max(1,23-def),'DEF preview '+side+'/'+def);
+ const s={units:[a,b],log:[]},prediction=B.attackPreview(s,a,b);check(prediction.damage===Math.max(0,23-def),'DEF preview '+side+'/'+def);
  B.receive(s,b,23);check(100-b.hp===prediction.damage,'DEF execution matches '+side+'/'+def);
 }
 {
@@ -25,7 +25,7 @@ for(const side of ['ally','enemy'])for(const def of [0,7,100]){
  a.pos=22;a.next=0;a.skillSources=[{id:'scout',level:3}];target.pos=2;target.hp=100;target.def=7;target.next=1;porter.pos=0;porter.next=1;
  s.deploying=false;B.plan(s,a);s.actor=a.id;
  check(a.intent.kind==='skill'&&a.intent.target===target.id,'enemy plans equipment-Lv3 vertical ambush');
- check(B.stepEnemy(s)&&a.pos===12&&target.hp===84,'enemy vertical execution lands adjacent and subtracts ally DEF');
+ const expected=Math.max(0,a.atk-target.def);check(B.stepEnemy(s)&&a.pos===12&&target.hp===100-expected,'enemy vertical execution lands adjacent and subtracts ally DEF');
 }
 {
  const a=unit('a','enemy',21),b=unit('b','ally',22);b.def=7;b.guard=true;
@@ -102,9 +102,9 @@ try{
 {
  const s=require('./test-current-fixture.cjs')();check(Object.values(s.characters).every(c=>c.def===0),'all new character DEF zero');
  s.characters.guard.def=5;C.depart(s,'east');C.travel(s,'safe',()=>.0);
- check(s.battle.units.filter(u=>u.side==='enemy').every(u=>u.def===0),'all enemy DEF defaults zero');
- check(s.battle.units.find(u=>u.id==='guard').def===5,'character DEF copied to combat');
- const loaded=C.deserialize(C.serialize(s));check(loaded.characters.guard.def===5&&loaded.battle.units.find(u=>u.id==='guard').def===5,'positive DEF roundtrip');
+ const enemies=s.battle.units.filter(u=>u.side==='enemy');check(enemies.every(u=>Number.isFinite(u.def)&&u.def>=0&&u.equipment&&u.attackWeapons?.length),'enemy gear supplies combat DEF');check(enemies.some(u=>u.def>0),'equipped enemies receive provisional DEF');
+ const expectedGuardDef=C.stats(s.characters.guard).def;check(s.battle.units.find(u=>u.id==='guard').def===expectedGuardDef&&expectedGuardDef>5,'character and equipped DEF combine in combat');
+ const loaded=C.deserialize(C.serialize(s));check(loaded.characters.guard.def===5&&loaded.battle.units.find(u=>u.id==='guard').def===expectedGuardDef,'positive and equipment DEF roundtrip');
 }
 {
  const old=JSON.parse(fs.readFileSync(require.resolve('./test_fixtures/campaign-a51a773-battle.json'),'utf8')),bytes=JSON.stringify(old),s=C.deserialize(old);

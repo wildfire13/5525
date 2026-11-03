@@ -27,7 +27,9 @@ func run():
 	check(heard.size()==1 and audio.voice_queue.size()==1,"damage then incap queued without overlap")
 	check(duration>audio.voice_stream(uid,"damage").get_length()+audio.voice_stream(uid,"incapacitated").get_length(),"phase waits for both clips")
 	check(audio.phase(packet)==0 and heard.size()==1,"repeated packet never speaks twice")
-	await create_timer(duration+.1).timeout
+	# Leave scheduling headroom for the dummy audio driver while still checking
+	# that both clips finish and playback fully drains.
+	await create_timer(duration+.5).timeout
 	check(heard.size()==2 and heard[1][1]=="incapacitated" and not audio.voice.playing,"incap plays after damage and completes")
 	audio.muted.voice=true;audio.apply_levels();var before=heard.size()
 	audio.queue_voices([{"character_id":uid,"cue":"attack"}]);check(heard.size()==before and audio.voice_queue.is_empty(),"mute prevents start and queue")

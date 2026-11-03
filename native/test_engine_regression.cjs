@@ -34,7 +34,13 @@ function historicalText(file, name) {
   if (!correction) return current;
   if (current.split(correction.current).length !== 2)
     throw Error('Expected exactly one documented b143630 correction in ' + name);
-  return current.replace(correction.current, correction.original);
+  let historical=current.replace(correction.current, correction.original);
+  for(const edit of correction.additional||[]) {
+    if(historical.split(edit.current).length!==2)
+      throw Error('Expected exactly one documented downstream correction in '+name);
+    historical=historical.replace(edit.current,edit.original);
+  }
+  return historical;
 }
 const adaptPaths = text => text.replaceAll("require('../src/battle.js')", "require('../battle.js')")
   .replaceAll("require('../src/journey.js')", "require('../journey.js')")

@@ -647,7 +647,7 @@ class CampaignApp(JourneyApp):
             return
         price = quote['price']
         self.label(f'宿屋 / パーティ全員で{price}G（仮料金）', 20)
-        self.label('編成中の全員のHP・MPを上限まで回復します。戦闘不能の仲間も回復します。')
+        self.label('編成中の生存者はHP・MPを上限まで回復します。戦闘不能は宿屋でのみ回復します。')
         self.label('控えの仲間は対象外。時間は経過しません（試作仕様）。', color=MUTED)
         self.label(self.party_text(), 12)
         if not quote.get('needsRecovery'):
@@ -727,7 +727,7 @@ class CampaignApp(JourneyApp):
             self.label('街道の野営地 / あと一区間', 17)
             row = tk.Frame(self.panel, bg=BG)
             row.pack(anchor='w')
-            self.row_button(row, '休息済み' if journey.get('rested') else '2時間休む: HP+60 / MP+2',
+            self.row_button(row, '休息済み' if journey.get('rested') else '2時間休む: 生存者HP+60 / MP+2',
                             lambda: self.deadline('rest'), disabled=journey.get('rested', False))
             self.row_button(row, '先へ進む', lambda: self.act('onward'))
         else:
@@ -853,8 +853,8 @@ class CampaignApp(JourneyApp):
 
     def member_stats(self, member):
         stats = member.get('stats') or member
-        return f'STR {stats.get("str", 0)} / INT {stats.get("int", 0)} / AGI {stats.get("agi", 0)}' \
-               f' / ATK {stats.get("atk", 0)} / 射程 {stats.get("reach", 0)}'
+        return f'STR {stats.get("str", 0)} / INT {stats.get("int", 0)} / SPD {stats.get("speed", stats.get("agi", 0))}' \
+               f' / ATK 物{stats.get("atk", 0)} 火{stats.get("atkFire", 0)} 水{stats.get("atkWater", 0)} 地{stats.get("atkEarth", 0)}'
 
     def render_party(self):
         guild = self.campaign.get('guildAvailable', False)
@@ -981,8 +981,8 @@ class CampaignApp(JourneyApp):
         self.render()
 
     def stats_summary(self, stats):
-        return f'HP上限 {stats.get("max", 0)} / MP上限 {stats.get("maxMp", 0)} / ATK {stats.get("atk", 0)}' \
-               f' / 射程 {stats.get("reach", 0)} / 行動速度 {stats.get("speed", stats.get("agi", 0))}'
+        return f'HP上限 {stats.get("max", 0)} / MP上限 {stats.get("maxMp", 0)} / ATK 物{stats.get("atk", 0)} 火{stats.get("atkFire", 0)} 水{stats.get("atkWater", 0)} 地{stats.get("atkEarth", 0)}' \
+               f' / DEF 物{stats.get("def", 0)} 火{stats.get("defFire", 0)} 水{stats.get("defWater", 0)} 地{stats.get("defEarth", 0)} / 射程 {stats.get("reach", 0)} / SPD {stats.get("speed", stats.get("agi", 0))}'
 
     def preview_gear(self, uid, gear_id):
         result = self.request(op='campaign', action='previewGear', args=[uid, gear_id, getattr(self,'shop_slot',None)])
@@ -1065,6 +1065,10 @@ class CampaignApp(JourneyApp):
             self.row_button(row, name, lambda item=iid, uid=member['id']: self.act('useItem', item, uid), disabled=disabled)
         self.label(f'{member["name"]}: HP {member.get("hp", 0)}/{stats.get("max", 0)} / '
                    f'MP {member.get("mp", 0)}/{stats.get("maxMp", 0)}', 10, color=MUTED)
+        carried=(self.campaign.get('inventoryByCharacter',{}).get(member['id'],{}).get('weight') or {})
+        weight=carried.get('total')
+        self.label(f'Wt {weight if weight is not None else carried.get("known", 0)} / STR {stats.get("str", 0)}' +
+                   ('（超過中: SPD 50%）' if carried.get('total') is not None and carried.get('total')>stats.get('str',0) else ''), 10, color=MUTED)
 
     def select_item_member(self, uid):
         self.item_uid = uid

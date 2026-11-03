@@ -36,12 +36,12 @@ func run():
 	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var manifest=JSON.parse_string(FileAccess.get_file_as_string("res://assets/facility_npcs/manifest.json"));var total=0
-	check(manifest is Array and manifest.size()==7,"NPC manifest registers exactly seven supplied originals")
+	check(manifest is Array and manifest.size()==9,"NPC manifest registers six facility originals and three guild staff portraits")
 	for entry in manifest:
 		var path=str(entry.path);var bytes=FileAccess.get_file_as_bytes(path);total+=bytes.size()
 		var image=Image.new();var decoded=image.load_png_from_buffer(bytes)
 		check(FileAccess.get_sha256(path)==entry.sha256 and decoded==OK and image.get_size()==Vector2i(entry.width,entry.height) and image.get_format()==Image.FORMAT_RGBA8,"NPC original SHA256 dimensions and RGBA "+path.get_file())
-	check(total==14539472,"NPC original seven PNG files retain exact delivered total byte count")
+	check(total==18834299,"NPC six existing and three guild portrait PNG files retain exact byte count")
 	var art=game.pages.facility_art;var seed=await saved();seed.state.gold=500;seed.state.characters.guard.inventory={"spear-wood":3,"potion":2}
 	var isolated=preload("res://facility_npc.gd").new();var expected=RandomNumberGenerator.new();isolated.rng.seed=5525;expected.seed=5525;var observed={};var exact=true
 	var background_state=art.rng.state;var campaign_before=await saved()
@@ -53,9 +53,19 @@ func run():
 	check(art.rng.state==background_state and (await saved())==campaign_before,"NPC independent draws leave background and exact game save unchanged")
 	for facility in ["armor","item","accessory","inn","guild"]:
 		var state=isolated.rng.state;isolated.sync(facility)
-		check(isolated.selected_path==isolated.ROOT+facility+".png" and isolated.rng.state==state,"NPC fixed facility uses no random draw "+facility)
+		if facility=="guild":
+			var selected=isolated.selected_path.get_file();var after_draw=isolated.rng.state
+			isolated.sync(facility)
+			check(isolated.CATALOG.guild.has(selected) and isolated.rng.state==after_draw,"NPC guild portrait draws from catalog once and remains fixed within visit")
+		else:
+			check(isolated.selected_path==isolated.ROOT+facility+".png" and isolated.rng.state==state,"NPC fixed facility uses no random draw "+facility)
 		isolated.reset()
 	isolated.sync("departure_map");check(isolated.texture==null and isolated.selected_path.is_empty(),"NPC has no departure-map character")
+	isolated.rng.seed=5525;var guild_counts={}
+	for i in range(600):
+		isolated.reset();isolated.sync("guild");guild_counts[isolated.selected_path.get_file()]=guild_counts.get(isolated.selected_path.get_file(),0)+1
+	var fixed_guild=isolated.selected_path;isolated.sync("guild")
+	check(guild_counts.size()==3 and guild_counts.values().all(func(n):return n>0) and fixed_guild==isolated.selected_path,"Guild draws all three portraits across visits and stays fixed within a visit")
 	var cases=[["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"]]
 	for dims in [Vector2i(1920,1080)]:
 		root.size=dims
@@ -72,7 +82,11 @@ func run():
 			game.navigate("hub");await settle()
 			check(art.npc.selected_path.is_empty() and art.npc.texture==null and art.npc.visit_key.is_empty(),"NPC leaves with facility "+str(spec)+str(dims.x))
 			await enter_facility(spec[1]);await settle()
-			check((art.npc.rng.state!=state if spec[2]=="weapon" else art.npc.rng.state==state and art.npc.selected_path==path) and (await saved())==before,"NPC reentry redraws weapon only and preserves game save "+str(spec)+str(dims.x))
+			var reentry_ok=false
+			if spec[2]=="weapon":reentry_ok=art.npc.rng.state!=state
+			elif spec[2]=="guild":reentry_ok=art.npc.rng.state!=state and art.npc.CATALOG.guild.has(art.npc.selected_path.get_file())
+			else:reentry_ok=art.npc.rng.state==state and art.npc.selected_path==path
+			check(reentry_ok and (await saved())==before,"NPC reentry redraws only random facilities and preserves game save "+str(spec)+str(dims.x))
 		var east=seed.duplicate(true);east.state.location="east"
 		await game.update({"op":"campaign_load","data":east});await enter_facility("shop");await settle()
 		var path=art.npc.selected_path;var state=art.npc.rng.state;var before=await saved()

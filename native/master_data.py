@@ -28,7 +28,7 @@ REFERENCE_FIELDS = FIELDS+('legacySkill',)
 SLOTS = {'weapon','armor','head','upperBody','lowerBody','rightHand','leftHand','feet','accessory1','accessory2'}
 KINDS = {'accessory','armor','book','bow','dagger','empty','fist','greatsword','hammer','other','rope','shield','spear','staff','sword'}
 LEVELLED = {'itemUse','scout','archer','legSweep','grapple','poleVault','secretPouch','holePouch'}
-NUMERIC_FIELDS = {'atk','hp','mp','str','int','agi','reach','weight'}
+NUMERIC_FIELDS = {'atk','atkFire','atkWater','atkEarth','def','defFire','defWater','defEarth','hp','mp','str','int','agi','reach','weight'}
 SIGNED_FIELDS = {'agiBonus'}
 
 def number(v, minimum=None):

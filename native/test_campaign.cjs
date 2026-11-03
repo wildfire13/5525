@@ -11,14 +11,21 @@ let passed=0;
 function test(name,fn){try{fn();passed++;console.log('PASS '+name);}catch(e){console.error('FAIL '+name);throw e;}}
 function random(seed=5525){return ()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);}
 function okay(s){const result=C.validate(s);assert.equal(result.ok,true,result.error);assert.deepEqual(C.deserialize(C.serialize(s)),clone(s));}
+function deployHealthy(s){
+  if(s.selected.length<=s.battle.units.filter(u=>u.side==='ally').length)return;
+  const b=s.battle,chosen=s.selected.filter(id=>s.characters[id].hp>0).sort((a,b)=>s.characters[b].hp/C.stats(s.characters[b]).max-s.characters[a].hp/C.stats(s.characters[a]).max).slice(0,b.battleLimit||5),keep=new Set(chosen);
+  for(const u of [...b.units.filter(u=>u.side==='ally')])if(!keep.has(u.id))assert(C.deployment_assign(s,u.id,null));
+  for(const id of chosen){if(b.units.some(u=>u.side==='ally'&&u.id===id))continue;const occupied=new Set(b.units.filter(u=>u.hp>0).map(u=>u.pos)),pos=Array.from({length:50},(_,p)=>p).find(p=>B.boardOf(p)==='ally'&&!occupied.has(p));assert.notEqual(pos,undefined);assert(C.deployment_assign(s,id,pos));}
+}
 function fight(s,guardOnly=false){
-  assert.equal(C.begin(s),true);okay(s);
+  deployHealthy(s);assert.equal(C.begin(s),true);okay(s);
   for(let n=0;n<300&&!s.battle.result;n++){
     const copy=clone(s.battle),actor=copy.units.find(u=>u.id===copy.actor);B.plan(copy,actor);let {kind,target}=actor.intent;
     if(guardOnly){kind='guard';target=null;}
-    else if(actor.job==='porter'){
-      const hurt=copy.units.filter(u=>u.side==='ally'&&u.hp>0&&u.hp<30).sort((a,b)=>a.hp-b.hp).find(u=>B.legal(copy,'item',u.id));
-      if(hurt){kind='item';target=hurt.id;}else{kind=B.legal(copy,'skill',actor.id)?'skill':'guard';target=kind==='skill'?actor.id:null;}
+    else {
+      const hurt=copy.units.filter(u=>u.side==='ally'&&u.hp>0&&u.hp<u.max*.5).sort((a,b)=>a.hp/a.max-b.hp/b.max).find(u=>B.legal(copy,'item',u.id));
+      if(hurt){kind='item';target=hurt.id;}
+      else if(actor.job==='porter'){kind=B.legal(copy,'skill',actor.id)?'skill':'guard';target=kind==='skill'?actor.id:null;}
     }
     assert.equal(C.act(s,kind,target),true,`${kind} ${target}`);
   }
@@ -57,10 +64,9 @@ test('public-operation delivery accumulates separate battle loot/XP, cannot doub
   const s=require('./test-current-fixture.cjs')();trip(s,'east',{rest:false});assert.equal(s.result.outcome,'success');assert.equal(s.result.gold,180);assert.equal(s.gold,180+16+180);assert.equal(s.characters.guard.xp,40+100);assert.equal(s.xp,0);
   assert.equal(C.arrive(s),false);assert.equal(C.finishBattle(s),false);assert.equal(s.completed,1);assert.equal(C.acknowledge(s),true);assert.equal(C.acknowledge(s),false);assert.ok(C.board(s).length);okay(s);
 });
-test('repeated quests retain gold/EXP/gear, recruit and buy again',()=>{
-  const s=require('./test-current-fixture.cjs')();trip(s,'east');assert.equal(C.acknowledge(s),true);const oldGold=s.gold;assert.equal(C.buyGear(s,'archer','bow-wood-1'),true);assert.equal(s.gold,oldGold-140);assert.equal(s.characters.archer.inventory['bow-wood'],1);
-  trip(s,'astaris',{route:'safe'});assert.equal(C.acknowledge(s),true);assert.equal(s.completed,2);assert.ok(s.characters.guard.xp>=200);assert.equal(s.xp,0);assert.equal(s.characters.archer.weapon,'bow-wood-1');
-  assert.equal(C.select(s,['guard','mage','scout','porter']),true);assert.equal(C.select(s,['guard','archer','mage','scout','porter']),true);assert.equal(s.characters.archer.weapon,'bow-wood-1');okay(s);
+test('completed quest retains loot and gear while KO members remain down away from Astaris',()=>{
+  const s=require('./test-current-fixture.cjs')(),reserves=Object.keys(s.characters).filter(id=>id.startsWith('recruit-')).slice(0,7);assert(C.select(s,[...s.selected,...reserves]));s.characters.mage.inventory.potion=1;s.characters.archer.inventory.potion=1;trip(s,'east');assert.equal(C.acknowledge(s),true);const oldGold=s.gold;assert.equal(C.buyGear(s,'archer','bow-wood-1'),true);assert.equal(s.gold,oldGold-140);assert.equal(s.characters.archer.inventory['bow-wood'],1);
+  assert.ok(s.selected.some(id=>s.characters[id].hp===0),'fallen characters stay KO after travel; only Astaris inn can restore them');assert.equal(C.view(s).inn.available,false);assert.ok(C.board(s).length);assert.ok(s.characters.guard.xp>=100);assert.equal(s.xp,0);assert.equal(s.characters.archer.weapon,'bow-wood-1');okay(s);
 });
 test('questless travel grants normal fight rewards but no delivery bonus',()=>{
   const s=require('./test-current-fixture.cjs')(),start=s.gold;trip(s,'south',{quest:false,route:'safe'});assert.equal(s.result.outcome,'travel');assert.equal(s.result.gold,0);assert.equal(s.result.xp,0);assert.equal(s.gold,start+16);assert.equal(s.characters.guard.xp,40);assert.equal(s.xp,0);assert.equal(s.completed,0);assert.equal(s.location,'south');

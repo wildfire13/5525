@@ -185,7 +185,10 @@ func render():
 	if a.get("side")=="ally":
 		var hero=ui.row(left_info);ui.portrait(hero,a,true,48);l(hero,str(a.name),true)
 		var health=l(left_info,"HP %d/%d   MP %d/%d" % [a.hp,a.max,a.mp,a.maxMp]);ui.emphasize_low_hp(health,a)
-		l(left_info,"DEF %d / 行動速度 %s" % [a.get("def",0),a.get("agi",0)])
+		l(left_info,"%s / SPD %s / 属性 %s" % [ui.pages.defense_profile(a),a.get("agi",0),ui.pages.element_name(a.get("element","none"))])
+		if a.has("carriedWeight"):
+			var carried=float(a.get("carriedWeight",0))+float(a.get("fallenWeightShare",0));var limit=float(a.get("weightLimit",0))
+			l(left_info,"Wt %.1f / STR上限 %.1f%s" % [carried,limit,"（超過: SPD 50%）" if a.get("overburdened",false) else ""])
 	bottom_commands=VBoxContainer.new();bottom_commands.name="ActorCommands";left_info.add_child(bottom_commands);
 	if not deploying:render_bottom_commands()
 	actor_box=left_info;command_box=left_info
@@ -500,6 +503,8 @@ func render_prediction(main,facts):
 		if ui.data.get("skill") in ["スタンプ","足払い"]:l(facts,"空振りでもMP1・1行動を消費")
 		if ui.data.get("skill")=="引き寄せ" and ui.preview_ready and not ui.preview.get("effectPreview",[]).any(func(e):return e.get("position")!=null):l(main,"引き寄せ先が占有中：移動なし / MP1・1行動を消費")
 	if ui.preview_ready and not ui.preview.get("cells",[]).is_empty():l(facts,("影響 %dマス / 全マスは下へ" if ui.command=="skill" else "影響 %dマス / 全マスは内訳へ") % ui.preview.cells.size())
+func weapon_power_text(weapon: Dictionary) -> String:
+	return "%s ATK 物%d / 火%d / 水%d / 地%d" % [weapon.get("name","武器"),weapon.get("atk",0),weapon.get("atkFire",0),weapon.get("atkWater",0),weapon.get("atkEarth",0)]
 func render_skill_breakdown(parent):
 	if ui.command=="return":
 		for option in ui.data.get("returnSkillset",[]):
@@ -508,7 +513,7 @@ func render_skill_breakdown(parent):
 	for hit in ui.preview.get("damagePreview",[]):
 		l(parent,"指定: %s → 予測受領者: %s / HP −%d" % [hit.get("targetName",hit.get("recipientName","")),hit.get("recipientName",""),hit.hpLoss])
 		var parts=[]
-		for weapon in hit.get("weapons",[]):parts.append("%s ATK%d" % [weapon.name,weapon.atk])
+		for weapon in hit.get("weapons",[]):parts.append(weapon_power_text(weapon))
 		l(parent," + ".join(parts)+" / 成長補正+%d" % hit.get("bonus",0))
 	if not ui.preview.get("cells",[]).is_empty():l(parent,"影響マス: "+" / ".join(ui.preview.cells.map(coord)))
 	for skill in ui.data.get("skillset",[]):
@@ -571,7 +576,7 @@ func open_action_details():
 		for hit in ui.preview.get("damagePreview",[]):
 			l(body,"指定: %s → 予測受領者: %s / 予測HP −%d" % [hit.get("targetName",hit.get("recipientName","")),hit.get("recipientName",""),hit.hpLoss],true)
 			var parts=[]
-			for weapon in hit.get("weapons",[]):parts.append("%s ATK%d" % [weapon.name,weapon.atk])
+			for weapon in hit.get("weapons",[]):parts.append(weapon_power_text(weapon))
 			l(body," + ".join(parts)+" / 成長補正+%d" % hit.get("bonus",0))
 		l(body,"影響マス: "+" / ".join(ui.preview.get("cells",[]).map(coord)))
 		l(body,"参考候補（今回の指定・実結果とは別）: "+" / ".join(ui.preview.get("targets",[])))
@@ -766,7 +771,10 @@ func render_person_content(parent,u: Dictionary,expanded:=false):
 		l(parent,"予告："+str(u.intent.get("name","")))
 		l(parent,intent_target_text(u.intent))
 	var stats=character.get("stats",{});var breakdown=stats.get("attributeBreakdown",{})
-	l(parent,"DEF %d" % u.get("def",0))
+	l(parent,"%s / 属性 %s" % [ui.pages.defense_profile(u),ui.pages.element_name(u.get("element","none"))])
+	if u.has("carriedWeight"):
+		var carried=float(u.get("carriedWeight",0))+float(u.get("fallenWeightShare",0));var limit=float(u.get("weightLimit",0))
+		l(parent,"Wt %.1f / STR上限 %.1f%s" % [carried,limit,"（超過: SPD 50%）" if u.get("overburdened",false) else ""])
 	for pair in [["str","STR","strength"],["int","INT","intelligence"],["speed","SPD（行動速度）","speed"]]:
 		var value=u.get("agi") if pair[0]=="speed" else stats.get(pair[0],u.get(pair[0]))
 		var part=breakdown.get(pair[0],{});var suffix="補正：未取得"

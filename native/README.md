@@ -79,7 +79,7 @@ python check.py
 
 元チェックアウトのコミット：`0b77f6bc3f18d02359f7376a0936ad5a8a67a173`
 
-以下は[元Webソースの固定コミット](https://github.com/wildfire13/5525/tree/0b77f6bc3f18d02359f7376a0936ad5a8a67a173/prototype/src)のハッシュです。`battle.js` と `play-log.js` はそのスナップショットですが、`journey.js` には [b143630](https://github.com/wildfire13/5525/commit/b14363029587f8f38d20421f9b862a21b0d4962d) の「ポーター必須は受注時だけ」の訂正があります。表の旧ハッシュを現行ファイルの値と混同しないでください。回帰ランナーは訂正部分だけをメモリ上で逆変換して旧原本との由来を照合し、現行仕様は意味的テストで別に確認します。手順と制限は [source_tests/README.md](source_tests/README.md)。`campaign-battle.js` は装備対応の拡張で、このハッシュ照合には含めません。
+以下は[元Webソースの固定コミット](https://github.com/wildfire13/5525/tree/0b77f6bc3f18d02359f7376a0936ad5a8a67a173/prototype/src)のハッシュです。`battle.js` と `play-log.js` はそのスナップショットですが、`journey.js` には [b143630](https://github.com/wildfire13/5525/commit/b14363029587f8f38d20421f9b862a21b0d4962d) の「ポーター必須は受注時だけ」の訂正と、今回の「野営では戦闘不能者を復帰させない」変更があります。表の旧ハッシュを現行ファイルの値と混同しないでください。回帰ランナーは記録した変更箇所だけをメモリ上で逆変換して旧原本との由来を照合し、現行仕様は意味的テストで別に確認します。手順と制限は [source_tests/README.md](source_tests/README.md)。`campaign-battle.js` は装備対応の拡張で、このハッシュ照合には含めません。
 
 | ファイル | SHA-256 |
 |---|---|

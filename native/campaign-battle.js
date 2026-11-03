@@ -17,10 +17,12 @@ const Battle = (() => {
   const snipeExtension=a=>[1,1.5,2][Math.min(3,skillLevel(a,'archer'))-1];
   function itemCount(s,a,id) {
     if(a.side==='ally'&&s.itemInventories)return s.itemInventories[a.id]?.[id]||0;
+    if(a.side==='enemy'&&a.inventory)return a.inventory[id]||0;
     return id==='ether'?(s.ethers||0):(s.potions[a.side]||0);
   }
   function consumeItem(s,a,id) {
     if(a.side==='ally'&&s.itemInventories)s.itemInventories[a.id][id]--;
+    else if(a.side==='enemy'&&a.inventory){a.inventory[id]--;return;}
     if(id==='ether')s.ethers--;else s.potions[a.side]--;
   }
   function emit(s,a,id,details={}) {
@@ -46,18 +48,19 @@ const Battle = (() => {
   // Weapon ATK excludes template ATK and growth; growth is added once after filtering.
   function reachFilteredPower(a,target,kind='attack') {
     if(a.job==='porter')return {base:0,weapons:[],bonus:0};
-    if(!a.attackWeapons)return {base:a.atk,weapons:[],bonus:0};
+    if(!a.attackWeapons)return {base:a.atk,weapons:[],bonus:0,components:{physical:a.atk,fire:a.atkFire||0,water:a.atkWater||0,earth:a.atkEarth||0}};
     const skill=kind==='skill'?activeSkill(a):null;
     const weapons=a.attackWeapons.filter(w=>skill==='spearThrow'?w.slot===selectedSkillOption(a)?.slot&&range(a,target)===4:range(a,target)<=w.reach+(skill==='archer'?snipeExtension(a):0)||(skill==='stamp'&&(w.skill==='stamp'||(a.skillSources||[]).some(source=>source.id==='stamp'&&source.slot===w.slot&&source.itemId===w.itemId))));
     const bonus=weapons.length?(a.attackBonus||0):0;
-    return {base:weapons.reduce((n,w)=>n+w.atk,0)+bonus,weapons,bonus};
+    const components={physical:weapons.reduce((n,w)=>n+w.atk,0)+bonus,fire:weapons.reduce((n,w)=>n+(w.atkFire||0),0),water:weapons.reduce((n,w)=>n+(w.atkWater||0),0),earth:weapons.reduce((n,w)=>n+(w.atkEarth||0),0)};
+    return {base:Object.values(components).reduce((n,v)=>n+v,0),weapons,bonus,components};
   }
   function power(s,a,base=a.atk,emitEvent=true){
-    let p=base*(formation(s,a.side)?boosted(s,a.side)?1.75:1.5:1);
+    let p=formation(s,a.side)?boosted(s,a.side)?1.75:1.5:1;
     if(hasEffect(a,'loneWolf')&&!alive(s).some(u=>u.side===a.side&&u.id!==a.id&&range(a,u)===1)){
       p*=1+percentageIncrease(a,'loneWolf',25)/100;if(emitEvent)emit(s,a,'loneWolf');
     }
-    return p;
+    return typeof base==='number'?base*p:Object.fromEntries(Object.entries(base).map(([key,value])=>[key,value*p]));
   }
   // Display history is independent of PlayLog diagnostic retention. Leave the
   // counter absent until the first eviction to preserve short-battle parity.
@@ -284,19 +287,38 @@ const Battle = (() => {
   const legal=(s,k,t)=>legalFor(s,s.units.find(u=>u.id===s.actor),k,t);
   function damageResult(s,target,power,formed=formation(s,target.side)) {
     const protector=alive(s).find(u=>u.side===target.side&&(u.cover===target.id||u.covers?.includes(target.id)));
-    const recipient=protector||target;
-    const hit=Math.max(1,Math.round((power-(recipient.def??0))*(formed?(boosted(s,target.side)?.65:.75):1)*(recipient.guard?.5:1)));
+    const recipient=protector||target,formationFactor=formed?(boosted(s,target.side)?.65:.75):1,guardFactor=recipient.guard?.5:1;
+    const raw=typeof power==='number'?power-(recipient.def??0):Object.entries(power).reduce((n,[kind,value])=>{
+      const defense={physical:recipient.def??0,fire:recipient.defFire??0,water:recipient.defWater??0,earth:recipient.defEarth??0}[kind]||0;
+      const element=recipient.element,advantage={water:'fire',fire:'earth',earth:'water'}[kind],disadvantage={fire:'water',earth:'fire',water:'earth'}[kind];
+      const factor=!element||element==='none'||kind==='physical'?1:advantage===element?1.25:disadvantage===element?0.75:1;
+      return n+Math.max(0,value-defense)*factor;
+    },0);
+    const hit=Math.max(0,Math.round(raw*formationFactor*guardFactor));
     return {protector,recipient,hit};
+  }
+  function refreshEncumbrance(s) {
+    if(!Number.isFinite(s.partyAliveInitial)||!Number.isFinite(s.initialDownWeight))return;
+    const allies=s.units.filter(u=>u.side==='ally'),newlyDown=allies.filter(u=>u.startedAlive&&u.hp<=0);
+    const survivors=s.partyAliveInitial-newlyDown.length;
+    const fallen=s.initialDownWeight+newlyDown.reduce((n,u)=>n+(u.carriedWeight||0),0);
+    const share=survivors>0?fallen/survivors:0;
+    for(const u of allies){
+      u.fallenWeightShare=u.hp>0?share:0;
+      const over=u.hp>0&&survivors>0&&(u.carriedWeight+share>u.weightLimit);
+      u.overburdened=over;u.agi=u.baseAgi*(over?0.5:1);
+    }
   }
   function attackPreview(s,a,target) {
     if(!legalFor(s,a,'attack',target.id))return null;
-    const contribution=reachFilteredPower(a,target),{recipient,hit}=damageResult(s,target,power(s,a,contribution.base,false));
+    const contribution=reachFilteredPower(a,target),{recipient,hit}=damageResult(s,target,power(s,a,contribution.components,false));
     return {targetId:target.id,targetName:target.name,recipientId:recipient.id,recipientName:recipient.name,damage:hit,hpLoss:Math.min(recipient.hp,hit),evasionChance:evasionChance(recipient),...contribution};
   }
   function receive(s,target,power,formed=formation(s,target.side),contribution=null) {
     const {protector,recipient,hit}=damageResult(s,target,power,formed);
     if(s.damagePreviewEvents)s.damagePreviewEvents.push({targetId:target.id,targetName:target.name,recipientId:recipient.id,recipientName:recipient.name,damage:hit,hpLoss:Math.min(recipient.hp,hit),...(contribution||{base:power,weapons:[],bonus:0})});
     recipient.hp=Math.max(0,recipient.hp-hit);
+    if(recipient.hp===0)refreshEncumbrance(s);
     if(recipient.hp===0&&recipient.covers)recipient.covers=[];
     log(s,`${protector?`${recipient.name}が${target.name}をかばう：`:""}${recipient.name}に${hit}ダメージ${recipient.hp===0?"・戦闘不能":""}`);
   }
@@ -314,8 +336,9 @@ const Battle = (() => {
       a.mp-=d.cost;emit(s,a,id,{target});log(s,`${a.name}の${d.name}`);
       if(id==='spearThrow'){
         const option=selectedSkillOption(a),weapon=a.attackWeapons.find(w=>w.slot===option.slot&&w.itemId===option.itemId);
-        const contribution={base:weapon.atk+(a.attackBonus||0),weapons:[weapon],bonus:a.attackBonus||0};
-        receive(s,b,power(s,a,contribution.base),undefined,contribution);
+        const components={physical:weapon.atk+(a.attackBonus||0),fire:weapon.atkFire||0,water:weapon.atkWater||0,earth:weapon.atkEarth||0};
+        const contribution={base:Object.values(components).reduce((n,v)=>n+v,0),weapons:[weapon],bonus:a.attackBonus||0,components};
+        receive(s,b,power(s,a,components),undefined,contribution);
         (a.thrownWeapons||(a.thrownWeapons={}))[option.slot]=option.itemId;
         a.equipment[option.slot]='empty-'+option.slot;
         a.attackWeapons=a.attackWeapons.filter(w=>w.slot!==option.slot);
@@ -341,11 +364,11 @@ const Battle = (() => {
       if(id==='defenseLine'){a.covers=[...target];a.cover=null;log(s,`次の本人の番まで ${target.map(id=>s.units.find(u=>u.id===id).name).join('・')} をかばう。`);return;}
       if(id==='healingCross'){for(const u of alive(s).filter(u=>u.side===a.side&&crossCells(b.pos).includes(u.pos))){const n=Math.min(30,u.max-u.hp);u.hp+=n;log(s,`${u.name}のHP＋${n}`);}return;}
       const factor=power(s,a,1);
-      if(id==='splitShot'){for(const id of target){const u=s.units.find(u=>u.id===id),contribution=reachFilteredPower(a,u,'skill');if(u.hp>0&&contribution.base>0)receive(s,u,contribution.base*factor*.6,undefined,contribution);}return;}
+      if(id==='splitShot'){for(const id of target){const u=s.units.find(u=>u.id===id),contribution=reachFilteredPower(a,u,'skill');if(u.hp>0&&contribution.base>0)receive(s,u,Object.fromEntries(Object.entries(contribution.components).map(([k,v])=>[k,v*factor*.6])),undefined,contribution);}return;}
       const destination=id==='retreatSlash'?retreatCell(s,a):null;
       const multiplier=id==='retreatSlash'?.7:id==='pincer'&&alive(s).some(u=>u.side===a.side&&u.id!==a.id&&range(u,b)===1)?1.5:1;
       const contribution=reachFilteredPower(a,b,'skill');
-      if(contribution.base>0)receive(s,b,contribution.base*factor*multiplier,undefined,contribution);
+      if(contribution.base>0)receive(s,b,Object.fromEntries(Object.entries(contribution.components).map(([k,v])=>[k,v*factor*multiplier])),undefined,contribution);
       if(id==='retreatSlash'){a.pos=destination;log(s,`${a.name}が後退。`);}
       if(id==='knockback'&&b.hp>0){const p=b.pos+(x(b.pos)-x(a.pos))+10*(y(b.pos)-y(a.pos));if(freeCell(s,p)&&range(b,{pos:p})===1){b.pos=p;log(s,`${b.name}を1マス押し出した。`);}else log(s,'押し出し先なし：攻撃のみ。');}
       return;
@@ -361,7 +384,7 @@ const Battle = (() => {
       // 各対象へ通常威力。陣形・かばう・防御は既存のダメージ処理を使う。
       const factor=power(s,a,1);
       log(s,`${a.name}のスタンプ → 中心(${x(target)+1},${y(target)+1})・${cells.length}マス${targets.length?'':'：空振り。'}`);
-      for(const enemy of targets){const contribution=reachFilteredPower(a,enemy,'skill');if(enemy.hp>0&&contribution.base>0)receive(s,enemy,contribution.base*factor,undefined,contribution);}
+      for(const enemy of targets){const contribution=reachFilteredPower(a,enemy,'skill');if(enemy.hp>0&&contribution.base>0)receive(s,enemy,Object.fromEntries(Object.entries(contribution.components).map(([k,v])=>[k,v*factor])),undefined,contribution);}
       return;
     }
     if(kind==='skill'&&a.job==='porter'){a.boost=true;log(s,`${a.name}の陣形強化：次の本人の番まで攻撃＋75％・被害−35％。重複なし。`);return;}
@@ -371,7 +394,7 @@ const Battle = (() => {
     log(s,`${a.name}の${kind==='skill'?skillName(a):'攻撃'} → ${b.name}`);
     const contribution=reachFilteredPower(a,b,kind);
     if(kind==='attack'){const recipient=damageResult(s,b,0).recipient,chance=evasionChance(recipient);if(chance>0&&random()<chance){emit(s,recipient,'evasion',{sourceId:a.id});log(s,`${recipient.name}は攻撃を回避した。`);return;}}
-    if(contribution.base>0)receive(s,b,power(s,a,contribution.base),undefined,contribution);
+    if(contribution.base>0)receive(s,b,power(s,a,contribution.components),undefined,contribution);
   }
   // Run the exact action on a detached copy; no turn advance or live events.
   function effectPreview(s,a,kind,target) {

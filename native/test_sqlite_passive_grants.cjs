@@ -17,7 +17,7 @@ function checkDamage(f,expectedPercent){
  const {t,b,a,enemy}=f,base=B.reachFilteredPower(a,enemy).base;
  const before=structuredClone(b),preview=B.attackPreview(b,a,enemy);
  assert.deepEqual(b,before,'preview cannot mutate sources, events or resources');
- const expected=Math.round(base*(1+expectedPercent/100));assert.equal(base,26);
+ const expected=Math.max(0,Math.round(base*(1+expectedPercent/100)-enemy.def));assert.equal(base,26);
  assert.equal(preview.damage,expected,'percentage contributions sum before multiplication');
  if(expectedPercent===50)assert.notEqual(preview.damage,Math.round(base*1.25*1.25),'not successive multipliers');
  const hp=enemy.hp,mp=a.mp;assert.ok(C.trialAct(t,'attack',enemy.id));

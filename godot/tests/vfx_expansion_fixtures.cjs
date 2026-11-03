@@ -29,6 +29,7 @@ function build(spec){
  const b=s.battle, find=id=>b.units.find(u=>u.id===id),a=find(actorId),enemies=b.units.filter(u=>u.side==='enemy'),e=enemies[0];
  const positions={guard:24,archer:14,mage:23,scout:34,porter:32};
  b.units.forEach(u=>{u.hp=u.max;u.mp=u.maxMp;u.next=10000;u.guard=false;u.cover=null;u.boost=false;if(u.side==='ally')u.pos=positions[u.id];});
+ if(spec.id==='victoryBreath_dead')B.receive(b,b.units.find(u=>u.id==='mage'),10000,false);
  enemies.forEach((u,i)=>u.pos=[25,15,35][i]);if(skill==='pincer'){find('guard').pos=22;a.pos=24;}a.next=1;find(actorId==='archer'?'mage':'archer').next=2;b.actor=a.id;
  if(kind==='skill')assert(B.selectSkill(b,skill),spec.id+' equipped skill selection');
  let target=e.id;
@@ -49,7 +50,7 @@ function build(spec){
  if(kind==='item'||kind==='ether'){target=a.id;if(kind==='item')a.hp-=variant==='cap'?7:70;else a.mp-=variant==='cap'?1:4;if(variant==='full'){a.hp=a.max;a.mp=a.maxMp;}if(variant==='empty'){const item=kind==='item'?'potion':'ether';b.itemInventories[a.id][item]=0;if(item==='potion')b.potions.ally=Object.values(b.itemInventories).reduce((n,x)=>n+x.potion,0);else b.ethers=Object.values(b.itemInventories).reduce((n,x)=>n+x.ether,0);}}
  if(skill==='loneWolf'){find('mage').pos=12;find('archer').pos=13;find('scout').pos=3;if(variant==='adjacent')find('mage').pos=23;}
  if(skill==='firstStride'){target=variant==='swap'?24:variant==='short'?22:variant==='used'?21:20;a.pos=23;find('mage').pos=12;if(variant==='used')a.firstMoveUsed=true;}
- if(skill==='victoryBreath'){enemies.slice(1).forEach(u=>u.hp=0);e.hp=1;const m=find('mage');m.mp=variant==='full'?m.maxMp:variant==='cap'?m.maxMp-1:m.maxMp-3;if(variant==='dead')m.hp=0;}
+ if(skill==='victoryBreath'){enemies.slice(1).forEach(u=>u.hp=0);e.hp=1;const m=find('mage');m.mp=variant==='full'?m.maxMp:variant==='cap'?m.maxMp-1:m.maxMp-3;}
  if(variant==='mp0')a.mp=0;
  for(const enemy of enemies)if(enemy.hp>0)B.plan(b,enemy);
  assert(C.validate(s).ok,spec.id+': '+C.validate(s).error);
