@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "contentVersion": 3,
+  "contentVersion": 9,
   "gear": [
     {
       "id": "empty-rightHand",
@@ -18,7 +18,15 @@
       "agi": 0,
       "hp": 0,
       "atk": 0,
-      "reach": 1
+      "reach": 1,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 0,
+      "def": 0
     },
     {
       "id": "empty-leftHand",
@@ -36,7 +44,15 @@
       "agi": 0,
       "hp": 0,
       "atk": 0,
-      "reach": 1
+      "reach": 1,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 0,
+      "def": 0
     },
     {
       "id": "empty-head",
@@ -54,7 +70,15 @@
       "agi": 0,
       "hp": 0,
       "atk": 0,
-      "reach": 1
+      "reach": 1,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 0,
+      "def": 0
     },
     {
       "id": "empty-upperBody",
@@ -72,7 +96,15 @@
       "agi": 0,
       "hp": 0,
       "atk": 0,
-      "reach": 1
+      "reach": 1,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 0,
+      "def": 0
     },
     {
       "id": "empty-lowerBody",
@@ -90,7 +122,15 @@
       "agi": 0,
       "hp": 0,
       "atk": 0,
-      "reach": 1
+      "reach": 1,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 0,
+      "def": 0
     },
     {
       "id": "empty-feet",
@@ -108,7 +148,15 @@
       "agi": 0,
       "hp": 0,
       "atk": 0,
-      "reach": 1
+      "reach": 1,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 0,
+      "def": 0
     },
     {
       "id": "cloth-head",
@@ -122,7 +170,15 @@
       "int": 0,
       "agi": 0,
       "hp": 0,
-      "note": "能力補正・付与スキルなし。"
+      "note": "能力補正・付与スキルなし。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 1,
+      "def": 1
     },
     {
       "id": "cloth-lowerBody",
@@ -140,7 +196,14 @@
       "weight": 2,
       "sexOnly": "male",
       "salePrice": 15,
-      "effect": "secretPouch"
+      "effect": "secretPouch",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 1
     },
     {
       "id": "cloth-feet",
@@ -157,7 +220,14 @@
       "note": "能力補正・付与スキルなし。",
       "weight": 1,
       "salePrice": 10,
-      "flavor": "一般的な靴。"
+      "flavor": "一般的な靴。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 1
     },
     {
       "id": "greatsword-wood",
@@ -173,7 +243,15 @@
       "agi": 0,
       "grade": 0,
       "material": "wood",
-      "note": "両手の2枠を使い、攻撃力は1回だけ加算します。付与スキルなし。"
+      "note": "両手の2枠を使い、攻撃力は1回だけ加算します。付与スキルなし。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 7,
+      "def": 0
     },
     {
       "id": "spear-wood",
@@ -189,7 +267,15 @@
       "agi": 0,
       "grade": 0,
       "material": "wood",
-      "note": "片手の1枠を使います。付与スキルなし。"
+      "note": "片手の1枠を使います。付与スキルなし。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 5,
+      "def": 0
     },
     {
       "id": "longspear-wood",
@@ -207,7 +293,15 @@
       "material": "wood",
       "note": "両手の2枠を使います。ATK34。「ポールヴォールト」を使用できます。",
       "skill": "poleVault",
-      "skillLevel": 1
+      "skillLevel": 1,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 5,
+      "def": 0
     },
     {
       "id": "javelin-wood",
@@ -225,7 +319,14 @@
       "material": "wood",
       "note": "投げることもできる木製の槍。戦闘後に回収する。",
       "weight": 7,
-      "skill": "spearThrow"
+      "skill": "spearThrow",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "id": "swift-boots",
@@ -240,7 +341,15 @@
       "agi": 0,
       "hp": 0,
       "effect": "swift",
-      "note": "移動力+1。先駆けと加算は暫定。価格70Gは試遊用の提案値。"
+      "note": "移動力+1。先駆けと加算は暫定。価格70Gは試遊用の提案値。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 2,
+      "def": 1
     },
     {
       "id": "kungfu-pants",
@@ -256,7 +365,15 @@
       "int": 0,
       "agi": 0,
       "price": 70,
-      "note": "装備すると「足払い」を使用できます。"
+      "note": "装備すると「足払い」を使用できます。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 2,
+      "def": 1
     },
     {
       "id": "kungfu-pants-1",
@@ -272,7 +389,15 @@
       "int": 0,
       "agi": 0,
       "price": 100,
-      "note": "装備すると「足払い」を使用できます。"
+      "note": "装備すると「足払い」を使用できます。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 2,
+      "def": 1
     },
     {
       "id": "kungfu-pants-2",
@@ -288,7 +413,15 @@
       "int": 0,
       "agi": 0,
       "price": 130,
-      "note": "装備すると「足払い」を使用できます。"
+      "note": "装備すると「足払い」を使用できます。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 2,
+      "def": 1
     },
     {
       "id": "kungfu-pants-3",
@@ -304,7 +437,15 @@
       "int": 0,
       "agi": 0,
       "price": 160,
-      "note": "装備すると「足払い」を使用できます。"
+      "note": "装備すると「足払い」を使用できます。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 2,
+      "def": 1
     },
     {
       "id": "fist",
@@ -325,7 +466,15 @@
       "price": 0,
       "starterOnly": true,
       "virtualDefault": true,
-      "note": "空の手枠の既定性能。所持品には生成しない。"
+      "note": "空の手枠の既定性能。所持品には生成しない。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 0,
+      "def": 0
     },
     {
       "id": "fist-1",
@@ -344,7 +493,15 @@
       "skill": "itemUse",
       "skillLevel": 2,
       "price": 100,
-      "note": "擬似個人スキルの試験用。価格100Gは仮値。"
+      "note": "擬似個人スキルの試験用。価格100Gは仮値。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 0,
+      "def": 0
     },
     {
       "id": "fist-2",
@@ -366,7 +523,15 @@
       "starterOnly": true,
       "virtualDefault": true,
       "jobOnly": "porter",
-      "note": "空の手枠の既定性能。所持品には生成しない。"
+      "note": "空の手枠の既定性能。所持品には生成しない。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 0,
+      "def": 0
     },
     {
       "id": "grappling-rope",
@@ -385,7 +550,15 @@
       "skill": "grapple",
       "skillLevel": 1,
       "price": 100,
-      "note": "装備すると「引き寄せ」を使用できます。穴地形は未実装です。"
+      "note": "装備すると「引き寄せ」を使用できます。穴地形は未実装です。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 1,
+      "def": 0
     },
     {
       "id": "undertow-sword",
@@ -401,7 +574,15 @@
       "material": "wood",
       "grade": 0,
       "price": 100,
-      "note": "射程1の敵へ70%攻撃後、自陣側へ1マス後退。退路が塞がる／盤外なら使用不可。MP1。"
+      "note": "射程1の敵へ70%攻撃後、自陣側へ1マス後退。退路が塞がる／盤外なら使用不可。MP1。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 4,
+      "def": 0
     },
     {
       "id": "breaker-hammer",
@@ -417,7 +598,15 @@
       "material": "wood",
       "grade": 0,
       "price": 100,
-      "note": "射程1の敵へ通常攻撃。対象の先が空いていれば1マス押す。盤外・占有時は攻撃のみ。MP1。"
+      "note": "射程1の敵へ通常攻撃。対象の先が空いていれば1マス押す。盤外・占有時は攻撃のみ。MP1。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 5,
+      "def": 0
     },
     {
       "id": "twin-bow",
@@ -434,7 +623,15 @@
       "material": "wood",
       "grade": 0,
       "price": 100,
-      "note": "射程3の異なる敵2体を順に指定し、各60%攻撃。同じ敵への集中不可。MP1。"
+      "note": "射程3の異なる敵2体を順に指定し、各60%攻撃。同じ敵への集中不可。MP1。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 4,
+      "def": 0
     },
     {
       "id": "partner-dagger",
@@ -450,7 +647,15 @@
       "material": "wood",
       "grade": 0,
       "price": 100,
-      "note": "射程1の敵へ攻撃。対象に別の生存味方が縦横隣接していれば150%、それ以外100%。MP1。"
+      "note": "射程1の敵へ攻撃。対象に別の生存味方が縦横隣接していれば150%、それ以外100%。MP1。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 2,
+      "def": 0
     },
     {
       "id": "rest-staff",
@@ -466,7 +671,15 @@
       "material": "wood",
       "grade": 0,
       "price": 100,
-      "note": "射程2の生存味方を中心に、中心＋上下左右の生存味方のHPを各30回復。MP2。"
+      "note": "射程2の生存味方を中心に、中心＋上下左右の生存味方のHPを各30回復。MP2。",
+      "atkFire": 0,
+      "atkWater": 8,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 3,
+      "def": 0
     },
     {
       "id": "battleline-shield",
@@ -482,7 +695,15 @@
       "material": "wood",
       "grade": 0,
       "price": 100,
-      "note": "縦横隣接の味方を1～2人指定。次の本人の番までかばう。同じ対象の重複指定不可。MP1。 右手または左手に装備。"
+      "note": "縦横隣接の味方を1～2人指定。次の本人の番までかばう。同じ対象の重複指定不可。MP1。 右手または左手に装備。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 6,
+      "def": 1
     },
     {
       "id": "sharing-tome",
@@ -498,7 +719,15 @@
       "material": "wood",
       "grade": 0,
       "price": 100,
-      "note": "射程2の別の生存味方へMPを最大2移譲。自分の残量・相手の空き分まで。総量は増えない。1行動。"
+      "note": "射程2の別の生存味方へMPを最大2移譲。自分の残量・相手の空き分まで。総量は増えない。1行動。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 8,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 3,
+      "def": 0
     },
     {
       "id": "empty-accessory1",
@@ -514,7 +743,15 @@
       "price": 0,
       "str": 0,
       "int": 0,
-      "agi": 0
+      "agi": 0,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 0,
+      "def": 0
     },
     {
       "id": "return-ring-1",
@@ -529,7 +766,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "note": "付与元ごとに1戦1回、自陣の指定空きマスへ帰還。MP0、1行動。使用回数はクールタイムで回復しない。"
+      "note": "付与元ごとに1戦1回、自陣の指定空きマスへ帰還。MP0、1行動。使用回数はクールタイムで回復しない。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 1,
+      "def": 0
     },
     {
       "id": "victory-earring-1",
@@ -544,7 +789,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "note": "勝利時、生存している装備者のMPを2回復（上限まで）。重複装備しても1回。"
+      "note": "勝利時、生存している装備者のMPを2回復（上限まで）。重複装備しても1回。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 1,
+      "def": 0
     },
     {
       "id": "lone-ring-1",
@@ -559,7 +812,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "note": "別の生存味方と縦横隣接していない間、与ダメージ+25%。同効果を複数装備した場合、増加割合を加算。"
+      "note": "別の生存味方と縦横隣接していない間、与ダメージ+25%。同効果を複数装備した場合、増加割合を加算。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 1,
+      "def": 0
     },
     {
       "id": "pioneer-gloves-1",
@@ -574,7 +835,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "note": "各戦闘の最初の移動だけ経路3まで。短い移動・入替でも消費。侵入制限は変わらない。"
+      "note": "各戦闘の最初の移動だけ経路3まで。短い移動・入替でも消費。侵入制限は変わらない。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 1,
+      "def": 0
     },
     {
       "id": "invasion-charm-1",
@@ -589,7 +858,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "note": "敵陣侵入を許可。ポーターは侵入不可。帰還指輪と併用すると2枠使用。"
+      "note": "敵陣侵入を許可。ポーターは侵入不可。帰還指輪と併用すると2枠使用。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 1,
+      "def": 0
     },
     {
       "id": "empty-accessory2",
@@ -605,7 +882,15 @@
       "price": 0,
       "str": 0,
       "int": 0,
-      "agi": 0
+      "agi": 0,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 0,
+      "def": 0
     },
     {
       "id": "return-ring-2",
@@ -620,7 +905,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "note": "付与元ごとに1戦1回、自陣の指定空きマスへ帰還。MP0、1行動。使用回数はクールタイムで回復しない。"
+      "note": "付与元ごとに1戦1回、自陣の指定空きマスへ帰還。MP0、1行動。使用回数はクールタイムで回復しない。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 1,
+      "def": 0
     },
     {
       "id": "victory-earring-2",
@@ -635,7 +928,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "note": "勝利時、生存している装備者のMPを2回復（上限まで）。重複装備しても1回。"
+      "note": "勝利時、生存している装備者のMPを2回復（上限まで）。重複装備しても1回。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 1,
+      "def": 0
     },
     {
       "id": "lone-ring-2",
@@ -650,7 +951,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "note": "別の生存味方と縦横隣接していない間、与ダメージ+25%。同効果を複数装備した場合、増加割合を加算。"
+      "note": "別の生存味方と縦横隣接していない間、与ダメージ+25%。同効果を複数装備した場合、増加割合を加算。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 1,
+      "def": 0
     },
     {
       "id": "pioneer-gloves-2",
@@ -665,7 +974,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "note": "各戦闘の最初の移動だけ経路3まで。短い移動・入替でも消費。侵入制限は変わらない。"
+      "note": "各戦闘の最初の移動だけ経路3まで。短い移動・入替でも消費。侵入制限は変わらない。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 1,
+      "def": 0
     },
     {
       "id": "invasion-charm-2",
@@ -680,7 +997,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "note": "敵陣侵入を許可。ポーターは侵入不可。帰還指輪と併用すると2枠使用。"
+      "note": "敵陣侵入を許可。ポーターは侵入不可。帰還指輪と併用すると2枠使用。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 1,
+      "def": 0
     },
     {
       "id": "sword-wood",
@@ -696,7 +1021,15 @@
       "str": 8,
       "int": 0,
       "agi": 0,
-      "note": "剣と盾は、それぞれ別の手に装備します。"
+      "note": "剣と盾は、それぞれ別の手に装備します。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 3,
+      "def": 0
     },
     {
       "id": "sword-iron-1",
@@ -712,7 +1045,15 @@
       "str": 12,
       "int": 0,
       "agi": 0,
-      "note": "剣と盾は、それぞれ別の手に装備します。"
+      "note": "剣と盾は、それぞれ別の手に装備します。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 6,
+      "def": 0
     },
     {
       "id": "bow-wood",
@@ -728,7 +1069,15 @@
       "skill": "archer",
       "str": 8,
       "int": 0,
-      "agi": 10
+      "agi": 10,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 4,
+      "def": 0
     },
     {
       "id": "bow-wood-1",
@@ -744,7 +1093,15 @@
       "skill": "archer",
       "str": 11,
       "int": 0,
-      "agi": 12
+      "agi": 12,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 4,
+      "def": 0
     },
     {
       "id": "bow-silver-2",
@@ -760,7 +1117,15 @@
       "skill": "archer",
       "str": 14,
       "int": 0,
-      "agi": 13
+      "agi": 13,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 5,
+      "def": 0
     },
     {
       "id": "staff-wood",
@@ -775,7 +1140,15 @@
       "skill": "mage",
       "str": 0,
       "int": 8,
-      "agi": 0
+      "agi": 0,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 3,
+      "def": 0
     },
     {
       "id": "staff-silver-1",
@@ -791,7 +1164,15 @@
       "str": 0,
       "int": 12,
       "agi": 0,
-      "mp": 2
+      "mp": 2,
+      "atkFire": 8,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 4,
+      "def": 0
     },
     {
       "id": "dagger-wood",
@@ -808,7 +1189,15 @@
       "str": 0,
       "int": 0,
       "agi": 11,
-      "note": "敵陣侵入は既存スカウトの仮アクセサリー効果。短剣を買うだけでは付与しない"
+      "note": "敵陣侵入は既存スカウトの仮アクセサリー効果。短剣を買うだけでは付与しない",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 2,
+      "def": 0
     },
     {
       "id": "hammer-wood",
@@ -823,7 +1212,15 @@
       "skill": "stamp",
       "str": 14,
       "int": 0,
-      "agi": 0
+      "agi": 0,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 5,
+      "def": 0
     },
     {
       "id": "hammer-iron-1",
@@ -839,7 +1236,15 @@
       "str": 18,
       "int": 0,
       "agi": 0,
-      "agiBonus": -1
+      "agiBonus": -1,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 7,
+      "def": 0
     },
     {
       "id": "porter-kit",
@@ -855,7 +1260,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "starterOnly": true
+      "starterOnly": true,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 3,
+      "def": 0
     },
     {
       "id": "armor-cloth",
@@ -868,7 +1281,15 @@
       "hp": 0,
       "str": 0,
       "int": 0,
-      "agi": 0
+      "agi": 0,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 1,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 3,
+      "def": 5
     },
     {
       "id": "armor-leather-1",
@@ -881,7 +1302,15 @@
       "hp": 28,
       "str": 8,
       "int": 0,
-      "agi": 0
+      "agi": 0,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 1,
+      "weight": 2,
+      "def": 4
     },
     {
       "id": "armor-iron-2",
@@ -895,7 +1324,15 @@
       "str": 15,
       "int": 0,
       "agi": 0,
-      "agiBonus": -1
+      "agiBonus": -1,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 2,
+      "defEarth": 0,
+      "weight": 5,
+      "def": 8
     },
     {
       "id": "armor-silver-1",
@@ -908,7 +1345,15 @@
       "hp": 38,
       "str": 12,
       "int": 0,
-      "agi": 0
+      "agi": 0,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 2,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 4,
+      "def": 6
     },
     {
       "id": "guard-shield-wood",
@@ -924,7 +1369,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "note": "装備すると「かばう」を使用できます。"
+      "note": "装備すると「かばう」を使用できます。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 1,
+      "weight": 4,
+      "def": 2
     },
     {
       "id": "guard-shield-iron-1",
@@ -940,7 +1393,15 @@
       "str": 0,
       "int": 0,
       "agi": 0,
-      "note": "装備すると「かばう」を使用できます。"
+      "note": "装備すると「かばう」を使用できます。",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 1,
+      "defEarth": 0,
+      "weight": 8,
+      "def": 4
     },
     {
       "slot": "accessory1",
@@ -957,7 +1418,14 @@
       "salePrice": 50,
       "hp": 0,
       "flavor": "インベントリ枠数を1拡張できるベルト。",
-      "effect": "secretPouch"
+      "effect": "secretPouch",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "slot": "accessory1",
@@ -974,7 +1442,14 @@
       "salePrice": 100,
       "hp": 10,
       "flavor": "インベントリ枠数を1拡張できるベルト。",
-      "effect": "secretPouch"
+      "effect": "secretPouch",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "slot": "accessory1",
@@ -992,7 +1467,14 @@
       "hp": 0,
       "flavor": "インベントリ枠数を3拡張できるベルト。",
       "effect": "secretPouch",
-      "skillLevel": 2
+      "skillLevel": 2,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "slot": "accessory1",
@@ -1010,7 +1492,14 @@
       "hp": 0,
       "flavor": "インベントリ枠数を5拡張できるベルト。",
       "effect": "secretPouch",
-      "skillLevel": 3
+      "skillLevel": 3,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "slot": "accessory2",
@@ -1033,7 +1522,14 @@
       "transferable": false,
       "removable": false,
       "flavor": "ポーターが装備する不思議なリュック。",
-      "effect": "fourDimensional"
+      "effect": "fourDimensional",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "id": "porter-whistle",
@@ -1055,7 +1551,14 @@
       "transferable": false,
       "removable": false,
       "flavor": "ポーターが指示を送る笛。",
-      "skill": "porter"
+      "skill": "porter",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "id": "bow-wood-2",
@@ -1075,7 +1578,14 @@
       "jobOnly": "scout",
       "salePrice": 150,
       "skill": "archer",
-      "skillLevel": 2
+      "skillLevel": 2,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "id": "bow-wood-3",
@@ -1096,7 +1606,14 @@
       "salePrice": 200,
       "raceOnly": "elf",
       "skill": "archer",
-      "skillLevel": 3
+      "skillLevel": 3,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "id": "dagger-wood-1",
@@ -1115,7 +1632,14 @@
       "salePrice": 100,
       "flavor": "木で作られた模擬戦用の短剣。",
       "skill": "scout",
-      "skillLevel": 2
+      "skillLevel": 2,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "id": "dagger-wood-2",
@@ -1135,7 +1659,14 @@
       "flavor": "木で作られた模擬戦用の短剣。",
       "jobOnly": "scout",
       "skill": "scout",
-      "skillLevel": 2
+      "skillLevel": 2,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "id": "dagger-glass",
@@ -1156,7 +1687,14 @@
       "jobOnly": "scout",
       "raceOnly": "elf",
       "skill": "scout",
-      "skillLevel": 3
+      "skillLevel": 3,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "id": "dagger-steel",
@@ -1179,7 +1717,14 @@
         "elf"
       ],
       "skill": "scout",
-      "skillLevel": 3
+      "skillLevel": 3,
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "slot": "accessory2",
@@ -1195,14 +1740,21 @@
       "allowedSlots": [
         "accessory2"
       ],
-      "weight": 2,
+      "weight": 1,
       "jobOnly": "scout",
       "purchasable": false,
       "sellable": false,
       "transferable": false,
       "removable": false,
       "flavor": "スカウトが装備するマント。",
-      "effect": "invasion"
+      "effect": "invasion",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 0
     },
     {
       "id": "cloth-skirt",
@@ -1220,7 +1772,14 @@
       "sexOnly": "female",
       "salePrice": 15,
       "flavor": "一般的な作業用スカート。",
-      "effect": "secretPouch"
+      "effect": "secretPouch",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 1
     },
     {
       "id": "leggings",
@@ -1237,7 +1796,14 @@
       "weight": 2,
       "salePrice": 150,
       "flavor": "駆け出し冒険者たちが愛用する動きやすいズボン。防御力は皆無。",
-      "effect": "evasion"
+      "effect": "evasion",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 1
     },
     {
       "id": "elf-hair-ornament",
@@ -1258,7 +1824,14 @@
       "transferable": false,
       "removable": true,
       "flavor": "エルフの風習として親から贈られる髪飾り。",
-      "effect": "elfProof"
+      "effect": "elfProof",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 1
     },
     {
       "id": "dwarf-hair-ornament",
@@ -1279,7 +1852,14 @@
       "transferable": false,
       "removable": true,
       "flavor": "ドワーフの風習として親から贈られる髪飾り。",
-      "effect": "dwarfProof"
+      "effect": "dwarfProof",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "def": 1
     },
     {
       "id": "onehand-hammer-wood",
@@ -1294,7 +1874,15 @@
       "str": 8,
       "int": 0,
       "agi": 0,
-      "legacySkill": "guard"
+      "legacySkill": "guard",
+      "atkFire": 0,
+      "atkWater": 0,
+      "atkEarth": 0,
+      "defFire": 0,
+      "defWater": 0,
+      "defEarth": 0,
+      "weight": 5,
+      "def": 0
     }
   ],
   "definitions": {

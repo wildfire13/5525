@@ -105,7 +105,7 @@ test('passive trial works for melee/ranged and porter keeps attack ban',()=>{
   }else{
    assert.equal(lone.battle.units.some(u=>u.side==='ally'&&u!==a&&B.range(a,u)===1),false);
    const hp=target.hp;assert.equal(C.trialAct(lone,'attack',target.id),true);
-   assert.equal(hp-target.hp,Math.round(a.atk*1.25));
+   assert.equal(hp-target.hp,Math.max(0,Math.round(a.atk*1.25-target.def)));
    assert.ok(lone.battle.skillEvents.some(e=>e.skillId==='loneWolf'&&e.actorId===id));
   }
   assert.equal(C.serialize(s),before);

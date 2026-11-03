@@ -53,7 +53,7 @@ func run():
 		var ghost=game.hud.opening_visual;var first=node("TurnCard_0")
 		check(ghost.global_position.distance_to(first.global_position)<3 and ghost.z_index<game.battle_header.z_index,"opening begins behind current first card")
 		check(ghost.mouse_filter==Control.MOUSE_FILTER_IGNORE and ghost.find_children("*","Control",true,false).all(func(c):return c.mouse_filter==Control.MOUSE_FILTER_IGNORE),"opening copy and all descendants ignore input")
-		await create_timer(.12).timeout
+		await create_timer(.2).timeout
 		check(is_instance_valid(ghost) and ghost.global_position.distance_to(first.global_position)>3,"opening moves toward saved command window at normal speed")
 		await create_timer(.3).timeout
 		check(left.visible and not is_instance_valid(game.hud.opening_visual),"opening finishes and restores interactive window")

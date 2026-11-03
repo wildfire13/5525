@@ -186,7 +186,7 @@ func change(title: String,before,after) -> String:
 func comparison(u: Dictionary,entry: Dictionary,chosen: String,q: Dictionary,shop_compact:=false) -> String:
 	var a: Dictionary=q.before;var z: Dictionary=q.after;
 	var lines=[]
-	for pair in [["HP上限","max"],["MP上限","maxMp"],["行動速度","speed"],["DEF","def"]]:
+	for pair in [["HP上限","max"],["MP上限","maxMp"],["行動速度","speed"],["物理DEF","def"],["火DEF","defFire"],["水DEF","defWater"],["地DEF","defEarth"],["火ATK","atkFire"],["水ATK","atkWater"],["地ATK","atkEarth"]]:
 		if int(a.get(pair[1],0))!=int(z.get(pair[1],0)):lines.append(change(pair[0],a.get(pair[1],0),z.get(pair[1],0)))
 	var before_reach=party.pages.normal_reach(a);var after_reach=party.pages.normal_reach(z)
 	if before_reach!=after_reach:lines.append(change("通常射程",before_reach,after_reach))

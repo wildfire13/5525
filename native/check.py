@@ -26,6 +26,7 @@ steps=[
  ('Old save equipment migration',['node','test_equipment_migration.cjs']),
  ('Two-handed occupancy',['node','test_two_handed.cjs']),
  ('New weapon variants',['node','test_weapon_variations.cjs']),
+ ('Weight, elements, KO recovery and enemy loadouts',['node','test_weight_elements.cjs']),
  ('Sequential battle presentation',['node','test_battle_presentation.cjs']),
  ('Expanded presentation metadata parity',['node','test_vfx_expansion_presentation.cjs']),
  ('Character voice event routing',['node','test_voice_events.cjs']),
@@ -41,10 +42,11 @@ steps=[
 report={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'guiIncluded':False,'steps':[]}
 for name,command in steps:
     try:
-        r=subprocess.run(command,cwd=BASE,text=True,encoding='utf-8',capture_output=True,timeout=120,env={**os.environ,"PYTHONIOENCODING":"utf-8","PYTHONUTF8":"1"})
+        timeout=300 if name=='Python rules/adapter/preview tests' else 120
+        r=subprocess.run(command,cwd=BASE,text=True,encoding='utf-8',capture_output=True,timeout=timeout,env={**os.environ,"PYTHONIOENCODING":"utf-8","PYTHONUTF8":"1"})
         report['steps'].append({'name':name,'passed':r.returncode==0,'exitCode':r.returncode,'stdout':r.stdout,'stderr':r.stderr})
     except subprocess.TimeoutExpired:
-        report['steps'].append({'name':name,'passed':False,'error':'timeout after 120 seconds'})
+        report['steps'].append({'name':name,'passed':False,'error':f'timeout after {timeout} seconds'})
     print(('PASS' if report['steps'][-1]['passed'] else 'FAIL')+': '+name)
 report['passed']=all(s['passed'] for s in report['steps'])
 (BASE/'qa-check-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')

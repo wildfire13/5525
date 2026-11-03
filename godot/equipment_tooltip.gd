@@ -45,6 +45,10 @@ func configure(title: String,gear: Dictionary,context: Dictionary):
 	details.clear();plain_details.clear()
 	line("装備の基礎能力")
 	var attacks=gear.get("type")!="empty" and int(gear.get("atk",0))>0
+	if gear.get("type")!="empty":
+		line("Wt：%s" % str(gear.get("weight",1)))
+		line("ATK 物%d / 火%d / 水%d / 地%d" % [gear.get("atk",0),gear.get("atkFire",0),gear.get("atkWater",0),gear.get("atkEarth",0)])
+		line("DEF 物%d / 火%d / 水%d / 地%d" % [gear.get("def",0),gear.get("defFire",0),gear.get("defWater",0),gear.get("defEarth",0)])
 	if attacks:line("通常攻撃射程："+str(int(gear.get("reach",1))))
 	var modifiers={"atk":"武器ATK","hp":"HP上限","mp":"MP上限","agiBonus":"行動速度"}
 	var count=0

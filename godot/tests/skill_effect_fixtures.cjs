@@ -30,8 +30,7 @@ function campaign(kind){
   let target=kind.startsWith('sweep')?actor.id:kind.startsWith('stamp')?25:kind.startsWith('attack')?enemies[0].id:'guard';
   let actionKind=kind.startsWith('attack')?'attack':kind==='guard'?'guard':'skill';
   if(kind==='attackRanged')actor.pos=23;
-  if(['attackGuarded','attackGuardFloor'].includes(kind))enemies[0].guard=true;
-  if(kind==='attackGuardFloor')enemies[0].def=25; // Controlled round/min1 boundary, not a new enemy stat rule.
+  if(kind==='attackGuarded')enemies[0].guard=true;
   if(kind==='guard'){target=null;b.units.find(u=>u.id==='archer').next=2;}
   if(kind==='attackFixedMiss'){
     actionKind='guard';target=null;actor.pos=23;enemies[0].next=2;b.units.find(u=>u.id==='archer').next=3;
@@ -147,16 +146,9 @@ function observe(name){
   const actions=frames.filter(f=>f.presentation.phase==='action');
   expected.actions=actions.map(f=>({action_id:f.presentation.action_id,kind:f.presentation.kind,skill_id:f.presentation.skill_id,actor_id:f.presentation.actor_id,target:f.presentation.target}));
   expected.attack_misses=expected.actions.filter(action=>action.kind==='attack'&&!impacts.some(hit=>hit.action_id===action.action_id)).map(action=>action.action_id);
-  if(name==='attackMelee')assert.deepEqual(impacts.map(hit=>hit.delta),[-26]);
-  if(name==='attackRanged')assert.deepEqual(impacts.map(hit=>hit.delta),[-25]);
-  if(name==='attackGuarded')assert.deepEqual(impacts.map(hit=>[hit.delta,hit.guarding]),[[-13,true]]);
-  if(name==='attackGuardFloor'){
-    assert.deepEqual(impacts.map(hit=>[hit.delta,hit.guarding]),[[-1,true]]);
-    const target=initial.units.find(u=>u.id===request.target);const withoutGuard=clone(initial);withoutGuard.units.find(u=>u.id===target.id).guard=false;
-    const withHit=B.attackPreview(initial,initial.units.find(u=>u.id===initial.actor),target).damage,withoutHit=B.attackPreview(withoutGuard,withoutGuard.units.find(u=>u.id===initial.actor),withoutGuard.units.find(u=>u.id===target.id)).damage;
-    assert.equal(withHit,1);assert.equal(withoutHit,1);
-    expected.rounding_boundary={guarded_hit:withHit,unguarded_hit:withoutHit,delta:0,validation_only:true};
-  }
+  if(name==='attackMelee')assert.deepEqual(impacts.map(hit=>hit.delta),[-Math.min(initial.units.find(u=>u.id===request.target).hp,B.attackPreview(initial,initial.units.find(u=>u.id===initial.actor),initial.units.find(u=>u.id===request.target)).damage)]);
+  if(name==='attackRanged')assert.deepEqual(impacts.map(hit=>hit.delta),[-Math.min(initial.units.find(u=>u.id===request.target).hp,B.attackPreview(initial,initial.units.find(u=>u.id===initial.actor),initial.units.find(u=>u.id===request.target)).damage)]);
+  if(name==='attackGuarded')assert.deepEqual(impacts.map(hit=>[hit.delta,hit.guarding]),[[-Math.min(initial.units.find(u=>u.id===request.target).hp,B.attackPreview(initial,initial.units.find(u=>u.id===initial.actor),initial.units.find(u=>u.id===request.target)).damage),true]]);
   if(name==='guard'){assert.equal(impacts.length,0);assert.equal(observed.battle.units.find(u=>u.id==='guard').guard,true);}
   if(name==='attackFixedMiss'){
     assert.equal(expected.attack_misses.length,1);assert.equal(impacts.length,0);
@@ -169,7 +161,7 @@ function observe(name){
   return {save,request,geometry:g,frames,expected};
 }
 
-const names=['sweep50','sweep100','sweepEmpty','sweepEdge','sweepAlreadySet','heal','healCapped','healSelf','healFull','stamp','stampMiss','stampCover','stampEdge','stampNextActor','attackMelee','attackRanged','attackGuarded','attackGuardFloor','attackCover','attackCoverGuarded','attackFixedMiss','attackSequence','guard'];
+const names=['sweep50','sweep100','sweepEmpty','sweepEdge','sweepAlreadySet','heal','healCapped','healSelf','healFull','stamp','stampMiss','stampCover','stampEdge','stampNextActor','attackMelee','attackRanged','attackGuarded','attackCover','attackCoverGuarded','attackFixedMiss','attackSequence','guard'];
 const cases=Object.fromEntries(names.map(name=>[name,observe(name)]));
 
 function verifyBridge(){

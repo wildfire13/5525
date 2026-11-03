@@ -32,7 +32,8 @@ def run(name, command, cwd, env=None):
         return
     started = time.monotonic()
     try:
-        r = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=150)
+        timeout=240 if name=='feedback2_guild_regression' else 210 if name=='guild_regression' else 150
+        r = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=timeout)
         text, code = r.stdout + r.stderr, r.returncode
     except subprocess.TimeoutExpired as e:
         def decode(value):

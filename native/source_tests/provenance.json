@@ -18,7 +18,13 @@
   "corrections": {
     "journey.js": {
       "original": "function depart(s,kit,formation){if(s.phase!=='prepare'||!hasPorter(s)||",
-      "current": "function depart(s,kit,formation){if(s.phase!=='prepare'||!s.selected.length||"
+      "current": "function depart(s,kit,formation){if(s.phase!=='prepare'||!s.selected.length||",
+      "additional": [
+        {
+          "current": "function rest(s){if(s.phase!=='camp'||s.rested)return false;s.hours+=2;s.rested=true;for(const u of s.party){if(u.hp>0)u.hp=Math.min(u.max,u.hp+60);u.mp=Math.min(u.maxMp,u.mp+2);}s.history.push('焚き火で休息（2時間）。生存者はHP＋60・MP＋2。戦闘不能はアスタリスの宿屋でのみ回復。');return true;}",
+          "original": "function rest(s){if(s.phase!=='camp'||s.rested)return false;s.hours+=2;s.rested=true;for(const u of s.party){u.hp=Math.min(u.max,u.hp+60);u.mp=Math.min(u.maxMp,u.mp+2);}s.history.push('焚き火で休息（2時間）。全員HP＋60・MP＋2、戦闘不能者も復帰。');return true;}"
+        }
+      ]
     },
     "test-porter.cjs": {
       "original": "const j=J.create();j.selected=['guard'];assert.equal(J.accept(j,'parts'),false);j.selected=['porter'];J.accept(j,'parts');J.select(j,['guard']);assert.equal(J.depart(j,'medicine','convoy'),false);J.select(j,['porter','porter-2','guard','archer','mage']);assert.ok(J.depart(j,'medicine','convoy'));",

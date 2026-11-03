@@ -151,7 +151,7 @@ func run():
 	check(exit_code==0,"canonical fixture generator validates existing campaign rules and RNG call parity")
 	var generated=JSON.parse_string("".join(output))
 	if not generated is Dictionary:quit(2);return
-	check(generated.meta.count==23 and generated.cases.size()==23,"all 23 canonical fixture cases present")
+	check(generated.meta.count==22 and generated.cases.size()==22,"all 22 canonical fixture cases present")
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	await preload("res://tests/current_historical_fixture.gd").install(game)

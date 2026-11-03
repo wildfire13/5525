@@ -36,8 +36,20 @@
     "height": 1536
   },
   {
-    "path": "res://assets/facility_npcs/guild.png",
-    "sha256": "9b530b21d0db9dcb15fe58ff03963b5655a5b767ef1ac14b4b6f2f2d6167ecd5",
+    "path": "res://assets/facility_npcs/guild-dwarf.png",
+    "sha256": "d67fca663fe60bab322d3d0d27354f981f51e60576de0e44a774e35a81f20449",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "path": "res://assets/facility_npcs/guild-elf.png",
+    "sha256": "2818304f00506db7c7f44c9beb0f97937ff3faee7c83afa4d9bc66fcb45e83c7",
+    "width": 1024,
+    "height": 1536
+  },
+  {
+    "path": "res://assets/facility_npcs/guild-human.png",
+    "sha256": "d20d908a88c057bee22cda1cab570e72b528dd3c0c92fb5df92b7bb485934069",
     "width": 1024,
     "height": 1536
   }

@@ -20,7 +20,7 @@ func run():
 	p.open_detail("guard");await settle()
 	var status=game.dialog.window;status.position=Vector2i(50,60);status.size=Vector2i(1000,800);await frames()
 	check(node("OwnedEquipment_swift-boots").tooltip_text.contains("俊足"),"S1 item hover retains item details separately")
-	node("OwnedEquipmentActions_swift-boots").focus_entered.emit();await settle()
+	node("OwnedEquipmentActions_swift-boots").grab_focus();await settle()
 	var hover=node("EquipmentHover")
 	check(hover.visible and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(hover.position),Vector2(hover.size))),"S1 comparison stays within FHD (feedback3 placement)")
 	var text=node("OwnedEquipmentComparison").text

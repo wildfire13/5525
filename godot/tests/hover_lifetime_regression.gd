@@ -21,33 +21,45 @@ func settle():
 	var deadline=Time.get_ticks_msec()+18000
 	while (game.locked or game.presenting or game.engine.busy or game.preview_pending) and Time.get_ticks_msec()<deadline:await process_frame
 	await frames()
-func check(id,ok,detail=""):
-	checks.append({"id":id,"passed":bool(ok),"detail":detail});print(("PASS " if ok else "FAIL ")+id)
+func check(id: String,ok: bool,detail=null):
+	var text_detail="" if detail==null else (JSON.stringify(detail) if detail is Dictionary or detail is Array else str(detail))
+	checks.append({"id":id,"passed":ok,"detail":text_detail});print(("PASS " if ok else "FAIL ")+id+ (": "+text_detail if not text_detail.is_empty() else ""))
 	var f=FileAccess.open(evidence.path_join("hover-lifetime-regression.json"),FileAccess.WRITE);f.store_string(JSON.stringify({"checks":checks,"owned":owned,"scope":"Adapted independent Q06 controls plus current-response and freed-callback checks; real Node transport; no OS input."},"  "));f.close()
 func mode(value):
 	var f=FileAccess.open(evidence.path_join("hover-fault-mode.txt"),FileAccess.WRITE);f.store_string(value);f.close()
-func saved():return (await probe.request({"op":"campaign_save"})).data
-func prepare():
-	await game.update({"op":"campaign_load","data":fixtures.battle});await settle();game.board.set_hover("");await game.choose_command("attack");await settle()
+func saved():
+	var reply=await probe.request({"op":"campaign_save"})
+	if not reply.get("ok",false):push_error("hover fixture save failed: "+str(reply.get("error","missing response")))
+	return reply.get("data",{})
+func prepare() -> bool:
+	var reply=await game.update({"op":"campaign_load","data":fixtures.battle});await settle()
+	if not reply.get("ok",false):check("battle-fixture-load",false,str(reply.get("error","missing response")));return false
+	if not is_instance_valid(game.board):check("battle-fixture-board",false,"campaign battle loaded without BattleBoard");return false
+	check("battle-fixture-load",true)
+	game.board.set_hover("");await game.choose_command("attack");await settle();return true
 func trigger():
 	probe.hold=true;game.board.set_hover(str(game.data.choices.attack[0]))
 	var deadline=Time.get_ticks_msec()+5000
 	while not probe.waiting and Time.get_ticks_msec()<deadline:await process_frame
 	return probe.waiting
 func delayed(fault,new_battle):
-	await prepare();var old=game.board;var old_pid=int(probe.handles.pid);var connection=probe.connection_generation
+	if not await prepare():return
+	var old=game.board;var old_pid=int(probe.handles.pid);var connection=probe.connection_generation
 	mode(fault);probe.timeout_ms=250
 	var label=("success" if fault=="" else fault)+("-new-board" if new_battle else "-town")
 	check(label+"-held",await trigger(),"Real hover response withheld only after transport completion")
 	if not probe.waiting:return
 	mode("")
+	# The injected hover request alone uses a 250ms budget. All campaign
+	# bootstrap/load requests happen after the fault is observed and need the
+	# regular budget, including when the whole FHD suite runs sequentially on CI.
+	probe.timeout_ms=15000
 	var loss=fault in ["eof","timeout"]
 	check(label+"-transport",probe.held_reply.get("connection_lost",false)==loss and probe.disconnected==loss and probe.held_reply.get("ok",false)==(fault==""),probe.held_reply.duplicate(true))
 	if loss:
-		# Only the injected hover fault has a 250ms budget. A fresh Node
-		# bootstrap must use the normal budget, including on slower CI hosts.
-		probe.timeout_ms=15000
-		check(label+"-old-node-exited",not process_running(old_pid));await game.reconnect_engine();await settle();owned.append(int(probe.handles.pid));check(label+"-new-connection",probe.connection_generation>connection)
+		check(label+"-old-node-exited",not process_running(old_pid));await game.reconnect_engine();await settle()
+		if not probe.handles.is_empty():owned.append(int(probe.handles.pid))
+		check(label+"-new-connection",probe.connection_generation>connection and not probe.disconnected and not probe.handles.is_empty(),probe.last_error)
 	else:await game.new_game();await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
 	probe.timeout_ms=15000
 	check(label+"-old-board-freed",not is_instance_valid(old))
@@ -62,21 +74,24 @@ func delayed(fault,new_battle):
 	check(label+"-new-view-preserved",game.notice=="fresh session" and game.board==current and game.hud.inspected_uid==person and (current==null or current.hover_caption==caption))
 	check(label+"-connection-preserved",not probe.disconnected and int(probe.handles.pid)==pid and process_running(pid))
 func null_and_foreign():
-	await prepare();var old=game.board;var person=game.hud.inspected_uid
+	if not await prepare():return
+	var old=game.board;var person=game.hud.inspected_uid
 	game.hud.selected_cell=24;old.set_hover("guard");var shown=game.hud.inspected_uid;game.board=null;old.set_hover("");game.hud.render_person();game.hud.refresh_hover();await frames()
 	check("null-board-no-inspection-mutation",game.hud.inspected_uid==shown)
 	game.board=old;var foreign=Node.new();root.add_child(foreign);game.hud.inspect_hover("mage",foreign);check("foreign-board-rejected",game.hud.inspected_uid==shown);foreign.free()
 	game.hud.inspect_hover("mage",foreign);check("freed-board-callback-rejected",game.hud.inspected_uid==shown)
 	await game.new_game();await preload("res://tests/current_historical_fixture.gd").install(game);await settle();check("teardown-town",game.board==null and game.campaign().phase=="town")
 func current_response(fault):
-	await prepare();var before=await saved();mode(fault);check("current-"+fault+"-held",await trigger())
+	if not await prepare():return
+	var before=await saved();mode(fault);check("current-"+fault+"-held",await trigger())
 	mode("");var calls=probe.calls.size();probe.deliver=true;await settle()
 	var caption=game.board.hover_caption
 	check("current-"+fault+"-applied",caption=="予測：未取得" if fault=="error" else caption.begins_with("予測：") and caption.contains("が受ける −") and caption.contains("命中：100%"),caption)
 	check("current-"+fault+"-no-replay",calls==probe.calls.size())
 	check("current-"+fault+"-state-preserved",await saved()==before)
 func busy_teardown():
-	await prepare();var old=game.board;var source_id=old.get_instance_id();var inspected=game.hud.inspected_uid;var calls=probe.calls.size()
+	if not await prepare():return
+	var old=game.board;var source_id=old.get_instance_id();var inspected=game.hud.inspected_uid;var calls=probe.calls.size()
 	probe.busy=true;game.hud.request_hover("guard",game.hud.hover_generation,game.generation,probe.connection_generation,source_id)
 	# Keep the token intact to exercise source lifetime validation in the busy wait.
 	game.board=null;old.queue_free();await frames();probe.busy=false;await frames()

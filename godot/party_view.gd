@@ -127,7 +127,7 @@ func growth(parent,u: Dictionary):
 	var confirm=b(parent,"確定",confirm_allocation.bind(u),not editable or draft_total()==0);confirm.name="AllocationConfirm";confirm.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;confirm.custom_minimum_size.x=180;ui.memory.key(confirm,"allocation_confirm")
 	if draft_total()>0:tint(confirm,Color("#236044"))
 	if not editable:l(parent,"控えは編成してから操作できます。" if not ui.active_member(str(u.id)) else "成長の配分は町にいる時だけ編集できます。" if pages.c().get("phase")!="town" else "確定結果を確認しています。")
-	l(parent,pages.stats_text(stats));l(parent,"SPD（行動速度）はAGIと装備補正から算出します。")
+	l(parent,pages.stats_text(stats,str(u.id)));l(parent,"Wt上限はSTR。戦闘不能者の装備・所持重量は生存者に分配されます。SPD（行動速度）はAGIと装備補正から算出します。")
 	l(parent,"編成はアスタリスのギルドで変更できます。")
 func skills(parent,u: Dictionary):
 	var s=u.get("stats",u);var names=pages.c().get("skillNames",{})

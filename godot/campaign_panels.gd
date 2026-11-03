@@ -61,12 +61,23 @@ func attack_profile(stats: Dictionary) -> String:
 	var parts=[]
 	for distance in range(1,normal_reach(stats)+1):
 		parts.append("距離%d: %d" % [distance,normal_atk(stats,distance)])
-	return "通常ATK "+(" / ".join(parts) if not parts.is_empty() else "なし")+" / 最大通常射程 %d" % normal_reach(stats)
-func stats_text(stats: Dictionary) -> String:
-	return "HP上限 %d / MP上限 %d / %s / DEF %d / 行動速度 %d" % [stats.get("max",0),stats.get("maxMp",0),attack_profile(stats),stats.get("def",0),stats.get("speed",stats.get("agi",0))]
+	return "通常ATK（物理） "+(" / ".join(parts) if not parts.is_empty() else "なし")+" / 属性ATK 火%d 水%d 地%d / 最大射程 %d" % [stats.get("atkFire",0),stats.get("atkWater",0),stats.get("atkEarth",0),normal_reach(stats)]
+func defense_profile(stats: Dictionary) -> String:
+	return "DEF 物%d 火%d 水%d 地%d" % [stats.get("def",0),stats.get("defFire",0),stats.get("defWater",0),stats.get("defEarth",0)]
+func element_name(element) -> String:
+	return {"fire":"火","water":"水","earth":"地","none":"無属性"}.get(str(element),"無属性")
+func stats_text(stats: Dictionary,character_id: String="") -> String:
+	var text="HP上限 %d / MP上限 %d / %s / %s / SPD %d / 属性 %s" % [stats.get("max",0),stats.get("maxMp",0),attack_profile(stats),defense_profile(stats),stats.get("speed",stats.get("agi",0)),element_name(stats.get("element","none"))]
+	if not character_id.is_empty():
+		var weight=c().get("inventoryByCharacter",{}).get(character_id,{}).get("weight",{})
+		if weight is Dictionary:
+			var current=weight.get("total")
+			text+=" / Wt %s / STR上限 %d" % [str(current) if current!=null else str(weight.get("known",0))+"（一部不明）",stats.get("str",0)]
+			if current!=null and current>stats.get("str",0):text+="（超過中: SPD 50%）"
+	return text
 func member_stats(u: Dictionary) -> String:
 	var s=u.get("stats",u)
-	return "STR %d / INT %d / AGI %d\n%s" % [s.get("str",0),s.get("int",0),s.get("agi",0),attack_profile(s)]
+	return "STR %d / INT %d / AGI %d\n%s / %s / 属性 %s" % [s.get("str",0),s.get("int",0),s.get("agi",0),attack_profile(s),defense_profile(s),element_name(s.get("element","none"))]
 func equipment(parent,u):
 	for e in u.get("equipmentSlots",[]):l(parent,e.label+": "+str(e.name).trim_prefix(e.label+":").trim_prefix(e.label+"：").strip_edges())
 	l(parent,"使用可能: "+" / ".join(u.get("activeSkillNames",[])))

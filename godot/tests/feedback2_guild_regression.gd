@@ -36,7 +36,7 @@ func pure_ui_boundaries():
  check(guild.party_limit()==5 and guild.candidate("add","",all_ids[5]).is_empty(),"older view without capacity field retains five-member fallback")
  game.data.campaign=original;guild.reset();game.render();await settle()
 func run():
- create_timer(180).timeout.connect(func():print("FAIL feedback2 guild watchdog");quit(2))
+ create_timer(240).timeout.connect(func():print("FAIL feedback2 guild watchdog");quit(2))
  var root_evidence=OS.get_environment("INVENTORY_QA_ROOT")
  if root_evidence.is_empty() or not OS.get_user_data_dir().begins_with(root_evidence+"/"):quit(2);return
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)

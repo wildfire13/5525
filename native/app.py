@@ -441,7 +441,10 @@ class App:
             sources=' + '.join(w['name'] for w in hit['weapons']) or '基本攻撃'
             info.append(f"予測: {hit['targetName']} → {hit['recipientName']} HP−{hit['hpLoss']} ({sources} / 成長補正+{hit['bonus']})")
         for u in s['units']:
-            info.append(f'{u["name"]}: HP {u["hp"]}/{u["max"]} MP {u["mp"]} AGI {u["agi"]}'+(' 防御' if u['guard'] else '')+(' 戦闘不能' if u['hp']<=0 else ''))
+            wt=(u.get('carriedWeight',0)+u.get('fallenWeightShare',0))
+            burden=(f' Wt {wt:g}/{u.get("weightLimit", 0):g}'+(' SPD 50%' if u.get('overburdened') else '')) if u.get('weightLimit') is not None else ''
+            element={'fire':'火','water':'水','earth':'地','none':'無属性'}.get(u.get('element'),'')
+            info.append(f'{u["name"]}: HP {u["hp"]}/{u["max"]} MP {u["mp"]} SPD {u["agi"]}'+(f' 属性{element}' if element else '')+burden+(' 防御' if u['guard'] else '')+(' 戦闘不能' if u['hp']<=0 else ''))
             if u.get('cover'):info.append('  かばう → '+next(v['name'] for v in s['units'] if v['id']==u['cover']))
             if u.get('covers'):info.append('  防衛線 → '+'・'.join(v['name'] for v in s['units'] if v['id'] in u['covers']))
             if u['side']=='enemy' and u['hp']>0 and u.get('intent'):

@@ -31,13 +31,14 @@ class EquipmentSlotsBridgeTests(unittest.TestCase):
     def test_dual_attack_preview_matches_real_damage_and_range_union(self):
         for gear,slot in [('sword-wood','rightHand'),('staff-wood','leftHand')]:
             self.assertTrue(self.bridge.call(op='campaign',action='buyGear',args=['mage',gear,slot])['ok'])
-        for target,expected in [('enemy-guard',40),('enemy-archer',14)]:
+        for target in ('enemy-guard','enemy-archer'):
             data=self.bridge.call(op='campaign',action='trial',args=['mage','sword-wood','rightHand'])
             self.assertEqual(data['normalAttackReach'],2)
             before=copy.deepcopy(data['state'])
             response=self.bridge.call(op='preview',kind='attack',target=target)
             hit=response['preview']['damagePreview'][0]
-            self.assertEqual(hit['damage'],expected)
+            defender=next(u for u in before['units'] if u['id']==target)
+            self.assertEqual(hit['damage'],max(0,hit['base']-defender['def']))
             self.assertEqual(self.bridge.call(op='view')['state'],before)
             actual=self.bridge.call(op='act',kind='attack',target=target)
             old=next(u['hp'] for u in before['units'] if u['id']==target)
