@@ -320,9 +320,10 @@ Lunaの再試遊終了後、ユーザー指示で奇襲を同じ横列の前方�
 - 報酬・Wt・締切・停車/焼成時刻は試作用の暫定値。成功と後日の順位/焼成を分ける。詳細は[単発依頼仕様メモ](docs/standalone-quests-20261103.md)。
 - 会話は話者/聞き手の明暗、地の文、タイプ表示、受注確認を備える。ギルドNPC3人から画面入場単位で一人を抽選。
 - 検証入口は`native/test_standalone_quests.cjs`、`godot/tests/quest_story_regression.gd`。最終全体チェック、FHD UI確認、commit/push、CIは完了後に追記する。
-## 最新追補：単発クエストの行商人スケジュール修正（2026-11-05、ローカル未commit）
+## 最新追補：単発クエスト修正と Godot 実行パス設定（2026-11-05、main 公開済み）
 
-- 対象ブランチ `work`、基点 `ff4032d6ee192f4cf4c091be581c63bb5580d147`。作業開始時の HEAD から `origin/main` へ fast-forward し、既存の quest-cargo UID を保存・復元して内容一致を確認。push/PR/merge/公開・デプロイなし。
+- 対象は `wildfire13/5525` の main、基点 `ff4032d6ee192f4cf4c091be581c63bb5580d147`。作業開始時の HEAD から `origin/main` へ fast-forward し、既存の quest-cargo UID を保存・復元して内容一致を確認。実装 `a4a03d848bd4e6f7fd77d2d7462da6cd131871d4`、Windows launcher fixture 修正 `219aa4eb47d584b86c5bfc64d3e09066e81c31e0`、console/GUI companion を揃える追補 `35c028eacf74beb4f891d3d50ac0c35d71108e39` を通常 push。実装後にremote readback一致を確認。PR/merge/公開デプロイなし。
 - 行商人の現在予定に本文と目的地を追随。掲載後+36hちょうどのサウス納品は110G、+36h超は失敗復元。単発予測を掲載からの世界時刻・各依頼固有報酬へ合わせ、待機地をアスタリスへ修正。Godot の待機ボタンが bridge で許可されていなかった点も修正。旅程画面・警告・掲示板は停車窓、到着状態、期限/返却結果を表示。
 - `native/test_standalone_quests.cjs` は8群、`native/test_quest_cargo.cjs` は15件、`native/test_campaign.cjs` は47件合格。`python3 -X utf8 -B native/check.py` の集約は31段階すべて成功。Godot FHD quest storyは22件合格し、停車窓の開区間、掲載後9h/37hの警告、+22hのアスタリスからサウスへの案内をヘッドレス幾何で確認。
-- Godot 集約は Linux 固定パス制約で `ui_parity_smoke.gd` が Windows 固定 Node パスを呼ぶため中断。Godot 4.6.3、Node 25.2.1、Python 3.13 のチェックアウト用ランチャー設定を追加し、`GODOT_BIN` > `godot/launcher.local.json` > PATH/既存ランタイム検出の順で解決。PowerShellはJSONをUTF-8指定で読む。サンプルは `godot/launcher.local.example.json`。Node固定パスの既知問題とは別であり、そこは変更していない。設定resolverは日本語・空白を含む相対パスを含め10件合格、Windows CMD/PowerShell launcher integrationはLinuxでは未実行。`DISPLAY`/Xvfbがないため可視FHD画面確認は未実施。変更は未commit・未push。
+- Godot 4.6.3、Node 25.2.1、Python 3.13 のチェックアウト用ランチャー設定を追加し、`GODOT_BIN` > `godot/launcher.local.json` > PATH/既存ランタイム検出の順で解決。PowerShellはJSONをUTF-8指定で読む。サンプルは `godot/launcher.local.example.json`。Node固定パスの既知問題とは別であり、そこは変更していない。設定resolverは日本語・空白を含む相対パスを含め10件合格。
+- 機能変更SHA `35c028eacf74beb4f891d3d50ac0c35d71108e39` の [Windows launcher CI](https://github.com/wildfire13/5525/actions/runs/42016841473) と [Linux startup/UI regression CI](https://github.com/wildfire13/5525/actions/runs/42016841424) は両方成功。Windowsの先行2 run は設定パステストfixtureがconsole実行ファイルをリネーム／単体コピーしていたことによる失敗で、Godot本体を改変せず実際のファイル名とpaired GUI executableをfixtureへ含めて修正後、Windows run が合格。Linux集約は他の既存UIを含むため14分6秒。`DISPLAY`/Xvfbがないためローカルでの可視FHD画面確認は未実施。
