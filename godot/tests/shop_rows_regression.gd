@@ -10,6 +10,7 @@ func settle():
 	while game.locked or game.engine.busy or game.presenting:await process_frame
 	for i in range(4):await process_frame
 func nodes():return game.find_children("*","",true,false)
+func node(name_: String):return game.find_child(name_,true,false)
 func button(name_: String):
 	var matches=nodes().filter(func(n):return n is Button and n.name==name_)
 	return matches[0] if not matches.is_empty() else null
