@@ -34,6 +34,7 @@ steps.append(("Portrait hover and HUD lifecycle", common + ["--script", "res://t
 steps.append(("Delayed hover responses after board destruction", common + ["--script", "res://tests/hover_lifetime_regression.gd"], BASE))
 steps.append(("Candidate launcher", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/launcher_checks.py"), args.godot], BASE))
 steps.append(("Standalone quest dialogue at FHD", common + ["--resolution", "1920x1080", "--script", "res://tests/quest_story_regression.gd"], BASE))
+steps.append(("Approved equipment flavor and detail presentation", common + ["--script", "res://tests/equipment_flavor_regression.gd"], BASE))
 if args.full:
     steps.append(("Full native regression", [sys.executable, "-X", "utf8", "-B", "check.py"], ROOT / "native"))
 report = {
