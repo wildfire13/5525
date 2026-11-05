@@ -18,19 +18,20 @@ func run():
   await click("MapLegend")
   check(labels().any(func(s):return s.contains("各移動は二つの区間を通ります。") and s.contains("上で縮小、下で拡大")),"map legend retains travel count and zoom instructions "+str(dims))
   game.dialog.close();await settle()
- var gear={"id":"test","name":"試験装備","slot":"lowerBody","flavor":"一般的な作業用のズボン。","note":"必要な効果の注記"}
+ var master=JSON.parse_string(FileAccess.get_file_as_string("res://../native/data/master-source.json"))
+ var gear=master.gear.filter(func(g):return g.id=="porter-bag")[0]
  var entry={"kind":"equipment","name":gear.name,"count":1,"definition":gear}
  var tip=preload("res://equipment_tooltip.gd").new();tip.configure_entry(entry,game.campaign())
- check(tip.tooltip_text.contains("説明\n"+gear.flavor) and tip.tooltip_text.contains("装備メモ（原文）\n"+gear.note),"hover preserves independent flavor and original note")
+ check(tip.tooltip_text.contains("説明\n"+gear.flavor) and tip.tooltip_text.contains("装備メモ（原文）\n"+gear.note),"porter bag hover preserves the exact approved flavor and original note")
  var doc=tip.detail_document(entry)
- check(not doc.body_text.contains(gear.flavor) and not doc.body_text.contains(gear.note) and doc.body_text.contains("付与スキル：なし"),"effect body excludes separate prose without losing stats")
+ check(not doc.body_text.contains(gear.flavor) and not doc.body_text.contains(gear.note) and doc.body_text.contains("付与スキル：なし"),"detail_document keeps flavor and note in separate display tabs instead of clipping them")
  tip.free()
  var item_tip=preload("res://equipment_tooltip.gd").new()
  var item={"kind":"item","name":"試験アイテム","count":1,"definition":{"description":"説明"}}
  item_tip.configure_entry(item,game.campaign())
  check(item_tip.detail_document(item).body_text=="説明","item description is not treated as equipment flavor separator")
  item_tip.free();game.show_equipment_details(entry);await settle()
- check(node("SkillDetailsFlavor").text==gear.flavor and node("SkillDetailsNote").text==gear.note,"full details preserve separate description and note tabs")
+ check(node("SkillDetailsFlavor").text==gear.flavor and node("SkillDetailsNote").text==gear.note,"inventory detail displays the exact porter bag flavor and original note tabs")
  await click("SkillDetailsBack")
  var target=VBoxContainer.new();game.add_child(target);var footer=VBoxContainer.new();game.add_child(footer)
  game.hud.target_box=target;game.hud.decision_footer=footer
