@@ -65,9 +65,31 @@ try {
         throw 'Master data could not be read. Restore native/data/master.sqlite from the matching game distribution. Existing saves were not changed.'
     }
 
-    $godotCandidates = @()
-    if ($env:GODOT_BIN) { $godotCandidates = @($env:GODOT_BIN) }
-    else {
+    $godotCandidates = @(); $godotSource = ''; $godotConfiguredValue = ''
+    if (-not [string]::IsNullOrWhiteSpace($env:GODOT_BIN)) {
+        $godotConfiguredValue = $env:GODOT_BIN
+        $godotCandidates = @($godotConfiguredValue)
+        $godotSource = 'GODOT_BIN'
+    } else {
+        $localConfig = Join-Path $projectRoot 'godot/launcher.local.json'
+        if (Test-Path -LiteralPath $localConfig -PathType Leaf) {
+            try {
+                $configuration = Get-Content -LiteralPath $localConfig -Raw -Encoding UTF8 | ConvertFrom-Json
+                $godotConfiguredValue = [string]$configuration.godot_bin
+                if ([string]::IsNullOrWhiteSpace($godotConfiguredValue)) {
+                    throw "The file must contain a non-empty string field 'godot_bin'."
+                }
+                if (-not [System.IO.Path]::IsPathRooted($godotConfiguredValue)) {
+                    $godotConfiguredValue = Join-Path $projectRoot $godotConfiguredValue
+                }
+                $godotCandidates = @($godotConfiguredValue)
+                $godotSource = 'godot/launcher.local.json'
+            } catch {
+                throw "Invalid Godot path configuration at $localConfig. Expected JSON with a non-empty string field 'godot_bin'. $($_.Exception.Message)"
+            }
+        }
+    }
+    if (-not $godotSource) {
         $godotCandidates += (Command-Path 'godot')
         $godotCandidates += (Command-Path 'godot4')
         $runtimeFolders = @((Join-Path $projectRoot 'runtime/godot'))
@@ -90,7 +112,8 @@ try {
             if ($version -match '^4\.6\.') { $godotPath=$resolved; $godotVersion=$version; break }
         } catch { }
     }
-    if (-not $godotPath) { throw 'Godot 4.6.x was not found. Set GODOT_BIN to its full executable path. Nothing was downloaded.' }
+    if (-not $godotPath -and $godotSource) { throw "The configured Godot path from $godotSource was not found or is not Godot 4.6.x: $godotConfiguredValue" }
+    if (-not $godotPath) { throw 'Godot 4.6.x was not found. Set GODOT_BIN or configure godot/launcher.local.json. Nothing was downloaded.' }
     $report = [ordered]@{
         project=$projectRoot
         godot=@{path=$godotPath;version=$godotVersion}

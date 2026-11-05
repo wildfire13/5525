@@ -42,6 +42,20 @@ with tempfile.TemporaryDirectory(prefix='5525 launcher discovery ') as temporary
         # the long path. Require the same filesystem directory, not spelling.
         item['passed'] &= Path(data['godot']['path']).parent.samefile(runtime)
         item['passed'] &= bool(data['python'].get('sqlite'))
+    configured_runtime=project/'local runtime with spaces'/'Godot configured.exe'
+    configured_runtime.parent.mkdir(parents=True)
+    shutil.copy2(executable,configured_runtime)
+    local_config=project/'godot/launcher.local.json'
+    local_config.write_text(json.dumps({'godot_bin':str(configured_runtime)}),encoding='utf-8')
+    configured=run('Per-checkout config selects Godot without environment overrides','Start-5525.cmd',['-Check'],auto,project=project)
+    if configured['passed']:
+        data=json.loads(configured['stdout']);configured['resolved']=data
+        configured['passed'] &= Path(data['godot']['path']).samefile(configured_runtime)
+    env_override={**auto,'GODOT_BIN':str(runtime/executable.name)}
+    override=run('Existing GODOT_BIN overrides per-checkout config','Start-5525.cmd',['-Check'],env_override,project=project)
+    if override['passed']:
+        data=json.loads(override['stdout']);override['resolved']=data
+        override['passed'] &= Path(data['godot']['path']).samefile(runtime/executable.name)
     master=project/'native/data/master.sqlite'
     original=master.read_bytes()
     try:
@@ -54,6 +68,9 @@ with tempfile.TemporaryDirectory(prefix='5525 launcher discovery ') as temporary
         invalid['passed'] &= master.read_bytes()==b'not a SQLite database'
     finally:
         master.write_bytes(original)
+    local_config.write_text(json.dumps({'godot_bin':str(project/'missing Godot.exe')}),encoding='utf-8')
+    invalid_config=run('Reject invalid local Godot config without auto fallback','Start-5525.cmd',['-Check'],auto,1,project)
+    invalid_config['passed'] &= 'configured Godot path from godot/launcher.local.json' in invalid_config['stderr']
 explicit=run('Godot entry accepts explicit runtime','Start-5525-Godot.cmd',['-Check'],env)
 if explicit['passed']:
     data=json.loads(explicit['stdout']);explicit['resolved']=data

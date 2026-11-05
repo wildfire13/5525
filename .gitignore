@@ -17,6 +17,9 @@ native/qa-passive-trial-tk-report.json
 native/qa-battle-layout-tk-report.json
 native/5525-native-*.json
 
+# Per-checkout Godot executable selection; never share machine-specific paths.
+godot/launcher.local.json
+
 # Explicit local campaign saves and diagnostic exports
 native/5525-save-*.json
 native/5525-campaign-log-*.json

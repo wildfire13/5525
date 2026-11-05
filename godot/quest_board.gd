@@ -68,6 +68,24 @@ func render_detail(parent,q: Dictionary,active: bool):
 	if q.get("scenario",false):
 		var npc_names={"turnip":"農夫・計量係","kiln":"若い陶工・陶工の師匠","wheel":"車輪職人・行商人"}
 		pages.l(details,"登場人物: "+str(npc_names.get(str(q.get("eventId","")),q.get("client",""))))
+		if str(q.get("eventId",""))=="wheel":
+			if q.get("merchantDeparted",false):
+				pages.l(details,"行商人: サウスを出発済み").name="QuestMerchantWindow"
+			elif q.get("merchantTraveling",false):
+				pages.l(details,"行商人: アスタリスへ移動中（掲載後10時間に到着予定）").name="QuestMerchantWindow"
+			else:
+				var window: Dictionary=q.get("merchantWindow",{})
+				if not window.is_empty():
+					var interval="掲載後%d時間以上%d時間まで" % [window.from,window.to] if window.stop=="south" else "掲載後%d時間以上%d時間未満" % [window.from,window.to]
+					pages.l(details,"行商人: %s（%s停車）" % [pages.town(window.stop),interval]).name="QuestMerchantWindow"
+			if q.get("merchantAtStop",false):
+				pages.l(details,"受け取り: この町で可能").name="QuestMerchantAvailability"
+			elif q.get("merchantDeparted",false):
+				pages.l(details,"受け取り: 行商人は出発済み").name="QuestMerchantAvailability"
+			elif q.get("merchantTraveling",false):
+				pages.l(details,"受け取り: 行商人の到着前。アスタリスで待てます").name="QuestMerchantAvailability"
+			else:
+				pages.l(details,"受け取り: %sへ向かってください" % pages.town(q.get("merchantCurrentStop","south"))).name="QuestMerchantAvailability"
 		var story=pages.b(details,"話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);story.custom_minimum_size.y=44
 	var actions=pages.row(parent);actions.name="QuestDetailActions"
 	if active:
@@ -75,8 +93,8 @@ func render_detail(parent,q: Dictionary,active: bool):
 			if not pages.c().get("cargoAboard",false):pages.l(details,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
 			ui.primary(pages.b(actions,"拠点で荷物を届ける",ui.navigate.bind("hub")))
 		else:pages.l(actions,"受注中 — 配達先へ向かいましょう。")
-		if q.get("eventId","")=="wheel" and pages.c().get("location")=="north" and int(pages.c().get("worldTime",0))<int(q.get("eventEpoch",0))+10:
-			ui.primary(pages.b(actions,"予定まで%d時間待つ" % (int(q.eventEpoch)+10-int(pages.c().get("worldTime",0))),ui.act.bind("waitForEvent",[]))).name="WaitForMerchant"
+		if q.get("eventId","")=="wheel" and q.get("merchantCanWait",false):
+			ui.primary(pages.b(actions,"アスタリスで行商人を%d時間待つ" % int(q.get("merchantWaitHours",0)),ui.act.bind("waitForEvent",[]))).name="WaitForMerchant"
 	else:
 		var accept=ui.primary(pages.b(actions,"この依頼を引き受ける",open_picker.bind(str(q.id)),not pages.c().get("hasPorter",false)));accept.name="QuestAccept";accept.size_flags_horizontal=Control.SIZE_SHRINK_END;accept.custom_minimum_size.x=280
 
