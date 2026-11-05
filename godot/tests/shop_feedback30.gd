@@ -16,6 +16,8 @@ func run():
  game.shop_uid="guard";shop.open_comparison("dagger-steel");var comparison=shop.comparison_view;await wait_quote()
  check(not node("ShopComparisonStats").text.contains("対象：") and node("ShopComparisonEffects")==null,"comparison removes duplicate target and base-stat lines")
  check(node("ShopComparisonConditions").text.contains("スカウト専用") and not node("ShopComparisonConditions").text.contains("ポーター専用"),"steel dagger reports its actual scout condition")
+ var compared_gear=comparison.item()
+ check(node("ShopComparisonFlavor").text=="説明\n"+compared_gear.flavor and node("ShopComparisonNotes").text=="装備メモ（原文）\n"+compared_gear.note,"shop comparison displays the exact master flavor and original note")
  check(node("ShopComparisonBuy").text=="400Gで購入する" and not node("ShopComparisonBuy").disabled,"ineligible equipment can still be purchased into inventory")
  check(node("ShopComparisonBuy").get_parent()==game.dialog.actions and node("ShopComparisonBuy").icon!=null,"compact icon purchase button stays outside scroller")
  var icons=node("ShopComparisonSkills").find_children("ComparisonSkill*","Button",true,false)

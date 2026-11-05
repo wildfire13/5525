@@ -39,6 +39,8 @@ func run():
 	check(button("ProductBuy_javelin-wood")!=null and button("ProductTrial_javelin-wood")!=null,"purchase and trial are per product row")
 	var info=button("Product_javelin-wood")
 	check(info.heading=="木製の投げ槍" and info.tooltip_text.contains("通常攻撃射程：1") and info.get_script().resource_path=="res://equipment_tooltip.gd","product hover reuses real equipment tooltip")
+	var source_javelin=shop.offered().filter(func(g):return g.id=="javelin-wood")[0]
+	check(info.plain_details.any(func(line):return line==source_javelin.flavor) and info.plain_details.any(func(line):return line==source_javelin.note),"product hover exposes full approved flavor and unchanged original note")
 	shop.select_slot("spear");await settle()
 	check(not exists("Product_greatsword-wood") and exists("Product_javelin-wood") and game.shop_slot=="rightHand","filter changes product list, not equipment destination")
 	shop.select_slot("all");await settle()
