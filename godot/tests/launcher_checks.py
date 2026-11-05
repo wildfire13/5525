@@ -45,6 +45,7 @@ with tempfile.TemporaryDirectory(prefix='5525 launcher discovery ') as temporary
     configured_runtime=project/'local runtime with spaces'/executable.name
     configured_runtime.parent.mkdir(parents=True)
     shutil.copy2(executable,configured_runtime)
+    if companion!=executable and companion.is_file():shutil.copy2(companion,configured_runtime.with_name(companion.name))
     local_config=project/'godot/launcher.local.json'
     local_config.write_text(json.dumps({'godot_bin':str(configured_runtime)}),encoding='utf-8')
     configured=run('Per-checkout config selects Godot without environment overrides','Start-5525.cmd',['-Check'],auto,project=project)
