@@ -63,7 +63,7 @@ for name in ['event_voices_regression', 'facility_art_261021', 'hover_regression
         path.mkdir()
         env[key] = str(path)
     # Resource/configuration/worker checks do not exercise a game viewport.
-    screen_suite = name not in {'icons_approved_261021', 'ui_preferences_restart', 'individual_icons_regression', 'debug_store_teardown', 'audio_options_regression'}
+    screen_suite = name not in {'icons_approved_261021', 'ui_preferences_restart', 'individual_icons_regression', 'debug_store_teardown', 'audio_options_regression', 'shop_feedback30'}
     # Wrap screen suites, retaining their lifecycle while checking every frame.
     wrapper = scope / 'fhd-suite.gd'
     wrapper.write_text(
@@ -76,5 +76,6 @@ for name in ['event_voices_regression', 'facility_art_261021', 'hover_regression
     (scope / 'source-sha256.txt').write_text(hashlib.sha256((repo / 'godot/tests' / (name + '.gd')).read_bytes()).hexdigest() + '\n')
     for phase in phases:
         env['UI_PREFERENCES_PHASE'] = phase
-        run(name + ('_' + phase if phase else ''), [godot, '--headless', '--resolution', '1920x1080', '--audio-driver', 'Dummy', '--path', str(repo / 'godot'), '--script', str(wrapper)], repo, env)
+        script = repo / 'godot/tests/shop_rows_regression.gd' if name == 'shop_rows_regression' else wrapper
+        run(name + ('_' + phase if phase else ''), [godot, '--headless', '--resolution', '1920x1080', '--audio-driver', 'Dummy', '--path', str(repo / 'godot'), '--script', str(script)], repo, env)
 sys.exit(0 if all(r['passed'] for r in results) else 1)
