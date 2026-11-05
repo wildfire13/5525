@@ -71,10 +71,28 @@ const Campaign = (() => {
     if(!s.standaloneEvents||typeof s.standaloneEvents!=='object')s.standaloneEvents=freshWorldEvents(s.worldTime);
     for(const q of STANDALONE_QUESTS){const e=s.standaloneEvents.events?.[q.eventId];if(e?.status==='available'&&s.worldTime>s.standaloneEvents.epoch+q.deadline)e.status='missed';}
   }
-  function tickWorld(s,hours){syncWorld(s);s.worldTime+=hours;syncWorld(s);}
+  function tickWorld(s,hours){syncWorld(s);s.worldTime+=hours;syncWorld(s);if(s.activeQuest?.eventId==='wheel')refreshWheelQuest(s,s.activeQuest);}
   function worldAge(s,id){syncWorld(s);return s.worldTime-s.standaloneEvents.epoch;}
-  function merchantAt(s){const age=worldAge(s,'wheel');return age<10?null:age<18?'astaris':age<36?'south':null;}
-  function merchantNextStop(s){const age=worldAge(s,'wheel');return age<18?'astaris':age<36?'south':null;}
+  function merchantAtAge(age){return age<10?null:age<18?'astaris':age<=36?'south':null;}
+  function merchantAt(s){return merchantAtAge(worldAge(s,'wheel'));}
+  function merchantNextStop(s){const age=worldAge(s,'wheel');return age<18?'astaris':age<=36?'south':null;}
+  function refreshWheelQuest(s,q){
+    const age=worldAge(s,'wheel'),stop=merchantNextStop(s)||'south';
+    q.to=stop;
+    q.text=age>36?'行商人はサウスを出発しました。車輪は受け取ってもらえず、荷物は受注前の状態へ戻ります。':questText({to:stop,cargo:q.cargo});
+  }
+  function wheelPresentation(s,q){
+    if(q?.eventId!=='wheel')return q;
+    const shown=clone(q),age=worldAge(s,'wheel');refreshWheelQuest(s,shown);
+    shown.merchantAtStop=merchantAt(s)===s.location;
+    shown.merchantCurrentStop=merchantAt(s);
+    shown.merchantTraveling=age<10;
+    shown.merchantCanWait=age<10&&s.location==='astaris';
+    shown.merchantWaitHours=Math.max(0,10-age);
+    shown.merchantWindow=age<18?{stop:'astaris',from:10,to:18}:age<=36?{stop:'south',from:18,to:36}:null;
+    shown.merchantDeparted=age>36;
+    return shown;
+  }
   const elements={guard:'earth',archer:'water',mage:'fire',scout:'earth',porter:'none',warrior:'earth'};
   const enemyLoadout={guard:{weapon:'sword-wood',shield:'guard-shield-wood',inventory:{potion:99}},archer:{weapon:'bow-wood',inventory:{potion:99}},mage:{weapon:'staff-wood',inventory:{potion:99}},scout:{weapon:'dagger-wood',inventory:{potion:99}},porter:{weapon:'porter-kit',inventory:{potion:99}},warrior:{weapon:'hammer-iron-1',inventory:{potion:99}}};
   function equipment(c,replacement) {
@@ -194,8 +212,9 @@ const Campaign = (() => {
   // Development purpose and alternate prices belong here, not in player text.
   const LEGACY_QUEST_TEXT="繰り返しの受注・移動・買い替えを確かめる仮の配達依頼です。急ぎは納期6時間・報酬180G、通常は10時間・150G。";
   function questText(q) {return `${q.cargo}を${getPlace(q.to).name}まで届けてください。`;}
-  function displayQuest(q) {
+  function displayQuest(q,s) {
     if(!q)return q;
+    if(q.eventId==='wheel')return wheelPresentation(s,q);
     const shown=clone(q);
     if(q.text===LEGACY_QUEST_TEXT&&locations.some(p=>p.id===q.from)&&locations.some(p=>p.id===q.to)&&
        new RegExp(`^${q.from}-${q.to}-[0-9]+-[0-9]+$`).test(q.id))shown.text=questText(q);
@@ -216,8 +235,7 @@ const Campaign = (() => {
     for(const q of STANDALONE_QUESTS){
       if(q.from!==s.location||s.standaloneEvents.events[q.eventId]?.status!=='available')continue;
       const event={...clone(q),id:`standalone-${q.eventId}`,text:`${q.cargo}を${getPlace(q.to).name}まで届けてください。`,scenario:true,postedAt:s.standaloneEvents.epoch,deadlineAt:s.standaloneEvents.epoch+q.deadline};
-      if(q.eventId==='wheel')event.to=merchantNextStop(s)||'south';
-      offers.push(event);
+      offers.push(q.eventId==='wheel'?wheelPresentation(s,event):event);
     }
     return offers;
   }
@@ -248,6 +266,7 @@ const Campaign = (() => {
     if(!s.selected.includes(ownerId)||template(ownerId)?.job!=='porter')return false;
     if(!I.canReceive(s.characters[ownerId].inventory,Cargo.key(s.sequence+1),1,inventoryCapacity(s,ownerId)))return false;
     s.rollback=snapshot(s);s.sequence++;s.activeQuest={...quest,token:s.sequence};
+    if(s.activeQuest.eventId==='wheel')for(const key of ['merchantAtStop','merchantCurrentStop','merchantTraveling','merchantCanWait','merchantWaitHours','merchantWindow','merchantDeparted'])delete s.activeQuest[key];
     if(quest.scenario){const event=s.standaloneEvents.events[quest.eventId];if(!event||event.status!=='available')return false;event.status='accepted';s.activeQuest.eventEpoch=s.standaloneEvents.epoch;}
     Cargo.issue(s,ownerId);invalidateInventory(s);note(s,quest.name+'を受注。'+template(ownerId).name+'が「荷物」を受け取りました。');return true;
   }
@@ -445,22 +464,29 @@ const Campaign = (() => {
     note(s,'野営で休息（2時間・HP＋60／MP＋2）。');return true;
   }
   function waitForEvent(s){
-    const q=s.activeQuest;if(s.phase!=='town'||q?.eventId!=='wheel'||s.location!=='north'||worldAge(s,'wheel')>=10)return false;
-    const hours=10-worldAge(s,'wheel');s.hours+=hours;tickWorld(s,hours);q.to=merchantAt(s)||'south';
+    const q=s.activeQuest,age=worldAge(s,'wheel');if(s.phase!=='town'||q?.eventId!=='wheel'||s.location!=='astaris'||age>=10)return false;
+    const hours=10-age;s.hours+=hours;tickWorld(s,hours);
     note(s,`行商人の到着予定まで${hours}時間待ちました。`);return true;
   }
   function onward(s) {if(s.phase!=='camp'||inventoryOverflow(s).length||!J.onward(s.journey))return false;s.phase='road';return true;}
   function forecast(s,choice) {
     if(!s.journey||!['road','camp'].includes(s.phase)||!['short','safe','rest'].includes(choice))return null;
-    const f=J.forecast(s.journey,choice),hours=f.hours+(s.activeQuest?.elapsedHours||0),late=!!s.activeQuest&&hours>s.activeQuest.deadline;
-    return {...f,hours,late,over:s.activeQuest?Math.max(0,hours-s.activeQuest.deadline):0,reward:s.activeQuest?Math.floor(s.activeQuest.reward*(late?.65:1)):0,questless:!s.activeQuest};
+    const f=J.forecast(s.journey,choice),q=s.activeQuest;
+    if(q?.eventId){
+      const age=s.worldTime-(q.eventEpoch??s.standaloneEvents.epoch),delta=Math.max(0,f.hours-s.journey.hours),predicted=age+delta,late=predicted>q.deadline;
+      const handoffStop=q.eventId==='wheel'?merchantAtAge(predicted):null,handoffAvailable=q.eventId==='wheel'?handoffStop===s.journey.destination:true;
+      const reward=q.eventId==='wheel'?(handoffAvailable?(predicted<=q.deadline?q.reward:predicted<=q.lateDeadline?q.lateReward:0):0):late?0:q.reward;
+      return {...f,hours:predicted,late,over:Math.max(0,predicted-q.deadline),remaining:Math.max(0,q.deadline-predicted),deadline:q.deadline,reward,scenario:true,willFail:q.eventId==='wheel'?s.journey.destination==='south'&&predicted>q.lateDeadline:late,handoffStop,handoffPhase:q.eventId==='wheel'?(predicted<10?'before_arrival':predicted>36?'departed':'at_stop'):null,handoffAvailable,arrivalLocation:s.journey.destination,questless:false};
+    }
+    const hours=f.hours+(q?.elapsedHours||0),late=!!q&&hours>q.deadline;
+    return {...f,hours,late,over:q?Math.max(0,hours-q.deadline):0,reward:q?Math.floor(q.reward*(late?.65:1)):0,questless:!q};
   }
   function arrive(s) {
     const j=s.journey;if(s.phase!=='arrival'||!j||j.stage!==2)return false;
     s.location=j.destination;
     if(s.activeQuest){
       s.activeQuest.elapsedHours=(s.activeQuest.elapsedHours||0)+j.hours;
-      if(s.activeQuest.eventId==='wheel')s.activeQuest.to=merchantNextStop(s)||'south';
+      if(s.activeQuest.eventId==='wheel')refreshWheelQuest(s,s.activeQuest);
       s.journey=null;s.battle=null;s.result=null;s.phase='town';
       note(s,getPlace(s.location).name+'に到着。依頼は未完了です。');return true;
     }
@@ -754,7 +780,7 @@ const Campaign = (() => {
   function view(s) {
     syncWorld(s);
     const ids=battleIds(s),deployed=s.battle?s.battle.units.filter(u=>u.side==='ally').map(u=>u.id):[...ids];
-    return {...clone(s),activeQuest:displayQuest(s.activeQuest),partyLimit:PARTY_LIMIT,battleLimit:BATTLE_LIMIT,battleSelected:[...ids],deploymentRoster:{deployed,reserves:s.selected.filter(id=>!deployed.includes(id)),remaining:BATTLE_LIMIT-deployed.length,minimum:1,canBegin:s.phase==='deployment'&&!!s.battle?.units.some(u=>u.side==='ally'&&u.hp>0)&&validate(s).ok},cargoAboard:Cargo.aboard(s),cargoCarriers:Cargo.carriers(s),inventory:inventoryTotals(s),inventoryTotals:inventoryTotals(s,Object.keys(s.characters)),inventoryToken:inventoryToken(s),saleAvailable:saleAvailable(s),inventoryByCharacter:Object.fromEntries(Object.keys(s.characters).map(id=>[id,inventoryView(s,id)])),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),routes:clone(routes),destinations:clone(destinations(s)),board:board(s),scenarioAftermath:scenarioAftermath(s),scenarioStages:scenarioStages(s),shop:shop(s),itemDefinitions:clone(items),provisional:[...provisional],
+    return {...clone(s),activeQuest:displayQuest(s.activeQuest,s),partyLimit:PARTY_LIMIT,battleLimit:BATTLE_LIMIT,battleSelected:[...ids],deploymentRoster:{deployed,reserves:s.selected.filter(id=>!deployed.includes(id)),remaining:BATTLE_LIMIT-deployed.length,minimum:1,canBegin:s.phase==='deployment'&&!!s.battle?.units.some(u=>u.side==='ally'&&u.hp>0)&&validate(s).ok},cargoAboard:Cargo.aboard(s),cargoCarriers:Cargo.carriers(s),inventory:inventoryTotals(s),inventoryTotals:inventoryTotals(s,Object.keys(s.characters)),inventoryToken:inventoryToken(s),saleAvailable:saleAvailable(s),inventoryByCharacter:Object.fromEntries(Object.keys(s.characters).map(id=>[id,inventoryView(s,id)])),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),routes:clone(routes),destinations:clone(destinations(s)),board:board(s),scenarioAftermath:scenarioAftermath(s),scenarioStages:scenarioStages(s),shop:shop(s),itemDefinitions:clone(items),provisional:[...provisional],
       slots:S.slots,skillNames:{...skills,invasion:'潜入'},skillDefinitions:clone(E.definitions),roster:rosterFor(s).map(t=>{const c=s.characters[t.id];const st=stats(c);return {...t,...clone(c),allocationToken:allocationToken(s,t.id),max:st.max,maxMp:st.maxMp,atk:st.atk,agi:st.speed,reach:st.reach,stats:st,equipmentDetails:Object.fromEntries(Object.entries(st.equipment).map(([slot,id])=>[slot,displayGear(slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?getGear(st.equipment.rightHand):effectiveGear(c,slot,id))])),equipmentSlots:Object.entries(st.equipment).map(([slot,id])=>({slot,label:S.slots[slot],id,name:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?getGear(st.equipment.rightHand).name+'（両手装備で使用中）':effectiveGear(c,slot,id).name,occupiedBy:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?'rightHand':null})),activeSkillNames:st.activeSkills.map(id=>skills[id]),weaponName:getGear(c.weapon).name,armorName:getGear(c.armor).name,accessoryNames:['accessory1','accessory2'].map(slot=>getGear(c[slot]||defaultAccessory(c,slot)).name),skillName:st.activeSkills.map(id=>skills[id]).join(' / '),effectNames:st.effects.map(id=>skills[id]||'侵入')};}),
       inventoryOverflow:inventoryOverflow(s),warehouseView:warehouseView(s),guildAvailable:s.phase==='town'&&s.location==='astaris',hasPorter:hasPorter(s)};
   }

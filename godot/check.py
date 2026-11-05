@@ -4,22 +4,35 @@ import datetime
 import json
 import os
 from pathlib import Path
-import subprocess
 import sys
+import subprocess
+from launcher_config import resolve_godot
 import time
 
 BASE = Path(__file__).resolve().parent
 ROOT = BASE.parent
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--godot", default=os.environ.get("GODOT_BIN"), help="Godot 4.6 console executable")
+parser.add_argument("--godot", help="Godot 4.6 console executable (overrides GODOT_BIN and launcher.local.json)")
 parser.add_argument("--full", action="store_true", help="Also rerun the complete native regression suite")
 args = parser.parse_args()
-if not args.godot or not Path(args.godot).is_file():
-    parser.error("--godot or GODOT_BIN must identify an installed executable")
+def is_godot_46(path: Path) -> bool:
+    try:
+        result = subprocess.run([str(path), "--version"], capture_output=True, text=True,
+                                encoding="utf-8", errors="replace", timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0 and result.stdout.strip().startswith("4.6.")
+
+try:
+    godot_path, godot_source = resolve_godot(ROOT, explicit=args.godot, validate=is_godot_46)
+except (FileNotFoundError, ValueError) as error:
+    parser.error(f"{error} Install/use Godot 4.6.x, set GODOT_BIN, or create godot/launcher.local.json from the example.")
+args.godot = str(godot_path)
 node = os.environ.get("NATIVE5525_NODE", "node")
 env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "NATIVE5525_PYTHON": sys.executable}
 common = [args.godot, "--headless", "--audio-driver", "Dummy", "--path", str(BASE)]
 steps = [
+    ("Godot path configuration", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/launcher_config_tests.py")], BASE),
     ("Godot import/parse", common + ["--editor", "--import", "--quit"], BASE),
     ("Godot candidate rules", [node, "test_godot_rules.cjs"], ROOT / "native"),
     ("Atomic save and portrait adapter", [sys.executable, "-X", "utf8", "-B", "-m", "unittest", "-v", "test_godot_files"], ROOT / "native"),

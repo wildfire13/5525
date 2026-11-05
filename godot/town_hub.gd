@@ -29,7 +29,11 @@ func render(parent):
 	var quest=c.get("activeQuest")
 	if quest is Dictionary and quest.get("to")==c.location:
 		var missing=not c.get("cargoAboard",false)
-		var deliver=ui.button(column,"荷物を届ける",ui.act.bind("completeQuest",[]),missing);deliver.name="HubDeliverCargo"
-		if missing:ui.label_(column,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
+		if quest.get("eventId","")=="wheel" and not quest.get("merchantAtStop",false) and not quest.get("merchantDeparted",false):
+			ui.label_(column,"行商人の到着を待っています。").name="MerchantArrivalWait"
+		else:
+			var label="期限切れを確認して荷物を戻す" if quest.get("merchantDeparted",false) else "荷物を届ける"
+			var deliver=ui.button(column,label,ui.act.bind("completeQuest",[]),missing);deliver.name="HubDeliverCargo"
+			if missing:ui.label_(column,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
 	var spacer=Control.new();spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL;column.add_child(spacer)
 	if artwork.is_empty():ui.label_(parent,"拠点画像は準備中です。施設は利用できます。")

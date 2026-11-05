@@ -147,7 +147,14 @@ func journey(parent):
 	l(parent,"旅のBGM: "+ui.audio.quest_title())
 	var quest=c().get("activeQuest")
 	if quest is Dictionary:
-		l(parent,"%s / %d時間経過・納期%d時間" % [quest.name,journey_.get("hours",0),quest.get("deadline",0)])
+		if quest.get("scenario",false):
+			var age=int(c().get("worldTime",0))-int(quest.get("eventEpoch",quest.get("postedAt",0)))
+			var timing="掲載後%d時間 / 締切%d時間 / 残り%d時間" % [age,quest.get("deadline",0),maxi(0,int(quest.get("deadline",0))-age)]
+			if quest.get("eventId","")=="wheel":
+				if age>int(quest.get("deadline",0)) and age<=int(quest.get("lateDeadline",0)):timing="掲載後%d時間 / 締切超過%d時間 / 遅配期限まで%d時間" % [age,age-int(quest.get("deadline",0)),int(quest.get("lateDeadline",0))-age]
+				elif age>int(quest.get("lateDeadline",0)):timing="掲載後%d時間 / 行商人は出発済み" % age
+			l(parent,"%s / %s" % [quest.name,timing])
+		else:l(parent,"%s / %d時間経過・納期%d時間" % [quest.name,journey_.get("hours",0),quest.get("deadline",0)])
 	else:l(parent,"自由移動 / %d時間経過 / 配達報酬なし" % journey_.get("hours",0))
 	match phase:
 		"road":
