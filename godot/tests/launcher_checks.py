@@ -42,7 +42,7 @@ with tempfile.TemporaryDirectory(prefix='5525 launcher discovery ') as temporary
         # the long path. Require the same filesystem directory, not spelling.
         item['passed'] &= Path(data['godot']['path']).parent.samefile(runtime)
         item['passed'] &= bool(data['python'].get('sqlite'))
-    configured_runtime=project/'local runtime with spaces'/'Godot configured.exe'
+    configured_runtime=project/'local runtime with spaces'/executable.name
     configured_runtime.parent.mkdir(parents=True)
     shutil.copy2(executable,configured_runtime)
     local_config=project/'godot/launcher.local.json'
