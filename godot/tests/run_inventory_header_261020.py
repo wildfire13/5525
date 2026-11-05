@@ -76,6 +76,5 @@ for name in ['event_voices_regression', 'facility_art_261021', 'hover_regression
     (scope / 'source-sha256.txt').write_text(hashlib.sha256((repo / 'godot/tests' / (name + '.gd')).read_bytes()).hexdigest() + '\n')
     for phase in phases:
         env['UI_PREFERENCES_PHASE'] = phase
-        script = repo / 'godot/tests/shop_rows_regression.gd' if name == 'shop_rows_regression' else wrapper
-        run(name + ('_' + phase if phase else ''), [godot, '--headless', '--resolution', '1920x1080', '--audio-driver', 'Dummy', '--path', str(repo / 'godot'), '--script', str(script)], repo, env)
+        run(name + ('_' + phase if phase else ''), [godot, '--headless', '--resolution', '1920x1080', '--audio-driver', 'Dummy', '--path', str(repo / 'godot'), '--script', str(wrapper)], repo, env)
 sys.exit(0 if all(r['passed'] for r in results) else 1)
