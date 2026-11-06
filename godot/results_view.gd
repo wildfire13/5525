@@ -186,7 +186,7 @@ func _input(event):
   if event.pressed and event.keycode==KEY_ESCAPE:advance();get_viewport().set_input_as_handled();return
   if event.pressed and event.keycode==KEY_TAB:
    var controls=[]
-   for control in [shade.find_child("ResultMembersScroll",true,false),save_button,shade.find_child("ResultShop",true,false),continue_button]:
+   for control in [shade.find_child("ResultMembersScroll",true,false),shade.find_child("ResultDetailsToggle",true,false),save_button,shade.find_child("ResultShop",true,false),shade.find_child("ResultStory",true,false),continue_button]:
     if is_instance_valid(control) and control.is_visible_in_tree():controls.append(control)
    var index=controls.find(get_viewport().gui_get_focus_owner());controls[posmod(index+(-1 if event.shift_pressed else 1),controls.size())].grab_focus();get_viewport().set_input_as_handled();return
   var scroll=shade.find_child("ResultMembersScroll",true,false)

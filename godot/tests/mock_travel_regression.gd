@@ -26,6 +26,10 @@ func run():
 	check(strip!=null,"horizontal travel strip mounted")
 	check(game.find_child("RouteChoices",true,false)!=null,"route choice buttons")
 	check(strip.size.y==160,"fixed compact travel strip height")
+	check(game.find_child("RouteChoice_short",true,false).text.contains("敵3人") and game.find_child("RouteChoice_safe",true,false).text.contains("敵2人"),"first route exposes time and encounter tradeoff")
+	if not OS.get_environment("TRAVEL_FIX_CAPTURE").is_empty():
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png(OS.get_environment("TRAVEL_FIX_CAPTURE").path_join("road-choices.png"))
 	game.find_child("TravelMapToggle",true,false).pressed.emit()
 	for i in range(5):await process_frame
 	var full_map=game.find_child("TravelFullMap",true,false)
