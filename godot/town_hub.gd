@@ -19,13 +19,16 @@ func render(parent):
 	for entry in c.get("locations",[]):
 		if entry.id==c.location:place=entry;break
 
-	var panel=PanelContainer.new();panel.name="TownHub";panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new());parent.add_child(panel)
-	var margin=MarginContainer.new();margin.add_theme_constant_override("margin_left",24);margin.add_theme_constant_override("margin_right",24);margin.add_theme_constant_override("margin_top",24);margin.add_theme_constant_override("margin_bottom",24);panel.add_child(margin)
-	var column=VBoxContainer.new();column.size_flags_horizontal=Control.SIZE_SHRINK_END;column.custom_minimum_size.x=280;margin.add_child(column)
+	var panel=Control.new();panel.name="TownHub";panel.custom_minimum_size=Vector2(900,584);panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(panel)
+	if not artwork.is_empty():
+		var image=TextureRect.new();image.texture=load(artwork.path);image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED;image.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var points={"board":Vector2(.58,.22),"guild":Vector2(.18,.22),"inn":Vector2(.64,.65),"weapon":Vector2(.18,.28),"armor":Vector2(.18,.28),"items":Vector2(.18,.28),"accessory":Vector2(.18,.28)}
 	for id in place.get("facilities",[]):
 		if not FACILITIES.has(id):continue
-		var spec=FACILITIES[id];var button=ui.button(column,spec[0],ui.navigate.bind(spec[1]));button.name="HubFacility_"+id;ui.memory.key(button,"nav_"+spec[1])
-	var map=ui.button(column,"地図・出発",ui.navigate.bind("map"));map.name="HubMap";ui.memory.key(map,"nav_map")
+		var spec=FACILITIES[id];var button=ui.button(panel,spec[0],ui.navigate.bind(spec[1]));button.name="HubFacility_"+id;button.custom_minimum_size=Vector2(168,64);ui.memory.key(button,"nav_"+spec[1])
+		var point=points.get(id,Vector2(.2,.2));button.anchor_left=point.x;button.anchor_top=point.y;button.anchor_right=point.x;button.anchor_bottom=point.y
+	var map=ui.button(panel,"出発の準備\n街道口",ui.navigate.bind("map"));map.name="HubMap";map.anchor_left=.12;map.anchor_top=.82;map.custom_minimum_size=Vector2(168,64);ui.memory.key(map,"nav_map")
+	var column=VBoxContainer.new();panel.add_child(column);column.anchor_left=.7;column.anchor_top=.82
 	var quest=c.get("activeQuest")
 	if quest is Dictionary and quest.get("to")==c.location:
 		var missing=not c.get("cargoAboard",false)

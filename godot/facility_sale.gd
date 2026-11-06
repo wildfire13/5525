@@ -32,47 +32,42 @@ func select_owner(uid: String):
  apply_owner(uid);ui.render()
 func select_item(id: String):
  if busy() or ui.locked or ui.modal_open():return
- item_id=id;amount=1;quote={};stage="selected";message="";generation+=1;ui.render()
+ item_id=id;amount=1;quote={};stage="selected";message="";generation+=1;previewing=false;shop.selection_kind="sell";ui.render()
 func row(parent,item: Dictionary):
- var line=ui.row(parent);line.name="SaleRow_"+str(item.id);line.custom_minimum_size.y=64
- var choose=ui.button(line,str(item.name),select_item.bind(str(item.id)),busy());choose.name="SaleItem_"+str(item.id);choose.custom_minimum_size=Vector2(240,64);choose.size_flags_horizontal=Control.SIZE_EXPAND_FILL;choose.alignment=HORIZONTAL_ALIGNMENT_LEFT
- ui.icons.apply(choose,ui.icons.equipment(item) if item.get("kind")=="equipment" else str(item.id));ui.memory.key(choose,"sale_"+str(item.id));ui.memory.item(choose,str(item.id));choose.tooltip_text=str(item.name)
- var count=ui.label_(line,"所持 %d個" % int(item.count));count.custom_minimum_size.x=110;count.size_flags_horizontal=Control.SIZE_FILL;count.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;count.autowrap_mode=TextServer.AUTOWRAP_OFF
- var can=item.get("sale",{}).get("ok",false);var action=ui.button(line,"売却" if can else "売却不可",select_item.bind(str(item.id)),busy() or not can);action.name="SaleSelect_"+str(item.id);action.custom_minimum_size=Vector2(130,64);action.tooltip_text=str(item.get("sale",{}).get("reason",""))
-func render(parent):
+ var choose=ui.button(parent,"",select_item.bind(str(item.id)),busy());choose.name="SaleItem_"+str(item.id);choose.custom_minimum_size=Vector2(0,64);choose.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;choose.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);margin.add_theme_constant_override("margin_left",8);margin.add_theme_constant_override("margin_right",8)
+ var line=HBoxContainer.new();line.mouse_filter=Control.MOUSE_FILTER_IGNORE;line.add_theme_constant_override("separation",8);margin.add_child(line)
+ ui.icons.add(line,ui.icons.equipment(item) if item.get("kind")=="equipment" else "items" if item.get("kind")=="quest" else str(item.id),36)
+ var name_=ui.label_(line,str(item.name));name_.add_theme_font_size_override("font_size",14);name_.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ var count=ui.label_(line,"×%d" % int(item.count));count.add_theme_font_size_override("font_size",13);count.size_flags_horizontal=Control.SIZE_SHRINK_END;count.autowrap_mode=TextServer.AUTOWRAP_OFF;count.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ shop.list_surface(choose,shop.selection_kind=="sell" and item_id==str(item.id));ui.memory.key(choose,"sale_"+str(item.id));ui.memory.item(choose,str(item.id))
+ choose.tooltip_text=str(item.get("sale",{}).get("reason",""))
+func render_inventory(parent):
  var token=ui.campaign().get("inventoryToken")
  if stage!="pending" and observed_token!=token:
   observed_token=token;quote={};generation+=1;previewing=false
   if not item_id.is_empty() and selected().is_empty():item_id="";stage="list";amount=1
- var compact=ui.size.y<720;var panel=PanelContainer.new();panel.name="FacilitySalePanel";panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;panel.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;panel.custom_minimum_size.x=maxf(600,ui.size.x*2.0/3.0-parent.global_position.x);var style=StyleBoxFlat.new();style.bg_color=Color("#1e232bed");style.border_color=Color("#666b73");style.set_border_width_all(1);style.set_corner_radius_all(8);style.set_content_margin_all(14);panel.add_theme_stylebox_override("panel",style);parent.add_child(panel)
- var body=VBoxContainer.new();body.add_theme_constant_override("separation",8 if compact else 12);panel.add_child(body)
- var heading=ui.row(body);var title=ui.label_(heading,"売却",true);title.name="FacilitySaleHeading";title.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;title.autowrap_mode=TextServer.AUTOWRAP_OFF
- var close=ui.button(heading,"×",finish,busy());close.name="FacilitySaleClose";close.tooltip_text="売却を終了する";close.custom_minimum_size.x=44
- var end=ui.button(body,"売却を終了する",finish,busy());end.name="FacilitySaleEnd";end.size_flags_horizontal=Control.SIZE_SHRINK_END
- if owner_id.is_empty():
-  ui.label_(body,"下の人物を選ぶと、その人物の所持品がここに表示されます。");body.move_child(end,-1);return
- var owner=ui.label_(heading," / "+ui.member_name(owner_id)+"の所持品",true);owner.name="FacilitySaleOwner";owner.size_flags_horizontal=Control.SIZE_EXPAND_FILL;owner.max_lines_visible=2;owner.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;owner.tooltip_text=owner.text;heading.move_child(close,-1)
- var list=ui.scroller(body);list.get_parent().name="FacilitySaleScroll";list.get_parent().custom_minimum_size.y=80 if compact else 100;list.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(list.get_parent(),"facility_sale")
- for item in entries():row(list,item)
- if entries().is_empty():ui.label_(list,"この人物の所持品はありません。")
- body.move_child(end,-1)
- if item_id.is_empty():return
+ for item in entries():row(parent,item)
+ if entries().is_empty():ui.label_(parent,"アイテムはありません")
+func render_detail(parent,footer):
  var item=selected()
- if item.is_empty():return
- var actions=VBoxContainer.new();actions.name="FacilitySaleActions";body.add_child(actions)
- body.move_child(end,-1)
- var target=ui.label_(actions,ui.member_name(owner_id)+" / "+str(item.name),true);target.name="FacilitySaleTarget"
- if compact:target.add_theme_font_size_override("font_size",18)
- var controls=ui.row(actions);ui.label_(controls,"売却個数")
- var count=SpinBox.new();count.name="FacilitySaleQuantity";count.min_value=1;count.max_value=int(item.count);amount=clampi(amount,1,int(item.count));count.step=1;count.value=amount;count.custom_minimum_size.x=132;count.editable=not busy();controls.add_child(count)
+ if item.is_empty():ui.label_(parent,"インベントリのアイテムを選択");return
+ var icon=ui.icons.equipment(item) if item.get("kind")=="equipment" else "items" if item.get("kind")=="quest" else str(item.id)
+ ui.icons.line(ui,parent,icon,str(item.name),true).name="FacilitySaleTarget"
+ if item.get("kind")=="equipment":shop.pages.describe_gear(parent,item.get("definition",item))
+ var controls=ui.row(parent);ui.label_(controls,"個数")
+ var count=SpinBox.new();count.name="FacilitySaleQuantity";count.min_value=1;count.max_value=int(item.count);amount=clampi(amount,1,int(item.count));count.step=1;count.value=amount;count.custom_minimum_size.x=104;count.editable=not busy();controls.add_child(count)
  count.value_changed.connect(func(value):amount=int(value);quote={};generation+=1;request_quote())
- ui.primary(ui.button(controls,"売却を確認",confirm_sale,not item.get("sale",{}).get("ok",false) or busy())).name="FacilitySalePrepare"
- var totals=ui.label_(actions,message if not message.is_empty() else "売却額を確認中…");totals.name="FacilitySaleTotals"
- if compact:totals.add_theme_font_size_override("font_size",18)
+ var totals=ui.label_(parent,message if not message.is_empty() else "売却額を確認中…");totals.name="FacilitySaleTotals"
+ var button=ui.green_button(ui.button(footer,"取引を確認",confirm_sale,not item.get("sale",{}).get("ok",false) or busy()));button.name="FacilitySalePrepare";button.size_flags_horizontal=Control.SIZE_SHRINK_END
+ button.tooltip_text=str(item.get("sale",{}).get("reason",""))
  if not quote.is_empty():show_quote(totals)
- elif not busy():request_quote()
+ elif not busy() and not previewing:request_quote()
+func render(parent):
+ # Compatibility entry point. The shop now presents both sides together.
+ shop.render(parent)
 func show_quote(label: Label):
- label.text="%sの%s ×%d / 受取 %dG / 所持金 %d → 売却後 %dG" % [quote.ownerName,quote.name,quote.count,quote.proceeds,quote.goldBefore,quote.afterGold] if quote.get("ok",false) else "売却不可："+str(quote.get("reason","金額を取得できません。"))
+ label.text="売却 %dG\n所持金 %d → %d G" % [quote.proceeds,quote.goldBefore,quote.afterGold] if quote.get("ok",false) else "売却不可："+str(quote.get("reason","金額を取得できません。"))
 func valid(ticket: int,epoch: int,connection: int,owner: String,item: String,count: int,token) -> bool:
  return ticket==generation and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and owner==owner_id and item==item_id and count==amount and token==ui.campaign().get("inventoryToken") and shop.sale_mode() and not ui.closing
 func request_quote():

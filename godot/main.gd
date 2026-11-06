@@ -20,6 +20,8 @@ var shop_slot := "rightHand"
 var formation := "convoy"
 var destination := ""
 var pages
+var mock_shell
+var battle_theme: Theme
 var gear_preview: Dictionary={}
 var notice := ""
 var save_notice
@@ -73,6 +75,7 @@ func _ready():
 	loading_screen=preload("res://loading_screen.gd").new();loading_screen.name="LoadingScreen";add_child(loading_screen)
 	results_view=preload("res://results_view.gd").new(self);add_child(results_view)
 	pages=preload("res://campaign_panels.gd").new(self)
+	mock_shell=preload("res://mock_shell.gd").new(self)
 	memory=preload("res://ui_memory.gd").new(self)
 	hud=preload("res://battle_hud.gd").new(self)
 	dialog=preload("res://ui_dialog.gd").new(self)
@@ -97,6 +100,7 @@ func _ready():
 			style.content_margin_left=8;style.content_margin_right=8;style.content_margin_top=4;style.content_margin_bottom=4;theme_.set_stylebox(state_,type_,style)
 		theme_.set_color("font_disabled_color",type_,Color("#9299a3"))
 	theme=theme_
+	battle_theme=theme_.duplicate(true)
 	low_hp_font=FontVariation.new();low_hp_font.base_font=ui_font.base_font;low_hp_font.variation_opentype={weight_axis:700}
 	backdrop_layer=Control.new();backdrop_layer.name="SceneBackdrop";backdrop_layer.mouse_filter=Control.MOUSE_FILTER_IGNORE;backdrop_layer.clip_contents=true;add_child(backdrop_layer);backdrop_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base=VBoxContainer.new();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -183,7 +187,7 @@ func emphasize_low_hp(label: Label,unit: Dictionary):
 func row(parent: Node) -> HBoxContainer:
 	var r=HBoxContainer.new();r.add_theme_constant_override("separation",8);parent.add_child(r);return r
 func button(parent: Node,text: String,fn: Callable,disabled:=false) -> Button:
-	var b=Button.new();b.text=text;b.custom_minimum_size.y=56 if size.x>=1800 and size.y>=1000 else 44
+	var b=Button.new();b.text=text;b.custom_minimum_size.y=56 if view_kind=="battle" and size.x>=1800 and size.y>=1000 else 44
 	b.set_meta("base_disabled",disabled);b.disabled=disabled or locked or presenting or (engine!=null and engine.disconnected)
 	parent.add_child(b);widgets.append(b)
 	b.pressed.connect(func():
@@ -210,7 +214,7 @@ func set_status(message: String):
 func show_help():
 	dialog.open("操作説明",func(body,actions):
 		for section in [
-			["町・施設", "下部の人物を選ぶと詳細を開けます。装備・インベントリは人物画面のタブから操作します。売却中は、人物を1回選ぶと売却対象が切り替わり、同じ人物をもう一度選ぶと詳細を開きます。"],
+			["町・施設", "左の名簿で人物を選び、装備・インベントリ・能力・スキルのタブを切り替えます。ショップでは名簿で取引する人物を選びます。"],
 			["編成・配置", "ギルドでは人物を選ぶかドラッグして編成を変更します。戦闘準備では控えを有効マスへドラッグして追加・交換、配置済みの人物を盤面外へドラッグして除外できます。"],
 			["地図・出発", "行先を選んで『出発する』で移動します。地図内のホイールは上で縮小、下で拡大。『全体表示』で元に戻せます。"],
 			["戦闘", "行動を選んで対象マスを指定し、確認して実行します。コマンド未選択で人物のマスをクリックすると右側に情報を固定します。右ドラッグで盤面移動、中ドラッグで角度、ホイールで拡大縮小できます。"],
@@ -238,7 +242,7 @@ func member_grid(parent: Node,grid_name: String,min_card_width:=170.0,max_column
 	var fit=func():grid.columns=clampi(int(grid.size.x/min_card_width),1,max_columns)
 	grid.resized.connect(fit);fit.call();return grid
 func card(parent: Node) -> VBoxContainer:
-	var p=PanelContainer.new();var style=StyleBoxFlat.new();style.bg_color=Color("#20242bed");style.border_color=Color("#626976");style.set_border_width_all(1)
+	var p=PanelContainer.new();var style=StyleBoxFlat.new();style.bg_color=Color("#20242bed") if view_kind=="battle" else Color("#faf9f5");style.border_color=Color("#626976") if view_kind=="battle" else Color("#cbd0c8");style.set_border_width_all(1)
 	style.set_corner_radius_all(5);style.set_content_margin_all(8)
 	p.add_theme_stylebox_override("panel",style);parent.add_child(p)
 	var v=VBoxContainer.new();p.add_child(v);return v
@@ -473,8 +477,8 @@ func render():
 	content.add_theme_constant_override("separation",8)
 	ui_size_mode="standard" if available.x>=1120 and available.y>=720 else "compact"
 	var margin=24 if available.x>=1800 and available.y>=1000 else 12 if ui_size_mode=="standard" else 8
-	base.offset_left=margin;base.offset_right=-margin;base.offset_top=margin;base.offset_bottom=-margin
-	theme.default_font_size=22 # Resize via wrapping and scrolling, never global text shrinking.
+	base.offset_left=48 if view_kind!="battle" else margin;base.offset_right=-base.offset_left;base.offset_top=12;base.offset_bottom=-margin
+	theme.default_font_size=22 # Battle retains its established presentation.
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
 	header.text=town_name(place)
@@ -484,14 +488,15 @@ func render():
 	header.tooltip_text=header.text
 	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
+	base.offset_left=margin if battle else 48;base.offset_right=-base.offset_left
+	if not battle:mock_shell.apply_theme()
+	else:
+		theme=battle_theme.duplicate(true);theme.default_font_size=22
+		menu.add_theme_stylebox_override("panel",theme.get_stylebox("panel","TooltipPanel").duplicate())
 	resource_header.visible=not battle
-	location_bar.visible=not battle
+	location_bar.visible=false
 	top.visible=battle or engine.disconnected
 	clear(backdrop_layer)
-	if not battle and phase=="town":
-		pages.hub_view.select_art(str(c.get("location","")))
-		var town_texture: Texture2D=load(pages.hub_view.artwork.path) if not pages.hub_view.artwork.is_empty() else null
-		pages.facility_art.fullscreen(backdrop_layer,town_texture)
 	actor_face.visible=false
 	var lower_return=phase=="result" or phase=="town" and page!="hub"
 	town_back.visible=not battle and page!="hub" and phase=="town" and not lower_return
@@ -499,6 +504,7 @@ func render():
 	top.custom_minimum_size.y=56 if battle and ui_size_mode=="standard" else 44
 	var common_menu=find_child("CommonMenuButton",true,false)
 	if common_menu!=null:
+		common_menu.visible=battle
 		common_menu.offset_top=-64 if battle else -56
 		common_menu.offset_bottom=-8
 	footer.visible=not battle and page not in ["shop","party"]
@@ -516,34 +522,26 @@ func render():
 		deployment_party_strip=null
 		if is_instance_valid(board):board.persist_camera();board.queue_free()
 		board=null;actor_row=null;clear(content);view_kind="page"
-		var nav=row(content)
-		var focused_page=phase=="town" and page in ["shop","party"]
-		if focused_page:
-			button(nav,"拠点へ",navigate.bind("hub"));nav.visible=false
-		var tabs_=[["board","掲示板"],["map","地図・出発"],["shop","商店"]] if phase=="town" else [["board","旅程"],["items","道具"]]
-		if phase=="town" and c.get("location")=="astaris":tabs_.append(["inn","宿屋"]);tabs_.append(["party","ギルド"])
-		for tab in ([] if focused_page or phase in ["town","result"] else tabs_):
-			var nb=button(nav,("● " if page==tab[0] else "")+tab[1],navigate.bind(tab[0]),phase!="town" and tab[0]=="items" and phase!="camp");memory.key(nb,"nav_"+tab[0])
-		var body: VBoxContainer
-		var body_parent=pages.facility_art.backdrop(content)
-		if phase=="town" and page in ["party","shop","board","map","inn"]:
-			body=VBoxContainer.new();body.size_flags_vertical=Control.SIZE_EXPAND_FILL;body_parent.add_child(body)
-		else:body=scroller(body_parent);memory.watch(body.get_parent(),"page_"+phase+"_"+page)
+		mock_shell.navigation(content)
+		var body: VBoxContainer=mock_shell.workspace(content)
 		if phase=="town":
 			match page:
 				"hub":pages.hub(body)
 				"map":pages.map(body)
 				"inn":pages.inn(body)
 				"party":render_party(body)
+				"character":pages.party_view.render_page(body)
 				"shop":render_shop(body)
 				"items":render_items(body)
 				_:render_town(body)
+		elif page=="board" and c.get("activeQuest") is Dictionary:pages.board(body)
+		elif page=="character":pages.party_view.render_page(body)
 		elif phase=="camp" and page=="items":render_items(body)
 		else:render_journey(body)
-		if lower_return:
+		if phase=="result":
 			var return_row=row(content);return_row.name="TownReturnRow";return_row.alignment=BoxContainer.ALIGNMENT_END
 			var back=green_button(button(return_row,pages.facility_entry.return_label() if phase=="town" else "広場に移動",pages.acknowledge.bind("hub") if phase=="result" else pages.facility_entry.back,pages.guild_view.busy() if page=="party" else false));back.name="GuildReturn" if page=="party" else "InnReturn" if page=="inn" else "TownReturn"
-		pages.party_view.face_bar(content)
+
 	pages.party_view.refresh_modal()
 	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else (focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if phase in ["battle","deployment"] else ""))
 	rendering=false;memory.restore()
@@ -561,7 +559,7 @@ func forecast_action(choice: String,action: String,args: Array):
 	var r=await update({"op":"campaign","action":"forecast","args":[choice]})
 	if r.get("ok",false):
 		var f=r.get("forecast",{})
-		if f.get("late",false) or (f.get("scenario",false) and not f.get("handoffAvailable",true)):
+		if f.get("scenario",false) and (f.get("late",false) or not f.get("handoffAvailable",true)):
 			var q=campaign().get("activeQuest",{})
 			var warning=""
 			if f.get("scenario",false):
@@ -857,6 +855,7 @@ func can_commit() -> bool:
 func local_button(parent: Node,text: String,callback: Callable) -> Button:
 	var control=button(parent,text,callback);control.set_meta("read_only",true);control.disabled=false;return control
 func green_button(control: Button) -> Button:
+	for key in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:control.add_theme_color_override(key,Color.WHITE)
 	control.custom_minimum_size.y=44
 	for state_ in ["normal","hover","pressed"]:
 		var style=control.get_theme_stylebox(state_).duplicate();style.bg_color=Color("#2f7652") if state_=="hover" else Color("#236044");control.add_theme_stylebox_override(state_,style)
@@ -869,13 +868,14 @@ func primary(control: Button) -> Button:
 	for color_ in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:control.add_theme_color_override(color_,Color("#252830"))
 	return control
 func mark_selected(control: Button,selected: bool):
-	# Shared presentation for list choices and navigation; blue means selected.
+	# Campaign choices use green; battle keeps its established blue selection.
 	control.set_meta("selected",selected)
 	for state_ in ["normal","hover","pressed"]:
 		if not selected:control.remove_theme_stylebox_override(state_);continue
 		var style=control.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
-		style.bg_color=Color("#35577d" if state_=="hover" else "#294568")
-		style.border_color=Color("#a4c9e9");style.set_border_width_all(2)
+		var battle=campaign().get("phase","") in ["deployment","battle"] or data.get("trial")!=null
+		style.bg_color=Color(("#35577d" if state_=="hover" else "#294568") if battle else ("#d2e0d3" if state_=="hover" else "#dfe8dc"))
+		style.border_color=Color("#a4c9e9" if battle else "#345c4e");style.set_border_width_all(2)
 		control.add_theme_stylebox_override(state_,style)
 func short_name(control: Label,full: String):
 	control.max_lines_visible=2;control.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;control.tooltip_text=full

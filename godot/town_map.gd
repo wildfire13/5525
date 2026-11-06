@@ -3,6 +3,7 @@ extends Control
 signal destination_selected(id: String)
 var towns: Array=[]
 var current := ""
+var read_only := false
 var selected := ""
 var available: Array=[]
 var quest_destination := ""
@@ -36,12 +37,13 @@ func _ready():
 			for facility in town.get("facilities",[]):
 				var icon=str(icons.FACILITIES.get(facility,""))
 				if not icon.is_empty():icons.add(symbols,icon,32)
-		b.disabled=id==current or not available.has(id)
-		b.tooltip_text="現在地" if id==current else "この拠点へは直接移動できません" if not available.has(id) else "行先に選ぶ"
-		var style=StyleBoxFlat.new();style.bg_color=Color("#243c58") if id==current else Color("#236044") if id==selected else Color("#41464e")
-		style.border_color=Color("#fbbf24") if id in [selected,current] else Color("#64748b");style.set_border_width_all(3 if id in [selected,current] else 1);style.set_corner_radius_all(8)
+		b.disabled=read_only or id==current or not available.has(id)
+		b.tooltip_text="出発地" if id==current else "この拠点へは直接移動できません" if not available.has(id) else "目的地" if read_only and id==selected else "" if read_only else "行先に選ぶ"
+		var style=StyleBoxFlat.new();style.bg_color=Color("#345c4e") if id==current else Color("#fff0ba") if id==quest_destination else Color("#e4eee0") if available.has(id) else Color("#d4d8d0")
+		style.border_color=Color("#37758a") if id==selected else Color("#b88722") if id==quest_destination else Color("#6e8a71");style.set_border_width_all(3 if id==selected else 2 if id==quest_destination else 1);style.set_corner_radius_all(4)
 		for state_ in ["normal","disabled","hover","focus","pressed"]:b.add_theme_stylebox_override(state_,style)
-		b.add_theme_color_override("font_disabled_color",Color("#b8c7d2"))
+		title.add_theme_color_override("font_color",Color("#faf9f5") if id==current else Color("#345c4e") if available.has(id) else Color("#899085"))
+		var state_label=Label.new();state_label.text="出発地" if id==current else "クエスト目的地" if id==quest_destination else "目的地" if id==selected else "";state_label.add_theme_font_size_override("font_size",12);state_label.add_theme_color_override("font_color",Color("#faf9f5") if id==current else Color("#657465"));state_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;state_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.add_child(state_label)
 		add_child(b);buttons[id]=b;b.pressed.connect(func():destination_selected.emit(id))
 	resized.connect(layout);layout()
 func layout():
@@ -66,7 +68,7 @@ func _gui_input(event):
 		if not event.button_mask&MOUSE_BUTTON_MASK_MIDDLE:panning=false;return
 		pan+=event.relative;layout();accept_event()
 func _draw():
-	draw_style_box(get_theme_stylebox("panel","Panel"),Rect2(Vector2.ZERO,size))
+	draw_rect(Rect2(Vector2.ZERO,size),Color("#dfe5d9"))
 	event_markers.clear()
 	var drawn={}
 	var graph=routes if not routes.is_empty() else {"astaris":["east","west","north","south"]}
@@ -74,7 +76,7 @@ func _draw():
 		for dest in graph[origin]:
 			var key="|".join([origin,dest] if origin<dest else [dest,origin])
 			if drawn.has(key):continue
-			drawn[key]=true;draw_dashed_line(point(origin),point(dest),Color("#65778c"),3,8)
+			drawn[key]=true;draw_dashed_line(point(origin),point(dest),Color("#a0ac90"),2,8)
 
 			var start=point(origin);var end=point(dest);var delta=end-start
 			var half=buttons[origin].size*zoom*.5

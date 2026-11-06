@@ -32,6 +32,7 @@ steps=[
  ('Character voice event routing',['node','test_voice_events.cjs']),
  ('Campaign long-battle log retention',['node','test_campaign_log.cjs']),
  ('Separate travelling and deployment rosters',['node','test_deployment_roster.cjs']),
+ ('Mock UI rewards and return journeys',['node','test_mock_ui_rules.cjs']),
  ('Campaign replay loop',['node','test_campaign.cjs']),
  ('Guild composition and personal ownership',['node','test_guild_contract.cjs']),
  ('Quest cargo ownership and reserve carrier',['node','test_quest_cargo.cjs']),

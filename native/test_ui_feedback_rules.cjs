@@ -96,9 +96,9 @@ check('R08 all eight directed ring journeys finish two real battles, reload, del
       assert(C.view(s).cargoAboard);
       assert(C.completeQuest(s));assert.equal(s.phase,'result');assert.equal(s.activeQuest,null);
       assert.equal(s.result.outcome,'late');assert.equal(s.result.hours,10);
-      assert.equal(s.result.gold,117);assert.equal(s.result.xp,60);
+      assert.equal(s.result.gold,117);assert.equal(s.result.xp,0);assert.equal(s.result.rp,60);
       assert.equal(s.gold,goldBefore+117);assert.equal(s.completed,completedBefore+1);
-      for(const id of party)assert.equal(s.characters[id].xp,xpBefore[id]+60);
+      for(const id of party)assert.equal(s.characters[id].xp,xpBefore[id]);
       assert(Object.values(s.characters).every(c=>!Object.hasOwn(c.inventory,cargoItemId)));
     }else{
       assert.equal(s.phase,'result');assert.equal(s.result.outcome,'travel');assert.equal(s.result.hours,10);

@@ -39,27 +39,34 @@ func choose(value: String):
 func render_top(parent: Control,page: String) -> bool:
  sync()
  if not at_top(page):return false
- var title={"shop":{"east":"武器店","west":"防具店","south":"道具店","north":"装飾品店"}.get(str(pages.c().get("location")),"商店"),"inn":"宿屋","party":"ギルド"}.get(page,"")
- var surface=VBoxContainer.new();surface.name="FacilityEntry";surface.size_flags_vertical=Control.SIZE_EXPAND_FILL;surface.add_theme_constant_override("separation",24);parent.add_child(surface)
- ui.icons.line(ui,surface,"inn" if page=="inn" else "castle" if page=="party" else ui.icons.shop(str(pages.c().location)),title,true).name="FacilityEntryTitle"
- var layout=HBoxContainer.new() if ui.size.x>=1120 else VBoxContainer.new();layout.name="FacilityEntryLayout";layout.add_theme_constant_override("separation",32);surface.add_child(layout)
- var options=VBoxContainer.new();options.name="FacilityChoices";options.custom_minimum_size.x=280;options.add_theme_constant_override("separation",14);layout.add_child(options)
+ var title={"shop":{"east":"武器屋","west":"防具屋","south":"道具屋","north":"装飾品店"}.get(str(pages.c().get("location")),"商店"),"inn":"宿屋","party":"ギルド"}.get(page,"")
+ var layout=HBoxContainer.new();layout.name="FacilityEntry";layout.custom_minimum_size.y=584;layout.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;layout.add_theme_constant_override("separation",48);parent.add_child(layout)
+ var options=VBoxContainer.new();options.name="FacilityChoices";options.custom_minimum_size.x=300;options.add_theme_constant_override("separation",16);layout.add_child(options)
+ ui.label_(options,ui.town_name(pages.c().get("location",""))).add_theme_font_size_override("font_size",14)
+ ui.label_(options,title,true).name="FacilityEntryTitle"
+ var gap=Control.new();gap.custom_minimum_size.y=24;options.add_child(gap)
  var choices=[]
  if page=="shop":
-  choices=[["購入する","buy",true],["売却する" if pages.c().get("saleAvailable",false) else "売却する（利用不可）","sell",pages.c().get("saleAvailable",false)]]
-  if pages.c().get("location")!="south":choices.append(["強化する（未実装）","upgrade",false])
-  choices.append(["納品する（未実装）","delivery",false])
- elif page=="inn":choices=[["宿泊する","inn",true]]
- else:choices=[["パーティーを編成する","guild",true],["倉庫を利用する","warehouse",true],["納品する（未実装）","delivery",false]]
+  choices=[["取引する","buy",true]]
+  if pages.c().get("location")!="south":choices.append(["強化する","upgrade",false])
+  choices.append(["納品する","delivery",false])
+ elif page=="inn":choices=[["休息する","inn",true]]
+ else:choices=[["パーティメンバー編成","guild",true],["倉庫を利用する","warehouse",true]]
  for choice in choices:
-  var button=ui.button(options,choice[0],choose.bind(choice[1]),not choice[2]);button.name="FacilityChoice_"+str(choice[1]);button.custom_minimum_size=Vector2(280,54);ui.memory.key(button,"facility_"+str(choice[1]))
-  if not choice[2]:
-   button.tooltip_text="この施設では売却できません。" if choice[1]=="sell" else "この機能はまだ利用できません。"
-   if choice[1]=="sell":
-    for inventory in pages.c().get("inventoryByCharacter",{}).values():
-     if not inventory.get("entries",[]).is_empty():button.tooltip_text=str(inventory.entries[0].get("sale",{}).get("reason",button.tooltip_text));break
- if not render_dialogue():
-  var greeting=make_speech(greeting_text(),"normal");fit_inline_speech(greeting);layout.add_child(greeting)
+  var button=ui.button(options,choice[0],choose.bind(choice[1]),not choice[2]);button.name="FacilityChoice_"+str(choice[1]);button.custom_minimum_size=Vector2(300,52);
+  if choice[2]:ui.green_button(button)
+  ui.memory.key(button,"facility_"+str(choice[1]))
+  if not choice[2]:button.tooltip_text="この機能はまだ利用できません。"
+ var exit_button=ui.button(options,"店を出る",ui.navigate.bind("hub"));exit_button.name="FacilityExit";exit_button.custom_minimum_size=Vector2(300,52)
+ var stage=Control.new();stage.name="FacilityNpcStage";stage.custom_minimum_size=Vector2(440,584);stage.size_flags_horizontal=Control.SIZE_EXPAND_FILL;stage.size_flags_vertical=Control.SIZE_FILL;layout.add_child(stage)
+ var npc=pages.facility_art.npc
+ if npc.texture!=null:
+  var image=TextureRect.new();image.name="FacilityNpc";image.texture=npc.texture;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;image.mouse_filter=Control.MOUSE_FILTER_IGNORE;stage.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ var conversation=VBoxContainer.new();conversation.name="FacilityConversation";conversation.custom_minimum_size.x=480;conversation.size_flags_horizontal=Control.SIZE_EXPAND_FILL;layout.add_child(conversation)
+ var top_space=Control.new();top_space.custom_minimum_size.y=112;conversation.add_child(top_space)
+ var panel=PanelContainer.new();conversation.add_child(panel)
+ var style=StyleBoxFlat.new();style.bg_color=Color("#faf9f5");style.border_color=Color("#cbd0c7");style.set_border_width_all(1);style.set_corner_radius_all(4);style.set_content_margin_all(28);panel.add_theme_stylebox_override("panel",style)
+ var words=ui.label_(panel,greeting_text());words.name="FacilityGreeting";words.custom_minimum_size=Vector2(420,100);words.add_theme_font_size_override("font_size",20)
  return true
 func greeting_text() -> String:
  return "いらっしゃい。今日はどうしますか？" if ui.page=="shop" and view=="top" else ("売る品物の持ち主を、下の人物から選んでください。" if pages.shop_view.selected_owner().is_empty() else "売却する品物を選んでください。") if ui.page=="shop" and view=="sell" else "商品をご覧ください。" if ui.page=="shop" else "お泊まりですか？" if ui.page=="inn" else "仲間の編成はこちらでどうぞ。"
@@ -74,11 +81,7 @@ func fit_inline_speech(bubble: Control):
  bubble.custom_minimum_size=Vector2(minf(420,ui.size.x-64),110 if bubble.words.text.length()<=20 else 140)
  bubble.size_flags_horizontal=Control.SIZE_SHRINK_END;bubble.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
  bubble.set_speaker_visible(false)
-func render_dialogue(text_override: String="",kind: String="normal") -> bool:
- if not pages.facility_art.npc.available(ui.size):return false
- for previous in ui.backdrop_layer.get_children():
-  if previous.name=="FacilityGreeting":ui.backdrop_layer.remove_child(previous);previous.queue_free()
- var bubble=make_speech(greeting_text() if text_override.is_empty() else text_override,kind);ui.backdrop_layer.add_child(bubble)
- var width=clampf(ui.size.x*.25,280,480);bubble.position=Vector2(ui.size.x-width-24,28);bubble.size=Vector2(width,160)
- bubble.point_to(pages.facility_art.npc.mouth_anchor(ui.backdrop_layer))
+func render_dialogue(_text_override: String="",_kind: String="normal") -> bool:
+ # Service pages reserve the working area for the operation. The entry page
+ # owns the NPC and conversation, so no detached speech overlaps service UI.
  return true
