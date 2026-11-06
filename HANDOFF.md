@@ -1,3 +1,9 @@
+## 最新追補：Linux CI の自動実行を分割版へ一本化（2026-11-06）
+
+- 通常の PR/main push 検証は `Complete legacy UI and native validation`。旧 `Linux startup and UI regression` は手動実行専用にし、過去の時間超過履歴は残す。旧 workflow ファイルの変更も分割版の自動起動対象へ追加する。
+- 旧 UI 66 工程と既存 native 全コマンド、native 集約を維持。各ジョブ 15 分、UI 3 組の直列実行、既存の権限・runner・保存期間は変更しない。ゲーム本体・テスト内容・新 UI/Windows の workflow は変更しない。
+- 開始点 `33ccfc8` の分割 CI は全件成功済み。今回の起動条件変更は PR と main で実際の起動・終端を確認する。最終結果は該当 PR/Actions を参照する。
+
 ## 最新追補：モック UI の main 統合検証（2026-11-06）
 
 - 最新ユーザー指示は `ui/mock-ui-migration` の main への統合。元 HEAD `dde6914` を保護し、後継の検証ブランチで確認する。下記の「main へはマージしない」は過去の作業時点の記録。
