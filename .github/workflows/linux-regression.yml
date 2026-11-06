@@ -1,26 +1,9 @@
 name: Linux startup and UI regression
 
+# The exhaustive serial workflow is the normal PR/push validation.
+# Keep this original single-job runner available only for manual diagnostics.
 on:
   workflow_dispatch:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'godot/**'
-      - 'native/**'
-      - '!godot/**/*.md'
-      - '!native/**/*.md'
-      - '.github/scripts/**'
-      - '.github/workflows/linux-regression.yml'
-
-  push:
-    branches: [main]
-    paths:
-      - 'godot/**'
-      - 'native/**'
-      - '!godot/**/*.md'
-      - '!native/**/*.md'
-      - '.github/scripts/**'
-      - '.github/workflows/linux-regression.yml'
 
 permissions:
   contents: read
