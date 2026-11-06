@@ -1,7 +1,7 @@
 extends "res://tests/guild_regression.gd"
-func scroll_positions() -> Array:return [node("GuildReserveScroll").scroll_vertical,node("GuildCurrentScroll").scroll_vertical]
+func scroll_positions() -> Array:return [node("GuildReserveScroll").scroll_vertical,current_scroll().scroll_vertical]
 func middle_scroll():
- node("GuildReserveScroll").scroll_vertical=140;node("GuildCurrentScroll").scroll_vertical=140;await frames(12)
+ node("GuildReserveScroll").scroll_vertical=60;current_scroll().scroll_vertical=60;await frames(12)
 func run():
  create_timer(180).timeout.connect(func():print("FAIL feedback3 guild watchdog");quit(2))
  var evidence=OS.get_environment("INVENTORY_QA_ROOT")
@@ -30,12 +30,12 @@ func run():
  payload=guild.drag_payload("guard");check(guild.drop_operation(payload,"",true).is_empty(),"existing member cannot duplicate through empty slot")
  var target=str(selected[1]);guild.drop_member(payload,target);await settle();var first=selected.find("guard");var second=selected.find(target);selected[first]=target;selected[second]="guard"
  check(game.campaign().selected==selected,"existing member to existing member exchanges positions")
- check(game.find_children("GuildPartyAnimation","Control",true,false).is_empty() and game.find_children("PartyFace_*","Button",true,false).all(func(card):return card.modulate.a==1),"completed slide leaves no ghost or transparent card")
+ check(game.find_children("GuildPartyAnimation","Control",true,false).is_empty() and game.find_children("RosterMember_*","Button",true,false).all(func(card):return card.modulate.a==1),"completed slide leaves no ghost or transparent card")
  payload=guild.drag_payload(str(selected[0]));guild.drop_member(payload,str(selected[1]))
  while guild.stage!="animating" and (game.locked or guild.stage in ["confirm","pending"]):await process_frame
  check(not guild.guard_leave(),"normal navigation held during slide")
  guild.reset();game.render();await create_timer(.5).timeout;await settle()
- check(game.find_children("GuildPartyAnimation","Control",true,false).is_empty() and game.find_children("PartyFace_*","Button",true,false).all(func(card):return card.modulate.a==1),"reset during slide leaves no ghost or transparent card")
+ check(game.find_children("GuildPartyAnimation","Control",true,false).is_empty() and game.find_children("RosterMember_*","Button",true,false).all(func(card):return card.modulate.a==1),"reset during slide leaves no ghost or transparent card")
  check((await saved()).state.characters==seed.state.characters,"drag operations preserve inventory and character data")
  var original=game.data.campaign.duplicate(true);var roster=original.roster.duplicate(true)
  for i in range(3):
@@ -44,30 +44,32 @@ func run():
  payload=guild.drag_payload(str(roster[12].id));check(guild.drop_operation(payload,"",true).is_empty(),"twelve-person capacity rejects append")
  check(not guild.drop_operation(payload,str(roster[0].id)).is_empty(),"twelve-person capacity permits replacement")
  # Test only the strip overflow at FHD; no smaller game window.
- var bar=node("PartyFaceBar");bar.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;bar.custom_minimum_size.x=800;bar.size.x=800
+ var bar=game.pages.party_view.face_bar(game);bar.size=Vector2(800,84);bar.position=Vector2(0,996);bar.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;bar.custom_minimum_size.x=800;bar.size.x=800
  await settle();var face=node("PartyFace_"+str(roster[0].id));var strip=node("PartyFacesScroll");strip.scroll_horizontal=0
  var touch=InputEventScreenTouch.new();touch.pressed=true;touch.position=Vector2(50,20);face._gui_input(touch)
  var motion=InputEventScreenDrag.new();motion.position=Vector2(10,20);face._gui_input(motion)
- check(face.swiping and strip.scroll_horizontal>0,"guild touch horizontal swipe retained while mouse supports D&D")
+ check(face.swiping and strip.scroll_horizontal>0,"legacy strip component retains touch swipe used in deployment")
+ bar.queue_free();await frames()
  game.data.campaign=original;guild.reset();game.render();await settle()
- # Eight real selected members keep 140px away from either scroll boundary at FHD.
- var eight=game.campaign().selected.duplicate()
+ # Eleven real members make the shared vertical roster scrollable at FHD, leaving one append slot.
+ var eleven=game.campaign().selected.duplicate()
  var candidates=game.roster().duplicate();candidates.reverse()
  # Keep the existing leading reserve rows/scroll anchor while adding new candidates.
  for member in candidates:
-  if eight.size()>=8:break
-  if not eight.has(member.id) and member.id not in ["mage-2","warrior"]:eight.append(member.id)
- await game.act("select",[eight]);await settle()
- await middle_scroll();check(scroll_positions()==[140,140],"FHD fixture has genuine middle scroll on both lists")
- await middle_scroll();guild.choose("mage-2");await settle();var scroll_before=scroll_positions()
+  if eleven.size()>=11:break
+  if not eleven.has(member.id) and member.id not in ["mage-2","warrior"]:eleven.append(member.id)
+ await game.act("select",[eleven]);await settle()
+ await middle_scroll();check(scroll_positions()==[60,60],"FHD fixture has genuine middle scroll on both lists")
+ await middle_scroll();var scroll_before=scroll_positions();guild.choose("mage-2");await settle()
+ check(scroll_positions()==scroll_before,"reserve selection preserves both genuine middle scroll positions")
  payload=guild.drag_payload("mage-2");guild.drop_member(payload,"mage");await settle()
  check(scroll_positions()==scroll_before,"selected reserve to party preserves both middle scroll positions")
  await middle_scroll();scroll_before=scroll_positions();payload=guild.drag_payload("mage-2");guild.drop_member(payload,"mage");await settle()
  check(scroll_positions()==scroll_before,"party to reserve preserves both middle scroll positions")
- await middle_scroll();scroll_before=scroll_positions();payload=guild.drag_payload("mage-2");node("PartyFaceBar").drop(payload,"mage");await settle()
- check(scroll_positions()==scroll_before,"reserve to bottom face preserves both middle scroll positions")
+ await middle_scroll();scroll_before=scroll_positions();payload=guild.drag_payload("mage-2");game.mock_shell.drop(payload,"mage");await settle()
+ check(scroll_positions()==scroll_before,"reserve to shared roster preserves both middle scroll positions")
  payload=guild.drag_payload("mage-2");guild.drop_member(payload,"mage");await settle()
- await middle_scroll();guild.choose("mage-2");await settle();scroll_before=scroll_positions();payload=guild.drag_payload("mage-2");node("PartyFaceBar").drop(payload);await settle()
+ await middle_scroll();scroll_before=scroll_positions();guild.choose("mage-2");await settle();check(scroll_positions()==scroll_before,"append selection preserves both genuine middle scroll positions");payload=guild.drag_payload("mage-2");guild.drop_member(payload,"",true);await settle()
  check(scroll_positions()==scroll_before,"selected reserve to append preserves both middle scroll positions")
  await game.act("accept",[game.campaign().board[0].id,"porter"]);await settle();var cargo=await saved()
  payload=guild.drag_payload("warrior");guild.drop_member(payload,"porter");await settle();check(guild.stage=="confirm","cargo owner replacement opens existing warning")

@@ -1,33 +1,33 @@
 extends "res://tests/inventory_header_261020.gd"
 ## Synthetic, isolated NPC lifecycle/layout checks. Real rendering is separate QA.
+# Two layout passes on each side of settle are sufficient for this node-geometry
+# suite; settle still waits for engine requests, locks and presentation to finish.
+func frames(count:=2):
+	for i in range(count):await process_frame
 func npc_layout(label: String):
-	var content=node("FacilityContent");var stage=node("FacilityNpcStage");var portrait=node("FacilityNpc")
-	check(content!=null and stage!=null and portrait!=null,"NPC dedicated content and portrait regions "+label)
-	if content==null or stage==null or portrait==null:return
-	var view=Rect2(Vector2.ZERO,Vector2(root.size));var content_rect=content.get_global_rect();var stage_rect=stage.get_global_rect()
-	check(view.encloses(content_rect) and view.encloses(stage_rect) and content_rect.end.x<=stage_rect.position.x,"NPC region and UI fit without intersection "+label)
-	check(stage.mouse_filter==Control.MOUSE_FILTER_IGNORE and portrait.mouse_filter==Control.MOUSE_FILTER_IGNORE and portrait.focus_mode==Control.FOCUS_NONE,"NPC decoration cannot consume pointer or focus "+label)
-	check(portrait.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and portrait.expand_mode==TextureRect.EXPAND_IGNORE_SIZE and portrait.texture.get_size()==Vector2(1024,1536) and is_equal_approx(portrait.size.x/portrait.size.y,2.0/3.0) and portrait.size.y>root.size.y and portrait.position.y>0,"NPC enlarges unchanged original aspect with only lower body outside viewport "+label)
-	var image=node("FacilityStill")
-	check(image.get_parent()==game.backdrop_layer and portrait.get_parent()==game.backdrop_layer and portrait.get_index()>image.get_index() and game.base.get_index()>game.backdrop_layer.get_index(),"NPC stays on decoration layer below foreground controls "+label)
-	var fit=true
-	for control in content.find_children("*","Control",true,false):
-		if not control.is_visible_in_tree():continue
-		if control is BaseButton or control is ScrollContainer:
-			if control.get_global_rect().end.x>stage_rect.position.x:fit=false
-	check(fit,"NPC does not cover interactive UI or scroll regions "+label)
+	var viewport=Rect2(Vector2.ZERO,Vector2(root.size));var portrait=node("FacilityNpc")
+	var entry=node("FacilityEntry");var choices=node("FacilityChoices");var stage=node("FacilityNpcStage");var art=node("FacilityEntryArt")
+	check(entry!=null and choices!=null and stage!=null and art!=null and portrait!=null,"NPC entrance owns dedicated choices and portrait regions "+label)
+	if entry==null or choices==null or stage==null or art==null or portrait==null:return
+	check(viewport.encloses(choices.get_global_rect()) and choices.get_global_rect().end.x<=portrait.get_global_rect().position.x,"NPC entrance choices fit without portrait intersection "+label)
+	check(stage.mouse_filter==Control.MOUSE_FILTER_IGNORE and art.mouse_filter==Control.MOUSE_FILTER_IGNORE and portrait.mouse_filter==Control.MOUSE_FILTER_IGNORE and portrait.focus_mode==Control.FOCUS_NONE,"NPC decoration cannot consume pointer or focus "+label)
+	check(portrait.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and portrait.expand_mode==TextureRect.EXPAND_IGNORE_SIZE and portrait.texture.get_size()==Vector2(1024,1536) and is_equal_approx(portrait.size.x/portrait.size.y,2.0/3.0) and is_equal_approx(portrait.size.y,root.size.y*1.28) and portrait.position.y>0,"NPC enlarges unchanged original aspect with lower body outside viewport "+label)
+	check(portrait.get_parent()==art and stage.is_ancestor_of(art) and entry.is_ancestor_of(stage) and not game.backdrop_layer.is_ancestor_of(portrait),"NPC belongs to entry lifecycle separately from cached backdrop "+label)
+	check(node("FacilityStill")!=null and game.base.get_index()>game.backdrop_layer.get_index(),"NPC entrance retains backdrop below foreground controls "+label)
+func service_layout(label: String):
+	var viewport=Rect2(Vector2.ZERO,Vector2(root.size));var body=node("CampaignBody")
+	check(node("FacilityEntry")==null and node("FacilityNpc")==null and node("FacilityNpcStage")==null and node("FacilityEntryArt")==null,"NPC enlarged entrance art leaves service working area "+label)
+	check(body!=null and viewport.encloses(body.get_global_rect()) and node("FacilityStill")!=null,"NPC service retains contained workspace and facility backdrop "+label)
 	if game.page=="party":
-		check(node("GuildReserveScroll").size.x>=240 and node("GuildCurrentScroll").size.x>=240 and node("GuildOperations").get_global_rect().end.y<=root.size.y,"NPC preserves two readable guild columns and actions "+label)
-		check(node("GuildRules").get_child(0).get_combined_minimum_size().y<=node("GuildRules").size.y,"NPC guild rule lines remain above member lists "+label)
-		var readable=true
-		for vitals in content.find_children("GuildVitals_*","Label",true,false):
-			var width=vitals.get_theme_font("font").get_string_size(vitals.text,HORIZONTAL_ALIGNMENT_LEFT,-1,vitals.get_theme_font_size("font_size")).x
-			if width>vitals.size.x:readable=false
-		check(readable,"NPC guild HP MP and level text fit allocated rows "+label)
-	elif game.page=="shop" and node("ShopProductsScroll")!=null:
-		check(node("ShopProductsScroll").get_global_rect().end.x<=content_rect.end.x,"NPC product list stays within assigned UI width "+label)
+		var reserve=node("GuildReserveScroll");var comparison=node("GuildComparison");var actions=node("GuildActions")
+		check(reserve!=null and comparison!=null and actions!=null and reserve.size.x>=240 and viewport.encloses(reserve.get_global_rect()) and viewport.encloses(comparison.get_global_rect()) and viewport.encloses(actions.get_global_rect()),"NPC guild retains readable reserve comparison and actions "+label)
+	elif game.page=="shop":
+		var products=node("ShopProductsScroll")
+		check(products!=null and viewport.encloses(products.get_global_rect()),"NPC product list stays within service viewport "+label)
 	elif game.page=="inn":
-		check(node("InnPartyScroll").size.x<=content.size.x and node("InnParty").columns==6,"NPC preserves six-column inn grid with contained scrolling "+label)
+		var keeper=node("InnKeeper");var scroll=node("InnPartyScroll");var members=node("InnParty")
+		check(keeper!=null and keeper.texture==game.pages.facility_art.npc.texture and keeper.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and viewport.encloses(keeper.get_global_rect()),"NPC inn uses same visit portrait in contained keeper column "+label)
+		check(scroll!=null and members!=null and viewport.encloses(scroll.get_global_rect()) and members.get_global_rect().size.x<=scroll.size.x and node("InnActions").get_global_rect().end.y<=root.size.y,"NPC inn party grid and actions fit service region "+label)
 func run():
 	create_timer(180).timeout.connect(func():print("FAIL NPC watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):push_error("Isolated profile required");quit(2);return
@@ -35,10 +35,14 @@ func run():
 	while game.data.is_empty():await process_frame
 	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
+	# Keep verified portraits resident while exercising 600 visit draws. Godot's
+	# weak resource cache would otherwise decode PNGs on every reset; that tests
+	# loader throughput rather than RNG/lifecycle and can exceed the runner limit.
+	var resident_portraits=[]
 	var manifest=JSON.parse_string(FileAccess.get_file_as_string("res://assets/facility_npcs/manifest.json"));var total=0
 	check(manifest is Array and manifest.size()==9,"NPC manifest registers six facility originals and three guild staff portraits")
 	for entry in manifest:
-		var path=str(entry.path);var bytes=FileAccess.get_file_as_bytes(path);total+=bytes.size()
+		var path=str(entry.path);var bytes=FileAccess.get_file_as_bytes(path);total+=bytes.size();resident_portraits.append(load(path))
 		var image=Image.new();var decoded=image.load_png_from_buffer(bytes)
 		check(FileAccess.get_sha256(path)==entry.sha256 and decoded==OK and image.get_size()==Vector2i(entry.width,entry.height) and image.get_format()==Image.FORMAT_RGBA8,"NPC original SHA256 dimensions and RGBA "+path.get_file())
 	check(total==18834299,"NPC six existing and three guild portrait PNG files retain exact byte count")
@@ -71,42 +75,49 @@ func run():
 		root.size=dims
 		for spec in cases:
 			var scenario=seed.duplicate(true);scenario.state.location=spec[0]
-			await game.update({"op":"campaign_load","data":scenario});await enter_facility(spec[1]);await settle()
+			await game.update({"op":"campaign_load","data":scenario});game.navigate(spec[1]);await settle()
 			var before=await saved();var path=art.npc.selected_path;var state=art.npc.rng.state
 			check(art.npc.visit_key==spec[2] and art.npc.texture!=null and path.get_file() in art.npc.CATALOG[spec[2]],"NPC correctly assigned on facility entry "+str(spec)+str(dims.x))
 			npc_layout(str(spec)+str(dims.x))
+			await enter_facility(spec[1]);service_layout(str(spec)+str(dims.x))
+			check(art.npc.selected_path==path and art.npc.rng.state==state and (await saved())==before,"NPC service selection preserves visit and exact save "+str(spec))
+			game.pages.facility_entry.back();await settle();npc_layout("return "+str(spec))
+			check(art.npc.selected_path==path and art.npc.rng.state==state and (await saved())==before,"NPC return to entrance preserves visit and exact save "+str(spec))
+			await enter_facility(spec[1])
 			for i in range(3):game.render();await settle()
 			check(art.npc.selected_path==path and art.npc.rng.state==state,"NPC repeated renders retain same visit "+str(spec)+str(dims.x))
 			game.pages.party_view.open_detail("guard");await settle();game.pages.party_view.portrait_pressed("archer");await settle();game.dialog.close();await settle()
 			check(art.npc.selected_path==path and art.npc.rng.state==state and (await saved())==before,"NPC owner switching and details preserve NPC and exact save "+str(spec)+str(dims.x))
 			game.navigate("hub");await settle()
 			check(art.npc.selected_path.is_empty() and art.npc.texture==null and art.npc.visit_key.is_empty(),"NPC leaves with facility "+str(spec)+str(dims.x))
-			await enter_facility(spec[1]);await settle()
+			await enter_facility(spec[1])
 			var reentry_ok=false
 			if spec[2]=="weapon":reentry_ok=art.npc.rng.state!=state
 			elif spec[2]=="guild":reentry_ok=art.npc.rng.state!=state and art.npc.CATALOG.guild.has(art.npc.selected_path.get_file())
 			else:reentry_ok=art.npc.rng.state==state and art.npc.selected_path==path
 			check(reentry_ok and (await saved())==before,"NPC reentry redraws only random facilities and preserves game save "+str(spec)+str(dims.x))
 		var east=seed.duplicate(true);east.state.location="east"
-		await game.update({"op":"campaign_load","data":east});await enter_facility("shop");await settle()
+		await game.update({"op":"campaign_load","data":east});await enter_facility("shop")
 		var path=art.npc.selected_path;var state=art.npc.rng.state;var before=await saved()
 		await game.pages.shop_view.confirm_purchase("spear-wood","guard");await settle();await click("PurchaseDecline")
 		check((await saved())==before and art.npc.selected_path==path and art.npc.rng.state==state,"NPC purchase cancellation keeps original visit "+str(dims.x))
-		await game.pages.shop_view.confirm_purchase("spear-wood","guard");await settle();await click("PurchaseAgree")
+		await game.pages.shop_view.confirm_purchase("spear-wood","guard");await settle()
+		var agree=node("PurchaseAgree");agree.pressed.emit();agree.pressed.emit();await settle()
 		check(int(game.campaign().gold)==410 and int(game.campaign().characters.guard.inventory["spear-wood"])==4 and art.npc.selected_path==path and art.npc.rng.state==state,"NPC actual purchase retains current keeper "+str(dims.x))
-		game.pages.party_view.open_detail("guard");await settle();await click("OwnedInventorySell_spear-wood");await click("InventoryPrepareSale");await consent(false)
-		check(art.npc.selected_path==path and art.npc.rng.state==state,"NPC sale cancellation retains keeper "+str(dims.x))
-		await click("OwnedInventorySell_spear-wood");await click("InventoryPrepareSale");var quote=game.pages.party_view.inventory_view.quote.duplicate(true);await consent(true)
+		var purchase_save=await saved();game.pages.party_view.open_detail("guard");await settle();await click("OwnedInventorySell_spear-wood");await click("InventoryPrepareSale");await consent(false)
+		check((await saved())==purchase_save and art.npc.selected_path==path and art.npc.rng.state==state,"NPC sale cancellation retains keeper "+str(dims.x))
+		await click("OwnedInventorySell_spear-wood");await click("InventoryPrepareSale");var quote=game.pages.party_view.inventory_view.quote.duplicate(true)
+		var sale_consent=game.pages.party_view.inventory_view.confirmation;sale_consent.confirmed.emit();sale_consent.confirmed.emit();await settle()
 		check(int(game.campaign().gold)==int(quote.afterGold) and int(game.campaign().characters.guard.inventory["spear-wood"])==3 and art.npc.selected_path==path and art.npc.rng.state==state,"NPC actual sale retains keeper and canonical result "+str(dims.x))
 		game.dialog.close();await settle()
 	await game.update({"op":"campaign_load","data":seed});game.navigate("map");await settle()
 	check(node("FacilityNpc")==null and node("FacilityNpcStage")==null and art.npc.texture==null,"NPC does not reserve empty space on departure map")
-	await enter_facility("party");await settle();art.sync("battle","astaris","party")
+	await enter_facility("party");art.sync("battle","astaris","party")
 	check(art.npc.texture==null and art.npc.selected_path.is_empty(),"NPC combat transition clears decorative visit")
 	art.sync("town","astaris","party");game.pages.reset_context()
 	check(art.npc.texture==null and art.npc.selected_path.is_empty(),"NPC load/new-session context reset clears selected keeper")
 	var shop_seed=seed.duplicate(true);shop_seed.state.location="east"
-	await game.update({"op":"campaign_load","data":shop_seed});await enter_facility("shop");await settle()
+	await game.update({"op":"campaign_load","data":shop_seed});await enter_facility("shop")
 	var keeper_rng=art.npc.rng.state
 	var connection=game.engine.connection_generation;var lost=game.engine._disconnect("synthetic-npc-loss")
 	game.handle_connection_loss(lost,connection);await settle()

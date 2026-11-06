@@ -5,7 +5,7 @@ var fade: Tween
 func _ready():
 	mouse_filter=Control.MOUSE_FILTER_IGNORE;z_index=100
 	var style=StyleBoxFlat.new();style.bg_color=Color("#203c3bf2");style.border_color=Color("#94c9b8");style.set_border_width_all(1);style.set_corner_radius_all(6);style.set_content_margin_all(10);add_theme_stylebox_override("panel",style)
-	caption=Label.new();caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;caption.clip_text=true;caption.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(caption);hide()
+	caption=Label.new();caption.add_theme_color_override("font_color",Color.WHITE);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;caption.clip_text=true;caption.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(caption);hide()
 func display(message: String,path: String=""):
 	if is_instance_valid(fade):fade.kill()
 	caption.text=message;tooltip_text=path;modulate.a=1;show();place()

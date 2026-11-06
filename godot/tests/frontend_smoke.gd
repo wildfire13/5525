@@ -47,7 +47,9 @@ func run():
 	var music=game.audio.frontend_save()
 	check(not str(music.quest_id).is_empty(),"journey music slot chosen")
 	check(game.audio.quest.playing and game.audio.quest.stream!=null,"journey plays a delivered quest WAV")
-	check(game.content.find_children("*","Label",true,false).any(func(label):return label.text=="旅のBGM: "+game.audio.quest_title()),"chosen song title displayed on the first journey render")
+	# The approved travel strip replaces the old developer-facing music label.
+	# Playback and the selected track are still checked separately above/below.
+	check(game.find_child("TravelRouteStrip",true,false)!=null and not game.content.find_children("*","Label",true,false).any(func(label):return label.text=="旅のBGM: "+game.audio.quest_title()),"first journey render uses route strip without obsolete music title label")
 	await game.act("travel",["safe"])
 	check(game.board!=null and game.state().deploying,"deployment in same window")
 	await game.act("begin",[])

@@ -23,32 +23,32 @@ func progress() -> float:
  return clampf(float(Time.get_ticks_msec()-recovery_started)/(RECOVERY_SECONDS*1000.0),0.0,1.0) if recovery_started>0 else 1.0
 func render(parent):
  if pages.facility_entry.render_top(parent,"inn"):reset();return
- var shown=pages.facility_entry.render_dialogue(dialogue)
+ var surface=HBoxContainer.new();surface.name="InnService";surface.custom_minimum_size.y=ui.mock_shell.content_height();surface.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;surface.add_theme_constant_override("separation",24);parent.add_child(surface)
+ var panel=PanelContainer.new();panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;surface.add_child(panel)
+ var content=VBoxContainer.new();content.add_theme_constant_override("separation",16);panel.add_child(content)
  var q: Dictionary=pages.c().get("inn",{})
- var heading_parent=parent
- var compact_header=not shown and ui.size.y<720
- var header=pages.row(parent) if compact_header else parent
- if compact_header:
-  heading_parent=VBoxContainer.new();heading_parent.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.add_child(heading_parent)
- ui.icons.line(ui,heading_parent,"inn","宿屋",true)
- if not q.get("available",false):pages.l(heading_parent,"宿屋はアスタリスで利用できます。");return
- if q.get("needsRecovery",false):pages.l(heading_parent,"パーティ全員で%dG" % q.price)
- var recovery_hint=pages.muted(heading_parent,"編成中の全員のHP・MPを全回復。控えは対象外、時間は経過しません。");recovery_hint.add_theme_font_size_override("font_size",16)
- if not shown:
-  var speech=pages.facility_entry.make_speech(dialogue if not dialogue.is_empty() else pages.facility_entry.greeting_text(),"normal")
-  pages.facility_entry.fit_inline_speech(speech)
-  if compact_header:speech.custom_minimum_size.y=140
-  header.add_child(speech)
-
+ var keeper=VBoxContainer.new();keeper.name="InnKeeperColumn";keeper.custom_minimum_size.x=440;keeper.add_theme_constant_override("separation",8);surface.add_child(keeper)
+ var words=dialogue if not dialogue.is_empty() else FULL_GREETING if not q.get("needsRecovery",false) else pages.facility_entry.greeting_text()
+ var speech=pages.facility_entry.make_speech(words,"normal");speech.name="InnKeeperSpeech";speech.custom_minimum_size=Vector2(440,172);speech.words.add_theme_font_size_override("font_size",22);speech.set_speaker_visible(false);keeper.add_child(speech)
+ var npc=pages.facility_art.npc
+ if npc.texture!=null:
+  var image=TextureRect.new();image.name="InnKeeper";image.texture=npc.texture;image.custom_minimum_size=Vector2(440,ui.mock_shell.content_height()-180);image.size_flags_vertical=Control.SIZE_EXPAND_FILL;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;keeper.add_child(image)
+ parent=content
+ ui.icons.line(ui,parent,"inn","宿屋",true)
+ if not q.get("available",false):pages.l(parent,"宿屋はアスタリスで利用できます。");return
+ if q.get("needsRecovery",false):pages.l(parent,"パーティ全員で%dG" % q.price)
+ var recovery_hint=pages.muted(parent,"編成中の全員のHP・MPを全回復。控えは対象外、時間は経過しません。");recovery_hint.add_theme_font_size_override("font_size",16);recovery_hint.add_theme_color_override("font_color",Color("#747d75"))
  cards(parent)
  if not q.get("needsRecovery",false):
   var status=pages.l(parent,"宿泊完了。全員のHP・MPが回復しました。" if not healing_party.is_empty() else "全員が全回復しています。料金はかかりません。")
   status.name="InnRecoveryStatus";status.add_theme_font_size_override("font_size",16)
  elif not q.get("affordable",false):pages.l(parent,"所持金が足りません。宿泊には%dG必要です。" % q.price)
- var actions=pages.row(parent);actions.alignment=BoxContainer.ALIGNMENT_CENTER
- var caption="ひと休みする" if not q.get("needsRecovery",false) else "%dGで宿泊する / 確認" % q.price
- var disabled=pending or (q.get("needsRecovery",false) and not q.get("affordable",false))
+ var action_space=Control.new();action_space.size_flags_vertical=Control.SIZE_EXPAND_FILL;parent.add_child(action_space)
+ var actions=pages.row(parent);actions.name="InnActions";actions.alignment=BoxContainer.ALIGNMENT_END
+ var caption="休息する"
+ var disabled=pending or not q.get("needsRecovery",false) or not q.get("affordable",false)
  ui.green_button(pages.b(actions,caption,stay,disabled)).name="InnStay"
+ pages.b(actions,"戻る",pages.facility_entry.back,pending).name="InnReturn"
 func cards(parent):
  var scroll=ScrollContainer.new();scroll.name="InnPartyScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.custom_minimum_size.y=96;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(scroll)
  var compact=ui.size.y<720
@@ -79,7 +79,7 @@ func cards(parent):
    var before=current
    if recovered.has(str(id)) and recovered[str(id)].get("after",{}).get(stat)==current:before=int(recovered[str(id)].before.get(stat,current))
    labels.append({"label":label,"stat":stat,"before":before,"after":current,"maximum":maximum})
-   if before<current and progress()<1.0:label.add_theme_color_override("font_color",Color("#97edb5"));label.set_meta("recovering",true)
+   if before<current and progress()<1.0:label.add_theme_color_override("font_color",Color("#28714c"));label.set_meta("recovering",true)
   if u.hp<=0:pages.l(member,"戦闘不能")
  paint(progress(),labels)
  if progress()<1.0:
@@ -88,7 +88,7 @@ func paint(amount: float,labels: Array):
  for entry in labels:
   if not is_instance_valid(entry.label):continue
   var shown=roundi(lerpf(float(entry.before),float(entry.after),amount))
-  entry.label.text="%s %d/%d" % [str(entry.stat).to_upper(),shown,entry.maximum]
+  entry.label.text="%s %d → %d" % [str(entry.stat).to_upper(),shown,entry.maximum]
   if amount>=1.0:entry.label.remove_theme_color_override("font_color");entry.label.set_meta("recovering",false)
 func stay():
  if not available() or pending or ui.locked or ui.presenting or ui.modal_open() or ui.closing:return
