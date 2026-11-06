@@ -19,9 +19,7 @@ func render(parent):
 	for entry in c.get("locations",[]):
 		if entry.id==c.location:place=entry;break
 
-	var panel=Control.new();panel.name="TownHub";panel.custom_minimum_size=Vector2(900,584);panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(panel)
-	if not artwork.is_empty():
-		var image=TextureRect.new();image.texture=load(artwork.path);image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED;image.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var panel=Control.new();panel.name="TownHub";panel.custom_minimum_size=Vector2(900,ui.mock_shell.content_height());panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(panel)
 	var points={"board":Vector2(.58,.22),"guild":Vector2(.18,.22),"inn":Vector2(.64,.65),"weapon":Vector2(.18,.28),"armor":Vector2(.18,.28),"items":Vector2(.18,.28),"accessory":Vector2(.18,.28)}
 	for id in place.get("facilities",[]):
 		if not FACILITIES.has(id):continue

@@ -51,8 +51,9 @@ var left_panel
 var right_panel
 var deployment_bar: PanelContainer
 var deployment_options: VBoxContainer
-var deployment_actions: VBoxContainer
+var deployment_actions: HBoxContainer
 var deployment_layout := false
+var deployment_workspace=preload("res://deployment_workspace.gd").new()
 var partybar_reserved_height := 0.0:
 	set(value):
 		partybar_reserved_height=maxf(0,value)
@@ -99,6 +100,7 @@ func reset_context():
 	inspected_uid="";inspection_pinned=false;invalidate_hover();skill_content_open=false
 	discard_reference();item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";last_actor="";last_action_count=-1;presentation_action={};queue_at_start=[];intent_versions.clear();intent_updated.clear()
 func mount():
+	deployment_workspace.hud=self
 	deployment_layout=false
 	middle=Control.new();middle.name="BattleOverlay";middle.mouse_filter=Control.MOUSE_FILTER_IGNORE;middle.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.content.add_child(middle);middle.size=Vector2(ui.size.x-48,ui.size.y-130);ui.battle_row=middle
 	ui.board=preload("res://battle_board.gd").new();ui.board.preferences=ui.preferences;ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";ui.board.deployment_ui=ui;ui.add_child(ui.board);ui.move_child(ui.board,0);ui.board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -116,12 +118,15 @@ func mount():
 	deployment_bar=PanelContainer.new();deployment_bar.name="DeploymentFormationWindow";middle.add_child(deployment_bar)
 	var formation_style=StyleBoxFlat.new();formation_style.bg_color=Color("#18212aef");formation_style.border_color=Color("#63717f");formation_style.set_border_width_all(1);formation_style.set_corner_radius_all(5);formation_style.set_content_margin_all(10);deployment_bar.add_theme_stylebox_override("panel",formation_style)
 	deployment_options=VBoxContainer.new();deployment_bar.add_child(deployment_options)
-	deployment_actions=VBoxContainer.new();deployment_actions.name="DeploymentActions";middle.add_child(deployment_actions)
+	deployment_actions=HBoxContainer.new();deployment_actions.name="DeploymentActions";middle.add_child(deployment_actions)
 	# Control input follows sibling order, independently of drawing z_index.
 	middle.move_child(left_panel,-1);middle.move_child(right_panel,-1)
 	resize()
 func resize():
 	if not is_instance_valid(left_panel) or not is_instance_valid(ui.board) or ui.board.is_queued_for_deletion() or middle.size.x<100:return
+	if deployment_layout:
+		deployment_workspace.layout();return
+	ui.board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var queue_scroll=ui.battle_header.find_child("TurnOrderViewport",true,false)
 	if queue_scroll!=null:queue_scroll.custom_minimum_size.x=queue_viewport_width()
 	ui.battle_header.position.y=maxf(0,middle.size.y-maxf(108,ui.battle_header.get_combined_minimum_size().y));ui.battle_header.size.x=middle.size.x
@@ -160,6 +165,7 @@ func render():
 	var deploying=bool(s.get("deploying",false))
 	if deploying!=deployment_layout:
 		deployment_layout=deploying
+		if not deploying:deployment_workspace.restore()
 		for pair in [[left_panel,"deployment_ally" if deploying else "battle_actor",Rect2(0,76,320,650)], [right_panel,"deployment_enemy" if deploying else "battle_target",Rect2(maxf(0,middle.size.x-330),76,330,620)]]:
 			var panel=pair[0];panel.layout_key=pair[1]
 			panel.restore_rect(pair[2])
@@ -208,6 +214,7 @@ func render():
 	elif item_list or skill_list:
 		l(target_box,"左の一覧から選択してください。")
 	else:presentation_action={};render_target()
+	if deploying:deployment_workspace.render()
 	update_board();ui.board.inspected_enemy="";refresh_hover();resize()
 	if is_instance_valid(opening_visual):left_panel.hide()
 	if opening:open_actor_panel()
@@ -653,12 +660,13 @@ func render_presentation(phase: Dictionary):
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
 func render_deployment():
 	var s=ui.state()
-	l(deployment_options,"陣形を選択",true)
 	var formations=ui.row(deployment_options)
+	var formation_status=l(formations,"陣形 "+("成立" if ui.data.get("formed",{}).get("ally",false) else "未成立"),true)
+	formation_status.size_flags_horizontal=Control.SIZE_FILL;formation_status.custom_minimum_size.x=200;formation_status.autowrap_mode=TextServer.AUTOWRAP_OFF
 	for pair in [["convoy","基本配置"],["flank","切り込み配置"]]:
 		var control=b(formations,("● " if s.get("formationKind","convoy")==pair[0] else "")+pair[1],choose_formation.bind(pair[0]))
 		control.tooltip_text="点線の3マスを味方の生存者で埋めると発動。\n味方全員の攻撃×1.5・被ダメージ×0.75。\n陣形強化中は攻撃×1.75・被ダメージ×0.65（使用者の次の番まで）。\n陣形が崩れている間は無効。"
-		control.name="DeploymentFormation_"+pair[0];control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.x=140
+		control.name="DeploymentFormation_"+pair[0];control.size_flags_horizontal=Control.SIZE_FILL;control.custom_minimum_size.x=200
 	if not s.units.any(func(u):return u.id==ui.selected and u.side=="ally" and u.hp>0):
 		ui.selected=""
 		for u in s.units:
@@ -668,7 +676,8 @@ func render_deployment():
 	else:render_person_content(left_info,unit(ui.selected))
 	ui.battle_actions=deployment_actions
 	b(deployment_actions,"配置リセット",reset_deployment).name="DeploymentReset"
-	ui.primary(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true))).name="DeploymentBegin"
+	b(deployment_actions,"撤退",func():ui.confirm("戦闘から撤退しますか？",ui.act.bind("retreat",[]))).name="DeploymentRetreat"
+	ui.green_button(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true))).name="DeploymentBegin"
 func deployment_changed() -> bool:
 	for initial in ui.state().get("deploymentInitial",[]):
 		if unit(initial.id).get("pos")!=initial.pos:return true
@@ -691,7 +700,7 @@ func toggle_details():
 		ui.local_button(actions,"戻る",ui.dialog.close),func():details_open=false)
 func inspect_enemy(id: String):
 	selected_enemy=id
-	if ui.state().get("deploying",false):render_person()
+	if ui.state().get("deploying",false):deployment_workspace.render()
 	else:toggle_details()
 func close_detail() -> bool:
 	if range_reference:close_reference();return true
@@ -724,6 +733,7 @@ func formations(parent):
 func live_board(source_id: int=0) -> bool:
 	return not ui.closing and is_instance_valid(ui.board) and ui.board.is_inside_tree() and not ui.board.is_queued_for_deletion() and (source_id==0 or source_id==ui.board.get_instance_id())
 func render_person(hover_only := false):
+	if ui.state().get("deploying",false) and not hover_only and is_instance_valid(right_panel):deployment_workspace.render();return
 	if not live_board() or not is_instance_valid(person_box) or not person_box.is_inside_tree() or person_box.is_queued_for_deletion():return
 	ui.clear(person_box)
 	person_box.remove_meta("inspected_unit")

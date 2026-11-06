@@ -497,6 +497,11 @@ func render():
 	location_bar.visible=false
 	top.visible=battle or engine.disconnected
 	clear(backdrop_layer)
+	if not battle and phase=="town":
+		if page=="hub":
+			pages.hub_view.select_art(str(c.location))
+			if not pages.hub_view.artwork.is_empty():pages.facility_art.fullscreen(backdrop_layer,load(pages.hub_view.artwork.path))
+		elif page in ["party","inn","shop","map"]:pages.facility_art.fullscreen(backdrop_layer)
 	actor_face.visible=false
 	var lower_return=phase=="result" or phase=="town" and page!="hub"
 	town_back.visible=not battle and page!="hub" and phase=="town" and not lower_return
@@ -685,7 +690,7 @@ func on_cell(pos: int):
 	if u.get("side")=="enemy":hud.selected_enemy=str(u.id)
 	if s.get("deploying",false):
 		if u.get("side")=="enemy":hud.render_person();return
-		if u.get("side")=="ally" and u.get("hp",0)>0:selected=u.id;render()
+		if u.get("side")=="ally" and u.get("hp",0)>0:hud.selected_enemy="";selected=u.id;render()
 		elif not selected.is_empty():await act("deploy",[selected,pos])
 		return
 	var target=null
@@ -969,7 +974,7 @@ func show_skill_details(id: String,title_: String,level: int=1,gear: Dictionary=
 	if existing!=null and existing.visible:existing.grab_focus();return
 	var host=dialog.window if is_instance_valid(dialog.window) else self
 	var detail=preload("res://skill_details.gd").new();host.add_child(detail)
-	var context=member_name(str(state().get("actor",""))) if view_kind=="battle" else member_name(pages.party_view.detail_uid)
+	var context=member_name(str(state().get("actor",""))) if view_kind=="battle" else member_name(pages.party_view.detail_uid if not pages.party_view.detail_uid.is_empty() else pages.party_uid)
 	if not gear.is_empty():context+=" / "+str(gear.get("name",""))
 	detail.configure(self,preload("res://skill_text.gd").document(id,title_,level,campaign(),gear),context,str(gear.get("note","")),str(gear.get("flavor","")))
 func show_equipment_details(entry: Dictionary):
@@ -980,4 +985,4 @@ func show_equipment_details(entry: Dictionary):
 	var doc=helper.detail_document(entry);helper.free()
 	var host=dialog.window if is_instance_valid(dialog.window) else self
 	var detail=preload("res://skill_details.gd").new();host.add_child(detail)
-	detail.configure(self,doc,member_name(pages.party_view.detail_uid)+" / "+str(entry.name),str(entry.get("definition",{}).get("note","")) if entry.kind=="equipment" else "",str(entry.get("definition",{}).get("flavor","")) if entry.kind=="equipment" else "")
+	detail.configure(self,doc,member_name(pages.party_view.detail_uid if not pages.party_view.detail_uid.is_empty() else pages.party_uid)+" / "+str(entry.name),str(entry.get("definition",{}).get("note","")) if entry.kind=="equipment" else "",str(entry.get("definition",{}).get("flavor","")) if entry.kind=="equipment" else "")

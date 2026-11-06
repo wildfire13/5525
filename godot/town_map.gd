@@ -13,7 +13,7 @@ var zoom := 1.0
 var pan := Vector2.ZERO
 var panning := false
 var icons
-# Display-only future event metadata; current routes always contain two battles.
+# Display only explicitly disclosed events; do not promise encounters on every route.
 var route_events: Dictionary={}
 var event_markers: Array=[]
 const EVENT_COLORS={"danger":Color("#e36c67"),"unknown":Color("#f4cd60"),"safe":Color("#78c790")}
@@ -86,8 +86,8 @@ func _draw():
 			# show two separate circles, with equal endpoint/center intervals.
 			var spacing=from.distance_to(to)/3.0
 			var radius=minf(7.0,spacing*.375)
-			var events=route_events.get(key,["danger","danger"])
-			for i in range(2):
+			var events=route_events.get(key,[])
+			for i in range(events.size()):
 				var kind=str(events[i]) if i<events.size() else "unknown"
-				var at=from.lerp(to,float(i+1)/3.0);var color=EVENT_COLORS.get(kind,EVENT_COLORS.unknown)
+				var at=from.lerp(to,float(i+1)/float(events.size()+1));var color=EVENT_COLORS.get(kind,EVENT_COLORS.unknown)
 				draw_circle(at,radius,color);event_markers.append({"route":key,"index":i,"position":at,"kind":kind,"color":color,"radius":radius,"from":from,"to":to})

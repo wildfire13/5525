@@ -40,10 +40,10 @@ func render_top(parent: Control,page: String) -> bool:
  sync()
  if not at_top(page):return false
  var title={"shop":{"east":"武器屋","west":"防具屋","south":"道具屋","north":"装飾品店"}.get(str(pages.c().get("location")),"商店"),"inn":"宿屋","party":"ギルド"}.get(page,"")
- var layout=HBoxContainer.new();layout.name="FacilityEntry";layout.custom_minimum_size.y=584;layout.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;layout.add_theme_constant_override("separation",48);parent.add_child(layout)
+ var layout=HBoxContainer.new();layout.name="FacilityEntry";layout.custom_minimum_size.y=ui.mock_shell.content_height();layout.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;layout.add_theme_constant_override("separation",32);parent.add_child(layout)
  var options=VBoxContainer.new();options.name="FacilityChoices";options.custom_minimum_size.x=300;options.add_theme_constant_override("separation",16);layout.add_child(options)
- ui.label_(options,ui.town_name(pages.c().get("location",""))).add_theme_font_size_override("font_size",14)
- ui.label_(options,title,true).name="FacilityEntryTitle"
+ var town_label=ui.label_(options,ui.town_name(pages.c().get("location","")));town_label.add_theme_font_size_override("font_size",20);town_label.add_theme_color_override("font_color",Color("#faf9f5"));town_label.add_theme_color_override("font_outline_color",Color("#283128"));town_label.add_theme_constant_override("outline_size",6)
+ var title_label=ui.label_(options,title,true);title_label.name="FacilityEntryTitle";title_label.add_theme_font_size_override("font_size",30);title_label.add_theme_color_override("font_color",Color("#faf9f5"));title_label.add_theme_color_override("font_outline_color",Color("#283128"));title_label.add_theme_constant_override("outline_size",6)
  var gap=Control.new();gap.custom_minimum_size.y=24;options.add_child(gap)
  var choices=[]
  if page=="shop":
@@ -53,20 +53,19 @@ func render_top(parent: Control,page: String) -> bool:
  elif page=="inn":choices=[["休息する","inn",true]]
  else:choices=[["パーティメンバー編成","guild",true],["倉庫を利用する","warehouse",true]]
  for choice in choices:
-  var button=ui.button(options,choice[0],choose.bind(choice[1]),not choice[2]);button.name="FacilityChoice_"+str(choice[1]);button.custom_minimum_size=Vector2(300,52);
+  var button=ui.button(options,choice[0],choose.bind(choice[1]),not choice[2]);button.name="FacilityChoice_"+str(choice[1]);button.custom_minimum_size=Vector2(300,64);
   if choice[2]:ui.green_button(button)
+  button.custom_minimum_size.y=64
   ui.memory.key(button,"facility_"+str(choice[1]))
   if not choice[2]:button.tooltip_text="この機能はまだ利用できません。"
- var exit_button=ui.button(options,"店を出る",ui.navigate.bind("hub"));exit_button.name="FacilityExit";exit_button.custom_minimum_size=Vector2(300,52)
- var stage=Control.new();stage.name="FacilityNpcStage";stage.custom_minimum_size=Vector2(440,584);stage.size_flags_horizontal=Control.SIZE_EXPAND_FILL;stage.size_flags_vertical=Control.SIZE_FILL;layout.add_child(stage)
+ var exit_button=ui.button(options,"店を出る",ui.navigate.bind("hub"));exit_button.name="FacilityExit";exit_button.custom_minimum_size=Vector2(300,64)
+ var stage=Control.new();stage.name="FacilityNpcStage";stage.custom_minimum_size=Vector2(600,ui.mock_shell.content_height());stage.size_flags_horizontal=Control.SIZE_EXPAND_FILL;stage.size_flags_vertical=Control.SIZE_FILL;layout.add_child(stage)
  var npc=pages.facility_art.npc
  if npc.texture!=null:
   var image=TextureRect.new();image.name="FacilityNpc";image.texture=npc.texture;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;image.mouse_filter=Control.MOUSE_FILTER_IGNORE;stage.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  var conversation=VBoxContainer.new();conversation.name="FacilityConversation";conversation.custom_minimum_size.x=480;conversation.size_flags_horizontal=Control.SIZE_EXPAND_FILL;layout.add_child(conversation)
- var top_space=Control.new();top_space.custom_minimum_size.y=112;conversation.add_child(top_space)
- var panel=PanelContainer.new();conversation.add_child(panel)
- var style=StyleBoxFlat.new();style.bg_color=Color("#faf9f5");style.border_color=Color("#cbd0c7");style.set_border_width_all(1);style.set_corner_radius_all(4);style.set_content_margin_all(28);panel.add_theme_stylebox_override("panel",style)
- var words=ui.label_(panel,greeting_text());words.name="FacilityGreeting";words.custom_minimum_size=Vector2(420,100);words.add_theme_font_size_override("font_size",20)
+ var top_space=Control.new();top_space.custom_minimum_size.y=100;conversation.add_child(top_space)
+ var bubble=make_speech(greeting_text(),"normal");bubble.name="FacilityEntrySpeech";bubble.custom_minimum_size=Vector2(480,190);bubble.words.add_theme_font_size_override("font_size",22);bubble.set_speaker_visible(false);conversation.add_child(bubble)
  return true
 func greeting_text() -> String:
  return "いらっしゃい。今日はどうしますか？" if ui.page=="shop" and view=="top" else ("売る品物の持ち主を、下の人物から選んでください。" if pages.shop_view.selected_owner().is_empty() else "売却する品物を選んでください。") if ui.page=="shop" and view=="sell" else "商品をご覧ください。" if ui.page=="shop" else "お泊まりですか？" if ui.page=="inn" else "仲間の編成はこちらでどうぞ。"

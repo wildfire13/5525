@@ -28,25 +28,25 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 	if gear.is_empty():return
 	var choices=slots_for(gear)
 	slot=ui.shop_slot if choices.has(ui.shop_slot) else str(choices[0])
-	var title=ui.icons.line(ui,body,ui.icons.equipment(gear),str(gear.name),true);title.name="ShopComparisonProduct";title.add_theme_font_size_override("font_size",20)
+	var title=ui.icons.line(ui,body,ui.icons.equipment(gear),str(gear.name),true);title.name="ShopComparisonProduct";title.add_theme_font_size_override("font_size",28)
 	var selectors=ui.row(body)
 	var positions=OptionButton.new();positions.name="ShopComparisonSlot";positions.custom_minimum_size=Vector2(140,36);selectors.add_child(positions)
 	for id_ in choices:
 		positions.add_item(str(shop.c().get("slots",{}).get(id_,id_)));positions.set_item_metadata(positions.item_count-1,id_)
 		if id_==slot:positions.select(positions.item_count-1)
 	positions.item_selected.connect(func(i):switch_target(owner_id,str(positions.get_item_metadata(i))))
-	var comparison=RichTextLabel.new();comparison.name="ShopComparisonStats";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.scroll_active=false;comparison.add_theme_font_size_override("normal_font_size",16);comparison.add_theme_color_override("default_color",Color("#29332f"));comparison.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(comparison);comparison.text="比較を読み込み中…"
+	var comparison=RichTextLabel.new();comparison.name="ShopComparisonStats";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.scroll_active=false;comparison.add_theme_font_size_override("normal_font_size",22);comparison.add_theme_color_override("default_color",Color("#29332f"));comparison.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(comparison);comparison.text="比較を読み込み中…"
 	skill_rows=VBoxContainer.new();skill_rows.name="ShopComparisonSkills";body.add_child(skill_rows)
-	var conditions=ui.label_(body,"");conditions.name="ShopComparisonConditions";conditions.add_theme_font_size_override("font_size",14)
+	var conditions=ui.label_(body,"");conditions.name="ShopComparisonConditions";conditions.add_theme_font_size_override("font_size",20)
 	# Mechanics in the original equipment note must remain visible at purchase.
 	var note=str(gear.get("note","")).strip_edges()
 	var flavor=str(gear.get("flavor","")).strip_edges()
 	if not flavor.is_empty() and not note.contains(flavor):
-		var description=ui.label_(body,flavor);description.name="ShopComparisonFlavor";description.add_theme_font_size_override("font_size",16)
+		var description=ui.label_(body,flavor);description.name="ShopComparisonFlavor";description.add_theme_font_size_override("font_size",20)
 	if not note.is_empty():
-		var memo=ui.label_(body,note);memo.name="ShopComparisonNotes";memo.add_theme_font_size_override("font_size",16)
+		var memo=ui.label_(body,note);memo.name="ShopComparisonNotes";memo.add_theme_font_size_override("font_size",20)
 	var money=ui.label_(body,"費用を確認中…");money.name="ShopComparisonPayment"
-	var trial=ui.button(body,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;trial.add_theme_font_size_override("font_size",14)
+	var trial=ui.button(body,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;trial.add_theme_font_size_override("font_size",20)
 	var buy=ui.primary(ui.button(actions,"取引を確認",purchase,true));buy.name="ShopComparisonBuy";buy.custom_minimum_size.y=40;buy.size_flags_horizontal=Control.SIZE_SHRINK_END
 	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
 	refresh(money,comparison,conditions,buy)
