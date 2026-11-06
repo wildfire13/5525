@@ -14,6 +14,7 @@ func run():
 	game.navigate("map")
 	for i in range(5):await process_frame
 	check(game.find_child("TownMap",true,false)!=null,"world map mounted")
+	check(game.find_child("TownMap",true,false).event_markers.is_empty(),"undisclosed route encounters are not drawn")
 	check(game.find_child("DepartButton",true,false)!=null,"departure in map action row")
 	check(game.find_child("TravelQuestDetails",true,false)==null,"no quest detail button without active quest")
 	var offers=game.campaign().board;var porter=game.roster().filter(func(u):return u.job=="porter" and game.campaign().selected.has(u.id))[0]
@@ -26,7 +27,7 @@ func run():
 	check(strip!=null,"horizontal travel strip mounted")
 	check(game.find_child("RouteChoices",true,false)!=null,"route choice buttons")
 	check(strip.size.y==160,"fixed compact travel strip height")
-	check(game.find_child("RouteChoice_short",true,false).text.contains("敵3人") and game.find_child("RouteChoice_safe",true,false).text.contains("敵2人"),"first route exposes time and encounter tradeoff")
+	check(game.find_child("RouteChoice_short",true,false).text.contains("2時間") and not game.find_child("RouteChoice_short",true,false).text.contains("敵") and game.find_child("RouteChoice_safe",true,false).text.contains("4時間"),"route choices expose time without disclosing enemy details")
 	if not OS.get_environment("TRAVEL_FIX_CAPTURE").is_empty():
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png(OS.get_environment("TRAVEL_FIX_CAPTURE").path_join("road-choices.png"))

@@ -22,7 +22,7 @@ func render(parent):
 	for spec in [["equipment","装備"],["inventory","インベントリ"],["ability","能力"],["skills","スキル"]]:
 		var control=ui.button(tabs,spec[1],set_tab.bind(str(spec[0])));control.custom_minimum_size.x=140;ui.mark_selected(control,tab==spec[0])
 	var split=ui.row(parent);split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;split.add_theme_constant_override("separation",16)
-	var display=ui.card(split);display.get_parent().custom_minimum_size=Vector2(320,536);display.get_parent().size_flags_horizontal=Control.SIZE_FILL if tab in ["equipment","inventory"] else Control.SIZE_EXPAND_FILL
+	var display=ui.card(split);display.get_parent().custom_minimum_size=Vector2(400 if tab=="equipment" else 360,ui.mock_shell.content_height()-52);display.get_parent().size_flags_horizontal=Control.SIZE_FILL if tab in ["equipment","inventory"] else Control.SIZE_EXPAND_FILL
 	if tab=="equipment":equipment(display,member)
 	elif tab=="inventory":inventory(display,member)
 	elif tab=="ability":
@@ -30,14 +30,19 @@ func render(parent):
 		ability(display,member)
 	else:skills(display,member)
 	if tab in ["equipment","inventory"]:
-		var card=ui.card(split);card.get_parent().custom_minimum_size=Vector2(420,536);card.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		var card=ui.card(split);card.get_parent().custom_minimum_size=Vector2(420,ui.mock_shell.content_height()-52);card.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		ui.label_(card,"選択アイテム")
 		var detail=ui.scroller(card)
 		if picked.is_empty():return
-		ui.pages.describe_gear(detail,picked)
+		if picked.get("kind")=="equipment" or picked.has("equipped_slot"):
+			ui.pages.describe_gear(detail,picked.get("definition",picked))
+		else:
+			ui.icons.line(ui,detail,str(picked.id) if picked.get("kind")!="quest" else "items",str(picked.get("name","")),true)
+			ui.label_(detail,"所持 %d個" % int(picked.get("count",1)))
 		if picked.has("equipped_slot"):
 			if picked.get("type")!="empty" and not picked.get("occupied",false):ui.button(detail,"装備を外す",perform.bind(owner,str(picked.id),"unequip",null,1,picked.equipped_slot),busy)
 		else:
+			var explanation=ui.button(detail,"詳しい説明",ui.show_equipment_details.bind(picked.duplicate(true)));explanation.name="CharacterItemDetails";explanation.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 			if picked.get("kind")=="equipment":
 				var options=picked.get("equipSlots",[])
 				if not options.is_empty():
@@ -58,14 +63,14 @@ func render(parent):
 
 func equipment(parent,member):
 	ui.label_(parent,"装備")
-	var stage=Control.new();stage.custom_minimum_size=Vector2(296,470);stage.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(stage)
-	var art=ui.portrait(stage,member,false,1);art.position=Vector2(20,8);art.size=Vector2(260,470);art.modulate.a=.22;art.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	var positions={"head":Vector2(108,0),"rightHand":Vector2(12,92),"upperBody":Vector2(108,92),"leftHand":Vector2(204,92),"lowerBody":Vector2(108,188),"feet":Vector2(108,284),"accessory1":Vector2(60,380),"accessory2":Vector2(156,380)}
+	var stage=Control.new();stage.custom_minimum_size=Vector2(384,760);stage.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(stage)
+	var art=ui.portrait(stage,member,false,1);art.position=Vector2(0,8);art.size=Vector2(384,760);art.modulate.a=.22;art.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var positions={"head":Vector2(148,0),"rightHand":Vector2(28,136),"upperBody":Vector2(148,136),"leftHand":Vector2(268,136),"lowerBody":Vector2(148,284),"feet":Vector2(148,432),"accessory1":Vector2(88,596),"accessory2":Vector2(208,596)}
 	for slot in member.get("equipmentSlots",[]):
 		var item=member.get("equipmentDetails",{}).get(slot.slot,{}).duplicate(true);item["equipped_slot"]=slot.slot;item["occupied"]=slot.get("occupiedBy")!=null;item["id"]=slot.get("id","");item["name"]=ui.pages.party_view.equipment_name(slot)
-		var button=ui.button(stage,"",func():picked=item;ui.render());button.name="CharacterSlot_"+str(slot.slot);button.position=positions.get(slot.slot,Vector2.ZERO);button.custom_minimum_size=Vector2(72,72);button.size=Vector2(72,72);button.tooltip_text=str(slot.label)+" / "+str(item.name)
-		button.icon=ui.icons.texture(ui.icons.equipment(item));button.expand_icon=true;button.add_theme_constant_override("icon_max_width",52)
-		var caption=ui.label_(stage,str(slot.label));caption.position=button.position+Vector2(0,74);caption.size=Vector2(90,12);caption.autowrap_mode=TextServer.AUTOWRAP_OFF;caption.add_theme_font_size_override("font_size",11)
+		var button=ui.button(stage,"",func():picked=item;ui.render());button.name="CharacterSlot_"+str(slot.slot);button.position=positions.get(slot.slot,Vector2.ZERO);button.custom_minimum_size=Vector2(88,88);button.size=Vector2(88,88);button.tooltip_text=str(slot.label)+" / "+str(item.name)
+		button.icon=ui.icons.texture(ui.icons.equipment(item));button.expand_icon=true;button.add_theme_constant_override("icon_max_width",68)
+		var caption=ui.label_(stage,str(slot.label));caption.position=button.position+Vector2(0,90);caption.size=Vector2(90,12);caption.autowrap_mode=TextServer.AUTOWRAP_OFF;caption.add_theme_font_size_override("font_size",16)
 		if item.get("type")!="empty" and slot.get("occupiedBy")==null:Drag.source(button,func():return payload(item,"transferEquipped",str(slot.slot)),str(item.name),button.icon)
 func inventory(parent,member):
 	ui.label_(parent,"インベントリ",true)
@@ -145,7 +150,7 @@ func ability(parent,member):
 		ui.button(parent,"戻る",end_allocation)
 		return
 	var row=ui.row(parent)
-	var portrait=ui.portrait(row,member,false,200);portrait.name="CharacterPortrait";portrait.tooltip_text="クリックで画像変更";portrait.mouse_filter=Control.MOUSE_FILTER_STOP
+	var portrait=ui.portrait(row,member,false,200);portrait.custom_minimum_size=Vector2(280,560);portrait.name="CharacterPortrait";portrait.tooltip_text="クリックで画像変更";portrait.mouse_filter=Control.MOUSE_FILTER_STOP
 	portrait.gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed:open_portrait(member))
 	var values=VBoxContainer.new();values.size_flags_horizontal=Control.SIZE_EXPAND_FILL;row.add_child(values)
@@ -158,7 +163,7 @@ func ability(parent,member):
 		var mod=ui.label_(line,"(%+d)" % delta);mod.autowrap_mode=TextServer.AUTOWRAP_OFF;mod.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;mod.add_theme_color_override("font_color",Color("#247044") if delta>0 else Color("#b04430") if delta<0 else Color("#707970"))
 	ui.label_(values,"EXP %d" % int(member.get("xp",0)))
 	ui.pages.party_view.identity(values,member)
-	ui.label_(values,"通常ATK %d / 射程 %d" % [ui.pages.normal_atk(stats,1),ui.pages.normal_reach(stats)])
+	var attack=ui.label_(values,"通常ATK %d / 射程 %d" % [ui.pages.normal_atk(stats,1),ui.pages.normal_reach(stats)]);attack.name="CharacterAttackProfile";attack.tooltip_text=ui.pages.attack_profile(stats);attack.mouse_filter=Control.MOUSE_FILTER_STOP
 	ui.label_(values,"属性ATK  火%d / 水%d / 地%d" % [stats.get("atkFire",0),stats.get("atkWater",0),stats.get("atkEarth",0)])
 	ui.label_(values,ui.pages.defense_profile(stats))
 	var points=int(member.get("statPoints",0))

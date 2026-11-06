@@ -27,7 +27,7 @@ func render(parent):
 			var after=pages.card(parent);after.name="QuestAftermath_"+str(entry.id);pages.l(after,str(entry.name),true);pages.b(after,"出来事を知る",func():play_scene(entry.story,str(entry.get("portrait","")))).name="QuestAftermathStory_"+str(entry.id)
 		return
 	if not quests.any(func(q):return str(q.id)==selected_id):selected_id=str(quests[0].id)
-	var split=pages.row(parent);split.name="QuestBoardColumns";split.add_theme_constant_override("separation",16);split.custom_minimum_size.y=584;split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+	var split=pages.row(parent);split.name="QuestBoardColumns";split.add_theme_constant_override("separation",16);split.custom_minimum_size.y=ui.mock_shell.content_height();split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
 	var list=ui.scroller(split);list.name="QuestList";list.get_parent().custom_minimum_size=Vector2(520,0);list.get_parent().size_flags_horizontal=Control.SIZE_FILL
 	ui.memory.watch(list.get_parent(),"quest_board_list")
 	var detail=pages.card(split);detail.name="QuestDetail";detail.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -47,7 +47,7 @@ func choose(id: String):
 func render_detail(parent,q: Dictionary,active: bool):
 	pages.l(parent,("受注中: " if active else "")+str(q.name),true).name="QuestDetailTitle"
 	var details=ui.scroller(parent);details.name="QuestDetailBody";details.get_parent().custom_minimum_size.y=64
-	pages.l(details,str(q.get("text",""))).add_theme_font_size_override("font_size",16)
+	pages.l(details,str(q.get("text",""))).add_theme_font_size_override("font_size",20)
 	field(details,"届け先",pages.town(q.get("to","")))
 	field(details,"受取人",str(q.get("client","")))
 	if q.get("scenario",false):
@@ -56,18 +56,22 @@ func render_detail(parent,q: Dictionary,active: bool):
 	var cargo_line=pages.row(details);cargo_line.name="QuestCargoInformation"
 	var caption=pages.l(cargo_line,"荷物情報");caption.custom_minimum_size.x=150;caption.size_flags_horizontal=Control.SIZE_FILL
 	var cargo_items=q.get("cargoItems",[{"name":q.get("cargo","荷物"),"quantity":1,"weight":q.get("weight",0)}])
+	var cargo_flow=HFlowContainer.new();cargo_flow.name="QuestCargoItems";cargo_flow.size_flags_horizontal=Control.SIZE_EXPAND_FILL;cargo_flow.add_theme_constant_override("h_separation",12);cargo_flow.add_theme_constant_override("v_separation",12);cargo_line.add_child(cargo_flow)
 	var total_weight=0.0
 	for cargo in cargo_items:
-		var icon=ui.icons.add(cargo_line,"items",28);icon.tooltip_text=str(cargo.get("name","荷物"));icon.mouse_filter=Control.MOUSE_FILTER_STOP
-		pages.l(cargo_line,"×%d" % int(cargo.get("quantity",1)))
+		var item=HBoxContainer.new();cargo_flow.add_child(item)
+		var icon_key=str(cargo.get("icon","items"));var icon=ui.icons.add(item,icon_key,32);icon.tooltip_text=str(cargo.get("name","荷物"));icon.mouse_filter=Control.MOUSE_FILTER_STOP
+		var count=pages.l(item,"×%d" % int(cargo.get("quantity",1)));count.autowrap_mode=TextServer.AUTOWRAP_OFF;count.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 		total_weight+=float(cargo.get("weight",0))*int(cargo.get("quantity",1))
-	var total=pages.l(cargo_line,"合計Wt %s" % str(int(total_weight)) if is_equal_approx(total_weight,round(total_weight)) else str(total_weight));total.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+	var weight_text=str(int(total_weight)) if is_equal_approx(total_weight,round(total_weight)) else str(total_weight)
+	var total=pages.l(cargo_line,"合計Wt "+weight_text);total.name="QuestCargoWeight";total.autowrap_mode=TextServer.AUTOWRAP_OFF;total.size_flags_horizontal=Control.SIZE_SHRINK_END;total.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+
 	var rewards=q.get("rewards",{})
 	if rewards.is_empty():reward_line(details,"基本報酬","money",int(q.get("reward",0)),0)
 	else:
 		reward_line(details,"基本報酬",str(rewards.get("type","money")),int(rewards.get("base",0)),int(rewards.get("baseRP",0)))
 		if not q.get("scenario",false):reward_line(details,"希望条件達成報酬",str(rewards.get("type","money")),int(rewards.get("bonus",0)),int(rewards.get("bonusRP",0)))
-		if int(rewards.get("legacyXP",0))>0:reward_line(details,"キャラクター報酬","experience",int(rewards.legacyXP),0)
+		if rewards.get("legacyXP",false):reward_line(details,"キャラクター報酬","experience",int(q.get("xp",0)),0)
 	if q.get("scenario",false):
 		var npc_names={"turnip":"農夫・計量係","kiln":"若い陶工・陶工の師匠","wheel":"車輪職人・行商人"}
 		pages.l(details,"登場人物: "+str(npc_names.get(str(q.get("eventId","")),q.get("client",""))))
@@ -103,13 +107,13 @@ func render_detail(parent,q: Dictionary,active: bool):
 
 func field(parent,caption: String,value: String):
 	var row=pages.row(parent);var label=pages.l(row,caption);label.custom_minimum_size.x=150;label.size_flags_horizontal=Control.SIZE_FILL;label.add_theme_font_size_override("font_size",14)
-	pages.l(row,value).add_theme_font_size_override("font_size",16)
+	pages.l(row,value).add_theme_font_size_override("font_size",20)
 	parent.add_child(HSeparator.new())
 func reward_line(parent,caption: String,kind: String,amount: int,rp: int):
 	var row=pages.row(parent);var label=pages.l(row,caption);label.custom_minimum_size.x=150;label.size_flags_horizontal=Control.SIZE_FILL;label.add_theme_font_size_override("font_size",14)
 	ui.icons.add(row,"experience" if kind=="experience" else "money",28)
-	pages.l(row,"×%d" % amount).add_theme_font_size_override("font_size",18)
-	if rp>0:pages.l(row,"RP ×%d" % rp).add_theme_font_size_override("font_size",16)
+	pages.l(row,"×%d" % amount).add_theme_font_size_override("font_size",20)
+	if rp>0:pages.l(row,"RP ×%d" % rp).add_theme_font_size_override("font_size",20)
 	parent.add_child(HSeparator.new())
 func render_requester(parent,q: Dictionary):
 	var column=VBoxContainer.new();column.name="QuestRequester";column.custom_minimum_size.x=280;parent.add_child(column)

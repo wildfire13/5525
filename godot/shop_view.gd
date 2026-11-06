@@ -92,10 +92,10 @@ func render(parent):
 	if not c().get("selected",[]).has(ui.shop_uid):
 		ui.shop_uid=str(c().get("selected",[""])[0])
 	if sale.owner_id!=ui.shop_uid:sale.apply_owner(ui.shop_uid)
-	var layout=HBoxContainer.new();layout.name="ShopWorkspace";layout.add_theme_constant_override("separation",16);layout.custom_minimum_size.y=584;layout.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;parent.add_child(layout)
-	var own=make_panel(layout,"ShopInventory",320)
+	var layout=HBoxContainer.new();layout.name="ShopWorkspace";layout.add_theme_constant_override("separation",16);layout.custom_minimum_size.y=ui.mock_shell.content_height();layout.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;parent.add_child(layout)
+	var own=make_panel(layout,"ShopInventory",360)
 	var middle=make_panel(layout,"ShopTransaction",0)
-	var stock=make_panel(layout,"ShopCatalog",320)
+	var stock=make_panel(layout,"ShopCatalog",360)
 	var person={}
 	for member in ui.roster():
 		if member.id==ui.shop_uid:person=member;break
@@ -103,7 +103,7 @@ func render(parent):
 	backdrop(stock,pages.facility_art.npc.texture,"ShopKeeperArt")
 	var tabs=ui.row(own)
 	for tab in [["inventory","インベントリ"],["equipment","現在の装備"]]:
-		var button=b(tabs,tab[1],set_inventory_tab.bind(tab[0]),busy());button.name="ShopInventoryTab_"+tab[0];button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.add_theme_font_size_override("font_size",14);ui.mark_selected(button,inventory_tab==tab[0])
+		var button=b(tabs,tab[1],set_inventory_tab.bind(tab[0]),busy());button.name="ShopInventoryTab_"+tab[0];button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.add_theme_font_size_override("font_size",18);ui.mark_selected(button,inventory_tab==tab[0])
 	var inventory=ui.scroller(own);inventory.get_parent().name="ShopInventoryScroll"
 	ui.memory.watch(inventory.get_parent(),"shop_inventory_"+inventory_tab)
 	if inventory_tab=="equipment":render_equipment(inventory,person)
@@ -150,12 +150,12 @@ func set_inventory_tab(value: String):
 	if busy():return
 	inventory_tab=value;ui.render()
 func render_product(parent: Control,item: Dictionary):
-	var choose=b(parent,"",open_comparison.bind(str(item.id)),busy());choose.name="Product_"+str(item.id);choose.custom_minimum_size=Vector2(0,64);choose.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	var choose=b(parent,"",open_comparison.bind(str(item.id)),busy());choose.name="Product_"+str(item.id);choose.custom_minimum_size=Vector2(0,68);choose.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;choose.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);margin.add_theme_constant_override("margin_left",8);margin.add_theme_constant_override("margin_right",8)
 	var line=HBoxContainer.new();line.add_theme_constant_override("separation",8);line.mouse_filter=Control.MOUSE_FILTER_IGNORE;margin.add_child(line)
 	ui.icons.add(line,str(item.id) if c().location=="south" else ui.icons.equipment(item),36)
-	var title=l(line,str(item.name));title.add_theme_font_size_override("font_size",14);title.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	var price=l(line,"%dG" % int(item.price));price.add_theme_font_size_override("font_size",13);price.size_flags_horizontal=Control.SIZE_SHRINK_END;price.autowrap_mode=TextServer.AUTOWRAP_OFF;price.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var title=l(line,str(item.name));title.add_theme_font_size_override("font_size",18);title.mouse_filter=Control.MOUSE_FILTER_IGNORE;title.autowrap_mode=TextServer.AUTOWRAP_OFF;title.clip_text=true;choose.tooltip_text=str(item.name)
+	var price=l(line,"%dG" % int(item.price));price.add_theme_font_size_override("font_size",18);price.size_flags_horizontal=Control.SIZE_SHRINK_END;price.autowrap_mode=TextServer.AUTOWRAP_OFF;price.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	list_surface(choose,selection_kind=="buy" and pages.gear_id==str(item.id));ui.memory.key(choose,"product_"+str(item.id))
 	preload("res://item_drag.gd").source(choose,func():
 		if busy():return null

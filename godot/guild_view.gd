@@ -71,7 +71,7 @@ func render(parent):
 	var lists=groups();var current=lists[1];var reserves=visible_reserves(lists[0])
 	if not active(current_id):current_id=str(current[0].id) if not current.is_empty() else ""
 	if active(chosen_id):chosen_id=""
-	var split=HBoxContainer.new();split.name="GuildColumns";split.custom_minimum_size.y=584;split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;split.add_theme_constant_override("separation",16);parent.add_child(split)
+	var split=HBoxContainer.new();split.name="GuildColumns";split.custom_minimum_size.y=ui.mock_shell.content_height();split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;split.add_theme_constant_override("separation",16);parent.add_child(split)
 	var panel=PanelContainer.new();panel.name="GuildComparison";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(panel)
 	var center=VBoxContainer.new();center.add_theme_constant_override("separation",16);panel.add_child(center)
 	var tabs=ui.row(center)
@@ -85,24 +85,25 @@ func render(parent):
 	var space2=Control.new();space2.size_flags_vertical=Control.SIZE_EXPAND_FILL;swap_column.add_child(space2)
 	render_member(compare,person(chosen_id),"控え")
 	var footer=ui.row(center);footer.name="GuildActions"
-	var notice_label=l(footer,notice);notice_label.name="GuildNotice";notice_label.add_theme_font_size_override("font_size",14)
+	var notice_label=l(footer,notice);notice_label.name="GuildNotice";notice_label.add_theme_font_size_override("font_size",18)
 	var remove=b(footer,"パーティから外す",prepare.bind("remove",current_id,""),busy() or candidate("remove",current_id,"").is_empty());remove.name="GuildRemove"
 	b(footer,"戻る",pages.facility_entry.back,busy()).name="GuildReturn"
-	var reserve=VBoxContainer.new();reserve.name="GuildReserveColumn";reserve.custom_minimum_size.x=320;reserve.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(reserve)
+	var reserve_panel=PanelContainer.new();reserve_panel.custom_minimum_size.x=320;split.add_child(reserve_panel)
+	var reserve=VBoxContainer.new();reserve.name="GuildReserveColumn";reserve.size_flags_vertical=Control.SIZE_EXPAND_FILL;reserve_panel.add_child(reserve)
 	l(reserve,"控え %d人" % lists[0].size()).name="GuildReserveHeading"
 	reserve_filter(reserve)
 	var body=ui.scroller(reserve);body.get_parent().name="GuildReserveScroll";ui.memory.watch(body.get_parent(),"guild_reserves_"+reserve_job)
 	for u in reserves:
-		var id=str(u.id);var button=b(body,"",choose.bind(id),busy());button.name="GuildMember_"+id;button.custom_minimum_size=Vector2(300,76)
+		var id=str(u.id);var button=b(body,"",choose.bind(id),busy());button.name="GuildMember_"+id;button.custom_minimum_size=Vector2(300,92)
 		button.set_script(preload("res://guild_member_card.gd"));button.configure(self,id);button.set_meta("member_id",id);button.set_meta("guild_active",false);ui.memory.key(button,"guild_member_"+id)
 		ui.mark_selected(button,id==chosen_id)
 		var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;button.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		for edge in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+edge,8)
 		var line=ui.row(margin);line.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		var face=ui.portrait(line,u,false,40);face.custom_minimum_size=Vector2(40,60);face.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		var face=ui.portrait(line,u,false,40);face.custom_minimum_size=Vector2(44,72);face.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		var copy=VBoxContainer.new();copy.mouse_filter=Control.MOUSE_FILTER_IGNORE;copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;copy.add_theme_constant_override("separation",0);line.add_child(copy)
 		for text in [str(u.name),str(u.get("role",""))+" · Lv."+str(int(u.get("level",1))),"HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]]:
-			var label=l(copy,text);label.add_theme_font_size_override("font_size",14);label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.clip_text=true;label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+			var label=l(copy,text);label.add_theme_font_size_override("font_size",18);label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.clip_text=true;label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	if reserves.is_empty():l(body,"この職業の控えはいません")
 	var add=b(reserve,"編成に加える",prepare.bind("add","",chosen_id),busy() or candidate("add","",chosen_id).is_empty());add.name="GuildAdd";add.custom_minimum_size.y=44;ui.green_button(add)
 func render_member(parent,u: Dictionary,caption: String):
@@ -111,26 +112,26 @@ func render_member(parent,u: Dictionary,caption: String):
 		var npc=pages.facility_art.npc
 		if npc.texture!=null:
 			var image=TextureRect.new();image.texture=npc.texture;image.custom_minimum_size=Vector2(160,300);image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;column.add_child(image)
-		l(column,"控えから人物を選んでください").add_theme_font_size_override("font_size",14)
+		l(column,"控えから人物を選んでください").add_theme_font_size_override("font_size",18)
 		return
 	var hero=ui.row(column);var portrait=ui.portrait(hero,u,false,128);portrait.custom_minimum_size=Vector2(128,220)
 	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;hero.add_child(copy)
-	l(copy,caption).add_theme_font_size_override("font_size",14)
+	l(copy,caption).add_theme_font_size_override("font_size",18)
 	l(copy,str(u.name),true)
-	l(copy,str(u.get("role",""))+" · Lv."+str(int(u.get("level",1)))).add_theme_font_size_override("font_size",16)
-	l(copy,"HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]).add_theme_font_size_override("font_size",16)
+	l(copy,str(u.get("role",""))+" · Lv."+str(int(u.get("level",1)))).add_theme_font_size_override("font_size",18)
+	l(copy,"HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]).add_theme_font_size_override("font_size",18)
 	var details=ui.scroller(column)
 	match detail_tab:
 		0:
 			var stats=u.get("stats",u)
 			for pair in [["STR","str"],["INT","int"],["AGI","agi"],["SPD","speed"]]:l(details,"%s  %s" % [pair[0],str(int(stats.get(pair[1],stats.get("agi",0))))]).add_theme_font_size_override("font_size",20)
-			l(details,pages.defense_profile(stats)).add_theme_font_size_override("font_size",14)
-			l(details,pages.attack_profile(stats)).add_theme_font_size_override("font_size",14)
+			l(details,pages.defense_profile(stats)).add_theme_font_size_override("font_size",18)
+			l(details,pages.attack_profile(stats)).add_theme_font_size_override("font_size",18)
 		1:
 			for entry in u.get("equipmentSlots",[]):
 				var line=ui.row(details);var item=u.get("equipmentDetails",{}).get(str(entry.slot),{});var icon=ui.icons.equipment(item) if not item.is_empty() else ui.icons.slot(str(entry.slot))
 				if not icon.is_empty():ui.icons.add(line,icon,36)
-				l(line,str(entry.get("label",""))+"  "+str(entry.get("name",""))).add_theme_font_size_override("font_size",16)
+				l(line,str(entry.get("label",""))+"  "+str(entry.get("name",""))).add_theme_font_size_override("font_size",18)
 		2:pages.party_view.skills(details,u)
 func select_current(id: String):
 	if not available() or busy() or ui.modal_open() or not active(id):return

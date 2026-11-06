@@ -51,6 +51,7 @@ func run():
  result.enqueue({"kind":"battle","title":"BATTLE VICTORY","subtitle":"戦闘勝利","gold_gain":30,"gold_after":1000,"members":rows,"restored":false,"acknowledge":false,"location":"astaris"})
  result.present_pending();await settle()
  check(not node("ResultMemberDetails").visible,"growth details initially collapsed")
+ check(game.find_children("ResultLevelUpPoints_*","Label",true,false).size()==rows.size(),"level-up points visible without opening details")
  node("ResultContinue").grab_focus();await key(KEY_TAB);await key(KEY_TAB)
  check(root.gui_get_focus_owner()==node("ResultDetailsToggle"),"Tab reaches growth details from OK")
  await key(KEY_ENTER)

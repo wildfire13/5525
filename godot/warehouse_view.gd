@@ -33,16 +33,17 @@ func quote(side: String,id: String) -> Dictionary:
 func render(parent: Control):
 	var ids=pages.c().get("selected",[])
 	if not ids.has(owner_id):owner_id=str(ids[0]) if not ids.is_empty() else ""
-	var split=HBoxContainer.new();split.name="WarehouseColumns";split.custom_minimum_size.y=584;split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;split.add_theme_constant_override("separation",16);parent.add_child(split)
+	var split=HBoxContainer.new();split.name="WarehouseColumns";split.custom_minimum_size.y=ui.mock_shell.content_height();split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;split.add_theme_constant_override("separation",16);parent.add_child(split)
 	render_list(split,"character")
-	var panel=PanelContainer.new();panel.name="WarehouseSelectedPanel";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(panel)
+	var panel=PanelContainer.new();panel.name="WarehouseSelectedPanel";panel.custom_minimum_size.x=440;panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(panel)
 	var details=VBoxContainer.new();details.name="WarehouseSelectedItem";details.add_theme_constant_override("separation",16);panel.add_child(details)
 	ui.label_(details,"選択アイテム").name="WarehouseHeading"
 	var selected=selected_row();var q=quote(source,item_id)
 	if selected.is_empty():ui.label_(details,"アイテムを選択すると詳細が表示されます").add_theme_font_size_override("font_size",16)
 	else:
-		ui.label_(details,str(selected.get("name","")),true)
-		ui.label_(details,"×%d" % int(selected.get("count",0)))
+		var content=ui.scroller(details);content.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
+		render_item_detail(content,selected)
+		ui.label_(content,"×%d" % int(selected.get("count",0)))
 		var reason=ui.label_(details,str(q.get("reason","")));reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",14)
 	var spacer=Control.new();spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL;details.add_child(spacer)
 	var controls=ui.row(details);controls.name="WarehouseControls";controls.alignment=BoxContainer.ALIGNMENT_END
@@ -51,7 +52,7 @@ func render(parent: Control):
 	ui.button(controls,"戻る",pages.facility_entry.back,busy()).name="WarehouseReturn"
 	render_list(split,"warehouse")
 func render_list(parent: Control,side: String):
-	var panel=PanelContainer.new();panel.custom_minimum_size.x=320;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;parent.add_child(panel)
+	var panel=PanelContainer.new();panel.custom_minimum_size.x=420;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;parent.add_child(panel)
 	if side=="character":
 		var members=ui.roster().filter(func(member):return str(member.id)==owner_id)
 		if not members.is_empty():
@@ -63,7 +64,7 @@ func render_list(parent: Control,side: String):
 	scroll.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data,side),func(_at,data):drop(data,side))
 	for entry in rows(side):
 		var id=str(entry.id);var button=ui.button(body,str(entry.name)+"  ×"+str(int(entry.count)),choose.bind(side,id),busy());button.name="WarehouseItem_"+side+"_"+id;button.clip_text=true;button.custom_minimum_size=Vector2(296,56);button.tooltip_text=str(entry.name)
-		ui.icons.apply(button,ui.icons.equipment(entry.get("definition",{})) if entry.get("kind")=="equipment" else id if id in ["potion","ether"] else "items",32)
+		ui.icons.apply(button,id if id in ["potion","ether"] else "items" if entry.get("kind")=="quest" else item_icon(entry),32)
 		ui.mark_selected(button,side==source and id==item_id)
 		if entry.get("overCapacity",false):button.tooltip_text+=" / 所持枠を超えています"
 		button.set_drag_forwarding(func(_at):return drag(side,id),func(_at,data):return can_drop(data,side),func(_at,data):drop(data,side))
@@ -101,3 +102,46 @@ func drop(data,side: String):
 	if not can_drop(data,side):return
 	data.consumed=true
 	request_transfer(str(data.side),str(data.id))
+
+func render_item_detail(parent,entry: Dictionary):
+	var definition=item_definition(entry)
+	if definition.is_empty():
+		for item in pages.c().get("itemDefinitions",[]):
+			if str(item.id)==str(entry.id):definition=item;break
+	if definition.is_empty():
+		var loading=ui.label_(parent,"詳細を確認中…")
+		var id=str(entry.id);var epoch=pages.epoch;var connection=ui.engine.connection_generation
+		while ui.engine.busy:
+			await ui.get_tree().process_frame
+			if not is_instance_valid(parent) or id!=item_id:return
+		var response=await ui.engine.request({"op":"campaign","action":"previewGear","args":[owner_id,id,null]})
+		if not is_instance_valid(parent) or not parent.is_inside_tree() or id!=item_id or epoch!=pages.epoch or connection!=ui.engine.connection_generation:return
+		loading.queue_free()
+		var preview=response.get("previewGear",{})
+		if preview is Dictionary:definition=preview.get("gear",{})
+	if not definition.is_empty() and not definition.has("resource"):
+		pages.describe_gear(parent,definition)
+		return
+	ui.icons.line(ui,parent,str(entry.id) if str(entry.id) in ["potion","ether"] else "items",str(entry.get("name","")),true)
+	if definition.has("resource"):
+		ui.label_(parent,str(definition.resource).to_upper()+"を%d回復" % int(definition.get("amount",0))).name="WarehouseItemEffect"
+	var weight=definition.get("weight",entry.get("weight",null))
+	if weight!=null:ui.label_(parent,"Wt %s" % str(weight))
+
+func item_definition(entry: Dictionary) -> Dictionary:
+	if not entry.get("definition",{}).is_empty():return entry.definition
+	for inventory in pages.c().get("inventoryByCharacter",{}).values():
+		for item in inventory.get("entries",[]):
+			if str(item.id)==str(entry.id):return item.get("definition",{})
+	for item in pages.c().get("shop",[])+pages.c().get("itemDefinitions",[]):
+		if str(item.id)==str(entry.id):return item
+	for member in ui.roster():
+		for item in member.get("equipmentDetails",{}).values():
+			if str(item.get("id",""))==str(entry.id):return item
+	return {}
+
+func item_icon(entry: Dictionary) -> String:
+	var definition=item_definition(entry)
+	if not definition.is_empty():return ui.icons.equipment(definition)
+	var id=str(entry.id)
+	return ui.icons.equipment({"id":id}) if ui.icons.approved.equipment.has(id) or ui.icons.equipment_paths.has(id) else "items"

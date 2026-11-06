@@ -111,13 +111,18 @@ func _build():
  var leveled=current.members.filter(func(member):return member.level_before!=null and member.level_after>member.level_before)
  if not leveled.is_empty():
   _label(members,"レベルアップ",22,GOLD)
-  var strip_scroll=ScrollContainer.new();strip_scroll.name="ResultLevelUpScroll";strip_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;strip_scroll.custom_minimum_size.y=300;members.add_child(strip_scroll)
+  var strip_scroll=ScrollContainer.new();strip_scroll.name="ResultLevelUpScroll";strip_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;strip_scroll.custom_minimum_size.y=340;members.add_child(strip_scroll)
   var strip=HBoxContainer.new();strip.name="ResultLevelUpStrip";strip.add_theme_constant_override("separation",24);strip_scroll.add_child(strip)
   for member in leveled:
    var column=VBoxContainer.new();column.name="ResultLevelUp_"+str(member.id);column.custom_minimum_size.x=152;strip.add_child(column)
    var level=_label(column,"Lv.%d → Lv.%d" % [member.level_before,member.level_after],22,GOLD);level.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
    var face=TextureRect.new();face.texture=ui.portraits.texture(member.member,false);face.custom_minimum_size=Vector2(152,220);face.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;face.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;column.add_child(face)
    var name_=_label(column,str(member.name),16);name_.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+   var points=[]
+   if member.get("stat_gain",0)!=null and member.get("stat_gain",0)>0:points.append("能力 +%d" % int(member.stat_gain))
+   if member.get("skill_gain",0)!=null and member.get("skill_gain",0)>0:points.append("スキル +%d" % int(member.skill_gain))
+   if not points.is_empty():
+    var gain=_label(column," / ".join(points),18,GOLD);gain.name="ResultLevelUpPoints_"+str(member.id);gain.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var details=VBoxContainer.new();details.name="ResultMemberDetails";details.visible=false
  var toggle=Button.new();toggle.name="ResultDetailsToggle";toggle.text="成長の詳細";toggle.pressed.connect(func():details.visible=not details.visible);members.add_child(toggle);members.add_child(details)
  for row in current.members:_member_card(details,row,compact)

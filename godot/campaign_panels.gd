@@ -122,6 +122,7 @@ func active_quest_summary(parent):
 	l(copy,str(quest.name)+" · 配達先 "+town(quest.to))
 	b(line,"内容確認",ui.navigate.bind("board")).name="TravelQuestDetails"
 func map(parent):
+	var surface=card(parent);surface.get_parent().custom_minimum_size.y=ui.mock_shell.content_height();parent=surface
 	var available=[]
 	for place in c().get("destinations",[]):available.append(place.id if place is Dictionary else place)
 	var quest=c().get("activeQuest")
@@ -129,7 +130,7 @@ func map(parent):
 	var chart=preload("res://town_map.gd").new();chart.name="TownMap"
 	chart.towns=c().get("locations",[]);chart.current=c().location;chart.selected=ui.destination;chart.available=available;chart.routes=c().get("routes",{});chart.icons=ui.icons
 	chart.quest_destination=str(quest.to) if quest is Dictionary else ""
-	parent.add_child(chart);chart.custom_minimum_size.y=360;chart.size_flags_vertical=Control.SIZE_FILL;chart.destination_selected.connect(select_destination)
+	parent.add_child(chart);chart.custom_minimum_size.y=ui.mock_shell.content_height()-228;chart.size_flags_vertical=Control.SIZE_EXPAND_FILL;chart.destination_selected.connect(select_destination)
 	for id in chart.buttons:ui.widgets.append(chart.buttons[id])
 	var actions=row(parent);actions.name="MapControls";actions.custom_minimum_size.y=72
 	var route=VBoxContainer.new();route.custom_minimum_size.x=320;actions.add_child(route)
@@ -154,7 +155,7 @@ func journey(parent):
 	strip.origin=town(journey_.get("origin",c().get("location","")))
 	strip.destination=town(journey_.get("outboundDestination",journey_.get("destination","")))
 	strip.returning=journey_.get("returning",false);strip.stage=int(journey_.get("stage",0));strip.phase=phase;parent.add_child(strip)
-	var toggle=b(parent,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",func():travel_map_expanded=not travel_map_expanded;ui.render());toggle.name="TravelMapToggle"
+	var toggle=b(parent,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",func():travel_map_expanded=not travel_map_expanded;ui.render());toggle.name="TravelMapToggle";toggle.size_flags_horizontal=Control.SIZE_SHRINK_END
 	if travel_map_expanded:
 		var chart=preload("res://town_map.gd").new();chart.name="TravelFullMap";chart.read_only=true
 		chart.towns=c().get("locations",[]);chart.current=str(journey_.get("origin",c().get("location","")));chart.selected=str(journey_.get("outboundDestination",journey_.get("destination","")))
@@ -163,7 +164,7 @@ func journey(parent):
 		parent.add_child(chart);chart.custom_minimum_size.y=300;chart.size_flags_vertical=Control.SIZE_FILL
 	var actions=row(parent);actions.name="CampActions";actions.custom_minimum_size.y=72
 	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(copy)
-	l(copy,("野営地" if strip.returning else strip.origin)+" → "+town(journey_.get("destination","")),true)
+	l(copy,"帰路" if strip.returning else "野営地" if phase=="camp" else "到着" if phase in ["arrival","delivery"] else "%d区間目の道" % (int(journey_.get("stage",0))+1),true)
 	var remaining=maxi(0,2-int(journey_.get("stage",0)))*3
 	if phase=="arrival" or phase=="delivery":remaining=0
 	l(copy,"最短の到着見込 %d時間" % (int(journey_.get("hours",0))+remaining))
@@ -176,15 +177,13 @@ func journey(parent):
 			if c().get("canTurnBack",false):b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[])).tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
 		"arrival","delivery":
 			ui.green_button(b(actions,"都市に入る" if journey_.get("destination")=="astaris" else "村に入る",ui.act.bind("arrive",[])))
-	parent.add_child(HSeparator.new());active_quest_summary(parent)
 	if phase=="road":
-		l(parent,"%d区間目の道" % (int(journey_.get("stage",0))+1),true)
 		var choices=row(parent);choices.name="RouteChoices"
-		var encounter_stage=0 if journey_.get("returning",false) else int(journey_.get("stage",0))
-		for route in [["short","峠の近道",2,3 if encounter_stage==0 else 4],["safe","川沿いの道",4,2 if encounter_stage==0 else 3]]:
-			var choose=b(choices,route[1]+"\n移動 %d時間 / 敵%d人" % [route[2],route[3]],ui.forecast_action.bind(route[0],"travel",[route[0]]));choose.name="RouteChoice_"+route[0];choose.custom_minimum_size=Vector2(260,80)
+		for route in [["short","峠の近道",2],["safe","川沿いの道",4]]:
+			var choose=b(choices,route[1]+"\n移動 %d時間" % route[2],ui.forecast_action.bind(route[0],"travel",[route[0]]));choose.name="RouteChoice_"+route[0];choose.custom_minimum_size=Vector2(260,80)
 	if phase=="camp":
 		b(parent,"インベントリ",ui.navigate.bind("character"))
+	parent.add_child(HSeparator.new());active_quest_summary(parent)
 func party(parent):
 	if not facility_entry.render_top(parent,"party"):
 		if facility_entry.supported("party"):facility_entry.render_dialogue()
