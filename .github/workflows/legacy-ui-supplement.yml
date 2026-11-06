@@ -11,6 +11,7 @@ on:
       - '!native/**/*.md'
       - '.github/scripts/**'
       - '.github/workflows/legacy-ui-supplement.yml'
+      - '.github/workflows/linux-regression.yml'
   push:
     branches: [main]
     paths:
@@ -20,6 +21,7 @@ on:
       - '!native/**/*.md'
       - '.github/scripts/**'
       - '.github/workflows/legacy-ui-supplement.yml'
+      - '.github/workflows/linux-regression.yml'
 
 permissions:
   contents: read
