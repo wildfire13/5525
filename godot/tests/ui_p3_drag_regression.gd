@@ -2,7 +2,7 @@ extends "res://tests/owned_equipment_regression.gd"
 var mask=0
 var evidence=OS.get_environment("INVENTORY_QA_ROOT")
 var observations=[]
-func send(at: Vector2,button:=0,pressed:=false,delta:=Vector2.ZERO):
+func send(at: Vector2,button:=0,pressed:=false,delta:=Vector2.ZERO,wait_frames:=3):
 	var event
 	if button==0:event=InputEventMouseMotion.new();event.relative=delta
 	else:event=InputEventMouseButton.new();event.button_index=button;event.pressed=pressed
@@ -10,7 +10,7 @@ func send(at: Vector2,button:=0,pressed:=false,delta:=Vector2.ZERO):
 		if pressed:mask|=1<<(button-1)
 		else:mask&=~(1<<(button-1))
 	event.button_mask=mask;event.position=at;event.global_position=at
-	root.push_input(event,true);await frames(3)
+	root.push_input(event,true);await frames(wait_frames)
 func root_point(control: Control) -> Vector2:return Vector2(control.get_window().position)+control.get_global_rect().get_center()
 func slot_button(slot: String):
 	var index=["rightHand","leftHand","head","body","lowerBody","feet","accessory1","accessory2"].find(slot)
@@ -50,8 +50,13 @@ func run():
 		await drag("leftHand","different hand after NO");await cancel()
 		await choose_slot("rightHand")
 		var equip=node("OwnedEquipmentActions_spear-wood")
-		await send(root_point(equip));await settle()
+		# push_input enters the real GUI hover path but does not move the headless
+		# hardware pointer. Fixed-frame settling can expire the popup's .25s
+		# outside-pointer grace period, so observe opening before that idle wait.
+		await send(root_point(equip),0,false,Vector2.ZERO,0)
 		var hover=game.pages.party_view.owned_equipment_view.hover_window
+		var hover_deadline=Time.get_ticks_msec()+2000
+		while not hover.visible and Time.get_ticks_msec()<hover_deadline:await process_frame
 		var source=node("OwnedEquipment_spear-wood")
 		check(hover.visible,"real pointer hover opens canonical comparison")
 		check(not Rect2(Vector2(hover.position),Vector2(hover.size)).intersects(Rect2(Vector2(source.get_window().position)+source.get_global_rect().position,source.size)),"comparison remains scrollable without covering same item's drag source")
