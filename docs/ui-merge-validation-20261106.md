@@ -45,6 +45,9 @@ Godot のインポート後に実行する。Node 24 / Python 3.12 / Godot 4.6.3
 - 既存 Linux と Windows の CI に main 向け PR トリガーを追加する。
 - 既存 CI の 15 分上限、並列設定、権限は維持する。
 - 補助 `Mock UI and journey regression` は native の報酬・帰路ルールと FHD の新 UI 集約 17 本を検証する。
+- 検証 commit `fb05827` の Windows と新 UI 17 本は CI 成功。既存 Linux は 54/66 工程が全て成功した時点でジョブの 15 分上限に達した。失敗項目は検出されなかったが、残り 12 工程と後続 native 検証はその run では未完了であり、成功扱いにしない。
+- 補助 `Complete legacy UI and native validation` は変更していない旧 runner の工程一覧を読み、66 工程を重複・欠落なく 3 組に分けて順次実行する。再起動設定の write/read は同一組で同じプロファイルを使う。未知の名前による空実行を成功扱いにせず、期待した結果名・順序・件数・成否を照合する。各組の 15 分上限と既存各テストの制限を維持する。
+- 補助 native job は旧 Linux と同じ全コマンドに加え native 集約を独立して実行する。補助 CI の成功は元の単一ジョブの時間制約を解消した意味ではない。最終 SHA の全組・native・Windows・新 UI の結果を揃えて判断する。
 - 公開リポジトリの既存標準 runner を利用し、権限は `contents: read`。資格情報追加、自動公開・デプロイ、追加有料サービスはない。
 
 ## 検証の限界
