@@ -38,6 +38,7 @@ func run():
  shop.set_inventory_tab("inventory")
  shop.open_comparison("javelin-wood");await settle()
  check(not game.modal_open() and game.find_child("ShopComparisonStats",true,false)!=null,"product comparison is inline")
+ check(game.find_child("ShopComparisonNotes",true,false)!=null and game.find_child("ShopComparisonNotes",true,false).text.contains("戦闘後に回収する"),"purchase comparison preserves mechanical recovery note")
  await capture("shop-comparison")
  var buyer=shop.selected_owner();var before_gold=int(game.campaign().gold)
  game.find_child("ShopComparisonBuy",true,false).pressed.emit();await settle()

@@ -180,8 +180,9 @@ func journey(parent):
 	if phase=="road":
 		l(parent,"%d区間目の道" % (int(journey_.get("stage",0))+1),true)
 		var choices=row(parent);choices.name="RouteChoices"
-		for route in [["short","峠の近道",2],["safe","川沿いの道",4]]:
-			var choose=b(choices,route[1]+"\n移動 %d時間" % route[2],ui.forecast_action.bind(route[0],"travel",[route[0]]));choose.custom_minimum_size=Vector2(260,80)
+		var encounter_stage=0 if journey_.get("returning",false) else int(journey_.get("stage",0))
+		for route in [["short","峠の近道",2,3 if encounter_stage==0 else 4],["safe","川沿いの道",4,2 if encounter_stage==0 else 3]]:
+			var choose=b(choices,route[1]+"\n移動 %d時間 / 敵%d人" % [route[2],route[3]],ui.forecast_action.bind(route[0],"travel",[route[0]]));choose.name="RouteChoice_"+route[0];choose.custom_minimum_size=Vector2(260,80)
 	if phase=="camp":
 		b(parent,"インベントリ",ui.navigate.bind("character"))
 func party(parent):

@@ -38,8 +38,13 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 	var comparison=RichTextLabel.new();comparison.name="ShopComparisonStats";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.scroll_active=false;comparison.add_theme_font_size_override("normal_font_size",16);comparison.add_theme_color_override("default_color",Color("#29332f"));comparison.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(comparison);comparison.text="比較を読み込み中…"
 	skill_rows=VBoxContainer.new();skill_rows.name="ShopComparisonSkills";body.add_child(skill_rows)
 	var conditions=ui.label_(body,"");conditions.name="ShopComparisonConditions";conditions.add_theme_font_size_override("font_size",14)
-	if not str(gear.get("flavor","")).is_empty():
-		var flavor=ui.label_(body,str(gear.flavor));flavor.add_theme_font_size_override("font_size",14)
+	# Mechanics in the original equipment note must remain visible at purchase.
+	var note=str(gear.get("note","")).strip_edges()
+	var flavor=str(gear.get("flavor","")).strip_edges()
+	if not flavor.is_empty() and not note.contains(flavor):
+		var description=ui.label_(body,flavor);description.name="ShopComparisonFlavor";description.add_theme_font_size_override("font_size",16)
+	if not note.is_empty():
+		var memo=ui.label_(body,note);memo.name="ShopComparisonNotes";memo.add_theme_font_size_override("font_size",16)
 	var money=ui.label_(body,"費用を確認中…");money.name="ShopComparisonPayment"
 	var trial=ui.button(body,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;trial.add_theme_font_size_override("font_size",14)
 	var buy=ui.primary(ui.button(actions,"取引を確認",purchase,true));buy.name="ShopComparisonBuy";buy.custom_minimum_size.y=40;buy.size_flags_horizontal=Control.SIZE_SHRINK_END

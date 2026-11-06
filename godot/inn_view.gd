@@ -26,27 +26,18 @@ func render(parent):
  var surface=HBoxContainer.new();surface.name="InnService";surface.custom_minimum_size.y=584;surface.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;surface.add_theme_constant_override("separation",24);parent.add_child(surface)
  var panel=PanelContainer.new();panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;surface.add_child(panel)
  var content=VBoxContainer.new();content.add_theme_constant_override("separation",16);panel.add_child(content)
+ var q: Dictionary=pages.c().get("inn",{})
+ var keeper=VBoxContainer.new();keeper.name="InnKeeperColumn";keeper.custom_minimum_size.x=280;keeper.add_theme_constant_override("separation",8);surface.add_child(keeper)
+ var words=dialogue if not dialogue.is_empty() else FULL_GREETING if not q.get("needsRecovery",false) else pages.facility_entry.greeting_text()
+ var speech=pages.facility_entry.make_speech(words,"normal");speech.name="InnKeeperSpeech";speech.custom_minimum_size=Vector2(280,144);speech.set_speaker_visible(false);keeper.add_child(speech)
  var npc=pages.facility_art.npc
  if npc.texture!=null:
-  var image=TextureRect.new();image.name="InnKeeper";image.texture=npc.texture;image.custom_minimum_size=Vector2(280,584);image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;surface.add_child(image)
+  var image=TextureRect.new();image.name="InnKeeper";image.texture=npc.texture;image.custom_minimum_size=Vector2(280,432);image.size_flags_vertical=Control.SIZE_EXPAND_FILL;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;keeper.add_child(image)
  parent=content
- var shown=pages.facility_entry.render_dialogue(dialogue)
- var q: Dictionary=pages.c().get("inn",{})
- var heading_parent=parent
- var compact_header=not shown and ui.size.y<720
- var header=pages.row(parent) if compact_header else parent
- if compact_header:
-  heading_parent=VBoxContainer.new();heading_parent.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.add_child(heading_parent)
- ui.icons.line(ui,heading_parent,"inn","宿屋",true)
- if not q.get("available",false):pages.l(heading_parent,"宿屋はアスタリスで利用できます。");return
- if q.get("needsRecovery",false):pages.l(heading_parent,"パーティ全員で%dG" % q.price)
- var recovery_hint=pages.muted(heading_parent,"編成中の全員のHP・MPを全回復。控えは対象外、時間は経過しません。");recovery_hint.add_theme_font_size_override("font_size",16);recovery_hint.add_theme_color_override("font_color",Color("#747d75"))
- if not shown:
-  var speech=pages.facility_entry.make_speech(dialogue if not dialogue.is_empty() else pages.facility_entry.greeting_text(),"normal")
-  pages.facility_entry.fit_inline_speech(speech)
-  if compact_header:speech.custom_minimum_size.y=140
-  header.add_child(speech)
-
+ ui.icons.line(ui,parent,"inn","宿屋",true)
+ if not q.get("available",false):pages.l(parent,"宿屋はアスタリスで利用できます。");return
+ if q.get("needsRecovery",false):pages.l(parent,"パーティ全員で%dG" % q.price)
+ var recovery_hint=pages.muted(parent,"編成中の全員のHP・MPを全回復。控えは対象外、時間は経過しません。");recovery_hint.add_theme_font_size_override("font_size",16);recovery_hint.add_theme_color_override("font_color",Color("#747d75"))
  cards(parent)
  if not q.get("needsRecovery",false):
   var status=pages.l(parent,"宿泊完了。全員のHP・MPが回復しました。" if not healing_party.is_empty() else "全員が全回復しています。料金はかかりません。")
