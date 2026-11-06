@@ -7,6 +7,9 @@ func consent(yes: bool):
 func battle_fixture():
 	var output=[];OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/inventory_battle_fixtures.cjs")]),output,true,false)
 	return JSON.parse_string("".join(output))
+func product_price(product):
+	var prices=product.find_children("*","Label",true,false).filter(func(label):return label.text.ends_with("G") and label.text.trim_suffix("G").is_valid_int())
+	return prices[0] if prices.size()==1 else null
 func run():
 	create_timer(85).timeout.connect(func():print("FAIL feedback2 watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
@@ -46,24 +49,28 @@ func run():
 	check((await saved()).state.characters.guard.inventory.potion==2,"S4 discard YES removes exactly one")
 	game.dialog.close();await settle();game.navigate("map");await settle()
 	var map=node("TownMap")
-	check(map.buttons[map.current].get_theme_stylebox("normal").bg_color==Color("#243c58"),"S5 current location is blue")
-	check(map.buttons[map.selected].get_theme_stylebox("normal").bg_color==Color("#236044"),"S5 selected destination is green")
-	check(map.buttons.values().filter(func(b):return b.text.contains("目的地") or b.text.contains("現在地")).is_empty(),"S5 map uses color without redundant location labels")
-	check(map.buttons.values().filter(func(b):return b.name not in ["Town_"+map.current,"Town_"+map.selected]).all(func(b):return b.get_theme_stylebox("normal").bg_color==Color("#41464e")),"S5 all other towns gray")
+	check(map.buttons[map.current].disabled and map.buttons[map.current].get_theme_stylebox("disabled").bg_color==Color("#345c4e"),"S5 current location uses dark paper-palette fill and cannot be selected")
+	check(map.buttons[map.selected].get_theme_stylebox("normal").border_color==Color("#37758a") and map.buttons[map.selected].get_theme_stylebox("normal").border_width_left==3,"S5 selected destination has distinct thick teal frame")
+	check(map.buttons[map.current].get_node("TownContents").get_child(2).text=="出発地" and map.buttons[map.selected].get_node("TownContents").get_child(2).text=="目的地","S5 map state labels distinguish origin and destination")
+	check(map.buttons.keys().filter(func(id):return id not in [map.current,map.selected,map.quest_destination]).all(func(id):return map.buttons[id].get_theme_stylebox("normal").bg_color==(Color("#e4eee0") if map.available.has(id) else Color("#d4d8d0")) and map.buttons[id].disabled==not map.available.has(id)),"S5 reachable and unavailable towns use distinct paper colors and availability")
 	check(node("DepartButton").size.x<600 and node("DepartButton").get_theme_stylebox("normal").bg_color==Color("#236044"),"S5 departure button narrow and green")
 	seed.state.location="west";await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle()
-	check(game.resource_header.visible and game.gold_header.is_visible_in_tree(),"S7 shop gold uses common upper-right header")
-	check(node("ShopSlotFilter").get_item_text(0)=="商品リスト（すべて）","S7 product heading retains filter (feedback3 layout)")
+	var header=node("CampaignHeader");var gold_labels=header.find_children("*","Label",true,false).filter(func(label):return label.text==str(int(game.campaign().gold))+" G")
+	check(header.is_visible_in_tree() and gold_labels.size()==1 and gold_labels[0].is_visible_in_tree() and gold_labels[0].global_position.x>root.size.x/2,"S7 shop gold uses visible common upper-right campaign header")
+	check(node("ShopCatalog").is_ancestor_of(node("ShopSlotFilter")) and node("ShopSlotFilter").get_item_text(0)=="すべて" and node("ShopSlotFilter").get_item_metadata(0)=="all","S7 catalog retains all-products filter")
 	check(game.find_children("ProductSummary_*","Label",true,false).is_empty(),"S6 no permanent performance descriptions")
-	var product=node("Product_swift-boots");var price=node("ProductPrice_swift-boots")
+	var product=node("Product_swift-boots");var price=product_price(product)
 	check(product.is_ancestor_of(price) and product.get_global_rect().encloses(price.get_global_rect()),"S6 price inside product right edge")
-	check(product.tooltip_text.contains("俊足"),"S6 performance available on hover")
+	check(product.tooltip_text.contains("俊足"),"S6 product identity available on hover")
+	before=await saved();await click("Product_swift-boots")
+	check(node("ShopComparisonStats")!=null and not node("ShopComparisonStats").text.is_empty() and not game.modal_open() and await saved()==before,"S6 selecting product exposes inline performance without changing save")
 	check(not game.find_children("*","Label",true,false).any(func(label):return label.text.contains("購入した品は")),"S6 redundant recipient instruction removed")
 	var original_shop=game.data.campaign.shop.duplicate(true)
 	for item in game.data.campaign.shop:item.name="長い商品名の折り返し確認".repeat(16)
 	game.render();await settle()
-	product=node("Product_swift-boots");price=node("ProductPrice_swift-boots")
-	check(product.get_global_rect().encloses(price.get_global_rect()) and product.size.y>80,"S6 long product names wrap without displacing price")
+	product=node("Product_swift-boots");price=product_price(product)
+	var title=product.find_children("*","Label",true,false).filter(func(label):return label!=price)[0]
+	check(product.get_global_rect().encloses(price.get_global_rect()) and title.clip_text and title.autowrap_mode==TextServer.AUTOWRAP_OFF and product.tooltip_text=="長い商品名の折り返し確認".repeat(16) and title.get_global_rect().end.x<=price.global_position.x and product.size.y<=80,"S6 long product name clips within row, retains full tooltip, and never displaces price")
 	game.data.campaign.shop=original_shop
 	var fixture=battle_fixture();await game.update({"op":"campaign_load","data":fixture.guard});await settle()
 	var hud=game.hud;hud.open_items();await settle()

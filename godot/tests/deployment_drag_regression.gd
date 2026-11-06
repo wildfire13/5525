@@ -27,12 +27,13 @@ func drop(uid: String,source: String,cell):
 	check(await saved()==unchanged and drops.size()==count+1,"same consumed payload cannot dispatch twice")
 func layout(label: String):
 	var formation=game.hud.deployment_bar;var actions=game.hud.deployment_actions;var begin=node("DeploymentBegin")
-	check(absf(formation.get_global_rect().end.y-begin.get_global_rect().end.y)<2,label+" formation and start bottom aligned")
-	check(node("BattleDetails")==null and node("DeploymentCameraHint").get_parent()==game.hud.right_panel.footer,label+" prep details hidden and camera help below enemy info")
+	var field=game.board.get_global_rect()
+	check(formation.get_global_rect().end.y<=field.position.y and begin.get_global_rect().position.y>=field.end.y,label+" formation above board and start below board remain separate")
+	check(node("BattleDetails")==null and game.hud.right_panel.footer.find_children("*","Label",true,false).any(func(hint):return hint.text.contains("右ドラッグ") and hint.text.contains("中ドラッグ") and hint.text.contains("ホイール")),label+" prep details hidden and camera help below enemy info")
 	var rows=[]
 	for control in [formation,actions]:
 		check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(control.get_global_rect()),label+" footer inside viewport "+str(control.name))
-		for panel in [game.hud.left_panel,game.hud.right_panel]:check(not panel.get_global_rect().intersection(control.get_global_rect()).has_area(),label+" information panels cannot obscure pinned footer")
+		for panel in [game.hud.left_panel,game.hud.right_panel]:check(not panel.visible or not panel.get_global_rect().intersection(control.get_global_rect()).has_area(),label+" visible information panels cannot obscure pinned controls")
 		rows.append({"control":str(control.name),"rect":str(control.get_global_rect())})
 	for cell in range(50):
 		if cell%10>=5:continue

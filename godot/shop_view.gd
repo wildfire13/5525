@@ -86,6 +86,7 @@ func sync_sale_owner_from_status(uid: String) -> bool:
 	if party.committing or party.leave_pending or party.inventory_view.stage in ["confirm","pending","unknown"]:return false
 	for window in ui.find_children("*","Window",true,false):
 		if window!=status and window.visible and window.exclusive:return false
+	ui.shop_uid=uid
 	if sale.owner_id!=uid:sale.apply_owner(uid)
 	return true
 func render(parent):

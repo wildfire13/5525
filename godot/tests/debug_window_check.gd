@@ -19,9 +19,12 @@ func run():
   check(node("OpenDeveloperWindow")==null,"release has no opening action")
   game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1);return
  for dims in [Vector2i(1920,1080)]:
-  root.size=dims;await settle();var baseline=node("PartyFacesScroll").get_parent().global_position.y
+  root.size=dims;await settle();var baseline=node("CampaignWorkspace").get_global_rect()
   if DisplayServer.get_name()!="headless":
-   await os_click(node("CommonMenuButton"))
+   var menu_buttons=node("CampaignHeader").find_children("*","Button",true,false).filter(func(button):return button.text=="メニュー")
+   check(menu_buttons.size()==1,"current campaign header exposes one menu action")
+   if menu_buttons.is_empty():break
+   await os_click(menu_buttons[0])
    if dims.y<700:
     for i in range(5):await os_mouse(game.menu.get_global_rect().get_center(),"wheel_down")
    await os_click(node("OpenDeveloperWindow"))
@@ -33,7 +36,7 @@ func run():
   check(window.force_native and not window.exclusive and not window.transient,"independent nonmodal window requested")
   if DisplayServer.get_name()!="headless":check(not window.is_embedded() and window.get_window_id()!=root.get_window_id(),"separate real OS window ID")
   check(not game.modal_open(),"debug window does not lock game as modal")
-  check(node("PartyFacesScroll").get_parent().global_position.y==baseline,"opening debug does not move party")
+  check(node("CampaignWorkspace").get_global_rect()==baseline,"opening debug does not move or resize campaign workspace")
   game.locked=true;game.presenting=true;game.render();debug.refresh_state();await frames()
   check(not game.footer.text.contains("処理中") and not game.footer.text.contains("演出中"),"internal states absent from player footer")
   check(debug.status.text.contains("処理待ち: ON") and debug.status.text.contains("演出: ON"),"internal state visible in developer window")
@@ -49,7 +52,7 @@ func run():
   else:window.close_requested.emit()
   debug.open();await settle();window.close_requested.emit();await settle()
   check(not window.visible and not game.closing and not game.engine.closing,"OS close request keeps game alive")
-  check(node("PartyFacesScroll").get_parent().global_position.y==baseline,"closing debug keeps party position")
+  check(node("CampaignWorkspace").get_global_rect()==baseline,"closing debug keeps campaign workspace geometry")
   if DisplayServer.get_name()!="headless":await snapshot("game-"+str(dims.x))
  debug.clear_history()
  for i in range(250):debug.request_finished(false,i%2==0,i)

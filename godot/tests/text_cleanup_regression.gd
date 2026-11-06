@@ -14,10 +14,14 @@ func run():
   await game.update({"op":"campaign_load","data":injured});await enter_facility("inn");await settle()
   check(labels().has("パーティ全員で%dG" % game.campaign().inn.price) and not labels().any(func(s):return s.contains("仮料金")),"injured party retains exact price "+str(dims))
   game.page="map";game.render();await settle()
-  check(labels().any(func(s):return s.contains("未受注でも戦闘・消耗あり")),"map risk remains visible "+str(dims))
-  await click("MapLegend")
-  check(labels().any(func(s):return s.contains("各移動は二つの区間を通ります。") and s.contains("上で縮小、下で拡大")),"map legend retains travel count and zoom instructions "+str(dims))
-  game.dialog.close();await settle()
+  # B puts time and actions first and deliberately removes undisclosed encounters.
+  var chart=node("TownMap");var map_before=await saved()
+  check(labels().has("最短の到着見込 6時間") and chart.event_markers.is_empty(),"approved map shows travel time without inventing encounter information "+str(dims))
+  var wheel=InputEventMouseButton.new();wheel.pressed=true;wheel.button_index=MOUSE_BUTTON_WHEEL_UP;wheel.position=chart.size/2
+  chart._gui_input(wheel);check(chart.zoom<1.0,"map wheel up zooms out "+str(dims))
+  wheel.button_index=MOUSE_BUTTON_WHEEL_DOWN;chart._gui_input(wheel);check(is_equal_approx(chart.zoom,1.0),"map wheel down reverses zoom "+str(dims))
+  chart.pan=Vector2(45,30);chart.zoom=1.5;chart.layout();await click("MapFit")
+  check(is_equal_approx(chart.zoom,1.0) and chart.pan==Vector2.ZERO and await saved()==map_before,"visible full-map action resets view without changing campaign "+str(dims))
  var master=JSON.parse_string(FileAccess.get_file_as_string("res://../native/data/master-source.json"))
  var gear=master.gear.filter(func(g):return g.id=="greatsword-wood")[0]
  var entry={"kind":"equipment","name":gear.name,"count":1,"definition":gear}

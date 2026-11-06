@@ -11,23 +11,27 @@ func run():
   for spec in [["east","shop"],["west","shop"],["south","shop"],["north","shop"],["astaris","party"],["astaris","inn"]]:
    var fixture=seed.duplicate(true);fixture.state.location=spec[0]
    await game.update({"op":"campaign_load","data":fixture});game.navigate(spec[1]);await settle()
-   var npc=node("FacilityNpc");var bubble=node("FacilityGreeting")
+   var npc=node("FacilityNpc");var bubble=node("FacilityEntrySpeech")
    check(npc!=null and bubble!=null,"portrait and speech present "+str(spec)+str(dims))
-   check(bubble.get_global_rect().end.y<npc.get_global_rect().position.y,"entire NPC texture starts below speech including tail "+str(spec)+str(dims))
+   check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(bubble.get_global_rect()) and not bubble.speaker_visible and (bubble.get_global_rect().get_center()-Vector2(root.size)*.5).length()<2,"entry speech stays centered within viewport without detached tail "+str(spec)+str(dims))
    check(bubble.mouse_filter==Control.MOUSE_FILTER_IGNORE and bubble.get_node("SpeechArtwork").mouse_filter==Control.MOUSE_FILTER_IGNORE,"speech never intercepts facility controls")
    var before=await saved();var rng=game.pages.facility_art.npc.rng.state
    for kind in ["normal","thought","shout"]:
     var text="これは文字送りと読みやすさを確認するための台詞です。"
-    entry.render_dialogue(text,kind);var time=entry.speech_started;var current=node("FacilityGreeting")
+    var current=entry.make_speech(text,kind);root.add_child(current);current.size=Vector2(640,190);var time=entry.speech_started
     check(current.speech_kind==kind and current.get_node("SpeechArtwork").texture is AtlasTexture,"distinct graphic region "+kind)
     check(current.words.visible_characters<text.length(),"fresh speech begins partially revealed "+kind)
     await create_timer(.12).timeout
-    entry.render_dialogue(text,kind);current=node("FacilityGreeting")
+    current.queue_free();await process_frame;current=entry.make_speech(text,kind);root.add_child(current);current.size=Vector2(640,190)
     check(entry.speech_started==time and current.words.visible_characters>0,"same speech rerender preserves reveal clock "+kind)
     current.started_usec=Time.get_ticks_usec()-10000000;current._process(0)
     check(current.words.visible_characters==text.length() and not current.is_processing(),"completed speech stops processing "+kind)
     check(current.get_global_rect().encloses(current.words.get_global_rect()),"text inside graphic bounds "+kind)
+    current.queue_free();await process_frame
    check(await saved()==before and game.pages.facility_art.npc.rng.state==rng,"speech and redraw preserve exact save and NPC random stream")
+   await enter_facility(spec[1]);await settle()
+   check(node("FacilityEntrySpeech")==null and node("FacilityGreeting")==null,"service workspace has no detached speech "+str(spec))
+   check(await saved()==before and game.pages.facility_art.npc.rng.state==rng,"service entry preserves exact save and NPC random stream")
  root.size=Vector2i(1920,1080);await settle();game.navigate("hub");game.navigate("inn");await settle()
  var prior=entry.speech_started;game.navigate("hub");await create_timer(.02).timeout;game.navigate("inn");await settle()
  check(entry.speech_started>prior,"new visit restarts dialogue")
