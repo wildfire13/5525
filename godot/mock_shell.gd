@@ -4,9 +4,17 @@ var ui
 const INK=Color("#29332f")
 const PAPER=Color("#faf9f5")
 const GREEN=Color("#345c4e")
+const SURFACE_ALPHA=0.90
+const NESTED_SURFACE_ALPHA=0.12
 func _init(frontend):ui=frontend
-func style(fill: Color=PAPER) -> StyleBoxFlat:
+static func style(fill: Color=PAPER) -> StyleBoxFlat:
 	var s=StyleBoxFlat.new();s.bg_color=fill;s.border_color=Color("#cbd0c8");s.set_border_width_all(1);s.set_corner_radius_all(3);s.set_content_margin_all(8);return s
+## Apply transparency to the painted surface only, never to text or child controls.
+## A nested card lightly separates content without making the outer window opaque.
+static func surface_style(fill: Color=PAPER,nested:=false) -> StyleBoxFlat:
+	var surface=style(fill)
+	surface.bg_color.a=NESTED_SURFACE_ALPHA if nested else SURFACE_ALPHA
+	return surface
 func content_height() -> float:
 	return maxf(584,ui.size.y-148)
 func apply_theme():
@@ -16,20 +24,20 @@ func apply_theme():
 		ui.theme.set_color("font_disabled_color",kind,Color("#929b93"))
 	for kind in ["Button","OptionButton"]:
 		for state in ["normal","hover","pressed","disabled"]:ui.theme.set_stylebox(state,kind,style(Color("#e0e8dd") if state in ["hover","pressed"] else PAPER))
-	ui.theme.set_stylebox("panel","PanelContainer",style())
+	ui.theme.set_stylebox("panel","PanelContainer",surface_style())
 	for key in ["normal","focus","read_only"]:ui.theme.set_stylebox(key,"LineEdit",style())
 	for key in ["embedded_border","embedded_unfocused_border"]:
-		var frame=style(GREEN);frame.expand_margin_top=32
+		var frame=surface_style(GREEN);frame.expand_margin_top=32
 		ui.theme.set_stylebox(key,"Window",frame)
 	ui.theme.set_constant("title_height","Window",32)
 	ui.theme.set_color("title_color","Window",PAPER)
-	ui.theme.set_stylebox("panel","TabContainer",style())
+	ui.theme.set_stylebox("panel","TabContainer",surface_style(PAPER,true))
 	for state in ["tab_selected","tab_unselected","tab_hovered","tab_disabled"]:
 		ui.theme.set_stylebox(state,"TabContainer",style(Color("#e0e8dd") if state=="tab_selected" else PAPER))
 	for key in ["font_selected_color","font_unselected_color","font_hovered_color","font_focus_color"]:ui.theme.set_color(key,"TabContainer",INK)
-	ui.menu.add_theme_stylebox_override("panel",style())
+	ui.menu.add_theme_stylebox_override("panel",surface_style())
 func navigation(parent):
-	var panel=PanelContainer.new();panel.add_theme_stylebox_override("panel",style());parent.add_child(panel)
+	var panel=PanelContainer.new();panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
 	var bar=ui.row(panel);bar.name="CampaignHeader";bar.custom_minimum_size.y=56
 	var brand=ui.label_(bar,"5525",true);brand.size_flags_horizontal=Control.SIZE_FILL;brand.custom_minimum_size.x=160
 	for pair in [["hub","ローカルマップ"],["character","パーティ情報"],["board","クエスト"],["map","ワールドマップ"]]:
@@ -47,7 +55,7 @@ func workspace(parent) -> VBoxContainer:
 		roster(row)
 	var body=VBoxContainer.new();body.name="CampaignBody";body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.size_flags_vertical=Control.SIZE_EXPAND_FILL;row.add_child(body);return body
 func roster(parent):
-	var panel=PanelContainer.new();panel.name="PartyRoster";panel.custom_minimum_size=Vector2(280,content_height());panel.size_flags_horizontal=Control.SIZE_FILL;panel.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;panel.add_theme_stylebox_override("panel",style());parent.add_child(panel)
+	var panel=PanelContainer.new();panel.name="PartyRoster";panel.custom_minimum_size=Vector2(280,content_height());panel.size_flags_horizontal=Control.SIZE_FILL;panel.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
 	var body=VBoxContainer.new();panel.add_child(body)
 	var ids=ui.campaign().get("selected",[])
 	ui.label_(body,"パーティメンバー     %d / %d" % [ids.size(),ui.campaign().get("partyLimit",12)])

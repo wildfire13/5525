@@ -22,7 +22,7 @@ var applied_bounds := Rect2()
 func configure(prefs,key: String,title: String,fallback: Rect2):
 	preferences=prefs;layout_key=key;name=key
 	mouse_filter=Control.MOUSE_FILTER_STOP
-	var style=StyleBoxFlat.new();style.bg_color=Color("#faf9f5");style.border_color=Color("#cbd0c8");style.set_border_width_all(1);style.set_corner_radius_all(3);style.set_content_margin_all(12);add_theme_stylebox_override("panel",style)
+	var style=preload("res://mock_shell.gd").surface_style();style.set_content_margin_all(12);add_theme_stylebox_override("panel",style)
 	var box=VBoxContainer.new();add_child(box)
 	var header=Label.new();header.name="DragHandle";header.text=title+"  ⋮";header.custom_minimum_size.y=36;header.add_theme_color_override("font_color",Color("#29332f"));header.add_theme_font_size_override("font_size",20);header.mouse_filter=Control.MOUSE_FILTER_STOP;header.mouse_default_cursor_shape=Control.CURSOR_MOVE;box.add_child(header)
 	header.gui_input.connect(func(event):handle(event,true))
