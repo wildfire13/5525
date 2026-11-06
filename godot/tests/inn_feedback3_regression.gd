@@ -34,8 +34,10 @@ func run():
  check(starts.all(func(t):return t==inn.recovery_started),"all portrait healing graphics share one commit timestamp")
  check(inn.progress()<1.0 and node("InnHP_guard").get_meta("recovering",false),"committed HP count-up is independent of stats")
  check(not node("InnMP_guard").get_meta("recovering",false),"already full MP has no recovery animation")
- await create_timer(1.4).timeout;await frames();check(node("InnHP_guard").text=="HP 180/180","HP count-up ends exactly at canonical maximum")
+ await create_timer(1.4).timeout;await frames();check(node("InnHP_guard").text=="HP 180 → 180","HP count-up ends exactly at canonical maximum")
  check(game.find_children("InnHeal_*","Control",true,false).is_empty(),"healing graphics clean up after count-up")
+ check(node("InnStay").disabled,"fully recovered party cannot activate a paid stay from the UI")
+ # Retained programmatic no-op remains safe even when the live button is disabled.
  before=await saved();inn.stay();await settle();check(await saved()==before and consent()==null,"full recovery click is free with no confirmation")
  check(node("InnRecoveryStatus").text.contains("料金はかかりません"),"full-health free action explicitly reports no fee")
  check(inn.dialogue==inn.FULL_GREETING and inn.recovered.is_empty() and inn.healing_party.is_empty() and inn.recovery_started==0,"full recovery uses dedicated dialogue without recovery effect")
@@ -52,8 +54,13 @@ func run():
   check(grid.get_child_count()==12 and grid.get_child(11).position.x+grid.get_child(11).size.x<=grid.size.x+1,str(dims)+" twelfth real member stays within horizontal grid bounds")
  var eleven=await saved()
  for uid in eleven.state.selected:eleven.state.characters[uid].hp=1;eleven.state.characters[uid].mp=0
- await reload_inn(eleven);inn.stay();await settle();consent().confirmed.emit();await settle()
- check(int(game.campaign().gold)==int(eleven.state.gold)-30 and inn.recovered.size()==12 and game.find_children("InnHeal_*","Control",true,false).size()==12,"twelve injured members heal in one canonical payment")
+ await reload_inn(eleven);inn.stay();await settle()
+ # Observe creation rather than requiring a 1.2-second effect to survive slow CI.
+ var effect_members={}
+ var collect_effect=func(created):
+  if str(created.name).begins_with("InnHeal_"):effect_members[str(created.name).trim_prefix("InnHeal_")]=true
+ node_added.connect(collect_effect);consent().confirmed.emit();await settle();node_added.disconnect(collect_effect)
+ check(int(game.campaign().gold)==int(eleven.state.gold)-30 and inn.recovered.size()==12 and effect_members.size()==12 and all_ids.all(func(uid):return effect_members.has(uid)),"twelve injured members each create healing effects in one canonical payment")
  for u in game.roster().filter(func(member):return all_ids.has(member.id)):check(int(u.hp)==int(u.max) and int(u.mp)==int(u.maxMp),"twelve-member simultaneous HP and MP recovery "+str(u.id))
  await reload_inn(seed);inn.stay();await settle();var token=game.campaign().inventoryToken;var epoch=game.pages.epoch;var connection=game.engine.connection_generation;var sequence=inn.sequence
  consent().canceled.emit();game.navigate("hub");await settle();before=await saved();await inn.commit(token,epoch,connection,sequence);check(await saved()==before,"stale confirmation after departure cannot charge")

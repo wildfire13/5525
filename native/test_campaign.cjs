@@ -61,18 +61,18 @@ test('boards expose real deadline/reward tradeoff and refresh after trip',()=>{
   assert.equal(acceptWithPorter(s,offers[0].id),true);assert.deepEqual(C.board(s),[]);assert.equal(acceptWithPorter(s,offers[1].id),false);assert.equal(C.depart(s,offers[1].to),true);
 });
 test('public-operation delivery accumulates separate battle loot/XP, cannot double claim',()=>{
-  const s=require('./test-current-fixture.cjs')();trip(s,'east',{rest:false});assert.equal(s.result.outcome,'success');assert.equal(s.result.gold,180);assert.equal(s.gold,180+16+180);assert.equal(s.characters.guard.xp,40+100);assert.equal(s.xp,0);
+  const s=require('./test-current-fixture.cjs')();trip(s,'east',{rest:false});assert.equal(s.result.outcome,'success');assert.equal(s.result.gold,180);assert.equal(s.gold,180+16+180);assert.equal(s.characters.guard.xp,40);assert.equal(s.partyRP,100);assert.equal(s.xp,0);
   assert.equal(C.arrive(s),false);assert.equal(C.finishBattle(s),false);assert.equal(s.completed,1);assert.equal(C.acknowledge(s),true);assert.equal(C.acknowledge(s),false);assert.ok(C.board(s).length);okay(s);
 });
 test('completed quest retains loot and gear while KO members remain down away from Astaris',()=>{
   const s=require('./test-current-fixture.cjs')(),reserves=Object.keys(s.characters).filter(id=>id.startsWith('recruit-')).slice(0,7);assert(C.select(s,[...s.selected,...reserves]));s.characters.mage.inventory.potion=1;s.characters.archer.inventory.potion=1;trip(s,'east');assert.equal(C.acknowledge(s),true);const oldGold=s.gold;assert.equal(C.buyGear(s,'archer','bow-wood-1'),true);assert.equal(s.gold,oldGold-140);assert.equal(s.characters.archer.inventory['bow-wood'],1);
-  assert.ok(s.selected.some(id=>s.characters[id].hp===0),'fallen characters stay KO after travel; only Astaris inn can restore them');assert.equal(C.view(s).inn.available,false);assert.ok(C.board(s).length);assert.ok(s.characters.guard.xp>=100);assert.equal(s.xp,0);assert.equal(s.characters.archer.weapon,'bow-wood-1');okay(s);
+  assert.ok(s.selected.some(id=>s.characters[id].hp===0),'fallen characters stay KO after travel; only Astaris inn can restore them');assert.equal(C.view(s).inn.available,false);assert.ok(C.board(s).length);assert.equal(s.characters.guard.xp,40);assert.equal(s.partyRP,60);assert.equal(s.xp,0);assert.equal(s.characters.archer.weapon,'bow-wood-1');okay(s);
 });
 test('questless travel grants normal fight rewards but no delivery bonus',()=>{
   const s=require('./test-current-fixture.cjs')(),start=s.gold;trip(s,'south',{quest:false,route:'safe'});assert.equal(s.result.outcome,'travel');assert.equal(s.result.gold,0);assert.equal(s.result.xp,0);assert.equal(s.gold,start+16);assert.equal(s.characters.guard.xp,40);assert.equal(s.xp,0);assert.equal(s.completed,0);assert.equal(s.location,'south');
 });
 test('six-hour deadline is on time, rest produces late payout',()=>{
-  const s=require('./test-current-fixture.cjs')();trip(s,'east',{rest:true});assert.equal(s.result.hours,8);assert.equal(s.result.outcome,'late');assert.equal(s.result.gold,117);assert.equal(s.result.xp,60);
+  const s=require('./test-current-fixture.cjs')();trip(s,'east',{rest:true});assert.equal(s.result.hours,8);assert.equal(s.result.outcome,'late');assert.equal(s.result.gold,117);assert.equal(s.result.xp,0);assert.equal(s.result.rp,60);
 });
 test('forecast handles quest and questless without fake reward',()=>{
   const s=require('./test-current-fixture.cjs')();assert.equal(C.forecast(s,'short'),null);acceptWithPorter(s,C.board(s)[0].id);C.depart(s,'east');assert.equal(C.forecast(s,'short').hours,6);assert.equal(C.forecast(s,'short').late,false);assert.equal(C.forecast(s,'safe').late,true);
@@ -130,7 +130,7 @@ test('trial heal hits injured ally and consumes only trial MP',()=>{
   const s=town('east'),before=C.serialize(s),t=C.trial(s,'mage','staff-wood');assert.ok(t);assert.equal(C.trialAct(t,'skill','archer'),true);assert.ok(t.lastAction.changes.some(c=>c.id==='archer'&&c.hp>0));assert.equal(C.serialize(s),before);
 });
 test('growth points can wait and later change stats within available budget',()=>{
-  const s=require('./test-current-fixture.cjs')();trip(s,'east',{rest:false});C.acknowledge(s);const c=s.characters.mage;assert.equal(c.statPoints,2);assert.equal(C.allocate(s,'mage','str',2),true);assert.equal(C.stats(c).str,16);assert.equal(c.statPoints,0);assert.equal(c.skillPoints,1);assert.equal(C.allocate(s,'mage','str',1),false);assert.equal(C.allocate(s,'mage','__proto__',1),false);okay(s);
+  const s=require('./test-current-fixture.cjs')();trip(s,'west',{rest:false});C.acknowledge(s);const c=s.characters.mage;assert.equal(c.statPoints,2);assert.equal(C.allocate(s,'mage','str',2),true);assert.equal(C.stats(c).str,16);assert.equal(c.statPoints,0);assert.equal(c.skillPoints,1);assert.equal(C.allocate(s,'mage','str',1),false);assert.equal(C.allocate(s,'mage','__proto__',1),false);okay(s);
 });
 test('JSON export/import restores independent exact current state',()=>{
   const s=require('./test-current-fixture.cjs')();acceptWithPorter(s,C.board(s)[0].id);C.depart(s,'east');C.travel(s,'short',random());C.deploy(s,'guard',0);const copy=C.deserialize(C.serialize(s));assert.deepEqual(copy,clone(s));copy.gold++;assert.notEqual(copy.gold,s.gold);assert.deepEqual(C.deserialize(JSON.parse(C.serialize(s))),clone(s));

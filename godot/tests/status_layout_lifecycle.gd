@@ -1,4 +1,9 @@
 extends "res://tests/ui_feedback2_20261016.gd"
+# Without the retired bottom PartyFaceBar, ui_dialog uses the full UI extent.
+# ui_preferences reserves 36px at the top for the embedded window title bar.
+func status_within_bounds() -> bool:
+	var rect=Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size))
+	return node("PartyFaceBar")==null and Rect2(Vector2(0,36),game.size-Vector2(0,36)).encloses(rect)
 func run():
 	create_timer(75).timeout.connect(func():print("FAIL status lifecycle watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
@@ -19,7 +24,7 @@ func run():
 	var before=await saved();var camera=game.preferences.camera().duplicate(true)
 	# Reproduce saving between tree reconstruction and Container's deferred sort.
 	game.render()
-	print("LAYOUT before remember: faces=",node("PartyFaceBar").get_global_rect()," status=",Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size)))
+	print("LAYOUT before remember: available=",game.size," status=",Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size)))
 	game.dialog.remember()
 	print("LAYOUT after remember: status=",Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size))," stored=",game.preferences.config.get_value("windows","status"))
 	check(game.dialog.window.size.y==600,"same-frame reconstruction cannot crush status height")
@@ -34,21 +39,22 @@ func run():
 			check(game.preferences.config.get_value("windows","status").size.y==600,"same-frame close preserves600 "+page+str(resolution))
 			game.pages.party_view.open_detail("guard");await settle()
 			check(game.dialog.window.size.y==600,"page reopen preserves600 "+page+str(resolution))
-			check(game.dialog.window.position.y+game.dialog.window.size.y<=node("PartyFaceBar").global_position.y-8 and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size))),"stable bounds keep status above portraits and onscreen "+page+str(resolution))
+			check(status_within_bounds(),"stable bounds keep status and title bar onscreen "+page+str(resolution))
 	game.dialog.close();var cases=battle_fixture()
 	await game.update({"op":"campaign_load","data":cases.archer});await settle()
-	game.hud.left_panel.position+=Vector2(25,20);game.hud.left_panel.persist();var battle_rect=game.preferences.config.get_value("windows","battle_actor")
+	game.hud.left_panel.position+=Vector2(25,20);game.hud.left_panel.persist();var battle_rect=game.preferences.config.get_value("windows","battle_actor_b")
+	check(battle_rect is Rect2,"B battle actor panel persists its layout before returning to town")
 	await game.update({"op":"campaign_load","data":before})
 	# Open immediately after the load's render, before the newly built row sorts.
 	game.pages.party_view.open_detail("guard");game.dialog.remember();await settle()
 	check(game.dialog.window.size.y==600,"battle load panel move town load preserves600")
-	check(game.preferences.config.get_value("windows","battle_actor")==battle_rect and game.preferences.camera()==camera,"status lifecycle leaves saved battle panel and camera intact")
+	check(game.preferences.config.get_value("windows","battle_actor_b")==battle_rect and game.preferences.camera()==camera,"status lifecycle leaves saved battle panel and camera intact")
 	game.dialog.window.size=Vector2i(1100,662);game.render();game.dialog.close();game.pages.party_view.open_detail("guard");await settle()
 	check(game.dialog.window.size==Vector2i(1100,662),"manual1100x662 survives immediate render close reopen")
 	game.dialog.window.size=Vector2i(1100,300);game.dialog.close();await settle();game.pages.party_view.open_detail("guard");await settle()
 	check(game.dialog.window.size.y==300,"intentional manual minimum height remains respected")
 	game.dialog.window.size=Vector2i(1100,662);game.dialog.remember();game.dialog.window.position=Vector2i(1850,1000);game.dialog.keep_visible();await settle()
-	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size))) and game.dialog.window.position.y+game.dialog.window.size.y<=node("PartyFaceBar").global_position.y-8,"offscreen status is clamped above portraits at FHD")
+	check(status_within_bounds(),"offscreen status is clamped to full UI bounds with title margin at FHD")
 	check(await saved()==before,"all page load and sizing checks preserve campaign")
 
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

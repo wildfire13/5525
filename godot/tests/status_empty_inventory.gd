@@ -1,4 +1,8 @@
 extends "res://tests/ui_feedback2_20261016.gd"
+# Internal legacy detail-window regression: the B roster navigates to character
+# instead of switching the modal owner. Exercise the retained handler explicitly.
+func switch_detail_owner(uid: String):
+	game.pages.party_view.portrait_pressed(uid);await settle()
 func run():
 	create_timer(70).timeout.connect(func():print("FAIL empty inventory watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
@@ -7,7 +11,7 @@ func run():
 	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle();var before=await saved()
 	game.pages.party_view.open_detail("guard");await settle();game.dialog.window.size=Vector2i(1364,662);await settle()
-	await click("PartyFace_archer")
+	await switch_detail_owner("archer")
 	check(game.pages.party_view.detail_uid=="archer" and game.member_name("archer")=="リノ","Garo to Rino portrait switch reproduces empty inventory")
 	var empty=node("StatusOwnedInventory").find_children("*","Label",true,false).filter(func(l):return l.text=="所持品はありません。")[0]
 	print("EMPTY label=",empty.get_global_rect()," column=",node("StatusOwnedInventory").get_global_rect())
@@ -18,8 +22,13 @@ func run():
 		game.pages.party_view.owned_equipment_view.slot="rightHand";game.pages.party_view.refresh_modal();await settle()
 		empty=node("StatusOwnedInventory").find_children("*","Label",true,false).filter(func(l):return l.text.contains("この枠に装備できる"))[0]
 		check(empty.size.x>=node("StatusOwnedInventory").size.x*.9 and empty.size.y<=100,"filtered empty message spans full column "+str(resolution))
-		await click("PartyFace_guard");check(node("OwnedEquipment_potion")!=null,"nonempty owner still renders item grid "+str(resolution))
-		await click("PartyFace_archer")
+		await switch_detail_owner("guard");check(node("OwnedEquipment_potion")!=null,"nonempty owner still renders item grid "+str(resolution))
+		await switch_detail_owner("archer")
 		check(node("OwnedEquipment_potion")==null and game.pages.party_view.detail_uid=="archer","empty owner never inherits previous items "+str(resolution))
 	check(await saved()==before,"empty inventory and portrait switching preserve entire save")
+	# Separately cover the actual B roster pressed signal and its navigation contract.
+	game.dialog.close();game.navigate("map");await settle()
+	node("RosterMember_archer").pressed.emit();await settle()
+	check(game.page=="character" and game.pages.party_uid=="archer" and not game.modal_open(),"B roster pressed opens character workspace for selected owner")
+	check(await saved()==before,"B roster navigation preserves entire save")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

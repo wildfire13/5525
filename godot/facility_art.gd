@@ -26,6 +26,8 @@ func facility(phase: String,location: String,page: String) -> String:
 		"shop":return {"east":"weapon","west":"armor","south":"item","north":"accessory"}.get(location,"")
 	return ""
 func sync(phase: String,location: String,page: String):
+	# Information tabs do not move the party out of the current facility.
+	if phase=="town" and page in ["character","board","items"] and visit_key.begins_with(location+":"):return
 	var id=facility(phase,location,page)
 	var key=location+":"+id if not id.is_empty() else ""
 	if key==visit_key:return
@@ -44,15 +46,34 @@ func sync(phase: String,location: String,page: String):
 	if variants.is_empty():return
 	var selected=variants[rng.randi_range(0,variants.size()-1)]
 	artwork=selected.entry.duplicate();texture=selected.texture
+func render_background(parent: Control,ui,battle: bool):
+	var c=ui.campaign()
+	if battle or c.get("phase")!="town":
+		if parent.get_child_count()>0:ui.clear(parent)
+		return
+	ui.pages.hub_view.select_art(str(c.get("location","")))
+	var town_art=ui.pages.hub_view.artwork
+	var town_texture=load(town_art.path) if not town_art.is_empty() else null
+	fullscreen(parent,town_texture)
 func fullscreen(parent: Control,town_texture: Texture2D=null):
 	var selected=texture if texture!=null else town_texture
-	if selected==null:return
-	var image=TextureRect.new();image.name="FacilityStill" if texture!=null else "TownStill";image.texture=selected
-	image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	image.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var shade=ColorRect.new();shade.name="FacilityReadabilityShade";shade.color=Color(.025,.04,.06,.44)
-	shade.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	npc.portrait_layer(parent)
+	if selected==null:
+		for child in parent.get_children():
+			parent.remove_child(child);child.queue_free()
+		return
+	# Reuse the same background nodes across tab/selection redraws.
+	var image=parent.get_node_or_null("FacilityStill")
+	if image==null:image=parent.get_node_or_null("TownStill")
+	if image==null:
+		image=TextureRect.new();image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		image.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	image.name="FacilityStill" if texture!=null else "TownStill"
+	if image.texture!=selected:image.texture=selected
+	var shade=parent.get_node_or_null("FacilityReadabilityShade")
+	if shade==null:
+		shade=ColorRect.new();shade.name="FacilityReadabilityShade";shade.color=Color(.025,.04,.06,.12)
+		shade.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# NPC portraits are positioned by the facility entry or service view.
 func backdrop(parent: Control) -> Control:
 	var foreground=VBoxContainer.new();foreground.name="FacilityForeground";foreground.mouse_filter=Control.MOUSE_FILTER_PASS;foreground.size_flags_vertical=Control.SIZE_EXPAND_FILL;parent.add_child(foreground)
-	return npc.columns(foreground,parent.get_viewport_rect().size.x)
+	return foreground

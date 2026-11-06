@@ -6,6 +6,7 @@ var party_uid := ""
 var gear_id := ""
 var epoch := 0
 var quote_generation := 0
+var travel_map_expanded := false
 var quote_pending := false
 var quote_stamp := ""
 var trial_return: Dictionary={}
@@ -109,32 +110,39 @@ func select_destination(id: String):
 	ui.destination=id;ui.render()
 	chart=ui.find_child("TownMap",true,false)
 	if is_instance_valid(chart):chart.zoom=view_zoom;chart.pan=view_pan;chart.layout()
+func active_quest_summary(parent):
+	var quest=c().get("activeQuest")
+	var line=row(parent);line.name="TravelQuestSummary"
+	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;line.add_child(copy)
+	if not quest is Dictionary:
+		l(copy,"進行中のクエスト");l(copy,"なし");return
+	var elapsed=int(c().get("worldTime",0))-int(quest.get("eventEpoch",quest.get("postedAt",0))) if quest.get("scenario",false) else int(quest.get("elapsedHours",0))
+	if not quest.get("scenario",false) and c().get("journey") is Dictionary:elapsed+=int(c().journey.get("hours",0))
+	l(copy,"進行中のクエスト · 期限まで %d時間" % maxi(0,int(quest.get("deadline",0))-elapsed))
+	l(copy,str(quest.name)+" · 配達先 "+town(quest.to))
+	b(line,"内容確認",ui.navigate.bind("board")).name="TravelQuestDetails"
 func map(parent):
-	var tools=row(parent);tools.name="MapControls"
-	l(tools,"次の行先を選ぶ",true)
+	var surface=card(parent);surface.get_parent().custom_minimum_size.y=ui.mock_shell.content_height();parent=surface
 	var available=[]
 	for place in c().get("destinations",[]):available.append(place.id if place is Dictionary else place)
 	var quest=c().get("activeQuest")
-	if quest is Dictionary:
-		var quest_hint=l(parent,"受注中: %s → %s" % [quest.name,town(quest.to)]);quest_hint.add_theme_font_size_override("font_size",16)
 	if not available.has(ui.destination):ui.destination=str(available[0]) if not available.is_empty() else ""
-	var zoom_hint=l(tools,"↑ 縮小 / ↓ 拡大 ・ 中ドラッグで移動");zoom_hint.add_theme_font_size_override("font_size",16)
-	var chart=preload("res://town_map.gd").new();chart.name="TownMap";chart.tooltip_text="各移動は二つの区間を通ります。ホイール上で縮小、下で拡大。中ドラッグで移動。"
+	var chart=preload("res://town_map.gd").new();chart.name="TownMap"
 	chart.towns=c().get("locations",[]);chart.current=c().location;chart.selected=ui.destination;chart.available=available;chart.routes=c().get("routes",{});chart.icons=ui.icons
 	chart.quest_destination=str(quest.to) if quest is Dictionary else ""
-	parent.add_child(chart);chart.destination_selected.connect(select_destination)
-	var fit=b(tools,"全体表示",chart.reset_view);fit.name="MapFit";fit.add_theme_font_size_override("font_size",16);fit.custom_minimum_size.y=32
-	var legend=b(tools,"凡例",func():ui.dialog.open("地図の見方",func(body,actions):
-		shop_guide(body);l(body,"各移動は二つの区間を通ります。地図内のホイールは上で縮小、下で拡大。中ドラッグで移動し、全体表示で戻せます。");ui.local_button(actions,"閉じる",ui.dialog.close)))
-	legend.name="MapLegend";legend.add_theme_font_size_override("font_size",16);legend.custom_minimum_size.y=32
+	parent.add_child(chart);chart.custom_minimum_size.y=ui.mock_shell.content_height()-228;chart.size_flags_vertical=Control.SIZE_EXPAND_FILL;chart.destination_selected.connect(select_destination)
 	for id in chart.buttons:ui.widgets.append(chart.buttons[id])
-	var risk=muted(parent,"未受注でも戦闘・消耗あり / 未受注の配達報酬なし / 追加の移動料金なし");risk.add_theme_font_size_override("font_size",16)
+	var actions=row(parent);actions.name="MapControls";actions.custom_minimum_size.y=72
+	var route=VBoxContainer.new();route.custom_minimum_size.x=320;actions.add_child(route)
+	l(route,town(c().location)+" → "+town(ui.destination),true)
+	l(route,"最短の到着見込 6時間")
 	var over=c().get("inventoryOverflow",[])
-	if not over.is_empty():l(parent,"インベントリ枠を超えている仲間がいます。出発する前に、受け渡し・売却・倉庫への預け入れなどで整理してください。")
-	var depart=b(parent,town(ui.destination)+"へ出発" if not ui.destination.is_empty() else "行先がありません",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not over.is_empty());depart.name="DepartButton"
-	depart.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;depart.custom_minimum_size=Vector2(280,44)
-	for state_ in ["normal","hover","pressed"]:
-		var style=depart.get_theme_stylebox(state_).duplicate();style.bg_color=Color("#2f7652") if state_=="hover" else Color("#236044");depart.add_theme_stylebox_override(state_,style)
+	var depart=ui.green_button(b(actions,"出発する",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not over.is_empty()));depart.name="DepartButton"
+	if not over.is_empty():depart.tooltip_text="インベントリ枠を超えているメンバーがいます"
+	b(actions,"都市に入る" if c().location=="astaris" else "村に入る",ui.navigate.bind("hub"))
+	var space=Control.new();space.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(space)
+	b(actions,"全体表示",chart.reset_view).name="MapFit"
+	parent.add_child(HSeparator.new());active_quest_summary(parent)
 func choose_formation(value: String):ui.formation=value;ui.render()
 func shop_guide(parent):
 	var facilities=row(parent)
@@ -143,36 +151,39 @@ func journey(parent):
 	var phase=c().get("phase","");var journey_: Dictionary=c().get("journey") if c().get("journey") is Dictionary else {}
 	if phase=="result":result(parent);return
 	if phase=="prepare":map(parent);return
-	l(parent,town(journey_.get("destination",c().get("destination","")))+"への旅",true)
-	l(parent,"旅のBGM: "+ui.audio.quest_title())
-	var quest=c().get("activeQuest")
-	if quest is Dictionary:
-		if quest.get("scenario",false):
-			var age=int(c().get("worldTime",0))-int(quest.get("eventEpoch",quest.get("postedAt",0)))
-			var timing="掲載後%d時間 / 締切%d時間 / 残り%d時間" % [age,quest.get("deadline",0),maxi(0,int(quest.get("deadline",0))-age)]
-			if quest.get("eventId","")=="wheel":
-				if age>int(quest.get("deadline",0)) and age<=int(quest.get("lateDeadline",0)):timing="掲載後%d時間 / 締切超過%d時間 / 遅配期限まで%d時間" % [age,age-int(quest.get("deadline",0)),int(quest.get("lateDeadline",0))-age]
-				elif age>int(quest.get("lateDeadline",0)):timing="掲載後%d時間 / 行商人は出発済み" % age
-			l(parent,"%s / %s" % [quest.name,timing])
-		else:l(parent,"%s / %d時間経過・納期%d時間" % [quest.name,journey_.get("hours",0),quest.get("deadline",0)])
-	else:l(parent,"自由移動 / %d時間経過 / 配達報酬なし" % journey_.get("hours",0))
+	var strip=preload("res://travel_strip.gd").new();strip.name="TravelRouteStrip"
+	strip.origin=town(journey_.get("origin",c().get("location","")))
+	strip.destination=town(journey_.get("outboundDestination",journey_.get("destination","")))
+	strip.returning=journey_.get("returning",false);strip.stage=int(journey_.get("stage",0));strip.phase=phase;parent.add_child(strip)
+	var toggle=b(parent,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",func():travel_map_expanded=not travel_map_expanded;ui.render());toggle.name="TravelMapToggle";toggle.size_flags_horizontal=Control.SIZE_SHRINK_END
+	if travel_map_expanded:
+		var chart=preload("res://town_map.gd").new();chart.name="TravelFullMap";chart.read_only=true
+		chart.towns=c().get("locations",[]);chart.current=str(journey_.get("origin",c().get("location","")));chart.selected=str(journey_.get("outboundDestination",journey_.get("destination","")))
+		chart.available=chart.towns.map(func(place):return place.id);chart.routes=c().get("routes",{});chart.icons=ui.icons
+		var quest=c().get("activeQuest");chart.quest_destination=str(quest.to) if quest is Dictionary else ""
+		parent.add_child(chart);chart.custom_minimum_size.y=300;chart.size_flags_vertical=Control.SIZE_FILL
+	var actions=row(parent);actions.name="CampActions";actions.custom_minimum_size.y=72
+	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(copy)
+	l(copy,"帰路" if strip.returning else "野営地" if phase=="camp" else "到着" if phase in ["arrival","delivery"] else "%d区間目の道" % (int(journey_.get("stage",0))+1),true)
+	var remaining=maxi(0,2-int(journey_.get("stage",0)))*3
+	if phase=="arrival" or phase=="delivery":remaining=0
+	l(copy,"最短の到着見込 %d時間" % (int(journey_.get("hours",0))+remaining))
 	match phase:
-		"road":
-			var stage=int(journey_.get("stage",0))
-			l(parent,"第%d区間: 進む道を選ぶ" % (stage+1),true)
-			b(parent,"峠の近道: 2時間 / 敵%d人" % (3 if stage==0 else 4),ui.forecast_action.bind("short","travel",["short"]))
-			b(parent,"川沿いの道: 4時間 / 敵%d人" % (2 if stage==0 else 3),ui.forecast_action.bind("safe","travel",["safe"]))
 		"camp":
-			l(parent,"街道の野営地 / あと一区間",true)
-			var actions=row(parent);actions.name="CampActions"
-			var rest=b(actions,"2時間休む: HP+60 / MP+2",ui.forecast_action.bind("rest","rest",[]),journey_.get("rested",false))
-			rest.custom_minimum_size.x=rest.get_combined_minimum_size().x
-			if journey_.get("rested",false):rest.text="休息済み"
-			b(actions,"次の区間へ",ui.act.bind("onward",[]));items(parent)
+			ui.green_button(b(actions,"次の区間へ",ui.act.bind("onward",[])))
+			var rest=b(actions,"休息済み" if journey_.get("rested",false) else "休息する",ui.forecast_action.bind("rest","rest",[]),journey_.get("rested",false));rest.tooltip_text="2時間 · HP +60 / MP +2"
+			if c().get("canTurnBack",false):b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[])).tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
+		"road":
+			if c().get("canTurnBack",false):b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[])).tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
 		"arrival","delivery":
-			l(parent,town(journey_.get("destination",""))+"に到着しました",true)
-			b(parent,"町へ入る（依頼は未完了）" if quest is Dictionary else "町へ入る（配達報酬なし）",ui.act.bind("arrive",[]))
-	l(parent,"\n".join(journey_.get("history",[]).slice(-4)))
+			ui.green_button(b(actions,"都市に入る" if journey_.get("destination")=="astaris" else "村に入る",ui.act.bind("arrive",[])))
+	if phase=="road":
+		var choices=row(parent);choices.name="RouteChoices"
+		for route in [["short","峠の近道",2],["safe","川沿いの道",4]]:
+			var choose=b(choices,route[1]+"\n移動 %d時間" % route[2],ui.forecast_action.bind(route[0],"travel",[route[0]]));choose.name="RouteChoice_"+route[0];choose.custom_minimum_size=Vector2(260,80)
+	if phase=="camp":
+		b(parent,"インベントリ",ui.navigate.bind("character"))
+	parent.add_child(HSeparator.new());active_quest_summary(parent)
 func party(parent):
 	if not facility_entry.render_top(parent,"party"):
 		if facility_entry.supported("party"):facility_entry.render_dialogue()
