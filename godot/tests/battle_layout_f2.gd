@@ -39,11 +39,15 @@ func run():
 	for dims in [Vector2i(1920,1080)]:
 		root.size=dims;await settle()
 		for kind in ["sweep50","sweep100"]:
-			for key in ["battle_actor","battle_target"]:
+			for key in ["battle_actor_b","battle_target_b"]:
 				if game.preferences.config.has_section_key("windows",key):game.preferences.config.erase_section_key("windows",key)
 			await game.update({"op":"campaign_load","data":cases[kind]});await settle()
-			check(node("ElementalCombatProfile")!=null and node("ElementalCombatProfile").get_child_count()>=7,"FHD battle actor shows icon-coded fire/water/earth ATK and DEF")
-			check(node("ElementalCombatProfile").tooltip_text.contains("相性有利×1.25"),"FHD battle combat profile explains the existing matchup rule")
+			game.hud.back_to_commands();await settle();var inspection_before=await saved()
+			await game.on_cell(int(game.hud.acting().pos));await settle()
+			check(node("ElementalCombatProfile")!=null and node("ElementalCombatProfile").get_child_count()>=7,"FHD selected actor exposes icon-coded fire/water/earth ATK and DEF in target details")
+			check(node("ElementalCombatProfile").tooltip_text.contains("相性有利×1.25"),"FHD selected actor combat profile explains the existing matchup rule")
+			check(await saved()==inspection_before,"F2 inspecting the actor preserves the complete campaign")
+			game.hud.clear_inspection();await settle()
 			game.hud.left_panel.restore_rect(Rect2(0,76,320,650))
 			game.hud.right_panel.restore_rect(Rect2(maxf(0,game.size.x-380),76,330,620));await settle()
 			var before=await saved();var label=kind+" "+str(dims.x)

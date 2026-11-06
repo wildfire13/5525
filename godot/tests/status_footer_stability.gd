@@ -1,8 +1,7 @@
 extends "res://tests/brushup_gui.gd"
 var measured=[]
 func geometry():
- var strip=node("PartyFacesScroll").get_parent()
- return [strip.global_position.y,strip.size.y,game.footer.global_position.y,game.footer.size.y,game.location_bar.global_position.y]
+ return [node("CampaignHeader").get_global_rect(),node("QuestBoardColumns").get_global_rect(),game.footer.get_global_rect(),game.location_bar.get_global_rect()]
 func record(label: String):
  measured.append({"case":label,"geometry":geometry(),"text":game.footer.text,"visible":game.footer.visible})
  if DisplayServer.get_name()!="headless":await snapshot(label)
@@ -14,10 +13,11 @@ func run():
  game.checks_fast=true;game.audio.fast_mode=true;await settle();var seed=await saved()
  for dims in [Vector2i(1920,1080)]:
   root.size=dims;await game.update({"op":"campaign_load","data":seed});game.navigate("board");await settle()
+  check(node("PartyRoster")==null and node("CampaignHeader")!=null and node("QuestBoardColumns")!=null,"board uses common header and columns without party roster")
   game.set_status("難易度は未設定です。");await settle();var baseline=geometry();await record("shown-"+str(dims.x))
   for message in ["","処理中…","説明".repeat(100)+"\n末尾",""]:
    game.set_status(message);await settle()
-   check(geometry()==baseline,"party/footer/location coordinates unchanged "+str(dims)+" text length "+str(message.length()))
+   check(geometry()==baseline,"header/board/footer/location coordinates unchanged "+str(dims)+" text length "+str(message.length()))
    check(game.footer.get_meta("full_message")==message,"full text retained")
    if message.length()>100:
     await record("long-"+str(dims.x))
@@ -26,7 +26,7 @@ func run():
     check(game.modal_open() and game.dialog.window.find_children("*","Label",true,false).any(func(label):return label.text==message),"full explanation opens without losing last line")
     if DisplayServer.get_name()!="headless":await os_key("Escape")
     else:game.dialog.close();await settle()
-    check(not game.modal_open() and geometry()==baseline,"closing full explanation keeps party coordinates")
+    check(not game.modal_open() and geometry()==baseline,"closing full explanation keeps header and board coordinates")
   await record("empty-"+str(dims.x))
   check(game.footer.focus_mode==Control.FOCUS_NONE and game.footer.mouse_filter==Control.MOUSE_FILTER_IGNORE,"empty reserved row is not an invisible action")
   game.set_status("難易度は未設定です。");await settle()
@@ -34,7 +34,7 @@ func run():
   if DisplayServer.get_name()!="headless":
    await os_click(choice);await os_key("Tab")
   else:choice.grab_focus();await settle()
-  check(geometry()==baseline,"button focus change preserves party coordinates "+str(dims))
+  check(geometry()==baseline,"button focus change preserves header and board coordinates "+str(dims))
   await record("focus-"+str(dims.x))
   game.notice="診断エラー通知";game.render();await settle()
   check(game.footer.text=="診断エラー通知" and geometry()==baseline,"error notice preserved without movement")

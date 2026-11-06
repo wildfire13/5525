@@ -70,7 +70,8 @@ func render_detail(parent,q: Dictionary,active: bool):
 	if rewards.is_empty():reward_line(details,"基本報酬","money",int(q.get("reward",0)),0)
 	else:
 		reward_line(details,"基本報酬",str(rewards.get("type","money")),int(rewards.get("base",0)),int(rewards.get("baseRP",0)))
-		if not q.get("scenario",false):reward_line(details,"希望条件達成報酬",str(rewards.get("type","money")),int(rewards.get("bonus",0)),int(rewards.get("bonusRP",0)))
+		# Scenario quests also carry the on-time difference in bonus/bonusRP.
+		reward_line(details,"希望条件達成報酬",str(rewards.get("type","money")),int(rewards.get("bonus",0)),int(rewards.get("bonusRP",0)))
 		if rewards.get("legacyXP",false):reward_line(details,"キャラクター報酬","experience",int(q.get("xp",0)),0)
 	if q.get("scenario",false):
 		var npc_names={"turnip":"農夫・計量係","kiln":"若い陶工・陶工の師匠","wheel":"車輪職人・行商人"}

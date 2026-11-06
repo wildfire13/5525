@@ -59,11 +59,11 @@ func roster(parent):
 	var body=VBoxContainer.new();panel.add_child(body)
 	var ids=ui.campaign().get("selected",[])
 	ui.label_(body,"パーティメンバー     %d / %d" % [ids.size(),ui.campaign().get("partyLimit",12)])
-	var list=ui.scroller(body);list.get_parent().custom_minimum_size.y=content_height()-64;list.add_theme_constant_override("separation",0)
+	var list=ui.scroller(body);list.get_parent().name="PartyRosterScroll";ui.memory.watch(list.get_parent(),"mock_party_roster");list.get_parent().custom_minimum_size.y=content_height()-64;list.add_theme_constant_override("separation",0)
 	for id in ids:
 		var matches=ui.roster().filter(func(u):return str(u.id)==str(id))
 		if matches.is_empty():continue
-		var u=matches[0];var button=ui.button(list,"",activate.bind(str(id)));button.set_script(preload("res://roster_drop_target.gd"));button.member_id=str(id);button.name="RosterMember_"+str(id);button.custom_minimum_size=Vector2(254,88)
+		var u=matches[0];var button=ui.button(list,"",activate.bind(str(id)));button.set_script(preload("res://roster_drop_target.gd"));button.member_id=str(id);button.name="RosterMember_"+str(id);button.custom_minimum_size=Vector2(254,88);ui.memory.key(button,"mock_roster_member_"+str(id))
 		ui.mark_selected(button,str(id)==ui.pages.party_uid)
 		var line=HBoxContainer.new();button.add_child(line);line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);line.offset_left=6;line.offset_top=6;line.offset_right=-6;line.offset_bottom=-6;line.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		var portrait=ui.portrait(line,u,false,32);portrait.custom_minimum_size=Vector2(40,72);portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE

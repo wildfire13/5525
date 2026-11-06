@@ -94,7 +94,7 @@ func render(parent):
 	reserve_filter(reserve)
 	var body=ui.scroller(reserve);body.get_parent().name="GuildReserveScroll";ui.memory.watch(body.get_parent(),"guild_reserves_"+reserve_job)
 	for u in reserves:
-		var id=str(u.id);var button=b(body,"",choose.bind(id),busy());button.name="GuildMember_"+id;button.custom_minimum_size=Vector2(300,92)
+		var id=str(u.id);var button=b(body,"",choose.bind(id),busy());button.name="GuildMember_"+id;button.custom_minimum_size=Vector2(300,100)
 		button.set_script(preload("res://guild_member_card.gd"));button.configure(self,id);button.set_meta("member_id",id);button.set_meta("guild_active",false);ui.memory.key(button,"guild_member_"+id)
 		ui.mark_selected(button,id==chosen_id)
 		var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;button.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

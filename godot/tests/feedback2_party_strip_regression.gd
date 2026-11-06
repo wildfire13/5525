@@ -14,6 +14,15 @@ func settle():
 	await frames()
 func node(name_):return game.find_child(name_,true,false)
 func saved():return (await game.engine.request({"op":"campaign_save"})).data
+func mount_strip():
+	# The horizontal strip now belongs to deployment. Mount its existing component
+	# explicitly for touch/overflow checks, separately from the town's shared roster.
+	var old=node("PartyFaceBar")
+	if old!=null:
+		game.memory.capture();game.remove_child(old);old.queue_free()
+	var strip=game.pages.party_view.face_bar(game);strip.position=Vector2(0,996);strip.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;strip.custom_minimum_size.x=800;strip.size=Vector2(800,84)
+	game.memory.restore()
+	await settle()
 func overflow_fixture():
 	# Component-only fixture: the parent window remains FHD.
 	var bar=node("PartyFaceBar")
@@ -29,9 +38,9 @@ func run():
 	var roster_ids=game.roster().map(func(m):return str(m.id));check(roster_ids.size()==35,"eleven historical people and twenty-four new candidates")
 	var ids=roster_ids.slice(0,11)
 	await game.act("select",[ids]);await settle()
-	var before=await saved()
+	var before=await saved();await mount_strip()
 	for dims in [Vector2i(1920,1080)]:
-		root.size=dims;await frames(8);game.render();await settle()
+		root.size=dims;await frames(8);game.render();await mount_strip();await settle()
 		var bar=node("PartyFaceBar");var scroll=node("PartyFacesScroll")
 		check(node("PartyFaces").get_child_count()==11,"all eleven short cards at "+str(dims))
 		check(bar.get_global_rect().end.x<=game.size.x+1 and bar.get_global_rect().end.y<=game.size.y+1,"strip contained at "+str(dims))
@@ -39,7 +48,7 @@ func run():
 		overflow_fixture();await frames()
 		check(scroll.get_h_scroll_bar().max_value>scroll.size.x,"real eleven cards overflow constrained component in FHD")
 		bar.slide(1);await frames();check(scroll.scroll_horizontal>0,"right arrow scrolls real roster")
-		var offset=scroll.scroll_horizontal;game.render();overflow_fixture();await settle();check(node("PartyFacesScroll").scroll_horizontal==offset,"rerender restores horizontal context")
+		var offset=scroll.scroll_horizontal;game.render();await mount_strip();overflow_fixture();await settle();check(node("PartyFacesScroll").scroll_horizontal==offset,"rerender restores horizontal context")
 		node("PartyFace_"+ids[-1]).grab_focus();await frames();var face=node("PartyFace_"+ids[-1]);check(node("PartyFacesScroll").get_global_rect().intersects(face.get_global_rect()),"keyboard focus reaches last card")
 		check(await saved()==before,"scroll and layout preserve exact save "+str(dims))
 	# Simulated touch positions are local to a card that moves while scrolling.
@@ -53,7 +62,7 @@ func run():
 	touch.pressed=false;touch_card._gui_input(touch)
 	check(game.pages.party_view.detail_uid.is_empty() and await saved()==before,"simulated touch swipe does not activate person or mutate save")
 	root.size=Vector2i(1920,1080);await frames();var twelfth=roster_ids[11]
-	game.data.campaign.selected.append(twelfth);game.render();await settle()
+	game.data.campaign.selected.append(twelfth);game.render();await mount_strip();await settle()
 	check(node("PartyFaces").get_child_count()==12,"real twelfth candidate renders at UI capacity boundary")
 	node("PartyFace_"+twelfth).grab_focus();await frames();check(node("PartyFacesScroll").get_global_rect().intersects(node("PartyFace_"+twelfth).get_global_rect()),"real twelfth card reachable")
 	check(await saved()==before,"view-only twelfth card never alters backend")
@@ -61,21 +70,27 @@ func run():
 	game.save_notice.display("前のプロフィールの取引")
 	await game.update({"op":"campaign_load","data":east});check(not game.save_notice.visible and game.save_notice.caption.text.is_empty(),"load clears previous campaign toast");game.navigate("shop");await settle()
 	check(node("FacilityEntry")!=null,"ordinary facility entry precedes sale")
-	node("FacilityChoice_sell").pressed.emit();await settle()
-	var sale_before=await saved();node("PartyFace_guard").pressed.emit();await settle()
-	check(node("FacilitySaleOwner").text.contains("ガロ") and game.pages.party_view.detail_uid.is_empty(),"first click selects sale owner in place")
-	var card=node("PartyFace_guard");check(card.get_theme_stylebox("normal").bg_color.b>card.get_theme_stylebox("normal").bg_color.r,"sale owner card is blue")
-	node("PartyFace_guard").pressed.emit();await settle();check(game.pages.party_view.detail_uid=="guard" and is_instance_valid(game.dialog.window),"same owner second click opens details")
+	node("FacilityChoice_buy").pressed.emit();await settle()
+	var sale_before=await saved();node("RosterMember_guard").pressed.emit();await settle()
+	check(game.pages.shop_view.selected_owner()=="guard" and game.pages.party_view.detail_uid.is_empty(),"first click selects sale owner in place")
+	check(game.shop_uid=="guard" and game.pages.shop_view.sale.owner_id=="guard","shared roster and sale owner identities agree")
+	node("RosterMember_guard").pressed.emit();await settle();check(game.pages.party_view.detail_uid.is_empty() and game.pages.shop_view.selected_owner()=="guard","repeated shared roster selection stays in sale workspace")
+	game.pages.shop_view.sale.select_item("spear-wood");await settle()
+	check(game.pages.shop_view.sale.item_id=="spear-wood" and not game.pages.shop_view.sale.quote.is_empty(),"sale component has a real old-owner quote before detail switch")
+	check(not game.pages.shop_view.sync_sale_owner_from_status("archer") and game.shop_uid=="guard","status owner sync rejects absent modal")
+	game.pages.party_view.open_detail("guard");await settle();check(game.pages.party_view.detail_uid=="guard" and is_instance_valid(game.dialog.window),"retained status component opens the selected sale identity")
+	game.locked=true;check(not game.pages.shop_view.sync_sale_owner_from_status("archer") and game.shop_uid=="guard" and game.pages.shop_view.sale.owner_id=="guard","status owner sync respects busy guard");game.locked=false
 	var other=node("PartyFace_archer");node("PartyFacesScroll").ensure_control_visible(other);await frames()
 	check(not game.pages.party_view.outside_press(other.get_global_rect().get_center()),"mousedown on strip defers owner action until release")
-	other.pressed.emit();await settle();check(game.pages.party_view.detail_uid=="archer","released card switches detail owner")
+	other.pressed.emit();await settle();check(game.pages.party_view.detail_uid=="archer" and game.shop_uid=="archer" and game.pages.shop_view.sale.owner_id=="archer","released component card synchronizes detail and both sale identities")
 	game.dialog.close();await settle();check(game.pages.shop_view.selected_owner()=="archer" and game.pages.shop_view.sale.item_id.is_empty() and game.pages.shop_view.sale.quote.is_empty(),"closing changed detail preserves latest sale owner and clears old item/quote")
-	node("PartyFace_guard").pressed.emit();await settle();check(game.pages.shop_view.selected_owner()=="guard" and game.pages.party_view.detail_uid.is_empty(),"different first click changes sale owner without opening window")
+	node("RosterMember_guard").pressed.emit();await settle();check(game.pages.shop_view.selected_owner()=="guard" and game.pages.party_view.detail_uid.is_empty(),"different first click changes sale owner without opening window")
 	check(await saved()==sale_before,"owner and detail operations do not consume or sell")
 	game.pages.facility_entry.back();await settle();check(node("FacilityEntry")!=null,"sale returns to cushion page")
 	game.pages.facility_entry.back();await settle();check(game.page=="hub","entry returns to plaza")
 	# Old saves can deploy an incapacitated warrior: there must be a visible way
 	# to free that occupied slot without resurrecting or changing that character.
+	var component=node("PartyFaceBar");game.remove_child(component);component.queue_free();await frames()
 	var wounded=before.duplicate(true);wounded.state.characters.guard.hp=0
 	await game.update({"op":"campaign_load","data":wounded});await game.act("depart",["east"]);await game.act("travel",["safe"]);await settle()
 	var removal=node("DeploymentRemoveInactive_guard")

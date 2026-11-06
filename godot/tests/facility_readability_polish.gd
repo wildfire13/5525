@@ -60,4 +60,3 @@ func run():
  check(game.find_child("QuestBoardColumns",true,false).get_global_rect().end.x<=1920,"stress quest remains within FHD width")
  await shot("quest-cargo-stress")
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await process_frame;quit(0 if failures.is_empty() else 1)
-
