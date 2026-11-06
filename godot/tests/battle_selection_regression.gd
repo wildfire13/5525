@@ -1,6 +1,6 @@
 extends "res://tests/skill_grant_hud.gd"
 func selected_button(control):
- return control!=null and control.text.begins_with("● ") and control.get_meta("battle_selected",false) and control.get_theme_stylebox("normal").bg_color.is_equal_approx(Color("#d8bd86"))
+ return control!=null and control.text.begins_with("● ") and control.get_meta("battle_selected",false) and control.get_theme_stylebox("normal").bg_color.is_equal_approx(Color("#e0e8dd"))
 func run():
  create_timer(100).timeout.connect(func():print("FAIL watchdog");quit(2))
  if OS.get_environment("NATIVE5525_AUDIO_OFF")!="1":quit(2);return

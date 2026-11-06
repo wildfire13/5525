@@ -148,6 +148,7 @@ func _ready():
 		slider.value_changed.connect(func(value):audio.set_sound_level(kind,value);audio.sync(data))
 	if debug_view.is_enabled():local_button(menu_body,"開発情報（別ウィンドウ）",func():menu.hide();debug_view.open()).name="OpenDeveloperWindow"
 	button(menu_body,"新しい旅",func():menu.hide();confirm("未保存の進行を終了し、新しい旅を始めます。保存済みファイルは変更しません。",new_game))
+	local_button(menu_body,"ゲームを終了する",func():menu.hide();close_game()).name="QuitGame"
 	local_button(menu_body,"閉じる",menu.hide)
 	content=VBoxContainer.new();content.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.size_flags_vertical=Control.SIZE_EXPAND_FILL;base.add_child(content)
 	footer=Label.new();footer.name="StatusFooter";footer.custom_minimum_size.y=24;footer.clip_text=true;footer.max_lines_visible=1;footer.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;base.add_child(footer)
@@ -182,7 +183,7 @@ func label_(parent: Node,text: String,large:=false) -> Label:
 	parent.add_child(l);return l
 func emphasize_low_hp(label: Label,unit: Dictionary):
 	if unit.get("max",0)>0 and unit.get("hp",0)*4<unit.max:
-		label.add_theme_color_override("font_color",Color("#ff9494"))
+		label.add_theme_color_override("font_color",Color("#b13e30"))
 		label.add_theme_font_override("font",low_hp_font)
 func row(parent: Node) -> HBoxContainer:
 	var r=HBoxContainer.new();r.add_theme_constant_override("separation",8);parent.add_child(r);return r
@@ -478,7 +479,7 @@ func render():
 	ui_size_mode="standard" if available.x>=1120 and available.y>=720 else "compact"
 	var margin=24 if available.x>=1800 and available.y>=1000 else 12 if ui_size_mode=="standard" else 8
 	base.offset_left=48 if view_kind!="battle" else margin;base.offset_right=-base.offset_left;base.offset_top=12;base.offset_bottom=-margin
-	theme.default_font_size=22 # Battle retains its established presentation.
+	theme.default_font_size=20
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
 	header.text=town_name(place)
@@ -491,8 +492,8 @@ func render():
 	base.offset_left=margin if battle else 48;base.offset_right=-base.offset_left
 	if not battle:mock_shell.apply_theme()
 	else:
-		theme=battle_theme.duplicate(true);theme.default_font_size=22
-		menu.add_theme_stylebox_override("panel",theme.get_stylebox("panel","TooltipPanel").duplicate())
+		theme=battle_theme.duplicate(true)
+		preload("res://battle_theme.gd").apply(self)
 	resource_header.visible=not battle
 	location_bar.visible=false
 	top.visible=battle or engine.disconnected
@@ -873,14 +874,13 @@ func primary(control: Button) -> Button:
 	for color_ in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:control.add_theme_color_override(color_,Color("#252830"))
 	return control
 func mark_selected(control: Button,selected: bool):
-	# Campaign choices use green; battle keeps its established blue selection.
+	# Selection shares the campaign palette in every scene.
 	control.set_meta("selected",selected)
 	for state_ in ["normal","hover","pressed"]:
 		if not selected:control.remove_theme_stylebox_override(state_);continue
 		var style=control.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
-		var battle=campaign().get("phase","") in ["deployment","battle"] or data.get("trial")!=null
-		style.bg_color=Color(("#35577d" if state_=="hover" else "#294568") if battle else ("#d2e0d3" if state_=="hover" else "#dfe8dc"))
-		style.border_color=Color("#a4c9e9" if battle else "#345c4e");style.set_border_width_all(2)
+		style.bg_color=Color("#d2e0d3" if state_=="hover" else "#dfe8dc")
+		style.border_color=Color("#345c4e");style.set_border_width_all(2)
 		control.add_theme_stylebox_override(state_,style)
 func short_name(control: Label,full: String):
 	control.max_lines_visible=2;control.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;control.tooltip_text=full
@@ -896,7 +896,7 @@ func open_menu():
 func menu_focus_controls() -> Array:
 	return menu.find_children("*","Control",true,false).filter(func(control):return control.focus_mode==Control.FOCUS_ALL and control.is_visible_in_tree() and (not control is BaseButton or not control.disabled))
 func fit_menu():
-	menu.size=Vector2(minf(440,maxf(1,size.x-24)),minf(680,maxf(1,size.y-48)))
+	menu.size=Vector2(minf(440,maxf(1,size.x-24)),minf(760,maxf(1,size.y-48)))
 	menu.position=(size-menu.size)/2
 func file_dialog_open() -> bool:
 	# Native dialogs live outside the scene and do not set Window.visible.
