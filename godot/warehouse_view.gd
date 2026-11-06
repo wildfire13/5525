@@ -33,36 +33,57 @@ func quote(side: String,id: String) -> Dictionary:
 func render(parent: Control):
 	var ids=pages.c().get("selected",[])
 	if not ids.has(owner_id):owner_id=str(ids[0]) if not ids.is_empty() else ""
-	ui.label_(parent,"倉庫",true).name="WarehouseHeading"
-	ui.label_(parent,"下の人物を選び、品物を選んで移動するか、反対側へドラッグしてください。")
-	var split=HBoxContainer.new();split.name="WarehouseColumns";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",16);parent.add_child(split)
-	for side in ["warehouse","character"]:
-		var panel=PanelContainer.new();panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(panel)
-		var style=StyleBoxFlat.new();style.bg_color=Color(0.08,0.10,0.14,0.82);style.content_margin_left=12;style.content_margin_right=12;style.content_margin_top=8;style.content_margin_bottom=8;panel.add_theme_stylebox_override("panel",style)
-		var column=VBoxContainer.new();column.name="WarehouseStorage" if side=="warehouse" else "WarehouseCharacter";column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;column.size_flags_vertical=Control.SIZE_EXPAND_FILL;panel.add_child(column)
-		var title="倉庫（枠数制限なし）" if side=="warehouse" else ui.member_name(owner_id)+"のインベントリ"
-
-		if side=="character":
-			var capacity=pages.c().get("inventoryByCharacter",{}).get(owner_id,{}).get("capacity",{})
-			title+="（%d / %s枠）" % [int(capacity.get("used",0)),"∞" if capacity.get("limit")==null else str(int(capacity.limit))]
-		var heading=ui.label_(column,title,true);heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.custom_minimum_size.x=0
-		var body=ui.scroller(column);var scroll=body.get_parent();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"warehouse_"+side+("_"+owner_id if side=="character" else ""))
-		column.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data,side),func(_at,data):drop(data,side))
-		scroll.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data,side),func(_at,data):drop(data,side))
-		for entry in rows(side):
-			var id=str(entry.id);var selected=side==source and id==item_id
-			var button=ui.button(body,("● " if selected else "")+str(entry.name)+" ×"+str(int(entry.count)),choose.bind(side,id),busy());button.name="WarehouseItem_"+side+"_"+id;button.clip_text=true;button.tooltip_text=str(entry.name);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-			if selected:pages.party_view.tint(button,Color("#605025"))
-			elif entry.get("overCapacity",false):pages.party_view.tint(button,Color("#683b40"));button.text="枠超過・"+button.text
-			button.set_drag_forwarding(func(_at):return drag(side,id),func(_at,data):return can_drop(data,side),func(_at,data):drop(data,side))
-			ui.memory.key(button,"warehouse_item_"+side+"_"+id)
-		if rows(side).is_empty():ui.label_(body,"品物はありません")
-	var controls=ui.row(parent);controls.name="WarehouseControls"
+	var split=HBoxContainer.new();split.name="WarehouseColumns";split.custom_minimum_size.y=584;split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;split.add_theme_constant_override("separation",16);parent.add_child(split)
+	render_list(split,"character")
+	var panel=PanelContainer.new();panel.name="WarehouseSelectedPanel";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(panel)
+	var details=VBoxContainer.new();details.name="WarehouseSelectedItem";details.add_theme_constant_override("separation",16);panel.add_child(details)
+	ui.label_(details,"選択アイテム").name="WarehouseHeading"
 	var selected=selected_row();var q=quote(source,item_id)
-	var caption=ui.label_(controls,str(selected.get("name","移動する品物を選んでください")));caption.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	var amount=SpinBox.new();amount.name="WarehouseQuantity";amount.min_value=1;amount.max_value=maxi(1,int(selected.get("count",1)));quantity=mini(quantity,int(amount.max_value));amount.value=quantity;amount.step=1;amount.editable=not busy() and not selected.is_empty();amount.custom_minimum_size.x=130;controls.add_child(amount);amount.value_changed.connect(func(value):quantity=int(value))
-	var move=ui.button(controls,"← 預ける" if source=="character" else "取り出す →",transfer_selected,busy() or selected.is_empty() or not q.get("ok",false));move.name="WarehouseTransfer";move.custom_minimum_size.x=160
-	ui.label_(parent,str(q.get("reason",""))).name="WarehouseReason"
+	if selected.is_empty():ui.label_(details,"アイテムを選択すると詳細が表示されます").add_theme_font_size_override("font_size",16)
+	else:
+		ui.label_(details,str(selected.get("name","")),true)
+		ui.label_(details,"×%d" % int(selected.get("count",0)))
+		var reason=ui.label_(details,str(q.get("reason","")));reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",14)
+	var spacer=Control.new();spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL;details.add_child(spacer)
+	var controls=ui.row(details);controls.name="WarehouseControls";controls.alignment=BoxContainer.ALIGNMENT_END
+	if not selected.is_empty():
+		var move=ui.button(controls,"預ける" if source=="character" else "取り出す",request_transfer.bind(source,item_id),busy() or not q.get("ok",false));move.name="WarehouseTransfer";move.tooltip_text=str(q.get("reason",""))
+	ui.button(controls,"戻る",pages.facility_entry.back,busy()).name="WarehouseReturn"
+	render_list(split,"warehouse")
+func render_list(parent: Control,side: String):
+	var panel=PanelContainer.new();panel.custom_minimum_size.x=320;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;parent.add_child(panel)
+	if side=="character":
+		var members=ui.roster().filter(func(member):return str(member.id)==owner_id)
+		if not members.is_empty():
+			var portrait=TextureRect.new();portrait.texture=ui.portraits.texture(members[0],false);portrait.modulate.a=.16;portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE;portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;panel.add_child(portrait)
+	var column=VBoxContainer.new();column.name="WarehouseStorage" if side=="warehouse" else "WarehouseCharacter";column.size_flags_vertical=Control.SIZE_EXPAND_FILL;panel.add_child(column)
+	ui.label_(column,"共通倉庫" if side=="warehouse" else "インベントリ")
+	var body=ui.scroller(column);var scroll=body.get_parent();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"warehouse_"+side+"_"+owner_id)
+	column.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data,side),func(_at,data):drop(data,side))
+	scroll.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data,side),func(_at,data):drop(data,side))
+	for entry in rows(side):
+		var id=str(entry.id);var button=ui.button(body,str(entry.name)+"  ×"+str(int(entry.count)),choose.bind(side,id),busy());button.name="WarehouseItem_"+side+"_"+id;button.clip_text=true;button.custom_minimum_size=Vector2(296,56);button.tooltip_text=str(entry.name)
+		ui.icons.apply(button,ui.icons.equipment(entry.get("definition",{})) if entry.get("kind")=="equipment" else id if id in ["potion","ether"] else "items",32)
+		ui.mark_selected(button,side==source and id==item_id)
+		if entry.get("overCapacity",false):button.tooltip_text+=" / 所持枠を超えています"
+		button.set_drag_forwarding(func(_at):return drag(side,id),func(_at,data):return can_drop(data,side),func(_at,data):drop(data,side))
+		ui.memory.key(button,"warehouse_item_"+side+"_"+id)
+	if rows(side).is_empty():ui.label_(body,"アイテムはありません").add_theme_font_size_override("font_size",16)
+	ui.label_(column,"ここへドラッグして"+("預ける" if side=="warehouse" else "取り出す")).add_theme_font_size_override("font_size",14)
+func request_transfer(side: String,id: String):
+	if busy() or not available():return
+	var entry={}
+	for value in rows(side):
+		if str(value.id)==id:entry=value;break
+	if entry.is_empty():return
+	var token=str(pages.c().get("inventoryToken",""))
+	if int(entry.get("count",1))<=1:await transfer(side,id,1,token);return
+	var amount=SpinBox.new();amount.name="WarehouseQuantity";amount.min_value=1;amount.max_value=int(entry.count);amount.value=1;amount.step=1;amount.custom_minimum_size.x=140
+	ui.dialog.open("個数",func(body,actions):
+		body.add_child(amount)
+		ui.primary(ui.button(actions,"OK",func():
+			var count=int(amount.value);ui.dialog.close(false);transfer(side,id,count,token)))
+		ui.local_button(actions,"キャンセル",ui.dialog.close))
 func transfer_selected():
 	await transfer(source,item_id,quantity,str(pages.c().get("inventoryToken","")))
 func transfer(side: String,id: String,count: int,token: String):
@@ -79,4 +100,4 @@ func can_drop(data,side: String) -> bool:
 func drop(data,side: String):
 	if not can_drop(data,side):return
 	data.consumed=true
-	await transfer(str(data.side),str(data.id),int(data.count),str(data.token))
+	request_transfer(str(data.side),str(data.id))

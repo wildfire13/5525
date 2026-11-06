@@ -4,6 +4,7 @@ var owner_ref: WeakRef
 var pages:
 	get:return owner_ref.get_ref()
 var ui
+var workspace
 var tab := 0
 var highlight_slot := ""
 var draft_uid := ""
@@ -20,9 +21,11 @@ var owned_equipment_view
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui;inventory_view=preload("res://inventory_view.gd").new(self);owned_equipment_view=preload("res://owned_equipment_view.gd").new(self)
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
+func render_page(parent):
+	if workspace==null:workspace=preload("res://character_workspace.gd").new(ui)
+	workspace.render(parent)
 func render(parent):
 	if pages.warehouse_view.available():pages.warehouse_view.render(parent);return
-	l(parent,"ギルド / パーティー編成" if pages.c().get("guildAvailable",false) else "仲間・装備",true).name="PartyFacilityHeading"
 	if pages.c().get("guildAvailable",false):pages.guild_view.render(parent);return
 	var c=pages.c();var members=ui.visible_roster();var ids=c.get("selected",[])
 	if members.is_empty():return

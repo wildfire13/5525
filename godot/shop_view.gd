@@ -19,6 +19,10 @@ var receipt: Dictionary={}
 var transaction: Dictionary={}
 var comparison_view
 var sale
+var inventory_tab := "inventory"
+var selection_kind := ""
+var selected_equipment: Dictionary={}
+var purchase_quantity := 1
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui;sale=preload("res://facility_sale.gd").new(self)
 func c() -> Dictionary:return pages.c()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
@@ -27,7 +31,7 @@ func busy() -> bool:return stage!="S0" or unknown or ui.locked or ui.presenting 
 func reset(_plan_mode: String="discard",_campaign_id: String=""):
 	if comparison_view!=null:comparison_view.invalidate()
 	stage="S0";unknown=false;consent={};receipt={};transaction={};message="";generation+=1;sale.reset()
-	filter_slot="all";filter_location="";background.clear();return_from_party=false;from_party=false
+	filter_slot="all";filter_location="";background.clear();return_from_party=false;from_party=false;inventory_tab="inventory";selection_kind="";selected_equipment={}
 	if ui.dialog!=null:ui.dialog.close(false)
 func slots() -> Array:
 	return ["rightHand","leftHand"] if c().get("location")=="east" else ["accessory1","accessory2"] if c().get("location")=="north" else ["head","upperBody","lowerBody","feet"]
@@ -44,7 +48,7 @@ func offered() -> Array:
 		var allowed=g.get("allowedSlots",["rightHand"] if g.get("hands",1)==2 else ["rightHand","leftHand"] if g.slot=="weapon" else ["upperBody"] if g.slot=="armor" else [g.slot])
 		return allowed.has(filter_slot))
 func product_filter(parent):
-	if c().get("location")=="north" or filter_location!=str(c().get("location","")):filter_location=str(c().get("location",""));filter_slot="all"
+	if filter_location!=str(c().get("location","")):filter_location=str(c().get("location",""));filter_slot="all"
 	var options=[]
 	if c().get("location") in ["east","south"]:
 		var seen={}
@@ -53,23 +57,28 @@ func product_filter(parent):
 			var id=str(item.get("type","")) if c().location=="east" else str(item.id)
 			if seen.has(id):continue
 			seen[id]=true;options.append([id,str(WEAPON_NAMES.get(id,id)) if c().location=="east" else str(item.name),ui.icons.WEAPONS.get(id,"items") if c().location=="east" else id])
-	elif c().get("location")!="north":
+	elif c().get("location")=="north":
+		options.append(["accessory1","装飾品","accessory"])
+	else:
 		for id in slots():options.append([id,str(c().get("slots",{}).get(id,id)),ui.icons.slot(id)])
 	var slot=OptionButton.new();slot.name="ShopSlotFilter";slot.custom_minimum_size=Vector2(280,44);slot.size_flags_horizontal=Control.SIZE_EXPAND_FILL;slot.fit_to_longest_item=false;slot.clip_text=true;parent.add_child(slot)
-	slot.add_item("商品リスト（すべて）");slot.set_item_metadata(0,"all")
+	slot.add_item("すべて");slot.set_item_metadata(0,"all")
 	for option in options:
-		slot.add_icon_item(ui.icons.texture(option[2]),"商品リスト（%sのみ）" % option[1]);slot.set_item_metadata(slot.item_count-1,option[0])
+		slot.add_icon_item(ui.icons.texture(option[2]),str(option[1]));slot.set_item_metadata(slot.item_count-1,option[0])
 		if filter_slot==option[0]:slot.select(slot.item_count-1)
 	slot.add_theme_constant_override("icon_max_width",24);slot.disabled=busy()
 	slot.item_selected.connect(func(i):select_slot(str(slot.get_item_metadata(i))));ui.memory.key(slot,"shop_filter")
-func sale_mode() -> bool:return ui.page=="shop" and pages.facility_entry.view=="sell" and c().get("phase")=="town" and c().get("saleAvailable",false)
-func selected_owner() -> String:return sale.owner_id if sale_mode() else ""
+func sale_mode() -> bool:
+	return ui.page=="shop" and pages.facility_entry.view!="top" and c().get("phase")=="town"
+func selected_owner() -> String:return ui.shop_uid if sale_mode() else ""
 func owner_pressed(uid: String) -> bool:
 	if not sale_mode():return false
 	if busy() or ui.modal_open():return true
-	if sale.owner_id==uid:return false
-	if c().get("selected",[]).has(uid):sale.select_owner(uid)
-	return true
+	if not c().get("selected",[]).has(uid):return true
+	ui.shop_uid=uid;sale.apply_owner(uid);selected_equipment={}
+	if comparison_view!=null:comparison_view.invalidate()
+	if selection_kind!="buy":selection_kind=""
+	ui.render();return true
 func sync_sale_owner_from_status(uid: String) -> bool:
 	if not sale_mode() or busy() or ui.menu.visible or not c().get("selected",[]).has(uid):return false
 	var status=ui.dialog.window;var party=pages.party_view
@@ -80,45 +89,111 @@ func sync_sale_owner_from_status(uid: String) -> bool:
 	if sale.owner_id!=uid:sale.apply_owner(uid)
 	return true
 func render(parent):
-	if sale_mode():sale.render(parent);return
-	var context=ui.row(parent);context.name="ShopContext"
-	var shop_name={"east":"武器店","west":"防具店","north":"装飾品店","south":"道具店"}.get(c().location,"")
-	ui.icons.line(ui,context,ui.icons.shop(str(c().location)),shop_name,true)
-	render_notice(parent)
-	var header=VBoxContainer.new();header.name="ShopListHeader";header.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;parent.add_child(header);product_filter(header)
-	if c().get("location")=="south":render_recipient(header)
-	var body=ui.scroller(parent);var scroll=body.get_parent();scroll.name="ShopProductsScroll"
-	scroll.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;scroll.custom_minimum_size.x=maxf(600,(ui.size.x-48 if ui.size.x<1300 else ui.size.x*2.0/3.0)-parent.global_position.x);scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.memory.watch(scroll,"shop_products")
-	var align=func():
-		if is_instance_valid(header) and is_instance_valid(body):header.custom_minimum_size.x=body.size.x;header.size.x=body.size.x
-	body.resized.connect(align,CONNECT_DEFERRED)
-	for item in offered():
-		if c().get("location")=="south":consumable_row(body,item);continue
-		var line=ui.row(body);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=64
-		var info=b(line,"",open_comparison.bind(str(item.id)),busy());info.name="Product_"+str(item.id);info.alignment=HORIZONTAL_ALIGNMENT_LEFT
-		info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.custom_minimum_size=Vector2(240,64)
-		ui.icons.apply(info,ui.icons.equipment(item));ui.memory.key(info,"product_"+str(item.id));ui.memory.item(info,str(item.id))
-		var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;info.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,48 if side=="left" else 8)
-		var copy=HBoxContainer.new();copy.mouse_filter=Control.MOUSE_FILTER_IGNORE;copy.add_theme_constant_override("separation",0);margin.add_child(copy)
-		var name_label=l(copy,str(item.name));name_label.name="ProductName_"+str(item.id);name_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;name_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;name_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		var compare_hint=l(copy,"比較 ›");compare_hint.autowrap_mode=TextServer.AUTOWRAP_OFF;compare_hint.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		configure_tooltip(info,item)
-		preload("res://item_drag.gd").source(info,func():
-			if busy():return null
-			return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":pages.epoch},str(item.name)+"  %dG" % item.price,info.icon)
-		var price=l(copy,"%dG" % item.price);price.name="ProductPrice_"+str(item.id);price.custom_minimum_size.x=96;price.size_flags_horizontal=Control.SIZE_FILL;price.autowrap_mode=TextServer.AUTOWRAP_OFF;price.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;price.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		# Wrapping changes minimum height after the parent has already resized.
-		# Defer measurement and listen for that change, including shrinkage.
-		var fit=func():
-			if is_instance_valid(info) and not info.is_queued_for_deletion():info.custom_minimum_size.y=maxf(64,copy.get_combined_minimum_size().y+16)
-		copy.resized.connect(fit,CONNECT_DEFERRED)
-		copy.minimum_size_changed.connect(fit,CONNECT_DEFERRED)
-		var buy=b(line,"購入",confirm_purchase.bind(str(item.id)),busy() or int(c().gold)<int(item.price));buy.name="ProductBuy_"+str(item.id)
-		ui.memory.key(buy,"buy_"+str(item.id));buy.custom_minimum_size=Vector2(90,64)
-		if int(c().gold)<int(item.price):buy.tooltip_text="所持金が不足しています"
-		var trial_button=b(line,"木人で試す",start_trial.bind(str(item.id)),busy());trial_button.name="ProductTrial_"+str(item.id)
-		ui.memory.key(trial_button,"trial_"+str(item.id));trial_button.custom_minimum_size=Vector2(120,64)
+	if not c().get("selected",[]).has(ui.shop_uid):
+		ui.shop_uid=str(c().get("selected",[""])[0])
+	if sale.owner_id!=ui.shop_uid:sale.apply_owner(ui.shop_uid)
+	var layout=HBoxContainer.new();layout.name="ShopWorkspace";layout.add_theme_constant_override("separation",16);layout.custom_minimum_size.y=584;layout.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;parent.add_child(layout)
+	var own=make_panel(layout,"ShopInventory",320)
+	var middle=make_panel(layout,"ShopTransaction",0)
+	var stock=make_panel(layout,"ShopCatalog",320)
+	var person={}
+	for member in ui.roster():
+		if member.id==ui.shop_uid:person=member;break
+	backdrop(own,ui.portraits.texture(person),"ShopCustomerArt")
+	backdrop(stock,pages.facility_art.npc.texture,"ShopKeeperArt")
+	var tabs=ui.row(own)
+	for tab in [["inventory","インベントリ"],["equipment","現在の装備"]]:
+		var button=b(tabs,tab[1],set_inventory_tab.bind(tab[0]),busy());button.name="ShopInventoryTab_"+tab[0];button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.add_theme_font_size_override("font_size",14);ui.mark_selected(button,inventory_tab==tab[0])
+	var inventory=ui.scroller(own);inventory.get_parent().name="ShopInventoryScroll"
+	ui.memory.watch(inventory.get_parent(),"shop_inventory_"+inventory_tab)
+	if inventory_tab=="equipment":render_equipment(inventory,person)
+	else:sale.render_inventory(inventory)
+	l(middle,"取引を確認").name="ShopTransactionHeading"
+	var detail=ui.scroller(middle);detail.get_parent().name="ShopTransactionScroll"
+	render_notice(detail)
+	var footer=ui.row(middle);footer.name="ShopTransactionFooter";footer.alignment=BoxContainer.ALIGNMENT_END
+	if selection_kind=="sell":sale.render_detail(detail,footer)
+	elif selection_kind=="equipment":
+		if not selected_equipment.is_empty():
+			l(detail,str(selected_equipment.get("name","")),true)
+			pages.describe_gear(detail,selected_equipment)
+	elif selection_kind=="buy" and not pages.gear_id.is_empty():
+		if c().get("location")=="south":render_consumable_selection(detail,footer)
+		else:
+			if comparison_view==null:comparison_view=preload("res://shop_comparison.gd").new(self)
+			comparison_view.render_inline(detail,footer,pages.gear_id,ui.shop_uid)
+	else:l(detail,"商品またはインベントリのアイテムを選択")
+	var finish=b(footer,"取引終了",finish_trading,busy());finish.name="ShopExit";finish.custom_minimum_size.y=40;finish.size_flags_horizontal=Control.SIZE_SHRINK_END
+	l(stock,"商品リスト").name="ShopCatalogHeading";product_filter(stock)
+	var products=ui.scroller(stock);products.get_parent().name="ShopProductsScroll";ui.memory.watch(products.get_parent(),"shop_products")
+	for item in offered():render_product(products,item)
+	if offered().is_empty():l(products,"販売品はありません")
+func make_panel(parent: Control,node_name: String,width: float) -> VBoxContainer:
+	var panel=PanelContainer.new();panel.name=node_name;panel.custom_minimum_size.x=width;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL if width==0 else Control.SIZE_FILL
+	var style=StyleBoxFlat.new();style.bg_color=Color("#faf9f5");style.border_color=Color("#cbd0c7");style.set_border_width_all(1);style.set_corner_radius_all(3);style.set_content_margin_all(12);panel.add_theme_stylebox_override("panel",style);parent.add_child(panel)
+	var body=VBoxContainer.new();body.add_theme_constant_override("separation",12);body.size_flags_vertical=Control.SIZE_EXPAND_FILL;panel.add_child(body)
+	return body
+func backdrop(body: Control,texture: Texture2D,node_name: String):
+	if texture==null:return
+	var image=TextureRect.new();image.name=node_name;image.texture=texture;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;image.modulate.a=.2;image.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	# A plain Control is outside the VBox flow, so artwork never changes row sizes.
+	var layer=Control.new();layer.name=node_name+"Layer";layer.mouse_filter=Control.MOUSE_FILTER_IGNORE;body.get_parent().add_child(layer);body.get_parent().move_child(layer,0);layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);
+	layer.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);image.offset_top=64;image.offset_bottom=-8
+func list_surface(button: Button,selected: bool):
+	for state_ in ["normal","hover","pressed","disabled"]:
+		var style=button.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
+		style.bg_color=Color("#e0e8dd") if selected or state_ in ["hover","pressed"] else Color(0.98,0.976,0.96,.65)
+		button.add_theme_stylebox_override(state_,style)
+	if selected:ui.mark_selected(button,true)
+func set_inventory_tab(value: String):
+	if busy():return
+	inventory_tab=value;ui.render()
+func render_product(parent: Control,item: Dictionary):
+	var choose=b(parent,"",open_comparison.bind(str(item.id)),busy());choose.name="Product_"+str(item.id);choose.custom_minimum_size=Vector2(0,64);choose.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;choose.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);margin.add_theme_constant_override("margin_left",8);margin.add_theme_constant_override("margin_right",8)
+	var line=HBoxContainer.new();line.add_theme_constant_override("separation",8);line.mouse_filter=Control.MOUSE_FILTER_IGNORE;margin.add_child(line)
+	ui.icons.add(line,str(item.id) if c().location=="south" else ui.icons.equipment(item),36)
+	var title=l(line,str(item.name));title.add_theme_font_size_override("font_size",14);title.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var price=l(line,"%dG" % int(item.price));price.add_theme_font_size_override("font_size",13);price.size_flags_horizontal=Control.SIZE_SHRINK_END;price.autowrap_mode=TextServer.AUTOWRAP_OFF;price.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	list_surface(choose,selection_kind=="buy" and pages.gear_id==str(item.id));ui.memory.key(choose,"product_"+str(item.id))
+	preload("res://item_drag.gd").source(choose,func():
+		if busy():return null
+		return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":pages.epoch},str(item.name),ui.icons.texture(str(item.id) if c().location=="south" else ui.icons.equipment(item)))
+func render_equipment(parent: Control,person: Dictionary):
+	var grid=GridContainer.new();grid.name="ShopEquipmentSlots";grid.columns=3;grid.add_theme_constant_override("h_separation",8);grid.add_theme_constant_override("v_separation",12);parent.add_child(grid)
+	var positions=["","head","","rightHand","upperBody","leftHand","","lowerBody","","accessory1","feet","accessory2"]
+	for position in positions:
+		if position.is_empty():
+			var gap=Control.new();gap.custom_minimum_size=Vector2(88,80);grid.add_child(gap);continue
+		var gear: Dictionary=person.get("equipmentDetails",{}).get(position,{})
+		var button=b(grid,"",select_equipment.bind(gear),busy());button.name="ShopEquipped_"+position;button.custom_minimum_size=Vector2(88,80)
+		button.tooltip_text=str(c().get("slots",{}).get(position,position))+" / "+str(gear.get("name","なし"))
+		var icon=ui.icons.add(button,ui.icons.equipment(gear) if not gear.is_empty() and gear.get("type")!="empty" else ui.icons.slot(position),36);icon.position=Vector2(26,32);icon.size=Vector2(36,36)
+		if gear.is_empty() or gear.get("type")=="empty":icon.modulate.a=.25
+		var heading=Label.new();heading.text=str(c().get("slots",{}).get(position,position));heading.add_theme_font_size_override("font_size",11);heading.position=Vector2(6,6);heading.mouse_filter=Control.MOUSE_FILTER_IGNORE;button.add_child(heading)
+func select_equipment(gear: Dictionary):
+	if busy():return
+	selection_kind="equipment";selected_equipment=gear;sale.item_id="";ui.render()
+func render_consumable_selection(parent: Control,actions: Control):
+	var items=c().get("shop",[]).filter(func(item):return item.id==pages.gear_id)
+	if items.is_empty():return
+	var item=items[0];ui.icons.line(ui,parent,str(item.id),str(item.name),true)
+	var definitions=c().get("itemDefinitions",[]).filter(func(entry):return entry.id==item.id)
+	if not definitions.is_empty():l(parent,str(definitions[0].get("description",definitions[0].get("text",""))))
+	l(parent,"%sのインベントリへ" % ui.member_name(ui.shop_uid))
+	var quantities=ui.row(parent);l(quantities,"個数")
+	var quantity=SpinBox.new();quantity.name="ShopPurchaseQuantity";quantity.min_value=1;quantity.max_value=99;quantity.step=1;quantity.value=purchase_quantity;quantities.add_child(quantity);quantity.value_changed.connect(func(value):purchase_quantity=int(value);ui.render())
+	ui.icons.line(ui,parent,"money","%d → %d G" % [int(c().gold),int(c().gold)-int(item.price)*purchase_quantity])
+	var full=int(c().get("inventoryTotals",{}).get(item.id,0))+purchase_quantity>99
+	var buy=ui.green_button(b(actions,"取引を確認",confirm_purchase.bind(str(item.id),ui.shop_uid),busy() or int(c().gold)<int(item.price)*purchase_quantity or full));buy.size_flags_horizontal=Control.SIZE_SHRINK_END;buy.name="ProductBuy_"+str(item.id)+"_1"
+	if int(c().gold)<int(item.price)*purchase_quantity:buy.tooltip_text="所持金が不足しています"
+	elif full:buy.tooltip_text="所持数の上限を超えます"
+func finish_trading():
+	if busy() or ui.modal_open():return
+	if comparison_view!=null:comparison_view.invalidate()
+	pages.gear_id="";selection_kind="";selected_equipment={};sale.reset();consent={};receipt={};transaction={};message=""
+	pages.facility_entry.back()
 func product_summary(item: Dictionary) -> String:
 	var parts=[]
 	if item.get("atk",0)>0:parts.append("ATK %d / 通常射程%d" % [item.atk,item.get("reach",0)])
@@ -127,11 +202,12 @@ func product_summary(item: Dictionary) -> String:
 	return " / ".join(parts) if not parts.is_empty() else "補正なし"
 func open_comparison(id: String):
 	if busy() or ui.modal_open():return
-	if comparison_view==null:comparison_view=preload("res://shop_comparison.gd").new(self)
-	comparison_view.open(id)
+	selection_kind="buy";pages.gear_id=id;purchase_quantity=1;sale.item_id="";sale.quote={};sale.generation+=1;sale.previewing=false
+	if comparison_view!=null:comparison_view.invalidate()
+	ui.render()
 func render_notice(parent):
 	if message.is_empty():return
-	var notice=l(parent,message);notice.name="ShopNotice";notice.add_theme_color_override("font_color",Color("#ffd0b8"))
+	var notice=l(parent,message);notice.name="ShopNotice";notice.add_theme_color_override("font_color",Color("#a44a35"))
 func record_sale(q: Dictionary):
 	transaction={"kind":"sell","ownerId":q.ownerId,"text":"%sの%s×%dを売却 / 受取%dG" % [q.ownerName,q.name,q.count,q.proceeds]};message="";ui.save_notice.display(str(transaction.text))
 func render_recipient(parent):
@@ -265,7 +341,7 @@ func back_list():
 	generation+=1;stage="S0";consent={};pages.invalidate_quote();ui.render()
 func select_slot(id: String):
 	if busy():return
-	filter_slot="all" if c().get("location")=="north" else id;ui.memory.scrolls.erase("shop_products");ui.render()
+	filter_slot=id;ui.memory.scrolls.erase("shop_products");ui.render()
 func select_member(id: String):
 	if not busy():ui.shop_uid=id
 func select_product(id: String):
@@ -283,20 +359,20 @@ func can_drop_product(data: Dictionary,uid: String) -> bool:
 func confirm_consumable(id: String,uid: String):
 	var products=offered().filter(func(item):return item.id==id)
 	if products.is_empty() or uid.is_empty() or not c().get("selected",[]).has(uid):return
-	var item=products[0];var token=c().get("inventoryToken")
-	if c().gold<item.price or c().get("inventoryTotals",{}).get(id,0)>=99:return
+	var item=products[0];var token=c().get("inventoryToken");var count=purchase_quantity;var cost=int(item.price)*count
+	if c().gold<cost or c().get("inventoryTotals",{}).get(id,0)+count>99:return
 	generation+=1;var ticket=generation;stage="S4"
 	ui.dialog.open("購入の確認",func(body,actions):
-		l(body,"%s 1個 / 支払%dG / %sのインベントリへ" % [item.name,item.price,ui.member_name(uid)],true)
+		l(body,"%s ×%d / 支払%dG / %sのインベントリへ" % [item.name,count,cost,ui.member_name(uid)],true)
 		b(actions,"キャンセル",ui.dialog.close).name="PurchaseDecline"
 		b(actions,"購入する",func():
 			if stage!="S4" or ticket!=generation:return
 			stage="S5";ui.dialog.close(false)
-			var reply=await ui.update({"op":"campaign","action":"buyItem","args":[id,1,uid,token]})
+			var reply=await ui.update({"op":"campaign","action":"buyItem","args":[id,count,uid,token]})
 			if ticket==generation:
 				unknown=reply.get("connection_lost",false);stage="S7" if unknown else "S0"
 				if reply.get("ok",false):
-					transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×1 / 支払%dG" % [ui.member_name(uid),item.name,item.price]};message="";ui.save_notice.display(str(transaction.text))
+					transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×%d / 支払%dG" % [ui.member_name(uid),item.name,count,cost]};message="";ui.save_notice.display(str(transaction.text))
 				else:message=str(reply.get("error","購入結果を確認してください。"))
 				ui.render()).name="PurchaseAgree",
 		cancel_purchase.bind(ticket))
