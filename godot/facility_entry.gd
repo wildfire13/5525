@@ -59,14 +59,20 @@ func render_top(parent: Control,page: String) -> bool:
   ui.memory.key(button,"facility_"+str(choice[1]))
   if not choice[2]:button.tooltip_text="この機能はまだ利用できません。"
  var exit_button=ui.button(options,"店を出る",ui.navigate.bind("hub"));exit_button.name="FacilityExit";exit_button.custom_minimum_size=Vector2(300,64)
- var stage=Control.new();stage.name="FacilityNpcStage";stage.custom_minimum_size=Vector2(600,ui.mock_shell.content_height());stage.size_flags_horizontal=Control.SIZE_EXPAND_FILL;stage.size_flags_vertical=Control.SIZE_FILL;layout.add_child(stage)
- var npc=pages.facility_art.npc
- if npc.texture!=null:
-  var image=TextureRect.new();image.name="FacilityNpc";image.texture=npc.texture;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;image.mouse_filter=Control.MOUSE_FILTER_IGNORE;stage.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
- var conversation=VBoxContainer.new();conversation.name="FacilityConversation";conversation.custom_minimum_size.x=480;conversation.size_flags_horizontal=Control.SIZE_EXPAND_FILL;layout.add_child(conversation)
- var top_space=Control.new();top_space.custom_minimum_size.y=100;conversation.add_child(top_space)
- var bubble=make_speech(greeting_text(),"normal");bubble.name="FacilityEntrySpeech";bubble.custom_minimum_size=Vector2(480,190);bubble.words.add_theme_font_size_override("font_size",22);bubble.set_speaker_visible(false);conversation.add_child(bubble)
+ render_entry_art(layout)
  return true
+func render_entry_art(layout: Control):
+ # All facility entrances share A's right-side framing and B's left choices.
+ var stage=Control.new();stage.name="FacilityNpcStage";stage.mouse_filter=Control.MOUSE_FILTER_IGNORE;layout.add_child(stage)
+ # Entry art leaves with the view; cached backgrounds remain independent.
+ var art=Control.new();art.name="FacilityEntryArt";art.top_level=true;art.mouse_filter=Control.MOUSE_FILTER_IGNORE;stage.add_child(art);art.position=Vector2.ZERO;art.size=ui.size
+ pages.facility_art.npc.portrait_layer(art)
+ var speech=make_speech(greeting_text(),"normal");speech.name="FacilityEntrySpeech";art.add_child(speech)
+ var speech_width=minf(640,ui.size.x-680)
+ var line_count=ceili(float(speech.words.text.length())/maxf(1,floorf(speech_width*.8/22)))
+ speech.size=Vector2(speech_width,maxf(190,float(line_count)*32/.52))
+ speech.position=(ui.size-speech.size)*.5
+ speech.words.add_theme_font_size_override("font_size",22);speech.set_speaker_visible(false)
 func greeting_text() -> String:
  return "いらっしゃい。今日はどうしますか？" if ui.page=="shop" and view=="top" else ("売る品物の持ち主を、下の人物から選んでください。" if pages.shop_view.selected_owner().is_empty() else "売却する品物を選んでください。") if ui.page=="shop" and view=="sell" else "商品をご覧ください。" if ui.page=="shop" else "お泊まりですか？" if ui.page=="inn" else "仲間の編成はこちらでどうぞ。"
 func make_speech(text: String,kind: String) -> Control:

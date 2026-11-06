@@ -44,7 +44,7 @@ func run():
   check(not field.intersects(game.hud.left_panel.get_global_rect()) and not field.intersects(game.hud.right_panel.get_global_rect()),"board separate from both information panels")
   check(range(50).all(func(cell):return field.has_point(game.board.global_position+game.board.project_cell(cell))),"all fifty cell centers visible")
   check(game.theme.default_font_size==20,"B base font")
-  check(game.hud.left_panel.get_theme_stylebox("panel").bg_color.is_equal_approx(Color("#faf9f5")),"B panel palette")
+  check(game.hud.left_panel.get_theme_stylebox("panel").bg_color.is_equal_approx(Color(250.0/255,249.0/255,245.0/255,.90)),"B panel palette")
   check(abs(game.hud.left_panel.global_position.y-game.hud.right_panel.global_position.y)<2,"aligned information columns")
   check(game.find_child("QuitGame",true,false).text=="ゲームを終了する","exit menu item")
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await process_frame

@@ -243,8 +243,13 @@ func member_grid(parent: Node,grid_name: String,min_card_width:=170.0,max_column
 	var fit=func():grid.columns=clampi(int(grid.size.x/min_card_width),1,max_columns)
 	grid.resized.connect(fit);fit.call();return grid
 func card(parent: Node) -> VBoxContainer:
-	var p=PanelContainer.new();var style=StyleBoxFlat.new();style.bg_color=Color("#20242bed") if view_kind=="battle" else Color("#faf9f5");style.border_color=Color("#626976") if view_kind=="battle" else Color("#cbd0c8");style.set_border_width_all(1)
-	style.set_corner_radius_all(5);style.set_content_margin_all(8)
+	var p=PanelContainer.new()
+	var ancestor=parent
+	var nested=false
+	while ancestor!=null and ancestor!=self:
+		if ancestor is PanelContainer:nested=true;break
+		ancestor=ancestor.get_parent()
+	var style=mock_shell.surface_style(mock_shell.PAPER,nested)
 	p.add_theme_stylebox_override("panel",style);parent.add_child(p)
 	var v=VBoxContainer.new();p.add_child(v);return v
 func scroller(parent: Node) -> VBoxContainer:
@@ -497,12 +502,7 @@ func render():
 	resource_header.visible=not battle
 	location_bar.visible=false
 	top.visible=battle or engine.disconnected
-	clear(backdrop_layer)
-	if not battle and phase=="town":
-		if page=="hub":
-			pages.hub_view.select_art(str(c.location))
-			if not pages.hub_view.artwork.is_empty():pages.facility_art.fullscreen(backdrop_layer,load(pages.hub_view.artwork.path))
-		elif page in ["party","inn","shop","map"]:pages.facility_art.fullscreen(backdrop_layer)
+	pages.facility_art.render_background(backdrop_layer,self,battle)
 	actor_face.visible=false
 	var lower_return=phase=="result" or phase=="town" and page!="hub"
 	town_back.visible=not battle and page!="hub" and phase=="town" and not lower_return

@@ -122,7 +122,7 @@ func perform(uid,item,action,target,count,slot):
 	else:toast(str(result.get("error","操作できません")))
 	ui.render()
 func toast(text):
-	var panel=PanelContainer.new();panel.name="InventoryToast";panel.add_theme_stylebox_override("panel",ui.mock_shell.style());ui.add_child(panel);panel.z_index=90
+	var panel=PanelContainer.new();panel.name="InventoryToast";panel.add_theme_stylebox_override("panel",ui.mock_shell.surface_style());ui.add_child(panel);panel.z_index=90
 	var label=ui.label_(panel,text);label.custom_minimum_size=Vector2(400,40);panel.position=Vector2(ui.size.x-460,ui.size.y-100)
 	ui.get_tree().create_timer(3).timeout.connect(panel.queue_free)
 func preview(parent,member,item,equip):
