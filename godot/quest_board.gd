@@ -9,12 +9,13 @@ var picker_generation := 0
 var picker_owner := ""
 var submitted := false
 var dialogue
-func _init(owner):owner_ref=weakref(owner);ui=owner.ui
+var meeting
+func _init(owner):owner_ref=weakref(owner);ui=owner.ui;meeting=preload("res://quest_meeting.gd").new(ui)
 func _dialogue():
 	if not is_instance_valid(dialogue):dialogue=preload("res://quest_dialogue.gd").new(ui,self)
 	return dialogue
 func reset():
-	selected_id="";picker_generation+=1;picker_owner="";submitted=false
+	selected_id="";picker_generation+=1;picker_owner="";submitted=false;meeting.reset()
 func render(parent):
 	var quests: Array=pages.c().get("board",[])
 	var aftermath: Array=pages.c().get("scenarioAftermath",[])
@@ -50,9 +51,10 @@ func render_detail(parent,q: Dictionary,active: bool):
 	pages.l(details,str(q.get("text",""))).add_theme_font_size_override("font_size",20)
 	field(details,"届け先",pages.town(q.get("to","")))
 	field(details,"依頼者" if q.get("scenario",false) else "受取人",str(q.get("client","")))
-	if q.get("scenario",false):
+	if q.get("scenario",false) and q.get("eventId")!="wheel":field(details,"受取人",str({"turnip":"計量係","kiln":"陶工の師匠"}.get(str(q.get("eventId","")),"")))
+	if q.get("scenario",false) and q.get("eventId")!="wheel":
 		field(details,"期限","掲載から%d時間以内 / 残り%d時間" % [q.get("deadline",0),maxi(0,int(q.get("deadlineAt",0))-int(pages.c().get("worldTime",0)))])
-	else:field(details,"希望条件","%d時間以内に配達" % q.get("deadline",0))
+	elif not q.get("scenario",false):field(details,"希望条件","%d時間以内に配達" % q.get("deadline",0))
 	var cargo_line=pages.row(details);cargo_line.name="QuestCargoInformation"
 	var caption=pages.l(cargo_line,"荷物情報");caption.custom_minimum_size.x=150;caption.size_flags_horizontal=Control.SIZE_FILL
 	var cargo_items=q.get("cargoItems",[{"name":q.get("cargo","荷物"),"quantity":1,"weight":q.get("weight",0)}])
@@ -74,35 +76,21 @@ func render_detail(parent,q: Dictionary,active: bool):
 		reward_line(details,"希望条件達成報酬",str(rewards.get("type","money")),int(rewards.get("bonus",0)),int(rewards.get("bonusRP",0)))
 		if rewards.get("legacyXP",false):reward_line(details,"キャラクター報酬","experience",int(q.get("xp",0)),0)
 	if q.get("scenario",false):
-		var npc_names={"turnip":"農夫・計量係","kiln":"若い陶工・陶工の師匠","wheel":"車輪職人・行商人"}
-		pages.l(details,"登場人物: "+str(npc_names.get(str(q.get("eventId","")),q.get("client",""))))
-		if str(q.get("eventId",""))=="wheel":
-			if q.get("merchantDeparted",false):
-				pages.l(details,"行商人: サウスを出発済み").name="QuestMerchantWindow"
-			elif q.get("merchantTraveling",false):
-				pages.l(details,"行商人: アスタリスへ移動中（掲載後10時間に到着予定）").name="QuestMerchantWindow"
-			else:
-				var window: Dictionary=q.get("merchantWindow",{})
-				if not window.is_empty():
-					var interval="掲載後%d時間以上%d時間まで" % [window.from,window.to] if window.stop=="south" else "掲載後%d時間以上%d時間未満" % [window.from,window.to]
-					pages.l(details,"行商人: %s（%s停車）" % [pages.town(window.stop),interval]).name="QuestMerchantWindow"
-			if q.get("merchantAtStop",false):
-				pages.l(details,"受け取り: この町で可能").name="QuestMerchantAvailability"
-			elif q.get("merchantDeparted",false):
-				pages.l(details,"受け取り: 行商人は出発済み").name="QuestMerchantAvailability"
-			elif q.get("merchantTraveling",false):
-				pages.l(details,"受け取り: 行商人の到着前。アスタリスで待てます").name="QuestMerchantAvailability"
-			else:
-				pages.l(details,"受け取り: %sへ向かってください" % pages.town(q.get("merchantCurrentStop","south"))).name="QuestMerchantAvailability"
-		var story=pages.b(details,"話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);story.custom_minimum_size.y=44
+		if str(q.get("eventId",""))=="wheel":meeting.render(details,q,"Quest",true)
+		var story=pages.b(details,"依頼時の話" if active else "話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);story.custom_minimum_size.y=44
+
 	var actions=pages.row(parent);actions.name="QuestDetailActions";actions.alignment=BoxContainer.ALIGNMENT_END
 	if active:
-		if pages.c().location==q.to:
+		var m: Dictionary=q.get("meeting",{})
+		if m.get("canWait",false):
+			ui.primary(pages.b(actions,meeting.wait_label(q),meeting.open_wait)).name="WaitForMerchant"
+		elif not m.is_empty() and (m.get("canDeliver",false) or m.get("canSettleFailure",false)):
+			ui.primary(pages.b(actions,"拠点で受け渡しを確認",ui.navigate.bind("hub")))
+		elif pages.c().location==q.to and q.get("eventId")!="wheel":
 			if not pages.c().get("cargoAboard",false):pages.l(details,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
 			ui.primary(pages.b(actions,"拠点で荷物を届ける",ui.navigate.bind("hub")))
-		else:pages.l(actions,"受注中 — 配達先へ向かいましょう。")
-		if q.get("eventId","")=="wheel" and q.get("merchantCanWait",false):
-			ui.primary(pages.b(actions,"アスタリスで行商人を%d時間待つ" % int(q.get("merchantWaitHours",0)),ui.act.bind("waitForEvent",[]))).name="WaitForMerchant"
+		else:pages.b(actions,"移動先を確認",ui.navigate.bind("map"))
+
 	else:
 		var accept=ui.green_button(pages.b(actions,"この依頼を引き受ける",open_picker.bind(str(q.id)),not pages.c().get("hasPorter",false)));accept.name="QuestAccept";accept.size_flags_horizontal=Control.SIZE_SHRINK_END;accept.custom_minimum_size.x=280
 
@@ -126,8 +114,14 @@ func open_story(q: Dictionary):
 	if ui.locked or ui.modal_open() or ui.presenting:return
 	var scene=_dialogue()
 	if scene.get_parent()==null:ui.add_child(scene)
-	scene.open(q,func():open_picker(str(q.id)))
-func play_scene(story: Array,portrait_key: String,cast: Array=[]):
+	var scene_quest=q.duplicate(true);scene_quest["cast"]=scene_cast(str(q.get("eventId","")),"request",q.get("cast",[]));scene_quest["sceneLabel"]="依頼時の話" if pages.c().get("activeQuest") is Dictionary else "依頼の話"
+	scene.open(scene_quest,Callable() if pages.c().get("activeQuest") is Dictionary else func():open_picker(str(q.id)))
+func scene_cast(event_id: String,kind: String,fallback: Array=[]) -> Array:
+	var request={"turnip":["farmer"],"kiln":["apprentice"],"wheel":["wheelwright"]}
+	var delivery={"turnip":["weigher","farmer"],"kiln":["master"],"wheel":["merchant"]}
+	return (request if kind=="request" else delivery).get(event_id,fallback).duplicate()
+func play_scene(story: Array,portrait_key: String,cast: Array=[],event_id: String=""):
+	if not event_id.is_empty():cast=scene_cast(event_id,"delivery",cast)
 	if story.is_empty():return
 	var scene=_dialogue()
 	if scene.get_parent()==null:ui.add_child(scene)

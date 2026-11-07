@@ -135,7 +135,7 @@ func _build():
  var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(spacer)
  continue_button=Button.new();continue_button.name="ResultContinue";continue_button.text="OK";continue_button.custom_minimum_size=Vector2(220,46);ui.green_button(continue_button);actions.add_child(continue_button)
  if current.get("story",[]) is Array and not current.get("story",[]).is_empty():
-  var scene=Button.new();scene.name="ResultStory";scene.text="会話を見る";scene.custom_minimum_size=Vector2(160,46);actions.add_child(scene);scene.pressed.connect(func():if active:ui.pages.quest_board.play_scene(current.story,str(current.get("portrait","")),current.get("cast",[])))
+  var scene=Button.new();scene.name="ResultStory";scene.text="会話を見る";scene.custom_minimum_size=Vector2(160,46);actions.add_child(scene);scene.pressed.connect(func():if active:ui.pages.quest_board.play_scene(current.story,str(current.get("portrait","")),current.get("cast",[]),str(current.get("scenario",""))))
  var owner=sequence;continue_button.pressed.connect(func():if active and sequence==owner:advance())
 func _summary(parent: Node,title: String,value: String,detail: String,node_name: String):
  var card=PanelContainer.new();card.name=node_name;card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.add_theme_stylebox_override("panel",style(Color("#f5f4ee"),Color("#cbd0c7"),10 if _compact else 12));parent.add_child(card)
