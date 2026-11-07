@@ -265,6 +265,7 @@ func confirm(text: String,fn: Callable):
 	var origin=get_viewport().gui_get_focus_owner()
 	var origin_key=str(origin.get_meta("ui_key","")) if origin!=null else memory.focus_key
 	var d=ConfirmationDialog.new();d.exclusive=true;d.title="確認";d.dialog_text=text;d.ok_button_text="実行する";d.cancel_button_text="キャンセル"
+	d.add_theme_stylebox_override("panel",mock_shell.surface_style())
 	d.dialog_autowrap=true;d.add_theme_font_size_override("font_size",18)
 	d.get_label().add_theme_font_size_override("font_size",18)
 	# Keep dialog_text for the confirmation contract; a scrollable copy prevents
@@ -468,6 +469,7 @@ func navigate(value: String):
 	if not pages.party_view.guard_leave(navigate.bind(value)):return
 	if page=="party" and not pages.guild_view.guard_leave():return
 	record_debug_event("navigate","success")
+	pages.quest_board.meeting.reset()
 	invalidate_preview();pages.facility_entry.navigate(value);page=value;pages.reset_items();pages.invalidate_quote(false);memory.focus_key="";render()
 func render():
 	if rendering:return
@@ -566,24 +568,7 @@ func forecast_action(choice: String,action: String,args: Array):
 	if r.get("ok",false):
 		var f=r.get("forecast",{})
 		if f.get("scenario",false) and (f.get("late",false) or not f.get("handoffAvailable",true)):
-			var q=campaign().get("activeQuest",{})
-			var warning=""
-			if f.get("scenario",false):
-				var lead="掲載からの期限を超える見込みです。"
-				var consequence="期限切れとなり荷物と受注前の状態が戻ります。" if f.get("willFail",false) else "遅配となり、減額報酬になります。"
-				if not f.get("handoffAvailable",true):
-					match f.get("handoffPhase",""):
-						"before_arrival":
-							lead="到着時（掲載後%d時間）には行商人はまだアスタリスに到着前です。到着後、アスタリスで待機できます。" % f.get("hours",0)
-							if not f.get("willFail",false):consequence="行商人の到着を待てば受け取れます。"
-						"departed":lead="到着時（掲載後%d時間）には行商人はサウスを出発済みです。" % f.get("hours",0)
-						_:
-							lead="到着時に行商人は%sにいるため、%sでは受け取れません。" % [town_name(f.get("handoffStop","")),town_name(f.get("arrivalLocation",""))]
-							if not f.get("willFail",false):consequence="この到着では配達報酬はありません。"
-				warning="%s\n%s\n掲載後 %d時間 / 締切 %d時間\n超過 %d時間 / 見込み報酬 %dG\nこのまま進みますか？" % [lead,consequence,f.get("hours",0),f.get("deadline",q.get("deadline",0)),f.get("over",0),f.get("reward",0)]
-			else:
-				warning="以降を最短で進んでも納期を超えます。\n見込み %d時間 / 納期 %d時間\n超過 %d時間 / 見込み報酬 %dG\nこのまま進みますか？" % [f.get("hours",0),q.get("deadline",0),f.get("over",0),f.get("reward",0)]
-			confirm(warning,act.bind(action,args))
+			confirm(pages.quest_board.meeting.forecast_text(f),act.bind(action,args))
 		else:await act(action,args)
 func render_party(body):pages.party(body)
 func toggle_member(uid: String):

@@ -18,6 +18,8 @@ SUITES = [
     'mock_travel_regression', 'mock_journey_integration', 'mock_service_regression',
     'mock_deployment_regression', 'combat_b_ui', 'battle_selection_regression',
     'menu_exit_regression', 'quest_reward_display_regression',
+    'standalone_quest_failure_regression', 'quest_modal_regression',
+    'npc_meeting_regression', 'town_meeting_layout_regression', 'quest_decisions_regression', 'quest_aftermath_access_regression',
 ]
 
 p = argparse.ArgumentParser(description=__doc__)
@@ -47,13 +49,15 @@ for name in a.only or SUITES:
         path.mkdir()
         env[key] = str(path)
     wrapper = scope / 'fhd-suite.gd'
+    # The meeting suite deliberately verifies FHD and a smaller viewport.
+    contract = '' if name in ('npc_meeting_regression', 'town_meeting_layout_regression', 'quest_decisions_regression', 'quest_aftermath_access_regression') else (
+        ' root.add_child(preload("res://tests/fhd_contract.gd").new())\n')
     wrapper.write_text(
         f'extends "res://tests/{name}.gd"\n'
         'func _initialize():call_deferred("_start_fhd_suite")\n'
         'func _start_fhd_suite():\n'
         ' root.size=Vector2i(1920,1080)\n'
-        ' root.add_child(preload("res://tests/fhd_contract.gd").new())\n'
-        ' super._initialize()\n', encoding='utf-8')
+        + contract + ' super._initialize()\n', encoding='utf-8')
     command = [godot, '--headless', '--resolution', '1920x1080', '--audio-driver',
                'Dummy', '--path', str(repo / 'godot'), '--script', str(wrapper)]
     started = time.monotonic()

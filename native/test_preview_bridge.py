@@ -102,7 +102,11 @@ class PreviewBridgeTests(unittest.TestCase):
         self.journey('deploy', 'scout', 0)
         self.journey('begin')
         state = self.reach_actor('scout')
-        target = unit(state, 'enemy-scout-2')
+        # Node/V8 versions can give the seeded enemy a different duplicate suffix.
+        # This case tests the ally scout's four-step landing, not an incidental enemy ID.
+        targets = [u for u in state['units'] if u['side'] == 'enemy' and u['hp'] > 0 and u['pos'] == 5]
+        self.assertEqual(len(targets), 1, 'Preview fixture needs one live enemy at position 5')
+        target = targets[0]
         self.assertEqual(target['pos'], 5)
         self.assertIn(target['id'], self.data['choices']['skill'])
         p = self.preview('skill', target['id'])
