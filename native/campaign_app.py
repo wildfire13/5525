@@ -743,7 +743,10 @@ class CampaignApp(JourneyApp):
         self.label('掲示板 / 同時に受ける依頼は一件', 17)
         if quest:
             frame = self.card()
-            if self.town_id() == quest['to']:
+            if quest.get('meeting', {}).get('canSettleFailure'):
+                self.label('受取期間は終了しました。この町で期限切れを確認できます。', parent=frame)
+                self.button('期限切れを確認して荷物を戻す', self.settle_expired_quest, parent=frame)
+            elif self.town_id() == quest['to']:
                 missing = not self.campaign.get('cargoAboard', False)
                 if missing:
                     self.label('同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。', parent=frame)
@@ -767,6 +770,31 @@ class CampaignApp(JourneyApp):
                         disabled=not self.campaign.get('hasPorter'))
         if not self.campaign.get('hasPorter'):
             self.label('クエスト受注には最低1人のポーターが必要です。ギルドで編成してください。自由移動は可能です。', color='#fca5a5')
+
+    def settle_expired_quest(self):
+        if getattr(self, 'quest_failure_pending', False) or self.closed:
+            return
+        meeting = (self.campaign.get('activeQuest') or {}).get('meeting', {})
+        if not meeting.get('canSettleFailure'):
+            return
+        expected, page = self.campaign, self.page
+        self.quest_failure_pending = True
+        try:
+            accepted = messagebox.askyesno('期限切れの確認',
+                'この依頼を期限切れの失敗として終了しますか？\n'
+                '荷物・所持金・成長・場所などを受注前の状態へ戻します。報酬はありません。\n'
+                '世界の時刻は巻き戻りません。', parent=self.root, default=messagebox.NO)
+            if not accepted or self.closed or self.page != page:
+                return
+            current = self.request(op='view')
+            if not current.get('ok') or current.get('campaign') != expected or current.get('trial'):
+                self.notice = '状態が変わりました。期限切れの内容を確認し直してください。'
+                return
+            self.request(op='campaign', action='completeQuest', args=[meeting['failureExpected']])
+        finally:
+            self.quest_failure_pending = False
+            if not self.closed:
+                self.render()
 
     def accept_quest(self, quest_id):
         dialog = tk.Toplevel(self.root)

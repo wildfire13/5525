@@ -49,7 +49,7 @@ func render_detail(parent,q: Dictionary,active: bool):
 	pages.l(parent,("受注中: " if active else "")+str(q.name),true).name="QuestDetailTitle"
 	var details=ui.scroller(parent);details.name="QuestDetailBody";details.get_parent().custom_minimum_size.y=64
 	pages.l(details,str(q.get("text",""))).add_theme_font_size_override("font_size",20)
-	field(details,"届け先",pages.town(q.get("to","")))
+	field(details,"期限切れの確認", "どの町でも可能") if q.get("meeting",{}).get("canSettleFailure",false) else field(details,"届け先",pages.town(q.get("to","")))
 	field(details,"依頼者" if q.get("scenario",false) else "受取人",str(q.get("client","")))
 	if q.get("scenario",false) and q.get("eventId")!="wheel":field(details,"受取人",str({"turnip":"計量係","kiln":"陶工の師匠"}.get(str(q.get("eventId","")),"")))
 	if q.get("scenario",false) and q.get("eventId")!="wheel":
@@ -85,7 +85,7 @@ func render_detail(parent,q: Dictionary,active: bool):
 		if m.get("canWait",false):
 			ui.primary(pages.b(actions,meeting.wait_label(q),meeting.open_wait)).name="WaitForMerchant"
 		elif not m.is_empty() and (m.get("canDeliver",false) or m.get("canSettleFailure",false)):
-			ui.primary(pages.b(actions,"拠点で受け渡しを確認",ui.navigate.bind("hub")))
+			ui.primary(pages.b(actions,"拠点で期限切れを確認" if m.get("canSettleFailure",false) else "拠点で受け渡しを確認",ui.navigate.bind("hub")))
 		elif pages.c().location==q.to and q.get("eventId")!="wheel":
 			if not pages.c().get("cargoAboard",false):pages.l(details,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
 			ui.primary(pages.b(actions,"拠点で荷物を届ける",ui.navigate.bind("hub")))

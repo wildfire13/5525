@@ -17,7 +17,7 @@ func availability(m: Dictionary) -> String:
 		"available":return "この町で納品できます"
 		"cargo_missing":return "荷物担当が編成外か、荷物を持っていません"
 		"before_arrival":return "この町への到着前。到着まで待てます" if m.get("canWait",false) else "受注後、停車予定の町で到着を待てます"
-		"departed":return "期限切れを確認して荷物を戻せます" if m.get("canSettleFailure",false) else "サウスで期限切れを確認できます"
+		"departed":return "この町で期限切れを確認して荷物を戻せます" if m.get("canSettleFailure",false) else "町に到着後、期限切れを確認できます"
 		"not_accepted":return "受注後、%sへ向かってください" % ui.town_name(m.currentStop) if m.get("currentStop")!=null else "受注後、停車予定の町で到着を待てます"
 		"not_in_town":return "到着後に受取状態を確認してください"
 		_:return "%sでの受取は終了。%sへ向かってください" % [ui.town_name(m.location),ui.town_name(m.currentStop)] if m.get("localWindow") is Dictionary else "%sへ向かってください" % ui.town_name(m.get("currentStop") if m.get("currentStop")!=null else "astaris")
@@ -35,7 +35,7 @@ func render(parent,q: Dictionary,prefix: String,with_details := false):
 	ui.label_(parent,status(m)).name=prefix+"Status"
 	ui.label_(parent,availability(m)).name="QuestMerchantAvailability" if prefix=="Quest" else "HubMerchantAvailability"
 	ui.label_(parent,deadline_text(m)).name=prefix+"Deadline"
-	if not m.get("cargoAboard",false) and q.get("token")!=null:
+	if not m.get("cargoAboard",false) and q.get("token")!=null and m.get("finalOpen",true):
 		ui.label_(parent,"納品には荷物を持つポーターの同行が必要です。").name=prefix+"CargoNotice"
 	if with_details:
 		var detail=VBoxContainer.new();detail.name=prefix+"ScheduleDetails";detail.visible=false
@@ -71,6 +71,26 @@ func open_wait():
 		await ui.act("waitForEvent",[expected]))
 	confirm.name="MerchantWaitConfirmation"
 	confirm.canceled.connect(func():generation+=1)
+func open_failure():
+	if ui.locked or ui.presenting or ui.modal_open() or ui.closing:return
+	var q=ui.campaign().get("activeQuest")
+	if not q is Dictionary:return
+	var m: Dictionary=q.get("meeting",{})
+	if not m.get("canSettleFailure",false):return
+	generation+=1
+	var ticket=generation;var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation;var page=ui.page
+	var expected: Dictionary=m.get("failureExpected",{}).duplicate(true)
+	var text="この依頼を期限切れの失敗として終了しますか？\n荷物・所持金・成長・場所などを受注前の状態へ戻します。報酬はありません。\n世界の時刻は巻き戻りません（世界時刻%d時間のまま）。" % int(m.worldTime)
+	var confirm=ui.confirm(text,func():
+		if ticket!=generation or epoch!=ui.pages.epoch or connection!=ui.engine.connection_generation or page!=ui.page or ui.closing:return
+		var current=ui.campaign().get("activeQuest")
+		if not current is Dictionary:return
+		var now: Dictionary=current.get("meeting",{})
+		if not now.get("canSettleFailure",false) or now.get("failureExpected",{})!=expected:return
+		generation+=1
+		await ui.act("completeQuest",[expected]))
+	confirm.name="MerchantFailureConfirmation"
+	confirm.canceled.connect(func():generation+=1)
 func forecast_text(f: Dictionary) -> String:
 	var arrival=ui.town_name(f.get("arrivalLocation",""))
 	var lines=["到着直後: %s / 予定開始から%d時間" % [arrival,int(f.get("hours",0))]]
@@ -93,6 +113,6 @@ func forecast_text(f: Dictionary) -> String:
 		lines.append("納品可能。見込み報酬 %dG" % int(after.get("reward",0)) if after.get("handoffAvailable",false) else "受取人は到着しますが、納品には荷物担当と編成の確認が必要です。")
 	if f.get("late",false) and not f.get("willFail",false):
 		if f.get("meeting") is Dictionary and f.meeting.get("finalOpen",false):lines.append("希望条件の期限は超過しています。受取期間内に納品すると遅配になります。")
-		else:lines.append("受取期限は終了しています。%sで期限切れを確認できます。" % ("サウス" if f.get("meeting") is Dictionary else ui.town_name(f.get("handoffStop",""))))
+		else:lines.append("受取期限は終了しています。%s期限切れを確認できます。" % ("どの町でも" if f.get("meeting") is Dictionary else ui.town_name(f.get("handoffStop",""))+"で"))
 	lines.append("\n戦闘勝利・追加休息なし、現在の荷物と編成を維持した場合の予測です。\nこのまま進みますか？")
 	return "\n".join(lines)

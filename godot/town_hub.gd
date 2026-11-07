@@ -49,9 +49,10 @@ func render(parent):
 			ui.primary(ui.button(column,ui.pages.quest_board.meeting.wait_label(quest),ui.pages.quest_board.meeting.open_wait)).name="HubWaitForMerchant"
 		elif m.get("canDeliver",false) or m.get("canSettleFailure",false):
 			var action="期限切れを確認して荷物を戻す" if m.get("canSettleFailure",false) else "荷物を届ける"
-			var deliver=ui.primary(ui.button(column,action,ui.act.bind("completeQuest",[]),not c.get("cargoAboard",false)));deliver.name="HubDeliverCargo"
+			var callback=ui.pages.quest_board.meeting.open_failure if m.get("canSettleFailure",false) else ui.act.bind("completeQuest",[])
+			var deliver=ui.primary(ui.button(column,action,callback));deliver.name="HubDeliverCargo"
 			deliver.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-		elif m.get("reason")=="cargo_missing" or (m.get("state")=="departed" and c.location=="south" and not c.get("cargoAboard",false)):
+		elif m.get("reason")=="cargo_missing":
 			ui.button(column,"荷物担当を確認",ui.navigate.bind("party")).name="HubCheckCarrier"
 		else:
 			ui.button(column,"移動先を確認",ui.navigate.bind("map")).name="HubMeetingMap"
