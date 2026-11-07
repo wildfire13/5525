@@ -49,7 +49,7 @@ func render_detail(parent,q: Dictionary,active: bool):
 	var details=ui.scroller(parent);details.name="QuestDetailBody";details.get_parent().custom_minimum_size.y=64
 	pages.l(details,str(q.get("text",""))).add_theme_font_size_override("font_size",20)
 	field(details,"届け先",pages.town(q.get("to","")))
-	field(details,"受取人",str(q.get("client","")))
+	field(details,"依頼者" if q.get("scenario",false) else "受取人",str(q.get("client","")))
 	if q.get("scenario",false):
 		field(details,"期限","掲載から%d時間以内 / 残り%d時間" % [q.get("deadline",0),maxi(0,int(q.get("deadlineAt",0))-int(pages.c().get("worldTime",0)))])
 	else:field(details,"希望条件","%d時間以内に配達" % q.get("deadline",0))
