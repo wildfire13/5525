@@ -99,12 +99,13 @@ const Campaign = (() => {
       waitExpected:{questToken:q.token??null,location,worldTime,waitHours},
       deadline:q.deadline,lateDeadline:q.lateDeadline,preferredMet:age<=q.deadline,preferredRemaining:Math.max(0,q.deadline-age),preferredBoundary:age===q.deadline,atPreferredBoundary:age===q.deadline,
       finalOpen:age<=q.lateDeadline,finalRemaining:Math.max(0,q.lateDeadline-age),finalBoundary:age===q.lateDeadline,atFinalBoundary:age===q.lateDeadline,
-      canSettleFailure:accepted&&phase==='town'&&location==='south'&&age>q.lateDeadline&&cargoAboard};
+      canSettleFailure:accepted&&phase==='town'&&!!getPlace(location)&&age>q.lateDeadline,
+      failureExpected:{questToken:q.token??null,location,worldTime}};
   }
   function refreshWheelQuest(s,q){
     const m=recipientMeeting(s,q),stop=m.currentStop||m.nextStop?.stop||'south';
     q.to=stop;
-    q.text=m.state==='departed'?'行商人はサウスを出発しました。サウスで期限切れを確認すると、荷物と受注前の状態へ戻ります。':questText({to:stop,cargo:q.cargo});
+    q.text=m.state==='departed'?'行商人はサウスを出発しました。どの町でも期限切れを確認すると、荷物と受注前の状態へ戻ります。世界の時刻は巻き戻りません。':questText({to:stop,cargo:q.cargo});
   }
   function wheelPresentation(s,q){
     if(q?.eventId!=='wheel')return q;
@@ -278,8 +279,8 @@ const Campaign = (() => {
     if(events.turnip?.status==='missed'&&here==='north')out.push({id:'turnip-aftermath',name:'品評会のあと',portrait:'farmer',story:[['narration','畑の脇に、今年の一位を知らせる札が掛かっている。'],['farmer','見たか、今年の一位。あれなら……いや、何でもない。']]});
     if(events.turnip?.status==='completed'&&worldAge(s,'turnip')>=18&&here==='north')out.push({id:'turnip-result',name:'品評会の後日談',portrait:'farmer',story:[['narration','畑の脇に、二位の札が飾ってある。'],['farmer','雨で傷むといかんからな。屋根だけ付けた。']]});
     if(events.kiln?.status==='missed'&&here==='east')out.push({id:'kiln-aftermath',name:'窯のあと',portrait:'',story:[['narration','工房の戸口には、看板を外した跡が残っている。']]});
-    if(events.kiln?.status==='completed'&&worldAge(s,'kiln')>=23&&here==='east')out.push({id:'kiln-return',name:'窯焚きの後日談',portrait:'apprentice',story:[['narration','棚には、一客だけ値札のない器が置かれている。'],['apprentice','売るつもりだったんだけどね。'],['apprentice','……次のを売るよ。']]});
-    if(events.wheel?.status==='missed'&&here==='south')out.push({id:'wheel-aftermath',name:'荷車のあと',portrait:'',story:[['narration','休憩場所には荷車の跡と、道脇へ寄せられた車輪の破片が残っている。']]});
+    if(events.kiln?.status==='completed'&&worldAge(s,'kiln')>=23&&here==='east')out.push({id:'kiln-return',name:'窯焚きの後日談',portrait:'apprentice',story:[['narration','若い陶工が、イースの工房を訪ねてきている。'],['narration','棚には、一客だけ値札のない器が置かれている。'],['apprentice','売るつもりだったんだけどね。'],['apprentice','……次のを売るよ。']]});
+    if(events.wheel?.status==='missed'&&worldAge(s,'wheel')>MERCHANT_STOPS.at(-1).to&&here==='south')out.push({id:'wheel-aftermath',name:'荷車のあと',portrait:'',story:[['narration','休憩場所には荷車の跡と、道脇へ寄せられた車輪の破片が残っている。']]});
     return out;
   }
   function scenarioStages(s){
@@ -534,7 +535,7 @@ const Campaign = (() => {
         const later=recipientMeeting(s,q,{age:meeting.waitUntilAge,location:arrivalLocation,phase:'town'}),laterLate=later.age>q.deadline;
         afterWait={hours:later.age,worldTime:later.worldTime,handoffAvailable:later.handoffAvailable,reward:later.handoffAvailable?(laterLate?q.lateReward:q.reward):0,late:laterLate,meeting:later};
       }
-      return {...f,hours:predicted,late,over:Math.max(0,predicted-q.deadline),remaining:Math.max(0,q.deadline-predicted),deadline:q.deadline,reward,scenario:true,willFail:q.eventId==='wheel'?arrivalLocation==='south'&&predicted>q.lateDeadline:arrivalLocation===q.to&&late,handoffStop,handoffPhase:meeting?(meeting.state==='in_transit'?'before_arrival':meeting.state):null,handoffAvailable,arrivalLocation,meeting,immediate,afterWait,waitHours:meeting?.canWait?meeting.waitHours:0,questless:false};
+      return {...f,hours:predicted,late,over:Math.max(0,predicted-q.deadline),remaining:Math.max(0,q.deadline-predicted),deadline:q.deadline,reward,scenario:true,willFail:q.eventId==='wheel'?predicted>q.lateDeadline:arrivalLocation===q.to&&late,handoffStop,handoffPhase:meeting?(meeting.state==='in_transit'?'before_arrival':meeting.state):null,handoffAvailable,arrivalLocation,meeting,immediate,afterWait,waitHours:meeting?.canWait?meeting.waitHours:0,questless:false};
     }
     const hours=f.hours+(q?.elapsedHours||0),late=!!q&&hours>q.deadline;
     return {...f,hours,late,over:q?Math.max(0,hours-q.deadline):0,reward:q?Math.floor(q.reward*(late?.65:1)):0,questless:!q};
@@ -551,12 +552,16 @@ const Campaign = (() => {
     s.boardRound++;s.phase='result';s.result={outcome:'travel',gold:0,xp:0,hours:j.hours,location:s.location,quest:null,restored:false};
     note(s,'未受注の移動で到着。配達報酬なし。');s.rollback=null;s.battle=null;j.phase='result';return true;
   }
-  function completeQuest(s){
+  function completeQuest(s,expected=null){
     const q=s.activeQuest;
-    if(s.phase!=='town'||!q||!Cargo.aboard(s))return false;
-    const meeting=recipientMeeting(s,q),age=meeting?meeting.age:q.eventId?worldAge(s,q.eventId):null;
+    if(s.phase!=='town'||!q)return false;
+    const meeting=recipientMeeting(s,q),overdueWheel=!!meeting?.canSettleFailure;
+    // A failed contract restores its snapshot; it is not a cargo handoff.
+    // Optional confirmation context rejects stale UI actions without changing legacy callers.
+    if(expected!==null&&(!overdueWheel||!record(expected)||expected.questToken!==q.token||expected.location!==s.location||expected.worldTime!==s.worldTime))return false;
+    if(!overdueWheel&&!Cargo.aboard(s))return false;
+    const age=meeting?meeting.age:q.eventId?worldAge(s,q.eventId):null;
     const handoffLocation=meeting?meeting.currentStop:q.to;
-    const overdueWheel=q.eventId==='wheel'&&age>q.lateDeadline&&s.location==='south';
     if(s.location!==handoffLocation&&!overdueWheel)return false;
     if(q.eventId==='wheel'&&age<10)return false;
     const hours=q.elapsedHours||0,late=q.eventId?age>q.deadline:hours>q.deadline;

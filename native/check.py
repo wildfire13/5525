@@ -38,6 +38,7 @@ steps=[
  ('Quest cargo ownership and reserve carrier',['node','test_quest_cargo.cjs']),
  ('Standalone quests, schedules and save migration',['node','test_standalone_quests.cjs']),
  ('NPC meeting schedule, wait and arrival forecast',['node','test_npc_meeting.cjs']),
+ ('Quest decisions, all-town expiry and aftermath',['node','test_quest_decisions.cjs']),
  ('Standalone 30-action parity',['node','test_parity.cjs']),
  ('Reachable QA boundary fixtures',['node','test_qa_fixtures.cjs']),
  ('Historical provenance and current porter contract',['node','test_engine_regression.cjs']),

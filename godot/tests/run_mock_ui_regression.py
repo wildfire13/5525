@@ -19,7 +19,7 @@ SUITES = [
     'mock_deployment_regression', 'combat_b_ui', 'battle_selection_regression',
     'menu_exit_regression', 'quest_reward_display_regression',
     'standalone_quest_failure_regression', 'quest_modal_regression',
-    'npc_meeting_regression', 'town_meeting_layout_regression',
+    'npc_meeting_regression', 'town_meeting_layout_regression', 'quest_decisions_regression',
 ]
 
 p = argparse.ArgumentParser(description=__doc__)
@@ -50,7 +50,7 @@ for name in a.only or SUITES:
         env[key] = str(path)
     wrapper = scope / 'fhd-suite.gd'
     # The meeting suite deliberately verifies FHD and a smaller viewport.
-    contract = '' if name in ('npc_meeting_regression', 'town_meeting_layout_regression') else (
+    contract = '' if name in ('npc_meeting_regression', 'town_meeting_layout_regression', 'quest_decisions_regression') else (
         ' root.add_child(preload("res://tests/fhd_contract.gd").new())\n')
     wrapper.write_text(
         f'extends "res://tests/{name}.gd"\n'

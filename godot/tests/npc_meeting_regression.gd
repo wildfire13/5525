@@ -123,7 +123,7 @@ func run():
 	for sample in [["kiln","astaris","south",21,"イース"],["wheel","east","astaris",31,"サウス"]]:
 		await install(accepted[sample[0]],sample[1],sample[3],"map");await game.act("depart",[sample[2],"convoy"]);await settle()
 		await game.forecast_action("short","travel",["short"]);await settle();var message=node("ConfirmationMessage")
-		check(message is Label and message.text.contains("受取期限は終了") and message.text.contains(sample[4]) and not message.text.contains("遅配"),"expired wrong-town forecast points to settlement without late-success: "+sample[0])
+		check(message is Label and (message.text.contains("受取期限を超える") if sample[0]=="wheel" else message.text.contains("受取期限は終了")) and message.text.contains(sample[4]) and not message.text.contains("遅配"),"expired wrong-town forecast points to settlement without late-success: "+sample[0])
 		for d in game.find_children("*","ConfirmationDialog",true,false):await cancel(d)
 	# Resize assertions concern logical UI containment, not screenshot/visual approval.
 	for dims in [Vector2i(1920,1080),Vector2i(1280,720)]:
