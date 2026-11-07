@@ -39,8 +39,9 @@ func render(parent):
 		if str(q.id)==selected_id:
 			render_detail(detail,q,active is Dictionary)
 			render_requester(split,q)
+	# Aftermath must remain inside the existing scrollable list, not below a full-height board.
 	for entry in aftermath:
-		var after=pages.card(parent);after.name="QuestAftermath_"+str(entry.id);pages.l(after,str(entry.name),true);pages.b(after,"出来事を知る",func():play_scene(entry.story,str(entry.get("portrait","")))).name="QuestAftermathStory_"+str(entry.id)
+		var after=pages.card(list);after.name="QuestAftermath_"+str(entry.id);pages.l(after,str(entry.name),true);pages.b(after,"出来事を知る",func():play_scene(entry.story,str(entry.get("portrait","")))).name="QuestAftermathStory_"+str(entry.id)
 	if not pages.c().get("hasPorter",false):pages.l(parent,"受注には編成中のポーターが必要です。")
 func choose(id: String):
 	if ui.locked or ui.modal_open():return
