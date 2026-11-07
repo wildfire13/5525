@@ -118,8 +118,13 @@ func active_quest_summary(parent):
 		l(copy,"進行中のクエスト");l(copy,"なし");return
 	var elapsed=int(c().get("worldTime",0))-int(quest.get("eventEpoch",quest.get("postedAt",0))) if quest.get("scenario",false) else int(quest.get("elapsedHours",0))
 	if not quest.get("scenario",false) and c().get("journey") is Dictionary:elapsed+=int(c().journey.get("hours",0))
-	l(copy,"進行中のクエスト · 期限まで %d時間" % maxi(0,int(quest.get("deadline",0))-elapsed))
-	l(copy,str(quest.name)+" · 配達先 "+town(quest.to))
+	if quest.get("meeting") is Dictionary:
+		l(copy,str(quest.name)+" · 受取人: 行商人")
+		l(copy,quest_board.meeting.status(quest.meeting))
+		l(copy,quest_board.meeting.deadline_text(quest.meeting))
+	else:
+		l(copy,"進行中のクエスト · 期限まで %d時間" % maxi(0,int(quest.get("deadline",0))-elapsed))
+		l(copy,str(quest.name)+" · 配達先 "+town(quest.to))
 	b(line,"内容確認",ui.navigate.bind("board")).name="TravelQuestDetails"
 func map(parent):
 	var surface=card(parent);surface.get_parent().custom_minimum_size.y=ui.mock_shell.content_height();parent=surface

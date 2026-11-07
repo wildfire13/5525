@@ -469,6 +469,7 @@ func navigate(value: String):
 	if not pages.party_view.guard_leave(navigate.bind(value)):return
 	if page=="party" and not pages.guild_view.guard_leave():return
 	record_debug_event("navigate","success")
+	pages.quest_board.meeting.reset()
 	invalidate_preview();pages.facility_entry.navigate(value);page=value;pages.reset_items();pages.invalidate_quote(false);memory.focus_key="";render()
 func render():
 	if rendering:return
@@ -567,24 +568,7 @@ func forecast_action(choice: String,action: String,args: Array):
 	if r.get("ok",false):
 		var f=r.get("forecast",{})
 		if f.get("scenario",false) and (f.get("late",false) or not f.get("handoffAvailable",true)):
-			var q=campaign().get("activeQuest",{})
-			var warning=""
-			if f.get("scenario",false):
-				var lead="掲載からの期限を超える見込みです。"
-				var consequence="期限切れとなり荷物と受注前の状態が戻ります。" if f.get("willFail",false) else "遅配となり、減額報酬になります。"
-				if not f.get("handoffAvailable",true):
-					match f.get("handoffPhase",""):
-						"before_arrival":
-							lead="到着時（掲載後%d時間）には行商人はまだアスタリスに到着前です。到着後、アスタリスで待機できます。" % f.get("hours",0)
-							if not f.get("willFail",false):consequence="行商人の到着を待てば受け取れます。"
-						"departed":lead="到着時（掲載後%d時間）には行商人はサウスを出発済みです。" % f.get("hours",0)
-						_:
-							lead="到着時に行商人は%sにいるため、%sでは受け取れません。" % [town_name(f.get("handoffStop","")),town_name(f.get("arrivalLocation",""))]
-							if not f.get("willFail",false):consequence="この到着では配達報酬はありません。"
-				warning="%s\n%s\n掲載後 %d時間 / 締切 %d時間\n超過 %d時間 / 見込み報酬 %dG\nこのまま進みますか？" % [lead,consequence,f.get("hours",0),f.get("deadline",q.get("deadline",0)),f.get("over",0),f.get("reward",0)]
-			else:
-				warning="以降を最短で進んでも納期を超えます。\n見込み %d時間 / 納期 %d時間\n超過 %d時間 / 見込み報酬 %dG\nこのまま進みますか？" % [f.get("hours",0),q.get("deadline",0),f.get("over",0),f.get("reward",0)]
-			confirm(warning,act.bind(action,args))
+			confirm(pages.quest_board.meeting.forecast_text(f),act.bind(action,args))
 		else:await act(action,args)
 func render_party(body):pages.party(body)
 func toggle_member(uid: String):
