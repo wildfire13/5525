@@ -18,7 +18,7 @@ SUITES = [
     'mock_travel_regression', 'mock_journey_integration', 'mock_service_regression',
     'mock_deployment_regression', 'combat_b_ui', 'battle_selection_regression',
     'menu_exit_regression', 'quest_reward_display_regression',
-    'standalone_quest_failure_regression',
+    'standalone_quest_failure_regression', 'quest_modal_regression',
 ]
 
 p = argparse.ArgumentParser(description=__doc__)

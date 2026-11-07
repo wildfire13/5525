@@ -75,9 +75,10 @@ func _process(delta):
 	if shown>=full.length():advance_hint.text="A　次へ"
 func _input(event):
 	if _closed:return
-	if choice_row.visible:
-		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:_close();get_viewport().set_input_as_handled()
-		return
+	# Escape belongs to this overlay at every story stage, not the screen behind it.
+	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
+		get_viewport().set_input_as_handled();ui.modal_escape_frame=Engine.get_process_frames();_close();return
+	if choice_row.visible:return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ENTER,KEY_KP_ENTER,KEY_SPACE,KEY_A]:
 		_advance();get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:
