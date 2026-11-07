@@ -23,6 +23,8 @@ func open(q: Dictionary,on_accept:=Callable(),on_close:=Callable()):
 	quest=q.duplicate(true);lines=quest.get("story",[]).duplicate(true);index=0;shown=0;elapsed=0.0;accept_callback=on_accept;close_callback=on_close;_closed=false
 	layer=1800;name="QuestDialogue";process_mode=Node.PROCESS_MODE_ALWAYS
 	var root=Control.new();root.name="DialogueScreen";root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(root)
+	if not str(quest.get("sceneLabel","")).is_empty():
+		var caption=Label.new();caption.name="QuestSceneLabel";caption.text=str(quest.sceneLabel);caption.position=Vector2(48,24);caption.add_theme_font_size_override("font_size",22);caption.add_theme_color_override("font_color",Color("#f3eee3"));caption.add_theme_stylebox_override("normal",_style(Color("#111820"),Color("#9da7b0"),1,8));root.add_child(caption)
 	var tint=ColorRect.new();tint.color=Color(0.025,0.035,0.05,0.2);tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);tint.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(tint)
 	portrait=TextureRect.new();portrait.name="QuestPortrait";portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	root.add_child(portrait)
@@ -75,9 +77,10 @@ func _process(delta):
 	if shown>=full.length():advance_hint.text="A　次へ"
 func _input(event):
 	if _closed:return
-	if choice_row.visible:
-		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:_close();get_viewport().set_input_as_handled()
-		return
+	# Escape belongs to this overlay at every story stage, not the screen behind it.
+	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
+		get_viewport().set_input_as_handled();ui.modal_escape_frame=Engine.get_process_frames();_close();return
+	if choice_row.visible:return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ENTER,KEY_KP_ENTER,KEY_SPACE,KEY_A]:
 		_advance();get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:

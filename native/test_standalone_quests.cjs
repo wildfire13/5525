@@ -83,4 +83,26 @@ function stateAt(s,worldTime,location){s.worldTime=worldTime;s.hours=worldTime;s
   loaded.worldTime=64;loaded.hours=64;const storedQuest=JSON.stringify(loaded.activeQuest),dynamic=C.view(loaded).activeQuest;assert.equal(dynamic.to,'south');assert(dynamic.text.includes('サウス'));assert.equal(JSON.stringify(loaded.activeQuest),storedQuest,'derived presentation does not rewrite stored active quest');
   const round=C.deserialize(C.serialize(loaded));assert.equal(round.standaloneEvents.epoch,42);assert.equal(C.view(round).activeQuest.to,'south');assert(C.view(round).activeQuest.text.includes('サウス'));
 }
-console.log('standalone quest regressions: 8 groups passed');
+// Deadline failures explain their cause and retain read-only compatibility with old result saves.
+{
+  const road=C.create();assert(C.depart(road,'east'));delete road.result;
+  assert.equal(C.validate(road).ok,true);
+  const roadReloaded=C.deserialize(C.serialize(road)),roadSnapshot=C.serialize(roadReloaded);
+  assert.equal(Object.hasOwn(C.view(roadReloaded),'result'),false,'valid legacy road save can omit result');
+  assert.equal(C.serialize(roadReloaded),roadSnapshot);
+  for(const [event,from,to,deadline] of [['turnip','north','astaris',19],['kiln','astaris','east',21],['wheel','east','south',37]]){
+    const s=setup(event,from),before=structuredClone(s.rollback);stateAt(s,deadline,to);assert(C.completeQuest(s));
+    assert.match(s.result.reason,/納品期限を過ぎました/);assert.match(s.result.reason,/世界の時刻は巻き戻りません/);
+    assert.equal(s.worldTime,deadline);assert.equal(s.hours,before.hours);assert.equal(s.gold,before.gold);assert.equal(s.location,from);
+    assert.deepEqual(s.characters,before.characters);assert.deepEqual(s.selected,before.selected);
+    assert.equal(s.result.gold,0);assert.equal(s.result.xp,0);assert.equal(s.result.rp||0,0);
+    assert.equal(C.completeQuest(s),false);assert.equal(C.validate(s).ok,true);
+    const round=C.deserialize(C.serialize(s));assert.equal(round.result.reason,s.result.reason);assert.equal(C.completeQuest(round),false);
+    delete round.result.reason;const legacy=C.deserialize(C.serialize(round)),snapshot=C.serialize(legacy);
+    assert.equal(C.view(legacy).result.reason,s.result.reason);assert.equal(C.serialize(legacy),snapshot,'legacy result projection is read-only');
+    legacy.result.reason='既存の失敗理由';assert.equal(C.view(legacy).result.reason,'既存の失敗理由');
+    delete legacy.result.scenario;delete legacy.result.reason;assert.equal(C.view(legacy).result.reason,undefined,'non-scenario failure fallback is unchanged');
+    assert(C.acknowledge(round));assert(!C.board(round).some(q=>q.eventId===event));
+  }
+}
+console.log('standalone quest regressions: 9 groups passed');

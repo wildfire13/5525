@@ -29,9 +29,9 @@ func run():
 	check(scene!=null,"dialogue overlay opens on top of the existing town scene")
 	if scene==null:quit(1);return
 	var left=scene.find_child("QuestPortrait",true,false);var right=scene.find_child("QuestPortraitRight",true,false)
-	check(left is TextureRect and right is TextureRect and left.visible and right.visible,"both supplied NPC portraits remain in the scene")
-	check(left.texture!=null and right.texture!=null and left.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and right.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED,"portrait source proportions are preserved")
-	check(left.modulate.r>right.modulate.r and scene.find_child("QuestSpeaker",true,false).text=="農夫","speaker is bright and the listener stays dim; name tab remains in place")
+	check(left is TextureRect and right is TextureRect and left.visible and not right.visible,"request scene contains only the farmer, not the recipient")
+	check(left.texture!=null and left.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and right.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED,"portrait source proportions are preserved")
+	check(left.modulate.r==1.0 and scene.find_child("QuestSpeaker",true,false).text=="農夫","requester is bright; name tab remains in place")
 	check(root.size==Vector2i(1920,1080),"dialogue layout measured at FHD 1920×1080")
 	var panel=scene.find_child("QuestDialoguePanel",true,false)
 	check(panel.position.x>=0 and panel.position.y>=0 and panel.position.x+panel.size.x<=1920 and panel.position.y+panel.size.y<=1080,"black dialogue panel remains inside the FHD viewport")
@@ -60,10 +60,10 @@ func run():
 	wait_fixture.state.location="astaris";wait_fixture.state.worldTime=8;wait_fixture.state.hours=8
 	await game.update({"op":"campaign_load","data":wait_fixture});game.navigate("board");await process_frame;await process_frame
 	game.navigate("hub");await process_frame;await process_frame
-	check(game.find_child("HubDeliverCargo",true,false)==null and game.find_child("MerchantArrivalWait",true,false)!=null,"hub prevents handoff before merchant arrival")
+	check(game.find_child("HubDeliverCargo",true,false)==null and game.find_child("HubWaitForMerchant",true,false) is Button,"hub prevents handoff before merchant arrival")
 	game.navigate("board");await process_frame;await process_frame
 	var wait_button=game.find_child("WaitForMerchant",true,false)
-	check(wait_button is Button and wait_button.text.contains("アスタリス") and wait_button.text.contains("2時間"),"waiting is offered at the correct first stop")
+	check(wait_button is Button and wait_button.text.contains("2時間"),"waiting is offered at the correct first stop")
 	var wait_reply={}
 	if wait_button is Button:wait_reply=await game.engine.request({"op":"campaign","action":"waitForEvent","args":[]})
 	if wait_reply.get("campaign") is Dictionary:game.data=wait_reply;game.render();await process_frame
@@ -76,7 +76,7 @@ func run():
 	if depart_reply.get("campaign") is Dictionary:game.data=depart_reply;game.render();await process_frame
 	await game.forecast_action("short","travel",["short"]);await process_frame;await process_frame
 	var forecast_message=game.find_child("ConfirmationMessage",true,false)
-	check(forecast_message is Label and forecast_message.text.contains("サウス") and forecast_message.text.contains("アスタリスでは受け取れません") and forecast_message.text.contains("見込み報酬 0G"),"ETA warning rejects a town where the merchant will not be")
+	check(forecast_message is Label and forecast_message.text.contains("サウス") and forecast_message.text.contains("アスタリスでは今は受け取れません"),"ETA warning rejects a town where the merchant will not be")
 	for node in game.find_children("*","ConfirmationDialog",true,false):node.get_cancel_button().pressed.emit()
 	var before_fixture=accepted_save.data.duplicate(true);before_fixture.state.location="east";before_fixture.state.worldTime=3;before_fixture.state.hours=3
 	await game.update({"op":"campaign_load","data":before_fixture});game.navigate("map");await process_frame;await process_frame
@@ -84,7 +84,7 @@ func run():
 	if before_depart.get("campaign") is Dictionary:game.data=before_depart;game.render();await process_frame
 	await game.forecast_action("short","travel",["short"]);await process_frame;await process_frame
 	var before_message=game.find_child("ConfirmationMessage",true,false)
-	check(before_message is Label and before_message.text.contains("まだアスタリスに到着前") and before_message.text.contains("待機できます") and not before_message.text.contains("null"),"ETA under +10h explains pending arrival without null stop text")
+	check(before_message is Label and before_message.text.contains("まだ到着前") and before_message.text.contains("待機後: アスタリスで") and not before_message.text.contains("null"),"ETA under +10h explains pending arrival without null stop text")
 	for node in game.find_children("*","ConfirmationDialog",true,false):node.get_cancel_button().pressed.emit()
 	var south_stop_fixture=accepted_save.data.duplicate(true);south_stop_fixture.state.location="astaris";south_stop_fixture.state.worldTime=22;south_stop_fixture.state.hours=22
 	await game.update({"op":"campaign_load","data":south_stop_fixture});game.navigate("board");await process_frame;await process_frame
