@@ -265,6 +265,7 @@ func confirm(text: String,fn: Callable):
 	var origin=get_viewport().gui_get_focus_owner()
 	var origin_key=str(origin.get_meta("ui_key","")) if origin!=null else memory.focus_key
 	var d=ConfirmationDialog.new();d.exclusive=true;d.title="確認";d.dialog_text=text;d.ok_button_text="実行する";d.cancel_button_text="キャンセル"
+	d.add_theme_stylebox_override("panel",mock_shell.surface_style())
 	d.dialog_autowrap=true;d.add_theme_font_size_override("font_size",18)
 	d.get_label().add_theme_font_size_override("font_size",18)
 	# Keep dialog_text for the confirmation contract; a scrollable copy prevents
