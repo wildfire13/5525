@@ -6,7 +6,7 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 function fight(s){
  assert(C.begin(s));
  for(let n=0;n<300&&!s.battle.result;n++){
-  const b=clone(s.battle),actor=b.units.find(u=>u.id===b.actor);B.plan(b,actor);let {kind,target}=actor.intent;
+  const b=clone(s.battle),actor=b.units.find(u=>u.id===b.actor);let {kind,target}=B.chooseAction(b,actor);
   if(actor.job==='porter'){
    const hurt=b.units.filter(u=>u.side==='ally'&&u.hp>0&&u.hp<30).sort((a,b)=>a.hp-b.hp).find(u=>B.legal(b,'item',u.id));
    if(hurt){kind='item';target=hurt.id;}else{kind=B.legal(b,'skill',actor.id)?'skill':'guard';target=kind==='skill'?actor.id:null;}

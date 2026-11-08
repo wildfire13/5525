@@ -30,7 +30,7 @@ assert(C.depart(s,'astaris'));assert(C.travel(s,'short',()=>0));
 const deployment=JSON.parse(C.serialize(s));assert(C.begin(s));
 const battle=s.battle,guard=battle.units.find(u=>u.id==='guard');
 battle.units.forEach(u=>u.next=1000000);guard.pos=24;guard.next=1;battle.actor=guard.id;
-battle.units.filter(u=>u.side==='enemy').forEach((u,i)=>{u.pos=[25,15,35][i];B.plan(battle,u);});
+battle.units.filter(u=>u.side==='enemy').forEach((u,i)=>{u.pos=[25,15,35][i];});
 assert(C.validate(s).ok,C.validate(s).error);
 console.log(JSON.stringify({profiles,shop,quote,deployment,battle:JSON.parse(C.serialize(s))})
  .replace(/[^\x00-\x7F]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0')));

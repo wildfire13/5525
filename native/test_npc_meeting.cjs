@@ -49,7 +49,7 @@ for(const phase of ['road','camp','battle','arrival','result']){
 }
 // Read old calendarless v2 state without modifying source and retain the nonzero epoch.
 {
-  const old=C.create();old.hours=42;delete old.worldTime;delete old.standaloneEvents;const raw=JSON.stringify(old);
+  const old=C.create();old.version=2;old.hours=42;delete old.worldTime;delete old.standaloneEvents;const raw=JSON.stringify(old);
   const s=C.deserialize(JSON.stringify({format:'5525-native-campaign',version:2,cargoRevision:1,state:old}));assert.equal(JSON.stringify(old),raw);
   s.location='east';const offer=C.board(s).find(q=>q.eventId==='wheel');assert.equal(offer.meeting.reason,'not_accepted');assert.equal(C.waitForEvent(s),false);
   assert(C.accept(s,offer.id,C.view(s).roster.find(c=>s.selected.includes(c.id)&&c.job==='porter').id));

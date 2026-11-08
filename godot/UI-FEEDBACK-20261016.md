@@ -60,7 +60,7 @@ OSのマウス・実画面・見栄え・音声の検証ではない。画面キ
 実画面確認は別のdotクラウドPCで行う。全面背景、操作対象の遮蔽、文字、ホバーのマウス移動/スクロール、各リサイズ、カメラ、敵番の遷移、再起動前後を確認すること。
 
 既存ネイティブ全42群は35通過/7失敗。失敗7群は変更前コピーでも再現:
-`test_campaign_battle`, `test_cargo_marker_boundary`, `test_character_inventory`, `test_engine_regression`, `test_ui_feedback_rules`, `test_campaign_bridge`, `test_journey_bridge`。
+`test_campaign_battle`, `test_cargo_marker_boundary`, `test_character_inventory`, `test_ui_feedback_rules`, `test_campaign_bridge`, `test_journey_bridge`。
 既存在庫GUI `inventory_regression` のINV-UI-07も変更前コピーで再現。
 `hover_lifetime_regression` はアサーション通過でもThread errno 10のエラーログがあり失敗扱い。変更前でも同様のログを確認。
 これらを今回解消したとは主張せず、ルール側を変更していない。

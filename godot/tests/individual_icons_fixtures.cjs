@@ -26,7 +26,7 @@ for(const [name,weapon,pants,actor] of [
  assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));
  const b=s.battle;for(const u of b.units){u.next=1000;u.hp=u.max;u.mp=u.maxMp;}
  const a=b.units.find(u=>u.id===actor);a.next=1;b.actor=a.id;
- for(const e of b.units.filter(u=>u.side==='enemy'))B.plan(b,e);
+ // Enemy actions are selected live from the current board.
  cases[name]=checked(s);
 }
 process.stdout.write(JSON.stringify({meta:{synthetic:true,validated:true,gear_count:gear.length,note:'Current C.validate and save roundtrip; itemUse2 is intentionally not resurrected.'},cases}));

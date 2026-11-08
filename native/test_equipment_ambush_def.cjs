@@ -4,7 +4,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 let checks=0;
 function check(ok,message){assert(ok,message);checks++;}
-function unit(id,side,pos){return {id,side,pos,job:'scout',hp:100,max:100,mp:9,maxMp:9,atk:23,reach:1,agi:10,def:0,guard:false,cover:null,canInvade:true};}
+function unit(id,side,pos){return {id,side,pos,job:'scout',hp:100,max:100,mp:9,maxMp:9,atk:23,reach:1,agi:10,def:0,guard:false,cover:null};}
 for(const side of ['ally','enemy'])for(const level of [1,2,3]){
  const a=unit('actor',side,22);a.skillStage=999;a.skillSources=[{id:'scout',level}];
  for(const [direction,pos] of [['right',24],['left',20],['up',2],['down',42],['diagonal',44]]){
@@ -23,8 +23,8 @@ for(const side of ['ally','enemy'])for(const def of [0,7,100]){
 {
  const s=B.create({ally:['scout','porter'],enemy:['scout'],deployment:true}),a=s.units.find(u=>u.side==='enemy'),target=s.units.find(u=>u.id==='scout'),porter=s.units.find(u=>u.job==='porter');
  a.pos=22;a.next=0;a.skillSources=[{id:'scout',level:3}];target.pos=2;target.hp=100;target.def=7;target.next=1;porter.pos=0;porter.next=1;
- s.deploying=false;B.plan(s,a);s.actor=a.id;
- check(a.intent.kind==='skill'&&a.intent.target===target.id,'enemy plans equipment-Lv3 vertical ambush');
+ s.deploying=false;s.actor=a.id;
+ const action=B.chooseAction(s,a);check(action.kind==='skill'&&action.target===target.id,'enemy selects equipment-Lv3 vertical ambush from current state');
  const expected=Math.max(0,a.atk-target.def);check(B.stepEnemy(s)&&a.pos===12&&target.hp===100-expected,'enemy vertical execution lands adjacent and subtracts ally DEF');
 }
 {

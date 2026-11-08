@@ -1,7 +1,7 @@
 'use strict';
 // Historical-ID fixtures retain the old roster; new-game/one-time migration
 // behavior is tested separately in test_updateplan_roster.cjs.
-const assert=require('node:assert/strict'),C=require('./campaign.js');
+const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 let passed=0;
 function test(name,fn){fn();console.log('PASS '+name);passed++;}
@@ -20,6 +20,17 @@ test('twelve real travellers, twelve cap, five combat slots and strict legacy sa
   const before=structuredClone(town);assert.equal(C.select(town,ids),false);assert.deepEqual(town,before);
  }finally{B.roster.length=length;}
 
+});
+test('invasion permits enemy-side deployment by active and reserve Scouts only',()=>{
+ const s=require('./test-current-fixture.cjs')();
+ const selected=['guard','archer','mage','scout','porter','guard-2','mage-2','scout-2'];
+ assert(C.select(s,selected));assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));okay(s);
+ const before=structuredClone(s);assert.equal(C.deployment_assign(s,'guard',7),false);assert.deepEqual(s,before,'non-invader enemy-side rejection is atomic');
+ assert.equal(C.deployment_assign(s,'scout',6),true,'deployed Scout may enter the enemy side');assert.equal(s.battle.units.find(u=>u.id==='scout').pos,6);okay(s);
+ assert.equal(C.deployment_assign(s,'scout',4),true,'deployed Scout may return to the ally side');
+ assert.equal(C.deployment_assign(s,'guard',null),true,'free one combat slot for reserve');
+ assert.equal(C.deployment_assign(s,'scout-2',7),true,'reserve Scout may be added directly to the enemy side');
+ assert.equal(s.battle.units.find(u=>u.id==='scout-2').pos,7);assert.equal(s.battle.units.find(u=>u.id==='guard'),undefined);okay(s);
 });
 test('full replacement, addition, move/swap and rejected drops are atomic',()=>{
  const s=prep();reject(s,'warrior',0);reject(s,'warrior',49);reject(s,'bogus',23);reject(s,'warrior',1.5);reject(s,'warrior',null);
@@ -81,11 +92,11 @@ test('dead non-porter occupies legacy slot but can be explicitly removed without
 });
 
 
-test('flank initial/reset collisions relocate only conflicting allies and keep scout anchor',()=>{
+test('flank initial/reset collisions use the porter-relative formation',()=>{
  for(const ids of [['guard-2','scout','guard','mage','archer'],['scout-2','scout','guard-2','porter','warrior']]){
   const s=require('./test-current-fixture.cjs')();assert(C.select(s,ids));assert(C.depart(s,'east','flank'));assert(C.travel(s,'safe',()=>.2));
   const positions=()=>s.battle.units.filter(u=>u.side==='ally').map(u=>u.pos);
-  assert.equal(new Set(positions()).size,ids.length);assert.equal(s.battle.units.find(u=>u.job==='scout').pos,14);okay(s);
+  assert.equal(new Set(positions()).size,ids.length);assert.deepEqual(B.formationSlots(s.battle,'ally'),s.battle.units.some(u=>u.side==='ally'&&u.job==='porter')?[24,13,33]:[]);okay(s);
   assert(C.chooseFormation(s,'convoy'));assert(C.deployment_reset(s));okay(s);assert(C.chooseFormation(s,'flank'));assert(C.deployment_reset(s));okay(s);assert(C.begin(s));okay(s);
  }
 });

@@ -174,7 +174,7 @@ func battle_checks():
 	var old_kind=game.command;await game.commit();await settle()
 	check("AC-B02",game.command==old_kind and game.pending==null and game.preview.is_empty(),"next hand inherits mode but removes previous target and preview")
 	await load_fixture(fixtures.attack);game.choose_command("move");var before=await snapshot();var dest=int(game.data.choices.move[0]);await game.on_cell(dest);await settle()
-	check("AC-B08",text(game).contains("この移動で手番が終わります") and text(game).contains("着地点への固定予告") and text(game).contains("移動後の味方陣形"),"movement summary explicitly ends hand and shows fixed threat and formation")
+	check("AC-B08",text(game).contains("この移動で手番が終わります") and text(game).contains("現在の盤面から行動") and text(game).contains("移動後の味方陣形"),"movement summary ends hand and explains immediate enemy action and formation")
 	await game.inspect_movement("skill");await settle()
 	check("AC-B10",await snapshot()==before and text(game).contains("次の本人の番まで状況は変わります"),"hypothetical range is reference only and consumes nothing")
 	game.cancel();await settle();check("AC-B08",game.pending==null and await snapshot()==before,"movement cancellation preserves position, MP and action count")
@@ -188,8 +188,8 @@ func battle_checks():
 	check("AC-B13",game.hud.queue_at_start==queue_ and node("TurnOrder").get_children().filter(func(c):return c is PanelContainer).size()==mini(5,queue_.size()),"queue retains full engine order while displaying only its first five cards")
 	game.hud.detail_tab=0;game.hud.details_open=true;game.render();await settle()
 	for enemy in game.state().units:
-		if enemy.side=="enemy" and enemy.get("intent") is Dictionary:game.hud.inspect_enemy(enemy.id);break
-	await settle();check("AC-B11,AC-B12",text(game).contains("固定マス") and text(game).contains("現在:") and game.board.inspected_enemy==game.hud.selected_enemy,"enemy intent separates fixed cells and current occupants while retaining all units")
+		if enemy.side=="enemy":game.hud.inspect_enemy(enemy.id);break
+	await settle();check("AC-B11,AC-B12",text(game).contains("陣形条件") and not text(game).contains("固定マス") and game.hud.selected_enemy!="","enemy details use the current board without fixed-cell intent text")
 	await load_fixture(fixtures.heal);game.choose_command("skill")
 	if not game.data.choices.skill.is_empty():await game.on_cell(int(game.hud.unit(game.data.choices.skill[0]).pos))
 	await settle();check("AC-B05,AC-B06",game.can_commit() and text(game).contains("由来:") and text(game).contains("消費: MP1"),"skill displays current actor source, MP and legal preview")

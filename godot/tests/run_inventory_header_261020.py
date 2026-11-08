@@ -63,7 +63,9 @@ for name in ['event_voices_regression', 'facility_art_261021', 'hover_regression
         path.mkdir()
         env[key] = str(path)
     # Resource/configuration/worker checks do not exercise a game viewport.
-    screen_suite = name not in {'icons_approved_261021', 'ui_preferences_restart', 'individual_icons_regression', 'debug_store_teardown', 'audio_options_regression', 'shop_feedback30'}
+    # This suite deliberately resizes its own viewport through FHD and 1280x800
+    # and checks both geometries. An always-FHD watcher contradicts that test.
+    screen_suite = name not in {'icons_approved_261021', 'ui_preferences_restart', 'individual_icons_regression', 'debug_store_teardown', 'audio_options_regression', 'shop_feedback30', 'deployment_drag_regression'}
     # Wrap screen suites, retaining their lifecycle while checking every frame.
     wrapper = scope / 'fhd-suite.gd'
     wrapper.write_text(

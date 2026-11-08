@@ -63,7 +63,7 @@ for(const epoch of [0,42])for(const age of [24,25,36,37,48])for(const town of to
 }
 // Calendarless v2 saves seed at their saved world hour. Old clocks are not interpreted as event age.
 {
-  const old=C.create();old.hours=42;delete old.worldTime;delete old.standaloneEvents;
+  const old=C.create();old.version=2;old.hours=42;delete old.worldTime;delete old.standaloneEvents;
   let s=C.deserialize(JSON.stringify({format:'5525-native-campaign',version:2,cargoRevision:1,state:old}));assert.equal(s.standaloneEvents.epoch,42);
   at(s,36,'south');assert(!C.scenarioAftermath(s).some(x=>x.id==='wheel-aftermath'));
   s=C.deserialize(C.serialize(s));at(s,37,'south');assert(C.scenarioAftermath(s).some(x=>x.id==='wheel-aftermath'));

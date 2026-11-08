@@ -24,17 +24,15 @@ function campaign(kind){
   }
   const enemies=b.units.filter(u=>u.side==='enemy');
   enemies.forEach((u,i)=>{u.pos=[25,15,35][i];});
-  const actor=b.units.find(u=>u.id===(kind.startsWith('heal')?'mage':kind==='attackRanged'?'archer':'guard'));
+  const actor=b.units.find(u=>u.id===(kind.startsWith('heal')?'mage':kind==='attackRanged'?'archer':kind==='porterBreakthrough'?'porter':'guard'));
+  if(kind==='porterBreakthrough')actor.pos=48;
   actor.next=1;b.actor=actor.id;
   if(kind.startsWith('sweep')||kind.startsWith('stamp')||kind.startsWith('heal'))actor.selectedSkill=kind.startsWith('sweep')?'legSweep':kind.startsWith('stamp')?'stamp':'mage';
-  let target=kind.startsWith('sweep')?actor.id:kind.startsWith('stamp')?25:kind.startsWith('attack')?enemies[0].id:'guard';
-  let actionKind=kind.startsWith('attack')?'attack':kind==='guard'?'guard':'skill';
+  let target=kind==='porterBreakthrough'?49:kind.startsWith('sweep')?actor.id:kind.startsWith('stamp')?25:kind.startsWith('attack')?enemies[0].id:'guard';
+  let actionKind=kind==='porterBreakthrough'?'move':kind.startsWith('attack')?'attack':kind==='guard'?'guard':'skill';
   if(kind==='attackRanged')actor.pos=23;
   if(kind==='attackGuarded')enemies[0].guard=true;
   if(kind==='guard'){target=null;b.units.find(u=>u.id==='archer').next=2;}
-  if(kind==='attackFixedMiss'){
-    actionKind='guard';target=null;actor.pos=23;enemies[0].next=2;b.units.find(u=>u.id==='archer').next=3;
-  }
   if(kind==='attackSequence'){
     enemies[0].next=2;enemies[1].next=3;b.units.find(u=>u.id==='archer').next=4;
   }
@@ -54,8 +52,7 @@ function campaign(kind){
     const friend=b.units.find(u=>u.id==='guard');friend.hp=friend.max-(kind==='healCapped'?8:kind==='healFull'?0:80);
     if(kind==='healSelf'){actor.hp=actor.max-12;target=actor.id;}
   }
-  for(const e of enemies)B.plan(b,e);
-  if(kind==='attackFixedMiss')enemies[0].intent={kind:'attack',target:'guard',name:'攻撃',reason:'固定セルが空になった確認用',cells:[24]};
+  // Enemy actions are selected when executed from the current positions.
   validate(s,kind);
   return {state:s,request:{op:'act',kind:actionKind,target,presentation:true},randomValue:0.99};
 }
@@ -119,8 +116,9 @@ function observe(name){
       assert.deepEqual(actions.map(f=>f.presentation.kind),name==='stampNextActor'?['cast']:['cast','skill'],`${name} reservation precedes personal-opportunity resolution`);
       assert.equal(new Set(actions.map(f=>f.presentation.action_id)).size,actions.length,`${name} distinct reservation and resolution identities`);
       assert.equal(initial.units.find(u=>u.id===initial.actor).mp-observed.battle.units.find(u=>u.id===initial.actor).mp,1,`${name} reservation is charged once`);
-    }else if(!['attackFixedMiss','attackSequence'].includes(name))assert.equal(new Set(frames.map(f=>f.presentation.action_id)).size,1,`${name} one causal action id`);
+    }else if(name!=='attackSequence')assert.equal(new Set(frames.map(f=>f.presentation.action_id)).size,1,`${name} one causal action id`);
   }else{assert.equal(frames.length,0);assert.deepEqual(JSON.parse(C.serialize(observed)),save);}
+  if(name==='porterBreakthrough')assert.equal(observed.battle.resultKind,'breakthrough',`${name} reaching the enemy back row is a victory`);
   if(name==='sweep50')assert.deepEqual(newSkips,[]);
   if(name==='sweep100')assert.equal(newSkips.length,3);
   if(name==='sweepEmpty')assert.equal(observedRandomCalls,0);
@@ -150,18 +148,13 @@ function observe(name){
   if(name==='attackRanged')assert.deepEqual(impacts.map(hit=>hit.delta),[-Math.min(initial.units.find(u=>u.id===request.target).hp,B.attackPreview(initial,initial.units.find(u=>u.id===initial.actor),initial.units.find(u=>u.id===request.target)).damage)]);
   if(name==='attackGuarded')assert.deepEqual(impacts.map(hit=>[hit.delta,hit.guarding]),[[-Math.min(initial.units.find(u=>u.id===request.target).hp,B.attackPreview(initial,initial.units.find(u=>u.id===initial.actor),initial.units.find(u=>u.id===request.target)).damage),true]]);
   if(name==='guard'){assert.equal(impacts.length,0);assert.equal(observed.battle.units.find(u=>u.id==='guard').guard,true);}
-  if(name==='attackFixedMiss'){
-    assert.equal(expected.attack_misses.length,1);assert.equal(impacts.length,0);
-    const enemy=initial.units.find(u=>u.side==='enemy');
-    assert(B.inRange(enemy,'ally',24,'attack',initial));assert(!initial.units.some(u=>u.hp>0&&u.pos===24));
-  }
   if(name.startsWith('attackCover')){assert.equal(impacts.length,1);assert(impacts[0].redirected);assert.notEqual(request.target,impacts[0].unit_id);}
   if(name==='attackCoverGuarded')assert(impacts[0].guarding);
   if(name==='attackSequence'){assert(expected.actions.length>=3);assert(impacts.length>=3);assert(new Set(impacts.map(hit=>hit.action_id)).size>=3);}
   return {save,request,geometry:g,frames,expected};
 }
 
-const names=['sweep50','sweep100','sweepEmpty','sweepEdge','sweepAlreadySet','heal','healCapped','healSelf','healFull','stamp','stampMiss','stampCover','stampEdge','stampNextActor','attackMelee','attackRanged','attackGuarded','attackCover','attackCoverGuarded','attackFixedMiss','attackSequence','guard'];
+const names=['sweep50','sweep100','sweepEmpty','sweepEdge','sweepAlreadySet','heal','healCapped','healSelf','healFull','stamp','stampMiss','stampCover','stampEdge','stampNextActor','attackMelee','attackRanged','attackGuarded','attackCover','attackCoverGuarded','attackSequence','guard','porterBreakthrough'];
 const cases=Object.fromEntries(names.map(name=>[name,observe(name)]));
 
 function verifyBridge(){

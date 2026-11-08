@@ -136,12 +136,12 @@
     },
     {
       "skill_id": "invasion",
-      "label_ja": "侵入",
+      "label_ja": "敵陣初期配置",
       "icon_ids": [
         "accessory"
       ],
       "kind_ja": "パッシブ",
-      "granting_equipment_ja": "侵入用装飾品（既存効果の仮枠化）［装飾1］ 、 侵入用装飾品（既存効果の仮枠化）［装飾2］",
+      "granting_equipment_ja": "侵入用装飾品［装飾1］ 、 侵入用装飾品［装飾2］",
       "wiki_anchor": "catalog-skill-invasion",
       "mapping_basis": "granting equipment type/slot"
     },
