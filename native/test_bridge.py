@@ -31,13 +31,15 @@ class BridgeTests(unittest.TestCase):
         d=self.b.call(op='act',kind='skill',target=25)
         self.assertTrue(d['ok'])
         after={u['id']:u for u in d['state']['units']}
-        self.assertLess(after['enemy-archer']['hp'],before['enemy-archer'])
+        self.assertEqual(after['enemy-archer']['hp'],before['enemy-archer'])
+        self.assertEqual(after['warrior'].get('pendingStamp',{}).get('center'),25)
         self.assertEqual(after['scout']['hp'],before['scout'])
         self.assertEqual(after['enemy-guard']['hp'],before['enemy-guard'])
         self.assertEqual(after['warrior']['mp'],5)
     def test_snipe_and_reset(self):
-        d=self.b.call(op='reset');a=next(u for u in d['state']['units'] if u['id']=='archer')
-        d=self.b.call(op='act',kind='skill',target='enemy-archer')
+        d=self.b.call(op='reset',presentation=True);d=self.b.call(op='presentation_finish',id=d['presentation']['id']);a=next(u for u in d['state']['units'] if u['id']==d['state']['actor'])
+        target=d['choices']['skill'][0]
+        d=self.b.call(op='act',kind='skill',target=target)
         self.assertTrue(d['ok']);self.assertEqual(next(u for u in d['state']['units'] if u['id']=='archer')['mp'],a['mp']-1)
         d=self.b.call(op='reset');self.assertEqual(d['state']['actions'],0);self.assertIsNone(d['state']['result'])
 

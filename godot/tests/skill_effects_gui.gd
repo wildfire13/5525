@@ -90,7 +90,7 @@ func run():
  RenderingServer.frame_post_draw.connect(capture_frame)
  var core_only=OS.get_environment("SKILL_FX_CORE_ONLY")=="1"
  var names=["sweep100","heal","stamp","attackMelee","guard"]
- if not baseline and not core_only:names.append_array(["stampCover","stampMiss","healCapped","attackRanged","attackGuarded","attackCoverGuarded","attackFixedMiss","attackSequence"])
+ if not baseline and not core_only:names.append_array(["stampCover","stampMiss","healCapped","attackRanged","attackGuarded","attackCoverGuarded","attackSequence"])
  var benchmark_only=OS.get_environment("SKILL_FX_BENCHMARK_ONLY")=="1"
  if benchmark_only:names=[]
  for name_ in names:await record_action(name_+"-1920",cases[name_])

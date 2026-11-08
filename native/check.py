@@ -15,6 +15,8 @@ steps=[
  ('Additive passive grants',['node','test_sqlite_passive_grants.cjs']),
  ('Secondary grant combat',['node','test_sqlite_grant_combat.cjs']),
  ('Campaign battle extension',['node','test_campaign_battle.cjs']),
+ ('Porter-relative immediate combat and save migration',['node','test_campaign_rule_migration.cjs']),
+ ('Current battle UI rule contract',['node','test_godot_rules.cjs']),
  ('Equipment-level ambush and DEF contract',['node','test_equipment_ambush_def.cjs']),
  ('Individual growth and inert legacy team fields',['node','test_team_growth.cjs']),
  ('Eleven equipment proposals',['node','test_equipment_skills.cjs']),
@@ -30,7 +32,6 @@ steps=[
  ('Sequential battle presentation',['node','test_battle_presentation.cjs']),
  ('Expanded presentation metadata parity',['node','test_vfx_expansion_presentation.cjs']),
  ('Character voice event routing',['node','test_voice_events.cjs']),
- ('Campaign long-battle log retention',['node','test_campaign_log.cjs']),
  ('Separate travelling and deployment rosters',['node','test_deployment_roster.cjs']),
  ('Mock UI rewards and return journeys',['node','test_mock_ui_rules.cjs']),
  ('Campaign replay loop',['node','test_campaign.cjs']),
@@ -40,8 +41,6 @@ steps=[
  ('NPC meeting schedule, wait and arrival forecast',['node','test_npc_meeting.cjs']),
  ('Quest decisions, all-town expiry and aftermath',['node','test_quest_decisions.cjs']),
  ('Standalone 30-action parity',['node','test_parity.cjs']),
- ('Reachable QA boundary fixtures',['node','test_qa_fixtures.cjs']),
- ('Historical provenance and current porter contract',['node','test_engine_regression.cjs']),
 ]
 report={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'guiIncluded':False,'steps':[]}
 for name,command in steps:

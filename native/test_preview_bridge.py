@@ -89,7 +89,7 @@ class PreviewBridgeTests(unittest.TestCase):
         self.assertEqual(unit({'units': p['units']}, 'warrior')['pos'], 14)
         self.assertEqual(unit(self.data['state'], 'warrior')['pos'], 24)
         self.assertEqual(p['targets'], [unit(state, 'enemy-archer')['name']])
-        self.assertEqual(p['ranges'], [4, 13, 15, 24])
+        self.assertEqual(p['ranges'], [15])
         self.assertEqual(p['cells'], [])
         attack = self.preview('move', 14, 'attack')
         self.assertEqual(attack['targets'], [unit(state, 'enemy-archer')['name']])
@@ -117,11 +117,11 @@ class PreviewBridgeTests(unittest.TestCase):
         self.assertEqual(actor['pos'], 4)
         self.assertEqual(p['ranges'], normal_attack_cells(future, actor))
         self.assertTrue(all(abs(pos % 10 - 4) + pos // 10 <= 1 for pos in p['ranges']))
-        self.assertEqual(p['targets'], [target['name']])
+        self.assertIn(target['name'], p['targets'])
+        self.assertEqual(set(p['targets']), {u['name'] for u in state['units'] if u['hp']>0 and u['side']=='enemy'
+                         and abs(u['pos']%10-4)+u['pos']//10<=1})
         self.assertEqual(unit(self.data['state'], 'scout')['pos'], 0)
-        expected_risks = [u['name'] for u in state['units'] if u['hp'] > 0 and u['side'] == 'enemy'
-                          and 4 in u.get('intent', {}).get('cells', [])]
-        self.assertEqual(p['risks'], expected_risks)
+        self.assertEqual(p['risks'], [], 'immediate enemies have no saved target-cell forecast')
 
     def test_porter_swap_reports_real_path_and_both_future_positions(self):
         self.prepare_journey()
@@ -137,9 +137,7 @@ class PreviewBridgeTests(unittest.TestCase):
         self.assertEqual(unit(future, 'porter')['pos'], 24)
         self.assertEqual(unit(future, 'guard')['pos'], 22)
         self.assertTrue(p['formationBefore'])
-        self.assertTrue(p['formationAfter'])
-        self.assertEqual(p['targets'], [unit(state, 'porter')['name']])
-        self.assertEqual(p['ranges'], [24])
+        self.assertFalse(p['formationAfter'])
         for uid in ('porter', 'guard'):
             for key in ('hp', 'mp', 'next'):
                 self.assertEqual(unit(future, uid)[key], unit(state, uid)[key])
@@ -179,13 +177,15 @@ class PreviewBridgeTests(unittest.TestCase):
         self.assertEqual(self.view(), before)
 
     def test_move_preview_formation_break_and_cancel_restore(self):
-        state = self.data['state']
-        self.assertEqual(state['actor'], 'archer')
-        p = self.preview('move', 14)
+        self.prepare_journey()
+        self.journey('begin')
+        state = self.reach_actor('porter')
+        self.assertEqual(state['actor'], 'porter')
+        p = self.preview('move', 23)
         self.assertTrue(p['formationBefore'])
         self.assertFalse(p['formationAfter'])
-        self.assertEqual(unit({'units': p['units']}, 'archer')['pos'], 14)
-        self.assertEqual(unit(self.data['state'], 'archer')['pos'], 13)
+        self.assertEqual(unit({'units': p['units']}, 'porter')['pos'], 23)
+        self.assertEqual(unit(self.data['state'], 'porter')['pos'], 22)
         self.bridge.call(op='record', type='battle.preview.cancelled')
         self.assertTrue(self.view()['formed']['ally'])
 

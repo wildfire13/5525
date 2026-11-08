@@ -7,7 +7,7 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 function fixture(){
   const s=B.create({ally:['guard','porter'],enemy:['guard'],enemyPotions:0,deployment:true});
   const [a,p,e]=s.units;a.pos=24;p.pos=23;e.pos=25;a.next=0;p.next=100;e.next=1;
-  s.deploying=false;s.actor=a.id;e.intent={kind:'attack',target:a.id,cells:[24],name:'攻撃'};
+  s.deploying=false;s.actor=a.id;
   return s;
 }
 function drain(p){const frames=[];while(p.pending){frames.push({...p.info(),state:clone(p.pending.state)});assert(p.next(p.info().id,p.info().index));}return frames;}
@@ -60,7 +60,7 @@ for(const skill of ['stamp','splitShot','healingCross','retreatSlash','knockback
  assert.deepEqual(clone(s),clone(expected),skill);
 }
 {
- const s=fixture();s.units[2].intent.cells=[4];const p=new Presentation();
+ const s=fixture();s.units[2].pos=49;const p=new Presentation();
  p.start(s,B,()=>B.act(s,'attack','enemy-guard'));const frames=drain(p);
  assert(!frames.some(f=>f.phase==='hurt'&&f.actor_id==='enemy-guard'));
 }
@@ -218,24 +218,23 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
   assert.equal(C.serialize(observed),C.serialize(direct),item.name+' exact final save parity');assert.equal(observedCalls,directCalls);assert.equal(observedCalls,0);
   assert(!C.serialize(observed).includes('attack_visual'),'trajectory metadata never enters save');assert(C.validate(observed).ok,C.validate(observed).error);
  }
- // Enemy intent reserves cell 24 even when its original named target moves.
+ // Enemy attack presentation follows the living target on the current board.
  for(const occupied of [true,false]){
   const s=attackCampaign(),b=s.battle,enemy=b.units.find(u=>u.side==='enemy'),guard=b.units.find(u=>u.id==='guard'),archer=b.units.find(u=>u.id==='archer');
-  guard.pos=23;if(occupied)archer.pos=24;
-  guard.next=1;enemy.next=2;archer.next=3;enemy.intent={kind:'attack',target:guard.id,name:'攻撃',reason:'reserved-cell observation boundary',cells:[24]};
+  guard.pos=23;if(occupied)archer.pos=24;else archer.pos=12;
+  guard.next=1;enemy.next=2;archer.next=3;b.actor=guard.id;
   assert(C.validate(s).ok,C.validate(s).error);
   const direct=C.deserialize(C.serialize(s)),observed=C.deserialize(C.serialize(s));
-  assert(B.act(direct.battle,'guard',null));
-  const p=new Presentation();assert(p.start(observed.battle,B,()=>B.act(observed.battle,'guard',null)));
+  assert(B.act(direct.battle,'move',22));
+  const p=new Presentation();assert(p.start(observed.battle,B,()=>B.act(observed.battle,'move',22)));
   const frames=drain(p),attack=frames.find(f=>f.phase==='action'&&f.kind==='attack'&&f.actor_id===enemy.id);
-  assert(attack,'canonical enemy step exposes reserved attack after player action');
-  const visual=clone(attack.attack_visual);
-  assert.equal(visual.source_cell,25);assert.equal(visual.target_cell,24);assert.equal(visual.target_unit_id,occupied?'archer':null);assert.equal(visual.targeting,'reserved_cell');
-  assert.equal(visual.abstract,false,'enemy now has a real equipment loadout');assert.equal(visual.weapons[0].itemId,'sword-wood');
-  assert.notEqual(visual.target_cell,guard.pos,'never follows the old target id after it moved');
+  if(occupied){assert(attack,'enemy attacks the unit currently occupying range');const visual=clone(attack.attack_visual);
+   assert.equal(visual.source_cell,25);assert.equal(visual.target_cell,24);assert.equal(visual.target_unit_id,'archer');assert.equal(visual.targeting,'unit');
+   assert.equal(visual.abstract,false,'enemy now has a real equipment loadout');assert.equal(visual.weapons[0].itemId,'sword-wood');
+  }else assert(!attack,'enemy chooses from current positions and does not attack an empty telegraphed cell');
   const hits=frames.filter(f=>f.phase==='hurt');
-  if(occupied)assert.equal(hits[0].unit_id,'archer');else assert.equal(hits.length,0,'empty reservation is a miss, never a success flash');
-  assert.equal(C.serialize(observed),C.serialize(direct),'reserved-cell exact save parity');assert(C.validate(observed).ok,C.validate(observed).error);
+  if(occupied)assert.equal(hits[0].unit_id,'archer');
+  assert.equal(C.serialize(observed),C.serialize(direct),'live-target exact save parity');assert(C.validate(observed).ok,C.validate(observed).error);
  }
 
  // Legacy/template-only equipment remains abstract; no sword or bow guessed.
@@ -257,7 +256,7 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  assert(q.start(isolated.battle,B,()=>B.act(isolated.battle,'attack',target.id)));
  q.info().attack_visual.weapons[0].atk=99999;
  assert.notEqual(isolated.battle.units.find(u=>u.id==='guard').attackWeapons[0].atk,99999);assert(q.finish(q.info().id));
- console.log('PASS canonical attack trajectory metadata: mixed reach/two-hand bow, reserved-cell occupant/miss, cover, rejection and exact save/RNG parity');
+ console.log('PASS canonical attack trajectory metadata: mixed reach/two-hand bow, live target, cover, rejection and exact save/RNG parity');
 }
 
 console.log('PASS presentation causal phases, strict ACK, enemy deferral, close, rollback, cover/multi-hit/heal, AoE, movement, r3 target-filtered multiweapon damage and final-state parity');

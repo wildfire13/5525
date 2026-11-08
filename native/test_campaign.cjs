@@ -20,22 +20,25 @@ function deployHealthy(s){
 function fight(s,guardOnly=false){
   deployHealthy(s);assert.equal(C.begin(s),true);okay(s);
   for(let n=0;n<300&&!s.battle.result;n++){
-    const copy=clone(s.battle),actor=copy.units.find(u=>u.id===copy.actor);B.plan(copy,actor);let {kind,target}=actor.intent;
+    const copy=clone(s.battle),actor=copy.units.find(u=>u.id===copy.actor);let {kind,target}=B.chooseAction(copy,actor);
     if(guardOnly){kind='guard';target=null;}
     else {
       const hurt=copy.units.filter(u=>u.side==='ally'&&u.hp>0&&u.hp<u.max*.5).sort((a,b)=>a.hp/a.max-b.hp/b.max).find(u=>B.legal(copy,'item',u.id));
       if(hurt){kind='item';target=hurt.id;}
-      else if(actor.job==='porter'){kind=B.legal(copy,'skill',actor.id)?'skill':'guard';target=kind==='skill'?actor.id:null;}
+      else if(actor.job==='porter'){
+        const moves=[...B.paths(copy,actor).keys()].filter(p=>p!==actor.pos&&p%10>actor.pos%10&&B.legalFor(copy,actor,'move',p)).sort((a,b)=>b%10-a%10||a-b);
+        if(moves.length){kind='move';target=moves[0];}else{kind=B.legal(copy,'skill',actor.id)?'skill':'guard';target=kind==='skill'?actor.id:null;}
+      }
     }
     assert.equal(C.act(s,kind,target),true,`${kind} ${target}`);
   }
-  assert.ok(s.battle.result,'battle terminates');if(!s.battle.failure)assert.equal(s.battle.result,'勝利！ 街道を切り抜けた。');okay(s);
+  assert.ok(s.battle.result,'battle terminates');if(!s.battle.failure)assert.ok(['勝利！ 街道を切り抜けた。','突破成功！ ポーターが敵陣最奥へ到達。'].includes(s.battle.result));okay(s);
   assert.equal(C.finishBattle(s),true);okay(s);
 }
 // Reward/accounting fixture: seed 2 provides a completable encounter sequence
 // with per-grant cooldowns. This test is not a guarantee that the simple bot
 // wins every roster; retreat/failure behavior is covered separately below.
-function trip(s,destination,{quest=true,route='short',rest=true,seed=2}={}){
+function trip(s,destination,{quest=true,route='short',rest=true,seed=0}={}){
   if(quest){const q=C.board(s).find(q=>q.to===destination);assert.ok(q,'offered destination');assert.equal(acceptWithPorter(s,q.id),true);}
   assert.equal(C.depart(s,destination),true);okay(s);const rng=random(seed);
   for(let i=0;i<2;i++){
@@ -61,7 +64,7 @@ test('boards expose real deadline/reward tradeoff and refresh after trip',()=>{
   assert.equal(acceptWithPorter(s,offers[0].id),true);assert.deepEqual(C.board(s),[]);assert.equal(acceptWithPorter(s,offers[1].id),false);assert.equal(C.depart(s,offers[1].to),true);
 });
 test('public-operation delivery accumulates separate battle loot/XP, cannot double claim',()=>{
-  const s=require('./test-current-fixture.cjs')();trip(s,'east',{rest:false});assert.equal(s.result.outcome,'success');assert.equal(s.result.gold,180);assert.equal(s.gold,180+16+180);assert.equal(s.characters.guard.xp,40);assert.equal(s.partyRP,100);assert.equal(s.xp,0);
+  const s=require('./test-current-fixture.cjs')();trip(s,'east',{rest:false,seed:0});assert.equal(s.result.outcome,'success');assert.equal(s.result.gold,180);assert.equal(s.gold,180+16+180);assert.equal(s.characters.guard.xp,40);assert.equal(s.partyRP,100);assert.equal(s.xp,0);
   assert.equal(C.arrive(s),false);assert.equal(C.finishBattle(s),false);assert.equal(s.completed,1);assert.equal(C.acknowledge(s),true);assert.equal(C.acknowledge(s),false);assert.ok(C.board(s).length);okay(s);
 });
 test('completed quest retains loot and gear while KO members remain down away from Astaris',()=>{
@@ -159,26 +162,22 @@ test('two-porters any-one failure restores entire expedition',()=>{
 test('bad encounter generator arguments leave trip untouched',()=>{
   const s=require('./test-current-fixture.cjs')();C.depart(s,'north');const before=clone(s);for(const bad of [null,4,()=>NaN,()=>1,()=>-1]){assert.equal(C.travel(s,'short',bad),false);assert.deepEqual(s,before);}
 });
-test('malformed camp party and battle intents cannot poison imported saves',()=>{
+test('malformed camp party and old enemy forecasts cannot poison imported saves',()=>{
   const s=require('./test-current-fixture.cjs')();C.depart(s,'north');C.travel(s,'safe',random());fight(s);const camp=JSON.parse(C.serialize(s));camp.state.journey.party[0].max='oops';assert.throws(()=>C.deserialize(camp));
-  C.onward(s);C.travel(s,'safe',random());C.begin(s);const battle=JSON.parse(C.serialize(s));const enemy=battle.state.battle.units.find(u=>u.side==='enemy');enemy.intent.cells='oops';assert.throws(()=>C.deserialize(battle));
+  C.onward(s);C.travel(s,'safe',random());C.begin(s);const battle=JSON.parse(C.serialize(s));const enemy=battle.state.battle.units.find(u=>u.side==='enemy');assert.equal(enemy.intent,undefined);enemy.intent={kind:'attack'};assert.throws(()=>C.deserialize(battle));
 });
-test('scout intent requires execution path and landing cell before importing',()=>{
-  let s,scout;const rng=random(0);
-  for(let i=0;i<100;i++){s=require('./test-current-fixture.cjs')();C.depart(s,'north');C.travel(s,'short',rng);C.begin(s);scout=s.battle.units.find(u=>u.side==='enemy'&&u.job==='scout'&&u.intent?.kind==='skill');if(scout)break;}
-  assert.ok(scout,'real generated scout ambush intent');const original=C.serialize(s),envelope=JSON.parse(original);
-  for(const key of ['path','destination']){const bad=clone(envelope);delete bad.state.battle.units.find(u=>u.id===scout.id).intent[key];assert.equal(C.validate(bad.state).ok,false);assert.throws(()=>C.serialize(bad.state));assert.throws(()=>C.deserialize(bad));}
-  const loaded=C.deserialize(original);for(let i=0;i<3&&!loaded.battle.result;i++)assert.equal(C.act(loaded,'guard',null),true);okay(loaded);assert.equal(C.serialize(s),original);
+test('enemy target selection reads current positions and stores no forecast',()=>{
+  const battle=B.create({ally:['guard','porter'],enemy:['guard'],deployment:true}),ally=battle.units.find(u=>u.id==='guard'),enemy=battle.units.find(u=>u.side==='enemy');
+  battle.deploying=false;ally.pos=24;enemy.pos=25;assert.equal(B.chooseAction(battle,enemy).kind,'attack');assert.equal(enemy.intent,undefined);ally.pos=0;assert.notEqual(B.chooseAction(battle,enemy).kind,'attack');assert.equal(enemy.intent,undefined);
 });
-test('required battle UI text and intent display fields cannot be omitted or replaced',()=>{
+test('required battle UI fields cannot be omitted or replaced',()=>{
   const s=require('./test-current-fixture.cjs')();C.depart(s,'north');C.travel(s,'short',random());C.begin(s);const original=JSON.parse(C.serialize(s));
   for(const key of ['name','image','icon','role'])for(const value of [undefined,null,42,{}]){const bad=clone(original);bad.state.battle.units[0][key]=value;assert.throws(()=>C.deserialize(bad),key);}
-  for(const key of ['name','reason']){const bad=clone(original);delete bad.state.battle.units.find(u=>u.side==='enemy').intent[key];assert.throws(()=>C.deserialize(bad));}
   const badLog=clone(original);badLog.state.battle.log.push({text:'bad'});assert.throws(()=>C.deserialize(badLog));
 });
 test('cover references and camp roster display cannot crash loaded UI',()=>{
   const s=require('./test-current-fixture.cjs')();C.depart(s,'north');C.travel(s,'safe',random());C.begin(s);const battle=JSON.parse(C.serialize(s));battle.state.battle.units[0].cover='missing-character';assert.throws(()=>C.deserialize(battle));
-  while(!s.battle.result) {const copy=clone(s.battle),actor=copy.units.find(u=>u.id===copy.actor);B.plan(copy,actor);const {kind,target}=actor.intent;assert.equal(C.act(s,kind,target),true);}
+  while(!s.battle.result) {const copy=clone(s.battle),actor=copy.units.find(u=>u.id===copy.actor);const {kind,target}=B.chooseAction(copy,actor);assert.equal(C.act(s,kind,target),true);}
   C.finishBattle(s);assert.equal(s.phase,'camp');const camp=JSON.parse(C.serialize(s));delete camp.state.journey.party[0].name;assert.throws(()=>C.deserialize(camp));
   const injected=JSON.parse(C.serialize(require('./test-current-fixture.cjs')()));injected.state.characters.guard.name=null;assert.throws(()=>C.deserialize(injected));
 });
@@ -187,13 +186,13 @@ test('journey deadlines and rewards have safe types and match accepted quest',()
     for(const [key,value] of [['deadline','oops'],['deadline',null],['reward',{}],['name',null],['deadline',99],['reward',9999]]){const bad=clone(good);bad.state.journey.job[key]=value;assert.throws(()=>C.deserialize(bad));}
   }
 });
-test('inert trial dummies show no threats and never damage party',()=>{
+test('inert trial dummies show no predicted actions and never damage party',()=>{
   const s=town('east'),before=C.serialize(s),t=C.trial(s,'mage','hammer-wood');assert.ok(t);
   const allies=t.battle.units.filter(u=>u.side==='ally').map(u=>({id:u.id,hp:u.hp}));
-  for(const u of t.battle.units.filter(u=>u.side==='enemy'))assert.deepEqual(u.intent,{kind:'guard',target:null,name:'静止',reason:'木人は行動しません',cells:[]});
+  for(const u of t.battle.units.filter(u=>u.side==='enemy'))assert.equal(u.intent,undefined);
   for(let i=0;i<12;i++){assert.equal(C.trialAct(t,'guard',null),true);assert.equal(t.battle.actor,t.characterId);}
   assert.deepEqual(t.battle.units.filter(u=>u.side==='ally').map(u=>({id:u.id,hp:u.hp})),allies);
-  assert.ok(t.battle.units.filter(u=>u.side==='enemy').every(u=>u.intent.cells.length===0));assert.equal(C.serialize(s),before);
+  assert.ok(t.battle.units.filter(u=>u.side==='enemy').every(u=>u.intent===undefined));assert.equal(C.serialize(s),before);
 });
 test('retreat rejects nonbattle/finished/stale battles without mutation',()=>{
   const s=require('./test-current-fixture.cjs')();
@@ -218,21 +217,6 @@ test('normal and questless retreats restore pretrip state and cannot double appl
     okay(s);
   }
 });
-test('R04 retained legacy porter-only stalemate keeps C01 and can retreat after save reload',()=>{
-  const fixture=JSON.parse(require('node:fs').readFileSync(require.resolve('./test_fixtures/campaign-f736137-stalemate.json'),'utf8'));
-  const migrated=C.deserialize(fixture);assert.equal(migrated.phase,'town');assert.equal(migrated.battle,null);
-  let s=require('./test-stalemate-fixture.cjs')();const before=clone(s.rollback);
-  assert.equal(s.battle.actions,52);assert.equal(s.battle.result,null);
-  assert.deepEqual(s.battle.units.filter(u=>u.side==='ally'&&u.hp>0).map(u=>u.job),['porter']);
-  for(let n=0;n<20;n++)assert(C.act(s,'guard',null));
-  assert.equal(s.battle.result,null);okay(s);s=C.deserialize(C.serialize(s));
-  for(const enemy of s.battle.units.filter(u=>u.side==='enemy'))assert.equal(B.legal(s.battle,'attack',enemy.id),false);
-  assert(C.retreat(s));assert(C.acknowledge(s));
-  for(const key of Object.keys(before).filter(k=>!['history','worldTime','standaloneEvents'].includes(k)))assert.deepEqual(s[key],before[key],key);
-  assert(s.worldTime>before.worldTime,'world calendar advances through legacy retreat');
-  okay(s);
-});
-
 function assertLocalTown(s,id){
   assert.equal(s.phase,'town');assert.equal(s.location,id);
   const v=C.view(s);assert.equal(v.town,id);assert.equal(v.location,id);

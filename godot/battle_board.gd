@@ -353,25 +353,14 @@ func draw_overlay():
 		for p in legal_target_cells():cell_outline(int(p),Color(.3,.9,.55,.12 if resolving else .65))
 	for p in preview.get("cells",[]):cell_outline(int(p),Color("#fb923c"),3.0)
 	if preview.get("target") is float or preview.get("target") is int:cell_outline(int(preview.target),Color("#fff0ac"),3.0)
-	var threats={}
-	for u in state.get("units",[]):
-		if u.side!="enemy" or u.hp<=0 or not u.get("intent") is Dictionary:continue
-		for p in u.intent.get("cells",[]):threats[int(p)]=threats.get(int(p),0)+1
-		if u.intent.get("destination")!=null:
-			var dest=project_cell(int(u.intent.destination))
-			overlay.draw_string(ThemeDB.fallback_font,dest+Vector2(-5,18),"↓",HORIZONTAL_ALIGNMENT_LEFT,-1,22,Color("#fda4af"))
-	for p in threats:
-		cell_outline(p,Color(Color("#fb7185"),.14 if resolving else 1.0))
-		var center=project_cell(p)
-		for stripe in [-8,0,8]:overlay.draw_line(center+Vector2(stripe-6,-7),center+Vector2(stripe+6,7),Color(1,.45,.55,.1 if resolving else .65),1.0,true)
-		overlay.draw_string(ThemeDB.fallback_font,project_cell(p)+Vector2(14,-8),"!%d" % threats[p],HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color(1,1,1,.25 if resolving else 1))
 	for side in ["ally","enemy"]:
 		var slots=data.get("formationSlots",{}).get(side,[24,13,33] if side=="ally" else [25,16,36])
 		var active=data.get("formed",{}).get(side,false)
 		var color=Color("#ffe197") if active else Color(.82,.8,.62,.6)
 		if resolving:color.a*=.25
-		for i in range(3):
-			var at=project_cell(slots[i]);dashed(at,project_cell(slots[(i+1)%3]),color)
+		var valid_slots=slots.filter(func(pos):return int(pos)>=0 and int(pos)<50)
+		for i in range(valid_slots.size()):
+			var at=project_cell(int(valid_slots[i]));dashed(at,project_cell(int(valid_slots[(i+1)%valid_slots.size()])),color)
 			if active:overlay.draw_circle(at,13+sin(pulse*3)*2,Color(1,.82,.35,.18))
 			overlay.draw_circle(at,5,color)
 	for u in state.get("units",[]):
@@ -381,14 +370,7 @@ func draw_overlay():
 		if targets.has(u.id):
 			cell_outline(int(u.pos),Color("#75ffc2"),4.0)
 			overlay.draw_string(ThemeDB.fallback_font,project_cell(u.pos)+Vector2(-28,30),"選択中",HORIZONTAL_ALIGNMENT_LEFT,-1,18,Color("#75ffc2"))
-		if u.side=="enemy" and u.get("intent")!=null:
-			var valid=false
-			for e in data.get("enemyInfo",[]):
-				if e.id==u.id:valid=e.valid
-			for p in u.intent.cells:
-				var intent_color=(Color(1,.38,.36,.95) if valid else Color(.86,.74,.47,.85)) if inspected_enemy.is_empty() or inspected_enemy==u.id else Color(.86,.6,.55,.35)
-				if resolving:intent_color.a*=.14
-				arrow(project_cell(u.pos),project_cell(p),intent_color,1.0 if resolving else 3.0 if inspected_enemy==u.id else 1.5)
+
 	if preview.get("destination")!=null:
 		var actor={}
 		for u in state.get("units",[]):
@@ -452,16 +434,14 @@ func effect_event(p: Dictionary) -> Dictionary:
 		if p.get("target") is int or p.get("target") is float:cell=int(p.target)
 		if not targets.is_empty():cell=int(targets[0].cell);target_id=str(targets[0].unit_id)
 		var cells=resolved.get("cells",[]).duplicate()
-		var intent=actor.get("intent",{}) if actor.get("intent") is Dictionary else {}
 		if skill=="healingCross":cells=p.get("resolved_heals",[]).map(func(row):return int(row.cell))
 		elif skill=="legSweep":cells=data.get("ranges",{}).get("skill",[]).duplicate()
 		elif skill=="stamp":
 			cell=int(p.get("target",-1))
-			if cells.is_empty():cells=intent.get("cells",[]).duplicate() if actor.get("side")=="enemy" and intent.get("kind")=="skill" else data.get("stampAreas",{}).get(str(cell),[]).duplicate()
+			if cells.is_empty():cells=data.get("stampAreas",{}).get(str(cell),[]).duplicate()
 		if kind=="attack":
 			if p.get("attack_visual") is Dictionary:
 				cell=int(p.attack_visual.get("target_cell",-1));target_id=str(p.attack_visual.get("target_unit_id") if p.attack_visual.get("target_unit_id")!=null else "")
-			elif actor.get("side")=="enemy" and not intent.get("cells",[]).is_empty():cell=int(intent.cells[0])
 			else:
 				target_id=str(p.get("target",""))
 				for u in data.get("state",{}).get("units",[]):

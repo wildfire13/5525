@@ -50,16 +50,12 @@ func escape():
 	await settle()
 func intent_cases():
 	for which in ["self","other"]:
-		await restore(which);var before=await snapshot();var healer=game.state().units.filter(func(u):return u.side=="enemy" and u.job=="mage")[0];var target=game.hud.unit(healer.intent.target)
-		var label=text(game.hud.intent_strip)
-		check("JY-01",label.contains("対象: "+str(target.name)),which+" enemy heal identifies its actual target in primary strip")
-		check("JY-01",not label.contains("マス固定・現在占有者への予告"),which+" unit target is not described as a fixed cell")
-		game.hud.toggle_details();await settle();check("JY-01",text(game.dialog.body).contains("対象: "+str(target.name)),which+" enemy heal target is also explicit in details");game.dialog.close();await settle()
-		if game.hud.has_method("intent_target_text"):
-			var fixed=game.hud.intent_target_text({"kind":"attack","cells":[24],"target":"mage"});check("JY-01",fixed.contains("X4,Y2") and fixed.contains("ガロ") and not fixed.contains("ミオ"),"fixed-cell intent follows current occupant instead of historical target ID")
-			var unknown=game.hud.intent_target_text({"kind":"skill","cells":[],"target":"missing-unit"});check("JY-01",unknown.contains("対象不明") and not unknown.contains("missing-unit") and not unknown.contains(str(target.name)),"unknown target is explicit and never replaced with prior target")
-		else:check("JY-01",false,"typed intent rendering unavailable")
-		check("JY-01",await snapshot()==before,"intent inspection does not mutate canonical campaign")
+		await restore(which);var before=await snapshot();var enemies=game.state().units.filter(func(u):return u.side=="enemy")
+		var no_forecasts=true
+		for unit in enemies:no_forecasts=no_forecasts and not unit.has("intent")
+		check("JY-01",no_forecasts,which+" enemy actions are selected at their turns without stored forecasts")
+		check("JY-01",text(game.hud.rule_strip).contains("現在の盤面") and text(game.hud.rule_strip).contains("全員"),which+" rule strip explains immediate enemy actions and universal invasion")
+		check("JY-01",await snapshot()==before,"rule inspection does not mutate canonical campaign")
 func observe():
 	if not is_instance_valid(game) or game.closing:return
 	var phase=game.data.get("presentation")
@@ -71,10 +67,10 @@ func observe():
 	phases.append({"phase":phase.phase,"actor":phase.actor_id,"unit":phase.unit_id,"recipient_matches":not phase.phase in ["heal","hurt"] or text(game.hud.target_box).contains("実受領者: "+game.hud.target_name(phase.unit_id)),"head_matches":not faces.is_empty() and faces[0].texture==game.portraits.texture(actor,true),"header_matches":game.header.text.contains(str(actor.get("name","missing"))) and game.actor_face.texture==game.portraits.texture(actor,true),"labels":queue_text,"rect":str(game.board.get_global_rect())})
 func presentation_case():
 	root.size=Vector2i(800,600);game.checks_fast=false
-	for which in ["other","finish"]:
+	for which in ["self","other","finish"]:
 		await restore(which);process_frame.connect(observe)
-		game.choose_command("skill" if which=="other" else "attack")
-		var target="mage" if which=="other" else game.data.choices.attack[0]
+		game.choose_command("attack" if which=="finish" else "skill")
+		var target="mage" if which=="self" else "guard" if which=="other" else game.data.choices.attack[0]
 		await game.on_cell(int(game.hud.unit(target).pos));await settle();await game.commit();await settle();process_frame.disconnect(observe)
 		if which=="finish":check("JY-02",game.state().get("result")!=null,"also observed the final action through victory and settlement")
 	game.checks_fast=true

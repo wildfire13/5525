@@ -67,10 +67,8 @@ func replay(name: String,fixture: Dictionary):
 				check(snap.event.get(key)==expected[key],tag+" exact "+key+" "+str(expected[key]))
 			check(is_equal_approx(snap.duration,expected_vfx_duration(snap.event)) and snap.elapsed==0,tag+" single fresh event uses documented production profile timing")
 			if p.phase=="action" and p.kind=="attack":
-				var actor=unit(frame.state,p.actor_id);var intent=actor.get("intent",{});var cell=-1
-				if actor.side=="enemy" and intent is Dictionary and not intent.get("cells",[]).is_empty():cell=intent.cells[0]
-				else:cell=unit(frame.state,p.target).get("pos",-1)
-				check(snap.event.recipient==cell and not snap.event.get("guarding",false) and not snap.event.get("redirected",false),tag+" neutral attack follows original target or reserved cell, no success claim")
+				var cell=unit(frame.state,p.target).get("pos",-1)
+				check(snap.event.recipient==cell and not snap.event.get("guarding",false) and not snap.event.get("redirected",false),tag+" neutral attack follows its current target, no success claim")
 			board.skill_effects._process(.1)
 			var advanced=board.skill_effects.snapshot()
 			check(board.animate(p)==0 and board.skill_effects.snapshot()==advanced,tag+" duplicate packet neither replays nor resets elapsed time")
@@ -119,17 +117,14 @@ func boundaries(fixture: Dictionary):
 		load_frame(fixture,f,1)
 		check(is_equal_approx(board.animate(f.presentation),.32 if jump else .24) and not board.skill_effects.snapshot().active,"existing "+("jump" if jump else "move")+" timing and no fabricated skill effect")
 func geometry_boundaries(stamp: Dictionary,sweep: Dictionary):
-	# Controlled event-parser boundary: an enemy uses its already reserved cells,
-	# never a current ally selector. This is not a claim of playing a new action.
+	# Resolved cells from the accepted action are the effect renderer's geometry.
 	var frame=stamp.frames.filter(func(f):return f.presentation.phase=="action" and f.presentation.kind=="skill")[0].duplicate(true)
-	frame.presentation.erase("resolved")
 	var enemy=frame.state.units.filter(func(u):return u.side=="enemy")[0]
-	enemy.intent={"kind":"skill","cells":[15,25,35],"target":25}
+	frame.presentation.resolved={"cells":[15,25,35]}
 	frame.presentation.actor_id=enemy.id;frame.presentation.unit_id=enemy.id
 	load_frame(stamp,frame,0)
-	board.data.stampAreas={"25":[0,1,2]}
 	var event=board.effect_event(frame.presentation)
-	check(event.get("cells")==[15,25,35] and event.get("origin")==enemy.pos,"enemy stamp uses reserved intent cells instead of ally selector geometry")
+	check(event.get("cells")==[15,25,35] and event.get("origin")==enemy.pos,"stamp renderer follows resolved current-turn cells")
 	var action=sweep.frames[0]
 	load_frame(sweep,action,0);board.animate(action.presentation)
 	var skipped=action.duplicate(true)
