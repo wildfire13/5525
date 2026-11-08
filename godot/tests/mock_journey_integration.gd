@@ -19,7 +19,9 @@ func synthetic_victory():
  var save=(await game.engine.request({"op":"campaign_save"})).data
  for unit in save.state.battle.units:
   if unit.side=="enemy":unit.hp=0
- save.state.battle.actor=null;save.state.battle.result="勝利！ 街道を切り抜けた。"
+ # This is a synthetic victory boundary, not combat evidence. Keep the
+ # serialized battle result internally consistent with the campaign loader.
+ save.state.battle.actor=null;save.state.battle.resultKind="annihilation";save.state.battle.result="勝利！ ミラーマッチを制した。"
  await game.update({"op":"campaign_load","data":save});await settle()
  await game.act("finishBattle",[]);await settle()
  if game.results_view.active:game.results_view.continue_button.pressed.emit()
