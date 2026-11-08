@@ -407,7 +407,11 @@ const Campaign = (() => {
   function deployment_assign(s,id,pos) {
     if(s.phase!=='deployment'||!s.battle?.deploying||!s.selected.includes(id))return false;
     const b=s.battle,current=b.units.filter(u=>u.side==='ally'),old=current.find(u=>u.id===id);
-    if(pos!==null&&(!Number.isInteger(pos)||pos<0||pos>=50||B.boardOf(pos)==='enemy'&&!b.units.find(u=>u.id===id)?.canDeployEnemySide))return false;
+    const canDeployEnemySide=uid=>{
+      const deployed=current.find(u=>u.id===uid);
+      return deployed?deployed.canDeployEnemySide===true:stats(s.characters[uid]).effects.includes('invasion');
+    };
+    if(pos!==null&&(!Number.isInteger(pos)||pos<0||pos>=50||B.boardOf(pos)==='enemy'&&!canDeployEnemySide(id)))return false;
     if(old&&pos!==null)return B.deploy(b,id,pos);
     if(!old&&(pos===null||s.characters[id].hp<=0))return false;
     const occupant=pos===null?null:b.units.find(u=>u.hp>0&&u.pos===pos);

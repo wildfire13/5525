@@ -21,6 +21,17 @@ test('twelve real travellers, twelve cap, five combat slots and strict legacy sa
  }finally{B.roster.length=length;}
 
 });
+test('invasion permits enemy-side deployment by active and reserve Scouts only',()=>{
+ const s=require('./test-current-fixture.cjs')();
+ const selected=['guard','archer','mage','scout','porter','guard-2','mage-2','scout-2'];
+ assert(C.select(s,selected));assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));okay(s);
+ const before=structuredClone(s);assert.equal(C.deployment_assign(s,'guard',7),false);assert.deepEqual(s,before,'non-invader enemy-side rejection is atomic');
+ assert.equal(C.deployment_assign(s,'scout',6),true,'deployed Scout may enter the enemy side');assert.equal(s.battle.units.find(u=>u.id==='scout').pos,6);okay(s);
+ assert.equal(C.deployment_assign(s,'scout',4),true,'deployed Scout may return to the ally side');
+ assert.equal(C.deployment_assign(s,'guard',null),true,'free one combat slot for reserve');
+ assert.equal(C.deployment_assign(s,'scout-2',7),true,'reserve Scout may be added directly to the enemy side');
+ assert.equal(s.battle.units.find(u=>u.id==='scout-2').pos,7);assert.equal(s.battle.units.find(u=>u.id==='guard'),undefined);okay(s);
+});
 test('full replacement, addition, move/swap and rejected drops are atomic',()=>{
  const s=prep();reject(s,'warrior',0);reject(s,'warrior',49);reject(s,'bogus',23);reject(s,'warrior',1.5);reject(s,'warrior',null);
  const out=s.battle.units.find(u=>u.id==='guard'),pos=out.pos;assert(C.deployment_assign(s,'warrior',pos));assert(!s.battleSelected.includes('guard'));assert(s.battleSelected.includes('warrior'));okay(s);
