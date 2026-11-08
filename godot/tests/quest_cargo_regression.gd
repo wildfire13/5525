@@ -25,6 +25,8 @@ func run():
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	# This regression uses legacy actor IDs; run it against the explicit post-migration fixture.
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.audio.fast_mode=true;game.checks_fast=true
 	await game.act("select",[["guard","porter","porter-2"]]);await settle()
 	var before=await saved();var qid=game.campaign().board[0].id
@@ -40,7 +42,8 @@ func run():
 	var quote=reply.inventoryQuote
 	await game.act("inventoryAction",["porter",cargo,"transfer","porter-2",1,null,quote.token]);await settle()
 	check(game.campaign().activeQuest.cargoOwnerId=="porter-2" and not game.campaign().characters.porter.inventory.has(cargo),"existing inventory transfer updates current carrier")
-	await enter_guild();await tap("GuildMember_porter-2");await tap("GuildRemove")
+	# Active members are selected from the current-party pane, not reserve cards.
+	await enter_guild();game.pages.guild_view.current_id="porter-2";game.render();await settle();await tap("GuildRemove")
 	check(contains("そのポーター、荷物を持っています"),"current carrier removal warns")
 	var before_remove=await saved();await tap("GuildConfirmCancel")
 	check(await saved()==before_remove,"warning cancel keeps party and cargo unchanged")
@@ -51,7 +54,8 @@ func run():
 	check(reply.ok and game.campaign().activeQuest.cargoOwnerId=="porter-2","reserve carrier save reload")
 	await enter_guild();await tap("GuildMember_porter-2");await tap("GuildAdd")
 	check(game.campaign().cargoAboard,"readding carrier restores aboard cargo")
-	await tap("GuildMember_porter-2");await tap("GuildMember_archer")
+	# Select an actual reserve, then invoke the current explicit swap action.
+	game.pages.guild_view.current_id="porter-2";game.render();await settle();await tap("GuildMember_archer");await tap("GuildSwap")
 	check(contains("そのポーター、荷物を持っています"),"current carrier swap warns")
 	await tap("GuildConfirmCancel");check(game.campaign().selected.has("porter-2"),"swap warning cancel preserves carrier")
 	reply=await game.update({"op":"campaign_load","data":seed});await settle()
