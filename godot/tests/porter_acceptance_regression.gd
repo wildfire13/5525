@@ -15,9 +15,11 @@ func run():
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.audio.fast_mode=true;game.checks_fast=true
 	game.navigate("party");await settle()
-	await tap("GuildMember_porter")
+	if game.find_child("FacilityChoice_guild",true,false)!=null:await tap("FacilityChoice_guild")
+	game.pages.guild_view.current_id="porter";game.render();await settle()
 	check(not game.find_child("GuildRemove",true,false).disabled,"last porter removal available")
 	await tap("GuildRemove")
 	check(not game.campaign().hasPorter and game.campaign().selected.size()==4,"UI removes last porter without a fixed-member constraint")
