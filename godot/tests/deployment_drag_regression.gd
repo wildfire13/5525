@@ -4,10 +4,15 @@ const Drag=preload("res://deployment_drag.gd")
 var drops=[]
 var layouts=[]
 func fixtures() -> Dictionary:
-	var code="const C=require(process.argv[1]),a=require('node:assert/strict');let s=require(require('node:path').join(require('node:path').dirname(process.argv[1]),'test-current-fixture.cjs'))();a(C.select(s,['guard','archer','mage','scout','porter','guard-2','mage-2','scout-2']));a(C.depart(s,'east'));a(C.travel(s,'safe',()=>0));a(C.validate(s).ok,C.validate(s).error);console.log(C.serialize(s));"
-	var output=[];var exit=OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray(["-e",code,ProjectSettings.globalize_path("res://../native/campaign.js")]),output,true,false)
+	var fixture_path=ProjectSettings.globalize_path("user://deployment-drag-fixture-%d.json" % OS.get_process_id())
+	var code="const C=require(process.argv[1]),a=require('node:assert/strict'),fs=require('node:fs');let s=require(require('node:path').join(require('node:path').dirname(process.argv[1]),'test-current-fixture.cjs'))();a(C.select(s,['guard','archer','mage','scout','porter','guard-2','mage-2','scout-2']));a(C.depart(s,'east'));a(C.travel(s,'safe',()=>0));a(C.validate(s).ok,C.validate(s).error);fs.writeFileSync(process.argv[2],C.serialize(s),'utf8');process.stdout.write('OK');"
+	var output=[];var exit=OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray(["-e",code,ProjectSettings.globalize_path("res://../native/campaign.js"),fixture_path]),output,true,false)
 	check(exit==0,"seven-member fixture uses canonical selection travel and validation")
-	return JSON.parse_string("".join(output))
+	check("".join(output).strip_edges()=="OK","fixture helper stdout stays ASCII-safe on Windows system codepages")
+	var contents=FileAccess.get_file_as_string(fixture_path);DirAccess.remove_absolute(fixture_path)
+	var fixture=JSON.parse_string(contents)
+	check(fixture is Dictionary and fixture.get("state",{}).get("battle",{}).get("units",[]).any(func(member):return member.get("id")=="scout" and member.get("name")=="ニカ"),"Japanese fixture names survive UTF-8 file transfer on Windows codepages")
+	return fixture if fixture is Dictionary else {}
 func ally(uid: String) -> Dictionary:
 	for row in game.state().get("units",[]):
 		if row.id==uid and row.side=="ally":return row
@@ -42,6 +47,18 @@ func layout(label: String):
 		check(Rect2(Vector2.ZERO,Vector2(root.size)).has_point(point) and not fixed.any(func(c):return is_instance_valid(c) and c.visible and c.get_global_rect().has_point(point)),label+" ally cell "+str(cell)+" clear of fixed footer")
 		check(game.board.cell_at(game.board.project_cell(cell))==cell,label+" projected hover/click floor agrees "+str(cell))
 	layouts.append({"label":label,"size":str(root.size),"rows":rows})
+func reserve_scroll_access(label: String):
+	var panel=game.hud.right_panel;var scroll=panel.body.get_parent();var reserve=node("DeploymentReserves")
+	check(scroll is ScrollContainer and reserve!=null,label+" deployed detail content has a dedicated scroll viewport")
+	check(not scroll.get_global_rect().intersection(panel.footer.get_global_rect()).has_area(),label+" reserve viewport never sits behind pinned instructions")
+	var cards=reserve.find_children("*","Button",false,false)
+	if cards.is_empty():return
+	var overflow=scroll.get_v_scroll_bar().max_value>scroll.get_v_scroll_bar().page
+	check(scroll.vertical_scroll_mode!=ScrollContainer.SCROLL_MODE_DISABLED,label+" deployed detail viewport allows vertical scrolling")
+	check(cards.size()==3 and reserve.get_parent()==panel.body,label+" all selected reserves remain in scrollable detail content")
+	var visible_reserves=reserve.get_global_rect().intersection(scroll.get_global_rect())
+	check(not visible_reserves.intersection(panel.footer.get_global_rect()).has_area(),label+" visible reserve cards do not overlap the fixed instruction text")
+	if root.size.y<900:check(overflow,label+" narrow viewport exposes a scroll range to reach lower reserve cards")
 func run():
 	create_timer(120).timeout.connect(func():print("FAIL deployment D&D watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
@@ -52,7 +69,7 @@ func run():
 	check((await game.update({"op":"campaign_load","data":sample})).get("ok",false),"valid seven-member deployment restored")
 	await settle();game.board.deployment_assigned.connect(func(uid,pos):drops.append([uid,pos]))
 	check(root.has_method("gui_cancel_drag"),"runtime exposes actual Viewport drag cancellation API")
-	for dims in [Vector2i(1920,1080)]:root.size=dims;await settle();layout(str(dims))
+	for dims in [Vector2i(1920,1080),Vector2i(1280,800)]:root.size=dims;await settle();layout(str(dims));reserve_scroll_access(str(dims))
 	var before=await saved();var payload=Drag.make_payload(game,"guard","board")
 	check(Drag.valid(game,payload),"fresh board context is valid")
 	game.menu.show()
