@@ -48,12 +48,12 @@ def atomic_json_write(path, data):
 
 def campaign_formation_info(data):
     """Explain existing side-wide factors; never infer formation from a preview."""
-    lines = ['陣形条件: 金枠3マスを同陣営の生存者で埋める']
+    lines = ['陣形条件: 金枠3マスをポーター以外の同陣営生存者で埋める']
     formation_slots = data.get('formationSlots', {})
     for side, name, defaults in [('ally', '味方', (24, 13, 33)),
                                  ('enemy', '敵', (25, 16, 36))]:
         slots = formation_slots.get(side, defaults)
-        occupied = sum(any(u['side'] == side and u['hp'] > 0 and u['pos'] == p
+        occupied = sum(any(u['side'] == side and u['job'] != 'porter' and u['hp'] > 0 and u['pos'] == p
                            for u in data['state']['units']) for p in slots)
         formed = data['formed'][side]
         boosted = formed and data.get('boosted', {}).get(side, False)

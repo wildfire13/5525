@@ -644,7 +644,7 @@ func render_deployment():
 	formation_status.size_flags_horizontal=Control.SIZE_FILL;formation_status.custom_minimum_size.x=200;formation_status.autowrap_mode=TextServer.AUTOWRAP_OFF
 	for pair in [["convoy","基本配置"],["flank","切り込み配置"]]:
 		var control=b(formations,("● " if s.get("formationKind","convoy")==pair[0] else "")+pair[1],choose_formation.bind(pair[0]))
-		control.tooltip_text="点線の3マスを味方の生存者で埋めると発動。\n味方全員の攻撃×1.5・被ダメージ×0.75。\n陣形強化中は攻撃×1.75・被ダメージ×0.65（使用者の次の番まで）。\n陣形が崩れている間は無効。"
+		control.tooltip_text="点線の3マスをポーター以外の味方生存者で埋めると発動。\n味方全員の攻撃×1.5・被ダメージ×0.75。\n陣形強化中は攻撃×1.75・被ダメージ×0.65（使用者の次の番まで）。\n陣形が崩れている間は無効。"
 		control.name="DeploymentFormation_"+pair[0];control.size_flags_horizontal=Control.SIZE_FILL;control.custom_minimum_size.x=200
 	if not s.units.any(func(u):return u.id==ui.selected and u.side=="ally" and u.hp>0):
 		ui.selected=""
@@ -687,10 +687,10 @@ func formations(parent):
 	for team in ["ally","enemy"]:
 		var active=ui.data.get("formed",{}).get(team,false);var boost=active and ui.data.get("boosted",{}).get(team,false)
 		var cells=ui.data.get("formationSlots",{}).get(team,[24,13,33] if team=="ally" else [25,16,36]).map(func(cell):return int(cell))
-		var occupied=ui.state().units.filter(func(u):return u.side==team and u.hp>0 and cells.has(int(u.pos))).size()
+		var occupied=ui.state().units.filter(func(u):return u.side==team and u.job!="porter" and u.hp>0 and cells.has(int(u.pos))).size()
 		l(parent,"%sの条件マス %d/3" % ["味方" if team=="ally" else "敵",occupied])
 		l(parent,"%s陣形 %s / 攻撃%s・被ダメージ%s" % ["味方" if team=="ally" else "敵","発動" if active else "未発動","×1.75" if boost else "×1.5" if active else "×1","×0.65" if boost else "×0.75" if active else "×1"])
-	l(parent,"陣形条件: 点線の3マスを同陣営の生存者で埋める。陣営全体への補正。防御・かばう・丸めは別。")
+	l(parent,"陣形条件: 点線の3マスをポーター以外の同陣営生存者で埋める。陣営全体への補正。防御・かばう・丸めは別。")
 
 func live_board(source_id: int=0) -> bool:
 	return not ui.closing and is_instance_valid(ui.board) and ui.board.is_inside_tree() and not ui.board.is_queued_for_deletion() and (source_id==0 or source_id==ui.board.get_instance_id())

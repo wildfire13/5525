@@ -84,7 +84,9 @@ const Battle = (() => {
     const px=x(porter.pos),py=y(porter.pos),offsets=side==='ally'?[[2,0],[1,-1],[1,1]]:[[-2,0],[-1,-1],[-1,1]];
     return offsets.map(([dx,dy])=>{const bx=px+dx,by=py+dy;return bx>=0&&bx<10&&by>=0&&by<5?by*10+bx:-1;});
   }
-  const formation = (s,side="ally") => {const cells=formationSlots(s,side);return cells.length===3&&cells.every(p=>p>=0&&p<50&&alive(s).some(u=>u.side===side&&u.pos===p));};
+  // The Porter anchors the formation but cannot fill one of its three guard
+  // positions. In a two-Porter party, only non-Porters can complete the line.
+  const formation = (s,side="ally") => {const cells=formationSlots(s,side);return cells.length===3&&cells.every(p=>p>=0&&p<50&&alive(s).some(u=>u.side===side&&u.job!=='porter'&&u.pos===p));};
   // 仮接続：槌装備でスタンプを試せる。完成版の習得・使用条件は未決定。
   const activeSkills = a => a.activeSkills||[a.job==='porter'?'porter':(a.equippedSkill || (a.weapon==='hammer'?'stamp':a.job))];
   // A grant has an identity independent of the shared effect definition.
