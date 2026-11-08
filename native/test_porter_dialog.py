@@ -232,7 +232,8 @@ class PorterDialogControllerTests(unittest.TestCase):
         self.assertEqual(self.engine.call(op='view'), before)
 
     def test_other_skill_keeps_board_preview_cancel_and_commit_flow(self):
-        self.app.data = self.engine.call(op='reset')
+        self.app.data = self.engine.call(op='reset', presentation=True)
+        self.app.data = self.engine.call(op='presentation_finish', id=self.app.data['presentation']['id'])
         before = deepcopy(self.app.data)
         for commit in (False, True):
             self.app.set_mode('skill')
@@ -243,7 +244,7 @@ class PorterDialogControllerTests(unittest.TestCase):
             self.app.click_cell(SimpleNamespace(x=(unit['pos'] % 10) * 74 + 30,
                                                 y=(unit['pos'] // 10) * 74 + 30))
             self.assertEqual(self.app.pending, ('skill', target))
-            self.assertEqual(self.engine.call(op='view'), before)
+            self.assertEqual(self.engine.call(op='view')['state'], before['state'])
             if commit: self.app.commit()
             else: self.app.cancel()
         self.assertEqual(self.acts(), [{'op': 'act', 'kind': 'skill', 'target': target}])

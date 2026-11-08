@@ -1,10 +1,4 @@
-"""Real-process journey adapter checks; no GUI, network, or state injection.
-
-Enemy selection is reproducible through Node's supported --random-seed flag.
-The separate reference process operates only on a JSON copy of the observed
-battle state. Its selected actions are submitted through the production bridge;
-every resulting battle state is compared against the unmodified battle module.
-"""
+"""Real-process journey adapter checks using the current battle rules."""
 import json
 from pathlib import Path
 import subprocess
@@ -36,22 +30,20 @@ class Session:
 
 
 REFERENCE_POLICY = r"""
-const B = require('./battle.js'), fs = require('node:fs');
+const B = require('./campaign-battle.js'), fs = require('node:fs');
 const s = JSON.parse(fs.readFileSync(0, 'utf8')), steps = [];
 for(let n=0;n<250&&!s.result;n++) {
   const a=s.units.find(u=>u.id===s.actor);
-  const old=a.intent;
-  B.plan(s,a);
-  let {kind,target}=a.intent;
-  if(old===undefined)delete a.intent;else a.intent=old;
-  // The production AI is symmetric except that random enemies have no porter.
-  // Keep the protected courier at its deployment position rather than walking
-  // it into melee. All choices still use the original engine legality checks.
+  let {kind,target}=B.chooseAction(s,a);
   if(a.job==='porter') {
+    const moves=[...B.paths(s,a).keys()].filter(p=>p!==a.pos&&p%10>a.pos%10&&B.legalFor(s,a,'move',p)).sort((l,r)=>r%10-l%10||l-r);
+    if(moves.length){kind='move';target=moves[0];}
+    else {
     const hurt=s.units.filter(u=>u.hp>0&&u.side===a.side&&u.hp<30)
       .sort((l,r)=>l.hp-r.hp).find(u=>B.legal(s,'item',u.id));
     if(hurt){kind='item';target=hurt.id;}
     else {kind=B.legal(s,'skill',a.id)?'skill':'guard';target=kind==='skill'?a.id:null;}
+    }
   }
   if(!B.act(s,kind,target))throw Error('Illegal policy choice '+kind+' '+target);
   // Existing web cycle.js:117 relabels a successful journey terminal outcome.
@@ -113,7 +105,7 @@ class JourneyBridgeTests(unittest.TestCase):
     def test_start_selection_and_phase_gates(self):
         self.assertEqual(self.data['journey']['phase'], 'jobs')
         self.assertIsNone(self.data['state'])
-        self.assertEqual(len(self.data['roster']), 11)
+        self.assertEqual(len(self.data['roster']), 35)
         self.assertEqual(len(self.data['jobs']), 2)
         self.reject_unchanged('travel', 'short')
         self.reject_unchanged('select', ['porter'])
@@ -207,7 +199,7 @@ class JourneyBridgeTests(unittest.TestCase):
                 self.assertEqual(self.data['journey']['phase'], 'battle')
                 self.assertFalse(self.data['state']['deploying'])
                 self.assertIsNotNone(self.data['state']['actor'])
-                self.assertTrue(all('intent' in u for u in self.data['state']['units'] if u['side'] == 'enemy'))
+                self.assertTrue(all('intent' not in u for u in self.data['state']['units'] if u['side'] == 'enemy'))
                 self.reject_unchanged('begin')
                 self.reject_unchanged('deployment_reset')
                 self.reject_unchanged('deploy', 'scout', 0)
@@ -227,7 +219,8 @@ class JourneyBridgeTests(unittest.TestCase):
             self.action('begin')
             result = self.play_battle()
             counts.append(result['actions'])
-            self.assertTrue(all(u['hp'] <= 0 for u in self.data['state']['units'] if u['side'] == 'enemy'), result['result'])
+            if self.data['state'].get('resultKind') != 'breakthrough':
+                self.assertTrue(all(u['hp'] <= 0 for u in self.data['state']['units'] if u['side'] == 'enemy'), result['result'])
             self.assertNotIn('failure', self.data['state'])
             terminal = self.data['state']
             before_hours = self.data['journey']['hours']

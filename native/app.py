@@ -119,12 +119,12 @@ class App:
         tk.Button(controls,text='新規戦闘 / RESET',command=self.reset,font=('sans-serif',11)).pack(side='left')
         tk.Button(controls,text='ログ保存',command=self.export,font=('sans-serif',11)).pack(side='left',padx=8)
         right=tk.Frame(body,bg='#111827');right.pack(side='left',padx=(20,0),fill='both',expand=True)
-        tk.Label(right,text='状態・敵の予告・操作ログ',bg='#111827',fg='#94a3b8',font=('sans-serif',12)).pack(anchor='w')
+        tk.Label(right,text='状態・操作ログ',bg='#111827',fg='#94a3b8',font=('sans-serif',12)).pack(anchor='w')
         self.info=tk.Text(right,width=39,height=21,bg='#1e293b',fg='#e2e8f0',font=('sans-serif',10),wrap='char',relief='flat',padx=10,pady=10)
         self.info.pack(fill='x',pady=(8,10))
         self.log=tk.Text(right,width=39,height=22,bg='#1e293b',fg='#e2e8f0',font=('sans-serif',10),wrap='char',relief='flat',padx=10,pady=10)
         self.log.pack(fill='both',expand=True)
-        self.message='移動後の攻撃は次の本人の番。金枠=陣形 / 赤枠=敵の攻撃予告 / ↓=敵移動先'
+        self.message='移動後の攻撃は次の本人の番。金枠=ポーター基準の陣形'
         self.draw()
 
         if self.data.get('presentation'):
@@ -154,7 +154,7 @@ class App:
             p=self.preview;f='維持' if p['formationBefore'] and p['formationAfter'] else '再成立' if p['formationAfter'] else '解除' if p['formationBefore'] else '未成立'
             if mode in ('move','return') or (mode=='skill' and self.active_skill() in ('scout','retreatSlash')):
                 d=p['destination'];name=next((u['name'] for u in self.data['state']['units'] if u['id']==p['swap']),None)
-                self.message=f'仮位置 ({d%10+1},{d//10+1})'+(f' / {name}と交換' if name else '')+f' / 護送陣:{f}\n対象: '+('・'.join(p['targets']) or 'なし')+' / 着地点の敵予告: '+('・'.join(p['risks']) or 'なし')+'\n確定まで行動・MP消費なし'
+                self.message=f'仮位置 ({d%10+1},{d//10+1})'+(f' / {name}と交換' if name else '')+f' / 陣形:{f}\n対象: '+('・'.join(p['targets']) or 'なし')+' / 敵は手番時に現在の盤面から行動\n確定まで行動・MP消費なし'
             elif p['cells'] and self.active_skill()=='stamp':
                 targets=[u['name'] for u in self.data['state']['units'] if u['hp']>0 and u['side']=='enemy' and u['pos'] in p['cells']]
                 self.message=f'スタンプ: {len(p["cells"])}マス / 敵: '+('・'.join(targets) or 'なし（空振り）')+'\nオレンジ枠が範囲。確定でMP1・一行動。味方は巻き込みません。'
@@ -207,7 +207,7 @@ class App:
           'stamp':'スタンプ: 縦横の隣接中心から3マス。空/味方中心も可。敵のみ通常威力。空振りでもMP1',
           'scout':'奇襲: 同じ横列の'+('前方のみ' if a.get('skillStage')==1 else '左右')+'。遮るキャラなしで手前に着地+通常攻撃。MP1',
           'porter':'陣形強化: 護送陣成立時にYESで実行。次の本人の番まで攻撃+75%/被害-35%。重複なし。MP1'}
-        text={'attack':f'通常攻撃: 縦横距離{self.data.get("normalAttackReach",a["reach"])}以内。対象に届く武器のATKを合算。','move':f'移動: 経路{self.data.get("moveReach",2)}以内、キャラを通り抜け不可。侵入用装飾品の権限に従います。'+('味方を選ぶと位置交換。MP消費なし。' if a['job']=='porter' else ''),'skill':(self.data.get('skillInfo') or {}).get('description',skills.get(active,'')),'return':'帰還: 装備中のみ、1戦1回。自陣の空きマスを指定。MP0・1行動。','item':'回復薬: 距離制限なし、傷ついた生存味方のHP+55（上限まで）。共有在庫を1消費。','guard':'防御: 次の本人の番まで被ダメージ半減。MP消費なし。'}[mode]
+        text={'attack':f'通常攻撃: 縦横距離{self.data.get("normalAttackReach",a["reach"])}以内。対象に届く武器のATKを合算。','move':f'移動: 経路{self.data.get("moveReach",2)}以内、キャラを通り抜け不可。味方・敵陣どちらへも移動できます。'+('味方を選ぶと位置交換。MP消費なし。' if a['job']=='porter' else ''),'skill':(self.data.get('skillInfo') or {}).get('description',skills.get(active,'')),'return':'帰還: 装備中のみ、1戦1回。自陣の空きマスを指定。MP0・1行動。','item':'回復薬: 距離制限なし、傷ついた生存味方のHP+55（上限まで）。共有在庫を1消費。','guard':'防御: 次の本人の番まで被ダメージ半減。MP消費なし。'}[mode]
         if mode!='guard' and not self.data['choices'].get(mode):text+='\n今は合法な対象なし。射程・HP/MP・陣形・進路を確認してください。'
         return text
 
@@ -387,14 +387,10 @@ class App:
             if p in self.data.get('ranges',{}).get(self.mode,[]):fill='#2f526a'
             if p in cells:fill='#326351'
             if self.preview and p in self.preview['ranges']:fill='#2f6579'
-            c.create_rectangle(x+2,y+2,x+72,y+72,fill=fill,outline='#eab308' if p in [24,13,33,25,16,36] else '',width=3)
+            formation_slots=self.data.get('formationSlots',{})
+            formation_cells=set(formation_slots.get('ally',[]))|set(formation_slots.get('enemy',[]))
+            c.create_rectangle(x+2,y+2,x+72,y+72,fill=fill,outline='#eab308' if p in formation_cells else '',width=3)
             c.create_text(x+11,y+10,text=f'{p%10+1},{p//10+1}',fill='#91a0b4',font=('sans-serif',8))
-            threats=[u for u in s['units'] if u['hp']>0 and u['side']=='enemy' and p in u.get('intent',{}).get('cells',[])]
-            incoming=[u for u in s['units'] if u['hp']>0 and u['side']=='enemy' and u.get('intent',{}).get('destination')==p]
-            if threats:
-                c.create_rectangle(x+5,y+5,x+69,y+69,outline='#fb7185',width=3)
-                c.create_text(x+60,y+12,text=f'!{len(threats)}',fill='#fff',font=('sans-serif',10,'bold'))
-            if incoming:c.create_text(x+60,y+62,text='↓',fill='#fda4af',font=('sans-serif',16,'bold'))
         for u in shown:
             if u['hp']<=0 and not ((self.data.get('presentation') or {}).get('phase')=='hurt' and self.data['presentation'].get('unit_id')==u['id']):continue
             x,y=(u['pos']%10)*74+37,(u['pos']//10)*74+39
@@ -447,10 +443,6 @@ class App:
             info.append(f'{u["name"]}: HP {u["hp"]}/{u["max"]} MP {u["mp"]} SPD {u["agi"]}'+(f' 属性{element}' if element else '')+burden+(' 防御' if u['guard'] else '')+(' 戦闘不能' if u['hp']<=0 else ''))
             if u.get('cover'):info.append('  かばう → '+next(v['name'] for v in s['units'] if v['id']==u['cover']))
             if u.get('covers'):info.append('  防衛線 → '+'・'.join(v['name'] for v in s['units'] if v['id'] in u['covers']))
-            if u['side']=='enemy' and u['hp']>0 and u.get('intent'):
-                i=u['intent'];cells=i.get('cells',[])
-                target_name=next((v['name'] for v in s['units'] if v['id']==i.get('target')),'')
-                info.append('  予告: '+i['name']+(' → '+target_name if target_name else '')+(' → '+','.join(f'({p%10+1},{p//10+1})' for p in cells) if cells else '')+' / '+i.get('reason',''))
         for w,text in [(self.info,'\n'.join(info)),(self.log,'\n\n'.join(s['log'][-40:]))]:
             w.config(state='normal');w.delete('1.0','end');w.insert('end',text);w.config(state='disabled')
         if not hasattr(self, '_low_hp_font'):

@@ -147,7 +147,7 @@ test('save/load battle flags, effects and covers; old saves; malformed extension
 });
 test('porter never attacks or gains offensive weapon skill; separate return remains usable',()=>{
  const s=C.createLegacy();s.location='east';s.gold=500;C.buyGear(s,'porter','breaker-hammer');s.location='north';C.buyGear(s,'porter','return-ring-1');C.buyGear(s,'porter','invasion-charm-2');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
- const p=s.battle.units.find(u=>u.id==='porter');assert.equal(B.activeSkill(p),'porter');assert.equal(p.atk,0);assert.equal(p.canInvade,false);assert.equal(B.legalFor(s.battle,p,'attack','enemy-guard'),false);assert.equal(B.legalFor(s.battle,p,'return',0),true);
+ const p=s.battle.units.find(u=>u.id==='porter');assert.equal(B.activeSkill(p),'porter');assert.equal(p.atk,0);assert.equal(p.canDeployEnemySide,true);assert.equal(B.legalFor(s.battle,p,'attack','enemy-guard'),false);assert.equal(B.legalFor(s.battle,p,'return',0),true);
 });
 test('public battle actions save real once-per-battle flags and retreat resets next encounter',()=>{
  const s=require('./test-current-fixture.cjs')();s.characters.guard.lowerBody='cloth-lowerBody';s.location='north';C.buyGear(s,'guard','return-ring-1');C.buyGear(s,'guard','pioneer-gloves-2');
@@ -161,7 +161,7 @@ test('public battle actions save real once-per-battle flags and retreat resets n
 });
 test('victory reward passes into campaign party once and survives reload',()=>{
  const s=require('./test-current-fixture.cjs')();s.location='north';C.buyGear(s,'guard','victory-earring-1');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
- for(let i=0;i<250&&!s.battle.result;i++){const copy=clone(s.battle),a=copy.units.find(u=>u.id===copy.actor);B.plan(copy,a);assert.equal(C.act(s,a.intent.kind,a.intent.target),true);}
+ for(let i=0;i<250&&!s.battle.result;i++){const copy=clone(s.battle),a=copy.units.find(u=>u.id===copy.actor);const action=B.chooseAction(copy,a);assert.equal(C.act(s,action.kind,action.target),true);}
  assert.ok(s.battle.result);assert.equal(s.battle.failure,undefined);
  const hero=s.battle.units.find(u=>u.id==='guard');assert.ok(hero.hp>0);const mp=hero.mp;
  assert.equal(s.battle.skillEvents.filter(e=>e.skillId==='victoryBreath').length,1);

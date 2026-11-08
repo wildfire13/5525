@@ -36,19 +36,16 @@ check('R07 one atomic partial allocation, clamp/replay/stale-load rejection',()=
 });
 check('R04 condition cells, independent positions, preset/reset, phase restrictions',()=>{
   const s=require('./test-current-fixture.cjs')();assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>0));valid(s);
-  assert.deepEqual(B.formationSlots(s.battle),{ally:[23,12,32],enemy:[25,16,36]});
-  assert.equal(s.battle.units.find(u=>u.id==='guard').pos,24);const positions=copy(s.battle.units.map(u=>u.pos));B.formation(s.battle);assert.deepEqual(s.battle.units.map(u=>u.pos),positions);
-  assert(C.chooseFormation(s,'flank'));assert.equal(s.journey.formation,'flank');assert.deepEqual(B.formationSlots(s.battle).ally,[24,13,33]);assert.deepEqual(s.battle.units.map(u=>u.pos),positions);assert(C.deployment_reset(s));assert.equal(s.battle.units.find(u=>u.id==='scout').pos,14);
-  assert(C.deploy(s,'guard',2));assert(C.deployment_reset(s));assert.equal(s.battle.units.find(u=>u.id==='guard').pos,24);
+  assert.deepEqual(B.formationSlots(s.battle),{ally:[24,13,33],enemy:[]});
+  assert.equal(s.battle.units.find(u=>u.id==='porter').pos,22);const positions=copy(s.battle.units.map(u=>u.pos));B.formation(s.battle);assert.deepEqual(s.battle.units.map(u=>u.pos),positions);
+  assert(C.chooseFormation(s,'flank'));assert.equal(s.journey.formation,'flank');assert.deepEqual(B.formationSlots(s.battle).ally,[24,13,33]);assert.deepEqual(s.battle.units.map(u=>u.pos),positions);assert(C.deployment_reset(s));assert.equal(s.battle.units.find(u=>u.id==='scout').pos,4);
+  assert(C.deploy(s,'guard',2));assert(C.deployment_reset(s));assert.equal(s.battle.units.find(u=>u.id==='porter').pos,22);
   assert(C.begin(s));assert(!C.chooseFormation(s,'convoy'));valid(s);
 });
-check('R04 started legacy save preserves old conditions and intents; deployment adopts new',()=>{
-  for(const started of [false,true]){
-    const s=require('./test-current-fixture.cjs')();C.depart(s,'east');C.travel(s,'safe',()=>0);if(started)C.begin(s);
-    delete s.battle.formationVersion;delete s.battle.formationKind;const raw=C.serialize(s);const before=copy(s.battle.units);
-    const loaded=C.deserialize(raw);assert.equal(loaded.battle.formationVersion,started?1:2);assert.deepEqual(loaded.battle.units,before);
-    assert.deepEqual(B.formationSlots(loaded.battle).ally,started?[24,13,33]:[23,12,32]);assert.equal(C.deserialize(C.serialize(loaded)).battle.formationVersion,started?1:2);valid(loaded);
-  }
+check('R04 all new battles save Porter-relative conditions',()=>{
+  const s=require('./test-current-fixture.cjs')();C.depart(s,'east');C.travel(s,'safe',()=>0);
+  assert.equal(s.battle.formationVersion,3);assert.equal(s.battle.formationBasis,'porter_relative');
+  assert.deepEqual(B.formationSlots(s.battle,'ally'),[24,13,33]);valid(C.deserialize(C.serialize(s)));
 });
 check('R08 every ring route supports accepted and questless saves and rollback',()=>{
   for(const origin of ['east','north','west','south'])for(const destination of C.destinations({location:origin}).map(p=>p.id).filter(id=>id!=='astaris'))for(const accepted of [false,true]){
@@ -68,7 +65,7 @@ check('R08 all eight directed ring journeys finish two real battles, reload, del
       assert.equal(s.battle.formationKind,'flank');assert.deepEqual(B.formationSlots(s.battle).ally,[24,13,33]);
       s=C.deserialize(C.serialize(s));assert(C.begin(s));
       for(let n=0;n<300&&!s.battle.result;n++){
-        const battle=copy(s.battle),actor=battle.units.find(u=>u.id===battle.actor);B.plan(battle,actor);let {kind,target}=actor.intent;
+        const battle=copy(s.battle),actor=battle.units.find(u=>u.id===battle.actor);let {kind,target}=B.chooseAction(battle,actor);
         if(actor.job==='porter'){
           const hurt=battle.units.filter(u=>u.side==='ally'&&u.hp>0&&u.hp<30).sort((a,b)=>a.hp-b.hp).find(u=>B.legal(battle,'item',u.id));
           if(hurt){kind='item';target=hurt.id;}else{kind=B.legal(battle,'skill',actor.id)?'skill':'guard';target=kind==='skill'?actor.id:null;}

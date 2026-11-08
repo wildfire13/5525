@@ -8,8 +8,8 @@ assert(C.accept(s,C.board(s).find(q=>q.to==='east').id,porter));assert(C.depart(
 for(let leg=0;leg<2;leg++){
  assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
  while(!s.battle.result&&actions<400){
-  const copy=structuredClone(s.battle),actor=copy.units.find(u=>u.id===copy.actor);B.plan(copy,actor);
-  const {kind,target}=actor.intent;assert(C.act(s,kind,target));actions++;
+  const copy=structuredClone(s.battle),actor=copy.units.find(u=>u.id===copy.actor);
+  const {kind,target}=B.chooseAction(copy,actor);assert(C.act(s,kind,target));actions++;
   assert(C.validate(s).ok,C.validate(s).error);const serialized=C.serialize(s);s=C.deserialize(serialized);assert.equal(C.serialize(s),serialized);
  }
  assert(s.battle.result);assert(!s.battle.failure);assert(C.finishBattle(s));

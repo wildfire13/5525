@@ -84,7 +84,6 @@ Godot専用の `user://`（custom user dir名 `5525-godot-prototype`）を使用
 - `battle_board.gd`: 2D Sprite3D、3視点、予告線、陣形、移動仮置き、座標変換
 - `demo_courtyard.gd`: 既存比較デモからコピーした背景。元ファイルは未変更
 - `audio.gd` / `portraits.gd`: 既存素材の再利用、旅曲の選択保持、画像差替
-- `../native/intent-info.cjs`: 固定予告の現在有効性を表示用に解釈。AI再計画はしない
 - `../native/godot-io.cjs` / `godot_files.py`: 上書きを拒否する保存と画像正規化
 
 Game Development StudioのCLIは未導入です。導入・生成・プロバイダ利用・認証は行っていません。通常のGodot/Node試作は親の実装許可に基づくもので、未導入プラグインの操作とは別です。

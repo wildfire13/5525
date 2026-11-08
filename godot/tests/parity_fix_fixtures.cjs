@@ -7,7 +7,7 @@ function battle(actor='guard',gear=null){
  const b=s.battle,unit=b.units.find(u=>u.id===actor);
  b.units.forEach(u=>u.next=1000000);
  if(actor!=='guard'){b.units.find(u=>u.id==='guard').pos=14;unit.pos=24;}
- b.units.filter(u=>u.side==='enemy').forEach((u,i)=>{u.pos=[25,15,35][i];if(i===0)u.next=2;B.plan(b,u);});
+ b.units.filter(u=>u.side==='enemy').forEach((u,i)=>{u.pos=[25,15,35][i];if(i===0)u.next=2;});
  unit.next=1;b.actor=unit.id;
  if(actor==='mage')b.units.find(u=>u.id==='guard').hp=60;
  assert(C.validate(s).ok,C.validate(s).error);

@@ -41,10 +41,6 @@ class JourneyApp:
     def act(self,action,*args):
         self.data=self.bridge.call(op='journey',action=action,args=list(args),presentation=action=='begin')
         self.notice='' if self.data['ok'] else self.data.get('error','失敗');self.render()
-    def qa_fixture(self,name):
-        self.data=self.bridge.call(op='qa_fixture',name=name);self.selected=None
-        self.notice=self.data['qa']['label'];self.render()
-
     def restart(self):
         self.data=self.bridge.call(op='journey_start');self.selected=None;self.kit.set('medicine');self.formation.set('convoy');self.notice='新しい旅を開始しました';self.render()
     def export(self):
@@ -81,14 +77,10 @@ class JourneyApp:
         for w in self.panel.winfo_children():w.destroy()
         j=self.data['journey'];p=j['phase'];self.foot.config(text=self.notice)
         self.status.config(text=f'{j["job"]["cargo"]} / {j["hours"]}時間経過・納期{j["job"]["deadline"]}時間 / {j["stage"]}/2区間' if j['job'] else '今日、誰の荷物を運ぶ？')
-        if self.data.get('qa'):self.status.config(text=self.data['qa']['label']+' / '+self.status.cget('text'))
         if p=='jobs':
             for job in self.data['jobs']:
                 self.label(job['name'],19);self.label(f'{job["client"]} / {job["text"]}\n荷物 {job["weight"]}/8枠 / 納期 {job["deadline"]}時間 / 報酬 {job["reward"]}G')
                 self.button('この依頼を引き受ける',lambda id=job['id']:self.act('accept',id))
-            self.label('以下は境界画面を確認するためのQA局面です。通常プレイではありません。',11,color='#fcd34d')
-            self.button('QA: 納期内配達直前（実戦2回から生成）',lambda:self.qa_fixture('ontime_delivery'))
-            self.button('QA: ポーター失敗結果（実戦から生成）',lambda:self.qa_fixture('failed_result'))
         elif p=='prepare':
             self.label(f'護送隊を編成 {len(j["selected"])}/5人（候補11人・受注時にポーター最低1人）',18)
             grid=tk.Frame(self.panel,bg=BG);grid.pack(anchor='w')
@@ -142,18 +134,19 @@ class JourneyApp:
     def deployment(self):
         s=self.data['state'];allies=[u for u in s['units'] if u['side']=='ally']
         if self.selected not in [u['id'] for u in allies if u['hp']>0]:self.selected=next((u['id'] for u in allies if u['hp']>0),None)
-        self.label('敵を見て、隊を配置する',20);self.label('味方ボタン → マスをクリックで移動/交換。味方をドラッグでも配置できます。時間・HP・MP消費なし',12)
+        self.label('敵を見て、隊を配置する',20);self.label('味方ボタン → 配置可能マスをクリックで移動/交換。青は配置可能範囲。時間・HP・MP消費なし',12)
         row=tk.Frame(self.panel,bg=BG);row.pack(anchor='w')
         for u in allies:
             b=tk.Button(row,text=f'{u["name"]}\nHP{u["hp"]} MP{u["mp"]}',command=lambda id=u['id']:self.select_deploy(id),font=('sans-serif',11),relief='sunken' if u['id']==self.selected else 'raised',state='normal' if u['hp']>0 else 'disabled');b.pack(side='left',padx=5,pady=5)
         a=next((u for u in allies if u['id']==self.selected),None)
-        self.label(f'選択: {a["name"] if a else "なし"} / 護送陣 {"成立" if self.data["formed"]["ally"] else "未成立"} / 金枠: 陣形 / 青: 攻撃範囲 / 緑枠: 奇襲対象',12)
+        self.label(f'選択: {a["name"] if a else "なし"} / ポーター基準の陣形 {"成立" if self.data["formed"]["ally"] else "未成立"} / 金枠: 陣形 / 緑枠: 奇襲対象',12)
         c=tk.Canvas(self.panel,width=1000,height=350,bg=BG,highlightthickness=0);c.pack(anchor='w');self.deploy_canvas=c
         for p in range(50):
             x,y=(p%10)*100,(p//10)*70
             fill='#253b51' if p%10<5 else '#492f41'
             if a and p in self.data.get('deployment',{}).get(a['id'],{}).get('ranges',[]):fill='#315b73'
-            c.create_rectangle(x+2,y+2,x+98,y+68,fill=fill,outline='#fbbf24' if p in [24,13,33,25,16,36] else '',width=3)
+            cells=self.data.get('formationSlots',{}).get('ally',[])+self.data.get('formationSlots',{}).get('enemy',[])
+            c.create_rectangle(x+2,y+2,x+98,y+68,fill=fill,outline='#fbbf24' if p in cells else '',width=3)
             c.create_text(x+18,y+12,text=f'{p%10+1},{p//10+1}',fill='#94a3b8',font=('sans-serif',9))
             if a and p in self.data.get('deployment',{}).get(a['id'],{}).get('ambush',[]):c.create_rectangle(x+6,y+6,x+94,y+64,outline='#4ade80',width=4)
         for u in s['units']:
@@ -181,7 +174,7 @@ class JourneyApp:
         chosen=uid if is_drag and uid else self.selected
         if is_drag and not uid:return
         self.data=self.bridge.call(op='journey',action='deploy',args=[chosen,target]);self.selected=chosen
-        self.notice='配置しました（消費なし）' if self.data['ok'] else '無効な配置です。味方陣のマスを選んでください';self.render()
+        self.notice='配置しました（消費なし）' if self.data['ok'] else '無効な配置です。青い配置可能範囲を選んでください';self.render()
     def begin(self):
         self.act('begin')
         if self.data['ok']:self.open_battle(initial_voice_events=self.data.pop('voiceEvents', []))

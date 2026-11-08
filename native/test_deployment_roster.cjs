@@ -1,7 +1,7 @@
 'use strict';
 // Historical-ID fixtures retain the old roster; new-game/one-time migration
 // behavior is tested separately in test_updateplan_roster.cjs.
-const assert=require('node:assert/strict'),C=require('./campaign.js');
+const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 let passed=0;
 function test(name,fn){fn();console.log('PASS '+name);passed++;}
@@ -81,11 +81,11 @@ test('dead non-porter occupies legacy slot but can be explicitly removed without
 });
 
 
-test('flank initial/reset collisions relocate only conflicting allies and keep scout anchor',()=>{
+test('flank initial/reset collisions use the porter-relative formation',()=>{
  for(const ids of [['guard-2','scout','guard','mage','archer'],['scout-2','scout','guard-2','porter','warrior']]){
   const s=require('./test-current-fixture.cjs')();assert(C.select(s,ids));assert(C.depart(s,'east','flank'));assert(C.travel(s,'safe',()=>.2));
   const positions=()=>s.battle.units.filter(u=>u.side==='ally').map(u=>u.pos);
-  assert.equal(new Set(positions()).size,ids.length);assert.equal(s.battle.units.find(u=>u.job==='scout').pos,14);okay(s);
+  assert.equal(new Set(positions()).size,ids.length);assert.deepEqual(B.formationSlots(s.battle,'ally'),s.battle.units.some(u=>u.side==='ally'&&u.job==='porter')?[24,13,33]:[]);okay(s);
   assert(C.chooseFormation(s,'convoy'));assert(C.deployment_reset(s));okay(s);assert(C.chooseFormation(s,'flank'));assert(C.deployment_reset(s));okay(s);assert(C.begin(s));okay(s);
  }
 });

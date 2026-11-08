@@ -80,6 +80,6 @@ python -X utf8 -B godot/tests/run_inventory_checks.py --evidence '${LOCAL_PATH_C
 
 最終結果は証跡ルート `verified/results.json` と各 `.log`、Godotの各 `*-engine.log`。終了コードだけでなく `ERROR:` / `FAIL` / リーク警告を失敗条件にしています。個別レポートは `inventory-ui.json`、`shop-plan-ui.json`、`inventory-battle-hud.json`、`hover-lifetime-regression.json`、`reports/followup-ui.json`、`reports/ui-review-fixes.json` です。
 
-既存テストの期待値は、自動下取りから全額購入・旧装備保持へ、共有在庫から明示所持者へ変更しています。旧ポーターのみで52行動後に膠着する回帰は、基点f736137の実装から生成したversion 1 fixture `native/test_fixtures/campaign-f736137-stalemate.json` を現行移行へ通して維持しました。個人在庫化後の新規ゲームでは同じ行動方針の結果が変わるため、旧挙動の証明と新規旅の検証を分けています。
+既存テストの期待値は、自動下取りから全額購入・旧装備保持へ、共有在庫から明示所持者へ変更しています。旧戦闘エンジンの凍結した膠着fixtureは、ポーター突破がある現行戦闘では不成立のため削除しました。現行の戦闘/移行条件は `native/COVERAGE.md` と `native/test_campaign_rule_migration.cjs` を参照してください。
 
 `MIGRATION-CHECKLIST.md`、`README.md`、過去の `qa/*.json` は以前の移行・公開工程の記録を含みます。今回の候補の固定ID、実行結果、未実施事項は本書と証跡ルートの `status.json` を優先してください。

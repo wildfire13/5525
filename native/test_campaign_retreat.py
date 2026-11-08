@@ -40,7 +40,7 @@ class CampaignRetreatTests(unittest.TestCase):
         ask.assert_called_once(); self.assertEqual(len(self.retreats()), 1)
         self.assertTrue(self.app.root.destroyed); self.app.on_close.assert_called_once()
         result = self.save(); self.assertEqual(result['result']['outcome'], 'failed')
-        self.assertEqual(self.before['version'],2);self.assertEqual(result['version'],2)
+        self.assertEqual(self.before['version'],3);self.assertEqual(result['version'],3)
         self.assertNotIn('inventory',self.before);self.assertNotIn('inventory',result)
         for key in ('gold','xp','characters','hours','sequence','location','selected'):
             self.assertEqual(result[key], self.before[key])

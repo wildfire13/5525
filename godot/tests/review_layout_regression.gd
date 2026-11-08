@@ -74,7 +74,7 @@ func board_case(label: String):
 		print("BOARD "+JSON.stringify(measurements[-1]))
 		check("UI2-03",board.size.y>=200 and pitch.x>=32 and pitch.y>=20,label+" camera "+str(mode)+" has usable board height and larger projected cell pitch")
 		check("UI2-03",all_hit and all_inside,label+" camera "+str(mode)+" preserves all 50 floor hits and visible cell centers")
-		check("UI2-03",contained(game.hud.intent_strip) and contained(game.hud.dock) and (not is_instance_valid(game.battle_actions) or contained(game.battle_actions)),label+" camera "+str(mode)+" keeps fixed intent, decision and confirm actions in viewport")
+		check("UI2-03",contained(game.hud.rule_strip) and contained(game.hud.dock) and (not is_instance_valid(game.battle_actions) or contained(game.battle_actions)),label+" camera "+str(mode)+" keeps battle rules, decision and confirm actions in viewport")
 		var no_overlap=true
 		for u in game.state().get("units",[]):
 			var height_pixels=board.project(board.point(int(u.pos))+board.world.camera.global_basis.y*board.sprite_height()).distance_to(board.project(board.point(int(u.pos))))

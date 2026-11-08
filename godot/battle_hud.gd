@@ -7,7 +7,6 @@ var board_column: VBoxContainer
 var dock: Control
 var decision_footer: VBoxContainer
 var tools: HBoxContainer
-var intent_strip: HBoxContainer
 var actor_box: VBoxContainer
 var command_box: VBoxContainer
 var target_box: VBoxContainer
@@ -23,8 +22,6 @@ var last_action_count := -1
 var detail_tab := 0
 var details_open := false
 var breakdown_open := false
-var intent_versions: Dictionary={}
-var intent_updated: Dictionary={}
 var selected_enemy := ""
 var buttons: Dictionary={}
 var presentation_action: Dictionary={}
@@ -98,7 +95,7 @@ func reset_context():
 	clear_opening_visual()
 	expanded_menu="";menu_transition=false;menu_ticket+=1;clear_action_visual();shifted_action="";queue_distance=0;animation_trace.clear()
 	inspected_uid="";inspection_pinned=false;invalidate_hover();skill_content_open=false
-	discard_reference();item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";last_actor="";last_action_count=-1;presentation_action={};queue_at_start=[];intent_versions.clear();intent_updated.clear()
+	discard_reference();item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";last_actor="";last_action_count=-1;presentation_action={};queue_at_start=[]
 func mount():
 	deployment_workspace.hud=self
 	deployment_layout=false
@@ -111,7 +108,6 @@ func mount():
 	right_panel.configure(ui.preferences,"battle_target_b","対象 / 効果",Rect2(maxf(0,ui.size.x-448),64,400,760))
 	dock=left_panel
 	tools=HBoxContainer.new();tools.name="BattleTools";middle.add_child(tools)
-	intent_strip=HBoxContainer.new();intent_strip.name="FixedIntentStrip";intent_strip.visible=false;middle.add_child(intent_strip)
 	ui.battle_header=VBoxContainer.new();middle.add_child(ui.battle_header)
 	ui.battle_header.size=Vector2(middle.size.x,64)
 	last_actor="";last_action_count=-1;action_menu=true;item_list=false;selected_cell=-1
@@ -293,25 +289,6 @@ func selected_target_text(target) -> String:
 	if target is Array:return " / ".join(target.map(target_name))
 	if target is int or target is float:return coord(target)
 	return "対象不要" if ui.command=="guard" else "未選択"
-func intent_target_text(intent: Dictionary) -> String:
-	var cells=intent.get("cells",[])
-	if not cells.is_empty():
-		return " / ".join(cells.map(func(pos):return "固定マス "+coord(pos)+" / 現在: "+str(ui.board.unit_at(int(pos)).get("name","空き"))))
-	if intent.get("destination")!=null:return "移動先: "+coord(intent.destination)
-	if intent.get("target") is String:return "対象: "+target_name(intent.target)
-	if intent.get("target") is int or intent.get("target") is float:return "対象マス: "+coord(intent.target)
-	return "対象指定なし" if intent.get("kind")=="guard" else "対象不明"
-func render_intent_strip():
-	var source={}
-	for u in ui.state().get("units",[]):
-		if u.side=="enemy" and u.hp>0 and u.get("intent") is Dictionary and selected_cell>=0 and u.intent.get("cells",[]).has(float(selected_cell)):source=u;break
-	if source.is_empty():
-		for entry in ui.data.get("queue",[]):
-			var u=unit(entry.id)
-			if u.get("side")=="enemy" and u.hp>0 and u.get("intent") is Dictionary:source=u;break
-	var summary="現在の予告はありません" if source.is_empty() else "敵予告: "+str(source.name)+" / "+str(source.intent.get("name",""))+"\n"+intent_target_text(source.intent)
-	var label=l(intent_strip,summary);label.add_theme_font_size_override("font_size",16);label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size.y=40;label.clip_text=true;label.max_lines_visible=2;label.tooltip_text=label.text
-	var button=local(intent_strip,"予告・順番の詳細",toggle_details);button.custom_minimum_size.y=40
 func render_commands():
 	local(command_box,"能力・行動条件の詳細",open_action_details)
 func render_bottom_commands():
@@ -696,9 +673,6 @@ func toggle_details():
 	details_open=true
 	ui.dialog.open("戦闘の詳細",func(body,actions):
 		formations(body)
-		for u in ui.state().get("units",[]):
-			if u.side=="enemy" and u.hp>0 and u.get("intent") is Dictionary:
-				l(body,str(u.name)+"：予告の理由 / "+str(u.intent.get("reason","")))
 		ui.local_button(actions,"戻る",ui.dialog.close),func():details_open=false)
 func inspect_enemy(id: String):
 	selected_enemy=id
@@ -709,21 +683,7 @@ func close_detail() -> bool:
 	if is_instance_valid(ui.dialog.window):ui.dialog.close();return true
 	return false
 func render_details():toggle_details()
-func enemy_intents(parent):
-	for u in ui.state().get("units",[]):
-		if u.side!="enemy" or u.hp<=0 or not u.get("intent") is Dictionary:continue
-		var intent: Dictionary=u.intent;var fingerprint=JSON.stringify([intent,u.get("next")])
-		if intent_versions.has(u.id) and intent_versions[u.id]!=fingerprint:intent_updated[u.id]=true
-		intent_versions[u.id]=fingerprint
-		var card=ui.card(parent);ui.memory.item(card.get_parent(),u.id)
-		local(card,("● " if selected_enemy==u.id else "")+str(u.name),inspect_enemy.bind(u.id))
-		l(card,("更新 / " if intent_updated.get(u.id,false) else "予告 / ")+str(intent.get("name","")))
-		l(card,intent_target_text(intent))
-		for e in ui.data.get("enemyInfo",[]):
-			if e.id==u.id:l(card,"通常射程%d / %s %s\n%s" % [e.normalReach,e.skill,"同横列" if e.skillReach==null else str(int(e.skillReach)),e.reason])
-		l(card,"元の理由: "+str(intent.get("reason","")))
 func formations(parent):
-	if ui.state().get("formationVersion")==1:l(parent,"旧戦闘の陣形条件を継続中（この戦闘が終わるまで）")
 	for team in ["ally","enemy"]:
 		var active=ui.data.get("formed",{}).get(team,false);var boost=active and ui.data.get("boosted",{}).get(team,false)
 		var cells=ui.data.get("formationSlots",{}).get(team,[24,13,33] if team=="ally" else [25,16,36]).map(func(cell):return int(cell))
@@ -783,9 +743,6 @@ func render_person_content(parent,u: Dictionary,expanded:=false):
 		var fill=StyleBoxFlat.new();fill.bg_color=Color("#df958b") if resource=="hp" and value*4<maximum else Color("#8dc9af") if resource=="hp" else Color("#93b6df");fill.set_corner_radius_all(3)
 		bar.add_theme_stylebox_override("background",track);bar.add_theme_stylebox_override("fill",fill)
 	if u.get("skipNextTurn",false):l(parent,"足払い：次の1手番をスキップ")
-	if u.get("intent") is Dictionary:
-		l(parent,"予告："+str(u.intent.get("name","")))
-		l(parent,intent_target_text(u.intent))
 	var stats=character.get("stats",{});var breakdown=stats.get("attributeBreakdown",{})
 	var inspected_stats=ui.row(parent);ElementBadges.add(inspected_stats,str(u.get("element","none")),24)
 	var defense=l(inspected_stats,"%s / 属性 %s" % [ui.pages.defense_profile(u),ui.pages.element_name(u.get("element","none"))])

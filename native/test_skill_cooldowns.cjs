@@ -46,9 +46,10 @@ test('JSON roundtrip preserves grant selection/cooldown; victory resets cooldown
  const restored=clone(s),copy=restored.units.find(u=>u.id===a.id);assert.equal(B.selectedSkillOption(copy).key,options[0].key);assert.equal(B.legal(restored,'skill',b.id),false);
  e.hp=1;assert.ok(B.act(s,'attack',e.id));assert.ok(s.result);assert.equal(a.skillCooldowns,undefined);
 });
-test('enemy planned skill cannot bypass cooldown and expires on completed opportunity',()=>{
- const {s,a,e}=scene();e.equippedSkill='stamp';e.mp=5;e.skillCooldowns={'legacy:stamp':1};e.intent={kind:'skill',target:a.pos,name:'スタンプ',cells:[a.pos],path:[]};s.actor=e.id;
- const hp=a.hp,mp=e.mp;assert.ok(B.stepEnemy(s));assert.equal(a.hp,hp);assert.equal(e.mp,mp);assert.equal(e.skillCooldowns,undefined);
+test('enemy immediate action respects cooldown and clears it after the opportunity',()=>{
+ const {s,a,e}=scene();e.equippedSkill='stamp';e.mp=5;e.skillCooldowns={'legacy:stamp':1};s.actor=e.id;
+ const hp=a.hp,mp=e.mp;assert.notEqual(B.chooseAction(s,e).kind,'skill');assert.equal(Object.hasOwn(e,'intent'),false);
+ const action=B.chooseAction(s,e);assert.equal(action.kind,'attack');assert.ok(B.stepEnemy(s));assert.equal(a.hp,hp-e.atk);assert.equal(e.mp,mp);assert.equal(e.skillCooldowns,undefined);
 });
 test('real campaign entry, action and save/load enforce cooldown and clean next battle',()=>{
  const C=require('./campaign.js');let s=C.create();assert.ok(C.depart(s,'east'));assert.ok(C.travel(s,'safe',()=>0));assert.ok(C.begin(s));
@@ -81,18 +82,14 @@ test('stamp in a secondary grant keeps its weapon contribution on side cells',()
  assert.equal(B.reachFilteredPower(a,e,'skill').base,29);assert.equal(B.reachFilteredPower(a,e,'attack').base,0);
  const hp=e.hp;assert.ok(B.act(s,'skill',25));assert.equal(hp-e.hp,29);
 });
-test('enemy scout committed empty-cell miss consumes MP and cooldown; blocked path consumes neither',()=>{
- for(const blocked of [false,true]){
-  const s=B.create({ally:['guard','mage'],enemy:['scout'],deployment:true,enemyPotions:0});
-  const [target,other,scout]=s.units;target.pos=24;other.pos=0;scout.pos=27;target.next=2;other.next=100;scout.next=1;
-  s.deploying=false;s.skillCooldownVersion=1;s.actor=scout.id;B.plan(s,scout);
-  assert.equal(scout.intent.kind,'skill');assert.deepEqual(scout.intent.cells,[24]);assert.equal(scout.intent.destination,25);
-  const mp=scout.mp,hp=target.hp;
-  if(blocked)other.pos=26;else target.pos=23;
-  assert.ok(B.stepEnemy(s));assert.equal(s.actor,target.id);assert.equal(target.hp,hp);
-  assert.equal(scout.mp,mp-(blocked?0:1));assert.equal(scout.pos,blocked?27:25);
-  assert.equal(B.selectedSkillOption(scout).cooldown,blocked?0:1);
-  assert.ok(s.log.some(line=>line.includes(blocked?'奇襲経路が塞がれた':'空振り')));
- }
+test('enemy scout selects an immediate skill using current target positions',()=>{
+ const s=B.create({ally:['guard','mage'],enemy:['scout'],deployment:true,enemyPotions:0});
+ const [target,other,scout]=s.units;target.pos=24;other.pos=0;scout.pos=27;target.next=2;other.next=100;scout.next=1;
+ s.deploying=false;s.skillCooldownVersion=1;s.actor=scout.id;
+ assert.equal(B.chooseAction(s,scout).target,target.id);assert.equal(Object.hasOwn(scout,'intent'),false);
+ target.pos=23;const hp=target.hp,mp=scout.mp;
+ assert.equal(B.chooseAction(s,scout).target,target.id);
+ assert.ok(B.stepEnemy(s));assert.equal(target.hp,hp-scout.atk);assert.equal(scout.pos,24);assert.equal(scout.mp,mp-1);
+ assert.equal(B.selectedSkillOption(scout).cooldown,1);
 });
 console.log(`${count} skill cooldown groups passed`);
