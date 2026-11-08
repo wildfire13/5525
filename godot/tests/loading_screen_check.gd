@@ -22,9 +22,9 @@ const C=require(process.argv[1]),B=require(require('node:path').join(require('no
 const out={};function save(key,s){a(C.validate(s).ok,C.validate(s).error);out[key]=JSON.parse(C.serialize(s));}
 let s=require(require('node:path').join(require('node:path').dirname(process.argv[1]),'test-current-fixture.cjs'))();save('town',s);s.location='east';save('shop',s);
 s=C.create();a(C.depart(s,'east'));save('road',s);a(C.travel(s,'safe',()=>0));save('deployment',s);a(C.begin(s));save('battle',s);
-for(const u of s.battle.units)if(u.side==='enemy')u.hp=0;s.battle.actor=null;s.battle.result='勝利！ 街道を切り抜けた。';save('victory1',s);
-a(C.finishBattle(s));save('camp',s);a(C.onward(s));a(C.travel(s,'safe',()=>0));a(C.begin(s));for(const u of s.battle.units)if(u.side==='enemy')u.hp=0;s.battle.actor=null;s.battle.result='勝利！ 街道を切り抜けた。';save('victory2',s);
-s=JSON.parse(JSON.stringify(out.battle.state));for(const u of s.battle.units)if(u.side==='ally'&&u.hp>0)B.receive(s.battle,u,100000,false);s.battle.actor=null;s.battle.result='敗北';save('defeat',s);
+for(const u of s.battle.units)if(u.side==='enemy')u.hp=0;s.battle.actor=null;s.battle.resultKind='annihilation';s.battle.result='勝利！ ミラーマッチを制した。';save('victory1',s);
+a(C.finishBattle(s));save('camp',s);a(C.onward(s));a(C.travel(s,'safe',()=>0));a(C.begin(s));for(const u of s.battle.units)if(u.side==='enemy')u.hp=0;s.battle.actor=null;s.battle.resultKind='annihilation';s.battle.result='勝利！ ミラーマッチを制した。';save('victory2',s);
+s=JSON.parse(JSON.stringify(out.battle.state));for(const u of s.battle.units)if(u.side==='ally'&&u.hp>0)B.receive(s.battle,u,100000,false);s.battle.actor=null;s.battle.resultKind='defeat';s.battle.result='敗北';save('defeat',s);
 process.stdout.write(JSON.stringify(out).replace(/[^\\x00-\\x7f]/g,c=>String.fromCharCode(92)+'u'+c.charCodeAt(0).toString(16).padStart(4,'0')));
 """
 	var output=[];var program=OS.get_environment("NATIVE5525_NODE")
