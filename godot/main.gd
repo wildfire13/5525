@@ -604,7 +604,7 @@ func command_hint() -> String:
 	var skill=data.get("skillInfo")
 	var hints={
 		"attack":"通常攻撃: 縦横距離%d以内。対象に届く武器のATKを合算。" % data.get("normalAttackReach",0),
-		"move":"移動: 経路%d以内。キャラを通り抜け不可。侵入用装飾品の権限に従います。" % data.get("moveReach",2)+("味方を選ぶと位置交換。MP消費なし。" if a.get("job")=="porter" else ""),
+		"move":"移動: 経路%d以内。キャラを通り抜け不可。味方・敵陣どちらへも移動できます。" % data.get("moveReach",2)+("味方を選ぶと位置交換。MP消費なし。" if a.get("job")=="porter" else ""),
 		"skill":skill.get("description","") if skill is Dictionary else legacy_skill_description(str(data.get("skill","")),1),
 		"return":"帰還: 装備中のみ、1戦1回。自陣の空きマスを指定。MP0・1行動。",
 		"item":item_hint("potion"),
@@ -622,15 +622,6 @@ func render_unit_details(parent: Node,s: Dictionary):
 		emphasize_low_hp(line,u)
 		if u.get("cover")!=null:label_(parent,"かばう → "+member_name(str(u.cover)))
 		if not u.get("covers",[]).is_empty():label_(parent,"防衛線 → "+"・".join(u.covers.map(func(id):return member_name(str(id)))))
-		if u.side=="enemy" and u.hp>0 and u.get("intent") is Dictionary:
-			var intent: Dictionary=u.intent
-			var cells=[]
-			for p in intent.get("cells",[]):cells.append("(X%d,Y%d)" % [int(p)%10,4-int(int(p)/10)])
-			var target_text=""
-			if intent.get("target") is String:target_text=" → "+member_name(intent.target)
-			elif intent.get("target") is float or intent.get("target") is int:target_text=" → (X%d,Y%d)" % [int(intent.target)%10,4-int(int(intent.target)/10)]
-			label_(parent,"予告: "+str(intent.get("name",""))+target_text+(" → "+", ".join(cells) if not cells.is_empty() else "")+" / "+str(intent.get("reason","")))
-			if intent.get("destination")!=null:label_(parent,"移動予定: X%d,Y%d" % [int(intent.destination)%10,4-int(int(intent.destination)/10)])
 func choose_command(value: String):
 	if locked or presenting or closing or hud.range_reference or hud.menu_transition:return
 	hud.clear_inspection()

@@ -1,10 +1,9 @@
 'use strict';
-const LegacyB = require('./battle.js');
 const VoiceEvents = require('./voice-events.cjs');
 const presentation = new (require('./battle-presentation.cjs').Presentation)();
-let B = LegacyB;
+let B;
 let CampaignB,masterStartupError=null;
-try { CampaignB=require('./campaign-battle.js'); }
+try { CampaignB=require('./campaign-battle.js');B=CampaignB; }
 catch (_) { masterStartupError='ゲームデータを読み込めません。配布ファイルを確認してください。セーブデータは変更していません。'; }
 let campaign=null,trial=null;
 const campaignEngine=()=>require('./campaign.js');
@@ -26,24 +25,23 @@ function start(scenario='normal') {
     if(scenario==='support') {
       const g=state.units.find(u=>u.id==='guard');g.pos=23;g.next=0;state.actor=g.id;
       a.hp=30;
-      const e=state.units.find(u=>u.id==='enemy-archer');e.pos=14;e.next=.01;B.plan(state,e);
+      const e=state.units.find(u=>u.id==='enemy-archer');e.pos=14;e.next=.01;
     } else if(scenario==='stamp') {
       const w=state.units.find(u=>u.id==='warrior');state.actor=w.id;w.next=0;
       state.units.find(u=>u.id==='scout').pos=35;
       state.units.find(u=>u.id==='enemy-archer').pos=15;
       state.units.find(u=>u.id==='enemy-guard').pos=45;
-      state.units.filter(u=>u.side==='enemy').forEach(u=>B.plan(state,u));
     } else if(scenario==='victory') {
       state.units.filter(u=>u.side==='enemy').forEach(u=>u.hp=0);
       const e=state.units.find(u=>u.id==='enemy-archer');e.hp=1;e.pos=15;
     } else if(scenario==='defeat') {
       state.units.filter(u=>u.side==='ally'&&u.id!==a.id).forEach(u=>u.hp=0);
       a.hp=1;a.pos=14;
-      const e=state.units.find(u=>u.id==='enemy-scout');e.pos=15;e.next=.01;B.plan(state,e);
+      const e=state.units.find(u=>u.id==='enemy-scout');e.pos=15;e.next=.01;
     } else if(scenario==='porter') {
       const p=state.units.find(u=>u.id==='porter');p.hp=1;p.pos=24;
       state.units.find(u=>u.id==='guard').pos=32;
-      const e=state.units.find(u=>u.id==='enemy-scout');e.pos=25;e.next=.01;B.plan(state,e);
+      const e=state.units.find(u=>u.id==='enemy-scout');e.pos=25;e.next=.01;
     }
     state.log.push('QA固定局面: '+scenario+'（標準戦闘とは別の境界テスト）');
   }
@@ -62,7 +60,7 @@ function view(ok=true, error=null) {
   if(a)for(const kind of ['attack','skill',...(campaign?['return']:[])])ranges[kind]=Array.from({length:50},(_,p)=>p).filter(p=>{const u=state.units.find(u=>u.hp>0&&u.pos===p),support=kind==='skill'&&['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(B.activeSkill(a));return B.inRange(a,u?.side||(support?'ally':'enemy'),p,kind,state);});
   const deployment=state.deploying?Object.fromEntries(state.units.filter(u=>u.side==='ally'&&u.hp>0).map(u=>[u.id,{ranges:Array.from({length:50},(_,p)=>p).filter(p=>B.inRange(u,p%10<5?'ally':'enemy',p,'attack',state)),ambush:state.units.filter(t=>t.hp>0&&B.ambush(state,u,t)).map(t=>t.pos)}])):{};
   const stampAreas=a&&B.activeSkill(a)==='stamp'?Object.fromEntries(choices.skill.map(p=>[p,B.stampCells(a,p)])):{};
-  return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillReach:a?B.attackReach(a,'skill'):0,normalAttackReach:a?B.attackReach(a,'attack'):0,skillset:a?B.activeSkillOptions(a).map(option=>({...option,name:B.skillName({...a,selectedSkill:option.id,selectedSkillKey:option.key}),selected:B.selectedSkillOption(a)?.key===option.key,sources:option.itemId?[{id:option.id,slot:option.slot,itemId:option.itemId,grantSlot:option.grantSlot,level:option.level,itemName:option.id==='itemUse'&&option.itemId.startsWith('empty-')?(a.job==='porter'?'拳＋2':'拳'):campaignEngine().gear.find(g=>g.id===option.itemId)?.name||option.itemId}]:[]})):[],itemUseInfo:a?B.itemSkillOption(a):null,returnSkillset:a?B.returnSkillOptions(a).map(option=>({...option,name:'帰還',selected:B.returnSkillOption(a)?.key===option.key,sources:option.itemId?[{...option,itemName:campaignEngine().gear.find(g=>g.id===option.itemId)?.name||option.itemId}]:[]})):[],returnSkillInfo:a?B.returnSkillOption(a):null,skillInfo:a?B.skillInfo(a):null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),formationSlots:B.formationSlots?B.formationSlots(state):B.slots,enemyInfo:state.units.filter(u=>u.side==='enemy').map(u=>require('./intent-info.cjs').describe(B,state,u)),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
+  return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillReach:a?B.attackReach(a,'skill'):0,normalAttackReach:a?B.attackReach(a,'attack'):0,skillset:a?B.activeSkillOptions(a).map(option=>({...option,name:B.skillName({...a,selectedSkill:option.id,selectedSkillKey:option.key}),selected:B.selectedSkillOption(a)?.key===option.key,sources:option.itemId?[{id:option.id,slot:option.slot,itemId:option.itemId,grantSlot:option.grantSlot,level:option.level,itemName:option.id==='itemUse'&&option.itemId.startsWith('empty-')?(a.job==='porter'?'拳＋2':'拳'):campaignEngine().gear.find(g=>g.id===option.itemId)?.name||option.itemId}]:[]})):[],itemUseInfo:a?B.itemSkillOption(a):null,returnSkillset:a?B.returnSkillOptions(a).map(option=>({...option,name:'帰還',selected:B.returnSkillOption(a)?.key===option.key,sources:option.itemId?[{...option,itemName:campaignEngine().gear.find(g=>g.id===option.itemId)?.name||option.itemId}]:[]})):[],returnSkillInfo:a?B.returnSkillOption(a):null,skillInfo:a?B.skillInfo(a):null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),formationSlots:B.formationSlots?B.formationSlots(state):B.slots,enemyInfo:state.units.filter(u=>u.side==='enemy').map(u=>({id:u.id,normalReach:B.attackReach(u,'attack'),skill:B.skillName(u),reason:'敵の手番で現在の盤面から行動を選択'})),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
 }
 function preview(kind,target,previewKind='attack') {
   if(!state||!B.legal(state,kind,target))return {ok:false,error:'無効なプレビュー'};
@@ -96,7 +94,7 @@ function preview(kind,target,previewKind='attack') {
     const u=v.units.find(u=>u.hp>0&&u.pos===p),support=inspectKind==='skill'&&['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(B.activeSkill(va));
     return cells.length?cells.includes(p):B.inRange(va,u?.side||(support?'ally':'enemy'),p,inspectKind,v);
   });
-  const risks=state.units.filter(u=>u.hp>0&&u.side==='enemy'&&u.intent?.cells.includes(destination)).map(u=>u.name);
+  const risks=[];
   return {ok:true,preview:{units:v.units,destination,path,swap,cells,ranges,targets,risks,effectPreview:B.effectPreview?B.effectPreview(state,a,kind,target):[],
     damagePreview:['attack','skill'].includes(kind)&&B.damagePreview?B.damagePreview(state,a,kind,target):inspectKind==='attack'&&B.attackPreview?v.units.map(u=>B.attackPreview(v,va,u)).filter(Boolean):[],formationBefore:B.formation(state),formationAfter:B.formation(v),kind,target,previewKind}};
 }
@@ -140,16 +138,11 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       response={...view(ok,ok?null:'古い演出確認です'),presentation:presentation.info(),voiceEvents:[]};
       console.log(JSON.stringify(response));return;
     }
-    if(r.op==='reset') {campaign=null;trial=null;B=r.presentation?CampaignB:LegacyB;qa=null;const switching=!!journey,first=!state;journey=null;start(r.scenario);if(r.presentation&&state.deploying)presentation.start(state,B,()=>B.begin(state));if(switching)log=P.create({mode:'battle'});if(switching||first)record('run.started',{reason:'battle.started'});else log.startRun(context(),'battle.restart');response=view();}
+    if(r.op==='reset') {campaign=null;trial=null;B=CampaignB;qa=null;const switching=!!journey,first=!state;journey=null;start(r.scenario);if(r.presentation&&state.deploying)presentation.start(state,B,()=>B.begin(state));if(switching)log=P.create({mode:'battle'});if(switching||first)record('run.started',{reason:'battle.started'});else log.startRun(context(),'battle.restart');response=view();}
     else if(r.op==='journey_start') {
-      const restarting=!!journey;campaign=null;trial=null;B=LegacyB;qa=null;journey=J.create();state=null;deploymentInitial=[];
+      const restarting=!!journey;campaign=null;trial=null;B=CampaignB;qa=null;journey=J.create();state=null;deploymentInitial=[];
       if(!restarting){log=P.create({mode:'journey'});record('run.started',{reason:'journey.started'});}
       else log.startRun(context(),'journey.restart');response=view();
-    }
-    else if(r.op==='qa_fixture') {
-      campaign=null;trial=null;B=LegacyB;const fixture=require('./qa-fixtures.cjs').makeJourneyFixture(r.name);
-      journey=fixture.journey;state=fixture.state;qa=fixture.metadata;deploymentInitial=[];
-      log=P.create({mode:'journey'});record('qa.fixture.generated',qa);response=view();
     }
     else if(r.op==='campaign_start') {
       campaign=campaignEngine().create();trial=null;qa=null;syncCampaign();

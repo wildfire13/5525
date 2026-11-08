@@ -7,8 +7,11 @@ import unittest
 from test_journey_bridge import Session, BASE
 POLICY = """
 const B=require('./campaign-battle.js'),fs=require('node:fs'),s=JSON.parse(fs.readFileSync(0,'utf8'));
-const a=s.units.find(u=>u.id===s.actor);B.plan(s,a);let {kind,target}=a.intent;
-if(a.job==='porter'){kind=B.legal(s,'skill',a.id)?'skill':'guard';target=kind==='skill'?a.id:null;}
+const a=s.units.find(u=>u.id===s.actor);let {kind,target}=B.chooseAction(s,a);
+if(a.job==='porter'){
+ const moves=[...B.paths(s,a).keys()].filter(p=>p!==a.pos&&p%10>a.pos%10&&B.legalFor(s,a,'move',p)).sort((l,r)=>r%10-l%10||l-r);
+ if(moves.length){kind='move';target=moves[0];}else{kind=B.legal(s,'skill',a.id)?'skill':'guard';target=kind==='skill'?a.id:null;}
+}
 console.log(JSON.stringify({kind,target:target??null}));
 """
 class CampaignBridgeTests(unittest.TestCase):
@@ -103,14 +106,14 @@ class CampaignBridgeTests(unittest.TestCase):
 const C=require('./campaign.js'); let seed=0;
 const rng=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
 for(let i=0;i<100;i++){const s=C.create();C.depart(s,'north');C.travel(s,'short',rng);C.begin(s);
-if(s.battle.units.some(u=>u.side==='enemy'&&u.job==='scout'&&u.intent.kind==='skill')){console.log(C.serialize(s));break;}}
+if(s.battle.units.some(u=>u.side==='enemy'&&u.job==='scout')){console.log(C.serialize(s));break;}}
 """
         result=subprocess.run(['node','-e',generator],cwd=BASE,text=True,capture_output=True,check=True)
         valid=json.loads(result.stdout); live=self.save()
-        for field in ('path','destination'):
+        for field in ('pos','hp'):
             bad=copy.deepcopy(valid)
-            scout=next(u for u in bad['state']['battle']['units'] if u['side']=='enemy' and u['job']=='scout' and u['intent']['kind']=='skill')
-            del scout['intent'][field]
+            scout=next(u for u in bad['state']['battle']['units'] if u['side']=='enemy' and u['job']=='scout')
+            del scout[field]
             self.assertFalse(self.bridge.call(op='campaign_load',data=bad)['ok'])
             self.assertEqual(self.save(),live)
         for field in ('name','image','icon'):

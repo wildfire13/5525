@@ -40,16 +40,13 @@ function capture(state,engine,run) {
     if(statusAction.skill_id==='stamp'&&Array.isArray(eng.resolvedCells))statusAction.resolved.cells=clone(eng.resolvedCells);
     if(kind==='skill'&&statusAction.skill_id==='healingCross'&&targets.length&&typeof engine.crossCells==='function')statusAction.resolved.cells=clone(engine.crossCells(targets[0].cell));
     if(kind==='attack'||kind==='skill'){
-      // Enemy plans reserve a cell; the original unit id may have moved away.
-      // A trajectory may point at an empty reserved cell, but it is never a
-      // hit claim. Only the existing hurt packets describe actual recipients.
-      const reserved=actor.side==='enemy'&&actor.intent?.kind==='attack'&&actor.intent.cells?.length;
-      let recipient=reserved?state.units.find(unit=>unit.hp>0&&unit.side!==actor.side&&unit.pos===actor.intent.cells[0]):state.units.find(unit=>unit.hp>0&&unit.id===targets[0]?.unit_id);
-      let targetCell=reserved?actor.intent.cells[0]:typeof target==='number'?target:recipient?.pos;
+      // The actor and target are resolved from the current board at action time.
+      let recipient=state.units.find(unit=>unit.hp>0&&unit.id===targets[0]?.unit_id);
+      let targetCell=typeof target==='number'?target:recipient?.pos;
       if(!Number.isInteger(targetCell)||targetCell<0||targetCell>=50){targetCell=null;recipient=null;}
       const weapons=targetCell!==null&&typeof engine.reachFilteredPower==='function'?clone(engine.reachFilteredPower(actor,{pos:targetCell},kind).weapons):[];
       statusAction.attack_visual={source_cell:actor.pos,target_cell:targetCell,target_unit_id:recipient?.id||null,
-        targeting:reserved?'reserved_cell':recipient?'unit':'unknown',weapons,
+        targeting:recipient?'unit':'unknown',weapons,
         abstract:weapons.length===0||weapons.some(weapon=>typeof weapon.itemId!=='string'||!weapon.itemId)};
     }
     if(kind==='skill'&&statusAction.skill_id==='legSweep'&&typeof engine.sweepTargets==='function'){

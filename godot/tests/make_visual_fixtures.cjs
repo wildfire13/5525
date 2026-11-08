@@ -19,6 +19,6 @@ assert(C.depart(n,'astaris'));assert(C.travel(n,'safe',()=>0));assert(C.begin(n)
 const k=n.battle,g=k.units.find(u=>u.id==='guard'),e=k.units.find(u=>u.side==='enemy');
 for(const u of k.units)u.next=1000000;
 g.next=1;k.actor=g.id;g.pos=24;e.pos=25;
-B.plan(k,e);assert(C.validate(n).ok,C.validate(n).error);
-fs.writeFileSync(path.join(out,'qa-fixed-intent.json'),C.serialize(n));
-console.log(JSON.stringify({fixtures:['qa-porter-swift-ether.json','qa-fixed-intent.json'],synthetic:true,valid:true,porterMove:B.moveReach(p),etherTargetDistance:B.range(p,m)}));
+assert(C.validate(n).ok,C.validate(n).error);
+fs.writeFileSync(path.join(out,'qa-immediate-turn.json'),C.serialize(n));
+console.log(JSON.stringify({fixtures:['qa-porter-swift-ether.json','qa-immediate-turn.json'],synthetic:true,valid:true,porterMove:B.moveReach(p),etherTargetDistance:B.range(p,m)}));

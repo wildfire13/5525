@@ -13,7 +13,7 @@ function request(value){return new Promise((resolve,reject)=>{pending.push({reso
 const campaign=(action,args)=>request({op:'campaign',action,args});
 (async()=>{
   try{
-    let view=await request({op:'campaign_start'});assert(view.ok);assert.equal(view.campaign.version,2);
+    let view=await request({op:'campaign_start'});assert(view.ok);assert.equal(view.campaign.version,3);
     // Current start has 24 new IDs and empty inventories. Seed this inventory
     // transaction fixture explicitly; do not assume old default gifts.
     assert((await request({op:'campaign_load',data:JSON.parse(require('./campaign.js').serialize(require('./test-current-fixture.cjs')()))})).ok);

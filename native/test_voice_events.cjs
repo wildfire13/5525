@@ -45,13 +45,14 @@ for(const id of B.roster.filter(u=>u.job!=='porter').map(u=>u.id)){
   assert.equal(Object.getOwnPropertyDescriptor(a,'hp').get,undefined);
 }
 for(const id of ['porter','porter-2']){
-  const s=B.create({ally:[id,'guard','mage'],enemy:['guard'],deployment:true});
-  const a=s.units.find(u=>u.id===id);a.pos=24;
-  s.units.find(u=>u.id==='guard').pos=13;s.units.find(u=>u.id==='mage').pos=33;
+  const s=B.create({ally:[id,'guard','mage','archer'],enemy:['guard'],deployment:true});
+  const a=s.units.find(u=>u.id===id);a.pos=22;
+  s.units.find(u=>u.id==='guard').pos=24;s.units.find(u=>u.id==='mage').pos=13;s.units.find(u=>u.id==='archer').pos=33;
   s.units.find(u=>u.side==='enemy').next=1e9;s.deploying=false;s.actor=id;
   assert.deepEqual(V.capture(s,B,'skill',()=>B.act(s,'skill',id)).events,[{character_id:id,cue:'skill:porter'}]);
 }
-for(const engine of [B,require('./battle.js')]){
+{
+  const engine=B;
   const s=engine.create({ally:['guard','porter'],enemy:['scout'],deployment:true});
   s.units.find(u=>u.id==='guard').pos=4;
   const before=JSON.stringify(s);

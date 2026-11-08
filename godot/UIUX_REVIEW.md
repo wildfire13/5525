@@ -2,7 +2,7 @@
 
 Base: bebf05770f58639ab8a4153e7cf7f72eb64d76de. Implements the three approved priorities from the formal UIUX v1.0 instructions: nearby fixed battle controls, simultaneous shop list/comparison, and a short current-party list with one selected detail. This branch is a candidate; it has not been pushed or applied to the ordinary installation.
 
-Rules, prices, equipment eligibility, move-ending-hand behavior, fixed-cell enemy intents and save compatibility remain owned by the existing native engine. The UI tracks quote/preview generations and session-only scroll anchors; these UI values do not enter campaign saves.
+Rules, prices, equipment eligibility, move-ending-hand behavior and save compatibility remain owned by the native engine. Enemies choose and execute from the current board state; no fixed-cell intent is saved or displayed. The UI tracks quote/preview generations and session-only scroll anchors; these UI values do not enter campaign saves.
 
 ## Reproduce
 
