@@ -1226,9 +1226,20 @@ const Campaign = (() => {
     migrateCombatMetadata(loaded);
     const oldBattle=envelope.version<3&&['deployment','battle'].includes(loaded.phase);
     if(oldBattle){
-      const returned=clone(loaded.rollback);
-      demand(record(returned)&&returned.phase==='town'&&returned.activeQuest===null,'旧戦闘の復帰先');
-      returned.location='astaris';returned.version=VERSION;returned.journey=null;returned.battle=null;returned.result=null;returned.rollback=null;
+      const rollback=clone(loaded.rollback);
+      demand(record(rollback)&&rollback.phase==='town'&&rollback.activeQuest===null,'旧戦闘の復帰先');
+      // An accepted delivery remains active when an old battle is discarded.
+      // Preserve its cargo, clock, and already-spent combat resources while
+      // returning to Astaris; the original pre-quest snapshot stays available
+      // if the player later abandons the delivery.
+      const returned=loaded.activeQuest?clone(loaded):rollback;
+      if(loaded.activeQuest&&loaded.phase==='battle'&&loaded.battle)for(const u of loaded.battle.units.filter(u=>u.side==='ally')){
+        const c=returned.characters[u.id];c.hp=u.hp;c.mp=u.mp;
+        for(const item of items){const amount=loaded.battle.itemInventories?.[u.id]?.[item.id];if(amount!==undefined){if(amount)c.inventory[item.id]=amount;else delete c.inventory[item.id];}}
+      }
+      returned.location='astaris';returned.phase='town';returned.version=VERSION;returned.journey=null;returned.battle=null;returned.result=null;
+      returned.rollback=loaded.activeQuest?rollback:null;
+      if(returned.rollback)returned.rollback.version=VERSION;
       loaded.version=VERSION;
       Object.keys(loaded).forEach(key=>delete loaded[key]);Object.assign(loaded,returned);
     }else loaded.version=VERSION;

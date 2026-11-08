@@ -24,7 +24,7 @@ function parity(s,kind,target,randomValue=.2){
 for(const skill of ['guard','defenseLine','porter']){
  const {s,a,b,p}=fixture(skill);
  if(skill==='defenseLine')p.pos=14;
- if(skill==='porter'){a.job='porter';a.pos=22;b.pos=24;p.pos=13;s.units.push({...structuredClone(a),id:'ally-extra',job:'guard',pos:33,side:'ally',hp:100,max:100});}
+ if(skill==='porter'){a.job='porter';a.pos=22;b.pos=24;p.pos=14;s.units.push({...structuredClone(a),id:'ally-extra',job:'guard',pos:33,side:'ally',hp:100,max:100},{...structuredClone(a),id:'ally-slot2',job:'guard',pos:13,side:'ally',hp:100,max:100});}
  const target=skill==='defenseLine'?[b.id,p.id]:skill==='porter'?a.id:b.id;
  const frames=parity(s,'skill',target),action=frames[0];
  assert.equal(action.resolved_support.length,skill==='defenseLine'?2:1);
