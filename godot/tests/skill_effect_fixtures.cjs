@@ -24,11 +24,12 @@ function campaign(kind){
   }
   const enemies=b.units.filter(u=>u.side==='enemy');
   enemies.forEach((u,i)=>{u.pos=[25,15,35][i];});
-  const actor=b.units.find(u=>u.id===(kind.startsWith('heal')?'mage':kind==='attackRanged'?'archer':'guard'));
+  const actor=b.units.find(u=>u.id===(kind.startsWith('heal')?'mage':kind==='attackRanged'?'archer':kind==='porterBreakthrough'?'porter':'guard'));
+  if(kind==='porterBreakthrough')actor.pos=48;
   actor.next=1;b.actor=actor.id;
   if(kind.startsWith('sweep')||kind.startsWith('stamp')||kind.startsWith('heal'))actor.selectedSkill=kind.startsWith('sweep')?'legSweep':kind.startsWith('stamp')?'stamp':'mage';
-  let target=kind.startsWith('sweep')?actor.id:kind.startsWith('stamp')?25:kind.startsWith('attack')?enemies[0].id:'guard';
-  let actionKind=kind.startsWith('attack')?'attack':kind==='guard'?'guard':'skill';
+  let target=kind==='porterBreakthrough'?49:kind.startsWith('sweep')?actor.id:kind.startsWith('stamp')?25:kind.startsWith('attack')?enemies[0].id:'guard';
+  let actionKind=kind==='porterBreakthrough'?'move':kind.startsWith('attack')?'attack':kind==='guard'?'guard':'skill';
   if(kind==='attackRanged')actor.pos=23;
   if(kind==='attackGuarded')enemies[0].guard=true;
   if(kind==='guard'){target=null;b.units.find(u=>u.id==='archer').next=2;}
@@ -117,6 +118,7 @@ function observe(name){
       assert.equal(initial.units.find(u=>u.id===initial.actor).mp-observed.battle.units.find(u=>u.id===initial.actor).mp,1,`${name} reservation is charged once`);
     }else if(name!=='attackSequence')assert.equal(new Set(frames.map(f=>f.presentation.action_id)).size,1,`${name} one causal action id`);
   }else{assert.equal(frames.length,0);assert.deepEqual(JSON.parse(C.serialize(observed)),save);}
+  if(name==='porterBreakthrough')assert.equal(observed.battle.resultKind,'breakthrough',`${name} reaching the enemy back row is a victory`);
   if(name==='sweep50')assert.deepEqual(newSkips,[]);
   if(name==='sweep100')assert.equal(newSkips.length,3);
   if(name==='sweepEmpty')assert.equal(observedRandomCalls,0);
@@ -152,7 +154,7 @@ function observe(name){
   return {save,request,geometry:g,frames,expected};
 }
 
-const names=['sweep50','sweep100','sweepEmpty','sweepEdge','sweepAlreadySet','heal','healCapped','healSelf','healFull','stamp','stampMiss','stampCover','stampEdge','stampNextActor','attackMelee','attackRanged','attackGuarded','attackCover','attackCoverGuarded','attackSequence','guard'];
+const names=['sweep50','sweep100','sweepEmpty','sweepEdge','sweepAlreadySet','heal','healCapped','healSelf','healFull','stamp','stampMiss','stampCover','stampEdge','stampNextActor','attackMelee','attackRanged','attackGuarded','attackCover','attackCoverGuarded','attackSequence','guard','porterBreakthrough'];
 const cases=Object.fromEntries(names.map(name=>[name,observe(name)]));
 
 function verifyBridge(){
