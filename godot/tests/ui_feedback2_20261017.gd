@@ -73,7 +73,8 @@ func run():
 	check(tooltip.autowrap_mode==TextServer.AUTOWRAP_WORD_SMART and tooltip.size.x<=520 and tooltip.size.y>50,"skill tooltip wraps lengthy text without ellipsis");tooltip.queue_free()
 	var porter=fixtures.porter
 	# Keep a legal save while filling all three basic formation cells.
-	for pair in [["guard",23],["archer",12],["mage",32]]:
+	# The Porter anchors the current three-cell formation at 22.
+	for pair in [["guard",24],["archer",13],["mage",33]]:
 		var person=porter.state.battle.units.filter(func(u):return u.id==pair[0])[0]
 		var other=porter.state.battle.units.filter(func(u):return u.id!=pair[0] and u.pos==pair[1])
 		if not other.is_empty():other[0].pos=person.pos

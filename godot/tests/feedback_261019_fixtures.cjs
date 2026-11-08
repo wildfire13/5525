@@ -21,7 +21,8 @@ function fixture(kind){
  if(kind.startsWith('grapple')){a.selectedSkill='grapple';if(kind==='grapple-blocked')b.units.find(u=>u.id==='mage').pos=23;}
  if(kind.startsWith('item')){a.hp-=40;b.units.find(u=>u.id==='mage').hp-=30;b.units.find(u=>u.id==='mage').pos=23;delete a.selectedSkill;}
  a.next=1;b.actor=a.id;
- for(const e of enemies)require('../../native/campaign-battle.js').plan(b,e);
+ // Enemy actions are selected from the live board on their turn. These
+ // fixtures must not restore the retired planned-intent queue.
  assert(C.validate(s).ok,C.validate(s).error);
  return JSON.parse(C.serialize(s));
 }
