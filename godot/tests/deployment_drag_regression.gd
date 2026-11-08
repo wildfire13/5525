@@ -4,7 +4,7 @@ const Drag=preload("res://deployment_drag.gd")
 var drops=[]
 var layouts=[]
 func fixtures() -> Dictionary:
-	var code="const C=require(process.argv[1]),a=require('node:assert/strict');let s=require(require('node:path').join(require('node:path').dirname(process.argv[1]),'test-current-fixture.cjs'))();a(C.select(s,['guard','archer','mage','scout','porter','guard-2','mage-2']));a(C.depart(s,'east'));a(C.travel(s,'safe',()=>0));a(C.validate(s).ok,C.validate(s).error);console.log(C.serialize(s));"
+	var code="const C=require(process.argv[1]),a=require('node:assert/strict');let s=require(require('node:path').join(require('node:path').dirname(process.argv[1]),'test-current-fixture.cjs'))();a(C.select(s,['guard','archer','mage','scout','porter','guard-2','mage-2','scout-2']));a(C.depart(s,'east'));a(C.travel(s,'safe',()=>0));a(C.validate(s).ok,C.validate(s).error);console.log(C.serialize(s));"
 	var output=[];var exit=OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray(["-e",code,ProjectSettings.globalize_path("res://../native/campaign.js")]),output,true,false)
 	check(exit==0,"seven-member fixture uses canonical selection travel and validation")
 	return JSON.parse_string("".join(output))
@@ -68,6 +68,11 @@ func run():
 		check(not Drag.valid(game,stale),"stale quote rejected by "+key)
 	check(not game.board._can_drop_data(Vector2(-1,-1),payload),"outside window does not remove a member")
 	check(not game.board._can_drop_data(game.board.project_cell(9),payload),"enemy deployment cell rejects drop")
+	var scout_payload=Drag.make_payload(game,"scout","board")
+	check(game.board._can_drop_data(game.board.project_cell(6),scout_payload),"deployed invasion Scout can drag into enemy deployment cell")
+	var reserve_scout_payload=Drag.make_payload(game,"scout-2","party")
+	check(game.board.can_deploy_enemy_side("scout-2"),"reserve invasion Scout skill is recognized for drag validation")
+	check(not game.board._can_drop_data(game.board.project_cell(7),reserve_scout_payload),"full deployment still rejects an additional reserve even when it has invasion")
 	check(Drag.make_payload(game,"guard","party")==null,"already-deployed reserve card cannot duplicate a member")
 	check(await saved()==before,"invalid and stale probes leave complete save unchanged")
 	# Exercise the engine drag lifecycle, then ESC through OS-independent viewport input.
@@ -87,6 +92,8 @@ func run():
 	check(not Drag.valid(game,stale_move),"a later placement mutation invalidates old same-journey quote")
 	for id in Drag.deployed(game).duplicate():await drop(str(id),"board",null)
 	check(not game.campaign().deploymentRoster.canBegin and node("DeploymentBegin").disabled,"zero deployed members keeps begin disabled")
+	await drop("scout-2","party",7);check(ally("scout-2").pos==7,"reserve invasion Scout enters enemy cell through native drop")
+	await drop("scout-2","board",null);check(ally("scout-2").is_empty(),"reserve invasion Scout can return to reserve")
 	await drop("guard","party",0)
 	check(game.campaign().deploymentRoster.canBegin and not node("DeploymentBegin").disabled,"one member restores start eligibility without requiring porter")
 	var final=await saved()

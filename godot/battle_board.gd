@@ -188,13 +188,22 @@ func _can_drop_data(at_position: Vector2,payload) -> bool:
 	if not Rect2(Vector2.ZERO,size).has_point(at_position) or not get_viewport_rect().has_point(global_at):return false
 	var cell=cell_at(at_position)
 	if cell<0:return payload.source=="board"
-	if cell%10>=5:return false
+	if cell%10>=5 and not can_deploy_enemy_side(str(payload.uid)):return false
 	var occupant=unit_at(cell)
 	if not occupant.is_empty() and occupant.get("side")!="ally":return false
 	if payload.source=="board":return true
 	if not occupant.is_empty():return true
 	var roster=deployment_ui.campaign().get("deploymentRoster",{})
 	return int(roster.get("remaining",0))>0
+func can_deploy_enemy_side(uid: String) -> bool:
+	for member in deployment_ui.state().get("units",[]):
+		if str(member.get("id",""))==uid and member.get("side")=="ally":return bool(member.get("canDeployEnemySide",false))
+	for member in deployment_ui.roster():
+		if str(member.get("id",""))==uid:
+			var stats=member.get("stats",{})
+			var effects=stats.get("effects",[]) if stats is Dictionary else []
+			return effects is Array and effects.has("invasion")
+	return false
 func _drop_data(at_position: Vector2,payload):
 	if not _can_drop_data(at_position,payload) or not DeploymentDrag.consume(deployment_ui,payload):return
 	var cell=cell_at(at_position)
