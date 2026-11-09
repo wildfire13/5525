@@ -1,4 +1,4 @@
-name: Complete legacy UI and native validation
+name: Godot gameplay regression and native validation
 
 on:
   workflow_dispatch:
@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   legacy-ui:
-    name: Legacy UI group ${{ matrix.shard }}
+    name: Godot gameplay group ${{ matrix.shard }}
     strategy:
       fail-fast: false
       max-parallel: 1
