@@ -1,13 +1,14 @@
 """Native preview metadata regression through public bridge operations only.
 
 No GUI is driven and no game state is injected. Tests use the existing labeled
-Stamp/victory fixtures and ordinary journey selection/deployment/legal actions.
+Stamp/victory fixtures and campaign deployment/legal actions.
 Cancellation checks cover backend immutability plus the diagnostic cancel call;
-clearing the frontend's pending action remains a separate native GUI obligation.
+Godot covers clearing its pending action in UI tests.
 """
 import unittest
 
-from test_journey_bridge import Session
+from bridge_test_session import Session
+from test_current_fixture import current_campaign
 
 
 def unit(state, uid):
@@ -48,14 +49,13 @@ class PreviewBridgeTests(unittest.TestCase):
         return response['preview']
 
     def journey(self, action, *args):
-        self.data = self.bridge.call(op='journey', action=action, args=list(args))
+        self.data = self.bridge.call(op='campaign', action=action, args=list(args))
         self.assertTrue(self.data['ok'], (action, self.data.get('error')))
         return self.data
 
     def prepare_journey(self):
-        self.data = self.bridge.call(op='journey_start')
-        self.journey('accept', 'parts')
-        self.journey('depart', 'medicine', 'convoy')
+        current_campaign(self.bridge)
+        self.journey('depart', 'north', 'convoy')
         self.journey('travel', 'short')
 
     def reach_actor(self, actor_id):

@@ -1,9 +1,7 @@
 from test_current_fixture import current_campaign
 import copy
 import unittest
-from unittest.mock import Mock
-from test_journey_bridge import Session
-from app import App
+from bridge_test_session import Session
 
 class EquipmentSlotsBridgeTests(unittest.TestCase):
     def setUp(self):
@@ -12,18 +10,22 @@ class EquipmentSlotsBridgeTests(unittest.TestCase):
         saved=self.bridge.call(op='campaign_save')['data'];saved['state']['location']='east';saved['state']['gold']=1000
         self.assertTrue(self.bridge.call(op='campaign_load',data=saved)['ok'])
 
-    def test_slot_quote_purchase_and_skill_selection_controller(self):
+    def test_slot_quote_purchase_and_skill_selection(self):
         preview=self.bridge.call(op='campaign',action='previewGear',args=['mage','breaker-hammer','leftHand'])['previewGear']
         self.assertEqual(preview['slot'],'leftHand');self.assertEqual(preview['oldGearId'],'empty-leftHand')
         self.assertTrue(self.bridge.call(op='campaign',action='buyGear',args=['mage','breaker-hammer','leftHand'])['ok'])
         data=self.bridge.call(op='campaign',action='trial',args=['mage','rest-staff','rightHand'])
         self.assertEqual([x['id'] for x in data['skillset']],['healingCross','knockback'])
-        app=App.__new__(App);app.bridge=self.bridge;app.data=data;app.pending=None;app.porter_confirmation=None;app.draw=Mock();app.preview=None
-        before=copy.deepcopy(data['state']);app.select_skill('knockback')
-        self.assertTrue(app.data['ok']);self.assertEqual(app.active_skill(),'knockback');self.assertEqual(app.data['skillInfo']['cost'],1)
-        self.assertEqual(app.data['state']['actions'],before['actions']);self.assertEqual(app.data['state'].get('skillEvents',[]),before.get('skillEvents',[]))
-        self.assertEqual([u['mp'] for u in app.data['state']['units']],[u['mp'] for u in before['units']])
-        after=copy.deepcopy(app.data['state']);bad=self.bridge.call(op='select_skill',skillId='splitShot');self.assertFalse(bad['ok']);self.assertEqual(bad['state'],after)
+        before=data['state']
+        selection=self.bridge.call(op='select_skill',skillId='knockback')
+        self.assertTrue(selection['ok'])
+        self.assertEqual(selection['skillInfo']['cost'],1)
+        self.assertEqual(selection['state']['actions'],before['actions'])
+        self.assertEqual(selection['state'].get('skillEvents',[]),before.get('skillEvents',[]))
+        self.assertEqual([u['mp'] for u in selection['state']['units']],[u['mp'] for u in before['units']])
+        bad=self.bridge.call(op='select_skill',skillId='splitShot')
+        self.assertFalse(bad['ok'])
+        self.assertEqual(bad['state'],selection['state'])
         result=self.bridge.call(op='act',kind='skill',target='enemy-guard');self.assertTrue(result['ok'])
         events=result['skillEvents'];self.assertEqual(events[-1]['skillId'],'knockback')
         self.assertEqual(events[-1]['classification'],'active')

@@ -298,26 +298,15 @@ func render_bottom_commands():
 	for pair in COMMANDS:
 		var eligible=pair[0] in ["guard","items"] or not ui.data.get("choices",{}).get(pair[0],[]).is_empty() or pair[0]=="skill" and (not ui.data.get("skillset",[]).is_empty() or has_return())
 		var selected=not action_menu and (ui.command==pair[0] or pair[0]=="skill" and ui.command=="return" or pair[0]=="items" and ui.command in ["item","ether"])
-		var control=ui.icons.apply(b(bottom_commands,("● " if selected else "")+pair[1],choose_command.bind(pair[0]),a.get("side")!="ally" or ui.state().get("deploying",false) or ui.state().get("result")!=null or ui.data.get("presentation") is Dictionary or range_reference),ui.icons.command(pair[0]),40 if ui.size.x>=1800 else 24);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.y=64 if ui.ui_size_mode=="standard" else 44
+		var control=ui.icons.apply(b(bottom_commands,pair[1],choose_command.bind(pair[0]),a.get("side")!="ally" or ui.state().get("deploying",false) or ui.state().get("result")!=null or ui.data.get("presentation") is Dictionary or range_reference),ui.icons.command(pair[0]),40 if ui.size.x>=1800 else 24);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.y=64 if ui.ui_size_mode=="standard" else 44
 		control.tooltip_text=pair[1]+(" / 今は合法な対象なし。条件を詳細で確認" if not eligible else "");ui.memory.key(control,"command_"+pair[0]);buttons[pair[0]]=control
 		control.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
 		control.add_theme_constant_override("h_separation",8)
-		mark_selected(control,selected)
+		ui.mark_selected(control,selected)
 		if pair[0]=="items" and not ui.data.get("itemUseInfo") is Dictionary:
 			control.modulate=Color(0.55,0.55,0.55);control.tooltip_text="拳の効果がないため使用できません。クリックで説明"
 		if pair[0]=="skill" and expanded_menu=="skill" and ui.command in ["skill","return"] and not action_menu:render_skills(bottom_commands)
 		if pair[0]=="items" and expanded_menu=="items" and ui.command in ["items","item","ether"] and not action_menu:render_items()
-func mark_selected(control: Button,selected: bool):
-	control.set_meta("battle_selected",selected)
-	if not selected:return
-	# Parent category, source and concrete action use the same persistent selection.
-	# Hover alone never adds the dot or this fill.
-	for state_ in ["normal","hover","pressed"]:
-		var style=control.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
-		style.bg_color=Color("#d2e1d2" if state_=="hover" else "#e0e8dd")
-		style.border_color=Color("#345c4e");style.border_width_bottom=3
-		control.add_theme_stylebox_override(state_,style)
-	for color_ in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:control.add_theme_color_override(color_,Color("#252830"))
 func choose_command(kind: String):
 	if menu_transition:return
 	if kind in ["skill","items"] and expanded_menu==kind:
@@ -367,11 +356,11 @@ func render_items():
 		l(list,"使用するスキル")
 		for grant in grants:
 			var selected=item_info is Dictionary and item_info.get("key","")==grant.get("key","")
-			var text=("● " if selected else "")+"アイテム使用 Lv%d（" % int(grant.get("level",1))+skill_source_short(grant)+"）"
+			var text="アイテム使用 Lv%d（" % int(grant.get("level",1))+skill_source_short(grant)+"）"
 			if int(grant.get("cooldown",0))>0:text+="\nクールタイム中"
 			var choice=b(list,text,ui.select_skill.bind(str(grant.get("key",grant.id))),int(grant.get("cooldown",0))>0)
 			choice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;choice.tooltip_text=skill_source_text(grant)
-			mark_selected(choice,selected)
+			ui.mark_selected(choice,selected)
 			ui.memory.key(choice,"item_skill_"+str(grant.get("key",grant.id)))
 	for item in ItemMenu.definitions(ui.campaign()):
 		var kind=str(item.get("battleKind",""))
@@ -384,9 +373,9 @@ func render_items():
 		elif count<=0:reason="在庫なし"
 		elif ui.data.get("choices",{}).get(kind,[]).is_empty():reason="回復できる生存味方なし"
 		var selected=not item_list and ui.command==kind
-		var control=b(list,("● " if selected else "")+"%s / %d個" % [item.name,count],ui.choose_command.bind(kind),not reason.is_empty())
+		var control=b(list,"%s / %d個" % [item.name,count],ui.choose_command.bind(kind),not reason.is_empty())
 		control.tooltip_text=ItemMenu.effect(item)+" / "+item_range_text()+" / 1個・1行動"+(" / "+reason if not reason.is_empty() else "")
-		control.name="BattleItem_"+str(item.id);ui.icons.apply(control,str(item.id));mark_selected(control,selected)
+		control.name="BattleItem_"+str(item.id);ui.icons.apply(control,str(item.id));ui.mark_selected(control,selected)
 
 func skill_unavailable_reason() -> String:
 	if ui.command=="return":
@@ -518,7 +507,7 @@ func render_skills(parent):
 		var key=str(skill.get("key",skill.id))
 		var cooling=int(skill.get("cooldown",0))>0
 		var selected=ui.command=="skill" and not skill_list and skill.get("selected",false)
-		var text=("● " if selected else "")+str(skill.name)
+		var text=str(skill.name)
 		var level=int(skill.get("level",1))
 		var has_level=not ui.icons.approved.skills.get(str(skill.id),{}).get("levels",{}).is_empty()
 		if has_level:text+=" Lv%d" % level
@@ -529,7 +518,7 @@ func render_skills(parent):
 		var control=b(line,text,ui.select_skill.bind(key),cooling)
 		control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		control.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-		control.name="BattleSkill_"+str(skill.id);mark_selected(control,selected)
+		control.name="BattleSkill_"+str(skill.id);ui.mark_selected(control,selected)
 		ui.icons.apply(control,ui.icons.skill(str(skill.id),level),32 if has_level else 24)
 		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip(str(skill.id),str(skill.name),level)+"\n"+source+("\nクールタイム中：次の行動機会から使用できます" if cooling else "")
 		ui.memory.key(control,"battle_skill_"+key)
@@ -540,9 +529,9 @@ func render_skills(parent):
 		var key=str(skill.key)
 		var source=skill_source_text(skill)
 		var selected=ui.command=="return" and not skill_list and skill.get("selected",false)
-		var text=("● " if selected else "")+"帰還（"+skill_source_short(skill)+"）"
+		var text="帰還（"+skill_source_short(skill)+"）"
 		if skill.get("used",false):text+="\n使用済み"
-		var control=b(line,text,ui.select_return_skill.bind(key),skill.get("used",false));control.name="BattleSkill_returnHome";ui.icons.apply(control,ui.icons.skill("returnHome"),24);mark_selected(control,selected)
+		var control=b(line,text,ui.select_return_skill.bind(key),skill.get("used",false));control.name="BattleSkill_returnHome";ui.icons.apply(control,ui.icons.skill("returnHome"),24);ui.mark_selected(control,selected)
 		control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip("returnHome","帰還",1)+"\n"+source+"\nこの付与元は1戦闘に1回"
 		ui.memory.key(control,"battle_return_"+key)
@@ -639,7 +628,8 @@ func render_deployment():
 	var formation_status=l(formations,"陣形 "+("成立" if ui.data.get("formed",{}).get("ally",false) else "未成立"),true)
 	formation_status.size_flags_horizontal=Control.SIZE_FILL;formation_status.custom_minimum_size.x=200;formation_status.autowrap_mode=TextServer.AUTOWRAP_OFF
 	for pair in [["convoy","基本配置"],["flank","切り込み配置"]]:
-		var control=b(formations,("● " if s.get("formationKind","convoy")==pair[0] else "")+pair[1],choose_formation.bind(pair[0]))
+		var control=b(formations,pair[1],choose_formation.bind(pair[0]))
+		ui.mark_selected(control,s.get("formationKind","convoy")==pair[0])
 		control.tooltip_text="点線の3マスをポーター以外の味方生存者で埋めると発動。\n味方全員の攻撃×1.5・被ダメージ×0.75。\n陣形強化中は攻撃×1.75・被ダメージ×0.65（使用者の次の番まで）。\n陣形が崩れている間は無効。"
 		control.name="DeploymentFormation_"+pair[0];control.size_flags_horizontal=Control.SIZE_FILL;control.custom_minimum_size.x=200
 	if not s.units.any(func(u):return u.id==ui.selected and u.side=="ally" and u.hp>0):

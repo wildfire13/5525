@@ -119,7 +119,6 @@ try {
         godot=@{path=$godotPath;version=$godotVersion}
         node=@{path=$nodePath;version=$nodeVersion}
         python=@{path=$pythonPath;version=$pythonInfo.python;pillow=$pythonInfo.pillow;sqlite=$pythonInfo.sqlite}
-        fallback=(Join-Path $projectRoot 'Start-5525-Python.cmd')
         installedNothing=$true
     }
     if ($Check) { $report | ConvertTo-Json -Depth 4; exit 0 }
@@ -155,6 +154,5 @@ try {
     exit $LASTEXITCODE
 } catch {
     [Console]::Error.WriteLine('[5525] '+$_.Exception.Message)
-    [Console]::Error.WriteLine('Python fallback: Start-5525-Python.cmd. Existing saves were not changed.')
     exit 1
 }

@@ -1,5 +1,5 @@
 """Exercise the candidate CMD/PowerShell entry without visible windows."""
-import ctypes,datetime,hashlib,json,os
+import ctypes,datetime,json,os
 from pathlib import Path
 import subprocess,sys,shutil,tempfile
 ROOT=Path(__file__).resolve().parents[2]
@@ -96,12 +96,6 @@ if item['passed']:
             try:alive=bool(kernel.GetExitCodeProcess(handle,ctypes.byref(code))) and code.value==259
             finally:kernel.CloseHandle(handle)
         item['node_remaining']=alive;item['passed'] &= not alive
-fallback=ROOT/'Start-5525-Python.cmd'
-baseline=json.loads((ROOT/'godot/tests/fixtures/python-launcher-baseline.json').read_text(encoding='utf-8'))
-# Git may materialize CMD files with LF or CRLF. Compare against historical
-# source bytes with only CRLF normalized, never a baseline derived from the candidate.
-canonical=fallback.read_bytes().replace(b'\r\n',b'\n')
-entries.append(dict(name='Python fallback preserves historical launcher (Git EOL normalized)',passed=hashlib.sha256(canonical).hexdigest()==baseline['sha256_lf']))
 report=dict(at=datetime.datetime.now(datetime.timezone.utc).isoformat(),gui=False,subjective_listening=False,steps=entries,passed=all(e['passed'] for e in entries))
 (Q/'launcher-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 for e in entries:print(('PASS ' if e['passed'] else 'FAIL ')+e['name'])

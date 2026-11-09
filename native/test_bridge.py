@@ -1,8 +1,8 @@
 import unittest
-from app import Bridge
+from bridge_test_session import Session
 
 class BridgeTests(unittest.TestCase):
-    def setUp(self): self.b=Bridge()
+    def setUp(self): self.b=Session()
     def tearDown(self): self.b.close()
     def test_invalid_is_unchanged(self):
         d=self.b.call(op='reset');before=d['state']

@@ -1,55 +1,26 @@
-"""Read-only formation label checks against actual bridge state (not GUI)."""
+"""Direct bridge checks for live battle formation rules (display text retired)."""
 import json
 from pathlib import Path
 from test_current_fixture import current_campaign
 import unittest
-from copy import deepcopy
-from app import App, Bridge
-from campaign_app import campaign_formation_info, TrialBattleApp, CampaignBattleApp
+from bridge_test_session import Session
 
 class CampaignFormationTests(unittest.TestCase):
     def setUp(self):
-        self.bridge=Bridge();self.addCleanup(self.bridge.close)
+        self.bridge=Session();self.addCleanup(self.bridge.close)
         current_campaign(self.bridge)
         for action,args in [('depart',['north']),('travel',['safe']),('begin',[])]:
             self.assertTrue(self.bridge.call(op='campaign',action=action,args=args)['ok'])
-    def test_live_normal_boost_and_broken_formation_are_readonly(self):
-        data=self.bridge.call(op='view');before=deepcopy(data)
-        text='\n'.join(campaign_formation_info(data))
-        self.assertIn('味方: 3/3 ON 攻撃×1.5 / 被ダメ×0.75',text)
-        self.assertIn('強化ON: 攻撃×1.75 / 被ダメ×0.65',text)
-        self.assertIn('金枠3マス',text);self.assertEqual(data,before)
+    def test_live_boost_readonly_until_porter_act(self):
+        data=self.bridge.call(op='view')
         for _ in range(10):
             if data['state']['actor']=='porter':break
             data=self.bridge.call(op='act',kind='guard')
         self.assertEqual(data['state']['actor'],'porter')
         data=self.bridge.call(op='act',kind='skill',target='porter')
         self.assertTrue(data['ok']);self.assertTrue(data['boosted']['ally'])
-        text='\n'.join(campaign_formation_info(data))
-        self.assertIn('味方: 3/3 強化ON 攻撃×1.75 / 被ダメ×0.65',text)
-        # Isolated display boundary: a downed occupant is not counted; a stale
-        # boosted flag never claims a factor when the engine says formation OFF.
-        display=deepcopy(data)
-        for u in display['state']['units']:
-            if u['side']=='ally' and u['pos']==24:u['hp']=0
-        display['formed']['ally']=False
-        self.assertIn('味方: 2/3 OFF 攻撃×1 / 被ダメ×1','\n'.join(campaign_formation_info(display)))
-    def test_enemy_factors_are_side_specific(self):
-        data=self.bridge.call(op='view');data['formed']={'ally':False,'enemy':True}
-        data['boosted']={'ally':False,'enemy':True}
-        text='\n'.join(campaign_formation_info(data))
-        self.assertIn('強化ON 攻撃×1.75 / 被ダメ×0.65',text)
-        self.assertIn('味方: 3/3 OFF 攻撃×1 / 被ダメ×1',text)
-    def test_trial_base_comparison_is_conditional(self):
-        data=self.bridge.call(op='view');data['trial']={'isolated':True}
-        text='\n'.join(campaign_formation_info(data))
-        self.assertIn('陣形OFF同士なら基礎ATK比較',text)
-        self.assertIn('味方: 3/3 ON',text)
-        for shell in (TrialBattleApp, CampaignBattleApp):
-            app=shell.__new__(shell);app.data=data
-            self.assertEqual(app.formation_info(),campaign_formation_info(data))
     def test_second_porter_cannot_complete_a_guard_slot_in_live_bridge_view(self):
-        bridge=Bridge();self.addCleanup(bridge.close)
+        bridge=Session();self.addCleanup(bridge.close)
         fixture=Path(__file__).parent/'test_fixtures'/'porter-formation-two-porters.json'
         with fixture.open(encoding='utf-8') as handle:save=json.load(handle)
         data=bridge.call(op='campaign_load',data=save)
@@ -58,16 +29,9 @@ class CampaignFormationTests(unittest.TestCase):
         self.assertEqual([(u['id'],u['pos']) for u in data['state']['units'] if u['side']=='ally'][:4],
                          [('porter',22),('porter-2',24),('guard',13),('archer',33)])
         self.assertFalse(data['formed']['ally'],'bridge must use live battle formation rules')
-        text='\n'.join(campaign_formation_info(data))
-        self.assertIn('ポーター以外',text)
-        self.assertIn('味方: 2/3 OFF 攻撃×1 / 被ダメ×1',text)
         self.assertTrue(bridge.call(op='campaign',action='deploy',args=['porter-2',14])['ok'])
         data=bridge.call(op='campaign',action='deploy',args=['mage',24])
         self.assertTrue(data['ok'])
         self.assertTrue(data['formed']['ally'],'three living non-Porters complete the formation')
-        self.assertIn('味方: 3/3 ON 攻撃×1.5 / 被ダメ×0.75','\n'.join(campaign_formation_info(data)))
-    def test_legacy_display_is_unchanged(self):
-        a=App.__new__(App);a.data={'formed':{'ally':True,'enemy':False},'boosted':{}}
-        self.assertEqual(a.formation_info(),['陣形: 味方ON / 敵OFF'])
 
 if __name__=='__main__':unittest.main()

@@ -18,7 +18,8 @@ func run():
   check(await saved()==seed,"tab changes preserve full save")
   game.dialog.close();game.navigate("board");await settle()
   var y=node("QuestAccept").global_position.y
-  check(node("QuestSummary").get_children().all(func(f):return f.size.x>=f.get_minimum_size().x and f.autowrap_mode==TextServer.AUTOWRAP_OFF),"summary facts keep readable horizontal text")
+  var quantities=node("QuestCargoItems").find_children("*","Label",true,false)
+  check(not quantities.is_empty() and quantities.all(func(label):return label.autowrap_mode==TextServer.AUTOWRAP_OFF and label.size.x>=label.get_minimum_size().x),"cargo quantities stay readable on the current board")
   for quest in game.campaign().board:
    await choose(node("QuestChoice_"+str(quest.id)))
    check(node("QuestChoice_"+str(quest.id)).get_meta("selected",false),"chosen quest has selection style")
