@@ -69,6 +69,7 @@ jobs:
           timeout 180 godot --headless --path godot --editor --import --quit > "$RUNNER_TEMP/godot-legacy-import.log" 2>&1
           if rg 'SCRIPT ERROR:|ERROR:' "$RUNNER_TEMP/godot-legacy-import.log"; then exit 1; fi
       - name: Verify exhaustive partition and fail-closed result checks
+        if: matrix.shard == 0
         run: python -m unittest discover -s .github/scripts -p test_legacy_ui_shard.py
       - name: Run assigned legacy checks without changing their timeouts
         run: python .github/scripts/run_legacy_ui_shard.py --shard ${{ matrix.shard }} --evidence "$RUNNER_TEMP/5525-legacy-group"
@@ -111,15 +112,9 @@ jobs:
         run: git rev-parse HEAD
       - name: Run full native non-GUI suite
         run: python native/check.py
-      - name: Verify existing Linux SQLite master and grant checks
+      - name: Run supplemental Linux native checks
         if: ${{ !cancelled() }}
         run: |
-          python -m unittest discover -s native -p test_debug_store.py
-          python -m unittest discover -s native -p test_master_data.py
-          node native/test_sqlite_grant_save.cjs
-          node native/test_skill_cooldowns.cjs
-          node native/test_sqlite_passive_grants.cjs
-          node native/test_sqlite_grant_combat.cjs
           node native/test_updateplan_roster.cjs
           node native/test_inventory_capacity.cjs
           node native/test_equipment_permissions.cjs
@@ -127,7 +122,6 @@ jobs:
           node native/test_updateplan_skill_levels.cjs
           node native/test_updateplan_combat.cjs
           node native/test_updateplan_flow.cjs
-          node native/test_weight_elements.cjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: ${{ always() }}
         with:
