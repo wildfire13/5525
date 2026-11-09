@@ -1,13 +1,12 @@
 """Fail-closed manifest and completion checks for supplemental CI."""
 import copy
 import unittest
-from run_legacy_ui_shard import RUNNER, SHARDS, collect_groups, selected_names, verify_results
+from run_legacy_ui_shard import SHARDS, check_groups, selected_names, verify_results
 
 
 class ShardTests(unittest.TestCase):
     def setUp(self):
-        self.source = RUNNER.read_text(encoding='utf-8')
-        self.groups = collect_groups(self.source)
+        self.groups = check_groups()
 
     def test_disjoint_exhaustive_and_paired(self):
         expected = [name for group in self.groups for name in group]
@@ -18,14 +17,9 @@ class ShardTests(unittest.TestCase):
         self.assertTrue(all(shards))
         pairs = [shard for shard in shards if 'ui_preferences_restart_write' in shard]
         self.assertEqual(len(pairs), 1)
-        self.assertIn('ui_preferences_restart_read', pairs[0])
-
-    def test_reject_manifest_drift(self):
-        for source in [self.source.replace("['write', 'read']", "['read']"),
-                       self.source.replace("run('event_voice_assets'", "run('facility_asset_integrity'"),
-                       self.source + "\nif True:\n    run('new_check', [], repo)\n"]:
-            with self.assertRaises(ValueError):
-                collect_groups(source)
+        start = pairs[0].index('ui_preferences_restart_write')
+        self.assertEqual(pairs[0][start:start + 2],
+                         ['ui_preferences_restart_write', 'ui_preferences_restart_read'])
 
     def test_exact_completion_required(self):
         names = ['a', 'b']

@@ -10,6 +10,8 @@ import sys
 import tempfile
 import time
 
+from legacy_ui_manifest import ASSET_CHECKS, GODOT_SUITES, suite_checks
+
 p = argparse.ArgumentParser()
 p.add_argument('--evidence', required=True, type=Path)
 p.add_argument('--only', nargs='*', help='Run only these named checks')
@@ -47,14 +49,13 @@ def run(name, command, cwd, env=None):
     print(json.dumps(result, ensure_ascii=False), flush=True)
 
 
-run('event_voice_assets', [node, str(repo / 'native/test_event_voice_integration.cjs')], repo)
+interpreters = {'node': node, 'python': sys.executable}
+for name, interpreter, script in ASSET_CHECKS:
+    run(name, [interpreters[interpreter], str(repo / script)], repo)
 
-run('facility_asset_integrity', [sys.executable, str(repo / 'godot/tests/facility_asset_integrity.py')], repo)
-run('individual_icons_integrity', [sys.executable, str(repo / 'godot/tests/individual_icons_integrity.py')], repo)
-
-for name in ['event_voices_regression', 'facility_art_261021', 'hover_regression', 'hover_lifetime_regression', 'icons_approved_261021', 'feedback_261021', 'inventory_header_261020', 'status_layout_lifecycle', 'status_empty_inventory', 'feedback_261019_3', 'feedback_261019_2', 'feedback_261019_input', 'guild_regression', 'inventory_regression', 'ui_feedback2_20261016', 'ui_feedback2_20261017', 'ui_feedback_20261016', 'shop_rows_regression', 'shop_feedback30', 'owned_equipment_regression', 'frontend_smoke', 'ui_preferences_restart', 'brushup_formation_regression', 'brushup_comparison_regression', 'facility_npc_regression', 'research2_descriptions', 'text_cleanup_regression', 'battle_selection_regression', 'inventory_context_regression', 'window_resize_regression', 'battle_layout_f2', 'inventory_short_window_regression', 'equipment_hover_f4', 'skill_effect_regression', 'ui_p3_drag_regression', 'turn_order_keyboard_regression', 'deployment_start_regression', 'guard_visibility_regression', 'individual_icons_regression', 'audio_options_regression', 'feedback_backdrops_regression', 'loading_screen_check', 'results_regression', 'painted_vfx_regression', 'vfx_expansion_regression', 'facility_feedback2_regression', 'feedback2_guild_regression', 'deployment_drag_regression', 'feedback2_party_strip_regression', 'native_file_dialog', 'feedback3_guild_regression', 'feedback3_speech_regression', 'speech_tail_regression', 'status_footer_stability', 'debug_window_check', 'debug_log_accuracy', 'debug_store_regression', 'debug_store_teardown', 'inn_feedback3_regression', 'quest_board_feedback3', 'warehouse_regression', 'updateplan_regression']:
-    phases = ['write', 'read'] if name == 'ui_preferences_restart' else ['']
-    if a.only and not any(name + ('_' + phase if phase else '') in a.only for phase in phases):
+for name in GODOT_SUITES:
+    checks = suite_checks(name)
+    if a.only and not any(result in a.only for result, _ in checks):
         continue
     scope = Path(tempfile.mkdtemp(prefix=name + '-', dir=out))
     env = dict(os.environ, NATIVE5525_NODE=node, NATIVE5525_PYTHON=sys.executable, NATIVE5525_AUDIO_OFF='1', INVENTORY_QA_ROOT=str(scope), UIUX_REVIEW_EVIDENCE=str(scope), SKILL_EFFECT_QA_ROOT=str(scope))
@@ -76,7 +77,7 @@ for name in ['event_voices_regression', 'facility_art_261021', 'hover_regression
         (' root.add_child(preload("res://tests/fhd_contract.gd").new())\n' if screen_suite else '') +
         ' super._initialize()\n', encoding='utf-8')
     (scope / 'source-sha256.txt').write_text(hashlib.sha256((repo / 'godot/tests' / (name + '.gd')).read_bytes()).hexdigest() + '\n')
-    for phase in phases:
+    for result, phase in checks:
         env['UI_PREFERENCES_PHASE'] = phase
-        run(name + ('_' + phase if phase else ''), [godot, '--headless', '--resolution', '1920x1080', '--audio-driver', 'Dummy', '--path', str(repo / 'godot'), '--script', str(wrapper)], repo, env)
+        run(result, [godot, '--headless', '--resolution', '1920x1080', '--audio-driver', 'Dummy', '--path', str(repo / 'godot'), '--script', str(wrapper)], repo, env)
 sys.exit(0 if all(r['passed'] for r in results) else 1)
