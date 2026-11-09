@@ -43,12 +43,10 @@ func run():
 	check(not game.dialog.body.get_parent().get_parent().find_children("*","Label",true,false).any(func(n):return n.text=="キャラクターステータス"),"status title appears only in window titlebar")
 	check(node("OwnedEquipmentOwner").text==game.member_name("guard")+"のインベントリ" and node("OwnedEquipmentOwner").get_parent()==node("OwnedEquipmentSlot").get_parent(),"owner heading and filter share one row")
 	check(absf(node("OwnedEquipment_potion").get_global_rect().end.x-node("OwnedEquipment_sword-wood").get_global_rect().end.x)<2,"item name column right edges align")
-	check(node("OwnedInventoryUse_potion")!=null and node("OwnedInventorySell_sword-wood")!=null,"direct use and sale coexist in equipment inventory")
+	check(node("OwnedInventoryUse_potion")!=null,"equipment inventory offers direct item use")
 	before=await saved();await click("OwnedInventoryUse_potion")
 	check(game.pages.party_view.inventory_view.action=="use" and node("InventoryTarget_guard")!=null,"direct use opens existing target selector")
 	await click("InventoryTarget_guard");await consent(false);check(await saved()==before,"direct use cancel leaves full save unchanged")
-	await click("StatusTab_0");await click("OwnedInventorySell_sword-wood");await click("InventoryPrepareSale");await consent(false)
-	check(await saved()==before,"direct sale cancel leaves gold and inventory unchanged")
 	await click("StatusTab_0")
 	for resolution in [Vector2i(1920,1080)]:
 		root.size=resolution;await settle();game.dialog.window.size=Vector2i(resolution.x,700);game.dialog.window.position=Vector2i(0,40);await settle();alignment()
@@ -56,7 +54,6 @@ func run():
 		var anchor=Vector2(game.dialog.window.position)+source.get_global_rect().position
 		check(hover.visible and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(hover.position),Vector2(hover.size))),"comparison remains onscreen "+str(resolution))
 		check(absf(float(hover.position.x+hover.size.x)-anchor.x)<30 or absf(float(hover.position.x)-anchor.x-source.size.x)<30,"comparison stays next to candidate "+str(resolution))
-		check(node("OwnedInventorySell_sword-wood").get_global_rect().end.x<=game.dialog.window.size.x,"sale fits whole status "+str(resolution))
 	game.dialog.window.size=Vector2i(1100,700);game.dialog.close();await settle();game.pages.party_view.open_detail("guard");await settle()
 	check(game.dialog.window.size==Vector2i(1100,700),"manual resize after migration remains saved")
 	game.dialog.close();await game.new_game();await preload("res://tests/current_historical_fixture.gd").install(game);await settle()

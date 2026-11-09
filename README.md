@@ -1,16 +1,10 @@
 # GoGo To Go — 5×5=25
 
-## 遊ぶ（Godot移行候補）
+## 遊ぶ
 
-Windowsでは **[Start-5525.cmd](Start-5525.cmd)** からGodot版を起動します。既存のGodot 4.6.x、Node.js 22以上、Python 3.10以上＋Pillowを使用します。自動インストールやPC全体の設定変更はしません。起動方法・今回の検証範囲は [godot/README.md](godot/README.md)。この作業ツリーは隔離候補で、通常PCへの適用は未実施です。
+Windowsでは **[Start-5525.cmd](Start-5525.cmd)** からGodot版を起動します。Godot 4.6.x、Node.js 22以上、Python 3.10以上とPillowが必要です。Linuxではリポジトリ直下で `godot --headless --editor --path godot --import` の後に `NATIVE5525_PYTHON="$(command -v python3)" godot --path godot` を実行します。
 
-従来のPython UIは **[Start-5525-Python.cmd](Start-5525-Python.cmd)** から起動できます。元ランチャーと同一バイトで、Python 3＋TkとNode.js 22以上が必要です。同じ候補のnativeルールを使うため、旧コミットへ戻す操作とは異なります。
-
-Linuxでは `python3 native/journey_app.py`。通常の入口は、1都市・4村を往復し、報酬・経験値・キャラ別装備を持ち越して続けるキャンペーン版です。掲示板、未受注の移動、無償編成、アスタリスの宿屋（全員30GでHP/MP全回復）、下取り式の買い替え、購入前の木人試用、能力配分、ローカル進行セーブを試せます。商品・価格・道路・成長などの未定部分には試遊用の仮値を置いており、完成版の仕様確定を意味しません。
-
-元の一件完結型は `python3 native/journey_app.py --legacy`、戦闘単体は `python3 native/app.py`。Python側のTk起動補助と既定のキャンペーン画面は保持しています。操作・必要環境は [native/README.md](native/README.md)、今回の範囲・仮仕様は [native/REPLAY.md](native/REPLAY.md)、新旧を分けた検証記録は [native/COVERAGE.md](native/COVERAGE.md)。
-
-検証：`python native/check.py`（Windows）または `python3 native/check.py`（Linux）。結果は `native/qa-check-report.json` に出力します。Python/Tk + ローカルNodeの構成で、サーバーやネット通信は不要です。
+画面・入力・音声はGodot、ゲームルールはNode.jsが担当します。Pythonは画像・保存データ・SQLiteの処理に使います。[起動設定と動作確認](godot/README.md)
 
 ## 旧Web比較版の履歴
 
@@ -21,9 +15,8 @@ Linuxでは `python3 native/journey_app.py`。通常の入口は、1都市・4�
 ## フォルダ構成
 
 ```text
-native/                Godotのルール・保存/画像処理・素材とPython比較UI
+native/                Godotのルール・保存/画像処理・素材
 Start-5525.cmd         Windows用Godot起動入口
-Start-5525-Python.cmd  従来Python UIの起動入口
 godot/                 Godot画面・音声・起動検出・移行検証
 HANDOFF.md             開発引き継ぎ
 ```

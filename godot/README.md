@@ -45,7 +45,7 @@ Python 3.13.15 + Pillow
 
 自動検出はPATH上の `godot` / `godot4`、`runtime/godot`、既存の近傍 `Godot*` 配置を調べます。ディスク全体の再帰検索やダウンロード・インストールはしません。`godot/check.py` は同じ設定を読み、優先順は `--godot`、`GODOT_BIN`、ローカルJSON、自動検出です。Node/Pythonは別々に、既存ランチャーの環境変数 (`NATIVE5525_NODE` / `NATIVE5525_PYTHON`)、PATH、限定済み配置先の順で検出・検証します。見つからない場合は設定方法をエラーに示します。Godotの設定は `ui_parity_smoke.gd` のNode固定パス問題を変更しません。
 
-`Start-5525.cmd -Check` は依存の読取診断、`-SmokeTest` はheadless/Dummyで起動・終了します。元のPythonランチャーは同一バイトの `Start-5525-Python.cmd` に保持。通常作業ツリーと既存Godot比較デモは未変更です。エクスポート済みexeやランタイム同梱は未作成です。テンプレート追加取得と依存配置の条件は [EXPORT-READINESS.md](EXPORT-READINESS.md) を参照してください。
+`Start-5525.cmd -Check` は依存の読取診断、`-SmokeTest` はheadless/Dummyで起動・終了します。エクスポート済みexeやランタイム同梱は未作成です。テンプレート追加取得と依存配置の条件は [EXPORT-READINESS.md](EXPORT-READINESS.md) を参照してください。
 
 ## 検証
 

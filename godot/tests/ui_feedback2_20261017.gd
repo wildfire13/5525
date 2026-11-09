@@ -45,7 +45,9 @@ func run():
 	check(mapped_ids.size()==47 and mapped_ids==adopted_ids and game.icons.gear({"id":"sword-wood","type":"sword"})=="sheet_one_handed_sword" and game.icons.slot("head")=="head","all 47 adopted equipment paths stay separate from category and slot icons")
 	await game.update({"op":"campaign_load","data":baseline});game.navigate("map");await game.act("depart",["east","convoy"]);await game.act("travel",["safe"]);await settle()
 	var positions=game.state().units.map(func(u):return u.pos)
+	check(node("DeploymentFormation_convoy").get_meta("selected") and not node("DeploymentFormation_flank").get_meta("selected"),"default formation uses shared selection")
 	await click("DeploymentFormation_flank")
+	check(node("DeploymentFormation_flank").get_meta("selected") and not node("DeploymentFormation_convoy").get_meta("selected"),"formation selection moves to the chosen preset")
 	check(game.state().units.map(func(u):return u.pos)==positions and game.state().formationKind=="flank" and game.find_children("*","ConfirmationDialog",true,false).is_empty(),"formation switch changes rules without touching placement or prompting")
 	var enemy=game.state().units.filter(func(u):return u.side=="enemy")[0];await game.on_cell(int(enemy.pos));await settle()
 	var sidebar=game.hud.right_panel.body

@@ -2,8 +2,7 @@
 from test_current_fixture import current_campaign
 import copy
 import unittest
-from test_journey_bridge import Session
-from battle_presentation import low_hp
+from bridge_test_session import Session
 
 
 class PresentationBridgeTests(unittest.TestCase):
@@ -47,11 +46,6 @@ class PresentationBridgeTests(unittest.TestCase):
         self.assertFalse(self.bridge.call(op='presentation_finish', id=token['id'])['ok'])
         self.assertNotIn('voiceEvents', self.bridge.call(op='view'))
         self.assertEqual(self.bridge.call(op='view')['state'], done['state'])
-
-    def test_quarter_hp_strict_boundary(self):
-        for hp, expected in [(26, False), (25, False), (24, True), (0, True)]:
-            self.assertEqual(low_hp({'hp': hp, 'max': 100}), expected)
-        self.assertFalse(low_hp({'hp': 0, 'max': 0}))
 
     def test_opening_enemy_turn_and_save_resume_only_after_completion(self):
         bridge = Session(5525);self.addCleanup(bridge.close)
