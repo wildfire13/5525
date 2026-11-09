@@ -43,6 +43,12 @@ class SoundCatalog:
             self.clips.clear();self.durations.clear();self.error = str(error)
 
 
+def play_ui_cue(frontend, cue):
+    player = getattr(frontend, 'sounds', None)
+    if player:
+        player.ui(cue)
+
+
 def phase_sound(phase, state):
     kind = phase['phase']
     if kind == 'action':
