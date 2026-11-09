@@ -17,7 +17,7 @@ from tkinter import filedialog, messagebox
 from app import App, BASE, Bridge
 from journey_app import JourneyApp
 from music import MusicPlayer
-from sound_effects import SoundPlayer
+from sound_effects import SoundPlayer, play_ui_cue
 from portraits import PortraitImages, SAVE_KEY, resolve_portrait
 
 
@@ -300,8 +300,10 @@ class CampaignApp(JourneyApp):
             self.notice = '処理できませんでした: ' + str(error)
             self.foot.config(text=self.notice)
             return {'ok': False, 'error': self.notice}
-        if getattr(self,'sounds',None) and request.get('op')=='campaign' and request.get('action') not in ('begin','finishBattle','endTrial','trial','forecast','previewGear') and not result.get('presentation'):
-            self.sounds.ui('confirm' if result.get('ok') else 'cancel')
+        if (request.get('op') == 'campaign'
+                and request.get('action') not in ('begin', 'finishBattle', 'endTrial', 'trial', 'forecast', 'previewGear')
+                and not result.get('presentation')):
+            play_ui_cue(self, 'confirm' if result.get('ok') else 'cancel')
         if result.get('campaign') is not None:
             self.data = result
         if not result.get('ok', False):
@@ -364,7 +366,7 @@ class CampaignApp(JourneyApp):
                     filetypes=[('5525進行JSON', '*.json')])
         if not path:
             self.notice = '進行保存を取り消しました'
-            if getattr(self,'sounds',None):self.sounds.ui('cancel')
+            play_ui_cue(self, 'cancel')
         else:
             try:
                 data = result['data']
@@ -374,7 +376,7 @@ class CampaignApp(JourneyApp):
                     data[SAVE_KEY] = self.images.snapshot()
                 atomic_json_write(path, data)
                 self.notice = '進行を保存しました: ' + str(path)
-                if getattr(self,'sounds',None):self.sounds.ui('confirm')
+                play_ui_cue(self, 'confirm')
             except (OSError, ValueError, KeyError, TypeError) as error:
                 self.notice = '進行を保存できませんでした: ' + str(error)
         self.foot.config(text=self.notice)
@@ -384,7 +386,7 @@ class CampaignApp(JourneyApp):
                     initialdir=str(BASE), filetypes=[('5525進行JSON', '*.json')])
         if not path:
             self.notice = '進行読込を取り消しました'
-            if getattr(self,'sounds',None):self.sounds.ui('cancel')
+            play_ui_cue(self, 'cancel')
             self.foot.config(text=self.notice)
             return
         if not messagebox.askyesno('進行を読み込む', '現在の未保存の進行を、選んだファイルの進行に置き換えますか？', parent=self.root):

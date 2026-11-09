@@ -8,7 +8,7 @@ import tkinter as tk
 from tkinter import filedialog
 from datetime import datetime
 from voice import VoicePlayer
-from sound_effects import SoundPlayer
+from sound_effects import SoundPlayer, play_ui_cue
 from music import MusicPlayer
 from portraits import resolve_portrait
 from battle_presentation import BattlePresentation, low_hp
@@ -287,7 +287,7 @@ class App:
         if token is None or token is not self.porter_confirmation:return
         self.dismiss_porter_dialog()
         if not accepted:
-            if getattr(self,'sounds',None):self.sounds.ui('cancel')
+            play_ui_cue(self, 'cancel')
             self.bridge.call(op='record',type='battle.preview.cancelled',details={'kind':'skill','target':token['actor']})
             self.message='取消しました。行動・MPは消費していません。';self.draw();return
         # Other windows may share the bridge. Never confirm a different turn or a
@@ -312,7 +312,7 @@ class App:
         if multi:
             options=self.data['choices'].get('skill',[])
             if not any(target in pair for pair in options):
-                if getattr(self,'sounds',None):self.sounds.ui('cancel')
+                play_ui_cue(self, 'cancel')
                 self.message='射程内の別の対象を選んでください。';self.draw();return
             selected=list(self.pending[1]) if self.pending and self.pending[0]=='skill' and isinstance(self.pending[1],list) else []
             if target in selected:selected.remove(target)
@@ -323,7 +323,7 @@ class App:
             if target not in options:
                 self.message='異なる対象をもう1人選んでください。取消では消費しません。';self.draw();return
         if target not in self.data['choices'].get(self.mode,[]):
-            if getattr(self,'sounds',None):self.sounds.ui('cancel')
+            play_ui_cue(self, 'cancel')
             self.pending=None;self.preview=None
             self.message='無効な対象です。緑の範囲・対象を選んでください。';self.draw();return
         self.pending=(self.mode,target)
@@ -338,7 +338,7 @@ class App:
         if self.porter_confirmation is not None:
             self.resolve_porter_boost(self.porter_confirmation,False);return
         self.bridge.call(op='record',type='battle.preview.cancelled')
-        if getattr(self,'sounds',None):self.sounds.ui('cancel')
+        play_ui_cue(self, 'cancel')
         self.pending=None;self.preview=None;self.message='取消しました。行動・MPは消費していません。';self.draw()
 
     def commit(self):

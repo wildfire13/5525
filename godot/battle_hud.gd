@@ -1,5 +1,6 @@
 extends RefCounted
 const ElementBadges=preload("res://element_badges.gd")
+const BattleText=preload("res://battle_text.gd")
 ## State-focused display. Choices, predictions and results remain engine-owned.
 var ui
 var middle: Control
@@ -83,7 +84,7 @@ func unit(id) -> Dictionary:
 func acting() -> Dictionary:
 	var phase=ui.data.get("presentation")
 	return unit(phase.get("actor_id",ui.state().get("actor"))) if phase is Dictionary else unit(ui.state().get("actor"))
-func coord(pos) -> String:return "X%d,Y%d" % [int(pos)%10,4-int(int(pos)/10)]
+func coord(pos) -> String:return BattleText.coord(pos)
 func state_id() -> String:
 	if ui.data.get("presentation") is Dictionary:return "B5" if ui.data.presentation.get("phase")=="action" else "B6"
 	if range_reference:return "B2R"
@@ -344,12 +345,11 @@ func item_count(id: String) -> int:
 	return int(ui.state().get("ethers",0)) if id=="ether" else int(ui.state().get("potions",{}).get("ally",0))
 func item_range_text() -> String:
 	var info=ui.data.get("itemUseInfo")
-	var level=int(info.get("level",0)) if info is Dictionary else 0
-	return ["使用スキルなし","自分のみ","自分と縦横隣接の味方","射程無限"][clampi(level,0,3)]
+	return BattleText.item_range(int(info.get("level",0)) if info is Dictionary else 0)
 func skill_source_text(skill: Dictionary) -> String:
 	var parts=[]
 	for source in skill.get("sources",[]):
-		parts.append(str(ui.campaign().get("slots",{}).get(source.slot,source.slot))+"・"+str(source.get("itemName",source.get("itemId","")))+" / 付与%d" % int(source.get("grantSlot",1)))
+		parts.append(BattleText.source_name(source, ui.campaign().get("slots", {}), true))
 	return " / ".join(parts)
 func skill_source_short(skill: Dictionary) -> String:
 	var slot=str(skill.get("slot",""))
@@ -494,7 +494,7 @@ func render_prediction(main,facts):
 		if ui.data.get("skill")=="引き寄せ" and ui.preview_ready and not ui.preview.get("effectPreview",[]).any(func(e):return e.get("position")!=null):l(main,"引き寄せ先が占有中：移動なし / MP1・1行動を消費")
 	if ui.preview_ready and not ui.preview.get("cells",[]).is_empty():l(facts,("影響 %dマス / 全マスは下へ" if ui.command=="skill" else "影響 %dマス / 全マスは内訳へ") % ui.preview.cells.size())
 func weapon_power_text(weapon: Dictionary) -> String:
-	return "%s ATK 物%d / 火%d / 水%d / 地%d" % [weapon.get("name","武器"),weapon.get("atk",0),weapon.get("atkFire",0),weapon.get("atkWater",0),weapon.get("atkEarth",0)]
+	return BattleText.weapon_power(weapon)
 func render_skill_breakdown(parent):
 	if ui.command=="return":
 		for option in ui.data.get("returnSkillset",[]):
@@ -502,13 +502,11 @@ func render_skill_breakdown(parent):
 		return
 	for hit in ui.preview.get("damagePreview",[]):
 		l(parent,"指定: %s → 予測受領者: %s / HP −%d" % [hit.get("targetName",hit.get("recipientName","")),hit.get("recipientName",""),hit.hpLoss])
-		var parts=[]
-		for weapon in hit.get("weapons",[]):parts.append(weapon_power_text(weapon))
-		l(parent," + ".join(parts)+" / 成長補正+%d" % hit.get("bonus",0))
+		l(parent,BattleText.weapon_breakdown(hit))
 	if not ui.preview.get("cells",[]).is_empty():l(parent,"影響マス: "+" / ".join(ui.preview.cells.map(coord)))
 	for skill in ui.data.get("skillset",[]):
 		if not skill.get("selected",false):continue
-		for source in skill.get("sources",[]):l(parent,"由来: "+str(ui.campaign().get("slots",{}).get(source.slot,source.slot))+" / "+str(source.get("itemName",source.get("itemId",""))))
+		for source in skill.get("sources",[]):l(parent,"由来: "+BattleText.source_name(source, ui.campaign().get("slots", {})))
 func cost_text() -> String:
 	if ui.command in ["item","ether"]:return "本人の所持品を消費: 1個・1行動 / 残り%d個" % item_count("ether" if ui.command=="ether" else "potion")
 	var info=ui.data.get("skillInfo")
@@ -565,15 +563,13 @@ func open_action_details():
 		l(body,"指定対象: "+selected_target_text(ui.pending));l(body,"選択中: "+" / ".join(ui.chosen.map(func(id):return ui.member_name(str(id)))))
 		for hit in ui.preview.get("damagePreview",[]):
 			l(body,"指定: %s → 予測受領者: %s / 予測HP −%d" % [hit.get("targetName",hit.get("recipientName","")),hit.get("recipientName",""),hit.hpLoss],true)
-			var parts=[]
-			for weapon in hit.get("weapons",[]):parts.append(weapon_power_text(weapon))
-			l(body," + ".join(parts)+" / 成長補正+%d" % hit.get("bonus",0))
+			l(body,BattleText.weapon_breakdown(hit))
 		l(body,"影響マス: "+" / ".join(ui.preview.get("cells",[]).map(coord)))
 		l(body,"参考候補（今回の指定・実結果とは別）: "+" / ".join(ui.preview.get("targets",[])))
 		l(body,"候補全員に効果が出るとは限りません。実受領者は実行後の結果で確認できます。")
 		for skill in ui.data.get("skillset",[]):
 			l(body,str(skill.name),true)
-			for source in skill.get("sources",[]):l(body,"由来: "+str(ui.campaign().get("slots",{}).get(source.slot,source.slot))+" / "+str(source.get("itemName",source.get("itemId",""))))
+			for source in skill.get("sources",[]):l(body,"由来: "+BattleText.source_name(source, ui.campaign().get("slots", {})))
 		ui.local_button(actions,"戻る",ui.dialog.close),func():breakdown_open=false)
 func discard_reference():
 	reference_generation+=1;range_reference=false;reference_preview={};reference_pending=false;reference_error=""
