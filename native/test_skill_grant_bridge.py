@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from test_journey_bridge import Session
+from bridge_test_session import Session
 
 BASE = Path(__file__).resolve().parent
 

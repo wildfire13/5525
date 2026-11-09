@@ -877,9 +877,8 @@ const Campaign = (() => {
     for(const key of Object.keys(v)){demand(!['__proto__','constructor','prototype'].includes(key),'禁止されたキー');if(v[key]!==undefined)safeTree(v[key],depth+1);}
   }
   function validSelection(ids) {return Array.isArray(ids)&&ids.length>0&&ids.length<=PARTY_LIMIT&&new Set(ids).size===ids.length&&ids.every(id=>!!template(id));}
-  function validateState(s,depth,version=VERSION) {
-    if(depth===0)safeTree(s);
-    demand(record(s)&&s.version===version,'バージョン');
+
+  function validateWarehouseAndCargo(s) {
     demand(s.inventoryRevision===undefined||s.inventoryRevision===1,'未対応のインベントリ形式');
     if(s.warehouse!==undefined){
       demand(record(s.warehouse),'倉庫の形式');
@@ -890,6 +889,9 @@ const Campaign = (() => {
     }
     demand(!Object.hasOwn(s,'cargoRevision')||s.cargoRevision===1,'未対応の荷物形式');
     if(s.rollback)demand((s.cargoRevision===1)===(s.rollback.cargoRevision===1),'荷物形式と復元スナップショット');
+  }
+
+  function validateCampaignProgress(s) {
     demand(['town','road','deployment','battle','camp','arrival','result'].includes(s.phase),'進行段階');
     demand(!!getPlace(s.location),'拠点');
     for(const key of ['gold','xp','hours','sequence','boardRound','completed'])demand(integer(s[key]),key);
@@ -898,8 +900,14 @@ const Campaign = (() => {
     demand(s.worldTime===undefined||integer(s.worldTime),'世界時刻');
     if(s.standaloneEvents!==undefined){demand(record(s.standaloneEvents)&&integer(s.standaloneEvents.epoch)&&record(s.standaloneEvents.events),'単発依頼予定');for(const q of STANDALONE_QUESTS){const event=s.standaloneEvents.events[q.eventId];demand(record(event)&&['available','accepted','completed','failed','missed'].includes(event.status),'単発依頼状態');}}
     demand(s.battleSelected===undefined?s.selected.length<=BATTLE_LIMIT:Array.isArray(s.battleSelected)&&s.battleSelected.length<=BATTLE_LIMIT&&new Set(s.battleSelected).size===s.battleSelected.length&&s.battleSelected.every(id=>s.selected.includes(id)),'戦闘出場者');
+  }
+
+  function validateInventoryVersion(s,version) {
     if(version===1)demand(record(s.inventory)&&Object.keys(s.inventory).length===2&&integer(s.inventory.potion,0,99)&&integer(s.inventory.ether,0,99),'アイテム');
     else demand(!Object.hasOwn(s,'inventory'),'旧共通在庫と個人所持の重複');
+  }
+
+  function validateRoster(s,version) {
     demand(Array.isArray(s.history)&&s.history.length<=200&&s.history.every(x=>typeof x==='string'),'履歴');
     demand(s.updatePlanRevision===undefined||s.updatePlanRevision===1,'未対応の候補者形式');
     const expected=s.updatePlanRevision===1?[...B.recruitRoster,...(B.legacyRoster.some(t=>Object.hasOwn(s.characters||{},t.id))?B.legacyRoster:[])]:B.legacyRoster;
@@ -925,6 +933,9 @@ const Campaign = (() => {
       demand(eligibility(s,c.id,c.weapon).ok&&eligibility(s,c.id,c.armor).ok,'装備条件');
       const st=stats(c);demand(integer(c.hp,0,st.max)&&integer(c.mp,0,st.maxMp),'HP/MP');
     }
+  }
+
+  function validateQuest(s) {
     demand(s.activeQuest===null||record(s.activeQuest),'依頼');
     if(s.activeQuest) {
       const q=s.activeQuest;demand(typeof q.id==='string'&&typeof q.name==='string'&&typeof q.client==='string'&&typeof q.cargo==='string'&&typeof q.text==='string','依頼内容');
@@ -936,9 +947,13 @@ const Campaign = (() => {
       if(s.cargoRevision===1)demand(q.cargoItemId===Cargo.key(q.token)&&Cargo.carriers(s).length===1,'荷物形式');
       demand(s.phase!=='result','報酬の二重取得');
     }
+  }
+
+  function validateConsumables(s,version) {
     if(version>=2)demand(Object.entries(inventoryTotals(s,Object.keys(s.characters))).every(([id,count])=>integer(count+I.count(s.warehouse,id),0,99)),'消耗品合計（従来の99個上限）');
-    demand(s.rollback===null||record(s.rollback),'復元情報');
-    if(s.rollback){demand(depth===0&&s.rollback.rollback===null&&s.rollback.phase==='town'&&s.rollback.activeQuest===null,'復元スナップショット');validateState(s.rollback,1,version);}
+  }
+
+  function validateJourney(s) {
     const tripPhases=['road','deployment','battle','camp','arrival'];
     if(tripPhases.includes(s.phase))demand(record(s.journey)&&s.rollback!==null,'進行中の旅');
     if(s.phase==='town')demand(s.journey===null&&s.battle===null&&s.result===null&&!!s.rollback===!!s.activeQuest,'街の状態');
@@ -963,6 +978,9 @@ const Campaign = (() => {
       if(['camp','arrival'].includes(s.phase))demand(Array.isArray(j.party)&&j.party.length===s.selected.length&&j.stage===(s.phase==='arrival'?2:1),'野営・到着');
       if(s.phase==='road')demand(j.stage<2,'街道の区間');
     } else demand(['town','result'].includes(s.phase),'旅情報なし');
+  }
+
+  function validateBattle(s,version) {
     if(s.battle!==null) {
       const b=s.battle,j=s.journey,ids=battleIds(s);demand(record(b)&&['deployment','battle'].includes(s.phase)&&b.campaignToken===j.token&&b.campaignStage===j.stage,'戦闘の対応');
       demand(b.formationVersion===undefined||[1,2,3].includes(b.formationVersion)&&['convoy','flank'].includes(b.formationKind)&&b.formationKind===j.formation&&(b.formationVersion!==1||s.phase==='battle'),'陣形条件の版');
@@ -1109,6 +1127,21 @@ const Campaign = (() => {
       if(b.result){const porter=b.units.find(u=>u.side==='ally'&&u.job==='porter');const valid=b.resultKind==='breakthrough'?porter?.hp>0&&porter.pos%10===9:b.resultKind==='annihilation'?b.units.filter(u=>u.side==='enemy').every(u=>u.hp===0):b.resultKind==='defeat'&&(porter?.hp===0||b.units.filter(u=>u.side==='ally').every(u=>u.hp===0));demand(b.actor===null&&valid,'戦闘結果の不一致');}
       demand(Array.isArray(b.deploymentInitial)&&b.deploymentInitial.length===ids.length&&b.deploymentInitial.every(p=>{const u=b.units.find(unit=>unit.id===p.id);return ids.includes(p.id)&&integer(p.pos,0,49)&&(B.boardOf(p.pos)==='ally'||version<3&&u?.canInvade===true||u?.canDeployEnemySide===true);})&&new Set(b.deploymentInitial.map(p=>p.pos)).size===ids.length&&new Set(b.deploymentInitial.map(p=>p.id)).size===ids.length,'初期配置');
     } else demand(!['deployment','battle'].includes(s.phase),'戦闘情報なし');
+  }
+  // The first failing check determines the error shown when loading a save.
+  function validateState(s,depth,version=VERSION) {
+    if(depth===0)safeTree(s);
+    demand(record(s)&&s.version===version,'バージョン');
+    validateWarehouseAndCargo(s);
+    validateCampaignProgress(s);
+    validateInventoryVersion(s,version);
+    validateRoster(s,version);
+    validateQuest(s);
+    validateConsumables(s,version);
+    demand(s.rollback===null||record(s.rollback),'復元情報');
+    if(s.rollback){demand(depth===0&&s.rollback.rollback===null&&s.rollback.phase==='town'&&s.rollback.activeQuest===null,'復元スナップショット');validateState(s.rollback,1,version);}
+    validateJourney(s);
+    validateBattle(s,version);
   }
   function serialize(s) {
     demand(s.cargoRevision===1,'保存前に旧形式の読込・移行が必要です');
