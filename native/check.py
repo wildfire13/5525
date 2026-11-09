@@ -8,7 +8,7 @@ import sys
 
 BASE=Path(__file__).resolve().parent
 steps=[
- ('Python syntax',[sys.executable,'-m','compileall','-q','app.py','journey_app.py','tiny_poc.py','tk_bootstrap.py','campaign_app.py','voice.py','music.py']),
+ ('Python syntax',[sys.executable,'-m','compileall','-q','debug_store.py','godot_files.py','master_data.py','portraits.py']),
  ('Python rules/adapter/preview tests',[sys.executable,'-m','unittest','-v']),
  ('SQLite grant/save compatibility',['node','test_sqlite_grant_save.cjs']),
  ('Per-source active cooldowns',['node','test_skill_cooldowns.cjs']),

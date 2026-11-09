@@ -4,7 +4,7 @@ import copy
 import json
 import subprocess
 import unittest
-from test_journey_bridge import Session, BASE
+from bridge_test_session import Session, BASE
 POLICY = """
 const B=require('./campaign-battle.js'),fs=require('node:fs'),s=JSON.parse(fs.readFileSync(0,'utf8'));
 const a=s.units.find(u=>u.id===s.actor);let {kind,target}=B.chooseAction(s,a);

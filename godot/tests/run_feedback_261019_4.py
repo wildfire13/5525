@@ -46,7 +46,6 @@ for test in ['feedback_261019_4','equipment_slots','equipment_migration','shop_t
 run('native_preview', [sys.executable, '-m', 'unittest', '-v', 'test_preview_bridge'], repo / 'native')
 run('native_dual_skills', [node, 'test_dual_skills.cjs'], repo / 'native')
 run('native_log', [node, 'test_campaign_log.cjs'], repo / 'native')
-run('native_inn', [sys.executable, '-m', 'unittest', '-v', 'test_campaign_inn'], repo / 'native')
 for name in ['feedback_261019_4', 'status_layout_lifecycle', 'status_empty_inventory', 'feedback_261019_3', 'feedback_261019_input', 'feedback_261019_skills', 'hover_lifetime_regression', 'feedback_261019_2', 'guild_regression', 'guild_vacancy_regression', 'inventory_regression', 'status_portrait_hover', 'ui_feedback2_20261017', 'shop_rows_regression', 'owned_equipment_regression', 'frontend_smoke', 'feedback_261019', 'ui_preferences_restart']:
     scope = Path(tempfile.mkdtemp(prefix=name + '-', dir=out))
     env = dict(os.environ, NATIVE5525_NODE=node, NATIVE5525_PYTHON=sys.executable, INVENTORY_QA_ROOT=str(scope), UIUX_REVIEW_EVIDENCE=str(scope))

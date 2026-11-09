@@ -74,9 +74,9 @@ def run(tag, command, cwd, timeout=120):
 if args.suite != 'godot':
     for test in sorted((repo / 'native').glob('test_*.cjs')):
         run(test.stem, [str(args.node), str(test)], repo / 'native')
-    for name in ['test_campaign_files', 'test_godot_files', 'test_campaign_bridge',
+    for name in ['test_godot_files', 'test_campaign_bridge',
                  'test_equipment_slots_bridge', 'test_equipment_skill_bridge',
-                 'test_presentation_bridge', 'test_preview_bridge', 'test_journey_bridge']:
+                 'test_presentation_bridge', 'test_preview_bridge']:
         run(name, [sys.executable, '-X', 'utf8', '-B', '-m', 'unittest', name], repo / 'native')
 if args.suite != 'native':
     base = [str(args.godot), '--headless', '--audio-driver', 'Dummy', '--path', str(repo / 'godot')]
