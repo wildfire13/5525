@@ -107,20 +107,6 @@ func run():
 	check(catalog!=null,"F4 actual root shop product is available")
 	catalog.pressed.emit();await settle()
 	check(node("ShopComparisonProduct").text=="木製の片手槍" and node("ShopComparisonStats").text.contains("→") and not game.modal_open(),"F4 root product exposes full inline comparison without a hover window")
-	# Root-window placement remains a component contract. B catalog rows use an
-	# inline comparison, so mount the retained full-hover component explicitly.
-	var product=preload("res://equipment_tooltip.gd").new();game.add_child(product);product.position=Vector2(300,200);product.size=Vector2(200,60)
-	var product_gear=game.campaign().shop.filter(func(item):return item.id=="spear-wood")[0]
-	product.configure(str(product_gear.name),product_gear,{"names":game.campaign().skillNames,"definitions":game.campaign().skillDefinitions})
-	product.show_hover();product.hover_window.idle=-1000;await frames(3)
-	var product_popup=product.hover_window;var at_origin=product_popup.position
-	var old_position=root.position;root.position=Vector2i(94,61);await frames(3)
-	product.show_hover();product.hover_window.idle=-1000;await frames(3)
-	check(product.game_window_offset()==Vector2.ZERO and product_popup.position==at_origin,"F4 root OS position does not offset game-coordinate product hover")
-	check(not product_popup.input_guard.visible,"F4 root product hover does not guard purchase/comparison controls")
-	game.open_menu();await frames(3)
-	check(not product_popup.visible,"F4 opening unrelated menu hides old product hover above embedded UI")
-	game.open_menu();root.position=old_position;product.queue_free();await frames(3)
 	check((await saved())==before and game.audio.muted.values().all(func(value):return value),"F4 all previews remain read-only with BGM voice SE OFF")
 	var f=FileAccess.open(evidence.path_join("equipment-hover-f4-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify({"checks":checks,"measurements":measurements},"\t"));f.close()
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

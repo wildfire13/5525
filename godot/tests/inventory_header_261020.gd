@@ -18,10 +18,9 @@ func layout_check():
 	check(absf(node("OwnedInventoryHeader").global_position.x-node("StatusOwnedInventory").global_position.x)<2 and absf(node("OwnedInventoryHeader").get_global_rect().end.x-node("StatusOwnedInventory").get_global_rect().end.x)<2,"header and list edges align")
 	check(node("OwnedInventoryHeader").get_global_rect().end.y<=node("StatusOwnedInventory").global_position.y,"header precedes its list")
 	check(node("StatusEquipmentSplit").get_global_rect().end.x<=game.dialog.window.size.x-8,"two columns fit status width")
-# Internal legacy detail-window regression: the B roster navigates to character
-# instead of switching the modal owner. Exercise the retained handler explicitly.
-func switch_detail_owner(uid: String):
-	game.pages.party_view.portrait_pressed(uid);await settle()
+func inspect_another_member(uid: String):
+	game.dialog.close();await settle()
+	game.pages.party_view.open_detail(uid);await settle()
 func run():
 	create_timer(120).timeout.connect(func():print("FAIL inventory header watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
@@ -44,12 +43,12 @@ func run():
 		check(await saved()==before and p.detail_tab==1 and node("OwnedEquipment_potion")!=null,"discard cancel retains left tab and full state")
 		layout_check();await filter_to("rightHand");await click("OwnedEquipmentActions_spear-wood");await consent(false)
 		check(p.detail_tab==1 and await saved()==before,"equipment cancel on growth tab preserves left tab and state")
-		await switch_detail_owner("porter");await filter_to("items");var cargo_rows=game.find_children("*","Button",true,false).filter(func(b):return b.get_meta("ui_key","")=="inventory_porter_"+cargo);check(cargo_rows.size()==1,"cargo stays in persistent owner list")
+		await inspect_another_member("porter");await filter_to("items");var cargo_rows=game.find_children("*","Button",true,false).filter(func(b):return b.get_meta("ui_key","")=="inventory_porter_"+cargo);check(cargo_rows.size()==1,"cargo stays in persistent owner list")
 		if not cargo_rows.is_empty():cargo_rows[0].pressed.emit();await settle()
 		check(node("InventoryTransfer")!=null and node("InventoryDiscard").disabled,"cargo actions retain restrictions")
-		await switch_detail_owner("archer");check(node("OwnedInventoryEmpty")!=null and node("OwnedEquipment_potion")==null and node("StatusInventoryActions")==null,"person switch resets action and shows empty owner")
-		check(node("OwnedEquipmentOwner").text==game.member_name("archer")+"のインベントリ" and game.dialog.window.size==Vector2i(resolution.x,662),"owner header and saved size follow portrait switch")
-		await switch_detail_owner("guard")
+		await inspect_another_member("archer");check(node("OwnedInventoryEmpty")!=null and node("OwnedEquipment_potion")==null and node("StatusInventoryActions")==null,"person switch resets action and shows empty owner")
+		check(node("OwnedEquipmentOwner").text==game.member_name("archer")+"のインベントリ" and game.dialog.window.size==Vector2i(resolution.x,662),"owner header and saved size follow the inspected member")
+		await inspect_another_member("guard")
 		for u in game.campaign().roster:
 			if u.id=="guard":u.name="とても長い名前を持つ人物の表示確認用ガロ"
 		p.refresh_modal();await settle();layout_check()
