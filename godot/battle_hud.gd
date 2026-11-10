@@ -428,7 +428,37 @@ func render_move(main,facts):
 		if ui.preview.get("swap")!=null:l(facts,"交換: "+ui.member_name(str(ui.preview.swap))+" → "+coord(acting().get("pos",0)))
 		l(facts,"着地点の固定予告: "+(" / ".join(ui.preview.get("risks",[])) if not ui.preview.get("risks",[]).is_empty() else "なし（取得済み）"))
 		l(facts,"移動後の陣形: "+("成立" if ui.preview.get("formationAfter",false) else "未成立"))
+		var gate_effect := sluice_move_effect(ui.state(), acting(), ui.preview)
+		if not gate_effect.is_empty():
+			var note = l(facts, gate_effect)
+			note.name = "SluiceMoveEffect"
+			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	else:l(facts,"予告・陣形を確認中…")
+func sluice_move_effect(state: Dictionary, mover: Dictionary, preview: Dictionary) -> String:
+	var gate = state.get("sluice")
+	if not gate is Dictionary or preview.get("kind") != "move" or mover.get("side") != "ally":
+		return ""
+	var lever_held := false
+	var porter_at_exit := false
+	# Preview units already include both ends of a swap.
+	for member in preview.units:
+		if member.side != "ally" or member.hp <= 0:
+			continue
+		if member.job == "porter":
+			porter_at_exit = porter_at_exit or member.pos == gate.exit
+		elif member.pos == gate.lever:
+			lever_held = true
+	var opens: bool = not bool(gate.open) and mover.job != "porter" and preview.destination == gate.lever
+	var stays_open: bool = lever_held and (bool(gate.open) or opens)
+	var effects := PackedStringArray()
+	if opens:
+		effects.append("水門：開く")
+	elif gate.open and not stays_open:
+		effects.append("水門：閉じる")
+	if stays_open and porter_at_exit:
+		effects.append("水門突破")
+	return "　".join(effects)
+
 func render_prediction(main,facts):
 	var summary="クリックしてターゲットを選択してください。"
 	if selected_cell>=0:

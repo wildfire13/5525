@@ -407,6 +407,22 @@ func draw_sluice(gate: Dictionary) -> void:
 		var anchor := project_cell(cell) + Vector2(0, 18)
 		var width := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 10
 		var tag := Rect2(anchor - Vector2(width / 2, 0), Vector2(width, 23))
+		if key == "lever":
+			var center := project_cell(cell)
+			# Place the tag beside the tile, clear of the bars at units' feet.
+			for offset in [Vector2(26, -24), Vector2(-width-26, -24), Vector2(26, 12), Vector2(-width-26, 12)]:
+				var candidate := Rect2(center + Vector2(offset), tag.size)
+				if not Rect2(Vector2.ZERO, size).encloses(candidate):
+					continue
+				var overlaps := false
+				for u in data.state.units:
+					if u.hp > 0 and candidate.intersects(Rect2(project_cell(int(u.pos)) + Vector2(-28, 0), Vector2(56, 12))):
+						overlaps = true
+						break
+				if not overlaps:
+					tag = candidate
+					break
+			overlay.draw_line(center + Vector2(0, 10), tag.get_center(), ink, 2, true)
 		overlay.draw_rect(tag, Color("22332ef0"))
 		overlay.draw_string(font, tag.position + Vector2(5, 17), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, ink)
 	var tip := "守護者が通常移動で巻上機へ：開門　離脱・撃破：閉門"
