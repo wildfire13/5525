@@ -272,6 +272,11 @@ const Campaign = (() => {
       const event={...clone(q),rewardRevision:1,rewardType:'money',id:`standalone-${q.eventId}`,text:`${q.cargo}を${getPlace(q.to).name}まで届けてください。`,scenario:true,postedAt:s.standaloneEvents.epoch,deadlineAt:s.standaloneEvents.epoch+q.deadline};
       offers.push(q.eventId==='wheel'?wheelPresentation(s,event):event);
     }
+    if(s.location==='astaris')offers.push({
+      id:'sluice-bell',from:'astaris',to:'east',name:'水門の鐘',client:'水門の舟守',cargo:'警鐘の鐘舌',
+      weight:3,deadline:8,reward:260,xp:100,rewardRevision:1,rewardType:'money',
+      text:'増水前にイースの警鐘を直したい。峠には隊列の外を狙う射手がいる。川沿いの小屋に寄れば舟守を拾えるが、巻上機には番人が向かう。守護者が巻上機へ移動し、そこを守る間だけ、ポーターは水門から突破できる。'
+    });
     return offers.map(q=>displayQuest(q,s));
   }
   function scenarioAftermath(s){
@@ -384,12 +389,25 @@ const Campaign = (() => {
     }
     return preset;
   }
+  function sluiceEncounter(s,j) {
+    return s.activeQuest?.id==='sluice-bell' && j.origin==='astaris' && j.destination==='east' && !j.returning;
+  }
+  function sluiceLayout(j) {
+    const row=j.route==='short'?10:30;
+    const nearExit=j.stage===1 && j.outboundRoute==='safe';
+    const exit=nearExit?(j.route==='short'?5:45):row+7;
+    return {lever:row+4,exit,route:j.route};
+  }
   function travel(s,route,random=Math.random) {
     if(inventoryOverflow(s).length)return false;
     if(s.phase!=='road'||!s.journey||!['short','safe'].includes(route)||typeof random!=='function')return false;
     const j=s.journey,encounterStage=j.returning?0:j.stage,count=route==='short'?(encounterStage===0?3:4):(encounterStage===0?2:3);
     if(j.returning&&route!==j.outboundRoute)return false;
     let enemies;try{enemies=J.randomEnemies(count,()=>{const n=random();if(typeof n!=='number'||!Number.isFinite(n)||n<0||n>=1)throw new Error('Random value out of range');return n;});}catch(e){return false;}
+    if(sluiceEncounter(s,j)){
+      const guards=route==='short'?['archer','guard','scout','mage']:['guard','archer','mage'];
+      enemies=guards.slice(0,count);
+    }
     if(!J.travel(s.journey,route))return false;
     if(j.stage===0)j.outboundRoute=route;
     s.hours+=route==='short'?2:4;tickWorld(s,route==='short'?2:4);
@@ -398,6 +416,22 @@ const Campaign = (() => {
     b.itemInventories=Object.fromEntries(ids.map(id=>[id,Object.fromEntries(items.map(item=>[item.id,I.count(s.characters[id].inventory,item.id)]))]));
     const preset=deploymentPreset(ids,j.formation);for(const u of b.units.filter(u=>u.side==='ally'))u.pos=preset.units.find(p=>p.id===u.id).pos;
     applyEquipment(s,b);b.campaignToken=j.token;b.campaignStage=j.stage;
+    if(sluiceEncounter(s,j)){
+      b.sluice={...sluiceLayout(j),open:false};
+      const lead=b.units.find(u=>u.side==='enemy');
+      const post=route==='short'?16:36;
+      const other=b.units.find(u=>u.pos===post && u!==lead);
+      if(other)other.pos=lead.pos;
+      lead.pos=post;
+      lead.name=route==='short'?'離列狙いの射手':'巻上機の番人';
+      b.log.push(route==='short'?'峠の射手は陣形マスを離れた守護者を狙う。':'川の番人は巻上機へ向かう。先に押さえたい。');
+      if(j.stage===0 && route==='safe')b.log.push('舟守を小屋から救出。次の区間では岸辺に舟を回してくれる。');
+      if(j.stage===1 && j.outboundRoute==='safe'){
+        const blocker=b.units.find(u=>u.side==='enemy' && u.pos===b.sluice.exit);
+        if(blocker)blocker.pos=9;
+        b.log.push('助けた舟守が舟を寄せた。手前の岸から突破できる。');
+      }
+    }
     b.deploymentInitial=b.units.filter(u=>u.side==='ally').map(u=>({id:u.id,pos:u.pos}));
     s.battle=b;j.phase='deployment';s.phase='deployment';note(s,`${j.stage+1}区間目：${route==='short'?'近道':'迂回'}で遭遇。`);return true;
   }
@@ -983,6 +1017,11 @@ const Campaign = (() => {
   function validateBattle(s,version) {
     if(s.battle!==null) {
       const b=s.battle,j=s.journey,ids=battleIds(s);demand(record(b)&&['deployment','battle'].includes(s.phase)&&b.campaignToken===j.token&&b.campaignStage===j.stage,'戦闘の対応');
+      if(sluiceEncounter(s,j)){
+        const plan=sluiceLayout(j),gate=b.sluice;
+        demand(record(gate) && gate.lever===plan.lever && gate.exit===plan.exit && gate.route===plan.route &&
+          typeof gate.open==='boolean' && (!gate.open || (!b.deploying && b.units.some(u=>u.side==='ally' && u.job!=='porter' && u.hp>0 && u.pos===gate.lever))),'水門の状態');
+      }else demand(b.sluice===undefined,'依頼外の水門');
       demand(b.formationVersion===undefined||[1,2,3].includes(b.formationVersion)&&['convoy','flank'].includes(b.formationKind)&&b.formationKind===j.formation&&(b.formationVersion!==1||s.phase==='battle'),'陣形条件の版');
       demand(b.formationVersion!==undefined||b.formationKind===undefined,'陣形条件の版なし');
       demand(version<3||b.formationVersion===3&&b.formationBasis==='porter_relative','陣形基準');
@@ -1124,7 +1163,7 @@ const Campaign = (() => {
       demand(new Set(alivePositions).size===alivePositions.length,'配置重複');
       demand(b.actor===null||b.units.some(u=>u.id===b.actor&&u.side==='ally'&&u.hp>0),'行動者');
       if(s.phase==='battle'&&!b.result)demand(b.actor!==null,'行動者なし');
-      if(b.result){const porter=b.units.find(u=>u.side==='ally'&&u.job==='porter');const valid=b.resultKind==='breakthrough'?porter?.hp>0&&porter.pos%10===9:b.resultKind==='annihilation'?b.units.filter(u=>u.side==='enemy').every(u=>u.hp===0):b.resultKind==='defeat'&&(porter?.hp===0||b.units.filter(u=>u.side==='ally').every(u=>u.hp===0));demand(b.actor===null&&valid,'戦闘結果の不一致');}
+      if(b.result){const porter=b.units.find(u=>u.side==='ally'&&u.job==='porter');const valid=b.resultKind==='breakthrough'?(porter?.hp>0&&porter.pos%10===9||b.sluice?.open&&b.units.some(u=>u.side==='ally'&&u.job==='porter'&&u.hp>0&&u.pos===b.sluice.exit)):b.resultKind==='annihilation'?b.units.filter(u=>u.side==='enemy').every(u=>u.hp===0):b.resultKind==='defeat'&&(porter?.hp===0||b.units.filter(u=>u.side==='ally').every(u=>u.hp===0));demand(b.actor===null&&valid,'戦闘結果の不一致');}
       demand(Array.isArray(b.deploymentInitial)&&b.deploymentInitial.length===ids.length&&b.deploymentInitial.every(p=>{const u=b.units.find(unit=>unit.id===p.id);return ids.includes(p.id)&&integer(p.pos,0,49)&&(B.boardOf(p.pos)==='ally'||version<3&&u?.canInvade===true||u?.canDeployEnemySide===true);})&&new Set(b.deploymentInitial.map(p=>p.pos)).size===ids.length&&new Set(b.deploymentInitial.map(p=>p.id)).size===ids.length,'初期配置');
     } else demand(!['deployment','battle'].includes(s.phase),'戦闘情報なし');
   }

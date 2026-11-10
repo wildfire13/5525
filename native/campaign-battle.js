@@ -378,7 +378,11 @@ const Battle = (() => {
       if(id==='knockback'&&b.hp>0){const p=b.pos+(x(b.pos)-x(a.pos))+10*(y(b.pos)-y(a.pos));if(freeCell(s,p)&&range(b,{pos:p})===1){b.pos=p;log(s,`${b.name}を1マス押し出した。`);}else log(s,'押し出し先なし：攻撃のみ。');}
       return;
     }
-    if(kind==='move'){const b=swapTarget(s,a,target);if(hasEffect(a,'firstStride')&&!a.firstMoveUsed){a.firstMoveUsed=true;emit(s,a,'firstStride',{target});log(s,`${a.name}の先駆け：最初の移動。`);}if(b){b.pos=a.pos;a.pos=target;log(s,`${a.name}と${b.name}が入れ替わった。`);}else{a.pos=target;log(s,`${a.name}が${boardOf(target)==='ally'?'味方陣':'敵陣'}へ移動。`);}return;}
+    if(kind==='move'){const b=swapTarget(s,a,target);if(hasEffect(a,'firstStride')&&!a.firstMoveUsed){a.firstMoveUsed=true;emit(s,a,'firstStride',{target});log(s,`${a.name}の先駆け：最初の移動。`);}if(b){b.pos=a.pos;a.pos=target;log(s,`${a.name}と${b.name}が入れ替わった。`);}else{a.pos=target;log(s,`${a.name}が${boardOf(target)==='ally'?'味方陣':'敵陣'}へ移動。`);}
+      if(s.sluice && !s.sluice.open && a.side==='ally' && a.job!=='porter' && a.pos===s.sluice.lever){
+        s.sluice.open=true;log(s,`${a.name}が巻上機を回した。水門が開いた！`);
+      }
+      return;}
     if(kind==='guard'){a.guard=true;log(s,`${a.name}は防御。`);return;}
     const b=s.units.find(u=>u.id===target);
     if(kind==='ether'){consumeItem(s,a,'ether');const heal=Math.min(3,b.maxMp-b.mp);b.mp+=heal;log(s,`${a.name}のエーテル：${b.name}のMP＋${heal}`);return;}
@@ -424,6 +428,25 @@ const Battle = (() => {
   function chooseAction(s,a) {
     const friends=alive(s).filter(u=>u.side===a.side), enemies=alive(s).filter(u=>u.side!==a.side).sort((l,r)=>l.hp-r.hp);
     const make=(kind,target)=>({kind,target,name:kind==='skill'?skillName(a):({attack:'攻撃',move:'移動',guard:'防御',item:'回復薬'})[kind]});
+    if(a.id==='enemy-archer' && s.sluice?.route==='short'){
+      const slots=formationSlots(s,'ally');
+      const exposed=enemies.filter(u=>u.job!=='porter' && !slots.includes(u.pos));
+      for(const target of exposed){
+        if(activeSkill(a)==='archer' && legalFor(s,a,'skill',target.id))return make('skill',target.id);
+        if(legalFor(s,a,'attack',target.id))return make('attack',target.id);
+      }
+    }
+    if(a.id==='enemy-guard' && s.sluice?.route==='safe' && !s.sluice.open){
+      const lever={pos:s.sluice.lever};
+      if(a.pos!==lever.pos){
+        const steps=[...paths(s,a,moveReach(a)).keys()].filter(p=>range({pos:p},lever)<range(a,lever));
+        steps.sort((l,r)=>range({pos:l},lever)-range({pos:r},lever));
+        if(steps.length)return make('move',steps[0]);
+      }else{
+        const target=enemies.find(u=>legalFor(s,a,'attack',u.id));
+        return target?make('attack',target.id):make('guard',null);
+      }
+    }
     const hurt=[...friends].sort((l,r)=>(r.max-r.hp)-(l.max-l.hp));
     if(activeSkill(a)==='mage'){const b=hurt.find(b=>b.max-b.hp>=30&&legalFor(s,a,'skill',b.id));if(b)return make('skill',b.id);}
     if(activeSkill(a)==='guard'){const b=hurt.find(b=>b.id!==a.id&&b.hp<b.max*.65&&legalFor(s,a,'skill',b.id));if(b)return make('skill',b.id);}
@@ -452,8 +475,13 @@ const Battle = (() => {
   }
   const order=(a,b)=>a.next-b.next||b.agi-a.agi||a.tie-b.tie;
   function check(s){
+    if(s.sluice?.open && !alive(s).some(u=>u.side==='ally' && u.job!=='porter' && u.pos===s.sluice.lever)){
+      s.sluice.open=false;
+      log(s,'巻上機から手が離れ、水門が閉じた。');
+    }
     const porter=s.units.find(u=>u.side==='ally'&&u.job==='porter');
     if(porter&&porter.hp<=0){s.failure='porter';s.resultKind='defeat';s.result=`クエスト失敗。${porter.name}が倒れ、荷物を運べなくなった。`;}
+    else if(s.sluice?.open && alive(s).some(u=>u.side==='ally' && u.job==='porter' && u.pos===s.sluice.exit)){s.resultKind='breakthrough';s.result='突破成功！ 水門を抜けて荷物を運び出した。';}
     else if(porter&&x(porter.pos)===9){s.resultKind='breakthrough';s.result='突破成功！ ポーターが敵陣最奥へ到達。';}
     else if(!alive(s).some(u=>u.side==='enemy')){s.resultKind='annihilation';s.result='勝利！ ミラーマッチを制した。';}
     else if(!alive(s).some(u=>u.side==='ally')){s.resultKind='defeat';s.result='敗北。配置と連携を変えて再挑戦しよう。';}
