@@ -36,7 +36,7 @@ func texture_mat(base: Color, kind: String) -> StandardMaterial3D:
 			var seam=false
 			if kind=="stone": seam=y%32<2 or (x+(int(y/32)%2)*32)%64<2
 			elif kind=="wood": seam=x%24<2 or (x%7==0 and y%17<13)
-			else: seam=y%16<2 or (x+(int(y/16)%2)*12)%24<1
+			elif kind!="earth": seam=y%16<2 or (x+(int(y/16)%2)*12)%24<1
 			if seam:c=c.darkened(.23)
 			img.set_pixel(x,y,c)
 	var m=material(Color.WHITE)
