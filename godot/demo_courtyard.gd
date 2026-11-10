@@ -3,6 +3,8 @@ var lab
 var camera: Camera3D
 var sun: DirectionalLight3D
 var scenery: Node3D
+var courtyard_ground := Node3D.new()
+var riverside: Node3D
 var grid_root: Node3D
 var unit_nodes: Array = []
 var unit_sprites: Array = []
@@ -99,16 +101,17 @@ func _ready():
 	camera.near=.1
 	camera.far=160
 	add_child(camera)
+	add_child(courtyard_ground)
 	# Low-poly water and raised land keep the layout visibly three dimensional.
-	box(Vector3(0,-.9,0),Vector3(80,.15,75),material(Color("244953"),.25))
-	box(Vector3(0,-.35,0),Vector3(16,1,10),texture_mat(Color("59624e"),"stone"))
-	box(Vector3(0,.03,0),Vector3(15.6,.22,9.6),moss)
-	box(Vector3(0,.055,0),Vector3(14,.1,7.2),stone)
+	box(Vector3(0,-.9,0),Vector3(80,.15,75),material(Color("244953"),.25),courtyard_ground)
+	box(Vector3(0,-.35,0),Vector3(16,1,10),texture_mat(Color("59624e"),"stone"),courtyard_ground)
+	box(Vector3(0,.03,0),Vector3(15.6,.22,9.6),moss,courtyard_ground)
+	box(Vector3(0,.055,0),Vector3(14,.1,7.2),stone,courtyard_ground)
 	for y in range(5):
 		for x in range(10):
 			var base=Color("8a896a") if (x+y)%2==0 else Color("a29b79")
 			base=base.lerp(Color("538174") if x<5 else Color("936962"),.16)
-			box(lab.cell_world(Vector2i(x,y))-Vector3(0,.09,0),Vector3(lab.CELL-.024,.12,lab.CELL-.024),texture_mat(base,"stone"))
+			box(lab.cell_world(Vector2i(x,y))-Vector3(0,.09,0),Vector3(lab.CELL-.024,.12,lab.CELL-.024),texture_mat(base,"stone"),courtyard_ground)
 	grid_root=Node3D.new()
 	add_child(grid_root)
 	var gridmat=material(Color("b6b59b"))
@@ -281,3 +284,15 @@ func update_camera():
 		camera.size=zoom * maxf(1.0,lab.right_panel.size.x / maxf(1.0,lab.right_panel.size.y) / 1.62)
 		camera.position=Vector3(sin(angle)*10,23,cos(angle)*10)
 	camera.look_at(target)
+
+func set_riverside(route: String) -> void:
+	var river_battle := not route.is_empty()
+	courtyard_ground.visible = not river_battle
+	scenery.visible = not river_battle
+	if river_battle and not is_instance_valid(riverside):
+		riverside = preload("res://sluice_riverside.gd").new()
+		add_child(riverside)
+		riverside.build(self)
+	if is_instance_valid(riverside):
+		riverside.visible = river_battle
+		if river_battle:riverside.set_route(route)

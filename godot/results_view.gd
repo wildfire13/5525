@@ -47,7 +47,7 @@ func receipt_for(action: String,before: Dictionary,battle: Dictionary,reply: Dic
   rows.append({"id":str(id),"name":now.name,"member":now.duplicate(true),"xp_before":old.get("xp",0),"xp_after":now.get("xp",0),"xp_gain":int(now.get("xp",0))-int(old.get("xp",0)),"level_before":old.get("level",1),"level_after":now.get("level",1),"stat_gain":int(now.get("statPoints",0))-int(old.get("statPoints",0)),"skill_gain":int(now.get("skillPoints",0))-int(old.get("skillPoints",0))})
  var result: Dictionary=after.get("result",{}) if after.get("result") is Dictionary else {}
  var fallen=battle.get("units",[]).filter(func(u):return u.get("side")=="enemy" and int(u.get("hp",0))<=0).size()
- return {"kind":kind,"title":"BATTLE VICTORY" if kind=="battle" else "QUEST COMPLETE","subtitle":"戦闘勝利" if kind=="battle" else "配達達成","rp_gain":int(result.get("rp",0)),"gold_gain":int(after.get("gold",0))-int(before.get("gold",0)),"gold_after":after.get("gold",0),"members":rows,"quest":str(result.get("quest","")),"hours":result.get("hours"),"actions":battle.get("actions"),"defeated":fallen,"outcome":str(result.get("outcome","")),"location":str(after.get("location","")),"scenario":str(result.get("scenario","")),"story":result.get("story",[]),"portrait":str(result.get("portrait","")),"cast":result.get("cast",[]),"restored":false,"acknowledge":kind=="quest"}
+ return {"kind":kind,"title":"BATTLE VICTORY" if kind=="battle" else "QUEST COMPLETE","subtitle":"戦闘勝利" if kind=="battle" else "配達達成","rp_gain":int(result.get("rp",0)),"gold_gain":int(after.get("gold",0))-int(before.get("gold",0)),"gold_after":after.get("gold",0),"members":rows,"quest":str(result.get("quest","")),"hours":result.get("hours"),"actions":battle.get("actions"),"defeated":fallen,"outcome":str(result.get("outcome","")),"location":str(after.get("location","")),"scenario":str(result.get("scenario","")),"storyId":result.get("storyId",""),"story":result.get("story",[]),"portrait":str(result.get("portrait","")),"cast":result.get("cast",[]),"restored":false,"acknowledge":kind=="quest"}
 func enqueue(receipt: Dictionary):
  if receipt.is_empty():return
  pending.append(receipt.duplicate(true));recent=[receipt.duplicate(true)]
@@ -59,7 +59,7 @@ func restore_quest(c: Dictionary):
   var now=_member(c,str(id))
   if now.is_empty():continue
   rows.append({"id":str(id),"name":now.name,"member":now.duplicate(true),"xp_before":null,"xp_after":now.get("xp",0),"xp_gain":int(result.get("xp",0)),"level_before":null,"level_after":now.get("level",1),"stat_gain":null,"skill_gain":null})
- enqueue({"kind":"quest","title":"QUEST COMPLETE","subtitle":"配達達成","rp_gain":int(result.get("rp",0)),"gold_gain":int(result.get("gold",0)),"gold_after":c.get("gold",0),"members":rows,"quest":str(result.get("quest","")),"hours":result.get("hours"),"outcome":str(result.get("outcome","")),"location":str(c.get("location","")),"scenario":str(result.get("scenario","")),"story":result.get("story",[]),"portrait":str(result.get("portrait","")),"cast":result.get("cast",[]),"restored":true,"acknowledge":true})
+ enqueue({"kind":"quest","title":"QUEST COMPLETE","subtitle":"配達達成","rp_gain":int(result.get("rp",0)),"gold_gain":int(result.get("gold",0)),"gold_after":c.get("gold",0),"members":rows,"quest":str(result.get("quest","")),"hours":result.get("hours"),"outcome":str(result.get("outcome","")),"location":str(c.get("location","")),"scenario":str(result.get("scenario","")),"storyId":result.get("storyId",""),"story":result.get("story",[]),"portrait":str(result.get("portrait","")),"cast":result.get("cast",[]),"restored":true,"acknowledge":true})
 func present_pending():
  if active or pending.is_empty() or ui.closing or ui.loading_screen.active:return
  _replaying=false;_open(pending.pop_front())
@@ -106,6 +106,7 @@ func _build():
  elif current.get("hours")!=null:meta="所要時間 %d時間" % int(current.hours)
  var scroll=ScrollContainer.new();scroll.name="ResultMembersScroll";scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size.y=100;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.follow_focus=true;scroll.focus_mode=Control.FOCUS_ALL;body.add_child(scroll)
  var members=VBoxContainer.new();members.name="ResultMembers";members.size_flags_horizontal=Control.SIZE_EXPAND_FILL;members.add_theme_constant_override("separation",10);scroll.add_child(members)
+ ui.pages.quest_board.render_sluice_story(members,current)
  if not meta.is_empty():_label(members,meta,18,MUTED).name="ResultFacts"
  if str(current.get("quest","")).length()>40:_label(members,str(current.quest),18,MUTED)
  var leveled=current.members.filter(func(member):return member.level_before!=null and member.level_after>member.level_before)
@@ -134,7 +135,7 @@ func _build():
   var shortcut_owner=sequence;shortcut.pressed.connect(func():if active and sequence==shortcut_owner:advance_to("shop"))
  var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(spacer)
  continue_button=Button.new();continue_button.name="ResultContinue";continue_button.text="OK";continue_button.custom_minimum_size=Vector2(220,46);ui.green_button(continue_button);actions.add_child(continue_button)
- if current.get("story",[]) is Array and not current.get("story",[]).is_empty():
+ if current.get("storyId")!="sluice-bell" and current.get("story",[]) is Array and not current.get("story",[]).is_empty():
   var scene=Button.new();scene.name="ResultStory";scene.text="会話を見る";scene.custom_minimum_size=Vector2(160,46);actions.add_child(scene);scene.pressed.connect(func():if active:ui.pages.quest_board.play_scene(current.story,str(current.get("portrait","")),current.get("cast",[]),str(current.get("scenario",""))))
  var owner=sequence;continue_button.pressed.connect(func():if active and sequence==owner:advance())
 func _summary(parent: Node,title: String,value: String,detail: String,node_name: String):

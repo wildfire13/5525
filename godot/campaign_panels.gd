@@ -286,6 +286,7 @@ func cancel_quote():shop_view.back_list()
 func result(parent):
 	var result_: Dictionary=c().get("result",{});var outcome=result_.get("outcome","")
 	l(parent,{"success":"配達完了！","late":"配達完了！ / 遅配","failed":"クエスト失敗 / 出発前へ","travel":"目的地に到着"}.get(outcome,"旅の結果"),true)
+	quest_board.render_sluice_story(parent,result_)
 	if outcome=="failed":
 		l(parent,result_.get("reason","護送隊が敗北しました"))
 		l(parent,"受注直前の状態へ戻しました。自由移動の場合は出発直前へ戻ります。")
