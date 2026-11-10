@@ -728,8 +728,11 @@ func cancel():
 func commit():
 	if not can_commit():return
 	hud.capture_action_visual()
+	var signal_used: bool = state().get("sluice", {}).get("relayUsed", false)
 	var target=pending;invalidate_preview();audio.ui("confirm")
 	await update({"op":"act","kind":command,"target":target,"presentation":true})
+	if not signal_used and state().get("sluice", {}).get("relayUsed", false):
+		audio.sluice_signal()
 	hud.clear_action_visual()
 func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback: Callable, filename: String=""):
 	if file_dialog_open():return

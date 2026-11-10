@@ -242,6 +242,7 @@ const Campaign = (() => {
   function displayQuest(q,s) {
     if(!q)return q;
     const shown=q.eventId==='wheel'?wheelPresentation(s,q):clone(q);
+    if(q.id==='sluice-bell')shown.portrait='sluice-ferrymaster';
     shown.rewards=questRewards(q);
     shown.rewardType=q.rewardType||'money';
     if(q.text===LEGACY_QUEST_TEXT&&locations.some(p=>p.id===q.from)&&locations.some(p=>p.id===q.to)&&
@@ -273,7 +274,7 @@ const Campaign = (() => {
       offers.push(q.eventId==='wheel'?wheelPresentation(s,event):event);
     }
     if(s.location==='astaris')offers.push({
-      id:'sluice-bell',from:'astaris',to:'east',name:'水門の鐘',client:'水門の舟守',cargo:'警鐘の鐘舌',
+      id:'sluice-bell',from:'astaris',to:'east',name:'水門の鐘',client:'水門の舟守',portrait:'sluice-ferrymaster',cargo:'警鐘の鐘舌',
       weight:3,deadline:8,reward:260,xp:100,rewardRevision:1,rewardType:'money',
       text:'増水前にイースの警鐘を直したい。峠には隊列の外を狙う射手がいる。川沿いの小屋に寄れば舟守を拾えるが、巻上機には番人が向かう。守護者が巻上機へ移動し、そこを守る間だけ、ポーターは水門から突破できる。'
     });
@@ -1020,6 +1021,7 @@ const Campaign = (() => {
       if(sluiceEncounter(s,j)){
         const plan=sluiceLayout(j),gate=b.sluice;
         demand(record(gate) && gate.lever===plan.lever && gate.exit===plan.exit && gate.route===plan.route &&
+          (gate.relayUsed===undefined || (gate.relayUsed===true && !b.deploying)) &&
           typeof gate.open==='boolean' && (!gate.open || (!b.deploying && b.units.some(u=>u.side==='ally' && u.job!=='porter' && u.hp>0 && u.pos===gate.lever))),'水門の状態');
       }else demand(b.sluice===undefined,'依頼外の水門');
       demand(b.formationVersion===undefined||[1,2,3].includes(b.formationVersion)&&['convoy','flank'].includes(b.formationKind)&&b.formationKind===j.formation&&(b.formationVersion!==1||s.phase==='battle'),'陣形条件の版');
