@@ -18,6 +18,9 @@ var camera_pitch := 0.7
 var camera_drag := 0
 var right_panel: Control
 var world
+var sluice_works: Node3D
+var grille_motion: Tween
+var grille_open := false
 var view: SubViewport
 var viewport_container: SubViewportContainer
 var overlay: Control
@@ -288,6 +291,7 @@ func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, c
 	data=d;preview=pr;kind=command;selected=uid;targets=chosen
 	var state: Dictionary=d.get("state") if d.get("state") is Dictionary else {}
 	var phase: Dictionary=d.get("presentation") if d.get("presentation") is Dictionary else {}
+	sync_sluice_works(state.get("sluice"))
 	var live_ids=[]
 	for u in state.get("units",[]):
 		live_ids.append(u.id)
@@ -395,6 +399,31 @@ func draw_overlay():
 	if has_focus():
 		cell_outline(keyboard_cell,Color("#78edce"),3.0)
 		overlay.draw_string(ThemeDB.fallback_font,Vector2(8,size.y-10),("射程参考 / Escで同じ仮置きに戻る" if reference_mode else "フォーカス X%d,Y%d / Enterは候補選択" % [keyboard_cell%10,4-int(keyboard_cell/10)]),HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color.WHITE)
+func sync_sluice_works(gate) -> void:
+	if not gate is Dictionary:
+		if is_instance_valid(sluice_works):
+			sluice_works.hide()
+		return
+	var initial := not is_instance_valid(sluice_works) or not sluice_works.visible
+	if not is_instance_valid(sluice_works):
+		sluice_works = preload("res://sluice_works.tscn").instantiate()
+		world.add_child(sluice_works)
+	sluice_works.show()
+	sluice_works.get_node("Winch").position = point(int(gate.lever)) + Vector3(-0.16, 0.015, -0.40)
+	sluice_works.get_node("Gate").position = point(int(gate.exit)) + Vector3(0, 0.015, -0.45)
+	if not initial and grille_open == bool(gate.open):
+		return
+	grille_open = bool(gate.open)
+	if grille_motion:
+		grille_motion.kill()
+	var grille: Node3D = sluice_works.get_node("Gate/Grille")
+	var height := 0.39 if grille_open else 0.0
+	if initial:
+		grille.position.y = height
+	else:
+		grille_motion = grille.create_tween()
+		grille_motion.tween_property(grille, "position:y", height, 0.22)
+
 func draw_sluice(gate: Dictionary) -> void:
 	var opened := bool(gate.open)
 	var exit_color := Color("a4efcb") if opened else Color("ffb59c")
