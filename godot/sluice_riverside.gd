@@ -50,6 +50,7 @@ func build(world) -> void:
 		var quad := QuadMesh.new()
 		quad.size = Vector2(120, 50)
 		var skyline := MeshInstance3D.new();skyline.mesh=quad;skyline.material_override=mat
+		skyline.extra_cull_margin = 24.0
 		skyline.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		skyline.position=Vector3(0,quad.size.y*0.5-2.5,-7.8);add_child(skyline)
 
