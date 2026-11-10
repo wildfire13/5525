@@ -62,6 +62,17 @@ for (const firstRoute of ['short', 'safe']) {
     }
   }
   assert(C.arrive(s));
+  for(const [hours,outcome,gold,rp,line] of [[8,'success',260,100,'石段'],[9,'late',169,60,'櫂']]){
+    const delivery=C.deserialize(C.serialize(s));
+    delivery.activeQuest.elapsedHours=hours;
+    // Saves from before the narrative update still produce the new ending.
+    delete delivery.activeQuest.story;
+    assert(C.completeQuest(delivery));
+    assert.deepEqual([delivery.result.outcome,delivery.result.gold,delivery.result.rp],[outcome,gold,rp]);
+    assert.equal(delivery.result.storyId,'sluice-bell');
+    assert(delivery.result.story[0][1].includes(line));
+    roundtrip(delivery);
+  }
   assert(C.completeQuest(s));
   roundtrip(s);
 }
@@ -136,4 +147,24 @@ assert(C.act(relay, 'guard', null));
 assert.equal(fight.sluice.relayUsed, true);
 assert(!fight.result);
 
+for(const loss of ['retreat','porter','defeat']){
+  const lost=acceptContract();
+  assert(C.travel(lost,'short'));
+  assert(C.begin(lost));
+  if(loss==='retreat')assert(C.retreat(lost));
+  else{
+    const allies=lost.battle.units.filter(u=>u.side==='ally');
+    for(const ally of allies)if(loss==='defeat'||ally.job==='porter')ally.hp=0;
+    lost.battle.resultKind='defeat';lost.battle.result='敗北';lost.battle.failure='porter';
+    assert(C.finishBattle(lost));
+  }
+  assert.equal(lost.result.outcome,'failed');
+  assert.equal(lost.result.gold,0);
+  assert.equal(lost.result.restored,true);
+  assert.equal(lost.result.storyId,'sluice-bell');
+  assert(lost.result.story[0][1].includes({retreat:'切り返した',porter:'膝',defeat:'最後の護衛'}[loss]));
+  roundtrip(lost);
+  assert(C.acknowledge(lost));
+  assert(C.board(lost).some(q=>q.id==='sluice-bell'));
+}
 console.log('Sluice Bell: delivery, enemy tactics, gate saves and once-per-battle relay verified.');
