@@ -1,7 +1,7 @@
 extends Node3D
 ## The walkable crest sits directly beneath the existing tactical grid.
 const FAR_BANK = "res://assets/sluice-farbank.webp"
-var ferry: Node3D
+var landing := Node3D.new()
 var ridge: Node3D
 
 func build(world) -> void:
@@ -33,8 +33,9 @@ func build(world) -> void:
 			var blade = world.cylinder(Vector3(x+0.075*j,-0.28,shore),0.035,rng.randf_range(0.45,0.8),reeds,self,0.006)
 			blade.rotation.z = rng.randf_range(-0.25,0.25)
 	plant_meadow(world, rng)
-	ferry = Node3D.new();add_child(ferry)
-	ferry.position = Vector3(4.55,-0.48,-5.74)
+	add_child(landing)
+	var ferry := Node3D.new();landing.add_child(ferry)
+	ferry.position = Vector3(0,-0.48,-1.20)
 	var hull = world.cylinder(Vector3.ZERO,1,0.35,world.wood,ferry,1.15)
 	hull.scale = Vector3(1.40,1,0.45)
 	world.box(Vector3(0,0.19,0),Vector3(2.30,0.08,0.68),soil,ferry)
@@ -44,9 +45,9 @@ func build(world) -> void:
 	oar.rotation.y = 0.6
 	# The landing only spans the short distance from the bank to the ferry.
 	for i in range(6):
-		world.box(Vector3(4.6,-.04,-4.05-.22*i),Vector3(.87,.09,.20),world.wood,self)
-	for x in [4.19,5.01]:
-		world.cylinder(Vector3(x,-.34,-5.2),.075,1.05,world.wood,self)
+		world.box(Vector3(0,-.04,.55-.22*i),Vector3(.87,.09,.20),world.wood,landing)
+	for x in [-.41,.41]:
+		world.cylinder(Vector3(x,-.34,-.65),.075,1.05,world.wood,landing)
 	ridge = Node3D.new();add_child(ridge)
 	for i in range(8):
 		var rock = world.cylinder(Vector3(i*2.5-9,0,-12.5),1.5,1.4,world.stone,ridge,0.55)
@@ -63,7 +64,9 @@ func build(world) -> void:
 		skyline.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		skyline.position=Vector3(0,quad.size.y*0.5-2.5,-7.8);add_child(skyline)
 
-func set_route(route: String) -> void:
+func set_route(route: String, exit_x: float) -> void:
+	# Match the shore profile in sluice_bank_ground.gdshader at the actual exit.
+	landing.position = Vector3(exit_x, 0, -4.55 + .35*sin(exit_x*.68) + .18*sin(exit_x*1.31))
 	ridge.visible = route == "short"
 
 
