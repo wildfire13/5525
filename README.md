@@ -1,5 +1,9 @@
 # GoGo To Go — 5×5=25
 
+## 戦術依頼「水門の鐘」
+
+アスタリスの掲示板で「水門の鐘」を受け、荷物をポーターに預けてください。ギルドで同行者を選び、街道口からイースへ。巻上機に守護者を移動させ、その場を守れば、ポーターが水門から突破できます。峠を急ぐか、川沿いで舟守を拾うかは最初の分かれ道で決まります。野営と第二区間を経て、イースの掲示板で荷物を引き渡します。
+
 ## 遊ぶ
 
 Windowsでは **[Start-5525.cmd](Start-5525.cmd)** からGodot版を起動します。Godot 4.6.x、Node.js 22以上、Python 3.10以上とPillowが必要です。Linuxではリポジトリ直下で `godot --headless --editor --path godot --import` の後に `NATIVE5525_PYTHON="$(command -v python3)" godot --path godot` を実行します。
