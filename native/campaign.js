@@ -239,10 +239,48 @@ const Campaign = (() => {
   // Development purpose and alternate prices belong here, not in player text.
   const LEGACY_QUEST_TEXT="繰り返しの受注・移動・買い替えを確かめる仮の配達依頼です。急ぎは納期6時間・報酬180G、通常は10時間・150G。";
   function questText(q) {return `${q.cargo}を${getPlace(q.to).name}まで届けてください。`;}
+  const sluiceSpeaker='sluice-ferrymaster';
+  const sluiceRequest='八時間後、増水がイースの渡し場に届く。警鐘の鐘舌を運び、舟を出す三つ鐘を鳴らしてほしい。遅れても鐘舌は受け取る。';
+  const sluiceStories={
+    offer:[
+      ['narration','舟守が布をほどく。拳ほどの鉄の棒に、小さな手の跡が煤でついている。'],
+      [sluiceSpeaker,'鐘の舌だよ。ようやく鍛え直せた。イースの子らが毎朝、磨いてたやつさ。'],
+      [sluiceSpeaker,'渡し場からは上の水が見えない。三つ鳴ったら、粉袋を堤に上げて、小舟の綱をほどく。それがうちの決まりだ。'],
+      [sluiceSpeaker,'八時間したら水が来る。私は先に下って、舟を集める。あんたはこいつを、鐘の下まで。'],
+      [sluiceSpeaker,'川沿いを通るなら番小屋を見ておくれ。見習いの舟守が一人、手前の岸へ回す舟を守ってる。']
+    ],
+    onTime:[
+      ['narration','イースの鐘楼。舟守が鐘舌を吊るし、まだ乾いている石段の上で綱を三度引いた。'],
+      ['narration','一つ。粉袋が肩に載る。二つ。子どもが舟に乗る。三つ。最後の係留綱が水から上がった。'],
+      [sluiceSpeaker,'ごらん。水が石段を洗う前に、みんな手を離せた。'],
+      ['narration','小さな手が布を差し出す。「明日の朝も、磨きに来ていい？」舟守は鐘の下にその布を掛けた。']
+    ],
+    late:[
+      ['narration','イースの石段はもう水の下だった。舟守は櫂で戸を叩いて皆を起こし、最後の一人を堤へ上げたところだった。'],
+      [sluiceSpeaker,'人は数えた。全員いるよ。粉袋は……あの白い筋になっちまった。'],
+      ['narration','舟守は受け取った鐘舌を吊るし、一度だけ鳴らす。対岸の小舟から、櫂を立てる返事があった。'],
+      [sluiceSpeaker,'今夜も水は動く。次の見張りには、この音を渡せる。運んでくれてありがとう。']
+    ],
+    retreat:[
+      ['narration','退く合図に、護衛が荷車を堤の内側へ切り返した。布の中で鐘舌が車板を一度打つ。'],
+      ['narration','イースの方角から返事はない。護送隊は車輪の跡を逆にたどって、街道を離れた。']
+    ],
+    porter:[
+      ['narration','ポーターの膝が落ちた。護衛は転がりかけた鐘舌を止め、その布をほどいて傷口を押さえた。'],
+      ['narration','空いた荷台に仲間を寝かせる。鐘楼へ向いていた車の柄が、今度は手当てのできる岸を向いた。']
+    ],
+    defeat:[
+      ['narration','最後の護衛の手が、車の柄から滑った。車輪は岸の泥に沈み、包まれた鐘舌だけが荷台に残った。'],
+      ['narration','渡し場で舟守が耳を澄ます。聞こえるのは、水が係留杭を打つ音だけだった。']
+    ]
+  };
+  function sluiceScene(ending){
+    return {storyId:'sluice-bell',portrait:sluiceSpeaker,cast:[sluiceSpeaker],story:clone(sluiceStories[ending])};
+  }
   function displayQuest(q,s) {
     if(!q)return q;
     const shown=q.eventId==='wheel'?wheelPresentation(s,q):clone(q);
-    if(q.id==='sluice-bell')shown.portrait='sluice-ferrymaster';
+    if(q.id==='sluice-bell')Object.assign(shown,sluiceScene('offer'),{text:sluiceRequest});
     shown.rewards=questRewards(q);
     shown.rewardType=q.rewardType||'money';
     if(q.text===LEGACY_QUEST_TEXT&&locations.some(p=>p.id===q.from)&&locations.some(p=>p.id===q.to)&&
@@ -276,7 +314,7 @@ const Campaign = (() => {
     if(s.location==='astaris')offers.push({
       id:'sluice-bell',from:'astaris',to:'east',name:'水門の鐘',client:'水門の舟守',portrait:'sluice-ferrymaster',cargo:'警鐘の鐘舌',
       weight:3,deadline:8,reward:260,xp:100,rewardRevision:1,rewardType:'money',
-      text:'増水前にイースの警鐘を直したい。峠には隊列の外を狙う射手がいる。川沿いの小屋に寄れば舟守を拾えるが、巻上機には番人が向かう。守護者が巻上機へ移動し、そこを守る間だけ、ポーターは水門から突破できる。'
+      text:sluiceRequest
     });
     return offers.map(q=>displayQuest(q,s));
   }
@@ -426,11 +464,11 @@ const Campaign = (() => {
       lead.pos=post;
       lead.name=route==='short'?'離列狙いの射手':'巻上機の番人';
       b.log.push(route==='short'?'峠の射手は陣形マスを離れた守護者を狙う。':'川の番人は巻上機へ向かう。先に押さえたい。');
-      if(j.stage===0 && route==='safe')b.log.push('舟守を小屋から救出。次の区間では岸辺に舟を回してくれる。');
+      if(j.stage===0 && route==='safe')b.log.push('番小屋の見習いを舟ごと引き出した。「次の岸で待ってます！」');
       if(j.stage===1 && j.outboundRoute==='safe'){
         const blocker=b.units.find(u=>u.side==='enemy' && u.pos===b.sluice.exit);
         if(blocker)blocker.pos=9;
-        b.log.push('助けた舟守が舟を寄せた。手前の岸から突破できる。');
+        b.log.push('番小屋で助けた見習いが櫂を上げた。手前の岸に舟が着く。');
       }
     }
     b.deploymentInitial=b.units.filter(u=>u.side==='ally').map(u=>({id:u.id,pos:u.pos}));
@@ -493,25 +531,27 @@ const Campaign = (() => {
     // Rewards apply exactly once to the current travelling characters.
     for(const id of s.selected){const c=s.characters[id],old=c.level;c.xp+=amount;c.level=1+Math.floor(c.xp/100);c.statPoints+=(c.level-old)*2;c.skillPoints+=c.level-old;}
   }
-  function rollbackFailure(s,reason) {
+  function rollbackFailure(s,reason,ending) {
+    const failedQuest=s.activeQuest;
     const failedTrip={origin:s.journey.origin,destination:s.journey.destination,hours:s.journey.hours};
     const failedEvent=s.activeQuest?.eventId,elapsedWorld=s.worldTime??s.hours,events=clone(s.standaloneEvents||freshWorldEvents(s.hours));
     const old=clone(s.rollback);for(const key of Object.keys(s))delete s[key];Object.assign(s,old);
     s.worldTime=elapsedWorld;s.standaloneEvents=events;if(failedEvent&&s.standaloneEvents.events[failedEvent]?.status==='accepted')s.standaloneEvents.events[failedEvent].status='available';syncWorld(s);
     invalidateInventory(s);
     s.phase='result';s.result={outcome:'failed',reason,restored:true,trip:failedTrip,gold:0,xp:0};
+    if(failedQuest?.id==='sluice-bell')Object.assign(s.result,{quest:failedQuest.name},sluiceScene(ending));
     note(s,reason+' 受注／出発前の状態を復元しました。');return true;
   }
   function retreat(s) {
     const b=s.battle,j=s.journey;
     if(s.phase!=='battle'||!b||b.result||!j||!s.rollback||b.campaignToken!==j.token||b.campaignStage!==j.stage)return false;
-    return rollbackFailure(s,'戦闘から撤退しました。');
+    return rollbackFailure(s,'戦闘から撤退しました。','retreat');
   }
   function finishBattle(s) {
     const b=s.battle,j=s.journey;
     if(s.phase!=='battle'||!b?.result||!j||b.campaignToken!==j.token||b.campaignStage!==j.stage)return false;
     const allies=b.units.filter(u=>u.side==='ally'),failed=allies.some(u=>u.job==='porter'&&u.hp<=0)||allies.every(u=>u.hp<=0)||!!b.failure;
-    if(failed)return rollbackFailure(s,'ポーター戦闘不能または護送隊敗北。');
+    if(failed)return rollbackFailure(s,'ポーター戦闘不能または護送隊敗北。',allies.every(u=>u.hp<=0)?'defeat':'porter');
     if(b.resultKind!=='breakthrough'&&b.units.some(u=>u.side==='enemy'&&u.hp>0))return false;
     if(!J.finishBattle(j,b))return false;
     // Journey recovery and EXP already apply to all travelling members. Reserve
@@ -617,6 +657,7 @@ const Campaign = (() => {
     if(q.eventId){s.standaloneEvents.events[q.eventId].status=scenarioFailure?'failed':'completed';}
     const resultStory=q.eventId?(q.eventId==='wheel'&&late?q.lateStory:q.successStory):null;
     s.phase='result';s.result={outcome:late?'late':'success',gold,xp,rp,rewardType,partyRP:s.partyRP||0,hours,worldTime:s.worldTime,location:s.location,quest:q.name,scenario:q.eventId||null,portrait:q.portrait||null,cast:q.cast||[],story:resultStory||null,restored:false};
+    if(q.id==='sluice-bell')Object.assign(s.result,sluiceScene(late?'late':'onTime'));
     s.activeQuest=null;s.rollback=null;s.journey=null;s.battle=null;return true;
   }
   function acknowledge(s) {
@@ -889,6 +930,9 @@ const Campaign = (() => {
     syncWorld(s);
     // Older standalone deadline results omitted the reason. Present it without rewriting the save.
     const shown=clone(s),result=shown.result;
+    if(result?.quest==='水門の鐘' && !result.story && ['success','late'].includes(result.outcome)){
+      Object.assign(result,sluiceScene(result.outcome==='late'?'late':'onTime'));
+    }
     if(result?.outcome==='failed'&&SCENARIO_BY_ID[result.scenario]&&!result.reason)result.reason=SCENARIO_DEADLINE_REASON;
     const ids=battleIds(s),deployed=s.battle?s.battle.units.filter(u=>u.side==='ally').map(u=>u.id):[...ids];
     return {...shown,partyRP:s.partyRP||0,canTurnBack:canTurnBack(s),returnHours:canTurnBack(s)?((s.journey.outboundRoute||s.journey.route)==='safe'?5:3):0,activeQuest:displayQuest(s.activeQuest,s),partyLimit:PARTY_LIMIT,battleLimit:BATTLE_LIMIT,battleSelected:[...ids],deploymentRoster:{deployed,reserves:s.selected.filter(id=>!deployed.includes(id)),remaining:BATTLE_LIMIT-deployed.length,minimum:1,canBegin:s.phase==='deployment'&&!!s.battle?.units.some(u=>u.side==='ally'&&u.hp>0)&&validate(s).ok},cargoAboard:Cargo.aboard(s),cargoCarriers:Cargo.carriers(s),inventory:inventoryTotals(s),inventoryTotals:inventoryTotals(s,Object.keys(s.characters)),inventoryToken:inventoryToken(s),saleAvailable:saleAvailable(s),inventoryByCharacter:Object.fromEntries(Object.keys(s.characters).map(id=>[id,inventoryView(s,id)])),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),routes:clone(routes),destinations:clone(destinations(s)),board:board(s),scenarioAftermath:scenarioAftermath(s),scenarioStages:scenarioStages(s),shop:shop(s),itemDefinitions:clone(items),provisional:[...provisional],

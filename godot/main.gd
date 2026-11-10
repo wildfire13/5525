@@ -132,6 +132,14 @@ func _ready():
 	for item in [["セーブ",save_game],["ロード",load_dialog],["行動ログ",show_action_log]]:
 		var callback: Callable=item[1]
 		button(menu_body,item[0],func():menu.hide();callback.call())
+	var withdraw=local_button(menu_body,"護送を断念して撤退",func():
+		menu.hide()
+		confirm("水門の鐘の護送を断念しますか？　報酬はなく、受注前の状態に戻ります。",act.bind("retreat",[])))
+	withdraw.name="WithdrawSluice"
+	withdraw.hide()
+	menu.visibility_changed.connect(func():
+		var job=campaign().get("activeQuest")
+		withdraw.visible=menu.visible and job is Dictionary and job.get("id")=="sluice-bell" and campaign().get("phase")=="battle" and not state().get("result"))
 	local_button(menu_body,"直近のリザルト",func():menu.hide();results_view.reopen()).name="ReopenResults"
 	local_button(menu_body,"操作説明",func():menu.hide();show_help())
 	local_button(menu_body,"全画面 F11",func():menu.hide();fullscreen())

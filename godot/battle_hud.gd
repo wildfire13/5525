@@ -674,7 +674,9 @@ func render_deployment():
 	else:render_person_content(left_info,unit(ui.selected))
 	ui.battle_actions=deployment_actions
 	b(deployment_actions,"配置リセット",reset_deployment).name="DeploymentReset"
-	b(deployment_actions,"撤退",func():ui.confirm("戦闘から撤退しますか？",ui.act.bind("retreat",[]))).name="DeploymentRetreat"
+	var job=ui.campaign().get("activeQuest")
+	if not (job is Dictionary and job.get("id")=="sluice-bell"):
+		b(deployment_actions,"撤退",func():ui.confirm("戦闘から撤退しますか？",ui.act.bind("retreat",[]))).name="DeploymentRetreat"
 	ui.green_button(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true))).name="DeploymentBegin"
 func deployment_changed() -> bool:
 	for initial in ui.state().get("deploymentInitial",[]):
