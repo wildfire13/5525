@@ -184,8 +184,20 @@ func journey(parent):
 			ui.green_button(b(actions,"都市に入る" if journey_.get("destination")=="astaris" else "村に入る",ui.act.bind("arrive",[])))
 	if phase=="road":
 		var choices=row(parent);choices.name="RouteChoices"
+		var quest = c().get("activeQuest")
+		var sluice_trip = quest is Dictionary and quest.get("id") == "sluice-bell" and journey_.get("destination") == "east" and not strip.returning
 		for route in [["short","峠の近道",2],["safe","川沿いの道",4]]:
-			var choose=b(choices,route[1]+"\n移動 %d時間" % route[2],ui.forecast_action.bind(route[0],"travel",[route[0]]));choose.name="RouteChoice_"+route[0];choose.custom_minimum_size=Vector2(260,80)
+			var caption = "%s\n移動 %d時間" % [route[1], route[2]]
+			if sluice_trip:
+				caption += "\n陣形の外にいる味方が射手に狙われる" if route[0] == "short" else "\n番人が巻上機を塞ぐ"
+			var choose = b(choices, caption, ui.forecast_action.bind(route[0], "travel", [route[0]]))
+			choose.name = "RouteChoice_" + route[0]
+			choose.custom_minimum_size = Vector2(400, 100) if sluice_trip else Vector2(260, 80)
+		if sluice_trip:
+			var gate_note = "守護者が通常移動で巻上機に入ると開門。離脱・撃破で閉門。"
+			if int(journey_.get("stage", 0)) == 0:
+				gate_note += "\n最初の区間で川沿いの舟守を助けると、次の戦闘の出口が近くなる。"
+			l(parent, gate_note)
 	if phase=="camp":
 		b(parent,"インベントリ",ui.navigate.bind("character"))
 	parent.add_child(HSeparator.new());active_quest_summary(parent)
