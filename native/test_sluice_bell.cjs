@@ -105,7 +105,6 @@ const keeper = river.battle.units.find(u => u.id === 'enemy-guard');
 const advance = B.chooseAction(river.battle, keeper);
 assert.equal(advance.kind, 'move');
 assert.equal(advance.target, river.battle.sluice.lever);
-console.log('Sluice Bell: both road contracts delivered, gate saves, formation and enemy tactics verified.');
 
 // Recreate the blocked two-step exit from the continuous playtest.
 // The porter can decline the immediate move without getting a second signal.
@@ -124,6 +123,10 @@ fight.sluice.open = true;
 fight.actor = operator.id;
 for (const unit of fight.units) unit.next = unit === operator ? 1 : unit === runner ? 120 : 100;
 assert(!B.legalFor(fight, runner, 'move', fight.sluice.exit));
+const alreadyUsed = C.deserialize(C.serialize(relay));
+alreadyUsed.battle.sluice.relayUsed = true;
+assert(C.act(alreadyUsed, 'attack', obstruction.id));
+assert.notEqual(alreadyUsed.battle.actor, runner.id, 'no second signal when another blocker falls');
 assert(C.act(relay, 'attack', obstruction.id));
 assert.equal(fight.actor, runner.id);
 assert.equal(fight.sluice.relayUsed, true);
@@ -132,3 +135,5 @@ roundtrip(relay);
 assert(C.act(relay, 'guard', null));
 assert.equal(fight.sluice.relayUsed, true);
 assert(!fight.result);
+
+console.log('Sluice Bell: delivery, enemy tactics, gate saves and once-per-battle relay verified.');
