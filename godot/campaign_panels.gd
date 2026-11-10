@@ -195,6 +195,7 @@ func journey(parent):
 			choose.custom_minimum_size = Vector2(400, 100) if sluice_trip else Vector2(260, 80)
 		if sluice_trip:
 			var gate_note = "守護者が通常移動で巻上機に入ると開門。離脱・撃破で閉門。"
+			gate_note += "\n舟守の合図は一戦一度。味方の行動後、開いた出口にポーターが通常移動で届くと、次はポーターの手番。"
 			if int(journey_.get("stage", 0)) == 0:
 				gate_note += "\n最初の区間で川沿いの舟守を助けると、次の戦闘の出口が近くなる。"
 			l(parent, gate_note)
