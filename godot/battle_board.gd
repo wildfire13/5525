@@ -400,11 +400,12 @@ func draw_overlay():
 		cell_outline(keyboard_cell,Color("#78edce"),3.0)
 		overlay.draw_string(ThemeDB.fallback_font,Vector2(8,size.y-10),("射程参考 / Escで同じ仮置きに戻る" if reference_mode else "フォーカス X%d,Y%d / Enterは候補選択" % [keyboard_cell%10,4-int(keyboard_cell/10)]),HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color.WHITE)
 func sync_sluice_works(gate) -> void:
-	world.set_riverside(str(gate.get("route", "safe")) if gate is Dictionary else "")
 	if not gate is Dictionary:
+		world.set_riverside("")
 		if is_instance_valid(sluice_works):
 			sluice_works.hide()
 		return
+	world.set_riverside(str(gate.route), point(int(gate.exit)).x)
 	var initial := not is_instance_valid(sluice_works) or not sluice_works.visible
 	if not is_instance_valid(sluice_works):
 		sluice_works = preload("res://sluice_works.tscn").instantiate()

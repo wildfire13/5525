@@ -285,7 +285,7 @@ func update_camera():
 		camera.position=Vector3(sin(angle)*10,23,cos(angle)*10)
 	camera.look_at(target)
 
-func set_riverside(route: String) -> void:
+func set_riverside(route: String, exit_x := 0.0) -> void:
 	var river_battle := not route.is_empty()
 	courtyard_ground.visible = not river_battle
 	scenery.visible = not river_battle
@@ -295,4 +295,4 @@ func set_riverside(route: String) -> void:
 		riverside.build(self)
 	if is_instance_valid(riverside):
 		riverside.visible = river_battle
-		if river_battle:riverside.set_route(route)
+		if river_battle:riverside.set_route(route, exit_x)
