@@ -547,7 +547,34 @@ const Battle = (() => {
     if(new Set(units.map(u=>u.pos)).size!==units.length||units.some(u=>!Number.isInteger(u.pos)||u.pos<0||u.pos>=50||(u.side==='enemy'&&boardOf(u.pos)==='ally')||(u.side==='ally'&&boardOf(u.pos)==='enemy'&&!u.canDeployEnemySide)))return false;
     s.deploying=false;advance(s);return true;
   }
-  function act(s,kind,target,random=Math.random){if(!legal(s,kind,target))return false;const a=s.units.find(u=>u.id===s.actor);s.recentEnemies=[];const jump=kind==='skill'&&activeSkill(a)==='scout'?ambush(s,a,s.units.find(u=>u.id===target)):null;apply(s,a,kind,target,jump?.destination,undefined,random);finishOpportunity(a);a.next+=100/a.agi;s.actions++;advance(s);return true;}
+  function canFollowToGate(s,porter) {
+    return porter.hp>0 && !porter.skipNextTurn && !porter.pendingStamp &&
+      paths(s,porter,moveReach(porter)).has(s.sluice.exit);
+  }
+  function act(s,kind,target,random=Math.random){
+    if(!legal(s,kind,target))return false;
+    const a=s.units.find(u=>u.id===s.actor);
+    // The opening move still gives the enemy a chance to block the porter.
+    // Once the gate is held, clearing a previously unavailable route earns the relay.
+    const waiting=s.sluice?.open && !s.sluice.relayUsed && a.job!=='porter'
+      ? alive(s).filter(u=>u.side==='ally' && u.job==='porter' && !canFollowToGate(s,u)) : [];
+    s.recentEnemies=[];
+    const jump=kind==='skill'&&activeSkill(a)==='scout'?ambush(s,a,s.units.find(u=>u.id===target)):null;
+    apply(s,a,kind,target,jump?.destination,undefined,random);
+    finishOpportunity(a);
+    a.next+=100/a.agi;
+    s.actions++;
+    if(waiting.length && !check(s)){
+      const runner=s.sluice.open && waiting.find(u=>canFollowToGate(s,u));
+      if(runner){
+        runner.next=Math.min(...alive(s).map(u=>u.next))*(1-Number.EPSILON);
+        s.sluice.relayUsed=true;
+        log(s,`舟守の合図！ 道が空き、${runner.name}の手番が繰り上がった。`);
+      }
+    }
+    advance(s);
+    return true;
+  }
   function queue(s){const copies=alive(s).map(u=>({...u})),result=[];for(let i=0;i<10&&copies.length;i++){copies.sort(order);result.push({id:copies[0].id,name:copies[0].name,side:copies[0].side,...(copies[0].skipNextTurn?{skip:true}:{})});delete copies[0].skipNextTurn;copies[0].next+=100/copies[0].agi;}return result;}
   return {returnSkillOptions,returnSkillOption,selectReturnSkill,activeSkillOptions,selectedSkillOption,itemSkillOption,sweepCells,sweepChance,sweepTargets,vaultCell,itemUseLevel,itemInRange,grappleCell,skillLevel,skillInfo,effectCount,percentageIncrease,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,legacyRoster,recruitRoster,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,chooseAction};
 })();
