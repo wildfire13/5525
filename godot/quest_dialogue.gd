@@ -16,7 +16,7 @@ var choice_row: HBoxContainer
 var accept_callback: Callable
 var close_callback: Callable
 var _closed:=false
-const SPEAKERS={"farmer":"農夫","weigher":"計量係","apprentice":"若い陶工","master":"陶工の師匠","wheelwright":"車輪職人","merchant":"行商人"}
+const SPEAKERS={"sluice-ferrymaster":"水門の舟守","farmer":"農夫","weigher":"計量係","apprentice":"若い陶工","master":"陶工の師匠","wheelwright":"車輪職人","merchant":"行商人"}
 const PORTRAITS={"farmer":"farmer","weigher":"weigher","apprentice":"apprentice","master":"master","wheelwright":"wheelwright","merchant":"merchant"}
 func _init(frontend,board):ui=frontend;quest_board=board
 func open(q: Dictionary,on_accept:=Callable(),on_close:=Callable()):
