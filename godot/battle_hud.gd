@@ -427,12 +427,15 @@ func render_move(main,facts):
 	if ui.preview_ready:
 		if ui.preview.get("swap")!=null:l(facts,"交換: "+ui.member_name(str(ui.preview.swap))+" → "+coord(acting().get("pos",0)))
 		l(facts,"着地点の固定予告: "+(" / ".join(ui.preview.get("risks",[])) if not ui.preview.get("risks",[]).is_empty() else "なし（取得済み）"))
-		l(facts,"移動後の陣形: "+("成立" if ui.preview.get("formationAfter",false) else "未成立"))
+		var formation_after := "移動後の陣形: " + ("成立" if ui.preview.get("formationAfter",false) else "未成立")
 		var gate_effect := sluice_move_effect(ui.state(), acting(), ui.preview)
-		if not gate_effect.is_empty():
-			var note = l(facts, gate_effect)
+		if gate_effect.is_empty():
+			l(facts, formation_after)
+		else:
+			var note = l(main, gate_effect + "　／　" + formation_after)
 			note.name = "SluiceMoveEffect"
 			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			main.move_child(note, 0)
 	else:l(facts,"予告・陣形を確認中…")
 func sluice_move_effect(state: Dictionary, mover: Dictionary, preview: Dictionary) -> String:
 	var gate = state.get("sluice")
