@@ -1,15 +1,16 @@
 shader_type spatial;
-render_mode cull_disabled;
+render_mode unshaded, cull_disabled;
+uniform vec4 deep : source_color = vec4(0.25,0.43,0.47,1.0);
+uniform vec4 shallows : source_color = vec4(0.43,0.61,0.61,1.0);
+uniform vec4 glint : source_color = vec4(0.83,0.78,0.62,1.0);
 varying vec2 river_uv;
-void vertex() {
- river_uv = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
-}
+void vertex() { river_uv = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz; }
 void fragment() {
- vec2 p = river_uv;
- float glide = p.x * 1.4 - TIME * 1.25;
- float swell = sin(p.y * 4.4 + sin(glide * 0.32)) + 0.38 * sin(p.y * 10.0 - glide * 0.7);
- float crest = smoothstep(0.93, 1.28, swell) * (0.35 + 0.65 * smoothstep(-0.3, 0.9, sin(glide * 1.8 + p.y)));
- float reflection = 0.5 + 0.5 * sin(p.x * 0.55 + swell * 1.3 + TIME * 0.22);
- ALBEDO = mix(vec3(0.16,0.23,0.24), vec3(0.34,0.39,0.37), reflection) + crest * vec3(0.22,0.19,0.12);
- ROUGHNESS = 0.38;
+	vec2 p = river_uv;
+	float current = p.x - 0.55 * TIME;
+	float bend = sin(current * 1.5 + p.y * 0.8) + 0.5 * sin(current * 2.1 - p.y * 1.7);
+	float glass = 0.5 + 0.5 * sin(p.y * 3.3 + bend + current * 0.23);
+	float wave = sin(p.y * 14.0 + bend * 2.0 + current * 0.8);
+	float flecks = smoothstep(0.77, 1.0, wave) * smoothstep(0.48, 1.1, bend);
+	ALBEDO = mix(mix(deep.rgb, shallows.rgb, 0.25 + glass * 0.45), glint.rgb, flecks * 0.65);
 }
