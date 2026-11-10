@@ -435,6 +435,7 @@ const Battle = (() => {
         if(activeSkill(a)==='archer' && legalFor(s,a,'skill',target.id))return make('skill',target.id);
         if(legalFor(s,a,'attack',target.id))return make('attack',target.id);
       }
+      if(formation(s,'ally') && exposed.length===0)return make('guard',null);
     }
     if(a.id==='enemy-guard' && s.sluice?.route==='safe' && !s.sluice.open){
       const lever={pos:s.sluice.lever};
