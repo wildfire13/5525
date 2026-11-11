@@ -280,7 +280,7 @@ const Campaign = (() => {
   function displayQuest(q,s) {
     if(!q)return q;
     const shown=q.eventId==='wheel'?wheelPresentation(s,q):clone(q);
-    if(q.id==='sluice-bell')Object.assign(shown,sluiceScene('offer'),{text:sluiceRequest});
+    if(q.id==='sluice-bell')Object.assign(shown,sluiceScene('offer'),{text:sluiceRequest+'（一度限りの依頼。遅配・撤退・敗北でも再受注できません。）'});
     shown.rewards=questRewards(q);
     shown.rewardType=q.rewardType||'money';
     if(q.text===LEGACY_QUEST_TEXT&&locations.some(p=>p.id===q.from)&&locations.some(p=>p.id===q.to)&&
@@ -311,7 +311,7 @@ const Campaign = (() => {
       const event={...clone(q),rewardRevision:1,rewardType:'money',id:`standalone-${q.eventId}`,text:`${q.cargo}を${getPlace(q.to).name}まで届けてください。`,scenario:true,postedAt:s.standaloneEvents.epoch,deadlineAt:s.standaloneEvents.epoch+q.deadline};
       offers.push(q.eventId==='wheel'?wheelPresentation(s,event):event);
     }
-    if(s.location==='astaris')offers.push({
+    if(s.location==='astaris'&&!s.sluiceBellEnded)offers.push({
       id:'sluice-bell',from:'astaris',to:'east',name:'水門の鐘',client:'水門の舟守',portrait:'sluice-ferrymaster',cargo:'警鐘の鐘舌',
       weight:3,deadline:8,reward:260,xp:100,rewardRevision:1,rewardType:'money',
       text:sluiceRequest
@@ -539,7 +539,10 @@ const Campaign = (() => {
     s.worldTime=elapsedWorld;s.standaloneEvents=events;if(failedEvent&&s.standaloneEvents.events[failedEvent]?.status==='accepted')s.standaloneEvents.events[failedEvent].status='available';syncWorld(s);
     invalidateInventory(s);
     s.phase='result';s.result={outcome:'failed',reason,restored:true,trip:failedTrip,gold:0,xp:0};
-    if(failedQuest?.id==='sluice-bell')Object.assign(s.result,{quest:failedQuest.name},sluiceScene(ending));
+    if(failedQuest?.id==='sluice-bell'){
+      s.sluiceBellEnded=true;
+      Object.assign(s.result,{quest:failedQuest.name},sluiceScene(ending));
+    }
     note(s,reason+' 受注／出発前の状態を復元しました。');return true;
   }
   function retreat(s) {
@@ -657,7 +660,10 @@ const Campaign = (() => {
     if(q.eventId){s.standaloneEvents.events[q.eventId].status=scenarioFailure?'failed':'completed';}
     const resultStory=q.eventId?(q.eventId==='wheel'&&late?q.lateStory:q.successStory):null;
     s.phase='result';s.result={outcome:late?'late':'success',gold,xp,rp,rewardType,partyRP:s.partyRP||0,hours,worldTime:s.worldTime,location:s.location,quest:q.name,scenario:q.eventId||null,portrait:q.portrait||null,cast:q.cast||[],story:resultStory||null,restored:false};
-    if(q.id==='sluice-bell')Object.assign(s.result,sluiceScene(late?'late':'onTime'));
+    if(q.id==='sluice-bell'){
+      s.sluiceBellEnded=true;
+      Object.assign(s.result,sluiceScene(late?'late':'onTime'));
+    }
     s.activeQuest=null;s.rollback=null;s.journey=null;s.battle=null;return true;
   }
   function acknowledge(s) {
@@ -971,6 +977,7 @@ const Campaign = (() => {
   }
 
   function validateCampaignProgress(s) {
+    demand(s.sluiceBellEnded===undefined||s.sluiceBellEnded===true,'水門の鐘の終了記録');
     demand(['town','road','deployment','battle','camp','arrival','result'].includes(s.phase),'進行段階');
     demand(!!getPlace(s.location),'拠点');
     for(const key of ['gold','xp','hours','sequence','boardRound','completed'])demand(integer(s[key]),key);
@@ -1273,7 +1280,13 @@ const Campaign = (() => {
   function migrateWorldEvents(s){
     if(!Number.isSafeInteger(s.worldTime))s.worldTime=s.hours;
     if(!s.standaloneEvents)s.standaloneEvents=freshWorldEvents(s.worldTime);
-    if(s.rollback)migrateWorldEvents(s.rollback);
+    // Older saves identify a concluded bell contract by its result or unique delivered cargo.
+    if(s.sluiceBellEnded===undefined && (s.result?.quest==='水門の鐘'||s.result?.storyId==='sluice-bell'||
+      s.history?.includes('「荷物」を渡しました。警鐘の鐘舌を引き渡しました。')))s.sluiceBellEnded=true;
+    if(s.rollback){
+      migrateWorldEvents(s.rollback);
+      if(s.rollback.sluiceBellEnded)s.sluiceBellEnded=true;
+    }
     syncWorld(s);
   }
   function deserialize(input) {
