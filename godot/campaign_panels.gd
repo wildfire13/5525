@@ -340,7 +340,7 @@ func restore_trial():
 	if trial_return.is_empty() or trial_return.get("epoch")!=epoch:return
 	var previous=trial_return.duplicate(true);trial_return={}
 	if c().get("location")!=previous.location:ui.notice="試用前の店が変わったため選択を解除しました";invalidate_quote(true);return
-	ui.page="shop";ui.shop_uid=previous.uid;ui.shop_slot=previous.slot;shop_view.filter_slot=previous.get("filter","all")
+	ui.page="shop";ui.shop_uid=previous.uid;party_uid=previous.uid;ui.shop_slot=previous.slot;shop_view.filter_slot=previous.get("filter","all")
 	if not c().get("selected",[]).has(ui.shop_uid) or not offered().any(func(g):return g.id==previous.gear):
 		invalidate_quote(true);ui.notice="試用前の人物・商品を確認できないため選択を解除しました";ui.render();return
 	ui.memory.scrolls.merge(previous.scrolls,true)

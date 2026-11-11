@@ -86,7 +86,8 @@ func roster(parent):
 		var matches=ui.roster().filter(func(u):return str(u.id)==str(id))
 		if matches.is_empty():continue
 		var u=matches[0];var button=ui.button(list,"",activate.bind(str(id)));button.set_script(preload("res://roster_drop_target.gd"));button.member_id=str(id);button.name="RosterMember_"+str(id);button.custom_minimum_size=Vector2(254,88);ui.memory.key(button,"mock_roster_member_"+str(id))
-		ui.mark_selected(button,str(id)==ui.pages.party_uid)
+		var selected=ui.pages.shop_view.selected_owner() if ui.pages.shop_view.sale_mode() else ui.pages.party_uid
+		ui.mark_selected(button,str(id)==selected)
 		var line=HBoxContainer.new();button.add_child(line);line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);line.offset_left=6;line.offset_top=6;line.offset_right=-6;line.offset_bottom=-6;line.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		var portrait=ui.portrait(line,u,false,32);portrait.custom_minimum_size=Vector2(40,72);portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		var info=VBoxContainer.new();info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.mouse_filter=Control.MOUSE_FILTER_IGNORE;line.add_child(info)
@@ -99,10 +100,10 @@ func roster(parent):
 		button.set_drag_forwarding(Callable(),func(_at,payload):return can_drop(payload,str(id)),func(_at,payload):drop(payload,str(id)))
 func activate(id: String):
 	if not ui.pages.party_view.guard_leave(activate.bind(id)):return
+	if ui.page=="shop":ui.pages.shop_view.owner_pressed(id);return
 	ui.pages.party_uid=id
 	if ui.pages.warehouse_view.available():ui.pages.warehouse_view.select_owner(id);return
 	if ui.pages.guild_view.available():ui.pages.guild_view.select_current(id);return
-	if ui.page=="shop":ui.pages.shop_view.owner_pressed(id);return
 	if ui.page=="character":ui.render()
 	else:toggle_character()
 func can_drop(payload,id: String) -> bool:
