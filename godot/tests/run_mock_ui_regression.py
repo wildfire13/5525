@@ -30,9 +30,10 @@ repo = Path(__file__).resolve().parents[2]
 out = a.evidence.resolve()
 if out == repo or repo in out.parents:
     p.error('Evidence must be outside the checkout')
-node, godot = shutil.which('node'), shutil.which('godot')
+node = shutil.which(os.environ.get('NATIVE5525_NODE') or 'node')
+godot = shutil.which(os.environ.get('GODOT_BIN') or 'godot')
 if not node or not godot:
-    p.error('Node and Godot must be on PATH')
+    p.error('Set NATIVE5525_NODE and GODOT_BIN or put Node and Godot on PATH')
 out.mkdir(parents=True, exist_ok=True)
 results = []
 
@@ -48,16 +49,16 @@ for name in a.only or SUITES:
         path = scope / child
         path.mkdir()
         env[key] = str(path)
+    if os.name == 'nt':
+        env['APPDATA'] = str(scope / 'data')
     wrapper = scope / 'fhd-suite.gd'
-    # The meeting suite deliberately verifies FHD and a smaller viewport.
-    contract = '' if name in ('npc_meeting_regression', 'town_meeting_layout_regression', 'quest_decisions_regression', 'quest_aftermath_access_regression') else (
-        ' root.add_child(preload("res://tests/fhd_contract.gd").new())\n')
     wrapper.write_text(
         f'extends "res://tests/{name}.gd"\n'
         'func _initialize():call_deferred("_start_fhd_suite")\n'
         'func _start_fhd_suite():\n'
         ' root.size=Vector2i(1920,1080)\n'
-        + contract + ' super._initialize()\n', encoding='utf-8')
+        ' root.add_child(preload("res://tests/fhd_contract.gd").new())\n'
+        ' super._initialize()\n', encoding='utf-8')
     command = [godot, '--headless', '--resolution', '1920x1080', '--audio-driver',
                'Dummy', '--path', str(repo / 'godot'), '--script', str(wrapper)]
     started = time.monotonic()

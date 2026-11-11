@@ -4,7 +4,7 @@ from pathlib import Path
 import subprocess, sys, tempfile
 BASE=Path(__file__).resolve().parents[1]
 EXE=sys.argv[1]
-COMMON=[EXE,'--headless','--audio-driver','Dummy','--path',str(BASE)]
+COMMON=[EXE,'--headless','--resolution','1920x1080','--audio-driver','Dummy','--path',str(BASE)]
 MARKERS=['SCRIPT ERROR:','ERROR:','FAIL ','ObjectDB instances leaked','resources still in use']
 def alive(pid):
     if sys.platform=='win32':
