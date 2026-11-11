@@ -1,3 +1,8 @@
+## 水門と編成表示の整理（2026-11-11）
+
+- 対象は `refactor/sluice-roster`。通常移動での開門、開門維持、セーブ読込時の資格判定は `operatesSluiceLever` を共有する。編成画面に渡す各人の装備表示は `rosterMemberView` で組み立てる。
+- 基点 `0db4be8` と画面データ・戦闘操作列を比較した。[検証条件](docs/work-retrospectives.md)参照。
+
 ## Godotへの入口統一と選択表示（2026-11-09）
 
 - Windowsのゲーム入口は `Start-5525.cmd`（Godot）。Python/Tkのゲーム・専用QAを廃止した。Python/Pillowの画像変換、保存、SQLite、NodeのゲームルールはGodotが使用する。

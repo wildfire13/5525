@@ -932,6 +932,32 @@ const Campaign = (() => {
     t.actions++;t.lastAction={kind,target,messages:t.battle.log.slice(Math.max(0,logAt-(t.battle.logDropped||0))),changes:t.battle.units.map(u=>({id:u.id,name:u.name,hp:u.hp-(before.find(v=>v.id===u.id)?.hp||0),mp:u.mp-(before.find(v=>v.id===u.id)?.mp||0)})).filter(d=>d.hp||d.mp)};
     return true;
   }
+  function rosterMemberView(s, member) {
+    const character = s.characters[member.id];
+    const current = stats(character);
+    const rightHand = getGear(current.equipment.rightHand);
+    const equipmentDetails = {};
+    const equipmentSlots = [];
+    for (const [slot, id] of Object.entries(current.equipment)) {
+      const occupied = slot === 'leftHand' && rightHand?.hands === 2;
+      const gear = occupied ? rightHand : effectiveGear(character, slot, id);
+      equipmentDetails[slot] = displayGear(gear);
+      equipmentSlots.push({
+        slot, label: S.slots[slot], id,
+        name: occupied ? gear.name + '（両手装備で使用中）' : gear.name,
+        occupiedBy: occupied ? 'rightHand' : null
+      });
+    }
+    const activeSkillNames = current.activeSkills.map(id => skills[id]);
+    return {
+      ...member, ...clone(character), allocationToken: allocationToken(s, member.id),
+      max: current.max, maxMp: current.maxMp, atk: current.atk, agi: current.speed,
+      reach: current.reach, stats: current, equipmentDetails, equipmentSlots, activeSkillNames,
+      weaponName: getGear(character.weapon).name, armorName: getGear(character.armor).name,
+      accessoryNames: ['accessory1','accessory2'].map(slot => getGear(character[slot] || defaultAccessory(character, slot)).name),
+      skillName: activeSkillNames.join(' / '), effectNames: current.effects.map(id => skills[id] || '侵入')
+    };
+  }
   function view(s) {
     syncWorld(s);
     // Older standalone deadline results omitted the reason. Present it without rewriting the save.
@@ -942,7 +968,7 @@ const Campaign = (() => {
     if(result?.outcome==='failed'&&SCENARIO_BY_ID[result.scenario]&&!result.reason)result.reason=SCENARIO_DEADLINE_REASON;
     const ids=battleIds(s),deployed=s.battle?s.battle.units.filter(u=>u.side==='ally').map(u=>u.id):[...ids];
     return {...shown,partyRP:s.partyRP||0,canTurnBack:canTurnBack(s),returnHours:canTurnBack(s)?((s.journey.outboundRoute||s.journey.route)==='safe'?5:3):0,activeQuest:displayQuest(s.activeQuest,s),partyLimit:PARTY_LIMIT,battleLimit:BATTLE_LIMIT,battleSelected:[...ids],deploymentRoster:{deployed,reserves:s.selected.filter(id=>!deployed.includes(id)),remaining:BATTLE_LIMIT-deployed.length,minimum:1,canBegin:s.phase==='deployment'&&!!s.battle?.units.some(u=>u.side==='ally'&&u.hp>0)&&validate(s).ok},cargoAboard:Cargo.aboard(s),cargoCarriers:Cargo.carriers(s),inventory:inventoryTotals(s),inventoryTotals:inventoryTotals(s,Object.keys(s.characters)),inventoryToken:inventoryToken(s),saleAvailable:saleAvailable(s),inventoryByCharacter:Object.fromEntries(Object.keys(s.characters).map(id=>[id,inventoryView(s,id)])),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),routes:clone(routes),destinations:clone(destinations(s)),board:board(s),scenarioAftermath:scenarioAftermath(s),scenarioStages:scenarioStages(s),shop:shop(s),itemDefinitions:clone(items),provisional:[...provisional],
-      slots:S.slots,skillNames:{...skills,invasion:'敵陣初期配置'},skillDefinitions:clone(E.definitions),roster:rosterFor(s).map(t=>{const c=s.characters[t.id];const st=stats(c);return {...t,...clone(c),allocationToken:allocationToken(s,t.id),max:st.max,maxMp:st.maxMp,atk:st.atk,agi:st.speed,reach:st.reach,stats:st,equipmentDetails:Object.fromEntries(Object.entries(st.equipment).map(([slot,id])=>[slot,displayGear(slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?getGear(st.equipment.rightHand):effectiveGear(c,slot,id))])),equipmentSlots:Object.entries(st.equipment).map(([slot,id])=>({slot,label:S.slots[slot],id,name:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?getGear(st.equipment.rightHand).name+'（両手装備で使用中）':effectiveGear(c,slot,id).name,occupiedBy:slot==='leftHand'&&getGear(st.equipment.rightHand)?.hands===2?'rightHand':null})),activeSkillNames:st.activeSkills.map(id=>skills[id]),weaponName:getGear(c.weapon).name,armorName:getGear(c.armor).name,accessoryNames:['accessory1','accessory2'].map(slot=>getGear(c[slot]||defaultAccessory(c,slot)).name),skillName:st.activeSkills.map(id=>skills[id]).join(' / '),effectNames:st.effects.map(id=>skills[id]||'侵入')};}),
+      slots:S.slots,skillNames:{...skills,invasion:'敵陣初期配置'},skillDefinitions:clone(E.definitions),roster:rosterFor(s).map(member=>rosterMemberView(s, member)),
       inventoryOverflow:inventoryOverflow(s),warehouseView:warehouseView(s),guildAvailable:s.phase==='town'&&s.location==='astaris',hasPorter:hasPorter(s)};
   }
   function validate(state) {
@@ -1073,7 +1099,7 @@ const Campaign = (() => {
         const plan=sluiceLayout(j),gate=b.sluice;
         demand(record(gate) && gate.lever===plan.lever && gate.exit===plan.exit && gate.route===plan.route &&
           (gate.relayUsed===undefined || (gate.relayUsed===true && !b.deploying)) &&
-          typeof gate.open==='boolean' && (!gate.open || (!b.deploying && b.units.some(u=>u.side==='ally' && u.job!=='porter' && u.hp>0 && u.pos===gate.lever))),'水門の状態');
+          typeof gate.open==='boolean' && (!gate.open || (!b.deploying && b.units.some(u=>B.operatesSluiceLever(u, gate)))),'水門の状態');
       }else demand(b.sluice===undefined,'依頼外の水門');
       demand(b.formationVersion===undefined||[1,2,3].includes(b.formationVersion)&&['convoy','flank'].includes(b.formationKind)&&b.formationKind===j.formation&&(b.formationVersion!==1||s.phase==='battle'),'陣形条件の版');
       demand(b.formationVersion!==undefined||b.formationKind===undefined,'陣形条件の版なし');
