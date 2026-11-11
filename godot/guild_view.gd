@@ -128,10 +128,12 @@ func render_member(parent,u: Dictionary,caption: String):
 			l(details,pages.defense_profile(stats)).add_theme_font_size_override("font_size",18)
 			l(details,pages.attack_profile(stats)).add_theme_font_size_override("font_size",18)
 		1:
-			for entry in u.get("equipmentSlots",[]):
-				var line=ui.row(details);var item=u.get("equipmentDetails",{}).get(str(entry.slot),{});var icon=ui.icons.equipment(item) if not item.is_empty() else ui.icons.slot(str(entry.slot))
-				if not icon.is_empty():ui.icons.add(line,icon,36)
-				l(line,str(entry.get("label",""))+"  "+str(entry.get("name",""))).add_theme_font_size_override("font_size",18)
+			var loadout=preload("res://member_loadout_column.gd")
+			for slot in loadout.ordered_slots(u):
+				var line=ui.row(details)
+				var item=loadout.slot_item(ui,u,slot)
+				ui.icons.add(line,ui.icons.equipment(item),36)
+				l(line,str(slot.label)+"  "+str(item.name)).add_theme_font_size_override("font_size",18)
 		2:pages.party_view.skills(details,u)
 func select_current(id: String):
 	if not available() or busy() or ui.modal_open() or not active(id):return

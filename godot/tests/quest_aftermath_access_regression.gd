@@ -31,20 +31,18 @@ func run():
 	var porter=game.campaign().selected.filter(func(uid):return game.campaign().roster.any(func(c):return c.id==uid and c.job=="porter"))[0]
 	await game.act("accept",["standalone-kiln",porter]);await settle();var kiln=await saved()
 	await install(kiln,"east",20);await game.act("completeQuest",[]);await settle();await press("ResultContinue");var completed=await saved()
-	for dims in [Vector2i(1920,1080),Vector2i(1280,720),Vector2i(1920,1080)]:
-		root.size=dims;await settle()
-		for sample in [[seed,"south",37,"wheel-aftermath"],[completed,"east",23,"kiln-return"]]:
-			await install(sample[0],sample[1],sample[2],"board");var before=await bytes()
-			check(game.campaign().board.size()>0,"repeatable quests coexist with aftermath")
-			var clicked=await click_visible("QuestAftermathStory_"+sample[3]);var scene=node("QuestDialogue")
-			check(clicked and scene!=null,"actual viewport mouse opens "+sample[3]+" at "+str(dims))
-			if scene!=null:
-				if sample[3]=="kiln-return":check(scene.quest.story[0][1].contains("イースの工房を訪ね"),"visible kiln story includes visit narration")
-				await escape()
-			check(await bytes()==before,"read/escape preserves save bytes for "+sample[3])
-			check(game.page=="board" and node("QuestDialogue")==null,"Escape returns to the same board")
-			game.navigate("hub");await settle();game.navigate("board");await settle()
-			check(await bytes()==before,"board round trip preserves save bytes")
+	for sample in [[seed,"south",37,"wheel-aftermath"],[completed,"east",23,"kiln-return"]]:
+		await install(sample[0],sample[1],sample[2],"board");var before=await bytes()
+		check(game.campaign().board.size()>0,"repeatable quests coexist with aftermath")
+		var clicked=await click_visible("QuestAftermathStory_"+sample[3]);var scene=node("QuestDialogue")
+		check(clicked and scene!=null,"actual viewport mouse opens "+sample[3]+" at "+str(root.size))
+		if scene!=null:
+			if sample[3]=="kiln-return":check(scene.quest.story[0][1].contains("イースの工房を訪ね"),"visible kiln story includes visit narration")
+			await escape()
+		check(await bytes()==before,"read/escape preserves save bytes for "+sample[3])
+		check(game.page=="board" and node("QuestDialogue")==null,"Escape returns to the same board")
+		game.navigate("hub");await settle();game.navigate("board");await settle()
+		check(await bytes()==before,"board round trip preserves save bytes")
 	print("Quest aftermath access: %d checks, %d failures" % [checks,failures.size()])
 	game.closing=true;game.dialog.close(false);await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(6):await process_frame

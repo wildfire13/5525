@@ -22,6 +22,8 @@ func run():
 	check(workspace.picked.equipped_slot=="rightHand","equipped item selection")
 	game.find_child("CharacterSlot_upperBody",true,false).pressed.emit();await settle()
 	check(workspace.picked.equipped_slot=="upperBody","second equipped selection replaces details")
+	check(game.find_child("CharacterSlot_upperBody",true,false).get_meta("selected") and not game.find_child("CharacterSlot_rightHand",true,false).get_meta("selected"),"selection follows the equipped slot")
+	var portrait_rect=game.find_child("CharacterPortrait",true,false).get_global_rect()
 	var member=game.roster().filter(func(u):return u.id==ids[0])[0]
 	var sword=member.equipmentSlots.filter(func(e):return e.slot=="rightHand")[0].id
 	await workspace.perform(ids[0],sword,"transferEquipped",ids[1],1,"rightHand");await settle()
@@ -32,7 +34,22 @@ func run():
 	await workspace.perform(ids[0],sword,"equip",null,1,"rightHand");await settle()
 	member=game.roster().filter(func(u):return u.id==ids[0])[0]
 	check(member.equipmentSlots.any(func(e):return e.slot=="rightHand" and e.id==sword),"inventory equipment connected")
-	for tab in ["inventory","ability","skills"]:workspace.tab=tab;game.render();await settle();check(game.find_child("PartyRoster",true,false).size.x==280,"fixed roster width in "+tab)
+	for tab in ["inventory","ability","skills"]:
+		workspace.set_tab(tab);await settle()
+		check(game.find_child("CharacterPortrait",true,false).get_global_rect()==portrait_rect,"same portrait bounds in "+tab)
+		check(game.find_child("PartyRoster",true,false).size.x==280,"fixed roster width in "+tab)
+	workspace.set_tab("skills");await settle()
+	check(game.page=="hub","active tab returns to previous page")
+	game.navigate("map");await settle()
+	game.find_child("Header_character",true,false).pressed.emit();await settle()
+	check(game.find_child("Header_map",true,false)==null,"party header omits map shortcut")
+	game.find_child("Header_character",true,false).pressed.emit();await settle()
+	check(game.page=="map","header toggle restores map")
+	game.navigate("board");await settle()
+	game.navigate("character");await settle()
+	game.find_child("Header_character",true,false).pressed.emit();await settle()
+	check(game.page=="board","direct character entry remembers its own origin")
+	game.find_child("Header_character",true,false).pressed.emit();await settle()
 
 	workspace.tab="ability";game.render();await settle()
 	workspace.open_portrait(member);await settle()

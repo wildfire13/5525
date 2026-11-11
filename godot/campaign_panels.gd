@@ -116,14 +116,12 @@ func active_quest_summary(parent):
 	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;line.add_child(copy)
 	if not quest is Dictionary:
 		l(copy,"進行中のクエスト");l(copy,"なし");return
-	var elapsed=int(c().get("worldTime",0))-int(quest.get("eventEpoch",quest.get("postedAt",0))) if quest.get("scenario",false) else int(quest.get("elapsedHours",0))
-	if not quest.get("scenario",false) and c().get("journey") is Dictionary:elapsed+=int(c().journey.get("hours",0))
 	if quest.get("meeting") is Dictionary:
 		l(copy,str(quest.name)+" · 受取人: 行商人")
 		l(copy,quest_board.meeting.status(quest.meeting))
 		l(copy,quest_board.meeting.deadline_text(quest.meeting))
 	else:
-		l(copy,"進行中のクエスト · 期限まで %d時間" % maxi(0,int(quest.get("deadline",0))-elapsed))
+		l(copy,"進行中のクエスト · "+quest_board.time_status(quest))
 		l(copy,str(quest.name)+" · 配達先 "+town(quest.to))
 	b(line,"内容確認",ui.navigate.bind("board")).name="TravelQuestDetails"
 func map(parent):
@@ -200,7 +198,7 @@ func journey(parent):
 				gate_note += "\n最初の区間で川沿いの舟守を助けると、次の戦闘の出口が近くなる。"
 			l(parent, gate_note)
 	if phase=="camp":
-		b(parent,"インベントリ",ui.navigate.bind("character"))
+		b(parent,"インベントリ",party_view.open_camp_inventory)
 	parent.add_child(HSeparator.new());active_quest_summary(parent)
 func party(parent):
 	if not facility_entry.render_top(parent,"party"):
@@ -342,7 +340,7 @@ func restore_trial():
 	if trial_return.is_empty() or trial_return.get("epoch")!=epoch:return
 	var previous=trial_return.duplicate(true);trial_return={}
 	if c().get("location")!=previous.location:ui.notice="試用前の店が変わったため選択を解除しました";invalidate_quote(true);return
-	ui.page="shop";ui.shop_uid=previous.uid;ui.shop_slot=previous.slot;shop_view.filter_slot=previous.get("filter","all")
+	ui.page="shop";ui.shop_uid=previous.uid;party_uid=previous.uid;ui.shop_slot=previous.slot;shop_view.filter_slot=previous.get("filter","all")
 	if not c().get("selected",[]).has(ui.shop_uid) or not offered().any(func(g):return g.id==previous.gear):
 		invalidate_quote(true);ui.notice="試用前の人物・商品を確認できないため選択を解除しました";ui.render();return
 	ui.memory.scrolls.merge(previous.scrolls,true)
@@ -352,13 +350,16 @@ func restore_trial():
 func gear_type(gear: Dictionary) -> String:
 	if gear.get("type")=="empty" and gear.get("slot") not in ["weapon","rightHand","leftHand"]:return "なし"
 	return {"empty":"なし（手占有0）","sword":"片手剣","greatsword":"両手剣","spear":"槍","dagger":"短剣","bow":"弓","staff":"杖","hammer":"槌","shield":"盾","book":"魔導書","armor":"防具","accessory":"装飾","boots":"足装備"}.get(gear.get("type",""),str(c().get("slots",{}).get(gear.get("slot",""),"装備")))
-func describe_gear(parent,gear: Dictionary):
+func describe_gear(parent,gear: Dictionary,party_detail:=false):
 	ui.icons.line(ui,parent,ui.icons.equipment(gear),str(gear.get("name","装備")),true)
 	l(parent,gear_type(gear)+" / "+("両手・2枠" if gear.get("hands",1)==2 else "手占有0" if gear.get("type")=="empty" and gear.get("slot") in ["weapon","rightHand","leftHand"] else "片手・1枠" if gear.get("slot") in ["weapon","rightHand","leftHand"] else str(c().get("slots",{}).get(gear.get("slot",""),"装備"))))
 	var fields={"price":"購入価格G","atk":"武器ATK","reach":"武器射程","hp":"追加HP上限","mp":"追加MP上限","agiBonus":"行動速度補正","str":"必要STR","int":"必要INT","agi":"必要AGI"}
 	for field in fields:
+		if party_detail and field=="price":continue
 		if gear.has(field):l(parent,fields[field]+": "+str(int(gear[field])))
 	if gear.has("allowedSlots"):l(parent,"装備枠: "+" / ".join(gear.allowedSlots.map(func(slot):return str(c().get("slots",{}).get(slot,slot)))))
+	if party_detail and (gear.get("skill")!=null or gear.get("effect")!=null or not str(gear.get("flavor","")).is_empty() or gear.has("note")):
+		parent.add_child(HSeparator.new())
 	for field in ["skill","effect"]:
 		if gear.get(field)!=null:
 			ui.icons.line(ui,parent,ui.icons.skill(str(gear[field]),int(gear.get("skillLevel",1))),("スキル: " if field=="skill" else "効果: ")+str(c().get("skillNames",{}).get(gear[field],gear[field])))

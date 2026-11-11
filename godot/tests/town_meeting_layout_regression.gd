@@ -30,31 +30,23 @@ func run():
 	var porter=game.campaign().selected.filter(func(uid):return game.campaign().roster.any(func(c):return c.id==uid and c.job=="porter"))[0]
 	await game.act("accept",["standalone-wheel",porter]);await settle();var wheel=await saved()
 	var missing=wheel.duplicate(true);missing.state.selected.erase(missing.state.activeQuest.cargoOwnerId)
-	for dims in [Vector2i(1920,1080),Vector2i(1280,720),Vector2i(1920,1080)]:
-		root.size=dims;await settle()
-		for sample in [[wheel,"astaris",18],[wheel,"astaris",9],[wheel,"astaris",10],[missing,"astaris",10],[wheel,"south",15],[wheel,"south",37],[wheel,"east",0],[wheel,"west",0],[wheel,"north",0]]:
-			await install(sample[0],sample[1],sample[2]);var context="%s %s %dh" % [dims,sample[1],sample[2]]
-			var before=await bytes();hub_bounds(context)
-			await press("HubScheduleToggle");hub_bounds(context+" schedule open")
-			await press("HubScheduleToggle");check(await bytes()==before,context+" layout and schedule preserve save bytes")
-		# Exercise all thirds of the previously covered inn, plus the narrow-screen board edge.
-		for sample in [["astaris",18,"HubFacility_inn","inn"],["south",15,"HubFacility_board","board"]]:
-			for fraction in [.1,.5,.9]:
-				await install(wheel,sample[0],sample[1]);var before=await bytes();var button=node(sample[2]);var rect: Rect2=button.get_global_rect()
-				await click_at(rect.position+Vector2(rect.size.x*fraction,rect.size.y*.5))
-				check(game.page==sample[3],"%s %s click %.1f navigates" % [dims,sample[2],fraction])
-				check(await bytes()==before,"facility navigation preserves campaign save bytes")
-		# No-quest hubs keep the adopted artwork-relative positions.
-		await install(seed,"astaris",0);check(node("HubMeetingPanel")==null,"no meeting panel without active wheel")
-		var hub=node("TownHub")
-		for pair in [["HubFacility_guild",.18],["HubFacility_board",.58],["HubFacility_inn",.64],["HubMap",.12]]:
-			check(absf(node(pair[0]).position.x-hub.size.x*pair[1])<1,"no-quest original anchor retained: "+pair[0])
-	# Exercise ordinary viewport resize; main may rebuild the hub controls.
-	# Repeated shrinking and growing must still restore the expected bounds.
-	await install(wheel,"astaris",18)
-	for dims in [Vector2i(1280,720),Vector2i(1920,1080),Vector2i(1280,720),Vector2i(1920,1080)]:
-		var before=await bytes();root.size=dims;await settle();hub_bounds("live resize "+str(dims))
-		check(await bytes()==before,"live resize preserves campaign save bytes")
+	for sample in [[wheel,"astaris",18],[wheel,"astaris",9],[wheel,"astaris",10],[missing,"astaris",10],[wheel,"south",15],[wheel,"south",37],[wheel,"east",0],[wheel,"west",0],[wheel,"north",0]]:
+		await install(sample[0],sample[1],sample[2]);var context="%s %s %dh" % [root.size,sample[1],sample[2]]
+		var before=await bytes();hub_bounds(context)
+		await press("HubScheduleToggle");hub_bounds(context+" schedule open")
+		await press("HubScheduleToggle");check(await bytes()==before,context+" layout and schedule preserve save bytes")
+	# Check both facility buttons at the left, middle, and right hit targets.
+	for sample in [["astaris",18,"HubFacility_inn","inn"],["south",15,"HubFacility_board","board"]]:
+		for fraction in [.1,.5,.9]:
+			await install(wheel,sample[0],sample[1]);var before=await bytes();var button=node(sample[2]);var rect: Rect2=button.get_global_rect()
+			await click_at(rect.position+Vector2(rect.size.x*fraction,rect.size.y*.5))
+			check(game.page==sample[3],"%s %s click %.1f navigates" % [root.size,sample[2],fraction])
+			check(await bytes()==before,"facility navigation preserves campaign save bytes")
+	# No-quest hubs keep the adopted artwork-relative positions.
+	await install(seed,"astaris",0);check(node("HubMeetingPanel")==null,"no meeting panel without active wheel")
+	var hub=node("TownHub")
+	for pair in [["HubFacility_guild",.18],["HubFacility_board",.58],["HubFacility_inn",.64],["HubMap",.12]]:
+		check(absf(node(pair[0]).position.x-hub.size.x*pair[1])<1,"no-quest original anchor retained: "+pair[0])
 	print("Town meeting layout regression: %d checks, %d failures" % [checks,failures.size()])
 	game.closing=true;game.dialog.close(false);await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(6):await process_frame

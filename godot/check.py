@@ -5,9 +5,11 @@ import json
 import os
 from pathlib import Path
 import sys
+import shutil
 import subprocess
 from launcher_config import resolve_godot
 import time
+import tempfile
 
 BASE = Path(__file__).resolve().parent
 ROOT = BASE.parent
@@ -28,26 +30,38 @@ try:
 except (FileNotFoundError, ValueError) as error:
     parser.error(f"{error} Install/use Godot 4.6.x, set GODOT_BIN, or create godot/launcher.local.json from the example.")
 args.godot = str(godot_path)
-node = os.environ.get("NATIVE5525_NODE", "node")
+node = os.environ.get("NATIVE5525_NODE") or shutil.which("node") or "node"
 env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "NATIVE5525_PYTHON": sys.executable}
-common = [args.godot, "--headless", "--audio-driver", "Dummy", "--path", str(BASE)]
+evidence = Path(tempfile.mkdtemp(prefix="5525-headless-"))
+env.update(GODOT_BIN=args.godot, NATIVE5525_NODE=node, NATIVE5525_AUDIO_OFF="1",
+           INVENTORY_QA_ROOT=evidence.as_posix(), UIUX_REVIEW_EVIDENCE=evidence.as_posix())
+profile = evidence / "profile"
+profile.mkdir()
+env["APPDATA" if os.name == "nt" else "XDG_DATA_HOME"] = str(profile)
+common = [args.godot, "--headless", "--resolution", "1920x1080", "--audio-driver", "Dummy", "--path", str(BASE)]
 steps = [
     ("Godot path configuration", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/launcher_config_tests.py")], BASE),
     ("Godot import/parse", common + ["--editor", "--import", "--quit"], BASE),
     ("Godot candidate rules", [node, "test_godot_rules.cjs"], ROOT / "native"),
     ("Atomic save and portrait adapter", [sys.executable, "-X", "utf8", "-B", "-m", "unittest", "-v", "test_godot_files"], ROOT / "native"),
 ]
-for name, script in [("Pipe bridge", "bridge_smoke.gd"), ("Frontend controls", "frontend_smoke.gd"), ("UI parity", "ui_parity_smoke.gd"), ("Independent review UI fixes", "uiux_review_fixes.gd"), ("Repeated modal and scroll state", "uiux_state_regression.gd"), ("State-based UI v2", "ui_state_v2.gd"), ("Camp, item menu and inline skill followup", "followup_ui_regression.gd"), ("State UI transactions and stale replies", "ui_state_v2_transactions.gd"), ("Independent async and shop regressions", "review_async_regression.gd"), ("Independent layout and camera regressions", "review_layout_regression.gd"), ("Battle intent, presentation and reference regressions", "battle_review_regression.gd"), ("Preview disconnect and reconnect regressions", "reference_disconnect_regression.gd"), ("Display and facing regression", "display_regression.gd"), ("Legacy presentation and overwrite parity", "parity_fix_regression.gd"), ("Music state machine", "audio_smoke.gd")]:
+# Keep bridge, fault and lifecycle coverage alongside the current CI UI suite.
+for name, script in [
+    ("Pipe bridge", "bridge_smoke.gd"),
+    ("Frontend controls", "frontend_smoke.gd"),
+    ("Music state machine", "audio_smoke.gd"),
+    ("Audio reconnect and load regression", "audio_regression.gd"),
+    ("Portrait hover and HUD lifecycle", "hover_regression.gd"),
+    ("Delayed hover responses after board destruction", "hover_lifetime_regression.gd"),
+    ("Standalone quest dialogue", "quest_story_regression.gd"),
+    ("Approved equipment flavor and detail presentation", "equipment_flavor_regression.gd"),
+]:
     steps.append((name, common + ["--script", "res://tests/" + script], BASE))
 steps.append(("Fault handling and shutdown", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/audit_checks.py"), args.godot], BASE))
-steps.append(("Audio reconnect and load regression", common + ["--script", "res://tests/audio_regression.gd"], BASE))
-steps.append(("October 11 feedback and canonical icons", common + ["--script", "res://tests/ui_feedback_regression.gd"], BASE))
-steps.append(("Independent UI review followup", common + ["--script", "res://tests/ui_review_fixes.gd"], BASE))
-steps.append(("Portrait hover and HUD lifecycle", common + ["--script", "res://tests/hover_regression.gd"], BASE))
-steps.append(("Delayed hover responses after board destruction", common + ["--script", "res://tests/hover_lifetime_regression.gd"], BASE))
-steps.append(("Candidate launcher", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/launcher_checks.py"), args.godot], BASE))
-steps.append(("Standalone quest dialogue at FHD", common + ["--resolution", "1920x1080", "--script", "res://tests/quest_story_regression.gd"], BASE))
-steps.append(("Approved equipment flavor and detail presentation", common + ["--script", "res://tests/equipment_flavor_regression.gd"], BASE))
+if os.name == "nt":
+    steps.append(("Candidate launcher", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/launcher_checks.py"), args.godot], BASE))
+ui_runner = str(BASE / "tests/run_mock_ui_regression.py")
+steps.append(("Current FHD UI regression", [sys.executable, "-X", "utf8", "-B", ui_runner, "--evidence", str(evidence)], BASE))
 if args.full:
     steps.append(("Full native regression", [sys.executable, "-X", "utf8", "-B", "check.py"], ROOT / "native"))
 report = {
@@ -56,6 +70,7 @@ report = {
     "audioDriver": "Dummy",
     "newQuestWavsIncluded": True,
     "subjectiveListening": False,
+    "uiEvidence": str(evidence),
     "steps": [],
 }
 target = BASE / "qa" / "headless-report.json"
@@ -63,7 +78,12 @@ target.parent.mkdir(exist_ok=True)
 for name, command, cwd in steps:
     start = time.monotonic()
     try:
-        result = subprocess.run(command, cwd=cwd, env=env, text=True, encoding="utf-8", errors="replace", capture_output=True, timeout=180)
+        # The CI runner applies its own per-suite deadline and records each result.
+        timeout = None if ui_runner in command else 180
+        step_env = env
+        if name in ("Audio reconnect and load regression", "Fault handling and shutdown"):
+            step_env = {**env, "NATIVE5525_AUDIO_OFF": "0"}
+        result = subprocess.run(command, cwd=cwd, env=step_env, text=True, encoding="utf-8", errors="replace", capture_output=True, timeout=timeout)
         combined = result.stdout + result.stderr
         markers = ["SCRIPT ERROR:", "ERROR:", "FAIL ", "ObjectDB instances leaked", "resources still in use"]
         bad_markers = [marker for marker in markers if marker in combined]

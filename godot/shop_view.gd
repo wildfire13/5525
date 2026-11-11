@@ -75,7 +75,7 @@ func owner_pressed(uid: String) -> bool:
 	if not sale_mode():return false
 	if busy() or ui.modal_open():return true
 	if not c().get("selected",[]).has(uid):return true
-	ui.shop_uid=uid;sale.apply_owner(uid);selected_equipment={}
+	ui.shop_uid=uid;pages.party_uid=uid;sale.apply_owner(uid);selected_equipment={}
 	if comparison_view!=null:comparison_view.invalidate()
 	if selection_kind!="buy":selection_kind=""
 	ui.render();return true
@@ -94,21 +94,29 @@ func render(parent):
 		ui.shop_uid=str(c().get("selected",[""])[0])
 	if sale.owner_id!=ui.shop_uid:sale.apply_owner(ui.shop_uid)
 	var layout=HBoxContainer.new();layout.name="ShopWorkspace";layout.add_theme_constant_override("separation",16);layout.custom_minimum_size.y=ui.mock_shell.content_height();layout.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;parent.add_child(layout)
-	var own=make_panel(layout,"ShopInventory",360)
-	var middle=make_panel(layout,"ShopTransaction",0)
-	var stock=make_panel(layout,"ShopCatalog",360)
+	var column=preload("res://member_loadout_column.gd").new()
+	layout.add_child(column)
 	var person={}
 	for member in ui.roster():
 		if member.id==ui.shop_uid:person=member;break
-	backdrop(own,ui.portraits.texture(person),"ShopCustomerArt")
+	column.build(ui,person,inventory_tab,set_inventory_tab,"ShopInventoryTab_",busy())
+	column.panel.name="ShopInventory"
+	column.portrait.name="ShopCustomerArt"
+	if inventory_tab=="equipment":
+		var slot=selected_equipment.get("equipped_slot","") if selection_kind=="equipment" else ""
+		column.equipment(ui,person,slot,"ShopEquipped_",select_equipment,Callable(),busy())
+	else:
+		var overlay=column.inventory_overlay()
+		var filter=preload("res://member_inventory.gd").add_filter(ui,overlay,person,sale.inventory_filter,sale.change_filter)
+		filter.name="ShopInventoryFilter"
+		filter.disabled=busy()
+		var inventory=ui.scroller(overlay)
+		inventory.get_parent().name="ShopInventoryScroll"
+		ui.memory.watch(inventory.get_parent(),"shop_inventory_"+inventory_tab)
+		sale.render_inventory(inventory)
+	var middle=make_panel(layout,"ShopTransaction",0)
+	var stock=make_panel(layout,"ShopCatalog",360)
 	backdrop(stock,pages.facility_art.npc.texture,"ShopKeeperArt")
-	var tabs=ui.row(own)
-	for tab in [["inventory","インベントリ"],["equipment","現在の装備"]]:
-		var button=b(tabs,tab[1],set_inventory_tab.bind(tab[0]),busy());button.name="ShopInventoryTab_"+tab[0];button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.add_theme_font_size_override("font_size",18);ui.mark_selected(button,inventory_tab==tab[0])
-	var inventory=ui.scroller(own);inventory.get_parent().name="ShopInventoryScroll"
-	ui.memory.watch(inventory.get_parent(),"shop_inventory_"+inventory_tab)
-	if inventory_tab=="equipment":render_equipment(inventory,person)
-	else:sale.render_inventory(inventory)
 	l(middle,"取引を確認").name="ShopTransactionHeading"
 	var detail=ui.scroller(middle);detail.get_parent().name="ShopTransactionScroll"
 	render_notice(detail)
@@ -116,7 +124,6 @@ func render(parent):
 	if selection_kind=="sell":sale.render_detail(detail,footer)
 	elif selection_kind=="equipment":
 		if not selected_equipment.is_empty():
-			l(detail,str(selected_equipment.get("name","")),true)
 			pages.describe_gear(detail,selected_equipment)
 	elif selection_kind=="buy" and not pages.gear_id.is_empty():
 		if c().get("location")=="south":render_consumable_selection(detail,footer)
@@ -161,18 +168,6 @@ func render_product(parent: Control,item: Dictionary):
 	preload("res://item_drag.gd").source(choose,func():
 		if busy():return null
 		return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":pages.epoch},str(item.name),ui.icons.texture(str(item.id) if c().location=="south" else ui.icons.equipment(item)))
-func render_equipment(parent: Control,person: Dictionary):
-	var grid=GridContainer.new();grid.name="ShopEquipmentSlots";grid.columns=3;grid.add_theme_constant_override("h_separation",8);grid.add_theme_constant_override("v_separation",12);parent.add_child(grid)
-	var positions=["","head","","rightHand","upperBody","leftHand","","lowerBody","","accessory1","feet","accessory2"]
-	for position in positions:
-		if position.is_empty():
-			var gap=Control.new();gap.custom_minimum_size=Vector2(88,80);grid.add_child(gap);continue
-		var gear: Dictionary=person.get("equipmentDetails",{}).get(position,{})
-		var button=b(grid,"",select_equipment.bind(gear),busy());button.name="ShopEquipped_"+position;button.custom_minimum_size=Vector2(88,80)
-		button.tooltip_text=str(c().get("slots",{}).get(position,position))+" / "+str(gear.get("name","なし"))
-		var icon=ui.icons.add(button,ui.icons.equipment(gear) if not gear.is_empty() and gear.get("type")!="empty" else ui.icons.slot(position),36);icon.position=Vector2(26,32);icon.size=Vector2(36,36)
-		if gear.is_empty() or gear.get("type")=="empty":icon.modulate.a=.25
-		var heading=Label.new();heading.text=str(c().get("slots",{}).get(position,position));heading.add_theme_font_size_override("font_size",11);heading.position=Vector2(6,6);heading.mouse_filter=Control.MOUSE_FILTER_IGNORE;button.add_child(heading)
 func select_equipment(gear: Dictionary):
 	if busy():return
 	selection_kind="equipment";selected_equipment=gear;sale.item_id="";ui.render()

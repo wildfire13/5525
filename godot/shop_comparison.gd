@@ -45,8 +45,10 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 		var description=ui.label_(body,flavor);description.name="ShopComparisonFlavor";description.add_theme_font_size_override("font_size",20)
 	if not note.is_empty():
 		var memo=ui.label_(body,note);memo.name="ShopComparisonNotes";memo.add_theme_font_size_override("font_size",20)
-	var money=ui.label_(body,"費用を確認中…");money.name="ShopComparisonPayment"
-	var trial=ui.button(body,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;trial.add_theme_font_size_override("font_size",20)
+	# Keep payment/rejection beside the decision, outside long scrolling notes.
+	var money=ui.icons.line(ui,actions.get_parent(),"money","費用を確認中…");money.name="ShopComparisonPayment"
+	actions.get_parent().move_child(money.get_parent(),actions.get_index())
+	var trial=ui.button(actions,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_END;trial.custom_minimum_size.y=40;trial.add_theme_font_size_override("font_size",20)
 	var buy=ui.primary(ui.button(actions,"取引を確認",purchase,true));buy.name="ShopComparisonBuy";buy.custom_minimum_size.y=40;buy.size_flags_horizontal=Control.SIZE_SHRINK_END
 	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
 	refresh(money,comparison,conditions,buy)
@@ -124,7 +126,8 @@ func refresh(money,comparison,conditions,buy):
 	if ui.handle_connection_loss(payment,connection):return
 	var cost=payment.get("purchaseQuote",{})
 	if cost.is_empty():money.text="費用を取得できません。";return
-	money.text="購入 %dG / 所持金 %d → %d G" % [cost.cost,cost.goldBefore,cost.afterGold] if cost.get("ok",false) else "購入不可："+str(cost.reason)+" / 価格 %dG / 所持金 %dG" % [cost.cost,cost.goldBefore]
+	money.text="所持金 %dG − 購入 %dG = 残金 %dG" % [cost.goldBefore,cost.cost,cost.afterGold] if cost.get("ok",false) else "購入不可："+str(cost.reason)+" / 価格 %dG / 所持金 %dG" % [cost.cost,cost.goldBefore]
+	money.add_theme_color_override("font_color",Color("#29332f") if cost.get("ok",false) else Color("#a84432"))
 	buy.text="取引を確認"
 	buy.disabled=not cost.get("ok",false) or shop.busy();buy.set_meta("base_disabled",buy.disabled)
 	buy.tooltip_text="購入品はインベントリへ入ります。" if not buy.disabled else str(cost.get("reason","購入できません"))

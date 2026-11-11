@@ -71,6 +71,9 @@ const Battle = (() => {
   function log(s,message) {s.log.push(message);trimLog(s);}
   // 全員の位置は共通10×5座標。所属(side)と滞在陣地は独立。
   const x = p => p % 10, y = p => Math.floor(p / 10);
+  function operatesSluiceLever(unit, gate) {
+    return unit.side === 'ally' && unit.job !== 'porter' && unit.hp > 0 && unit.pos === gate.lever;
+  }
   const alive = s => s.units.filter(u => u.hp > 0);
   const range = (a,b) => Math.abs(x(a.pos)-x(b.pos))+Math.abs(y(a.pos)-y(b.pos));
   const boardOf = p => x(p)<5 ? "ally" : "enemy";
@@ -379,7 +382,7 @@ const Battle = (() => {
       return;
     }
     if(kind==='move'){const b=swapTarget(s,a,target);if(hasEffect(a,'firstStride')&&!a.firstMoveUsed){a.firstMoveUsed=true;emit(s,a,'firstStride',{target});log(s,`${a.name}の先駆け：最初の移動。`);}if(b){b.pos=a.pos;a.pos=target;log(s,`${a.name}と${b.name}が入れ替わった。`);}else{a.pos=target;log(s,`${a.name}が${boardOf(target)==='ally'?'味方陣':'敵陣'}へ移動。`);}
-      if(s.sluice && !s.sluice.open && a.side==='ally' && a.job!=='porter' && a.pos===s.sluice.lever){
+      if(s.sluice && !s.sluice.open && operatesSluiceLever(a, s.sluice)){
         s.sluice.open=true;log(s,`${a.name}が巻上機を回した。水門が開いた！`);
       }
       return;}
@@ -476,7 +479,7 @@ const Battle = (() => {
   }
   const order=(a,b)=>a.next-b.next||b.agi-a.agi||a.tie-b.tie;
   function check(s){
-    if(s.sluice?.open && !alive(s).some(u=>u.side==='ally' && u.job!=='porter' && u.pos===s.sluice.lever)){
+    if(s.sluice?.open && !s.units.some(unit=>operatesSluiceLever(unit, s.sluice))){
       s.sluice.open=false;
       log(s,'巻上機から手が離れ、水門が閉じた。');
     }
@@ -576,6 +579,6 @@ const Battle = (() => {
     return true;
   }
   function queue(s){const copies=alive(s).map(u=>({...u})),result=[];for(let i=0;i<10&&copies.length;i++){copies.sort(order);result.push({id:copies[0].id,name:copies[0].name,side:copies[0].side,...(copies[0].skipNextTurn?{skip:true}:{})});delete copies[0].skipNextTurn;copies[0].next+=100/copies[0].agi;}return result;}
-  return {returnSkillOptions,returnSkillOption,selectReturnSkill,activeSkillOptions,selectedSkillOption,itemSkillOption,sweepCells,sweepChance,sweepTargets,vaultCell,itemUseLevel,itemInRange,grappleCell,skillLevel,skillInfo,effectCount,percentageIncrease,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,legacyRoster,recruitRoster,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,chooseAction};
+  return {operatesSluiceLever,returnSkillOptions,returnSkillOption,selectReturnSkill,activeSkillOptions,selectedSkillOption,itemSkillOption,sweepCells,sweepChance,sweepTargets,vaultCell,itemUseLevel,itemInRange,grappleCell,skillLevel,skillInfo,effectCount,percentageIncrease,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,legacyRoster,recruitRoster,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,chooseAction};
 })();
 if(typeof module!=='undefined')module.exports=Battle;

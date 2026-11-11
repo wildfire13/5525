@@ -20,9 +20,10 @@ repo = Path(__file__).resolve().parents[2]
 out = a.evidence.resolve()
 if out == repo or repo in out.parents:
     p.error('Evidence must be outside the checkout')
-node, godot = shutil.which('node'), shutil.which('godot')
+node = shutil.which(os.environ.get('NATIVE5525_NODE') or 'node')
+godot = shutil.which(os.environ.get('GODOT_BIN') or 'godot')
 if not node or not godot:
-    p.error('Node and Godot must be on PATH')
+    p.error('Set NATIVE5525_NODE and GODOT_BIN or put Node and Godot on PATH')
 out.mkdir(parents=True, exist_ok=True)
 results = []
 # Rationale / removals: docs/linux-fhd-tests-20261031.md.
@@ -35,7 +36,7 @@ def run(name, command, cwd, env=None):
     started = time.monotonic()
     try:
         timeout=240 if name=='feedback2_guild_regression' else 210 if name=='guild_regression' else 150
-        r = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=timeout)
         text, code = r.stdout + r.stderr, r.returncode
     except subprocess.TimeoutExpired as e:
         def decode(value):
@@ -58,15 +59,16 @@ for name in GODOT_SUITES:
     if a.only and not any(result in a.only for result, _ in checks):
         continue
     scope = Path(tempfile.mkdtemp(prefix=name + '-', dir=out))
-    env = dict(os.environ, NATIVE5525_NODE=node, NATIVE5525_PYTHON=sys.executable, NATIVE5525_AUDIO_OFF='1', INVENTORY_QA_ROOT=str(scope), UIUX_REVIEW_EVIDENCE=str(scope), SKILL_EFFECT_QA_ROOT=str(scope))
+    env = dict(os.environ, NATIVE5525_NODE=node, NATIVE5525_PYTHON=sys.executable, NATIVE5525_AUDIO_OFF='1', INVENTORY_QA_ROOT=scope.as_posix(), UIUX_REVIEW_EVIDENCE=scope.as_posix(), SKILL_EFFECT_QA_ROOT=scope.as_posix())
     for key, child in [('XDG_DATA_HOME', 'data'), ('XDG_CONFIG_HOME', 'config'), ('XDG_CACHE_HOME', 'cache')]:
         path = scope / child
         path.mkdir()
         env[key] = str(path)
+    if os.name == 'nt':
+        env['APPDATA'] = str(scope / 'data')
+        env['INVENTORY_QA_ROOT'] = scope.as_posix()
     # Resource/configuration/worker checks do not exercise a game viewport.
-    # This suite deliberately resizes its own viewport through FHD and 1280x800
-    # and checks both geometries. An always-FHD watcher contradicts that test.
-    screen_suite = name not in {'icons_approved_261021', 'ui_preferences_restart', 'individual_icons_regression', 'debug_store_teardown', 'audio_options_regression', 'shop_feedback30', 'deployment_drag_regression'}
+    screen_suite = name not in {'icons_approved_261021', 'ui_preferences_restart', 'individual_icons_regression', 'debug_store_teardown', 'audio_options_regression'}
     # Wrap screen suites, retaining their lifecycle while checking every frame.
     wrapper = scope / 'fhd-suite.gd'
     wrapper.write_text(

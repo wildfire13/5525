@@ -6,6 +6,7 @@ var shop:
 var ui
 var owner_id := ""
 var item_id := ""
+var inventory_filter := "all"
 var amount := 1
 var stage := "list"
 var quote: Dictionary={}
@@ -17,7 +18,7 @@ var confirmation: ConfirmationDialog
 func _init(controller):shop_ref=weakref(controller);ui=controller.ui
 func reset():
  if is_instance_valid(confirmation):confirmation.hide();confirmation.queue_free()
- confirmation=null;owner_id="";item_id="";amount=1;stage="list";quote={};message="";generation+=1;previewing=false;observed_token=null
+ inventory_filter="all";confirmation=null;owner_id="";item_id="";amount=1;stage="list";quote={};message="";generation+=1;previewing=false;observed_token=null
 func busy() -> bool:return stage in ["confirm","pending","unknown"]
 func entries() -> Array:return ui.campaign().get("inventoryByCharacter",{}).get(owner_id,{}).get("entries",[])
 func selected() -> Dictionary:
@@ -34,27 +35,30 @@ func select_item(id: String):
  if busy() or ui.locked or ui.modal_open():return
  item_id=id;amount=1;quote={};stage="selected";message="";generation+=1;previewing=false;shop.selection_kind="sell";ui.render()
 func row(parent,item: Dictionary):
- var choose=ui.button(parent,"",select_item.bind(str(item.id)),busy());choose.name="SaleItem_"+str(item.id);choose.custom_minimum_size=Vector2(0,64);choose.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;choose.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);margin.add_theme_constant_override("margin_left",8);margin.add_theme_constant_override("margin_right",8)
- var line=HBoxContainer.new();line.mouse_filter=Control.MOUSE_FILTER_IGNORE;line.add_theme_constant_override("separation",8);margin.add_child(line)
- ui.icons.add(line,ui.icons.equipment(item) if item.get("kind")=="equipment" else "items" if item.get("kind")=="quest" else str(item.id),36)
- var name_=ui.label_(line,str(item.name));name_.add_theme_font_size_override("font_size",14);name_.mouse_filter=Control.MOUSE_FILTER_IGNORE
- var count=ui.label_(line,"×%d" % int(item.count));count.add_theme_font_size_override("font_size",13);count.size_flags_horizontal=Control.SIZE_SHRINK_END;count.autowrap_mode=TextServer.AUTOWRAP_OFF;count.mouse_filter=Control.MOUSE_FILTER_IGNORE
- shop.list_surface(choose,shop.selection_kind=="sell" and item_id==str(item.id));ui.memory.key(choose,"sale_"+str(item.id));ui.memory.item(choose,str(item.id))
+ var choose=preload("res://member_inventory.gd").add_row(ui,parent,item,select_item.bind(str(item.id)),shop.selection_kind=="sell" and item_id==str(item.id),busy())
+ choose.name="SaleItem_"+str(item.id)
+ ui.memory.key(choose,"sale_"+str(item.id));ui.memory.item(choose,str(item.id))
  choose.tooltip_text=str(item.get("sale",{}).get("reason",""))
+func change_filter(value: String):
+ if busy():return
+ inventory_filter=value
+ if shop.selection_kind=="sell" and not selected().is_empty() and not preload("res://member_inventory.gd").matches(selected(),value):
+  apply_owner(owner_id);shop.selection_kind=""
+ ui.render()
 func render_inventory(parent):
  var token=ui.campaign().get("inventoryToken")
  if stage!="pending" and observed_token!=token:
   observed_token=token;quote={};generation+=1;previewing=false
   if not item_id.is_empty() and selected().is_empty():item_id="";stage="list";amount=1
- for item in entries():row(parent,item)
- if entries().is_empty():ui.label_(parent,"アイテムはありません")
+ for item in entries():
+  if preload("res://member_inventory.gd").matches(item,inventory_filter):row(parent,item)
+ if parent.get_child_count()==0:ui.label_(parent,"アイテムはありません")
 func render_detail(parent,footer):
  var item=selected()
  if item.is_empty():ui.label_(parent,"インベントリのアイテムを選択");return
  var icon=ui.icons.equipment(item) if item.get("kind")=="equipment" else "items" if item.get("kind")=="quest" else str(item.id)
- ui.icons.line(ui,parent,icon,str(item.name),true).name="FacilitySaleTarget"
  if item.get("kind")=="equipment":shop.pages.describe_gear(parent,item.get("definition",item))
+ else:ui.icons.line(ui,parent,icon,str(item.name),true).name="FacilitySaleTarget"
  var controls=ui.row(parent);ui.label_(controls,"個数")
  var count=SpinBox.new();count.name="FacilitySaleQuantity";count.min_value=1;count.max_value=int(item.count);amount=clampi(amount,1,int(item.count));count.step=1;count.value=amount;count.custom_minimum_size.x=104;count.editable=not busy();controls.add_child(count)
  count.value_changed.connect(func(value):amount=int(value);quote={};generation+=1;request_quote())

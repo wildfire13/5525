@@ -35,6 +35,7 @@ func back():
 func choose(value: String):
  if value not in ["buy","sell","inn","guild","warehouse"] or value=="sell" and not pages.c().get("saleAvailable",false):return
  if ui.locked or ui.presenting or ui.modal_open() or pages.shop_view.busy():return
+ if ui.page=="shop" and value in ["buy","sell"] and pages.c().get("selected",[]).has(pages.party_uid):ui.shop_uid=pages.party_uid
  view=value;pages.shop_view.sale.reset();ui.memory.focus_key="";ui.render()
 func render_top(parent: Control,page: String) -> bool:
  sync()
