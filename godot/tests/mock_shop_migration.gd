@@ -28,12 +28,23 @@ func run():
  var shop=game.pages.shop_view
  check(game.find_child("ShopInventory",true,false)!=null and game.find_child("ShopCatalog",true,false)!=null,"inventory and stock shown together")
  check(game.find_child("ShopExit",true,false)!=null,"transaction exit exists without selection")
- check(is_equal_approx(game.find_child("ShopCustomerArt",true,false).modulate.a,.2) and is_equal_approx(game.find_child("ShopKeeperArt",true,false).modulate.a,.2),"both portraits use translucent backdrop")
+ check(is_equal_approx(game.find_child("ShopCustomerArt",true,false).modulate.a,.22) and is_equal_approx(game.find_child("ShopKeeperArt",true,false).modulate.a,.2),"both portraits use translucent backdrop")
  var stock=game.find_child("ShopCatalog",true,false);var own=game.find_child("ShopInventory",true,false);var middle=game.find_child("ShopTransaction",true,false)
  check(own.global_position.x<middle.global_position.x and middle.global_position.x<stock.global_position.x,"inventory comparison stock order")
- check(absf(own.size.y-middle.size.y)<2 and absf(stock.size.y-middle.size.y)<2,"three panels share lower edge")
+ check(absf(own.get_global_rect().end.y-middle.get_global_rect().end.y)<2 and absf(stock.size.y-middle.size.y)<2,"three panels share lower edge")
  shop.set_inventory_tab("equipment");await frames()
  check(game.find_child("ShopEquipped_head",true,false)!=null and game.find_child("ShopEquipped_feet",true,false)!=null,"equipment body icons available")
+ var shop_rects=[]
+ var party_nodes=["CharacterTab_equipment","CharacterTab_inventory","CharacterPortrait"]
+ for n in ["ShopInventoryTab_equipment","ShopInventoryTab_inventory","ShopCustomerArt"]:
+  shop_rects.append(game.find_child(n,true,false).get_global_rect())
+ for part in ["head","rightHand","upperBody","leftHand","lowerBody","feet","accessory1","accessory2"]:
+  shop_rects.append(game.find_child("ShopEquipped_"+part,true,false).get_global_rect())
+  party_nodes.append("CharacterSlot_"+part)
+ game.mock_shell.toggle_character();await settle()
+ for i in range(party_nodes.size()):
+  check(game.find_child(party_nodes[i],true,false).get_global_rect()==shop_rects[i],"same geometry for "+party_nodes[i])
+ game.mock_shell.toggle_character();await settle()
  await capture("shop-equipment")
  shop.set_inventory_tab("inventory")
  shop.open_comparison("javelin-wood");await settle()

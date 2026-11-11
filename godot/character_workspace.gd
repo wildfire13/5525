@@ -18,31 +18,24 @@ func render(parent):
 	if not members.any(func(u):return str(u.id)==ui.pages.party_uid):ui.pages.party_uid=str(ui.campaign().get("selected",[])[0])
 	var member=members.filter(func(u):return str(u.id)==ui.pages.party_uid)[0]
 	if owner!=str(member.id):owner=str(member.id);picked={};allocating=false
-	var tabs=ui.row(parent)
-	tabs.add_theme_constant_override("separation",16)
-	var left_tabs=ui.row(tabs)
-	left_tabs.custom_minimum_size.x=400
-	var right_tabs=ui.row(tabs)
-	for spec in [["equipment","装備"],["inventory","インベントリ"],["ability","能力"],["skills","スキル"]]:
-		var left=spec[0] in ["equipment","inventory"]
-		var control=ui.button(left_tabs if left else right_tabs,spec[1],set_tab.bind(str(spec[0])))
-		if left:control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		else:control.custom_minimum_size.x=140
-		ui.mark_selected(control,tab==spec[0])
-	var split=ui.row(parent);split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;split.add_theme_constant_override("separation",16)
-	var display=ui.card(split)
-	display.get_parent().custom_minimum_size=Vector2(400,ui.mock_shell.content_height()-52)
-	ui.label_(display,{"equipment":"装備","inventory":"インベントリ","ability":"能力","skills":"スキル"}[tab])
-	var stage=Control.new()
-	stage.custom_minimum_size=Vector2(384,760)
-	stage.size_flags_vertical=Control.SIZE_EXPAND_FILL
-	display.add_child(stage)
-	var art=ui.portrait(stage,member,false,1)
+	var split=ui.row(parent)
+	split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+	split.add_theme_constant_override("separation",16)
+	var column=preload("res://member_loadout_column.gd").new()
+	split.add_child(column)
+	column.build(ui,member,tab,set_tab,"CharacterTab_")
+	var art=column.portrait
 	art.name="CharacterPortrait"
-	art.position=Vector2(0,8)
-	art.size=Vector2(384,760)
-	art.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	var card=ui.card(split)
+	var right=VBoxContainer.new()
+	right.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	split.add_child(right)
+	var right_tabs=ui.row(right)
+	for spec in [["ability","能力"],["skills","スキル"]]:
+		var control=ui.button(right_tabs,spec[1],set_tab.bind(str(spec[0])))
+		control.custom_minimum_size.x=140
+		ui.mark_selected(control,tab==spec[0])
+	var card=ui.card(right)
+	card.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
 	card.get_parent().custom_minimum_size=Vector2(420,ui.mock_shell.content_height()-52)
 	card.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	if tab=="ability":
@@ -54,13 +47,9 @@ func render(parent):
 		ability(card,member)
 	elif tab=="skills":skills(card,member)
 	else:
-		art.modulate.a=.22
-		if tab=="equipment":equipment(stage,member)
-		else:
-			var overlay=VBoxContainer.new()
-			stage.add_child(overlay)
-			overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			inventory(overlay,member)
+		if tab=="equipment":
+			column.equipment(ui,member,picked.get("equipped_slot",""),"CharacterSlot_",select_equipped,payload)
+		else:inventory(column.inventory_overlay(),member)
 		var detail=ui.scroller(card)
 		if picked.is_empty():return
 		if picked.get("kind")=="equipment" or picked.has("equipped_slot"):
@@ -90,15 +79,10 @@ func render(parent):
 			var discard=picked.get("discard",{})
 			var remove=ui.button(detail,"捨てる",confirm_discard.bind(owner,picked.duplicate(true)),busy or not discard.get("ok",false));remove.name="CharacterDiscard";remove.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;remove.tooltip_text=str(discard.get("reason",""))
 
-func equipment(stage,member):
-	var positions={"head":Vector2(148,0),"rightHand":Vector2(28,136),"upperBody":Vector2(148,136),"leftHand":Vector2(268,136),"lowerBody":Vector2(148,284),"feet":Vector2(148,432),"accessory1":Vector2(88,596),"accessory2":Vector2(208,596)}
-	for slot in member.get("equipmentSlots",[]):
-		var item=member.get("equipmentDetails",{}).get(slot.slot,{}).duplicate(true);item["equipped_slot"]=slot.slot;item["occupied"]=slot.get("occupiedBy")!=null;item["id"]=slot.get("id","");item["name"]=ui.pages.party_view.equipment_name(slot)
-		var button=ui.button(stage,"",func():picked=item;ui.render());button.name="CharacterSlot_"+str(slot.slot);button.position=positions.get(slot.slot,Vector2.ZERO);button.custom_minimum_size=Vector2(88,88);button.size=Vector2(88,88);button.tooltip_text=str(slot.label)+" / "+str(item.name)
-		ui.mark_selected(button,picked.get("equipped_slot","")==slot.slot)
-		button.icon=ui.icons.texture(ui.icons.equipment(item));button.expand_icon=true;button.add_theme_constant_override("icon_max_width",68)
-		var caption=ui.label_(stage,str(slot.label));caption.position=button.position+Vector2(0,90);caption.size=Vector2(90,12);caption.autowrap_mode=TextServer.AUTOWRAP_OFF;caption.add_theme_font_size_override("font_size",16)
-		if item.get("type")!="empty" and slot.get("occupiedBy")==null:Drag.source(button,func():return payload(item,"transferEquipped",str(slot.slot)),str(item.name),button.icon)
+func select_equipped(item: Dictionary):
+	picked=item
+	ui.render()
+
 func inventory(parent,member):
 	var filter=OptionButton.new();filter.name="CharacterInventoryFilter";parent.add_child(filter)
 	var filters=[["all","すべて"],["items","消耗品・荷物"]]
