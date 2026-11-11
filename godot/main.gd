@@ -474,6 +474,9 @@ func record_debug_event(name: String,reason: String):
 func record_debug_rejection(request: Dictionary):
 	if engine!=null and engine.has_method("debug_rejected_request"):engine.debug_rejected_request(request)
 func navigate(value: String):
+	if value=="character":
+		if page!="character":mock_shell.toggle_character()
+		return
 	if not pages.party_view.guard_leave(navigate.bind(value)):return
 	if page=="party" and not pages.guild_view.guard_leave():return
 	record_debug_event("navigate","success")

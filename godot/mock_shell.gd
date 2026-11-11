@@ -39,6 +39,7 @@ func apply_theme():
 var character_origin := "hub"
 
 func toggle_character():
+	if ui.page=="party" and ui.pages.guild_view.busy():return
 	if not ui.pages.party_view.guard_leave(toggle_character):return
 	if ui.page=="character":ui.page=character_origin
 	else:
