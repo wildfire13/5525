@@ -13,6 +13,19 @@ function acceptContract() {
   return s;
 }
 
+function verifyClosedBoard(result) {
+  const town=C.deserialize(C.serialize(result));
+  assert(C.acknowledge(town));
+  town.location='astaris';
+  const saved=C.deserialize(C.serialize(town));
+  const offers=C.view(saved).board;
+  assert(offers.length>0);
+  assert(!offers.some(q=>q.id==='sluice-bell'));
+  const porter=saved.selected.find(id=>B.roster.find(u=>u.id===id).job==='porter');
+  assert(!C.accept(saved,'sluice-bell',porter));
+  assert(C.accept(saved,offers[0].id,porter));
+}
+
 function roundtrip(s) {
   assert.deepEqual(C.deserialize(C.serialize(s)), JSON.parse(JSON.stringify(s)));
 }
@@ -72,6 +85,7 @@ for (const firstRoute of ['short', 'safe']) {
     assert.equal(delivery.result.storyId,'sluice-bell');
     assert(delivery.result.story[0][1].includes(line));
     roundtrip(delivery);
+    verifyClosedBoard(delivery);
   }
   assert(C.completeQuest(s));
   roundtrip(s);
@@ -164,7 +178,6 @@ for(const loss of ['retreat','porter','defeat']){
   assert.equal(lost.result.storyId,'sluice-bell');
   assert(lost.result.story[0][1].includes({retreat:'切り返した',porter:'膝',defeat:'最後の護衛'}[loss]));
   roundtrip(lost);
-  assert(C.acknowledge(lost));
-  assert(C.board(lost).some(q=>q.id==='sluice-bell'));
+  verifyClosedBoard(lost);
 }
 console.log('Sluice Bell: delivery, enemy tactics, gate saves and once-per-battle relay verified.');
