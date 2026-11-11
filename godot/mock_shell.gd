@@ -62,7 +62,7 @@ func navigation(parent):
 func needs_roster() -> bool:
 	return ui.page!="board" and not ui.pages.facility_entry.at_top() and ui.campaign().get("phase")!="result"
 func workspace(parent) -> VBoxContainer:
-	if ui.page=="character" or (ui.page=="shop" and not ui.pages.facility_entry.at_top()):
+	if ui.page=="character" or ui.pages.warehouse_view.available() or (ui.page=="shop" and not ui.pages.facility_entry.at_top()):
 		var scroll=ScrollContainer.new()
 		scroll.name="MemberWorkspaceScroll"
 		scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
