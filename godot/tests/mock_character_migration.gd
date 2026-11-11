@@ -45,6 +45,10 @@ func run():
 	check(game.find_child("Header_map",true,false)==null,"party header omits map shortcut")
 	game.find_child("Header_character",true,false).pressed.emit();await settle()
 	check(game.page=="map","header toggle restores map")
+	game.navigate("board");await settle()
+	game.navigate("character");await settle()
+	game.find_child("Header_character",true,false).pressed.emit();await settle()
+	check(game.page=="board","direct character entry remembers its own origin")
 	game.find_child("Header_character",true,false).pressed.emit();await settle()
 
 	workspace.tab="ability";game.render();await settle()
