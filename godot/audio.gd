@@ -216,6 +216,11 @@ func save_settings():
 		config.set_value(kind,"muted",muted[kind]);config.set_value(kind,"volume",volumes[kind])
 	var error=config.save(SETTINGS_PATH)
 	if error!=OK:push_warning("Audio preferences could not be saved: %s" % error)
+func sluice_signal() -> void:
+	if audible("se"):
+		ui_player.stream = preload("res://assets/sluice_signal.wav")
+		ui_player.play()
+
 func ui(id: String) -> void:
 	if not audible("se"): return
 	ui_player.stream=load_wav(str(sounds.get(id,"")))

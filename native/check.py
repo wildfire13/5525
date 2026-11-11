@@ -15,6 +15,7 @@ steps=[
  ('Additive passive grants',['node','test_sqlite_passive_grants.cjs']),
  ('Secondary grant combat',['node','test_sqlite_grant_combat.cjs']),
  ('Campaign battle extension',['node','test_campaign_battle.cjs']),
+ ('Sluice Bell route and formation tactics',['node','test_sluice_bell.cjs']),
  ('Porter-relative immediate combat and save migration',['node','test_campaign_rule_migration.cjs']),
  ('Current battle UI rule contract',['node','test_godot_rules.cjs']),
  ('Equipment-level ambush and DEF contract',['node','test_equipment_ambush_def.cjs']),

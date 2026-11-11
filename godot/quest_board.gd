@@ -76,8 +76,8 @@ func render_detail(parent,q: Dictionary,active: bool):
 		# Scenario quests also carry the on-time difference in bonus/bonusRP.
 		reward_line(details,"希望条件達成報酬",str(rewards.get("type","money")),int(rewards.get("bonus",0)),int(rewards.get("bonusRP",0)))
 		if rewards.get("legacyXP",false):reward_line(details,"キャラクター報酬","experience",int(q.get("xp",0)),0)
-	if q.get("scenario",false):
-		if str(q.get("eventId",""))=="wheel":meeting.render(details,q,"Quest",true)
+	if q.get("scenario",false) and str(q.get("eventId",""))=="wheel":meeting.render(details,q,"Quest",true)
+	if q.get("story") is Array and not q.story.is_empty():
 		var story=pages.b(details,"依頼時の話" if active else "話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);story.custom_minimum_size.y=44
 
 	var actions=pages.row(parent);actions.name="QuestDetailActions";actions.alignment=BoxContainer.ALIGNMENT_END
@@ -127,6 +127,21 @@ func play_scene(story: Array,portrait_key: String,cast: Array=[],event_id: Strin
 	var scene=_dialogue()
 	if scene.get_parent()==null:ui.add_child(scene)
 	scene.open({"name":"依頼のあと","story":story,"portrait":portrait_key,"cast":cast})
+func render_sluice_story(parent: Control, result: Dictionary) -> void:
+	if result.get("storyId") != "sluice-bell" or not result.get("story") is Array or result.story.is_empty():
+		return
+	var lines: Array = result.story
+	var first: Array = lines.front()
+	if first.size() < 2:return
+	var speaker := str(preload("res://quest_dialogue.gd").SPEAKERS.get(first[0], ""))
+	var opening = pages.l(parent, str(first[1]) if speaker.is_empty() else speaker + "「" + str(first[1]) + "」")
+	opening.name = "SluiceStoryOpening"
+	opening.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if lines.size() > 1:
+		var read = ui.local_button(parent, "続きを読む", play_scene.bind(lines.slice(1), str(result.get("portrait", "")), result.get("cast", [])))
+		read.name = "ResultStory"
+		read.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+
 func open_picker(id: String):
 	if ui.locked or ui.modal_open() or pages.c().get("phase")!="town" or pages.c().get("activeQuest") is Dictionary:return
 	picker_generation+=1;picker_owner="";submitted=false
