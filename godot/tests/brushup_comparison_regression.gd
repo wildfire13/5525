@@ -42,7 +42,7 @@ func run():
   var rect=node("ShopTransaction").get_global_rect()
   var guard_expected=await expected_comparison("guard")
   check(selected_owner_is("guard") and node("ShopComparisonProduct").text=="木製の片手槍" and node("ShopComparisonStats").text==guard_expected,"shared roster owner and product match canonical guard comparison "+str(dims.x))
-  check(node("ShopComparisonPayment").text.contains("500 → 410 G"),"purchaseQuote supplies exact payment")
+  check(node("ShopComparisonPayment").text=="所持金 500G − 購入 90G = 残金 410G","purchaseQuote supplies exact payment")
   var canonical=(await game.engine.request({"op":"campaign","action":"previewGear","args":["guard","spear-wood","rightHand"]})).previewGear
   var shown=node("ShopComparisonStats").text
   check(shown.contains("26 → 23") and shown.contains("(+1)") and shown.contains("(-3)"),"canonical numeric changes include arrows and signed deltas")

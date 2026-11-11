@@ -11,7 +11,7 @@ class ShardTests(unittest.TestCase):
     def test_disjoint_exhaustive_and_paired(self):
         expected = [name for group in self.groups for name in group]
         shards = [selected_names(self.groups, shard) for shard in range(SHARDS)]
-        self.assertEqual(len(expected), 66)
+        self.assertEqual(len(expected), 67)
         self.assertEqual(sorted(name for shard in shards for name in shard), sorted(expected))
         self.assertEqual(len(set(expected)), len(expected))
         self.assertTrue(all(shards))
