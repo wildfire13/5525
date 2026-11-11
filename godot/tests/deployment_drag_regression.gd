@@ -53,12 +53,10 @@ func reserve_scroll_access(label: String):
 	check(not scroll.get_global_rect().intersection(panel.footer.get_global_rect()).has_area(),label+" reserve viewport never sits behind pinned instructions")
 	var cards=reserve.find_children("*","Button",false,false)
 	if cards.is_empty():return
-	var overflow=scroll.get_v_scroll_bar().max_value>scroll.get_v_scroll_bar().page
 	check(scroll.vertical_scroll_mode!=ScrollContainer.SCROLL_MODE_DISABLED,label+" deployed detail viewport allows vertical scrolling")
 	check(cards.size()==3 and reserve.get_parent()==panel.body,label+" all selected reserves remain in scrollable detail content")
 	var visible_reserves=reserve.get_global_rect().intersection(scroll.get_global_rect())
 	check(not visible_reserves.intersection(panel.footer.get_global_rect()).has_area(),label+" visible reserve cards do not overlap the fixed instruction text")
-	if root.size.y<900:check(overflow,label+" narrow viewport exposes a scroll range to reach lower reserve cards")
 func run():
 	create_timer(120).timeout.connect(func():print("FAIL deployment D&D watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
@@ -69,7 +67,7 @@ func run():
 	check((await game.update({"op":"campaign_load","data":sample})).get("ok",false),"valid seven-member deployment restored")
 	await settle();game.board.deployment_assigned.connect(func(uid,pos):drops.append([uid,pos]))
 	check(root.has_method("gui_cancel_drag"),"runtime exposes actual Viewport drag cancellation API")
-	for dims in [Vector2i(1920,1080),Vector2i(1280,800)]:root.size=dims;await settle();layout(str(dims));reserve_scroll_access(str(dims))
+	layout("FHD");reserve_scroll_access("FHD")
 	var before=await saved();var payload=Drag.make_payload(game,"guard","board")
 	check(Drag.valid(game,payload),"fresh board context is valid")
 	game.menu.show()

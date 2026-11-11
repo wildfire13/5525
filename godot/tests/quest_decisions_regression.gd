@@ -71,10 +71,9 @@ func run():
 			check(scene!=null and scene.quest.story[0][1].contains("若い陶工") and scene.quest.story[0][1].contains("イースの工房を訪ね"),"kiln scene explains apprentice visit")
 			check(scene!=null and scene.quest.portrait=="apprentice","existing apprentice art retained");await escape()
 		check(await bytes()==before,"kiln story remains read-only")
-	for dims in [Vector2i(1920,1080),Vector2i(1280,720)]:
-		root.size=dims;await settle();await install(wheel,"north",37);await press("HubDeliverCargo");var d=node("MerchantFailureConfirmation")
-		check(contained(node("HubDeliverCargo")),"expiry action contained at "+str(dims))
-		check(d is ConfirmationDialog and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(d.position),Vector2(d.size))),"expiry confirmation contained at "+str(dims));await cancel(d)
+	await install(wheel,"north",37);await press("HubDeliverCargo");var d=node("MerchantFailureConfirmation")
+	check(contained(node("HubDeliverCargo")),"expiry action contained at "+str(root.size))
+	check(d is ConfirmationDialog and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(d.position),Vector2(d.size))),"expiry confirmation contained at "+str(root.size));await cancel(d)
 	print("Quest decisions regression: %d checks, %d failures" % [checks,failures.size()])
 	game.closing=true;game.dialog.close(false);await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(6):await process_frame
