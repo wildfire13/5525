@@ -36,12 +36,25 @@ func apply_theme():
 		ui.theme.set_stylebox(state,"TabContainer",style(Color("#e0e8dd") if state=="tab_selected" else PAPER))
 	for key in ["font_selected_color","font_unselected_color","font_hovered_color","font_focus_color"]:ui.theme.set_color(key,"TabContainer",INK)
 	ui.menu.add_theme_stylebox_override("panel",surface_style())
+var character_origin := "hub"
+
+func toggle_character():
+	if not ui.pages.party_view.guard_leave(toggle_character):return
+	if ui.page=="character":ui.page=character_origin
+	else:
+		character_origin=ui.page
+		ui.page="character"
+	ui.memory.focus_key=""
+	ui.render()
+
 func navigation(parent):
 	var panel=PanelContainer.new();panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
 	var bar=ui.row(panel);bar.name="CampaignHeader";bar.custom_minimum_size.y=56
 	var brand=ui.label_(bar,"5525",true);brand.size_flags_horizontal=Control.SIZE_FILL;brand.custom_minimum_size.x=160
 	for pair in [["hub","ローカルマップ"],["character","パーティ情報"],["board","クエスト"],["map","ワールドマップ"]]:
-		var nav=ui.button(bar,pair[1],ui.navigate.bind(pair[0]),ui.campaign().get("phase")!="town" and pair[0]=="hub");nav.name="Header_"+pair[0];nav.custom_minimum_size=Vector2(140,44);ui.mark_selected(nav,ui.page==pair[0])
+		if ui.page=="character" and pair[0]!="character":continue
+		var action=toggle_character if pair[0]=="character" else ui.navigate.bind(pair[0])
+		var nav=ui.button(bar,pair[1],action,ui.campaign().get("phase")!="town" and pair[0]=="hub");nav.name="Header_"+pair[0];nav.custom_minimum_size=Vector2(140,44);ui.mark_selected(nav,ui.page==pair[0])
 	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bar.add_child(spacer)
 	ui.icons.line(ui,bar,"money",str(int(ui.campaign().get("gold",0)))+" G")
 	ui.local_button(bar,"メニュー",ui.open_menu)
@@ -81,7 +94,8 @@ func activate(id: String):
 	if ui.pages.warehouse_view.available():ui.pages.warehouse_view.select_owner(id);return
 	if ui.pages.guild_view.available():ui.pages.guild_view.select_current(id);return
 	if ui.page=="shop":ui.pages.shop_view.owner_pressed(id);return
-	ui.navigate("character")
+	if ui.page=="character":ui.render()
+	else:toggle_character()
 func can_drop(payload,id: String) -> bool:
 	if payload is Dictionary and payload.get("kind")=="character_transfer":return payload.get("owner")!=id
 	if ui.page=="shop":return ui.pages.shop_view.can_drop_product(payload,id)
