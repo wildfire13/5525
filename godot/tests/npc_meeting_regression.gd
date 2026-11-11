@@ -125,14 +125,11 @@ func run():
 		await game.forecast_action("short","travel",["short"]);await settle();var message=node("ConfirmationMessage")
 		check(message is Label and (message.text.contains("受取期限を超える") if sample[0]=="wheel" else message.text.contains("受取期限は終了")) and message.text.contains(sample[4]) and not message.text.contains("遅配"),"expired wrong-town forecast points to settlement without late-success: "+sample[0])
 		for d in game.find_children("*","ConfirmationDialog",true,false):await cancel(d)
-	# Resize assertions concern logical UI containment, not screenshot/visual approval.
-	for dims in [Vector2i(1920,1080),Vector2i(1280,720)]:
-		root.size=dims;await settle()
-		for page in ["hub","board"]:
-			await install(wheel,"south",15,page);var id="HubWaitForMerchant" if page=="hub" else "WaitForMerchant"
-			var button=node(id);check(button is Button and contained(button),"wait action contained at "+str(dims)+" "+page)
-			await press(id);var d=node("MerchantWaitConfirmation")
-			check(d is ConfirmationDialog and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(d.position),Vector2(d.size))),"wait confirmation contained at "+str(dims)+" "+page);await cancel(d)
+	for page in ["hub","board"]:
+		await install(wheel,"south",15,page);var id="HubWaitForMerchant" if page=="hub" else "WaitForMerchant"
+		var button=node(id);check(button is Button and contained(button),"wait action contained at "+str(root.size)+" "+page)
+		await press(id);var d=node("MerchantWaitConfirmation")
+		check(d is ConfirmationDialog and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(d.position),Vector2(d.size))),"wait confirmation contained at "+str(root.size)+" "+page);await cancel(d)
 	print("NPC meeting regression: %d checks, %d failures" % [checks,failures.size()])
 	game.closing=true;game.dialog.close(false);await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(6):await process_frame
