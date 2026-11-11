@@ -1,0 +1,216 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="Timber"]
+albedo_color = Color(0.48, 0.29, 0.14, 1)
+metallic = 0
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Iron"]
+albedo_color = Color(0.22, 0.26, 0.26, 1)
+metallic = 0.35
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Rope"]
+albedo_color = Color(0.85, 0.66, 0.36, 1)
+metallic = 0
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Water"]
+albedo_color = Color(0.22, 0.53, 0.56, 1)
+metallic = 0
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Foam"]
+albedo_color = Color(0.69, 0.82, 0.76, 1)
+metallic = 0
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="Foot"]
+material = SubResource("Timber")
+size = Vector3(0.77, 0.09, 0.34)
+
+[sub_resource type="BoxMesh" id="Bearing"]
+material = SubResource("Iron")
+size = Vector3(0.075, 0.34, 0.21)
+
+[sub_resource type="CylinderMesh" id="Drum"]
+material = SubResource("Timber")
+top_radius = 0.14
+bottom_radius = 0.14
+height = 0.4
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Coil"]
+material = SubResource("Rope")
+top_radius = 0.151
+bottom_radius = 0.151
+height = 0.045
+radial_segments = 12
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Flange"]
+material = SubResource("Iron")
+top_radius = 0.18
+bottom_radius = 0.18
+height = 0.035
+radial_segments = 12
+rings = 1
+
+[sub_resource type="BoxMesh" id="Arm"]
+material = SubResource("Iron")
+size = Vector3(0.055, 0.23, 0.05)
+
+[sub_resource type="CylinderMesh" id="Grip"]
+material = SubResource("Timber")
+top_radius = 0.046
+bottom_radius = 0.046
+height = 0.15
+radial_segments = 12
+rings = 1
+
+[sub_resource type="BoxMesh" id="Channel"]
+material = SubResource("Water")
+size = Vector3(1, 0.018, 0.39)
+
+[sub_resource type="BoxMesh" id="Ripple"]
+material = SubResource("Foam")
+size = Vector3(0.18, 0.009, 0.015)
+
+[sub_resource type="BoxMesh" id="Pier"]
+material = SubResource("Timber")
+size = Vector3(0.09, 0.84, 0.14)
+
+[sub_resource type="BoxMesh" id="Lintel"]
+material = SubResource("Timber")
+size = Vector3(0.97, 0.11, 0.16)
+
+[sub_resource type="BoxMesh" id="Bar"]
+material = SubResource("Iron")
+size = Vector3(0.042, 0.39, 0.045)
+
+[sub_resource type="BoxMesh" id="Rail"]
+material = SubResource("Iron")
+size = Vector3(0.74, 0.045, 0.055)
+
+[node name="SluiceWorks" type="Node3D"]
+
+[node name="Winch" type="Node3D" parent="."]
+
+[node name="Bed" type="MeshInstance3D" parent="Winch"]
+position = Vector3(0, 0.045, 0)
+mesh = SubResource("Foot")
+
+[node name="Bearing0" type="MeshInstance3D" parent="Winch"]
+position = Vector3(-0.28, 0.21, 0)
+mesh = SubResource("Bearing")
+
+[node name="Bearing1" type="MeshInstance3D" parent="Winch"]
+position = Vector3(0.28, 0.21, 0)
+mesh = SubResource("Bearing")
+
+[node name="Drum" type="MeshInstance3D" parent="Winch"]
+position = Vector3(0, 0.3, 0)
+rotation = Vector3(0, 0, 1.5708)
+mesh = SubResource("Drum")
+
+[node name="RopeTurn0" type="MeshInstance3D" parent="Winch"]
+position = Vector3(-0.14, 0.3, 0)
+rotation = Vector3(0, 0, 1.5708)
+mesh = SubResource("Coil")
+
+[node name="RopeTurn1" type="MeshInstance3D" parent="Winch"]
+position = Vector3(-0.07, 0.3, 0)
+rotation = Vector3(0, 0, 1.5708)
+mesh = SubResource("Coil")
+
+[node name="RopeTurn2" type="MeshInstance3D" parent="Winch"]
+position = Vector3(0, 0.3, 0)
+rotation = Vector3(0, 0, 1.5708)
+mesh = SubResource("Coil")
+
+[node name="RopeTurn3" type="MeshInstance3D" parent="Winch"]
+position = Vector3(0.07, 0.3, 0)
+rotation = Vector3(0, 0, 1.5708)
+mesh = SubResource("Coil")
+
+[node name="RopeTurn4" type="MeshInstance3D" parent="Winch"]
+position = Vector3(0.14, 0.3, 0)
+rotation = Vector3(0, 0, 1.5708)
+mesh = SubResource("Coil")
+
+[node name="Cheek0" type="MeshInstance3D" parent="Winch"]
+position = Vector3(-0.218, 0.3, 0)
+rotation = Vector3(0, 0, 1.5708)
+mesh = SubResource("Flange")
+
+[node name="Cheek1" type="MeshInstance3D" parent="Winch"]
+position = Vector3(0.218, 0.3, 0)
+rotation = Vector3(0, 0, 1.5708)
+mesh = SubResource("Flange")
+
+[node name="Crank" type="MeshInstance3D" parent="Winch"]
+position = Vector3(0.34, 0.21, 0.055)
+rotation = Vector3(-0.45, 0, 0)
+mesh = SubResource("Arm")
+
+[node name="Handle" type="MeshInstance3D" parent="Winch"]
+position = Vector3(0.4, 0.12, 0.1)
+rotation = Vector3(0, 0, 1.5708)
+mesh = SubResource("Grip")
+
+[node name="Gate" type="Node3D" parent="."]
+
+[node name="Watercourse" type="MeshInstance3D" parent="Gate"]
+position = Vector3(0, 0.013, 0)
+mesh = SubResource("Channel")
+
+[node name="Current" type="MeshInstance3D" parent="Gate"]
+position = Vector3(-0.24, 0.027, 0.13)
+mesh = SubResource("Ripple")
+
+[node name="Wake" type="MeshInstance3D" parent="Gate"]
+position = Vector3(0.21, 0.027, -0.14)
+mesh = SubResource("Ripple")
+
+[node name="GuidePost0" type="MeshInstance3D" parent="Gate"]
+position = Vector3(-0.43, 0.42, 0)
+mesh = SubResource("Pier")
+
+[node name="GuidePost1" type="MeshInstance3D" parent="Gate"]
+position = Vector3(0.43, 0.42, 0)
+mesh = SubResource("Pier")
+
+[node name="Crossbeam" type="MeshInstance3D" parent="Gate"]
+position = Vector3(0, 0.83, 0)
+mesh = SubResource("Lintel")
+
+[node name="Grille" type="Node3D" parent="Gate"]
+
+[node name="Pale0" type="MeshInstance3D" parent="Gate/Grille"]
+position = Vector3(-0.32, 0.22, 0)
+mesh = SubResource("Bar")
+
+[node name="Pale1" type="MeshInstance3D" parent="Gate/Grille"]
+position = Vector3(-0.16, 0.22, 0)
+mesh = SubResource("Bar")
+
+[node name="Pale2" type="MeshInstance3D" parent="Gate/Grille"]
+position = Vector3(0, 0.22, 0)
+mesh = SubResource("Bar")
+
+[node name="Pale3" type="MeshInstance3D" parent="Gate/Grille"]
+position = Vector3(0.16, 0.22, 0)
+mesh = SubResource("Bar")
+
+[node name="Pale4" type="MeshInstance3D" parent="Gate/Grille"]
+position = Vector3(0.32, 0.22, 0)
+mesh = SubResource("Bar")
+
+[node name="Rail0" type="MeshInstance3D" parent="Gate/Grille"]
+position = Vector3(0, 0.12, 0.014)
+mesh = SubResource("Rail")
+
+[node name="Rail1" type="MeshInstance3D" parent="Gate/Grille"]
+position = Vector3(0, 0.32, 0.014)
+mesh = SubResource("Rail")

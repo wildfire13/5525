@@ -18,6 +18,9 @@ var camera_pitch := 0.7
 var camera_drag := 0
 var right_panel: Control
 var world
+var sluice_works: Node3D
+var grille_motion: Tween
+var grille_open := false
 var view: SubViewport
 var viewport_container: SubViewportContainer
 var overlay: Control
@@ -288,6 +291,7 @@ func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, c
 	data=d;preview=pr;kind=command;selected=uid;targets=chosen
 	var state: Dictionary=d.get("state") if d.get("state") is Dictionary else {}
 	var phase: Dictionary=d.get("presentation") if d.get("presentation") is Dictionary else {}
+	sync_sluice_works(state.get("sluice"))
 	var live_ids=[]
 	for u in state.get("units",[]):
 		live_ids.append(u.id)
@@ -389,10 +393,74 @@ func draw_overlay():
 	var font=ThemeDB.fallback_font
 	for x in range(10):overlay.draw_string(font,project(point(40+x)+Vector3(0,.02,.72)),str(x),HORIZONTAL_ALIGNMENT_CENTER,-1,18,Color("#83e9db") if x<5 else Color("#ffa4b5"))
 	for y in range(5):overlay.draw_string(font,project(point(y*10)+Vector3(-.85,.02,0)),str(4-y),HORIZONTAL_ALIGNMENT_CENTER,-1,14,Color.WHITE)
+	if state.get("sluice") is Dictionary:
+		draw_sluice(state.sluice)
 	draw_unit_labels(state)
 	if has_focus():
 		cell_outline(keyboard_cell,Color("#78edce"),3.0)
 		overlay.draw_string(ThemeDB.fallback_font,Vector2(8,size.y-10),("射程参考 / Escで同じ仮置きに戻る" if reference_mode else "フォーカス X%d,Y%d / Enterは候補選択" % [keyboard_cell%10,4-int(keyboard_cell/10)]),HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color.WHITE)
+func sync_sluice_works(gate) -> void:
+	if not gate is Dictionary:
+		world.set_riverside("")
+		if is_instance_valid(sluice_works):
+			sluice_works.hide()
+		return
+	world.set_riverside(str(gate.route), point(int(gate.exit)).x)
+	var initial := not is_instance_valid(sluice_works) or not sluice_works.visible
+	if not is_instance_valid(sluice_works):
+		sluice_works = preload("res://sluice_works.tscn").instantiate()
+		world.add_child(sluice_works)
+	sluice_works.show()
+	sluice_works.get_node("Winch").position = point(int(gate.lever)) + Vector3(-0.16, 0.015, -0.40)
+	sluice_works.get_node("Gate").position = point(int(gate.exit)) + Vector3(0, 0.015, -0.45)
+	if not initial and grille_open == bool(gate.open):
+		return
+	grille_open = bool(gate.open)
+	if grille_motion:
+		grille_motion.kill()
+	var grille: Node3D = sluice_works.get_node("Gate/Grille")
+	var height := 0.39 if grille_open else 0.0
+	if initial:
+		grille.position.y = height
+	else:
+		grille_motion = grille.create_tween()
+		grille_motion.tween_property(grille, "position:y", height, 0.22)
+
+func draw_sluice(gate: Dictionary) -> void:
+	var opened := bool(gate.open)
+	var exit_color := Color("a4efcb") if opened else Color("ffb59c")
+	var font := get_theme_default_font()
+	for key in ["lever", "exit"]:
+		var cell := int(gate[key])
+		var ink := Color("ffe4a5") if key == "lever" else exit_color
+		var caption := "巻上機" if key == "lever" else ("出口・開" if opened else "出口・閉")
+		cell_outline(cell, ink, 3)
+		var anchor := project_cell(cell) + Vector2(0, 18)
+		var width := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 10
+		var tag := Rect2(anchor - Vector2(width / 2, 0), Vector2(width, 23))
+		if key == "lever":
+			var center := project_cell(cell)
+			# Place the tag beside the tile, clear of the bars at units' feet.
+			for offset in [Vector2(26, -24), Vector2(-width-26, -24), Vector2(26, 12), Vector2(-width-26, 12)]:
+				var candidate := Rect2(center + Vector2(offset), tag.size)
+				if not Rect2(Vector2.ZERO, size).encloses(candidate):
+					continue
+				var overlaps := false
+				for u in data.state.units:
+					if u.hp > 0 and candidate.intersects(Rect2(project_cell(int(u.pos)) + Vector2(-28, 0), Vector2(56, 12))):
+						overlaps = true
+						break
+				if not overlaps:
+					tag = candidate
+					break
+			overlay.draw_line(center + Vector2(0, 10), tag.get_center(), ink, 2, true)
+		overlay.draw_rect(tag, Color("22332ef0"))
+		overlay.draw_string(font, tag.position + Vector2(5, 17), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, ink)
+	var tip := "守護者が通常移動で巻上機へ：開門　離脱・撃破：閉門"
+	var width := font.get_string_size(tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 16
+	overlay.draw_rect(Rect2(8, 8, width, 26), Color("22332ef0"))
+	overlay.draw_string(font, Vector2(16, 27), tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
+
 func draw_unit_labels(state: Dictionary):
 	var shown: Array[Rect2]=[]
 	var actor=state.get("actor","")

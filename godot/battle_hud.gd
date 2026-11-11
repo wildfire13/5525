@@ -427,8 +427,41 @@ func render_move(main,facts):
 	if ui.preview_ready:
 		if ui.preview.get("swap")!=null:l(facts,"交換: "+ui.member_name(str(ui.preview.swap))+" → "+coord(acting().get("pos",0)))
 		l(facts,"着地点の固定予告: "+(" / ".join(ui.preview.get("risks",[])) if not ui.preview.get("risks",[]).is_empty() else "なし（取得済み）"))
-		l(facts,"移動後の陣形: "+("成立" if ui.preview.get("formationAfter",false) else "未成立"))
+		var formation_after := "移動後の陣形: " + ("成立" if ui.preview.get("formationAfter",false) else "未成立")
+		var gate_effect := sluice_move_effect(ui.state(), acting(), ui.preview)
+		if gate_effect.is_empty():
+			l(facts, formation_after)
+		else:
+			var note = l(main, gate_effect + "　／　" + formation_after)
+			note.name = "SluiceMoveEffect"
+			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			main.move_child(note, 0)
 	else:l(facts,"予告・陣形を確認中…")
+func sluice_move_effect(state: Dictionary, mover: Dictionary, preview: Dictionary) -> String:
+	var gate = state.get("sluice")
+	if not gate is Dictionary or preview.get("kind") != "move" or mover.get("side") != "ally":
+		return ""
+	var lever_held := false
+	var porter_at_exit := false
+	# Preview units already include both ends of a swap.
+	for member in preview.units:
+		if member.side != "ally" or member.hp <= 0:
+			continue
+		if member.job == "porter":
+			porter_at_exit = porter_at_exit or member.pos == gate.exit
+		elif member.pos == gate.lever:
+			lever_held = true
+	var opens: bool = not bool(gate.open) and mover.job != "porter" and preview.destination == gate.lever
+	var stays_open: bool = lever_held and (bool(gate.open) or opens)
+	var effects := PackedStringArray()
+	if opens:
+		effects.append("水門：開く")
+	elif gate.open and not stays_open:
+		effects.append("水門：閉じる")
+	if stays_open and porter_at_exit:
+		effects.append("水門突破")
+	return "　".join(effects)
+
 func render_prediction(main,facts):
 	var summary="クリックしてターゲットを選択してください。"
 	if selected_cell>=0:
@@ -641,7 +674,9 @@ func render_deployment():
 	else:render_person_content(left_info,unit(ui.selected))
 	ui.battle_actions=deployment_actions
 	b(deployment_actions,"配置リセット",reset_deployment).name="DeploymentReset"
-	b(deployment_actions,"撤退",func():ui.confirm("戦闘から撤退しますか？",ui.act.bind("retreat",[]))).name="DeploymentRetreat"
+	var job=ui.campaign().get("activeQuest")
+	if not (job is Dictionary and job.get("id")=="sluice-bell"):
+		b(deployment_actions,"撤退",func():ui.confirm("戦闘から撤退しますか？",ui.act.bind("retreat",[]))).name="DeploymentRetreat"
 	ui.green_button(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true))).name="DeploymentBegin"
 func deployment_changed() -> bool:
 	for initial in ui.state().get("deploymentInitial",[]):

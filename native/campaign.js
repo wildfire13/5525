@@ -239,9 +239,48 @@ const Campaign = (() => {
   // Development purpose and alternate prices belong here, not in player text.
   const LEGACY_QUEST_TEXT="繰り返しの受注・移動・買い替えを確かめる仮の配達依頼です。急ぎは納期6時間・報酬180G、通常は10時間・150G。";
   function questText(q) {return `${q.cargo}を${getPlace(q.to).name}まで届けてください。`;}
+  const sluiceSpeaker='sluice-ferrymaster';
+  const sluiceRequest='八時間後、増水がイースの渡し場に届く。警鐘の鐘舌を運び、舟を出す三つ鐘を鳴らしてほしい。遅れても鐘舌は受け取る。';
+  const sluiceStories={
+    offer:[
+      ['narration','舟守が布をほどく。拳ほどの鉄の棒に、小さな手の跡が煤でついている。'],
+      [sluiceSpeaker,'鐘の舌だよ。ようやく鍛え直せた。イースの子らが毎朝、磨いてたやつさ。'],
+      [sluiceSpeaker,'渡し場からは上の水が見えない。三つ鳴ったら、粉袋を堤に上げて、小舟の綱をほどく。それがうちの決まりだ。'],
+      [sluiceSpeaker,'八時間したら水が来る。私は先に下って、舟を集める。あんたはこいつを、鐘の下まで。'],
+      [sluiceSpeaker,'川沿いを通るなら番小屋を見ておくれ。見習いの舟守が一人、手前の岸へ回す舟を守ってる。']
+    ],
+    onTime:[
+      ['narration','イースの鐘楼。舟守が鐘舌を吊るし、まだ乾いている石段の上で綱を三度引いた。'],
+      ['narration','一つ。粉袋が肩に載る。二つ。子どもが舟に乗る。三つ。最後の係留綱が水から上がった。'],
+      [sluiceSpeaker,'ごらん。水が石段を洗う前に、みんな手を離せた。'],
+      ['narration','小さな手が布を差し出す。「明日の朝も、磨きに来ていい？」舟守は鐘の下にその布を掛けた。']
+    ],
+    late:[
+      ['narration','イースの石段はもう水の下だった。舟守は櫂で戸を叩いて皆を起こし、最後の一人を堤へ上げたところだった。'],
+      [sluiceSpeaker,'人は数えた。全員いるよ。粉袋は……あの白い筋になっちまった。'],
+      ['narration','舟守は受け取った鐘舌を吊るし、一度だけ鳴らす。対岸の小舟から、櫂を立てる返事があった。'],
+      [sluiceSpeaker,'今夜も水は動く。次の見張りには、この音を渡せる。運んでくれてありがとう。']
+    ],
+    retreat:[
+      ['narration','退く合図に、護衛が荷車を堤の内側へ切り返した。布の中で鐘舌が車板を一度打つ。'],
+      ['narration','イースの方角から返事はない。護送隊は車輪の跡を逆にたどって、街道を離れた。']
+    ],
+    porter:[
+      ['narration','ポーターの膝が落ちた。護衛は転がりかけた鐘舌を止め、その布をほどいて傷口を押さえた。'],
+      ['narration','空いた荷台に仲間を寝かせる。鐘楼へ向いていた車の柄が、今度は手当てのできる岸を向いた。']
+    ],
+    defeat:[
+      ['narration','最後の護衛の手が、車の柄から滑った。車輪は岸の泥に沈み、包まれた鐘舌だけが荷台に残った。'],
+      ['narration','渡し場で舟守が耳を澄ます。聞こえるのは、水が係留杭を打つ音だけだった。']
+    ]
+  };
+  function sluiceScene(ending){
+    return {storyId:'sluice-bell',portrait:sluiceSpeaker,cast:[sluiceSpeaker],story:clone(sluiceStories[ending])};
+  }
   function displayQuest(q,s) {
     if(!q)return q;
     const shown=q.eventId==='wheel'?wheelPresentation(s,q):clone(q);
+    if(q.id==='sluice-bell')Object.assign(shown,sluiceScene('offer'),{text:sluiceRequest+'（一度限りの依頼。遅配・撤退・敗北でも再受注できません。）'});
     shown.rewards=questRewards(q);
     shown.rewardType=q.rewardType||'money';
     if(q.text===LEGACY_QUEST_TEXT&&locations.some(p=>p.id===q.from)&&locations.some(p=>p.id===q.to)&&
@@ -272,6 +311,11 @@ const Campaign = (() => {
       const event={...clone(q),rewardRevision:1,rewardType:'money',id:`standalone-${q.eventId}`,text:`${q.cargo}を${getPlace(q.to).name}まで届けてください。`,scenario:true,postedAt:s.standaloneEvents.epoch,deadlineAt:s.standaloneEvents.epoch+q.deadline};
       offers.push(q.eventId==='wheel'?wheelPresentation(s,event):event);
     }
+    if(s.location==='astaris'&&!s.sluiceBellEnded)offers.push({
+      id:'sluice-bell',from:'astaris',to:'east',name:'水門の鐘',client:'水門の舟守',portrait:'sluice-ferrymaster',cargo:'警鐘の鐘舌',
+      weight:3,deadline:8,reward:260,xp:100,rewardRevision:1,rewardType:'money',
+      text:sluiceRequest
+    });
     return offers.map(q=>displayQuest(q,s));
   }
   function scenarioAftermath(s){
@@ -384,12 +428,25 @@ const Campaign = (() => {
     }
     return preset;
   }
+  function sluiceEncounter(s,j) {
+    return s.activeQuest?.id==='sluice-bell' && j.origin==='astaris' && j.destination==='east' && !j.returning;
+  }
+  function sluiceLayout(j) {
+    const row=j.route==='short'?10:30;
+    const nearExit=j.stage===1 && j.outboundRoute==='safe';
+    const exit=nearExit?(j.route==='short'?5:45):row+7;
+    return {lever:row+4,exit,route:j.route};
+  }
   function travel(s,route,random=Math.random) {
     if(inventoryOverflow(s).length)return false;
     if(s.phase!=='road'||!s.journey||!['short','safe'].includes(route)||typeof random!=='function')return false;
     const j=s.journey,encounterStage=j.returning?0:j.stage,count=route==='short'?(encounterStage===0?3:4):(encounterStage===0?2:3);
     if(j.returning&&route!==j.outboundRoute)return false;
     let enemies;try{enemies=J.randomEnemies(count,()=>{const n=random();if(typeof n!=='number'||!Number.isFinite(n)||n<0||n>=1)throw new Error('Random value out of range');return n;});}catch(e){return false;}
+    if(sluiceEncounter(s,j)){
+      const guards=route==='short'?['archer','guard','scout','mage']:['guard','archer','mage'];
+      enemies=guards.slice(0,count);
+    }
     if(!J.travel(s.journey,route))return false;
     if(j.stage===0)j.outboundRoute=route;
     s.hours+=route==='short'?2:4;tickWorld(s,route==='short'?2:4);
@@ -398,6 +455,22 @@ const Campaign = (() => {
     b.itemInventories=Object.fromEntries(ids.map(id=>[id,Object.fromEntries(items.map(item=>[item.id,I.count(s.characters[id].inventory,item.id)]))]));
     const preset=deploymentPreset(ids,j.formation);for(const u of b.units.filter(u=>u.side==='ally'))u.pos=preset.units.find(p=>p.id===u.id).pos;
     applyEquipment(s,b);b.campaignToken=j.token;b.campaignStage=j.stage;
+    if(sluiceEncounter(s,j)){
+      b.sluice={...sluiceLayout(j),open:false};
+      const lead=b.units.find(u=>u.side==='enemy');
+      const post=route==='short'?16:36;
+      const other=b.units.find(u=>u.pos===post && u!==lead);
+      if(other)other.pos=lead.pos;
+      lead.pos=post;
+      lead.name=route==='short'?'離列狙いの射手':'巻上機の番人';
+      b.log.push(route==='short'?'峠の射手は陣形マスを離れた守護者を狙う。':'川の番人は巻上機へ向かう。先に押さえたい。');
+      if(j.stage===0 && route==='safe')b.log.push('番小屋の見習いを舟ごと引き出した。「次の岸で待ってます！」');
+      if(j.stage===1 && j.outboundRoute==='safe'){
+        const blocker=b.units.find(u=>u.side==='enemy' && u.pos===b.sluice.exit);
+        if(blocker)blocker.pos=9;
+        b.log.push('番小屋で助けた見習いが櫂を上げた。手前の岸に舟が着く。');
+      }
+    }
     b.deploymentInitial=b.units.filter(u=>u.side==='ally').map(u=>({id:u.id,pos:u.pos}));
     s.battle=b;j.phase='deployment';s.phase='deployment';note(s,`${j.stage+1}区間目：${route==='short'?'近道':'迂回'}で遭遇。`);return true;
   }
@@ -458,25 +531,30 @@ const Campaign = (() => {
     // Rewards apply exactly once to the current travelling characters.
     for(const id of s.selected){const c=s.characters[id],old=c.level;c.xp+=amount;c.level=1+Math.floor(c.xp/100);c.statPoints+=(c.level-old)*2;c.skillPoints+=c.level-old;}
   }
-  function rollbackFailure(s,reason) {
+  function rollbackFailure(s,reason,ending) {
+    const failedQuest=s.activeQuest;
     const failedTrip={origin:s.journey.origin,destination:s.journey.destination,hours:s.journey.hours};
     const failedEvent=s.activeQuest?.eventId,elapsedWorld=s.worldTime??s.hours,events=clone(s.standaloneEvents||freshWorldEvents(s.hours));
     const old=clone(s.rollback);for(const key of Object.keys(s))delete s[key];Object.assign(s,old);
     s.worldTime=elapsedWorld;s.standaloneEvents=events;if(failedEvent&&s.standaloneEvents.events[failedEvent]?.status==='accepted')s.standaloneEvents.events[failedEvent].status='available';syncWorld(s);
     invalidateInventory(s);
     s.phase='result';s.result={outcome:'failed',reason,restored:true,trip:failedTrip,gold:0,xp:0};
+    if(failedQuest?.id==='sluice-bell'){
+      s.sluiceBellEnded=true;
+      Object.assign(s.result,{quest:failedQuest.name},sluiceScene(ending));
+    }
     note(s,reason+' 受注／出発前の状態を復元しました。');return true;
   }
   function retreat(s) {
     const b=s.battle,j=s.journey;
     if(s.phase!=='battle'||!b||b.result||!j||!s.rollback||b.campaignToken!==j.token||b.campaignStage!==j.stage)return false;
-    return rollbackFailure(s,'戦闘から撤退しました。');
+    return rollbackFailure(s,'戦闘から撤退しました。','retreat');
   }
   function finishBattle(s) {
     const b=s.battle,j=s.journey;
     if(s.phase!=='battle'||!b?.result||!j||b.campaignToken!==j.token||b.campaignStage!==j.stage)return false;
     const allies=b.units.filter(u=>u.side==='ally'),failed=allies.some(u=>u.job==='porter'&&u.hp<=0)||allies.every(u=>u.hp<=0)||!!b.failure;
-    if(failed)return rollbackFailure(s,'ポーター戦闘不能または護送隊敗北。');
+    if(failed)return rollbackFailure(s,'ポーター戦闘不能または護送隊敗北。',allies.every(u=>u.hp<=0)?'defeat':'porter');
     if(b.resultKind!=='breakthrough'&&b.units.some(u=>u.side==='enemy'&&u.hp>0))return false;
     if(!J.finishBattle(j,b))return false;
     // Journey recovery and EXP already apply to all travelling members. Reserve
@@ -582,6 +660,10 @@ const Campaign = (() => {
     if(q.eventId){s.standaloneEvents.events[q.eventId].status=scenarioFailure?'failed':'completed';}
     const resultStory=q.eventId?(q.eventId==='wheel'&&late?q.lateStory:q.successStory):null;
     s.phase='result';s.result={outcome:late?'late':'success',gold,xp,rp,rewardType,partyRP:s.partyRP||0,hours,worldTime:s.worldTime,location:s.location,quest:q.name,scenario:q.eventId||null,portrait:q.portrait||null,cast:q.cast||[],story:resultStory||null,restored:false};
+    if(q.id==='sluice-bell'){
+      s.sluiceBellEnded=true;
+      Object.assign(s.result,sluiceScene(late?'late':'onTime'));
+    }
     s.activeQuest=null;s.rollback=null;s.journey=null;s.battle=null;return true;
   }
   function acknowledge(s) {
@@ -854,6 +936,9 @@ const Campaign = (() => {
     syncWorld(s);
     // Older standalone deadline results omitted the reason. Present it without rewriting the save.
     const shown=clone(s),result=shown.result;
+    if(result?.quest==='水門の鐘' && !result.story && ['success','late'].includes(result.outcome)){
+      Object.assign(result,sluiceScene(result.outcome==='late'?'late':'onTime'));
+    }
     if(result?.outcome==='failed'&&SCENARIO_BY_ID[result.scenario]&&!result.reason)result.reason=SCENARIO_DEADLINE_REASON;
     const ids=battleIds(s),deployed=s.battle?s.battle.units.filter(u=>u.side==='ally').map(u=>u.id):[...ids];
     return {...shown,partyRP:s.partyRP||0,canTurnBack:canTurnBack(s),returnHours:canTurnBack(s)?((s.journey.outboundRoute||s.journey.route)==='safe'?5:3):0,activeQuest:displayQuest(s.activeQuest,s),partyLimit:PARTY_LIMIT,battleLimit:BATTLE_LIMIT,battleSelected:[...ids],deploymentRoster:{deployed,reserves:s.selected.filter(id=>!deployed.includes(id)),remaining:BATTLE_LIMIT-deployed.length,minimum:1,canBegin:s.phase==='deployment'&&!!s.battle?.units.some(u=>u.side==='ally'&&u.hp>0)&&validate(s).ok},cargoAboard:Cargo.aboard(s),cargoCarriers:Cargo.carriers(s),inventory:inventoryTotals(s),inventoryTotals:inventoryTotals(s,Object.keys(s.characters)),inventoryToken:inventoryToken(s),saleAvailable:saleAvailable(s),inventoryByCharacter:Object.fromEntries(Object.keys(s.characters).map(id=>[id,inventoryView(s,id)])),inn:innQuote(s),town:s.location,towns:clone(locations),locations:clone(locations),routes:clone(routes),destinations:clone(destinations(s)),board:board(s),scenarioAftermath:scenarioAftermath(s),scenarioStages:scenarioStages(s),shop:shop(s),itemDefinitions:clone(items),provisional:[...provisional],
@@ -892,6 +977,7 @@ const Campaign = (() => {
   }
 
   function validateCampaignProgress(s) {
+    demand(s.sluiceBellEnded===undefined||s.sluiceBellEnded===true,'水門の鐘の終了記録');
     demand(['town','road','deployment','battle','camp','arrival','result'].includes(s.phase),'進行段階');
     demand(!!getPlace(s.location),'拠点');
     for(const key of ['gold','xp','hours','sequence','boardRound','completed'])demand(integer(s[key]),key);
@@ -983,6 +1069,12 @@ const Campaign = (() => {
   function validateBattle(s,version) {
     if(s.battle!==null) {
       const b=s.battle,j=s.journey,ids=battleIds(s);demand(record(b)&&['deployment','battle'].includes(s.phase)&&b.campaignToken===j.token&&b.campaignStage===j.stage,'戦闘の対応');
+      if(sluiceEncounter(s,j)){
+        const plan=sluiceLayout(j),gate=b.sluice;
+        demand(record(gate) && gate.lever===plan.lever && gate.exit===plan.exit && gate.route===plan.route &&
+          (gate.relayUsed===undefined || (gate.relayUsed===true && !b.deploying)) &&
+          typeof gate.open==='boolean' && (!gate.open || (!b.deploying && b.units.some(u=>u.side==='ally' && u.job!=='porter' && u.hp>0 && u.pos===gate.lever))),'水門の状態');
+      }else demand(b.sluice===undefined,'依頼外の水門');
       demand(b.formationVersion===undefined||[1,2,3].includes(b.formationVersion)&&['convoy','flank'].includes(b.formationKind)&&b.formationKind===j.formation&&(b.formationVersion!==1||s.phase==='battle'),'陣形条件の版');
       demand(b.formationVersion!==undefined||b.formationKind===undefined,'陣形条件の版なし');
       demand(version<3||b.formationVersion===3&&b.formationBasis==='porter_relative','陣形基準');
@@ -1124,7 +1216,7 @@ const Campaign = (() => {
       demand(new Set(alivePositions).size===alivePositions.length,'配置重複');
       demand(b.actor===null||b.units.some(u=>u.id===b.actor&&u.side==='ally'&&u.hp>0),'行動者');
       if(s.phase==='battle'&&!b.result)demand(b.actor!==null,'行動者なし');
-      if(b.result){const porter=b.units.find(u=>u.side==='ally'&&u.job==='porter');const valid=b.resultKind==='breakthrough'?porter?.hp>0&&porter.pos%10===9:b.resultKind==='annihilation'?b.units.filter(u=>u.side==='enemy').every(u=>u.hp===0):b.resultKind==='defeat'&&(porter?.hp===0||b.units.filter(u=>u.side==='ally').every(u=>u.hp===0));demand(b.actor===null&&valid,'戦闘結果の不一致');}
+      if(b.result){const porter=b.units.find(u=>u.side==='ally'&&u.job==='porter');const valid=b.resultKind==='breakthrough'?(porter?.hp>0&&porter.pos%10===9||b.sluice?.open&&b.units.some(u=>u.side==='ally'&&u.job==='porter'&&u.hp>0&&u.pos===b.sluice.exit)):b.resultKind==='annihilation'?b.units.filter(u=>u.side==='enemy').every(u=>u.hp===0):b.resultKind==='defeat'&&(porter?.hp===0||b.units.filter(u=>u.side==='ally').every(u=>u.hp===0));demand(b.actor===null&&valid,'戦闘結果の不一致');}
       demand(Array.isArray(b.deploymentInitial)&&b.deploymentInitial.length===ids.length&&b.deploymentInitial.every(p=>{const u=b.units.find(unit=>unit.id===p.id);return ids.includes(p.id)&&integer(p.pos,0,49)&&(B.boardOf(p.pos)==='ally'||version<3&&u?.canInvade===true||u?.canDeployEnemySide===true);})&&new Set(b.deploymentInitial.map(p=>p.pos)).size===ids.length&&new Set(b.deploymentInitial.map(p=>p.id)).size===ids.length,'初期配置');
     } else demand(!['deployment','battle'].includes(s.phase),'戦闘情報なし');
   }
@@ -1188,7 +1280,13 @@ const Campaign = (() => {
   function migrateWorldEvents(s){
     if(!Number.isSafeInteger(s.worldTime))s.worldTime=s.hours;
     if(!s.standaloneEvents)s.standaloneEvents=freshWorldEvents(s.worldTime);
-    if(s.rollback)migrateWorldEvents(s.rollback);
+    // Older saves identify a concluded bell contract by its result or unique delivered cargo.
+    if(s.sluiceBellEnded===undefined && (s.result?.quest==='水門の鐘'||s.result?.storyId==='sluice-bell'||
+      s.history?.includes('「荷物」を渡しました。警鐘の鐘舌を引き渡しました。')))s.sluiceBellEnded=true;
+    if(s.rollback){
+      migrateWorldEvents(s.rollback);
+      if(s.rollback.sluiceBellEnded)s.sluiceBellEnded=true;
+    }
     syncWorld(s);
   }
   function deserialize(input) {
