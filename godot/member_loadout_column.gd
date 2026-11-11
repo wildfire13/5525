@@ -42,12 +42,8 @@ func inventory_overlay() -> VBoxContainer:
 	return overlay
 
 func equipment(ui,member: Dictionary,selected_slot: String,prefix: String,choose: Callable,drag: Callable=Callable(),disabled:=false):
-	for slot in member.get("equipmentSlots",[]):
-		var item=member.get("equipmentDetails",{}).get(slot.slot,{}).duplicate(true)
-		item["equipped_slot"]=slot.slot
-		item["occupied"]=slot.get("occupiedBy")!=null
-		item["id"]=slot.get("id","")
-		item["name"]=ui.pages.party_view.equipment_name(slot)
+	for slot in ordered_slots(member):
+		var item=slot_item(ui,member,slot)
 		var button=ui.button(stage,"",choose.bind(item),disabled)
 		button.name=prefix+str(slot.slot)
 		button.position=SLOT_POSITIONS[slot.slot]
@@ -65,3 +61,21 @@ func equipment(ui,member: Dictionary,selected_slot: String,prefix: String,choose
 		caption.add_theme_font_size_override("font_size",16)
 		if drag.is_valid() and item.get("type")!="empty" and not item.occupied:
 			preload("res://item_drag.gd").source(button,drag.bind(item,"transferEquipped",str(slot.slot)),str(item.name),button.icon)
+
+static func ordered_slots(member: Dictionary) -> Array:
+	var ordered=[]
+	var slots=member.get("equipmentSlots",[])
+	for id in SLOT_POSITIONS:
+		for slot in slots:
+			if slot.slot==id:
+				ordered.append(slot)
+				break
+	return ordered
+
+static func slot_item(ui,member: Dictionary,slot: Dictionary) -> Dictionary:
+	var item=member.get("equipmentDetails",{}).get(slot.slot,{}).duplicate(true)
+	item.equipped_slot=slot.slot
+	item.occupied=slot.get("occupiedBy")!=null
+	item.id=slot.get("id","")
+	item.name=ui.pages.party_view.equipment_name(slot)
+	return item

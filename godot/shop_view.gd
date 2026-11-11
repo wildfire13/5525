@@ -106,7 +106,11 @@ func render(parent):
 		var slot=selected_equipment.get("equipped_slot","") if selection_kind=="equipment" else ""
 		column.equipment(ui,person,slot,"ShopEquipped_",select_equipment,Callable(),busy())
 	else:
-		var inventory=ui.scroller(column.inventory_overlay())
+		var overlay=column.inventory_overlay()
+		var filter=preload("res://member_inventory.gd").add_filter(ui,overlay,person,sale.inventory_filter,sale.change_filter)
+		filter.name="ShopInventoryFilter"
+		filter.disabled=busy()
+		var inventory=ui.scroller(overlay)
 		inventory.get_parent().name="ShopInventoryScroll"
 		ui.memory.watch(inventory.get_parent(),"shop_inventory_"+inventory_tab)
 		sale.render_inventory(inventory)
@@ -120,7 +124,6 @@ func render(parent):
 	if selection_kind=="sell":sale.render_detail(detail,footer)
 	elif selection_kind=="equipment":
 		if not selected_equipment.is_empty():
-			l(detail,str(selected_equipment.get("name","")),true)
 			pages.describe_gear(detail,selected_equipment)
 	elif selection_kind=="buy" and not pages.gear_id.is_empty():
 		if c().get("location")=="south":render_consumable_selection(detail,footer)

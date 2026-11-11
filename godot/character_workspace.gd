@@ -84,21 +84,17 @@ func select_equipped(item: Dictionary):
 	ui.render()
 
 func inventory(parent,member):
-	var filter=OptionButton.new();filter.name="CharacterInventoryFilter";parent.add_child(filter)
-	var filters=[["all","すべて"],["items","消耗品・荷物"]]
-	for slot in member.get("equipmentSlots",[]):filters.append([str(slot.slot),str(slot.label)])
-	for choice in filters:
-		filter.add_item(choice[1]);filter.set_item_metadata(filter.item_count-1,choice[0])
-		if choice[0]==inventory_filter:filter.select(filter.item_count-1)
-	filter.item_selected.connect(func(i):inventory_filter=str(filter.get_item_metadata(i));picked={};ui.render())
+	var list_ui=preload("res://member_inventory.gd")
+	var filter=list_ui.add_filter(ui,parent,member,inventory_filter,func(value):inventory_filter=value;picked={};ui.render())
+	filter.name="CharacterInventoryFilter"
 	var list=ui.scroller(parent)
-	var entries=ui.campaign().get("inventoryByCharacter",{}).get(str(member.id),{}).get("entries",[]).filter(func(e):return inventory_filter=="all" or (inventory_filter=="items" and e.kind!="equipment") or e.get("equipSlots",[]).any(func(q):return q.slot==inventory_filter))
-
-	if entries.is_empty():ui.label_(list,"アイテムはありません")
+	var entries=ui.campaign().get("inventoryByCharacter",{}).get(str(member.id),{}).get("entries",[])
 	for entry in entries:
-		var button=ui.button(list,str(entry.name)+"  ×"+str(int(entry.count)),func():picked=entry;ui.render());button.alignment=HORIZONTAL_ALIGNMENT_LEFT;button.custom_minimum_size.y=60
-		button.icon=ui.icons.texture(ui.icons.equipment(entry)) if entry.kind=="equipment" else ui.icons.texture(str(entry.id) if entry.kind!="quest" else "items");button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40)
+		if not list_ui.matches(entry,inventory_filter):continue
+		var button=list_ui.add_row(ui,list,entry,func():picked=entry;ui.render(),picked.get("id")==entry.id,busy)
 		Drag.source(button,func():return payload(entry,"transfer",null),str(entry.name),button.icon)
+	if list.get_child_count()==0:ui.label_(list,"アイテムはありません")
+
 func payload(item,action,slot) -> Dictionary:
 	var allowed=[]
 	for uid in ui.campaign().get("selected",[]):
