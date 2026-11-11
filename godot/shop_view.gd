@@ -75,7 +75,7 @@ func owner_pressed(uid: String) -> bool:
 	if not sale_mode():return false
 	if busy() or ui.modal_open():return true
 	if not c().get("selected",[]).has(uid):return true
-	ui.shop_uid=uid;sale.apply_owner(uid);selected_equipment={}
+	ui.shop_uid=uid;pages.party_uid=uid;sale.apply_owner(uid);selected_equipment={}
 	if comparison_view!=null:comparison_view.invalidate()
 	if selection_kind!="buy":selection_kind=""
 	ui.render();return true

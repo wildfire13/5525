@@ -80,6 +80,7 @@ func run():
  check(int(game.campaign().gold)==int(quote.afterGold),"sale applies canonical proceeds once")
  shop.finish_trading();await settle()
  check(game.pages.facility_entry.at_top("shop") and shop.selection_kind.is_empty() and shop.sale.item_id.is_empty(),"transaction exit resets selection and returns entry")
+ await recipient_regression()
  for place in ["west","north","south"]:
   var next=(await game.engine.request({"op":"campaign_save"})).data;next.state.location=place;next.state.gold=1000
   await game.update({"op":"campaign_load","data":next});game.navigate("shop");game.pages.facility_entry.choose("buy");await settle()
@@ -99,3 +100,48 @@ func run():
   await capture("shop-"+place)
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames(4)
  quit(0 if checks.all(func(value):return value) else 1)
+func recipient_regression():
+ var shop=game.pages.shop_view
+ var ids=game.campaign().selected
+ var old=str(ids[0]);var chosen=str(ids[1])
+ var seed=(await game.engine.request({"op":"campaign_save"})).data
+ seed.state.characters[chosen].inventory={};seed.state.characters[old].inventory={};seed.state.gold=1000
+ await game.update({"op":"campaign_load","data":seed})
+ game.navigate("shop");game.pages.facility_entry.choose("buy");await settle()
+ game.mock_shell.activate(old);shop.finish_trading();await settle()
+ game.mock_shell.toggle_character();game.mock_shell.activate(chosen);await settle()
+ game.mock_shell.toggle_character();game.navigate("hub");game.navigate("shop");await settle()
+ game.find_child("FacilityChoice_buy",true,false).pressed.emit();await settle()
+ check(game.shop_uid==chosen and shop.sale.owner_id==chosen and game.pages.party_uid==chosen,"entry adopts party selection for card and inventory owner")
+ shop.open_comparison("javelin-wood");await settle()
+ check(shop.comparison_view.owner_id==chosen,"entry comparison uses selected party member")
+ game.find_child("ShopComparisonBuy",true,false).pressed.emit();await settle()
+ check(game.dialog.window.find_children("*","Label",true,false).any(func(label):return label.text.contains(game.member_name(chosen)+"のインベントリ")),"purchase confirmation names selected member")
+ var before=(await game.engine.request({"op":"campaign_save"})).data
+ game.mock_shell.activate(old);await settle()
+ check(game.pages.party_uid==chosen and game.shop_uid==chosen,"modal blocks card selection as well as transaction owner")
+ game.dialog.close();await settle()
+ check((await game.engine.request({"op":"campaign_save"})).data==before,"recipient cancellation preserves exact save")
+ game.find_child("ShopComparisonBuy",true,false).pressed.emit();await settle()
+ game.find_child("PurchaseAgree",true,false).pressed.emit();await settle()
+ check(int(game.campaign().characters[chosen].inventory.get("javelin-wood",0))==1 and int(game.campaign().characters[old].inventory.get("javelin-wood",0))==0,"purchase goes only to party-selected member")
+ # Explicit drag destination takes priority without changing the browsing owner.
+ var payload={"kind":"shop_product","item":"javelin-wood","connection":game.engine.connection_generation,"epoch":game.pages.epoch,"token":game.campaign().get("inventoryToken")}
+ check(game.mock_shell.can_drop(payload,old) and not game.mock_shell.can_drop(payload,"missing-member"),"drag accepts roster destination and rejects missing member")
+ var stale=payload.duplicate();stale.epoch=-1
+ check(not game.mock_shell.can_drop(stale,old),"drag rejects stale visit payload")
+ game.mock_shell.drop(payload,old);await settle()
+ check(game.dialog.window.find_children("*","Label",true,false).any(func(label):return label.text.contains(game.member_name(old)+"のインベントリ")),"drag confirmation names explicit destination")
+ game.find_child("PurchaseAgree",true,false).pressed.emit();await settle()
+ check(int(game.campaign().characters[old].inventory.get("javelin-wood",0))==1 and game.shop_uid==chosen and game.pages.party_uid==chosen,"drag buys for destination and preserves browsing selection")
+ before=(await game.engine.request({"op":"campaign_save"})).data
+ await shop.start_trial("javelin-wood");await settle()
+ var trial=game.find_child("TrialRecipient_"+old,true,false)
+ check(trial!=null and not trial.disabled,"other member can try selected product")
+ if trial!=null and not trial.disabled:
+  trial.pressed.emit();await settle()
+  check(game.data.get("trial")!=null,"trial starts for explicit member")
+  await game.act("endTrial",[]);await settle()
+  check(game.shop_uid==old and game.pages.party_uid==old and shop.sale.owner_id==old and shop.comparison_view.owner_id==old,"trial return aligns card inventory and comparison with tried member")
+  check((await game.engine.request({"op":"campaign_save"})).data==before,"trial preserves exact campaign save")
+  check(game.pages.gear_id=="javelin-wood","trial return retains selected product")
