@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import shutil
 import subprocess
 from launcher_config import resolve_godot
 import time
@@ -18,8 +19,6 @@ parser.add_argument("--full", action="store_true", help="Also rerun the complete
 args = parser.parse_args()
 def is_godot_46(path: Path) -> bool:
     try:
-        # The CI runner applies its own per-suite deadline and records each result.
-        timeout = None if ui_runner in command else 180
         result = subprocess.run([str(path), "--version"], capture_output=True, text=True,
                                 encoding="utf-8", errors="replace", timeout=10)
     except (OSError, subprocess.TimeoutExpired):
@@ -31,10 +30,11 @@ try:
 except (FileNotFoundError, ValueError) as error:
     parser.error(f"{error} Install/use Godot 4.6.x, set GODOT_BIN, or create godot/launcher.local.json from the example.")
 args.godot = str(godot_path)
-node = os.environ.get("NATIVE5525_NODE", "node")
+node = os.environ.get("NATIVE5525_NODE") or shutil.which("node") or "node"
 env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "NATIVE5525_PYTHON": sys.executable}
 evidence = Path(tempfile.mkdtemp(prefix="5525-headless-"))
-env.update(GODOT_BIN=args.godot, NATIVE5525_NODE=node, NATIVE5525_AUDIO_OFF="1")
+env.update(GODOT_BIN=args.godot, NATIVE5525_NODE=node, NATIVE5525_AUDIO_OFF="1",
+           INVENTORY_QA_ROOT=evidence.as_posix(), UIUX_REVIEW_EVIDENCE=evidence.as_posix())
 profile = evidence / "profile"
 profile.mkdir()
 env["APPDATA" if os.name == "nt" else "XDG_DATA_HOME"] = str(profile)
@@ -80,7 +80,10 @@ for name, command, cwd in steps:
     try:
         # The CI runner applies its own per-suite deadline and records each result.
         timeout = None if ui_runner in command else 180
-        result = subprocess.run(command, cwd=cwd, env=env, text=True, encoding="utf-8", errors="replace", capture_output=True, timeout=timeout)
+        step_env = env
+        if name in ("Audio reconnect and load regression", "Fault handling and shutdown"):
+            step_env = {**env, "NATIVE5525_AUDIO_OFF": "0"}
+        result = subprocess.run(command, cwd=cwd, env=step_env, text=True, encoding="utf-8", errors="replace", capture_output=True, timeout=timeout)
         combined = result.stdout + result.stderr
         markers = ["SCRIPT ERROR:", "ERROR:", "FAIL ", "ObjectDB instances leaked", "resources still in use"]
         bad_markers = [marker for marker in markers if marker in combined]

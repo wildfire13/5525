@@ -75,6 +75,7 @@ func run():
 	game.checks_fast=true;game.audio.fast_mode=true
 	game.engine.close_engine();game.engine.node_script=ProjectSettings.globalize_path("res://tests/fault_rules.cjs")
 	OS.set_environment("AUDIT_RULE_MODE","preview");game.engine.start_engine();await game.new_game()
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	var initial=await snapshot(game.engine);initial.state.location="west"
 	await game.update({"op":"campaign_load","data":initial})
 	await game.act("trial",["guard","swift-boots","feet"])

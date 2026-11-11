@@ -43,7 +43,7 @@ Python 3.13.15 + Pillow
 
 候補内の `Start-5525.cmd` は `Start-5525-Godot.cmd` → `godot/launch.ps1` を通して既存実行ファイルを検出します。Godotの選択順は、継承された `GODOT_BIN`、checkout専用の無視対象 `godot/launcher.local.json`、自動検出です。個別設定は `godot/launcher.local.example.json` を `godot/launcher.local.json` にコピーし、`godot_bin` に実行ファイルのパスを設定します。相対パスはリポジトリルート基準です。このローカル設定はGitに含まれず、PC固有の場所を共有しません。明示した先は既存のGodot 4.6.x実行ファイルとして検証され、無効なら別環境へ黙って切替えず、設定元とパスを示して停止します。
 
-自動検出はPATH上の `godot` / `godot4`、`runtime/godot`、既存の近傍 `Godot*` 配置を調べます。ディスク全体の再帰検索やダウンロード・インストールはしません。`godot/check.py` は同じ設定を読み、優先順は `--godot`、`GODOT_BIN`、ローカルJSON、自動検出です。Node/Pythonは別々に、既存ランチャーの環境変数 (`NATIVE5525_NODE` / `NATIVE5525_PYTHON`)、PATH、限定済み配置先の順で検出・検証します。見つからない場合は設定方法をエラーに示します。Godotの設定は `ui_parity_smoke.gd` のNode固定パス問題を変更しません。
+自動検出はPATH上の `godot` / `godot4`、`runtime/godot`、既存の近傍 `Godot*` 配置を調べます。ディスク全体の再帰検索やダウンロード・インストールはしません。`godot/check.py` は同じ設定を読み、優先順は `--godot`、`GODOT_BIN`、ローカルJSON、自動検出です。Node/Pythonは別々に、既存ランチャーの環境変数 (`NATIVE5525_NODE` / `NATIVE5525_PYTHON`)、PATH、限定済み配置先の順で検出・検証します。見つからない場合は設定方法をエラーに示します。
 
 `Start-5525.cmd -Check` は依存の読取診断、`-SmokeTest` はheadless/Dummyで起動・終了します。エクスポート済みexeやランタイム同梱は未作成です。テンプレート追加取得と依存配置の条件は [EXPORT-READINESS.md](EXPORT-READINESS.md) を参照してください。
 
@@ -52,10 +52,10 @@ Python 3.13.15 + Pillow
 可視ウィンドウを出さず、音声出力をDummyにして実行:
 
 ```powershell
-python -X utf8 -B '${LOCAL_PATH_A22450585E58}' --godot '${GODOT_BIN}'
+python -X utf8 -B godot/check.py
 ```
 
-`--full` を加えると既存nativeの全18段階回帰も再実行します。直近の証跡:
+`--full` を加えると既存nativeの全18段階回帰も再実行します。ゲームのチェックアウトのルートで実行してください。通常のUI検証は現行版の1920×1080で行います。以下は過去の実行記録です。
 
 - `qa/headless-report.json`: Godot構文・import、候補ルール9群、ファイル8テスト、通信12項目、画面操作35項目、UIパリティ59項目、音楽状態56項目、障害47項目＋終了2ケース。既存Godot側8段階に追加音声21項目・候補ランチャー7項目の2段階を加えた全10段階が成功。
 - `../native/qa-check-report.json`: 全18段階成功、Python151テストを含む。候補保存系8件を含むため、元版の143件より8件多い。

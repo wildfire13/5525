@@ -36,7 +36,7 @@ def run(name, command, cwd, env=None):
     started = time.monotonic()
     try:
         timeout=240 if name=='feedback2_guild_regression' else 210 if name=='guild_regression' else 150
-        r = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=timeout)
         text, code = r.stdout + r.stderr, r.returncode
     except subprocess.TimeoutExpired as e:
         def decode(value):
@@ -59,7 +59,7 @@ for name in GODOT_SUITES:
     if a.only and not any(result in a.only for result, _ in checks):
         continue
     scope = Path(tempfile.mkdtemp(prefix=name + '-', dir=out))
-    env = dict(os.environ, NATIVE5525_NODE=node, NATIVE5525_PYTHON=sys.executable, NATIVE5525_AUDIO_OFF='1', INVENTORY_QA_ROOT=str(scope), UIUX_REVIEW_EVIDENCE=str(scope), SKILL_EFFECT_QA_ROOT=str(scope))
+    env = dict(os.environ, NATIVE5525_NODE=node, NATIVE5525_PYTHON=sys.executable, NATIVE5525_AUDIO_OFF='1', INVENTORY_QA_ROOT=scope.as_posix(), UIUX_REVIEW_EVIDENCE=scope.as_posix(), SKILL_EFFECT_QA_ROOT=scope.as_posix())
     for key, child in [('XDG_DATA_HOME', 'data'), ('XDG_CONFIG_HOME', 'config'), ('XDG_CACHE_HOME', 'cache')]:
         path = scope / child
         path.mkdir()
