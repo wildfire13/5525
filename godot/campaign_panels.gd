@@ -352,13 +352,16 @@ func restore_trial():
 func gear_type(gear: Dictionary) -> String:
 	if gear.get("type")=="empty" and gear.get("slot") not in ["weapon","rightHand","leftHand"]:return "なし"
 	return {"empty":"なし（手占有0）","sword":"片手剣","greatsword":"両手剣","spear":"槍","dagger":"短剣","bow":"弓","staff":"杖","hammer":"槌","shield":"盾","book":"魔導書","armor":"防具","accessory":"装飾","boots":"足装備"}.get(gear.get("type",""),str(c().get("slots",{}).get(gear.get("slot",""),"装備")))
-func describe_gear(parent,gear: Dictionary):
+func describe_gear(parent,gear: Dictionary,party_detail:=false):
 	ui.icons.line(ui,parent,ui.icons.equipment(gear),str(gear.get("name","装備")),true)
 	l(parent,gear_type(gear)+" / "+("両手・2枠" if gear.get("hands",1)==2 else "手占有0" if gear.get("type")=="empty" and gear.get("slot") in ["weapon","rightHand","leftHand"] else "片手・1枠" if gear.get("slot") in ["weapon","rightHand","leftHand"] else str(c().get("slots",{}).get(gear.get("slot",""),"装備"))))
 	var fields={"price":"購入価格G","atk":"武器ATK","reach":"武器射程","hp":"追加HP上限","mp":"追加MP上限","agiBonus":"行動速度補正","str":"必要STR","int":"必要INT","agi":"必要AGI"}
 	for field in fields:
+		if party_detail and field=="price":continue
 		if gear.has(field):l(parent,fields[field]+": "+str(int(gear[field])))
 	if gear.has("allowedSlots"):l(parent,"装備枠: "+" / ".join(gear.allowedSlots.map(func(slot):return str(c().get("slots",{}).get(slot,slot)))))
+	if party_detail and (gear.get("skill")!=null or gear.get("effect")!=null or not str(gear.get("flavor","")).is_empty() or gear.has("note")):
+		parent.add_child(HSeparator.new())
 	for field in ["skill","effect"]:
 		if gear.get(field)!=null:
 			ui.icons.line(ui,parent,ui.icons.skill(str(gear[field]),int(gear.get("skillLevel",1))),("スキル: " if field=="skill" else "効果: ")+str(c().get("skillNames",{}).get(gear[field],gear[field])))
