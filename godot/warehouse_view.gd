@@ -95,7 +95,11 @@ func render(parent: Control):
 	var details=VBoxContainer.new();details.name="WarehouseSelectedItem";details.add_theme_constant_override("separation",16);panel.add_child(details)
 	ui.label_(details,"選択アイテム").name="WarehouseHeading"
 	var selected=equipped if source=="equipped" else selected_row();var q=quote(source,item_id)
-	if selected.is_empty():ui.label_(details,"アイテムを選択すると詳細が表示されます").add_theme_font_size_override("font_size",16)
+	if selected.is_empty():
+		var hint=ui.label_(details,"アイテムを選択すると詳細が表示されます")
+		hint.add_theme_font_size_override("font_size",16)
+		hint.size_flags_vertical=Control.SIZE_EXPAND_FILL
+		hint.vertical_alignment=VERTICAL_ALIGNMENT_TOP
 	else:
 		var content=ui.scroller(details);content.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
 		if source=="equipped":pages.describe_gear(content,selected,true)
@@ -103,7 +107,6 @@ func render(parent: Control):
 		if source!="equipped":ui.label_(content,"×%d" % int(selected.get("count",0)))
 		var reason_text=str(unequip_quote.get("reason","確認中…")) if source=="equipped" else str(q.get("reason",""))
 		var reason=ui.label_(details,error_message if not error_message.is_empty() else reason_text);reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",14)
-	var spacer=Control.new();spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL;details.add_child(spacer)
 	var controls=ui.row(details);controls.name="WarehouseControls";controls.alignment=BoxContainer.ALIGNMENT_END
 	if source=="equipped":
 		var remove=ui.button(controls,"装備を外す",unequip,busy() or not unequip_quote.get("ok",false));remove.name="WarehouseUnequip"
