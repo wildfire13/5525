@@ -46,6 +46,18 @@ func render(parent):
 func choose(id: String):
 	if ui.locked or ui.modal_open():return
 	selected_id=id;ui.memory.request_focus("quest_choice_"+id);ui.render()
+func time_status(q: Dictionary) -> String:
+	var remaining: int
+	if q.get("scenario",false):
+		var due=int(q.get("deadlineAt",int(q.get("eventEpoch",q.get("postedAt",0)))+int(q.deadline)))
+		remaining=due-int(pages.c().get("worldTime",0))
+		return "期限超過" if remaining<0 else "期限まであと%d時間" % remaining
+	var elapsed=int(q.get("elapsedHours",0))
+	var journey=pages.c().get("journey")
+	if journey is Dictionary:elapsed+=int(journey.get("hours",0))
+	remaining=int(q.deadline)-elapsed
+	return "希望条件を超過（遅配）" if remaining<0 else "希望条件まであと%d時間" % remaining
+
 func render_detail(parent,q: Dictionary,active: bool):
 	pages.l(parent,("受注中: " if active else "")+str(q.name),true).name="QuestDetailTitle"
 	var details=ui.scroller(parent);details.name="QuestDetailBody";details.get_parent().custom_minimum_size.y=64
@@ -54,8 +66,8 @@ func render_detail(parent,q: Dictionary,active: bool):
 	field(details,"依頼者" if q.get("scenario",false) else "受取人",str(q.get("client","")))
 	if q.get("scenario",false) and q.get("eventId")!="wheel":field(details,"受取人",str({"turnip":"計量係","kiln":"陶工の師匠"}.get(str(q.get("eventId","")),"")))
 	if q.get("scenario",false) and q.get("eventId")!="wheel":
-		field(details,"期限","掲載から%d時間以内 / 残り%d時間" % [q.get("deadline",0),maxi(0,int(q.get("deadlineAt",0))-int(pages.c().get("worldTime",0)))])
-	elif not q.get("scenario",false):field(details,"希望条件","%d時間以内に配達" % q.get("deadline",0))
+		field(details,"期限","掲載から%d時間以内 / %s" % [q.deadline,time_status(q)])
+	elif not q.get("scenario",false):field(details,"希望条件","%d時間以内に配達" % q.deadline+(" / "+time_status(q) if active else ""))
 	var cargo_line=pages.row(details);cargo_line.name="QuestCargoInformation"
 	var caption=pages.l(cargo_line,"荷物情報");caption.name="QuestCargoCaption";caption.custom_minimum_size.x=150;caption.size_flags_horizontal=Control.SIZE_FILL;caption.add_theme_font_size_override("font_size",18);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	var cargo_items=q.get("cargoItems",[{"name":q.get("cargo","荷物"),"quantity":1,"weight":q.get("weight",0)}])

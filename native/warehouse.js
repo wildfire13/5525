@@ -1,6 +1,7 @@
 'use strict';
 // A warehouse transfer is one validated inventory transaction, never a save
 // rewrite. Equipped items and quest cargo are not warehouse entries.
+const slots=require('./equipment-slots.js');
 module.exports=function({I,getGear,items,template,inventoryToken,commitInventory,inventoryCapacity,note}){
   const definition=id=>getGear(id)||items.find(item=>item.id===id);
   const available=s=>s.phase==='town'&&s.location==='astaris';
@@ -34,7 +35,11 @@ module.exports=function({I,getGear,items,template,inventoryToken,commitInventory
     });
   }
   function view(s){
-    return {available:available(s),token:inventoryToken(s),entries:Object.entries(s.warehouse||{}).map(([id,count])=>({id,count,name:definition(id)?.name||id})),
+    return {available:available(s),token:inventoryToken(s),entries:Object.entries(s.warehouse||{}).map(([id,count])=>{
+      const gear=getGear(id);
+      return {id,count,name:definition(id)?.name||id,kind:gear?'equipment':'item',
+        equipSlots:gear?slots.allowed(gear).map(slot=>({slot})):[]};
+    }),
       owners:Object.fromEntries(s.selected.map(ownerId=>[ownerId,{limit:inventoryCapacity(s,ownerId),
         deposits:Object.keys(s.characters[ownerId].inventory).map(id=>quote(s,ownerId,id,'deposit')),
         withdrawals:Object.keys(s.warehouse||{}).map(id=>quote(s,ownerId,id,'withdraw'))}]))};

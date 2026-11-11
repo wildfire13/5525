@@ -21,6 +21,11 @@ var owned_equipment_view
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui;inventory_view=preload("res://inventory_view.gd").new(self);owned_equipment_view=preload("res://owned_equipment_view.gd").new(self)
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
+func open_camp_inventory():
+	if workspace==null:workspace=preload("res://character_workspace.gd").new(ui)
+	if not guard_leave(open_camp_inventory):return
+	workspace.tab="inventory";workspace.picked={};workspace.allocating=false
+	ui.navigate("character")
 func render_page(parent):
 	if workspace==null:workspace=preload("res://character_workspace.gd").new(ui)
 	workspace.render(parent)

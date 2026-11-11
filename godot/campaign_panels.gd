@@ -116,14 +116,12 @@ func active_quest_summary(parent):
 	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;line.add_child(copy)
 	if not quest is Dictionary:
 		l(copy,"進行中のクエスト");l(copy,"なし");return
-	var elapsed=int(c().get("worldTime",0))-int(quest.get("eventEpoch",quest.get("postedAt",0))) if quest.get("scenario",false) else int(quest.get("elapsedHours",0))
-	if not quest.get("scenario",false) and c().get("journey") is Dictionary:elapsed+=int(c().journey.get("hours",0))
 	if quest.get("meeting") is Dictionary:
 		l(copy,str(quest.name)+" · 受取人: 行商人")
 		l(copy,quest_board.meeting.status(quest.meeting))
 		l(copy,quest_board.meeting.deadline_text(quest.meeting))
 	else:
-		l(copy,"進行中のクエスト · 期限まで %d時間" % maxi(0,int(quest.get("deadline",0))-elapsed))
+		l(copy,"進行中のクエスト · "+quest_board.time_status(quest))
 		l(copy,str(quest.name)+" · 配達先 "+town(quest.to))
 	b(line,"内容確認",ui.navigate.bind("board")).name="TravelQuestDetails"
 func map(parent):
@@ -200,7 +198,7 @@ func journey(parent):
 				gate_note += "\n最初の区間で川沿いの舟守を助けると、次の戦闘の出口が近くなる。"
 			l(parent, gate_note)
 	if phase=="camp":
-		b(parent,"インベントリ",ui.navigate.bind("character"))
+		b(parent,"インベントリ",party_view.open_camp_inventory)
 	parent.add_child(HSeparator.new());active_quest_summary(parent)
 func party(parent):
 	if not facility_entry.render_top(parent,"party"):
