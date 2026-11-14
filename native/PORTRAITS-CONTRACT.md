@@ -1,6 +1,6 @@
 # Portrait integration contract (a51a773)
 
-Worktree: `${LOCAL_PATH_29AC14508B24}`, branch `portrait-images`.
+Worktree: portrait image implementation checkout, branch `portrait-images`.
 No commits, distribution or launcher changes until parent integration QA.
 
 - New `portraits.py`: `resolve_portrait(images, member)` returns a cached 48px

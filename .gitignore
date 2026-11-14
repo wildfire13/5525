@@ -8,8 +8,8 @@ node_modules/
 *.key
 
 # Native runtime/test artifacts
-native/__pycache__/
-native/**/*.pyc
+__pycache__/
+*.py[cod]
 native/qa-check-report.json
 native/qa-equipment-tk-report.json
 native/qa-audio-tk-report.json

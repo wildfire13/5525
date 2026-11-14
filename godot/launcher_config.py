@@ -5,6 +5,21 @@ from pathlib import Path
 import shutil
 
 
+def load_paths(root, keys, environ):
+    config = root / '.env'
+    if not config.is_file():
+        return
+    for line in config.read_text(encoding='utf-8-sig').splitlines():
+        name, sep, value = line.partition('=')
+        name, value = name.strip(), value.strip()
+        if not sep or name not in keys or environ.get(name) or not value:
+            continue
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+            value = value[1:-1]
+        if value:
+            environ[name] = str((root / value).resolve())
+
+
 def _automatic_candidates(root: Path):
     for name in ("godot", "godot4"):
         found = shutil.which(name)
@@ -32,6 +47,8 @@ def resolve_godot(root: Path, explicit: str | None = None, environ=None, validat
     """
     root = Path(root).resolve()
     environ = os.environ if environ is None else environ
+    environ = dict(environ)
+    load_paths(root, {"GODOT_BIN"}, environ)
     local_config = root / "godot" / "launcher.local.json"
     configured = explicit if explicit else environ.get("GODOT_BIN")
     source = "--godot" if explicit else "GODOT_BIN" if configured else ""

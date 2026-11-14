@@ -6,7 +6,7 @@ Current entrypoints are described in [README.md](README.md). `native/` remains t
 
 ## Initial transfer (2026-10-01)
 
-Original: ${LOCAL_PATH_EDEB1B420C0B} (unchanged; not a Git repository).
+Original: original game folder (unchanged; not a Git repository).
 Created 2026-10-01. Game: GoGo To Go; delivery RPG with non-attacking porters.
 Historical planning and playtest reports were removed on 2026-10-20.
 At the time of the transfer, prototype code, images, vendored runtime/license and QA evidence were retained.

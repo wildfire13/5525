@@ -10,9 +10,9 @@
 
 2026-10-07。隔離試作の引き継ぎ用。配布物・通常利用版ではありません。
 
-- 作業場所: `${LOCAL_PATH_41CF225FDC1F}`
+- 作業場所: Godot試作用worktree
 - ブランチ: `godot-prototype`。起点 `fc36fdf7b5cbb6eeaff0a45b18f4e872f713bbe3`。変更は未コミット。
-- 通常版: `${LOCAL_PATH_DAA7C2A82CDA}` の main。起動は従来の `Start-5525.cmd`。
+- 通常版: 通常使用チェックアウトの main。起動は従来の `Start-5525.cmd`。
 - Godotが画面と音声を担当し、子Nodeプロセスの既存ルールをJSON行通信で利用します。Pythonは既存の画像正規化とJSON入出力に使用します。
 - 拠点、旅程、編成、商店、配置、戦闘、木人を同一Godotウィンドウに収容。F11全画面切替。ダイアログも埋め込み。
 - **可視GUI確認済み**。Godot内のマウス/キー入力注入とアプリメソッドで、3視点・全画面往復・画像・戦闘・配達・取消/再読込を検証。専用デスクトップ操作ツールはなく、人の実操作や実音声の試聴は未確認です。
@@ -38,7 +38,7 @@ Python 3.13.15 + Pillow
 親のGUI開始指示に基づいて実行済みの候補版起動コマンド（QAでは音声をDummyに設定）:
 
 ```powershell
-& '${GODOT_BIN}' --path '${LOCAL_PATH_4818DECB3E77}'
+& $env:GODOT_BIN --path ./godot
 ```
 
 候補内の `Start-5525.cmd` は `Start-5525-Godot.cmd` → `godot/launch.ps1` を通して既存実行ファイルを検出します。Godotの選択順は、継承された `GODOT_BIN`、checkout専用の無視対象 `godot/launcher.local.json`、自動検出です。個別設定は `godot/launcher.local.example.json` を `godot/launcher.local.json` にコピーし、`godot_bin` に実行ファイルのパスを設定します。相対パスはリポジトリルート基準です。このローカル設定はGitに含まれず、PC固有の場所を共有しません。明示した先は既存のGodot 4.6.x実行ファイルとして検証され、無効なら別環境へ黙って切替えず、設定元とパスを示して停止します。

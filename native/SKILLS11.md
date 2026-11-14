@@ -2,7 +2,7 @@
 
 # 装備スキル11案の試作実装
 
-2026-10-04、基準 `b0176d6ffc99ac50f4496de608fc232bb6e29669`。専用worktree `${LOCAL_PATH_9994BD00D57B}`。通常リポジトリ・音声worktreeは編集していない。コミット・push・merge・配布は未実施。
+2026-10-04、基準 `b0176d6ffc99ac50f4496de608fc232bb6e29669`。技能実装の専用worktree。通常リポジトリ・音声worktreeは編集していない。コミット・push・merge・配布は未実施。
 
 ## 根拠と試作判断
 

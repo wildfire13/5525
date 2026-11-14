@@ -1,6 +1,6 @@
 # 装備8部位・合算攻撃・剣盾分割：統合契約
 
-基準 a51a7737b1c9f7e6310225c352692a735079a935。作業先 `${LOCAL_PATH_487BE942C683}`、branch equipment-slots。commit/push/merge/配布なし。通常起動先・他担当worktreeは変更しない。
+基準 a51a7737b1c9f7e6310225c352692a735079a935。作業先は装備枠修正用worktree、branch equipment-slots。commit/push/merge/配布なし。通常起動先・他担当worktreeは変更しない。
 
 ## 決定済みルール
 

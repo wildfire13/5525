@@ -2,11 +2,11 @@
 
 これはBGM統合時点の記録です。末尾の表示差分は、その後のフォローアップで補完しました。最新の対応表と検証は [UI-PARITY.md](UI-PARITY.md) を参照してください。
 
-2026-10-07。ユーザーがShareへ配置したZIPを使用しました。Library403の再試行や代替ダウンロードは行っていません。候補は `${LOCAL_PATH_41CF225FDC1F}` / `godot-prototype`、通常版への適用・commit・push・配布は未実施です。
+2026-10-07。ユーザーがShareへ配置したZIPを使用しました。Library403の再試行や代替ダウンロードは行っていません。候補はGodot試作用worktree / `godot-prototype`、通常版への適用・commit・push・配布は未実施です。
 
 ## 受取と追加
 
-原本: `${LOCAL_PATH_6E17CC842EE0}`
+原本: ユーザー提供のBGM素材ZIP（リポジトリ外）
 
 - 18,884,654 bytes、SHA256 `cc2f8d68090533b9978a87d169a2512ccab0777cf93ade40dab52230bc4db83d` が期待値と完全一致。
 - `integration-asset-map.json` の3ファイルを個別にサイズ・SHA256・WAVヘッダー・フレーム数まで照合。

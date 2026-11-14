@@ -8,7 +8,7 @@
 
 | 対象 | 調査結果 |
 |---|---|
-| 通常版 | `${LOCAL_PATH_DAA7C2A82CDA}` main、実HEAD `fc36fdf7b5cbb6eeaff0a45b18f4e872f713bbe3`、追跡ファイルclean。ローカルorigin/mainも同じ。fetch/pushなし |
+| 通常版 | 通常使用チェックアウトのmain、実HEAD `fc36fdf7b5cbb6eeaff0a45b18f4e872f713bbe3`、追跡ファイルclean。ローカルorigin/mainも同じ。fetch/pushなし |
 | 起動 | `Start-5525.cmd` → `native/journey_app.py`。Tkの画面と音声・画像、Node bridgeのルールが分離されている |
 | 元版の検証 | 既存18段階回帰成功、Python143件。Godot候補の監査修正後は追加8件を含め151件 |
 | 既存比較デモ | `5525-comparison-project/5525-visual-comparison`。2D Sprite3D＋3D背景、10×5盤面、3視点あり。ゲーム進行ルールは含まれない |
@@ -66,7 +66,7 @@
 
 ## 新旅曲の受取と統合
 
-ユーザーが `${LOCAL_PATH_50A4DEE4D578}` へ配置したZIPを、親のフォローアップ指示に従って照合・使用しました。
+ユーザーが共有フォルダへ配置したZIPを、親のフォローアップ指示に従って照合・使用しました。
 
 - ZIP: `5525_Quest_BGM_v1_Runtime_and_Workflow.zip`、18,884,654 bytes、SHA256 `cc2f8d68090533b9978a87d169a2512ccab0777cf93ade40dab52230bc4db83d` が期待値と一致。
 - `integration-asset-map.json` に従い、`quest_01_open_road` / `quest_02_woodland` / `quest_03_quiet_horizon` の3曲を元バイトのまま隔離候補へ追加。

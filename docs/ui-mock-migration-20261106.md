@@ -2,7 +2,7 @@
 
 ## 対象と状態
 
-- 作業フォルダ: `${LOCAL_PATH_7E2ED5491EC7}`
+- 作業フォルダ: UI移行用worktree
 - ブランチ: `ui/mock-ui-migration`
 - mainの開始点: `7280d622da7702097135216df255b3548b0029dc`
 - ローカルブランチで実装を保存。push / mainへのmergeは未実施。

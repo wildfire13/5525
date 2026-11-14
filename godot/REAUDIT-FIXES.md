@@ -1,6 +1,6 @@
 # 再監査F1/F2・候補ランチャーの修正
 
-2026-10-07。隔離候補 `5525-godot-work` / `godot-prototype`。独立再監査 [5525-godot-reaudit-20261007.md](${LOCAL_PATH_F8F3D1AD624C}) で旧R1〜R5の元症状解消が確認され、追加されたF1/F2を修正した。今回もcommit・push・通常PC適用・ダウンロード・追加インストールなし。
+2026-10-07。隔離候補 `5525-godot-work` / `godot-prototype`。独立再監査の外部資料 `5525-godot-reaudit-20261007.md` で旧R1〜R5の元症状解消が確認され、追加されたF1/F2を修正した。今回もcommit・push・通常PC適用・ダウンロード・追加インストールなし。
 
 ## 音声2件
 
@@ -42,7 +42,7 @@
 ## 最終証跡
 
 ```powershell
-python -X utf8 -B '${LOCAL_PATH_A22450585E58}' --godot '${GODOT_BIN}' --full
+python -X utf8 -B ./godot/check.py --godot "$env:GODOT_BIN" --full
 ```
 
 - [qa/headless-report.json](qa/headless-report.json): 旧Godot8段階＋今回2段階＋native呼出しの全11エントリ成功。エラー/解放警告も失敗条件のまま。

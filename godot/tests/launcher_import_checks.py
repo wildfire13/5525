@@ -24,7 +24,7 @@ parser.add_argument('--output', required=True)
 args = parser.parse_args()
 out = Path(args.output).resolve()
 out.mkdir(parents=True, exist_ok=False)
-project = out / 'project with spaces'
+project = out / '日本語 project with spaces'
 project.mkdir()
 archive = out / 'source.tar'
 with archive.open('wb') as stream:
@@ -34,6 +34,12 @@ with tarfile.open(archive) as source:
 archive.unlink()
 # Include the candidate launcher even when the test is run before committing.
 shutil.copy2(ROOT / 'godot/launch.ps1', project / 'godot/launch.ps1')
+# Only the disposable game's normal entry gains a graceful auto-close timer.
+main = project / 'godot/main.gd'
+main_text = main.read_text(encoding='utf-8')
+assert 'func _ready():' in main_text
+main.write_text(main_text.replace('func _ready():',
+    'func _ready():\n\tget_tree().create_timer(10.0).timeout.connect(close_game)', 1), encoding='utf-8')
 probe = project / 'godot/import_asset_probe.gd'
 probe.write_text('''extends SceneTree
 func _initialize():
@@ -60,7 +66,7 @@ if phase=="import" and mode in ("fail","error_zero"):
  print("ERROR: injected import failure",file=sys.stderr)
  sys.exit(23 if mode=="fail" else 0)
 if phase=="game" and mode=="game_exit":sys.exit(17)
-if phase=="game" and "--headless" not in a:a += ["--headless","--quit-after","120"]
+if phase=="game" and "--headless" not in a:a += ["--headless"]
 sys.exit(subprocess.call([os.environ["IMPORT_TEST_GODOT"],*a]))
 ''', encoding='utf-8')
 if os.name == 'nt':
@@ -84,6 +90,18 @@ sentinel.parent.mkdir(parents=True, exist_ok=True)
 sentinel.write_text('{"sentinel":"preserve"}')
 sentinel_hash = hashlib.sha256(sentinel.read_bytes()).hexdigest()
 results = []
+equipment_count = len(json.loads((project / 'godot/assets/equipment_icons_placeholder/mapping.json').read_text()))
+configuration = {key: env.pop(key) for key in ('GODOT_BIN', 'NATIVE5525_NODE', 'NATIVE5525_PYTHON')}
+def write_config(values):
+    def relative(value):
+        try:
+            return os.path.relpath(value, project)
+        except ValueError:  # Executables on another Windows drive stay absolute.
+            return value
+    (project / '.env').write_text(
+        '\n'.join(f'{key}="{relative(value)}"' for key, value in values.items()),
+        encoding='utf-8-sig')
+write_config(configuration)
 
 def run(name, mode='', smoke=False, check=False, expected=0):
     events = out / (name + '-events.jsonl')
@@ -91,7 +109,7 @@ def run(name, mode='', smoke=False, check=False, expected=0):
     command = [args.powershell, '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(project/'godot/launch.ps1')]
     if smoke: command.append('-SmokeTest')
     if check: command.append('-Check')
-    p = subprocess.run(command, env=local, capture_output=True, text=True, timeout=150)
+    p = subprocess.run(command, env=local, capture_output=True, text=True, errors='replace', timeout=150)
     log = p.stdout + p.stderr
     (out/(name+'.log')).write_text(log, encoding='utf-8')
     phases = [json.loads(line)['phase'] for line in events.read_text().splitlines()]
@@ -116,17 +134,30 @@ def assets(name, equipment_count):
     results[-1]['assets'] = report
 
 try:
+    for key in configuration:
+        write_config({**configuration, key: str(project / 'missing executable')})
+        p = subprocess.run([args.powershell, '-NoProfile', '-ExecutionPolicy', 'Bypass',
+                            '-File', str(project/'godot/launch.ps1'), '-Check'],
+                           env=env, capture_output=True, timeout=60)
+        assert p.returncode != 0, key
+        results.append(dict(name='missing-' + key, passed=True))
+    write_config(configuration)
+    env['GODOT_BIN'] = configuration['GODOT_BIN']
+    write_config({**configuration, 'GODOT_BIN': str(project / 'missing executable')})
+    run('environment-overrides-dotenv', check=True)
+    env.pop('GODOT_BIN')
+    write_config(configuration)
     run('check-does-not-import', check=True)
     assert not (project/'godot/.godot').exists()
     run('cold-normal-launch')
-    assets('cold',42)
+    assets('cold',equipment_count)
     for recipe in (project/'godot/assets/equipment_icons_placeholder/icons64').glob('*.png.import'):
         target = re.search(r'^path="([^"]+)"', recipe.read_text(), re.M).group(1)
         (project/'godot'/target.removeprefix('res://')).unlink()
     run('missing-42-normal-launch')
-    assets('missing-42',42)
+    assets('missing-42',equipment_count)
     run('warm-smoke-launch',smoke=True)
-    assets('warm',42)
+    assets('warm',equipment_count)
     # A future addition has no recipe or cache; do not hard-code the current set.
     folder=project/'godot/assets/equipment_icons_placeholder'
     shutil.copy2(folder/'icons64/armor-cloth.png',folder/'icons64/future-item.png')
@@ -134,7 +165,7 @@ try:
     mapping['future-item']='res://assets/equipment_icons_placeholder/icons64/future-item.png'
     (folder/'mapping.json').write_text(json.dumps(mapping))
     run('future-png-normal-launch')
-    assets('future-png',43)
+    assets('future-png',equipment_count + 1)
     run('import-nonzero-blocks-game',mode='fail',expected=23)
     run('import-error-zero-blocks-game',mode='error_zero',expected=1)
     run('game-exit-code-preserved',mode='game_exit',expected=17)

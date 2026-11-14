@@ -2,7 +2,7 @@
 
 この文書は固定候補2981a74の記録です。現在の別候補では、下表の「切断・ロード時の購入計画」と「サウスの売却API」を変更しています。現行の動作と暫定仕様は [PLAN-RECONNECT-FIXES.md](PLAN-RECONNECT-FIXES.md) を参照してください。
 
-基点は独立デバッグ用の `c5cb3b9b2f98eab17943b70e6bb226331a71777d`。固定版の作業ツリーには変更せず、別のローカルclone `${LOCAL_PATH_BD3849AA1573}`、ブランチ `codex/uiux-inventory-fixes-20261012` で修正したものです。push・配布・通常版更新・可視UI操作はしていません。
+基点は独立デバッグ用の `c5cb3b9b2f98eab17943b70e6bb226331a71777d`。固定版の作業ツリーには変更せず、所持品UI修正用のローカルclone、ブランチ `codex/uiux-inventory-fixes-20261012` で修正したものです。push・配布・通常版更新・可視UI操作はしていません。
 
 ## 修正内容
 
@@ -30,11 +30,11 @@
 
 最終検証は8/8コマンド成功（構文チェック＋Godot 7スイート339項目、うち新規28項目）。headless importも成功。実行時エラー・リーク警告なし、修正コピーの検証プロセス残留なし。nativeは未変更のため、この修正で旧バックエンド全回帰を再実行したとは数えていません。
 
-専用証跡ディレクトリ `${LOCAL_PATH_FA1FE7AD7E2D}` 内へAPPDATA/LOCALAPPDATA/TEMP/TMPを分離して実行します。固定版で進行中の実画面QAと共有する操作・保存先はありません。
+所持品UI検査の専用証跡ディレクトリ内へAPPDATA/LOCALAPPDATA/TEMP/TMPを分離して実行します。固定版で進行中の実画面QAと共有する操作・保存先はありません。
 
 ```powershell
-Set-Location '${LOCAL_PATH_BD3849AA1573}'
-python -X utf8 -B godot/tests/run_inventory_checks.py --suite godot --evidence '${LOCAL_PATH_5C69045979E1}' --godot '${GODOT_BIN}'
+# 所持品UI修正用cloneのルートで実行する。
+python -X utf8 -B godot/tests/run_inventory_checks.py --suite godot --evidence ../qa-inventory-ui --godot "$env:GODOT_BIN"
 ```
 
 - 最終コミット・検証集計: 証跡ルートの `status.json`

@@ -14,4 +14,4 @@
 
 検証: `tests/owned_equipment_regression.gd`。専用APPDATAとINVENTORY_QA_ROOTを設定したGodotヘッドレスで実行する。新規31項目（店外0G、左右手・装飾品、両手競合、実効値一致、確認取消、確定後の個数、受渡し、保存読込、人物切替、遅延応答、閉じる、荷物の表示分離）。既存guild33、shop_polish31、quest_cargo21も成功。実画面での長文・フォーカス・狭幅の見た目は独立QAへ引き継ぐ。通常版適用・pushは未実施。
 
-検証コピー: `${LOCAL_PATH_48D911DC87F3}`。基点ef88e66、ブランチcodex/owned-equipment-view-20261015。実セーブは使用しない。
+検証コピー: 所持装備表示の検証用コピー。基点ef88e66、ブランチcodex/owned-equipment-view-20261015。実セーブは使用しない。

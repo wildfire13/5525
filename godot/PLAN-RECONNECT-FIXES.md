@@ -1,6 +1,6 @@
 # 購入計画の再接続復元と売却範囲の統一
 
-基点は固定候補 `2981a74a47e6009ab174da0ed70b2b0db832e4b3`。この追補は別clone `${LOCAL_PATH_8EA41D40EFD3}`、ブランチ `codex/plan-reconnect-fixes-20261012` にあります。固定候補2981a74、独立QA用c5cb3b9、通常版、個人セーブは変更していません。push・配布・可視UI/OS入力は行っていません。
+基点は固定候補 `2981a74a47e6009ab174da0ed70b2b0db832e4b3`。この追補は再接続修正用clone、ブランチ `codex/plan-reconnect-fixes-20261012` にあります。固定候補2981a74、独立QA用c5cb3b9、通常版、個人セーブは変更していません。push・配布・可視UI/OS入力は行っていません。
 
 ## 今回の動作
 
@@ -25,11 +25,11 @@
 
 全41コマンド（Node 22ファイル、Python 8スイート54テスト、Godot構文検査と10スイート）を通過しました。その後、通常操作の遅延した切断応答3項目を追加し、最終の再接続スイート37項目を再実行して通過しています。各スイートの最新結果ではGodot計522項目、実行時エラー・リーク警告なし。headless importも完了しています。
 
-証跡は `${LOCAL_PATH_3E70DD177EFD}`。APPDATA/LOCALAPPDATA/TEMP/TMPをここへ隔離し、Godot headless/Dummyで実行します。新しい試験は自身が起動したNodeだけを停止して実際の切断を作ります。デバッガーのコピーやプロセスは操作しません。
+証跡は再接続検査の外部証跡フォルダ。APPDATA/LOCALAPPDATA/TEMP/TMPをここへ隔離し、Godot headless/Dummyで実行します。新しい試験は自身が起動したNodeだけを停止して実際の切断を作ります。デバッガーのコピーやプロセスは操作しません。
 
 ```powershell
-Set-Location '${LOCAL_PATH_8EA41D40EFD3}'
-python -X utf8 -B godot/tests/run_inventory_checks.py --suite all --evidence '${LOCAL_PATH_4931E97550D5}' --godot '${GODOT_BIN}' --node '${NATIVE5525_NODE}'
+# 再接続修正用cloneのルートで実行する。
+python -X utf8 -B godot/tests/run_inventory_checks.py --suite all --evidence ../qa-reconnect --godot "$env:GODOT_BIN" --node "$env:NATIVE5525_NODE"
 ```
 
 結果・最終コミットは証跡ルートの `status.json`、全41コマンドと終了コードは `results.json`、最終再接続スイートは `final-reconnect/result.json` と `final-reconnect/plan-reconnect.json` を参照してください。既存の実EOF/タイムアウト/遅延応答試験と実WAVの音楽状態試験も含みます。音質・視認性の実画面評価、固定c5cb3b9で進行中の独立76ケースはこの検証とは別です。

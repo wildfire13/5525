@@ -2,6 +2,19 @@
 param([switch]$Check,[switch]$SmokeTest)
 $ErrorActionPreference = 'Stop'
 $projectRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$configFile = Join-Path $projectRoot '.env'
+if (Test-Path -LiteralPath $configFile -PathType Leaf) {
+    foreach ($line in Get-Content -LiteralPath $configFile -Encoding UTF8) {
+        if ($line -match '^\s*(GODOT_BIN|NATIVE5525_NODE|NATIVE5525_PYTHON)\s*=(.*)$') {
+            $key = $Matches[1]
+            $value = $Matches[2].Trim().Trim('"').Trim("'")
+            if ($value -and ![Environment]::GetEnvironmentVariable($key)) {
+                $value = [IO.Path]::GetFullPath([IO.Path]::Combine($projectRoot, $value))
+                [Environment]::SetEnvironmentVariable($key, $value)
+            }
+        }
+    }
+}
 function Probe([string]$Program,[string[]]$Arguments) {
     $output = & $Program @Arguments 2>&1
     if ($LASTEXITCODE -ne 0) { throw "Probe failed: $Program" }
@@ -44,7 +57,6 @@ try {
         $pythonCandidates += (Command-Path 'python')
         $pyPath = Command-Path 'py'
         if ($pyPath) { try { $pythonCandidates += (Probe $pyPath @('-3','-c','import sys; print(sys.executable)')) } catch { } }
-        $pythonCandidates += (Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe')
     }
     $pythonPath=''; $pythonInfo=$null
     foreach ($candidate in $pythonCandidates) {

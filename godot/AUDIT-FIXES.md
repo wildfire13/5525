@@ -1,6 +1,6 @@
 # 独立監査 R1〜R5 の修正と再監査用証跡
 
-2026-10-07。対象は隔離候補 `${LOCAL_PATH_41CF225FDC1F}` / `godot-prototype`。起点HEADは `fc36fdf7b5cbb6eeaff0a45b18f4e872f713bbe3`。親から受領した [読み取り監査](${LOCAL_PATH_8874678A4F8D}) のR1〜R5を修正した。通常版への適用、commit、push、配布、追加取得は行っていない。今回の検証はheadless・Dummy音声で、可視GUI操作なし。
+2026-10-07。対象はGodot試作用worktree / `godot-prototype`。起点HEADは `fc36fdf7b5cbb6eeaff0a45b18f4e872f713bbe3`。親から受領した読み取り監査（外部資料）のR1〜R5を修正した。通常版への適用、commit、push、配布、追加取得は行っていない。今回の検証はheadless・Dummy音声で、可視GUI操作なし。
 
 ## 修正と確認
 
@@ -27,7 +27,7 @@ Windowsの `os.rename` は既存の宛先があると失敗する仕様を使用
 ## 検証コマンドと証跡
 
 ```powershell
-python -X utf8 -B '${LOCAL_PATH_A22450585E58}' --godot '${GODOT_BIN}' --full
+python -X utf8 -B ./godot/check.py --godot "$env:GODOT_BIN" --full
 ```
 
 - [qa/headless-report.json](qa/headless-report.json): Godot側8段階＋既存native全回帰呼出し、9エントリすべて成功。

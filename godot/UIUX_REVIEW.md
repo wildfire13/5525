@@ -14,7 +14,7 @@ Run the existing python -X utf8 -B godot/check.py --full --godot <installed-cons
 
 ## Evidence and limits
 
-Implementation evidence: ${LOCAL_PATH_30BB4EA0BB66} and captures. The additional acceptance script passed 161 assertions at 1280x800, 1440x900, 1024x720, 1920x1080 and 800x600. Visible-window captures cover 1280x800, 1024x720 and 800x600. Existing UI parity (60), display regression (662), and legacy presentation/overwrite (68) also passed during implementation. Final combined validation is recorded in the external handoff report.
+Implementation evidence: external UI acceptance results and captures. The additional acceptance script passed 161 assertions at 1280x800, 1440x900, 1024x720, 1920x1080 and 800x600. Visible-window captures cover 1280x800, 1024x720 and 800x600. Existing UI parity (60), display regression (662), and legacy presentation/overwrite (68) also passed during implementation. Final combined validation is recorded in the external handoff report.
 
 Passing assertions are supporting evidence, not sign-off of all 65 acceptance cases. Independent UX/debug review, actual OS 150% scaling, and subjective audio listening remain pending. Battle branches, the east shop location and the 25-person display fixture are labeled synthetic.
 

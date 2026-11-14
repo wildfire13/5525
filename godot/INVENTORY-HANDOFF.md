@@ -2,11 +2,11 @@
 
 これは独立デバッグへ渡す隔離候補です。配布・通常版への反映・pushはしていません。
 
-- 作業場所: `${LOCAL_PATH_1F0EFF36F382}`
+- 作業場所: 所持品修正用worktree
 - ブランチ: `codex/character-inventory-20261012`
 - 基点: `f736137a8141894777940fef1cb42b46eb75a21a`
-- 固定コミットと最終証跡: `${LOCAL_PATH_55B1637AACEF}`
-- 独立計画: `${LOCAL_PATH_A86BB2D1FC27}` と `cases.csv`
+- 固定コミットと最終証跡: 所持品検査の外部証跡フォルダ
+- 独立計画: 外部QA計画書と `cases.csv`
 - 当方の証跡との対応: [inventory-plan-map.csv.txt](tests/inventory-plan-map.csv.txt)（CSV形式。Godotの翻訳インポートを避けるため末尾はtxt）。76ケースは独立担当による実行前であり、この対応表も合格判定ではありません。
 
 ## 変更後の動作
@@ -66,8 +66,8 @@
 検証環境は Godot 4.6.3 / Node 25.2.1 / Python 3.13系。ランナーがAPPDATA・LOCALAPPDATA・TEMP・TMPを証跡ディレクトリ内に限定し、headless/Dummyで実行します。タイムアウト時はその呼出しで作った子プロセスだけを対象に終了します。
 
 ```powershell
-Set-Location '${LOCAL_PATH_1F0EFF36F382}'
-python -X utf8 -B godot/tests/run_inventory_checks.py --evidence '${LOCAL_PATH_C5D0BB03617D}' --godot '${GODOT_BIN}'
+# 所持品修正用worktreeのルートで実行する。
+python -X utf8 -B godot/tests/run_inventory_checks.py --evidence ../qa-inventory --godot "$env:GODOT_BIN"
 ```
 
 `--suite native` はGodot不要、`--suite godot` はGodot側だけを再実行します。新しいコピーでimportが未実施なら、同じ隔離環境でGodot `--headless --audio-driver Dummy --editor --import --quit` が必要です。通常ランチャーを直接使うと既定の個人プロファイルを参照するため、今回の検証用には使用しません。

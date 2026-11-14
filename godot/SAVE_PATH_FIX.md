@@ -1,6 +1,6 @@
 # Redirected AppData save-path fix
 
-When this PC exposes ${LOCAL_PATH_4BE92397FFCD} through a physical D: Codex cache directory, Windows rename/replace fails with WinError 17 even when the two logical paths have the same parent. The frozen bebf057 helper reproduces that failure on dedicated dummy data.
+When a logical save directory is mapped through a cache directory on another physical drive, Windows rename/replace fails with WinError 17 even when the two logical paths have the same parent. The frozen bebf057 helper reproduces that failure on dedicated dummy data.
 
 The candidate resolves the parent directory and pins the target returned by the read-only confirmation probe. Temporary creation and atomic publication use this same physical parent. A changed physical target rejects the confirmed write. Recovery carries the original pin across the helper process boundary; user-facing receipts retain the selected logical path. No drive/cache path is hard-coded and no copy-delete or direct overwrite fallback is introduced.
 
@@ -8,5 +8,5 @@ New-file creation stays exclusive. Confirmed replacement still verifies the exis
 
 Implementation verification: 17 adapter unit tests, and 30 real-path checks including the baseline failure, C logical / resolved D / G / Share new-save/readback/unconfirmed/stale-SHA/confirmed-replacement cases and four terminated-helper recovery cases on C. Dedicated generated dummy JSON only; Share verification is local and does not claim sync completion. Full combined regression and final preservation evidence are in the external handoff report.
 
-Evidence: ${LOCAL_PATH_C6426FA7A274}
-Reproducer: ${LOCAL_PATH_C11BB574485F}
+Evidence: external save-path regression evidence folder
+Reproducer: external frozen bebf057 helper

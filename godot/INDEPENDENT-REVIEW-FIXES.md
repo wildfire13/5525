@@ -1,6 +1,6 @@
 # 独立レビューへの追加修正と未決事項
 
-固定QA候補c5cb3b9と2981a74に対する独立監査を読み、別コピー `${LOCAL_PATH_8EA41D40EFD3}` / `codex/plan-reconnect-fixes-20261012` で修正しました。先行の再接続・売却範囲修正 `e111567` を含みます。固定QAコピー・通常版・個人セーブは操作していません。今回の検証はheadless/Dummyで、可視UI/マウス/キー操作、push、配布はありません。
+固定QA候補c5cb3b9と2981a74に対する独立監査を読み、再接続修正用コピー / `codex/plan-reconnect-fixes-20261012` で修正しました。先行の再接続・売却範囲修正 `e111567` を含みます。固定QAコピー・通常版・個人セーブは操作していません。今回の検証はheadless/Dummyで、可視UI/マウス/キー操作、push、配布はありません。
 
 入力は親が指定した `task-2/inventory-independent-review-20261012.html` と `task-2/independent-c5cb3b9b-20261012/reports/76-case-results.html` / `.json` です。c5の元判定は **合格36・部分25・不合格7・仕様待ち7・未実施1** のまま保存します。この追補で元の独立判定を書き換えたり、76件全合格と数えたりはしません。
 
@@ -55,11 +55,11 @@
 再実行は新しい証跡先を指定して行えます。
 
 ```powershell
-Set-Location '${LOCAL_PATH_8EA41D40EFD3}'
-python -X utf8 -B godot/tests/run_inventory_checks.py --suite all --evidence '${LOCAL_PATH_27F9EC6EEFCB}' --godot '${GODOT_BIN}' --node '${NATIVE5525_NODE}'
+# 再接続修正用コピーのルートで実行する。
+python -X utf8 -B godot/tests/run_inventory_checks.py --suite all --evidence ../qa-independent-review --godot "$env:GODOT_BIN" --node "$env:NATIVE5525_NODE"
 ```
 
-証跡ルートは `${LOCAL_PATH_288EBEAE0EB3}`。元レビューの7不合格・7判断待ちと入力ハッシュを `review-input-summary.json` に保存します。最終コミット・実行集計は `status.json`、各コマンドの最新結果と取得元は `latest-results.json`、追加UI回帰と価格の実寸は `godot-final/independent-review-regression.json`、読取障害と復元は `godot-final/plan-reconnect.json` と `quote-fault-*.jsonl` を参照してください。
+証跡ルートは独立監査の外部証跡フォルダです。元レビューの7不合格・7判断待ちと入力ハッシュを `review-input-summary.json` に保存します。最終コミット・実行集計は `status.json`、各コマンドの最新結果と取得元は `latest-results.json`、追加UI回帰と価格の実寸は `godot-final/independent-review-regression.json`、読取障害と復元は `godot-final/plan-reconnect.json` と `quote-fault-*.jsonl` を参照してください。
 
 最初の全体実行（41/43コマンド通過）は `verified/results.json` に失敗も含めて残します。Python `test_campaign_bridge` の店カテゴリ検査に「空枠も通常アクセサリー種別」という旧期待が1件残っていたため、装飾1/2の品揃えを検査するように訂正し、この4テストだけを `corrected-expectation/` で再実行しました。Node側の同じ期待2箇所も同様に更新しています。品数・価格・購買効果の期待は緩めていません。新設試験は8枠すべての空枠に実在庫・売却を認めないことと、実物の所有数保存を検証します。
 

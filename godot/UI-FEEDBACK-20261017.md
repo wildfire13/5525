@@ -1,15 +1,15 @@
 # 2026-10-17 本人PCでのUI修正候補
 
 起点: `b204845341bc7fcb96f5894e0d38427d59ecb42e`。
-通常使用チェックアウト `${LOCAL_PATH_DAA7C2A82CDA}` は main・未コミット変更なし。origin は `https://github.com/wildfire13/5525.git`。作業終了前の `ls-remote` でもmainは同じコミット。
-実装候補は `${LOCAL_PATH_1E5F359C91B7}`、ブランチ `ui-feedback-20261017`。親から通常checkoutへの安全な統合とPCからmainへのpush指示を受領。未コミット変更がない場合のみfast-forwardで統合し、force pushは行わない。
+通常使用チェックアウトは main・未コミット変更なし。origin は `https://github.com/wildfire13/5525.git`。作業終了前の `ls-remote` でもmainは同じコミット。
+実装候補はUIフィードバック修正用worktree、ブランチ `ui-feedback-20261017`。親から通常checkoutへの安全な統合とPCからmainへのpush指示を受領。未コミット変更がない場合のみfast-forwardで統合し、force pushは行わない。
 
 ## 原本確認
 
 - Library ID: `libfile_95738ed30c04819194d6da696e9f0503`、原本 `261017_5525_UI_feedback.xlsx`、3,297,043 bytes。
 - SHA-256: `b4b9ca466ad413390c4562c4896a48751d921ced7f13d662a05ca9b1b6c5e775`。
 - 現行Libraryヘルパーを取得して実行。Windows版Pythonには `os.setxattr` がなく保存未完了になったため、本人PCに既存のUbuntu/WSLで同じ公式ヘルパーを実行し、Library属性を保持して取得。
-- 永続保存先: `${LOCAL_PATH_FC9E346726E9}`。クラウドのパスではない。
+- 永続保存先: ローカルのユーザーデータフォルダ。クラウドのパスではない。
 - 6feedback＋templateを確認。埋込PNGを元解像度で確認し、図形テキストも抽出。専用Excelインスタンスで読取専用で開き、6シートの矢印・囲みを実画素で照合。templateは対象外。
 - ExcelのPDF印刷経路は利用できず、専用ウィンドウの撮影へ切替。原本は保存していない。既存ユーザーExcel・ゲームは終了していない。
 
@@ -37,15 +37,15 @@
 
 PC上の証跡:
 
-- `${LOCAL_PATH_9A4038749D8D}` と各工程ログ。
-- `${LOCAL_PATH_3D9B7193C6AB}`、`ui_feedback_20261017-visible.log`。
+- 外部のUIフィードバック検査結果と各工程ログ。
+- 外部の実画面検査証跡、`ui_feedback_20261017-visible.log`。
 - 同じ `pc-qa` 内の `growth-pending.png`、`sale-rows.png`、`guild-selected.png`、`guild-sliding.png`、`guild-swapped.png`、`cargo-warning.png`、`deployment.png`、`formation-hover.png`、`battle-command.png`。
-- 原本の検査用画像は `${LOCAL_PATH_44E57D1B0E92}`。原本画像はリポジトリへ追加していない。
+- 原本の検査用画像は外部の提供画像フォルダにある。原本画像はリポジトリへ追加していない。
 
 再実行例（既存Godotを使用）:
 
 ```powershell
-python -X utf8 godot/tests/run_ui_feedback_20261016.py --godot '${GODOT_BIN}' --node '${NATIVE5525_NODE}' --evidence '${LOCAL_PATH_94C78C1FC3D3}'
+python -X utf8 godot/tests/run_ui_feedback_20261016.py --godot "$env:GODOT_BIN" --node "$env:NATIVE5525_NODE" --evidence ../qa-ui-feedback
 ```
 
 ## 既存テストの制約

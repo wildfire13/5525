@@ -115,7 +115,7 @@
 
 ## 最新追補：モックUIのGodot移植（2026-11-06、ローカルブランチ・未push）
 
-- 作業フォルダ `${LOCAL_PATH_7E2ED5491EC7}`、ブランチ `ui/mock-ui-migration`。main開始点 `7280d622da7702097135216df255b3548b0029dc`。以下の過去追補のworkブランチと混同しない。
+- 作業フォルダはUI移行用worktree、ブランチ `ui/mock-ui-migration`。main開始点 `7280d622da7702097135216df255b3548b0029dc`。以下の過去追補のworkブランチと混同しない。
 - 共通ナビ/名簿、パーティ、ショップ、施設入口/ギルド/倉庫/宿屋、クエスト、地図/道中、結果UIを承認済みモックへ寄せた。ユーザー承認によりRPと実際の帰路処理も追加。
 - [移植内容・実画面比較・検証限界](docs/ui-mock-migration-20261106.md)、[デザインQA](design-qa.md)、[報酬と帰路API](native/UI-MIGRATION-RULES.md)を先に読む。
 - 新規ルール12/12、キャラ19/19、ショップ25/25、施設14/14、移動UI9/9通過。統合移動15/15の最終再実行も通過。ランチャーCheck/SmokeTest通過。
@@ -451,3 +451,8 @@ Lunaの再試遊終了後、ユーザー指示で奇襲を同じ横列の前方�
 - `native/test_standalone_quests.cjs` は8群、`native/test_quest_cargo.cjs` は15件、`native/test_campaign.cjs` は47件合格。`python3 -X utf8 -B native/check.py` の集約は31段階すべて成功。Godot FHD quest storyは22件合格し、停車窓の開区間、掲載後9h/37hの警告、+22hのアスタリスからサウスへの案内をヘッドレス幾何で確認。
 - Godot 4.6.3、Node 25.2.1、Python 3.13 のチェックアウト用ランチャー設定を追加し、`GODOT_BIN` > `godot/launcher.local.json` > PATH/既存ランタイム検出の順で解決。PowerShellはJSONをUTF-8指定で読む。サンプルは `godot/launcher.local.example.json`。Node固定パスの既知問題とは別であり、そこは変更していない。設定resolverは日本語・空白を含む相対パスを含め10件合格。
 - 機能変更SHA `35c028eacf74beb4f891d3d50ac0c35d71108e39` の [Windows launcher CI](https://github.com/wildfire13/5525/actions/runs/42016841473) と [Linux startup/UI regression CI](https://github.com/wildfire13/5525/actions/runs/42016841424) は両方成功。Windowsの先行2 run は設定パステストfixtureがconsole実行ファイルをリネーム／単体コピーしていたことによる失敗で、Godot本体を改変せず実際のファイル名とpaired GUI executableをfixtureへ含めて修正後、Windows run が合格。Linux集約は他の既存UIを含むため14分6秒。`DISPLAY`/Xvfbがないためローカルでの可視FHD画面確認は未実施。
+## 起動環境設定の検証（2026-11-14）
+
+- `cleanup/261114-env`。`.env` の空値・再読込・環境変数による上書き・日本語空白パス・実行ファイル不足の回帰検査を追加。Pythonキャッシュを追跡対象から除外した。
+- 過去資料のハッシュ付きパスを用途の分かる役割名へ変更し、実行例は相対パスにした。外部証跡の実在場所は未確認。
+- 検証結果は `docs/environment-validation.md` を参照。ローカルコミットまで。pushは行わない。

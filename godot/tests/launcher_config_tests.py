@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from launcher_config import resolve_godot
+from launcher_config import resolve_godot, load_paths
 
 
 class LauncherConfigTests(unittest.TestCase):
@@ -38,6 +38,32 @@ class LauncherConfigTests(unittest.TestCase):
         actual, source = resolve_godot(self.root, str(cli), {"GODOT_BIN": str(self.root / "env/godot")})
         self.assertEqual(actual, cli.resolve())
         self.assertEqual(source, "--godot")
+
+    def test_dotenv_relative_unicode_spaces_bom_and_empty_environment(self):
+        expected = self.executable("実行 環境/Godot_console.exe")
+        (self.root / ".env").write_text(
+            '# comment\nGODOT_BIN="実行 環境/Godot_console.exe"\nOTHER=ignored\n',
+            encoding="utf-8-sig")
+        env = {"GODOT_BIN": ""}
+        load_paths(self.root, {"GODOT_BIN"}, env)
+        self.assertNotIn("OTHER", env)
+        self.assertEqual(resolve_godot(self.root, environ=env)[0], expected.resolve())
+
+    def test_dotenv_reload_and_environment_override(self):
+        first = self.executable("first/godot")
+        second = self.executable("second/godot")
+        config = self.root / ".env"
+        config.write_text("GODOT_BIN=first/godot\n", encoding="utf-8")
+        self.assertEqual(resolve_godot(self.root, environ={})[0], first.resolve())
+        config.write_text("GODOT_BIN=second/godot\n", encoding="utf-8")
+        self.assertEqual(resolve_godot(self.root, environ={})[0], second.resolve())
+        self.assertEqual(resolve_godot(self.root, environ={"GODOT_BIN": str(first)})[0], first.resolve())
+
+    def test_dotenv_missing_executable_fails_closed(self):
+        (self.root / ".env").write_text("GODOT_BIN=missing\n", encoding="utf-8")
+        self.config(str(self.executable("valid/godot")))
+        with self.assertRaisesRegex(FileNotFoundError, "GODOT_BIN"):
+            resolve_godot(self.root, environ={})
 
     def test_environment_overrides_local_file(self):
         env = self.executable("env/godot")
