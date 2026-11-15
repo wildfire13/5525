@@ -43,6 +43,8 @@ func render():
  if not unit.is_empty():
   var head=ui.row(body);ui.portrait(head,unit,true,64);label(head,str(unit.name),true)
   label(body,"HP %d/%d    MP %d/%d" % [unit.hp,unit.max,unit.mp,unit.maxMp])
+  ui.local_button(body,"装備確認",hud.open_equipment_sheet).name="BattleEquipment"
+  if unit.side=="enemy":hud.enemy_loadout(body,unit)
   var matches=ui.roster().filter(func(m):return m.id==unit.id)
   if not matches.is_empty():
    var member=matches[0]

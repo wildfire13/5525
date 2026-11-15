@@ -176,7 +176,9 @@ func render():
 	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(left_panel.body);ui.clear(right_panel.body);ui.clear(right_panel.footer)
 	render_queue();render_actor(a)
 	tools.visible=not deploying;tools.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	if not deploying:local(tools,"戦闘の詳細",toggle_details).name="BattleDetails"
+	if not deploying:
+		local(tools,"戦闘の詳細",toggle_details).name="BattleDetails"
+		local(tools,"装備確認",open_equipment_sheet).name="BattleEquipment"
 	if ui.data.get("trial") is Dictionary:
 		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.name="EndTrial";end.custom_minimum_size=Vector2(160,52)
 
@@ -690,6 +692,37 @@ func reset_deployment():
 func render_result():
 	l(target_box,"木人の結果" if ui.data.get("trial") is Dictionary else "戦闘結果",true);l(target_box,str(ui.state().result))
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";ui.green_button(b(ui.battle_actions,"戦闘を終えて街道へ",ui.act.bind("finishBattle",[]),ui.data.get("trial")!=null))
+func open_equipment_sheet():
+	var reply=await ui.engine.request({"op":"battle_equipment"})
+	if not reply.get("ok",false) or ui.closing:return
+	var members=reply.get("members",[])
+	if members.is_empty():return
+	var selected_id=inspected_uid
+	if ui.state().get("deploying",false):
+		selected_id=selected_enemy if not selected_enemy.is_empty() else ui.selected
+	var selected_members=members.filter(func(m):return m.id==selected_id)
+	var member=members[0] if selected_members.is_empty() else selected_members[0]
+	show_equipment_sheet(members,member)
+
+func show_equipment_sheet(members: Array,member: Dictionary):
+	ui.dialog.open("装備確認",func(body,actions):
+		var columns=ui.row(body)
+		for side in ["ally","enemy"]:
+			var roster=VBoxContainer.new();columns.add_child(roster)
+			l(roster,"味方" if side=="ally" else "敵",true)
+			for fighter in members:
+				if fighter.side!=side:continue
+				var button=local(roster,str(fighter.name),show_equipment_sheet.bind(members,fighter))
+				button.name="EquipmentMember_"+str(fighter.id)
+				ui.mark_selected(button,fighter.id==member.id)
+		var sheet=VBoxContainer.new();sheet.size_flags_horizontal=Control.SIZE_EXPAND_FILL;columns.add_child(sheet)
+		l(sheet,str(member.name),true)
+		ui.pages.party_view.equipment(sheet,member,func(slot):
+			ui.dialog.open(str(slot.label)+" / "+ui.pages.party_view.equipment_name(slot),func(details,buttons):
+				ui.pages.describe_gear(details,member.equipmentDetails[slot.slot],true)
+				local(buttons,"装備一覧へ",show_equipment_sheet.bind(members,member)).name="BattleEquipmentBack"))
+		local(actions,"閉じる",ui.dialog.close).name="CloseBattleEquipment")
+
 func toggle_details():
 	details_open=true
 	ui.dialog.open("戦闘の詳細",func(body,actions):
@@ -746,11 +779,20 @@ func render_person(hover_only := false):
 	person_box.set_meta("inspected_unit",u.id)
 	l(person_box,"参照" if reference else "能力").name="InspectedPersonHeading"
 	render_person_content(person_box,u,true)
+func enemy_loadout(parent,u: Dictionary):
+	var info=ui.data.get("enemyInfo",[]).filter(func(entry):return entry.id==u.id)
+	if info.is_empty() or not u.has("inventory"):return
+	var names=info[0].get("equipmentNames",[])
+	l(parent,"装備　"+"・".join(names))
+	var count=int(u.inventory.get("potion",0))
+	l(parent,"所持品　"+("ポーション ×%d" % count if count>0 else "なし")).name="EnemyInventory"
+
 func render_person_content(parent,u: Dictionary,expanded:=false):
 	var hero=ui.row(parent);ui.portrait(hero,u,true,64 if ui.ui_size_mode=="standard" else 40);l(hero,str(u.name),true)
 	var character={}
 	for member in ui.roster():
 		if member.id==u.id:character=member;break
+	if expanded and u.get("side")=="enemy":enemy_loadout(parent,u)
 	if expanded:ui.pages.party_view.identity(parent,character if not character.is_empty() else u)
 	var resources=ui.row(parent) if ui.ui_size_mode!="standard" else parent
 	for resource in ["hp","mp"]:
@@ -772,6 +814,8 @@ func render_person_content(parent,u: Dictionary,expanded:=false):
 	if u.has("carriedWeight"):
 		var carried=float(u.get("carriedWeight",0))+float(u.get("fallenWeightShare",0));var limit=float(u.get("weightLimit",0))
 		l(parent,"Wt %.1f / STR上限 %.1f%s" % [carried,limit,"（超過: SPD 50%）" if u.get("overburdened",false) else ""])
+		if float(u.get("fallenWeightShare",0))>0:
+			l(parent,"うち戦闘不能者の分担 %.1f Wt" % float(u.fallenWeightShare))
 	for pair in [["str","STR","strength"],["int","INT","intelligence"],["speed","SPD（行動速度）","speed"]]:
 		var value=u.get("agi") if pair[0]=="speed" else stats.get(pair[0],u.get(pair[0]))
 		var part=breakdown.get(pair[0],{});var suffix="補正：未取得"
@@ -779,7 +823,7 @@ func render_person_content(parent,u: Dictionary,expanded:=false):
 			suffix="成長＋%d / 基礎%d" % [part.growth,part.base]
 			if int(part.get("equipment",0))!=0:suffix+=" / 装備%+d" % int(part.equipment)
 		elif part.has("equipment"):suffix="装備%+d / AGI%d" % [part.equipment,part.agi]
-		ui.icons.line(ui,parent,pair[2],pair[1]+" "+("未取得" if value==null else str(int(value)))+"（"+suffix+"）")
+		ui.icons.line(ui,parent,pair[2],pair[1]+" "+("未取得" if value==null else String.num(float(value),1).trim_suffix(".0"))+"（"+suffix+"）")
 	if ui.state().get("formationVersion")==1:l(parent,"旧戦闘の陣形条件を継続中")
 func pin_inspection(pos: int):
 	inspection_pinned=true

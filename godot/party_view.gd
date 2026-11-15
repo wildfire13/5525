@@ -94,15 +94,16 @@ func render(parent):
 		if where==c.location and ids.has(member.id):
 			ui.primary(b(detail,"選択枠の装備をこの町で買い替える",go_shop.bind(str(member.id),highlight_slot)))
 		else:l(detail,"手装備はイース、防具はウエス、装飾品はノースで買い替えます。" if where!=c.location else "編成中の仲間が購入対象です。")
-func equipment(parent,u: Dictionary):
+func equipment(parent,u: Dictionary,inspect:=Callable()):
 	var grid=GridContainer.new();grid.name="EquipmentSlots";grid.columns=2;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;grid.add_theme_constant_override("h_separation",8);grid.add_theme_constant_override("v_separation",8);parent.add_child(grid)
 	for e in u.get("equipmentSlots",[]):
-		var title=("● " if highlight_slot==e.slot else "")+str(e.label)+"\n"+("右手の両手武器で使用中" if e.get("occupiedBy")!=null else equipment_name(e))
-		var btn=b(grid,title,open_equipment.bind(u,e));btn.custom_minimum_size.y=56;btn.size_flags_horizontal=Control.SIZE_EXPAND_FILL;btn.clip_text=true;ui.memory.key(btn,"equipment_"+str(e.slot))
+		var title=("● " if not inspect.is_valid() and highlight_slot==e.slot else "")+str(e.label)+"\n"+("右手の両手武器で使用中" if e.get("occupiedBy")!=null else equipment_name(e))
+		var btn=b(grid,title,inspect.bind(e) if inspect.is_valid() else open_equipment.bind(u,e));btn.name="EquipmentSlot_"+str(e.slot);btn.custom_minimum_size.y=56;btn.size_flags_horizontal=Control.SIZE_EXPAND_FILL;btn.clip_text=true;ui.memory.key(btn,"equipment_"+str(e.slot))
 		btn.set_script(preload("res://equipment_tooltip.gd"))
 		var item: Dictionary=u.get("equipmentDetails",{}).get(e.slot,{})
 		btn.configure(equipment_name(e),item,{"names":pages.c().get("skillNames",{}),"definitions":pages.c().get("skillDefinitions",{}),"occupied":e.get("occupiedBy")!=null,"job":u.get("job"),"title_size":24 if ui.size.x>=1800 else 20,"detail_size":18 if ui.size.x>=1800 else 16})
 		ui.icons.apply(btn,"" if e.get("occupiedBy")!=null else ui.icons.equipment(item))
+		if inspect.is_valid():continue
 		preload("res://item_drag.gd").target(btn,
 			func(data):return owned_equipment_view.can_drop(data,str(u.id),str(e.slot)),
 			func(data):owned_equipment_view.drop_equipment(data,str(u.id),str(e.slot)))
@@ -136,7 +137,7 @@ func growth(parent,u: Dictionary):
 	var confirm=b(parent,"確定",confirm_allocation.bind(u),not editable or draft_total()==0);confirm.name="AllocationConfirm";confirm.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;confirm.custom_minimum_size.x=180;ui.memory.key(confirm,"allocation_confirm")
 	if draft_total()>0:tint(confirm,Color("#236044"))
 	if not editable:l(parent,"控えは編成してから操作できます。" if not ui.active_member(str(u.id)) else "成長の配分は町にいる時だけ編集できます。" if pages.c().get("phase")!="town" else "確定結果を確認しています。")
-	l(parent,pages.stats_text(stats,str(u.id)));l(parent,"Wt上限はSTR。戦闘不能者の装備・所持重量は生存者に分配されます。SPD（行動速度）はAGIと装備補正から算出します。")
+	l(parent,pages.stats_text(stats,str(u.id)));l(parent,"Wt上限はSTR。戦闘終了後、生存者が戦闘不能者の装備と荷物の重量を分担します。SPD（行動速度）はAGIと装備補正から算出します。")
 	pages.elemental_combat_line(parent,stats)
 	l(parent,"編成はアスタリスのギルドで変更できます。")
 func skills(parent,u: Dictionary):

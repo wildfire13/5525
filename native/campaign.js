@@ -31,10 +31,7 @@ const Campaign = (() => {
   };
   // Legacy IDs retained; weapon/armor storage keys now mean right hand/upper body.
   const gear = require('./master-data.cjs').getMaster().gear;
-  const items = [
-    {id:'potion',name:'ポーション',price:40,amount:55,resource:'hp',battleKind:'item',weight:1},
-    {id:'ether',name:'エーテル',price:30,amount:3,resource:'mp',battleKind:'ether',battleRole:'porter',weight:1},
-  ];
+  const {items}=I;
   const skills = {guard:'かばう',archer:'スナイプ',mage:'ヒール',scout:'奇襲',stamp:'スタンプ',porter:'陣形強化',...Object.fromEntries(Object.entries(E.definitions).map(([id,d])=>[id,d.name]))};
   const provisional = [
     '地名・商品・価格・能力・成長値・依頼・経路は試遊用の仮設定です',
@@ -169,12 +166,7 @@ const Campaign = (() => {
   function weightLookup(s,id){return Cargo.isKey(id)?(Cargo.definition(s,id)?{weight:s.activeQuest.weight}:null):getGear(id)||items.find(item=>item.id===id);}
   function carriedWeight(s,id){
     const c=s.characters[id],bag=I.weight(c.inventory,key=>weightLookup(s,key));
-    const eq=equipment(c),seenTwoHand=new Set();let equipped=0;
-    for(const [slot,itemId] of Object.entries(eq)){
-      const g=getGear(itemId);if(!g||g.type==='empty'||g.type==='fist'||g.virtualDefault)continue;
-      if(['rightHand','leftHand'].includes(slot)&&g.hands===2){if(seenTwoHand.has(itemId))continue;seenTwoHand.add(itemId);}
-      equipped+=g.weight??1;
-    }
+    const equipped=I.equipmentWeight(equipment(c),getGear);
     const total=bag.total===null?null:bag.total+equipped;
     return {known:bag.known+equipped,total,unknown:bag.unknown};
   }
@@ -362,19 +354,33 @@ const Campaign = (() => {
   function battleCharacter(c,u) {
     const copy=clone(c);for(const slot of Object.keys(u.thrownWeapons||{}))copy[S.storage(slot)]='empty-'+slot;return copy;
   }
-  function applyEnemyLoadouts(b){
+  function enemyWeight(u){
+    const bag=I.weight(u.inventory,id=>items.find(item=>item.id===id));
+    return I.equipmentWeight(u.equipment,getGear)+bag.total;
+  }
+  function setEnemyWeight(u,deployment){
+    u.str=bases[u.job].str;
+    u.weightLimit=u.str;
+    u.baseAgi=template(u.id.slice('enemy-'.length)).agi;
+    B.setCarriedWeight(u,enemyWeight(u));
+    if(deployment)u.next=100/u.agi;
+  }
+  function applyEnemyLoadouts(b,potionCarrier=-1){
     let enemyPotions=Number.isSafeInteger(b.potions?.enemy)?b.potions.enemy:0;
-    for(const u of b.units.filter(u=>u.side==='enemy')){
+    const enemies=b.units.filter(u=>u.side==='enemy');
+    for(const u of enemies){
       const loadout=enemyLoadout[u.job],inventory=Object.fromEntries(Object.keys(loadout.inventory).map(id=>[id,0]));
       if(Object.hasOwn(inventory,'potion')&&enemyPotions>0){inventory.potion=Math.min(1,enemyPotions);enemyPotions-=inventory.potion;}
       applyEnemyEquipment(u,inventory);
     }
-    if(enemyPotions>0){for(const u of b.units.filter(u=>u.side==='enemy'))if(Object.hasOwn(u.inventory,'potion')&&enemyPotions>0){const add=Math.min(enemyPotions,99-u.inventory.potion);u.inventory.potion+=add;enemyPotions-=add;}}
+    if(enemyPotions>0){for(const u of enemies)if(Object.hasOwn(u.inventory,'potion')&&enemyPotions>0){const add=Math.min(enemyPotions,99-u.inventory.potion);u.inventory.potion+=add;enemyPotions-=add;}}
     if(b.potions)b.potions.enemy=enemyPotions;
+    if(potionCarrier>=0)enemies[potionCarrier].inventory.potion=1;
+    for(const enemy of enemies)setEnemyWeight(enemy,b.deploying);
   }
-  function applyEquipment(s,b,replacement) {
+  function applyAllyEquipment(s,b,replacement) {
     b.skillCooldownVersion=1;
-    b.weightRevision=1;b.damageRevision=1;b.enemyEquipmentRevision=1;
+    b.weightRevision=2;b.damageRevision=1;b.enemyEquipmentRevision=2;
     const loads=weightLoads(s),active=new Set(b.units.filter(u=>u.side==='ally').map(u=>u.id));
     b.partyAliveInitial=s.selected.filter(id=>s.characters[id].hp>0).length;
     b.initialDownWeight=s.selected.filter(id=>s.characters[id].hp<=0).reduce((n,id)=>n+(carriedWeight(s,id).total??0),0);
@@ -391,7 +397,6 @@ const Campaign = (() => {
       u.element=st.element;
       u.baseAgi=st.speed;u.startedAlive=u.hp>0;if(overburdened){u.agi*=0.5;u.next=100/u.agi;}
     }
-    applyEnemyLoadouts(b);
   }
   function applyEnemyEquipment(u,inventory=null){
     const loadout=enemyLoadout[u.job],weapon=getGear(loadout.weapon);
@@ -442,7 +447,16 @@ const Campaign = (() => {
     if(s.phase!=='road'||!s.journey||!['short','safe'].includes(route)||typeof random!=='function')return false;
     const j=s.journey,encounterStage=j.returning?0:j.stage,count=route==='short'?(encounterStage===0?3:4):(encounterStage===0?2:3);
     if(j.returning&&route!==j.outboundRoute)return false;
-    let enemies;try{enemies=J.randomEnemies(count,()=>{const n=random();if(typeof n!=='number'||!Number.isFinite(n)||n<0||n>=1)throw new Error('Random value out of range');return n;});}catch(e){return false;}
+    const draw=()=>{
+      const n=random();
+      if(!Number.isFinite(n)||n<0||n>=1)throw new Error('Random value out of range');
+      return n;
+    };
+    let enemies,potionCarrier=-1;
+    try{
+      enemies=J.randomEnemies(count,draw);
+      if(encounterStage===1)potionCarrier=Math.floor(draw()*count);
+    }catch(e){return false;}
     if(sluiceEncounter(s,j)){
       const guards=route==='short'?['archer','guard','scout','mage']:['guard','archer','mage'];
       enemies=guards.slice(0,count);
@@ -451,10 +465,12 @@ const Campaign = (() => {
     if(j.stage===0)j.outboundRoute=route;
     s.hours+=route==='short'?2:4;tickWorld(s,route==='short'?2:4);
     const ids=battleIds(s),b=B.create({ally:ids,enemy:enemies,formation:j.formation,formationVersion:3,formationBasis:'porter_relative',
-      potions:inventoryTotals(s,ids).potion,ethers:inventoryTotals(s,ids).ether,enemyPotions:encounterStage===0?0:1,deployment:true});
+      potions:inventoryTotals(s,ids).potion,ethers:inventoryTotals(s,ids).ether,enemyPotions:0,deployment:true});
     b.itemInventories=Object.fromEntries(ids.map(id=>[id,Object.fromEntries(items.map(item=>[item.id,I.count(s.characters[id].inventory,item.id)]))]));
     const preset=deploymentPreset(ids,j.formation);for(const u of b.units.filter(u=>u.side==='ally'))u.pos=preset.units.find(p=>p.id===u.id).pos;
-    applyEquipment(s,b);b.campaignToken=j.token;b.campaignStage=j.stage;
+    applyAllyEquipment(s,b);
+    applyEnemyLoadouts(b,potionCarrier);
+    b.campaignToken=j.token;b.campaignStage=j.stage;
     if(sluiceEncounter(s,j)){
       b.sluice={...sluiceLayout(j),open:false};
       const lead=b.units.find(u=>u.side==='enemy');
@@ -493,7 +509,7 @@ const Campaign = (() => {
     const ids=current.filter(u=>u.id!==id&&u.id!==occupant?.id).map(u=>u.id);
     let added=null;
     if(!old){
-      const candidate=B.create({ally:[id],enemy:[],deployment:true});applyEquipment(s,candidate);
+      const candidate=B.create({ally:[id],enemy:[],deployment:true});applyAllyEquipment(s,candidate);
       added=candidate.units[0];added.pos=pos;ids.push(id);
     }
     const preset=deploymentPreset(ids,s.journey.formation);
@@ -885,7 +901,8 @@ const Campaign = (() => {
     const friends=[...new Set(['guard','archer','mage',...s.selected])].filter(id=>id!==charId&&s.selected.includes(id)).slice(0,2);
     const b=B.create({ally:[charId,...friends],enemy:['guard','archer','mage'],enemyPotions:0,potions:3,deployment:true,formationVersion:3,formationBasis:'porter_relative',formation:'convoy'});
     const copy=clone(s);for(const id of [charId,...friends]){const st=stats(copy.characters[id]);copy.characters[id].hp=st.max;copy.characters[id].mp=st.maxMp;}
-    applyEquipment(copy,b,{characterId:charId,gearId,slot:preview.slot});
+    applyAllyEquipment(copy,b,{characterId:charId,gearId,slot:preview.slot});
+    applyEnemyLoadouts(b);
     const hero=b.units.find(u=>u.id===charId);if(hero.activeSkills.includes(getGear(gearId).skill))hero.selectedSkill=getGear(gearId).skill;hero.hp=hero.max;hero.mp=hero.maxMp;hero.pos=24;hero.next=0;
     for(const [i,u] of b.units.filter(u=>u.side==='ally'&&u.id!==charId).entries()){u.pos=(hero.job==='porter'?[13,33]:[23,33])[i];u.hp=Math.max(1,u.max-60);u.next=1000000;}
     for(const [i,u] of b.units.filter(u=>u.side==='enemy').entries()){u.name=`木人${i+1}`;u.role='木人';u.hp=u.max=9999;u.pos=[25,15,35][i];u.next=1000000;u.atk=0;}
@@ -932,22 +949,27 @@ const Campaign = (() => {
     t.actions++;t.lastAction={kind,target,messages:t.battle.log.slice(Math.max(0,logAt-(t.battle.logDropped||0))),changes:t.battle.units.map(u=>({id:u.id,name:u.name,hp:u.hp-(before.find(v=>v.id===u.id)?.hp||0),mp:u.mp-(before.find(v=>v.id===u.id)?.mp||0)})).filter(d=>d.hp||d.mp)};
     return true;
   }
-  function rosterMemberView(s, member) {
-    const character = s.characters[member.id];
-    const current = stats(character);
-    const rightHand = getGear(current.equipment.rightHand);
+  function equipmentSheet(equipped,character){
+    const rightHand = getGear(equipped.rightHand);
     const equipmentDetails = {};
     const equipmentSlots = [];
-    for (const [slot, id] of Object.entries(current.equipment)) {
+    for (const [slot, label] of Object.entries(S.slots)) {
+      const id=equipped[slot]||'empty-'+slot;
       const occupied = slot === 'leftHand' && rightHand?.hands === 2;
-      const gear = occupied ? rightHand : effectiveGear(character, slot, id);
+      const gear = occupied ? rightHand : (character ? effectiveGear(character, slot, id, equipped) : getGear(id));
       equipmentDetails[slot] = displayGear(gear);
       equipmentSlots.push({
-        slot, label: S.slots[slot], id,
+        slot, label, id,
         name: occupied ? gear.name + '（両手装備で使用中）' : gear.name,
         occupiedBy: occupied ? 'rightHand' : null
       });
     }
+    return {equipmentSlots,equipmentDetails};
+  }
+  function rosterMemberView(s, member) {
+    const character = s.characters[member.id];
+    const current = stats(character);
+    const {equipmentSlots,equipmentDetails}=equipmentSheet(current.equipment,character);
     const activeSkillNames = current.activeSkills.map(id => skills[id]);
     return {
       ...member, ...clone(character), allocationToken: allocationToken(s, member.id),
@@ -1117,9 +1139,9 @@ const Campaign = (() => {
       demand(b.logDropped===undefined||integer(b.logDropped,0,Number.MAX_SAFE_INTEGER),'省略ログ件数');
       demand(b.victoryEffectsApplied===undefined||typeof b.victoryEffectsApplied==='boolean','勝利効果状態');
       demand(b.skillCooldownVersion===undefined||b.skillCooldownVersion===1,'スキルクールタイム形式');
-      demand(b.weightRevision===undefined||b.weightRevision===1,'戦闘重量形式');
+      demand(b.weightRevision===undefined||[1,2].includes(b.weightRevision),'戦闘重量形式');
       demand(b.damageRevision===undefined||b.damageRevision===1,'戦闘属性ダメージ形式');
-      demand(b.enemyEquipmentRevision===undefined||b.enemyEquipmentRevision===1,'敵装備形式');
+      demand(b.enemyEquipmentRevision===undefined||[1,2].includes(b.enemyEquipmentRevision),'敵装備形式');
       demand(b.skillEventSequence===undefined||integer(b.skillEventSequence,0,Number.MAX_SAFE_INTEGER),'発動連番');
       if(b.skillEvents!==undefined){
         demand(Array.isArray(b.skillEvents)&&b.skillEvents.length<=100,'発動履歴');
@@ -1180,9 +1202,15 @@ const Campaign = (() => {
         demand(version<3||u.intent===undefined,'旧敵行動予告');
         if(u.hp>0)alivePositions.push(u.pos);
         if(u.side==='enemy'){
-          if(b.enemyEquipmentRevision===1){const loadout=enemyLoadout[u.job],weapon=getGear(loadout.weapon),shield=loadout.shield?getGear(loadout.shield):null,gearList=[weapon,...(shield?[shield]:[])],expectedEquipment={rightHand:weapon.id,...(shield?{leftHand:shield.id}:{})},expectedInventory=Object.fromEntries(Object.entries(loadout.inventory).map(([id,count])=>[id,integer(u.inventory?.[id],0,count)]));
+          if(b.enemyEquipmentRevision>=1){const loadout=enemyLoadout[u.job],weapon=getGear(loadout.weapon),shield=loadout.shield?getGear(loadout.shield):null,gearList=[weapon,...(shield?[shield]:[])],expectedEquipment={rightHand:weapon.id,...(shield?{leftHand:shield.id}:{})},expectedInventory=Object.fromEntries(Object.entries(loadout.inventory).map(([id,count])=>[id,integer(u.inventory?.[id],0,count)]));
             const gearSum=key=>gearList.reduce((n,g)=>n+(g[key]||0),0),weaponRecord=u.attackWeapons?.[0];
-            demand(u.thrownWeapons===undefined&&u.max===base.max&&u.maxMp===base.mp&&u.atk===weapon.atk&&u.atkFire===weapon.atkFire&&u.atkWater===weapon.atkWater&&u.atkEarth===weapon.atkEarth&&u.agi===base.agi&&u.reach===weapon.reach&&u.weapon===weapon.type&&u.element===(elements[u.job]||'none')&&isDeepStrictEqual(u.equipment,expectedEquipment)&&Object.keys(u.inventory||{}).length===Object.keys(loadout.inventory).length&&Object.entries(expectedInventory).every(([id,valid])=>valid)&&Array.isArray(u.attackWeapons)&&u.attackWeapons.length===1&&weaponRecord?.itemId===weapon.id&&['atk','atkFire','atkWater','atkEarth','reach'].every(key=>weaponRecord[key]===(key==='reach'?weapon.reach:weapon[key]||0))&&['def','defFire','defWater','defEarth'].every(key=>u[key]===gearSum(key))&&u.equippedSkill===undefined&&u.effects===undefined&&u.activeSkills===undefined&&u.selectedSkill===undefined&&(u.skillSources===undefined||isDeepStrictEqual(normalizedSkillSources(u.skillSources),enemySkillSources(u))),'敵の装備・能力');
+            let speed=base.agi;
+            if(b.enemyEquipmentRevision===2){
+              const wt=enemyWeight(u),limit=bases[u.job].str,over=wt>limit;
+              demand(u.carriedWeight===wt&&u.weightLimit===limit&&u.str===limit&&u.baseAgi===speed&&u.overburdened===over,'敵の装備重量');
+              if(over)speed*=0.5;
+            }
+            demand(u.thrownWeapons===undefined&&u.max===base.max&&u.maxMp===base.mp&&u.atk===weapon.atk&&u.atkFire===weapon.atkFire&&u.atkWater===weapon.atkWater&&u.atkEarth===weapon.atkEarth&&u.agi===speed&&u.reach===weapon.reach&&u.weapon===weapon.type&&u.element===(elements[u.job]||'none')&&isDeepStrictEqual(u.equipment,expectedEquipment)&&Object.keys(u.inventory||{}).length===Object.keys(loadout.inventory).length&&Object.entries(expectedInventory).every(([id,valid])=>valid)&&Array.isArray(u.attackWeapons)&&u.attackWeapons.length===1&&weaponRecord?.itemId===weapon.id&&['atk','atkFire','atkWater','atkEarth','reach'].every(key=>weaponRecord[key]===(key==='reach'?weapon.reach:weapon[key]||0))&&['def','defFire','defWater','defEarth'].every(key=>u[key]===gearSum(key))&&u.equippedSkill===undefined&&u.effects===undefined&&u.activeSkills===undefined&&u.selectedSkill===undefined&&(u.skillSources===undefined||isDeepStrictEqual(normalizedSkillSources(u.skillSources),enemySkillSources(u))),'敵の装備・能力');
           }else demand(u.thrownWeapons===undefined&&u.max===base.max&&u.maxMp===base.mp&&u.atk===base.atk&&u.agi===base.agi&&u.reach===base.reach&&u.equippedSkill===undefined&&u.weapon===base.weapon&&u.effects===undefined&&u.activeSkills===undefined&&u.selectedSkill===undefined&&(u.skillSources===undefined||isDeepStrictEqual(normalizedSkillSources(u.skillSources),enemySkillSources(u)))&&u.attackWeapons===undefined&&u.attackBonus===undefined,'敵の基本能力');
         }
         if(u.side==='ally'){
@@ -1214,11 +1242,11 @@ const Campaign = (() => {
             st.effects=st.effects.filter(id=>id!=='secretPouch');
           }
           const downNow=b.units.filter(other=>other.side==='ally'&&other.startedAlive&&other.hp<=0),survivors=b.partyAliveInitial-downNow.length;
-          const share=survivors>0?(b.initialDownWeight+downNow.reduce((n,other)=>n+(other.carriedWeight||0),0))/survivors:0;
-          const over=u.hp>0&&survivors>0&&(u.carriedWeight+share>st.str),weightPenalty=over?0.5:1;
-          if(b.weightRevision===1)demand(typeof b.partyAliveInitial==='number'&&typeof b.initialDownWeight==='number'&&typeof u.carriedWeight==='number'&&typeof u.weightLimit==='number'&&typeof u.fallenWeightShare==='number'&&typeof u.overburdened==='boolean'&&typeof u.baseAgi==='number'&&typeof u.startedAlive==='boolean','戦闘重量情報');
-          const savedSpeed=b.weightRevision===1?u.agi===st.speed*weightPenalty:u.agi===st.speed;
-          demand(u.max===st.max&&u.maxMp===st.maxMp&&u.atk===st.atk&&savedSpeed&&(b.weightRevision!==1||u.baseAgi===st.speed&&u.overburdened===over&&u.weightLimit===st.str)&&u.reach===st.reach&&u.equippedSkill===st.skill,'装備能力の一致');
+          const share=b.weightRevision===2?(b.partyAliveInitial?b.initialDownWeight/b.partyAliveInitial:0):survivors>0?(b.initialDownWeight+downNow.reduce((n,other)=>n+(other.carriedWeight||0),0))/survivors:0;
+          const over=(b.weightRevision===2?u.startedAlive:u.hp>0)&&(u.carriedWeight+share>st.str),weightPenalty=over?0.5:1;
+          if(b.weightRevision>=1)demand(typeof b.partyAliveInitial==='number'&&typeof b.initialDownWeight==='number'&&typeof u.carriedWeight==='number'&&typeof u.weightLimit==='number'&&typeof u.fallenWeightShare==='number'&&typeof u.overburdened==='boolean'&&typeof u.baseAgi==='number'&&typeof u.startedAlive==='boolean','戦闘重量情報');
+          const savedSpeed=b.weightRevision>=1?u.agi===st.speed*weightPenalty:u.agi===st.speed;
+          demand(u.max===st.max&&u.maxMp===st.maxMp&&u.atk===st.atk&&savedSpeed&&(!b.weightRevision||u.baseAgi===st.speed&&u.overburdened===over&&u.weightLimit===st.str)&&u.reach===st.reach&&u.equippedSkill===st.skill,'装備能力の一致');
           demand(b.damageRevision!==1||u.atkFire===st.atkFire&&u.atkWater===st.atkWater&&u.atkEarth===st.atkEarth&&u.def===st.def&&u.defFire===st.defFire&&u.defWater===st.defWater&&u.defEarth===st.defEarth&&u.element===st.element,'属性能力の一致');
           demand(s.characters[u.id].equipmentRevision!==2||Array.isArray(u.attackWeapons)&&Array.isArray(u.skillSources)&&Array.isArray(u.activeSkills),'装備計算情報なし');
           const snapshotEquipment=s.characters[u.id].equipmentRevision===2?st.equipment:{weapon:st.equipment.rightHand,armor:st.equipment.upperBody,accessory1:st.equipment.accessory1,accessory2:st.equipment.accessory2};
@@ -1412,9 +1440,9 @@ const Campaign = (() => {
         // the same provisional job element as newly created characters.
         if(c.element===undefined)c.element=elements[template(c.id)?.job]||'none';
       }
-      const hadWeightState=s.battle?.weightRevision===1,hadEnemyLoadouts=s.battle?.enemyEquipmentRevision===1;
+      const hadFixedWeight=s.battle?.weightRevision===2,hadWeightState=[1,2].includes(s.battle?.weightRevision),hadEnemyLoadouts=[1,2].includes(s.battle?.enemyEquipmentRevision),hadEnemyWeight=s.battle?.enemyEquipmentRevision===2;
       if(s.battle){
-        s.battle.weightRevision=1;s.battle.damageRevision=1;s.battle.enemyEquipmentRevision=1;
+        s.battle.weightRevision=2;s.battle.damageRevision=1;s.battle.enemyEquipmentRevision=2;
         if(!hadWeightState){
           const b=s.battle,active=new Set(b.units.filter(u=>u.side==='ally').map(u=>u.id));
           b.partyAliveInitial=s.selected.filter(id=>(b.units.find(u=>u.side==='ally'&&u.id===id)?.hp??s.characters[id].hp)>0).length;
@@ -1431,10 +1459,14 @@ const Campaign = (() => {
         if(u.selectedSkill!==undefined&&!st.activeSkills.includes(u.selectedSkill))delete u.selectedSkill;
       }
       if(s.battle&&!hadEnemyLoadouts)applyEnemyLoadouts(s.battle);
-      if(s.battle&&!hadWeightState){
-        const b=s.battle,newlyDown=b.units.filter(u=>u.side==='ally'&&u.startedAlive&&u.hp<=0),survivors=b.partyAliveInitial-newlyDown.length;
-        const share=survivors>0?(b.initialDownWeight+newlyDown.reduce((n,u)=>n+(u.carriedWeight||0),0))/survivors:0;
-        for(const u of b.units.filter(u=>u.side==='ally')){u.fallenWeightShare=u.hp>0?share:0;u.overburdened=u.hp>0&&survivors>0&&u.carriedWeight+share>u.weightLimit;u.agi=u.baseAgi*(u.overburdened?0.5:1);}
+      else if(s.battle&&!hadEnemyWeight)for(const u of s.battle.units.filter(u=>u.side==='enemy'))setEnemyWeight(u,s.battle.deploying);
+      if(s.battle&&!hadFixedWeight){
+        const b=s.battle,share=b.partyAliveInitial?b.initialDownWeight/b.partyAliveInitial:0;
+        for(const u of b.units.filter(u=>u.side==='ally')){
+          u.fallenWeightShare=u.startedAlive?share:0;
+          u.overburdened=u.startedAlive&&u.carriedWeight+u.fallenWeightShare>u.weightLimit;
+          u.agi=u.baseAgi*(u.overburdened?0.5:1);
+        }
       }
     }
     upgradeCombat(loaded);
@@ -1466,7 +1498,7 @@ const Campaign = (() => {
   }
   const {purchaseQuote,buyInventory,purchasePlan,buyPlan,saleQuote,sellInventory,saleAvailable}=require('./shop-transactions.js')({I,S,clone,record,integer,getGear,template,shop,equipment,eligibility,stats,syncCharacter,validate,inventoryToken,inventoryCapacity,commitInventory,note,createHash});
   const {warehouseQuote,warehouseAction,warehouseView}=require('./warehouse.js')({I,getGear,items,template,inventoryToken,commitInventory,inventoryCapacity,note});
-  return {warehouseQuote,warehouseAction,inventoryCapacity,VERSION,MAX_SAVE_BYTES,equipment,slots:S.slots,locations,gear,items,materials,provisional,create,createLegacy,view,board,scenarioAftermath,scenarioStages,destinations,hasPorter,stats,
+  return {equipmentSheet,warehouseQuote,warehouseAction,inventoryCapacity,VERSION,MAX_SAVE_BYTES,equipment,slots:S.slots,locations,gear,items,materials,provisional,create,createLegacy,view,board,scenarioAftermath,scenarioStages,destinations,hasPorter,stats,
     recipientMeeting,questRewards,canTurnBack,turnBack,select,accept,depart,travel,deploy,deployment_assign,chooseFormation,deployment_reset,begin,act,retreat,finishBattle,rest,waitForEvent,onward,forecast,arrive,acknowledge,
     completeQuest,eligibility,shop,quote,buyGear,buyItem,inn,useItem,inventoryTotals,inventoryToken,inventoryQuote,inventoryAction,inventoryView,purchaseQuote,buyInventory,purchasePlan,buyPlan,saleQuote,sellInventory,saleAvailable,allocate,allocateBatch,allocationToken,previewGear,trial,trialAct,validate,serialize,deserialize};
 })();

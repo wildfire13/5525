@@ -3,6 +3,7 @@
 // Optional equippedSkill changes the active command, never the character job.
 const Presentation = require('./battle-presentation.cjs');
 const Battle = (() => {
+  const {items}=require('./character-inventory.js');
   const {definitions:equipmentSkills}=require('./equipment-skills.js');
   const hasEffect=(a,id)=>(a.effects||[]).includes(id);
   // Equipped contributions remain distinct. Legacy standalone fixtures have
@@ -19,9 +20,21 @@ const Battle = (() => {
     if(a.side==='enemy'&&a.inventory)return a.inventory[id]||0;
     return id==='ether'?(s.ethers||0):(s.potions[a.side]||0);
   }
+  function setCarriedWeight(unit,wt){
+    unit.carriedWeight=wt;
+    unit.overburdened=wt>unit.weightLimit;
+    unit.agi=unit.baseAgi*(unit.overburdened?0.5:1);
+  }
   function consumeItem(s,a,id) {
     if(a.side==='ally'&&s.itemInventories)s.itemInventories[a.id][id]--;
-    else if(a.side==='enemy'&&a.inventory){a.inventory[id]--;return;}
+    else if(a.side==='enemy'&&a.inventory){
+      a.inventory[id]--;
+      if(a.carriedWeight!==undefined){
+        const item=items.find(entry=>entry.id===id);
+        setCarriedWeight(a,a.carriedWeight-item.weight);
+      }
+      return;
+    }
     if(id==='ether')s.ethers--;else s.potions[a.side]--;
   }
   function emit(s,a,id,details={}) {
@@ -305,18 +318,6 @@ const Battle = (() => {
     const hit=Math.max(0,Math.round(raw*formationFactor*guardFactor));
     return {protector,recipient,hit};
   }
-  function refreshEncumbrance(s) {
-    if(!Number.isFinite(s.partyAliveInitial)||!Number.isFinite(s.initialDownWeight))return;
-    const allies=s.units.filter(u=>u.side==='ally'),newlyDown=allies.filter(u=>u.startedAlive&&u.hp<=0);
-    const survivors=s.partyAliveInitial-newlyDown.length;
-    const fallen=s.initialDownWeight+newlyDown.reduce((n,u)=>n+(u.carriedWeight||0),0);
-    const share=survivors>0?fallen/survivors:0;
-    for(const u of allies){
-      u.fallenWeightShare=u.hp>0?share:0;
-      const over=u.hp>0&&survivors>0&&(u.carriedWeight+share>u.weightLimit);
-      u.overburdened=over;u.agi=u.baseAgi*(over?0.5:1);
-    }
-  }
   function attackPreview(s,a,target) {
     if(!legalFor(s,a,'attack',target.id))return null;
     const contribution=reachFilteredPower(a,target),{recipient,hit}=damageResult(s,target,power(s,a,contribution.components,false));
@@ -326,7 +327,6 @@ const Battle = (() => {
     const {protector,recipient,hit}=damageResult(s,target,power,formed);
     if(s.damagePreviewEvents)s.damagePreviewEvents.push({targetId:target.id,targetName:target.name,recipientId:recipient.id,recipientName:recipient.name,damage:hit,hpLoss:Math.min(recipient.hp,hit),...(contribution||{base:power,weapons:[],bonus:0})});
     recipient.hp=Math.max(0,recipient.hp-hit);
-    if(recipient.hp===0)refreshEncumbrance(s);
     if(recipient.hp===0&&recipient.covers)recipient.covers=[];
     log(s,`${protector?`${recipient.name}が${target.name}をかばう：`:""}${recipient.name}に${hit}ダメージ${recipient.hp===0?"・戦闘不能":""}`);
   }
@@ -579,6 +579,6 @@ const Battle = (() => {
     return true;
   }
   function queue(s){const copies=alive(s).map(u=>({...u})),result=[];for(let i=0;i<10&&copies.length;i++){copies.sort(order);result.push({id:copies[0].id,name:copies[0].name,side:copies[0].side,...(copies[0].skipNextTurn?{skip:true}:{})});delete copies[0].skipNextTurn;copies[0].next+=100/copies[0].agi;}return result;}
-  return {operatesSluiceLever,returnSkillOptions,returnSkillOption,selectReturnSkill,activeSkillOptions,selectedSkillOption,itemSkillOption,sweepCells,sweepChance,sweepTargets,vaultCell,itemUseLevel,itemInRange,grappleCell,skillLevel,skillInfo,effectCount,percentageIncrease,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,legacyRoster,recruitRoster,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,chooseAction};
+  return {setCarriedWeight,operatesSluiceLever,returnSkillOptions,returnSkillOption,selectReturnSkill,activeSkillOptions,selectedSkillOption,itemSkillOption,sweepCells,sweepChance,sweepTargets,vaultCell,itemUseLevel,itemInRange,grappleCell,skillLevel,skillInfo,effectCount,percentageIncrease,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,legacyRoster,recruitRoster,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,chooseAction};
 })();
 if(typeof module!=='undefined')module.exports=Battle;

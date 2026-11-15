@@ -48,6 +48,12 @@ func toggle_character():
 	ui.memory.focus_key=""
 	ui.render()
 
+func toggle_journey_quest():
+	if not (ui.campaign().get("activeQuest") is Dictionary):
+		ui.save_notice.display("進行中のクエストはありません")
+		return
+	ui.navigate("map" if ui.page=="board" else "board")
+
 func navigation(parent):
 	var panel=PanelContainer.new();panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
 	var bar=ui.row(panel);bar.name="CampaignHeader";bar.custom_minimum_size.y=56
@@ -59,8 +65,7 @@ func navigation(parent):
 	if ui.page=="character":
 		links=[["character","パーティ情報",toggle_character]]
 	elif not town:
-		var viewing_contract=ui.page=="board" and ui.campaign().get("activeQuest") is Dictionary
-		links=[["character","パーティ情報",toggle_character],["board","クエスト",ui.navigate.bind("map" if viewing_contract else "board")]]
+		links=[["character","パーティ情報",toggle_character],["board","クエスト",toggle_journey_quest]]
 	elif facility.supported(ui.page):
 		links=[["hub",facility.facility_name(ui.page),ui.navigate.bind("hub")]]
 	elif ui.page=="board":

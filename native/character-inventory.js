@@ -50,4 +50,18 @@ function weight(bag,lookup){
   }
   return {known,total:unknown.length?null:known,unknown};
 }
-module.exports={quantity,count,add,remove,transfer,capacity,occupancy,canReceive,weight};
+const items = [
+  {id:'potion',name:'ポーション',price:40,amount:55,resource:'hp',battleKind:'item',weight:1},
+  {id:'ether',name:'エーテル',price:30,amount:3,resource:'mp',battleKind:'ether',battleRole:'porter',weight:1},
+];
+
+function equipmentWeight(eq,lookup){
+  const seenTwoHand=new Set();let equipped=0;
+  for(const [slot,itemId] of Object.entries(eq)){
+    const g=lookup(itemId);if(!g||g.type==='empty'||g.type==='fist'||g.virtualDefault)continue;
+    if(['rightHand','leftHand'].includes(slot)&&g.hands===2){if(seenTwoHand.has(itemId))continue;seenTwoHand.add(itemId);}
+    equipped+=g.weight??1;
+  }
+  return equipped;
+}
+module.exports={items,equipmentWeight,quantity,count,add,remove,transfer,capacity,occupancy,canReceive,weight};
