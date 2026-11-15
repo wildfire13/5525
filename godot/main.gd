@@ -264,7 +264,40 @@ func scroller(parent: Node) -> VBoxContainer:
 	var s=ScrollContainer.new();s.size_flags_vertical=Control.SIZE_EXPAND_FILL;s.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	s.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;parent.add_child(s)
 	var v=VBoxContainer.new();v.size_flags_horizontal=Control.SIZE_EXPAND_FILL;s.add_child(v);return v
-func confirm(text: String,fn: Callable):
+func receipt_line(body: Control,caption: String) -> Label:
+	var line=row(body)
+	label_(line,caption)
+	var value=label_(line,"")
+	value.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+	return value
+
+func facility_receipt(title_: String,item: Dictionary,owner: String,fn: Callable,build: Callable):
+	var window=confirm("",fn,func(scroll,d):
+		d.title=title_
+		var body=VBoxContainer.new()
+		body.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		body.add_theme_constant_override("separation",12)
+		var inset=MarginContainer.new()
+		inset.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		for side in ["left","right","top"]:inset.add_theme_constant_override("margin_"+side,16)
+		scroll.add_child(inset);inset.add_child(body)
+		label_(body,title_,true).horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+		var icon=icons.equipment(item) if item.get("kind")=="equipment" else str(item.id)
+		icons.line(self,body,icon,"%s　（%s）" % [item.name,owner],true)
+		body.add_child(HSeparator.new())
+		build.call(body,d)
+		green_button(d.get_ok_button())
+		var ok=d.get_ok_button();var cancel=d.get_cancel_button()
+		ok.get_parent().move_child(ok,maxi(ok.get_index(),cancel.get_index())))
+	var shade=ColorRect.new()
+	shade.color=Color(0.08,0.1,0.09,0.38)
+	shade.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	shade.z_index=100
+	add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	window.tree_exiting.connect(shade.queue_free,CONNECT_ONE_SHOT)
+	return window
+
+func confirm(text: String,fn: Callable,build: Callable=Callable()):
 	pages.shop_view.cancel_pending()
 	# Snapshot immediately before modal focus changes: wheels do not trigger a render.
 	memory.capture()
@@ -280,9 +313,11 @@ func confirm(text: String,fn: Callable):
 	# long paths or explanations from forcing buttons outside a short window.
 	d.get_label().hide()
 	var message_scroll=ScrollContainer.new();message_scroll.name="ConfirmationTextScroll";message_scroll.custom_minimum_size=Vector2(0,100);message_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;d.add_child(message_scroll)
-	var message_label=Label.new();message_label.name="ConfirmationMessage";message_label.text=text;message_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;message_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;message_label.add_theme_font_size_override("font_size",18);message_scroll.add_child(message_label)
+	if build.is_valid():build.call(message_scroll,d)
+	else:
+		var message_label=Label.new();message_label.name="ConfirmationMessage";message_label.text=text;message_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;message_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;message_label.add_theme_font_size_override("font_size",18);message_scroll.add_child(message_label)
 	for button_ in [d.get_ok_button(),d.get_cancel_button()]:
-		button_.custom_minimum_size=Vector2(96,48) if size.x>=1800 else Vector2(80,44)
+		button_.custom_minimum_size=Vector2(172,48) if build.is_valid() else Vector2(96,48) if size.x>=1800 else Vector2(80,44)
 		button_.add_theme_font_size_override("font_size",18)
 	if is_instance_valid(dialog.window) and dialog.window.visible:dialog.window.add_child(d)
 	else:add_child(d)
@@ -294,7 +329,7 @@ func confirm(text: String,fn: Callable):
 		audio.ui("cancel");d.hide();d.queue_free()
 		if not closing and pages.epoch==epoch and engine.connection_generation==generation:
 			memory.scrolls.merge(scroll_state,true);memory.request_focus(origin_key);memory.restore())
-	preferences.bind_window(d,"confirmation",size,Vector2(560,300));d.popup();d.get_cancel_button().grab_focus()
+	preferences.bind_window(d,"facility_receipt" if build.is_valid() else "confirmation",size,Vector2(680,420) if build.is_valid() else Vector2(560,300));d.popup();d.get_cancel_button().grab_focus()
 	return d
 func fullscreen():
 	get_window().mode=Window.MODE_WINDOWED if get_window().mode==Window.MODE_FULLSCREEN else Window.MODE_FULLSCREEN

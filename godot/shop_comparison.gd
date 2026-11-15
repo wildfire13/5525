@@ -11,6 +11,7 @@ var generation := 0
 var money_label
 var comparison_label
 var condition_label
+var panels: Array = []
 var skill_rows
 var buy_button
 var inline_host: Control
@@ -28,6 +29,7 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 	if gear.is_empty():return
 	var choices=slots_for(gear)
 	slot=ui.shop_slot if choices.has(ui.shop_slot) else str(choices[0])
+	panels.clear()
 	var title=ui.icons.line(ui,body,ui.icons.equipment(gear),str(gear.name),true);title.name="ShopComparisonProduct";title.add_theme_font_size_override("font_size",28)
 	var selectors=ui.row(body)
 	var positions=OptionButton.new();positions.name="ShopComparisonSlot";positions.custom_minimum_size=Vector2(140,36);selectors.add_child(positions)
@@ -36,7 +38,13 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 		if id_==slot:positions.select(positions.item_count-1)
 	positions.item_selected.connect(func(i):switch_target(owner_id,str(positions.get_item_metadata(i))))
 	var comparison=RichTextLabel.new();comparison.name="ShopComparisonStats";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.scroll_active=false;comparison.add_theme_font_size_override("normal_font_size",22);comparison.add_theme_color_override("default_color",Color("#29332f"));comparison.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(comparison);comparison.text="比較を読み込み中…"
-	skill_rows=VBoxContainer.new();skill_rows.name="ShopComparisonSkills";body.add_child(skill_rows)
+	var pair=ui.row(body);pair.name="ShopComparisonSkills"
+	for heading in ["現在の装備","購入候補"]:
+		var column=ui.card(pair)
+		column.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		ui.label_(column,heading)
+		panels.append(column)
+	skill_rows=null
 	var conditions=ui.label_(body,"");conditions.name="ShopComparisonConditions";conditions.add_theme_font_size_override("font_size",20)
 	# Mechanics in the original equipment note must remain visible at purchase.
 	var note=str(gear.get("note","")).strip_edges()
@@ -46,14 +54,13 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 	if not note.is_empty():
 		var memo=ui.label_(body,note);memo.name="ShopComparisonNotes";memo.add_theme_font_size_override("font_size",20)
 	# Keep payment/rejection beside the decision, outside long scrolling notes.
-	var money=ui.icons.line(ui,actions.get_parent(),"money","費用を確認中…");money.name="ShopComparisonPayment"
-	actions.get_parent().move_child(money.get_parent(),actions.get_index())
+	var money=shop.checkout_fields(actions,gear.price,func():switch_target(owner_id,slot))
 	var trial=ui.button(actions,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_END;trial.custom_minimum_size.y=40;trial.add_theme_font_size_override("font_size",20)
 	var buy=ui.primary(ui.button(actions,"取引を確認",purchase,true));buy.name="ShopComparisonBuy";buy.custom_minimum_size.y=40;buy.size_flags_horizontal=Control.SIZE_SHRINK_END
 	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
 	refresh(money,comparison,conditions,buy)
 func open(id: String):
-	inline_host=null;item_id=id
+	panels.clear();inline_host=null;item_id=id
 	var gear=item()
 	if gear.is_empty():return
 	if not shop.c().get("selected",[]).has(ui.shop_uid):ui.shop_uid=str(shop.c().selected[0])
@@ -99,7 +106,9 @@ func switch_target(uid: String,position: String):
 	# Keep the selectors alive: replacing an open popup can replay Enter on the
 	# new control and lose keyboard focus. Clear old values before any request.
 	comparison_label.text="比較を読み込み中…";money_label.text="費用を確認中…";condition_label.text="条件を確認中…"
-	ui.clear(skill_rows);buy_button.disabled=true;buy_button.set_meta("base_disabled",true)
+	if panels.is_empty():ui.clear(skill_rows)
+	comparison_label.show()
+	buy_button.disabled=true;buy_button.set_meta("base_disabled",true)
 	refresh(money_label,comparison_label,condition_label,buy_button)
 func valid(ticket: int,window,epoch: int,connection: int,token) -> bool:
 	return ticket==generation and is_instance_valid(window) and (window==inline_host and window.is_inside_tree() or window==ui.dialog.window) and ui.page=="shop" and not ui.closing and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and token==shop.c().get("inventoryToken")
@@ -119,27 +128,31 @@ func refresh(money,comparison,conditions,buy):
 		if u.id==owner_id:person=u;break
 	var entry={"name":item().name,"equipSlots":[]}
 	comparison.text=ui.pages.party_view.owned_equipment_view.comparison(person,entry,slot,q,true).replace("#8ee6ab","#277242").replace("#ffb1a6","#a84432").replace("#d5dbe2","#6e786f")
+	if not panels.is_empty():
+		comparison.hide()
+		for i in range(2):
+			var panel=panels[i]
+			while panel.get_child_count()>1:
+				var child=panel.get_child(-1);panel.remove_child(child);child.queue_free()
+			var gear=q.get("current" if i==0 else "gear",{})
+			ui.icons.line(ui,panel,ui.icons.equipment(gear),str(gear.get("name","なし")),true)
+		for stat in ui.pages.party_view.owned_equipment_view.stat_changes(person,q):
+			for i in range(2):
+				ui.label_(panels[i],"%s　%d" % [stat[0],stat[i+1]])
 	render_skills(q)
 	conditions.text="" if q.get("eligible",false) else "装備不可："+str(q.get("reason","正規判定を確認できません"))
-	var payment=await ui.engine.request({"op":"campaign","action":"purchaseQuote","args":[item_id,owner_id]})
+	var payment=await ui.engine.request({"op":"campaign","action":"purchaseQuote","args":[item_id,owner_id,shop.purchase_quantity if not panels.is_empty() else 1]})
 	if not valid(ticket,window,epoch,connection,token):return
 	if ui.handle_connection_loss(payment,connection):return
 	var cost=payment.get("purchaseQuote",{})
 	if cost.is_empty():money.text="費用を取得できません。";return
-	money.text="所持金 %dG − 購入 %dG = 残金 %dG" % [cost.goldBefore,cost.cost,cost.afterGold] if cost.get("ok",false) else "購入不可："+str(cost.reason)+" / 価格 %dG / 所持金 %dG" % [cost.cost,cost.goldBefore]
-	money.add_theme_color_override("font_color",Color("#29332f") if cost.get("ok",false) else Color("#a84432"))
-	buy.text="取引を確認"
-	buy.disabled=not cost.get("ok",false) or shop.busy();buy.set_meta("base_disabled",buy.disabled)
-	buy.tooltip_text="購入品はインベントリへ入ります。" if not buy.disabled else str(cost.get("reason","購入できません"))
-	for state in ["normal","hover","pressed","disabled"]:
-		var style=StyleBoxFlat.new();style.bg_color=Color("#33594b") if not buy.disabled else Color("#e8e9e3");style.set_corner_radius_all(5);style.set_content_margin_all(8);buy.add_theme_stylebox_override(state,style)
-	buy.add_theme_color_override("font_disabled_color",Color("#8b928a"))
-	for key in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:buy.add_theme_color_override(key,Color.WHITE)
+	shop.display_payment(money,buy,cost)
+
 func purchase():
 	if shop.busy():return
 	var id=item_id;var uid=owner_id
 	invalidate();ui.dialog.close(false)
-	shop.confirm_purchase(id,uid)
+	shop.confirm_purchase(id,uid,shop.purchase_quantity if not panels.is_empty() else 1)
 
 func source_key(source: Dictionary) -> String:
 	return str(source.id)+":"+str(int(source.get("level",1)))
@@ -153,12 +166,13 @@ func removed_sources(before: Array,after: Array) -> Array:
 		else:remaining.remove_at(found)
 	return result
 func render_skills(q: Dictionary):
-	ui.clear(skill_rows)
+	if panels.is_empty():ui.clear(skill_rows)
 	var before=q.before.get("skillSources",[]);var after=q.after.get("skillSources",[])
 	for group in [["追加",removed_sources(after,before),"#277242"],["失う",removed_sources(before,after),"#a84432"]]:
 		if group[1].is_empty():continue
-		var label=ui.label_(skill_rows,group[0]+"スキル");label.add_theme_color_override("font_color",Color(group[2]))
-		var line=HFlowContainer.new();line.add_theme_constant_override("h_separation",8);skill_rows.add_child(line)
+		var parent=skill_rows if panels.is_empty() else panels[1 if group[0]=="追加" else 0]
+		var label=ui.label_(parent,group[0]+"スキル");label.add_theme_color_override("font_color",Color(group[2]))
+		var line=HFlowContainer.new();line.add_theme_constant_override("h_separation",8);parent.add_child(line)
 		for source in group[1]:
 			var id=str(source.id);var level=int(source.get("level",1));var name_=str(shop.c().get("skillNames",{}).get(id,id))
 			var gear=q.get("gear",{}) if group[0]=="追加" else q.get("current",{})

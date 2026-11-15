@@ -117,11 +117,14 @@ func render(parent):
 	var middle=make_panel(layout,"ShopTransaction",0)
 	var stock=make_panel(layout,"ShopCatalog",360)
 	backdrop(stock,pages.facility_art.npc.texture,"ShopKeeperArt")
-	l(middle,"取引を確認").name="ShopTransactionHeading"
+	l(middle,"購入" if selection_kind=="buy" else "売却" if selection_kind=="sell" else "取引を確認").name="ShopTransactionHeading"
 	var detail=ui.scroller(middle);detail.get_parent().name="ShopTransactionScroll"
 	render_notice(detail)
 	var footer=ui.row(middle);footer.name="ShopTransactionFooter";footer.alignment=BoxContainer.ALIGNMENT_END
-	if selection_kind=="sell":sale.render_detail(detail,footer)
+	if selection_kind=="sell":
+		stock.get_parent().hide()
+		sale.render_detail(detail,footer)
+		b(footer,"商品一覧へ",func():selection_kind="";ui.render(),busy())
 	elif selection_kind=="equipment":
 		if not selected_equipment.is_empty():
 			pages.describe_gear(detail,selected_equipment)
@@ -171,20 +174,68 @@ func render_product(parent: Control,item: Dictionary):
 func select_equipment(gear: Dictionary):
 	if busy():return
 	selection_kind="equipment";selected_equipment=gear;sale.item_id="";ui.render()
+func checkout_fields(actions: Control,unit_price: int,changed: Callable) -> Label:
+	var total=actions.get_parent()
+	var quantity_line=ui.row(total)
+	total.move_child(quantity_line,actions.get_index())
+	var caption=ui.label_(quantity_line,"購入数")
+	caption.autowrap_mode=TextServer.AUTOWRAP_OFF
+	caption.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+	var quantity=SpinBox.new();quantity.name="ShopPurchaseQuantity";quantity.min_value=1;quantity.max_value=99;quantity.value=purchase_quantity;quantity_line.add_child(quantity)
+	ui.label_(quantity_line,"単価 %d G" % unit_price)
+	quantity.value_changed.connect(func(value):
+		purchase_quantity=int(value)
+		changed.call())
+	var money=ui.icons.line(ui,actions.get_parent(),"money","費用を確認中…");money.name="ShopComparisonPayment"
+	actions.get_parent().move_child(money.get_parent(),actions.get_index())
+	return money
+
+func display_payment(money: Label,buy: Button,cost: Dictionary):
+	money.text="所持金 %dG − 購入 %dG = 残金 %dG" % [cost.goldBefore,cost.cost,cost.afterGold] if cost.get("ok",false) else "購入不可："+str(cost.reason)+" / 価格 %dG / 所持金 %dG" % [cost.cost,cost.goldBefore]
+	money.add_theme_color_override("font_color",Color("#29332f") if cost.get("ok",false) else Color("#a84432"))
+	buy.text="%d個の購入へ" % cost.count
+	buy.disabled=not cost.get("ok",false) or busy();buy.set_meta("base_disabled",buy.disabled)
+	buy.tooltip_text="購入品はインベントリへ入ります。" if not buy.disabled else str(cost.get("reason","購入できません"))
+	for state in ["normal","hover","pressed","disabled"]:
+		var style=StyleBoxFlat.new();style.bg_color=Color("#33594b") if not buy.disabled else Color("#e8e9e3");style.set_corner_radius_all(5);style.set_content_margin_all(8);buy.add_theme_stylebox_override(state,style)
+	buy.add_theme_color_override("font_disabled_color",Color("#8b928a"))
+	for key in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:buy.add_theme_color_override(key,Color.WHITE)
+func consumable_payment(item: Dictionary,uid: String) -> Dictionary:
+	var bag: Dictionary=c().characters[uid].inventory
+	var capacity: Dictionary=c().inventoryByCharacter[uid].capacity
+	var total=int(c().inventoryTotals.get(item.id,0))+int(c().get("warehouse",{}).get(item.id,0))
+	var cost=int(item.price)*purchase_quantity
+	var reason=""
+	if cost>int(c().gold):reason="所持金が不足しています"
+	elif total+purchase_quantity>99:reason="所持数の上限を超えます"
+	elif capacity.limit!=null and int(capacity.used)+(0 if bag.has(item.id) else 1)>int(capacity.limit):
+		reason="選択した人物のインベントリに空きがありません"
+	return {"ok":reason.is_empty(),"reason":reason,"count":purchase_quantity,"cost":cost,"goldBefore":c().gold,"afterGold":int(c().gold)-cost}
+
 func render_consumable_selection(parent: Control,actions: Control):
 	var items=c().get("shop",[]).filter(func(item):return item.id==pages.gear_id)
 	if items.is_empty():return
-	var item=items[0];ui.icons.line(ui,parent,str(item.id),str(item.name),true)
+	var item=items[0]
+	var title=ui.icons.line(ui,parent,str(item.id),str(item.name),true)
+	title.add_theme_font_size_override("font_size",28)
 	var definitions=c().get("itemDefinitions",[]).filter(func(entry):return entry.id==item.id)
-	if not definitions.is_empty():l(parent,str(definitions[0].get("description",definitions[0].get("text",""))))
-	l(parent,"%sのインベントリへ" % ui.member_name(ui.shop_uid))
-	var quantities=ui.row(parent);l(quantities,"個数")
-	var quantity=SpinBox.new();quantity.name="ShopPurchaseQuantity";quantity.min_value=1;quantity.max_value=99;quantity.step=1;quantity.value=purchase_quantity;quantities.add_child(quantity);quantity.value_changed.connect(func(value):purchase_quantity=int(value);ui.render())
-	ui.icons.line(ui,parent,"money","%d → %d G" % [int(c().gold),int(c().gold)-int(item.price)*purchase_quantity])
-	var full=int(c().get("inventoryTotals",{}).get(item.id,0))+purchase_quantity>99
-	var buy=ui.green_button(b(actions,"取引を確認",confirm_purchase.bind(str(item.id),ui.shop_uid),busy() or int(c().gold)<int(item.price)*purchase_quantity or full));buy.size_flags_horizontal=Control.SIZE_SHRINK_END;buy.name="ProductBuy_"+str(item.id)+"_1"
-	if int(c().gold)<int(item.price)*purchase_quantity:buy.tooltip_text="所持金が不足しています"
-	elif full:buy.tooltip_text="所持数の上限を超えます"
+	if not definitions.is_empty():
+		var definition=definitions[0]
+		l(parent,"%sを%d回復" % [str(definition.resource).to_upper(),definition.amount])
+	var uid: String=ui.shop_uid
+	var held=int(c().characters[uid].inventory.get(item.id,0))
+	var owned=l(parent,"")
+	owned.name="ShopRecipientStock"
+	var buy=b(actions,"購入へ",confirm_purchase.bind(str(item.id),uid),true)
+	buy.name="ProductBuy_"+str(item.id)+"_1"
+	buy.size_flags_horizontal=Control.SIZE_SHRINK_END
+	buy.custom_minimum_size.y=40
+	var update=func():
+		owned.text="%sの所持数　%d → %d個" % [ui.member_name(uid),held,held+purchase_quantity]
+		display_payment(actions.get_parent().find_child("ShopComparisonPayment",true,false),buy,consumable_payment(item,uid))
+	checkout_fields(actions,item.price,update)
+	update.call()
+
 func finish_trading():
 	if busy() or ui.modal_open():return
 	if comparison_view!=null:comparison_view.invalidate()
@@ -253,20 +304,20 @@ func valid_ticket(ticket: int,epoch: int,connection: int,place: String) -> bool:
 func cancel_purchase(ticket: int):
 	if ticket!=generation or stage=="S5":return
 	generation+=1;consent={};stage="S0";ui.render()
-func confirm_purchase(id: String="",recipient: String=""):
+func confirm_purchase(id: String="",recipient: String="",count: int=1):
 	if busy() or id.is_empty():return
 	if not recipient.is_empty() and not c().get("selected",[]).has(recipient):return
 	if c().get("location")=="south":
 		confirm_consumable(id,recipient);return
 	stage="S1";generation+=1;var ticket=generation;var epoch=pages.epoch;var connection=ui.engine.connection_generation;var place=str(c().get("location"))
-	var reply=await ui.engine.request({"op":"campaign","action":"purchaseQuote","args":[id]})
+	var reply=await ui.engine.request({"op":"campaign","action":"purchaseQuote","args":[id,null if recipient.is_empty() else recipient,count]})
 	if not valid_ticket(ticket,epoch,connection,place):return
 	if reply.get("connection_lost",false):unknown=true;stage="S7";message="接続が失われました。購入は確定していません。";ui.handle_connection_loss(reply,connection);return
 	var q: Dictionary=reply.get("purchaseQuote",{})
 	if not reply.get("ok",false) or not q.get("ok",false):stage="S0";message=str(q.get("reason",reply.get("error","購入できません")));ui.render();return
 	consent=q.duplicate(true);stage="S4"
 	ui.dialog.open("購入の確認",func(body,actions):
-		l(body,str(q.gear.name)+" / 1個",true)
+		l(body,"%s / %d個" % [q.gear.name,q.count],true)
 		l(body,"支払 %dG / 所持金 %d → %dG" % [q.cost,q.goldBefore,q.afterGold],true).name="PurchasePayment"
 		l(body,ui.member_name(recipient)+"のインベントリへ購入しますか？" if not recipient.is_empty() else "購入しますか？ 同意後に受取人を選びます。自動装備はしません。")
 		b(actions,"キャンセル",ui.dialog.close).name="PurchaseDecline"
@@ -293,12 +344,12 @@ func buy(q: Dictionary,uid: String,ticket: int):
 	stage="S5";var epoch=pages.epoch;var connection=ui.engine.connection_generation;var place=str(c().get("location"))
 	var before=int(c().get("characters",{}).get(uid,{}).get("inventory",{}).get(q.gearId,0))
 	ui.dialog.close(false);consent={};ui.render()
-	var result=await ui.update({"op":"campaign","action":"buyInventory","args":[uid,q.gearId,q.token]})
+	var result=await ui.update({"op":"campaign","action":"buyInventory","args":[uid,q.gearId,q.token,q.count]})
 	if not valid_ticket(ticket,epoch,connection,place):return
 	var after=int(c().get("characters",{}).get(uid,{}).get("inventory",{}).get(q.gearId,0))
-	if result.get("ok",false) and after==before+1 and c().get("gold")==q.afterGold:
+	if result.get("ok",false) and after==before+int(q.count) and c().get("gold")==q.afterGold:
 		stage="S0";receipt=q.duplicate(true);receipt.characterId=uid;message=""
-		transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×1 / 支払%dG" % [ui.member_name(uid),q.gear.name,q.cost]};ui.save_notice.display(str(transaction.text))
+		transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×%d / 支払%dG" % [ui.member_name(uid),q.gear.name,q.count,q.cost]};ui.save_notice.display(str(transaction.text))
 	else:
 		unknown=result.get("connection_lost",false) or result.get("ok",false);stage="S7" if unknown else "S0"
 		message="購入結果を確認できません。再送せず保存済みの進行を読み込んで確認してください。" if unknown else "購入を確定できませんでした。所持金・在庫を確認して選び直してください。"
@@ -356,7 +407,7 @@ func confirm_consumable(id: String,uid: String):
 	var products=offered().filter(func(item):return item.id==id)
 	if products.is_empty() or uid.is_empty() or not c().get("selected",[]).has(uid):return
 	var item=products[0];var token=c().get("inventoryToken");var count=purchase_quantity;var cost=int(item.price)*count
-	if c().gold<cost or c().get("inventoryTotals",{}).get(id,0)+count>99:return
+	if not consumable_payment(item,uid).ok:return
 	generation+=1;var ticket=generation;stage="S4"
 	ui.dialog.open("購入の確認",func(body,actions):
 		l(body,"%s ×%d / 支払%dG / %sのインベントリへ" % [item.name,count,cost,ui.member_name(uid)],true)

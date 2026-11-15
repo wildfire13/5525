@@ -57,13 +57,13 @@ func render_detail(parent,footer):
  var item=selected()
  if item.is_empty():ui.label_(parent,"インベントリのアイテムを選択");return
  var icon=ui.icons.equipment(item) if item.get("kind")=="equipment" else "items" if item.get("kind")=="quest" else str(item.id)
- if item.get("kind")=="equipment":shop.pages.describe_gear(parent,item.get("definition",item))
+ if item.get("kind")=="equipment":shop.pages.describe_gear(parent,item.get("definition",item),true)
  else:ui.icons.line(ui,parent,icon,str(item.name),true).name="FacilitySaleTarget"
  var controls=ui.row(parent);ui.label_(controls,"個数")
  var count=SpinBox.new();count.name="FacilitySaleQuantity";count.min_value=1;count.max_value=int(item.count);amount=clampi(amount,1,int(item.count));count.step=1;count.value=amount;count.custom_minimum_size.x=104;count.editable=not busy();controls.add_child(count)
  count.value_changed.connect(func(value):amount=int(value);quote={};generation+=1;request_quote())
  var totals=ui.label_(parent,message if not message.is_empty() else "売却額を確認中…");totals.name="FacilitySaleTotals"
- var button=ui.green_button(ui.button(footer,"取引を確認",confirm_sale,not item.get("sale",{}).get("ok",false) or busy()));button.name="FacilitySalePrepare";button.size_flags_horizontal=Control.SIZE_SHRINK_END
+ var button=ui.green_button(ui.button(footer,"買取明細へ",confirm_sale,not item.get("sale",{}).get("ok",false) or busy()));button.name="FacilitySalePrepare";button.size_flags_horizontal=Control.SIZE_SHRINK_END
  button.tooltip_text=str(item.get("sale",{}).get("reason",""))
  if not quote.is_empty():show_quote(totals)
  elif not busy() and not previewing:request_quote()
@@ -90,7 +90,13 @@ func request_quote():
 func confirm_sale():
  if busy() or ui.locked or ui.modal_open() or previewing or not quote.get("ok",false):return
  stage="confirm";var ticket=generation;var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation;var confirmed=quote.duplicate(true)
- var dialog=ui.confirm("売却しますか？\n%sの %s ×%d\n受取 %dG / 所持金 %d → %dG" % [confirmed.ownerName,confirmed.name,confirmed.count,confirmed.proceeds,confirmed.goldBefore,confirmed.afterGold],commit.bind(confirmed,ticket,epoch,connection));confirmation=dialog;dialog.name="FacilitySaleConfirmation";dialog.ok_button_text="売却する";dialog.cancel_button_text="キャンセル"
+ var dialog=ui.facility_receipt("買取明細",selected(),confirmed.ownerName,commit.bind(confirmed,ticket,epoch,connection),func(body,d):
+  ui.receipt_line(body,"売却数 × 単価").text="%d × %d G" % [confirmed.count,confirmed.price]
+  ui.receipt_line(body,"受取金額").text="+%d G" % confirmed.proceeds
+  ui.receipt_line(body,"所持金").text="%d → %d G" % [confirmed.goldBefore,confirmed.afterGold]
+  ui.receipt_line(body,"手元に残る数").text="%d → %d" % [confirmed.available,confirmed.available-confirmed.count]
+  d.ok_button_text="%d個売却する" % confirmed.count)
+ confirmation=dialog;dialog.name="FacilitySaleConfirmation"
  dialog.get_ok_button().name="FacilitySaleConfirm";dialog.get_cancel_button().name="FacilitySaleCancel"
  var cancel=func():
   if ticket==generation and stage=="confirm":stage="selected";ui.render()

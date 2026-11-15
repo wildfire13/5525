@@ -183,19 +183,24 @@ func escaped(value) -> String:return str(value).replace("[","[lb]")
 func change(title: String,before,after) -> String:
 	var delta=int(after)-int(before);var color="#8ee6ab" if delta>0 else "#ffb1a6" if delta<0 else "#d5dbe2"
 	return "%s: %d → %d [color=%s](%+d)[/color]" % [title,before,after,color,delta]
-func comparison(u: Dictionary,entry: Dictionary,chosen: String,q: Dictionary,shop_compact:=false) -> String:
+func stat_changes(u: Dictionary,q: Dictionary) -> Array:
 	var a: Dictionary=q.before;var z: Dictionary=q.after;
 	var lines=[]
 	for pair in [["HP上限","max"],["MP上限","maxMp"],["行動速度","speed"],["物理DEF","def"],["火DEF","defFire"],["水DEF","defWater"],["地DEF","defEarth"],["火ATK","atkFire"],["水ATK","atkWater"],["地ATK","atkEarth"]]:
-		if int(a.get(pair[1],0))!=int(z.get(pair[1],0)):lines.append(change(pair[0],a.get(pair[1],0),z.get(pair[1],0)))
+		if int(a.get(pair[1],0))!=int(z.get(pair[1],0)):lines.append([pair[0],a.get(pair[1],0),z.get(pair[1],0)])
 	var before_reach=party.pages.normal_reach(a);var after_reach=party.pages.normal_reach(z)
-	if before_reach!=after_reach:lines.append(change("通常射程",before_reach,after_reach))
+	if before_reach!=after_reach:lines.append(["通常射程",before_reach,after_reach])
 	for distance in range(1,maxi(before_reach,after_reach)+1):
 		var before_atk=party.pages.normal_atk(a,distance);var after_atk=party.pages.normal_atk(z,distance)
-		if before_atk!=after_atk:lines.append(change("通常ATK 距離%d" % distance,before_atk,after_atk))
+		if before_atk!=after_atk:lines.append(["通常ATK 距離%d" % distance,before_atk,after_atk])
 	for pair in [["現在HP","hp","max"],["現在MP","mp","maxMp"]]:
 		var before=int(u.get(pair[1],0));var after=mini(before,int(z.get(pair[2],before)))
-		if before!=after:lines.append(change(pair[0],before,after))
+		if before!=after:lines.append([pair[0],before,after])
+	return lines
+func comparison(u: Dictionary,entry: Dictionary,chosen: String,q: Dictionary,shop_compact:=false) -> String:
+	var a: Dictionary=q.before;var z: Dictionary=q.after
+	var lines=[]
+	for stat in stat_changes(u,q):lines.append(change(stat[0],stat[1],stat[2]))
 	if not shop_compact:
 		var names=ui.campaign().get("skillNames",{})
 		for field in ["activeSkills","effects"]:

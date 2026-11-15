@@ -2,24 +2,25 @@
 // Quotes are pure. Every multi-owner mutation validates a complete detached state.
 module.exports=function({I,S,clone,record,integer,getGear,template,shop,equipment,eligibility,stats,syncCharacter,validate,inventoryToken,inventoryCapacity,commitInventory,note,createHash}) {
   function saleAvailable(s){return s.phase==='town'&&['east','west','north'].includes(s.location);}
-  // Consent covers this exact single-item payment, before a recipient is chosen.
-  function purchaseQuote(s,id,ownerId=null) {
-    const g=getGear(id),q={ok:false,reason:'',gearId:id,count:1,gear:g?clone(g):null,cost:g?.price||0,goldBefore:s.gold,afterGold:s.gold-(g?.price||0),token:''};
+  // Consent covers the exact item, quantity and payment, before a recipient is chosen.
+  function purchaseQuote(s,id,ownerId=null,count=1) {
+    const g=getGear(id),cost=(g?.price||0)*count,q={ok:false,reason:'',gearId:id,count,gear:g?clone(g):null,cost,goldBefore:s.gold,afterGold:s.gold-cost,token:''};
+    if(!Number.isSafeInteger(count)||count<1||count>99)return {...q,reason:'購入数が不正です'};
     if(!saleAvailable(s)||!g||g.type==='empty'||!shop(s).some(item=>item.id===id))return {...q,reason:'この店で購入できる商品を選んでください'};
-    q.token=createHash('sha256').update(JSON.stringify([inventoryToken(s),id,g.price])).digest('hex');
+    q.token=createHash('sha256').update(JSON.stringify([inventoryToken(s),id,g.price,count])).digest('hex');
     if(s.gold<q.cost)return {...q,reason:'所持金が不足しています'};
-    if(!s.selected.some(owner=>I.canReceive(s.characters[owner].inventory,id,1,inventoryCapacity(s,owner))))return {...q,reason:'受取可能なインベントリがありません'};
-    if(ownerId!==null&&(!s.selected.includes(ownerId)||!s.characters[ownerId]||!I.canReceive(s.characters[ownerId].inventory,id,1,inventoryCapacity(s,ownerId))))return {...q,reason:'選択した人物のインベントリに空きがありません'};
+    if(!s.selected.some(owner=>I.canReceive(s.characters[owner].inventory,id,count,inventoryCapacity(s,owner))))return {...q,reason:'受取可能なインベントリがありません'};
+    if(ownerId!==null&&(!s.selected.includes(ownerId)||!s.characters[ownerId]||!I.canReceive(s.characters[ownerId].inventory,id,count,inventoryCapacity(s,ownerId))))return {...q,reason:'選択した人物のインベントリに空きがありません'};
     return {...q,ok:true};
   }
-  function buyInventory(s,ownerId,id,token) {
-    const q=purchaseQuote(s,id);
+  function buyInventory(s,ownerId,id,token,count=1) {
+    const q=purchaseQuote(s,id,ownerId,count);
     if(!q.ok||token!==q.token||!template(ownerId)||!s.selected.includes(ownerId))return false;
-    if(!I.canReceive(s.characters[ownerId].inventory,id,1,inventoryCapacity(s,ownerId)))return false;
+    if(!I.canReceive(s.characters[ownerId].inventory,id,count,inventoryCapacity(s,ownerId)))return false;
     return commitInventory(s,draft=>{
-      const owner=draft.characters[ownerId],bag=I.add(owner.inventory,id,1);if(!bag)return false;
+      const owner=draft.characters[ownerId],bag=I.add(owner.inventory,id,count);if(!bag)return false;
       owner.inventory=bag;draft.gold=q.afterGold;
-      note(draft,`${template(ownerId).name}が${q.gear.name}を1個、${q.cost}Gで購入。本人のインベントリへ。`);return true;
+      note(draft,`${template(ownerId).name}が${q.gear.name}を${count}個、${q.cost}Gで購入。本人のインベントリへ。`);return true;
     });
   }
   function purchasePlan(s,entries) {

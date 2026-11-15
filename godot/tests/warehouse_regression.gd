@@ -1,4 +1,15 @@
 extends "res://tests/skill_grant_hud.gd"
+func confirm_deposit():
+ var move=game.find_child("WarehouseTransfer",true,false)
+ move.pressed.emit();await settle()
+ var receipt=game.find_child("WarehouseDepositConfirmation",true,false)
+ check(is_instance_valid(receipt),"deposit opens receipt")
+ if is_instance_valid(receipt):receipt.confirmed.emit()
+ while game.pages.warehouse_view.pending:await process_frame
+ await settle()
+ await RenderingServer.frame_post_draw
+ await settle()
+
 func run():
  create_timer(90).timeout.connect(func():print("FAIL watchdog");quit(2))
  if OS.get_environment("NATIVE5525_AUDIO_OFF")!="1":quit(2);return
@@ -24,7 +35,7 @@ func run():
  var outer=game.find_child("MemberWorkspaceScroll",true,false)
  outer.ensure_control_visible(button);await settle()
  check(outer.get_global_rect().encloses(button.get_global_rect()) and button.get_global_rect().end.y<=dims.y,"transfer within window "+str(dims))
- await view.transfer_selected();await settle()
+ await confirm_deposit()
  check(int(game.campaign().warehouse.get("potion",0))==1,"deposit reaches campaign "+str(dims))
  var stored=game.find_child("WarehouseItem_warehouse_potion",true,false)
  check(view.source=="warehouse" and stored.get_meta("selected"),"deposit selects the destination "+str(dims))
@@ -63,7 +74,7 @@ func run():
  check(quoted.has("ok") and game.find_child("WarehouseUnequip",true,false).disabled==not quoted.ok,"full inventory uses native unequip decision")
  check(game.find_child("WarehouseReason",true,false).text==quoted.reason,"native unequip reason shown unchanged")
  view.set_tab("inventory");await settle()
- view.choose("character",sword);await settle();await view.transfer_selected();await settle()
+ view.choose("character",sword);await settle();await confirm_deposit()
  check(view.source=="warehouse" and view.item_id==sword and view.filters.warehouse=="all","deposited sword is revealed despite old filter")
  view.set_filter("rightHand","warehouse");await settle()
  check(game.find_child("WarehouseItem_warehouse_"+sword,true,false)!=null,"storage filters equipped weapon by part")
