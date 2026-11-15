@@ -93,6 +93,8 @@ class CampaignBridgeTests(unittest.TestCase):
         self.assertEqual(self.data['campaign']['characters']['mage']['inventory']['hammer-wood'],1)
         second=self.journey('astaris');self.assertGreater(second['gold'],0)
         self.assertEqual(self.data['campaign']['completed'],2)
+        # Recover after the round trip before measuring the questless journey's rewards.
+        self.action('inn')
         before=self.save()['state'];selected=before['selected']
         third=self.journey('north',quest=False);self.assertEqual((third['gold'],third['xp'],third['outcome']),(0,0,'travel'))
         after=self.save()['state']

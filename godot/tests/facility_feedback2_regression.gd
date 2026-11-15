@@ -42,7 +42,7 @@ func run():
   check(node("RosterMember_guard")!=null and shop.selected_owner()=="guard",str(dims)+" selected owner is represented in the roster")
   check(Rect2(Vector2.ZERO,Vector2(dims)).encloses(panel.get_global_rect()) and panel.get_global_rect().encloses(footer.get_global_rect()),str(dims)+" transaction panel and footer fit viewport")
   check(Rect2(Vector2.ZERO,Vector2(dims)).encloses(node("FacilitySalePrepare").get_global_rect()),str(dims)+" quantity confirmation remains onscreen")
-  check(not panel.get_global_rect().intersects(node("ShopCatalog").get_global_rect()) and not panel.get_global_rect().intersects(node("ShopInventory").get_global_rect()),str(dims)+" sale detail does not overlap inventory or catalog")
+  check(not node("ShopCatalog").is_visible_in_tree() and node("ShopInventory").is_visible_in_tree() and not panel.get_global_rect().intersects(node("ShopInventory").get_global_rect()),str(dims)+" sale hides the catalog and keeps details clear of inventory")
  shop.sale.confirm_sale();await settle();check(shop.owner_pressed("archer") and shop.selected_owner()=="guard","confirmation consumes owner changes")
  var cancel=node("FacilitySaleConfirmation");cancel.canceled.emit();cancel.hide();cancel.queue_free();await settle();check(shop.sale.stage=="selected" and await saved()==before and shop.sale.amount==2,"NO preserves amount and all resources")
  shop.sale.confirm_sale();await settle();node("FacilitySaleConfirm").pressed.emit();await settle()

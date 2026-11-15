@@ -109,7 +109,7 @@ func run():
  var south=original.duplicate(true);south.state.location="south";south.state.gold=500
  await game.update({"op":"campaign_load","data":south});await enter_facility("shop");await settle()
  await tap("RosterMember_guard");await tap("Product_potion");node("ShopPurchaseQuantity").value=5;await settle()
- check(game.pages.shop_view.purchase_quantity==5 and node("ShopTransaction").find_children("*","Label",true,false).any(func(l):return l.text.contains("500 → 300 G")),"central consumable quantity shows exact total remainder")
+ check(game.pages.shop_view.purchase_quantity==5 and node("ShopComparisonPayment").text=="所持金 500G − 購入 200G = 残金 300G","five potions show the exact cost and remaining funds")
  var quantity_before=await saved();await tap("ProductBuy_potion_1")
  check((await saved())==quantity_before,"quantity purchase consent leaves full save unchanged")
  await tap("PurchaseDecline");check((await saved())==quantity_before,"quantity purchase decline leaves full save unchanged")

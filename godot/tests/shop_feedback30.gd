@@ -19,7 +19,7 @@ func run():
  var compared_gear=comparison.item()
  var compared_note=node("ShopComparisonNotes")
  check(node("ShopComparisonFlavor").text==compared_gear.flavor and (compared_gear.get("note","").is_empty() and compared_note==null or is_instance_valid(compared_note) and compared_note.text==compared_gear.note),"shop comparison displays flavor and shows an original note only when defined")
- check(node("ShopComparisonBuy").text=="取引を確認" and node("ShopComparisonPayment").text.contains("400G") and not node("ShopComparisonBuy").disabled,"ineligible equipment can still be purchased into inventory")
+ check(node("ShopComparisonBuy").text=="1個の購入へ" and node("ShopComparisonPayment").text.contains("購入 400G") and not node("ShopComparisonBuy").disabled,"ineligible equipment can still be purchased into inventory")
  check(node("ShopComparisonBuy").get_parent()==node("ShopTransactionFooter") and not game.modal_open(),"inline purchase button stays in transaction footer outside scroller")
  var icons=node("ShopComparisonSkills").find_children("ComparisonSkill*","Button",true,false)
  check(icons.size()>=2 and icons.all(func(b):return b.icon!=null and b.text.begins_with("Lv") and b.tooltip_text.contains("付与枠")),"gained and lost skills have icons and level/detail hover")

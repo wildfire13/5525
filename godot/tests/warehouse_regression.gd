@@ -7,8 +7,6 @@ func confirm_deposit():
  if is_instance_valid(receipt):receipt.confirmed.emit()
  while game.pages.warehouse_view.pending:await process_frame
  await settle()
- await RenderingServer.frame_post_draw
- await settle()
 
 func run():
  create_timer(90).timeout.connect(func():print("FAIL watchdog");quit(2))
