@@ -34,7 +34,7 @@ func run():
  while guild.stage=="animating":await process_frame
  check(game.campaign().selected.has(candidate.id) and game.campaign().selected.size()==old_ids.size(),"swap commits selected pair without changing party size")
  game.pages.facility_entry.back();await settle();game.pages.facility_entry.choose("warehouse");await settle()
- check(node("WarehouseSelectedPanel")!=null and node("WarehouseReturn")!=null,"warehouse center details and return")
+ check(node("WarehouseStorage")!=null and node("WarehouseReturn")!=null,"warehouse opens with withdrawal ledger and return")
  await capture("warehouse")
  var warehouse=game.pages.warehouse_view
  var saved=await game.engine.request({"op":"campaign_save"})
@@ -43,15 +43,28 @@ func run():
  await game.update({"op":"campaign_load","data":saved.data});await settle()
  game.navigate("party");game.pages.facility_entry.choose("warehouse");await settle()
  warehouse.select_owner(owner);await settle();warehouse.choose("character","potion");await settle()
- warehouse.request_transfer("character","potion");await settle()
- check(node("WarehouseQuantity")!=null and game.dialog.window.title=="個数","stack transfer asks simplified quantity")
- node("WarehouseQuantity").value=2
- for button in game.dialog.actions.get_children():
-  if button is Button and button.text=="OK":button.pressed.emit();break
+ var deposit=node("WarehouseTransfer")
+ check(deposit is Button and not deposit.disabled,"selected potion can be deposited")
+ if deposit is Button and not deposit.disabled:deposit.pressed.emit()
+ await settle()
+ var receipt=node("WarehouseDepositConfirmation")
+ var amount=node("WarehouseQuantity")
+ check(receipt is ConfirmationDialog and receipt.visible and receipt.title=="預け入れ明細" and amount is SpinBox,"stack deposit opens quantity receipt")
+ if receipt is ConfirmationDialog and amount is SpinBox:
+  amount.value=2
+  check(receipt.ok_button_text=="2個預ける","deposit confirmation shows selected quantity")
+  receipt.confirmed.emit()
  await settle()
  check(warehouse.rows("warehouse").any(func(entry):return entry.id=="potion" and int(entry.count)==2),"warehouse transfers selected quantity atomically")
- await warehouse.transfer("warehouse","potion",1,str(game.campaign().inventoryToken));await settle()
- check(warehouse.rows("warehouse").any(func(entry):return entry.id=="potion" and int(entry.count)==1),"warehouse withdrawal preserves remaining stack")
+ var take=node("WarehouseQuantity_potion")
+ check(take is SpinBox,"deposited potion appears in ledger")
+ if take is SpinBox:
+  take.value=1
+  var withdraw=node("WarehouseTransfer")
+  check(withdraw is Button and not withdraw.disabled and withdraw.text=="1個取り出す","ledger enables withdrawal of one potion")
+  if withdraw is Button and not withdraw.disabled:withdraw.pressed.emit()
+  await settle()
+ check(warehouse.rows("warehouse").any(func(entry):return entry.id=="potion" and int(entry.count)==1) and warehouse.owned_count("potion")==1,"withdrawal leaves one potion in storage and one with recipient")
 
  game.navigate("board");await settle()
  check(node("QuestRequesterPortrait")!=null and node("QuestCargoInformation")!=null,"quest requester and cargo are visible")

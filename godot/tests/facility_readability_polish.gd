@@ -35,13 +35,18 @@ func run():
  for item in items:
   seed.state.warehouse[item.id]=2;seed.state.characters[porter].inventory[item.id]=1
  var loaded=await game.update({"op":"campaign_load","data":seed});print("LOAD_WAREHOUSE ",loaded.get("ok")," ",loaded.get("error",""));game.navigate("party");game.pages.facility_entry.choose("warehouse");await settle()
- var warehouse=game.pages.warehouse_view;warehouse.select_owner(porter);warehouse.choose("warehouse","potion");await settle()
- check(game.find_child("WarehouseItemEffect",true,false).text=="HPを55回復","warehouse effect uses canonical item definition")
- check(game.find_child("WarehouseStorage",true,false).get_parent().size.x>=420,"warehouse lists widened")
+ var warehouse=game.pages.warehouse_view;warehouse.select_owner(porter);await settle()
+ var storage=game.find_child("WarehouseStorage",true,false)
+ check(storage is Control and storage.size.x>=420,"withdrawal ledger is at least 420 px wide")
  check(game.find_child("WarehouseColumns",true,false).size.y==game.mock_shell.content_height(),"warehouse lower edge matches roster")
  await shot("warehouse-many")
- warehouse.choose("warehouse","javelin-wood");await settle()
- var labels="\n".join(game.find_child("WarehouseSelectedItem",true,false).find_children("*","Label",true,false).map(func(n):return n.text))
+ warehouse.choose("character","potion");await settle()
+ var effect=game.find_child("WarehouseItemEffect",true,false)
+ check(effect is Label and effect.text=="HPを55回復","deposit details show canonical potion effect")
+ warehouse.choose("character","javelin-wood");await settle()
+ var detail=game.find_child("WarehouseSelectedItem",true,false)
+ var labels=""
+ if detail is Control:labels="\n".join(detail.find_children("*","Label",true,false).map(func(n):return n.text))
  check(labels.contains("戦闘後に回収"),"warehouse gear detail preserves practical equipment note")
  game.navigate("board");await settle()
  # UI stress projection uses the existing cargoItems/rewards fields; not a new backend reward system.
