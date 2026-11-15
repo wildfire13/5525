@@ -5,7 +5,7 @@ func visual_contract(label: String):
 	check(image!=null and image.get_global_rect()==viewport and image.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_COVERED,"still fills game viewport without stretching "+label)
 	check(game.backdrop_layer.mouse_filter==Control.MOUSE_FILTER_IGNORE and game.backdrop_layer.clip_contents and game.base.get_index()>game.backdrop_layer.get_index(),"decoration remains clipped and below interactive UI "+label)
 	var header=node("CampaignHeader")
-	check(header!=null and viewport.encloses(header.get_global_rect()) and node("Header_hub")!=null,"common navigation fits game viewport "+label)
+	check(header!=null and viewport.encloses(header.get_global_rect()) and node("HeaderLocation").text==game.town_name(game.campaign().location),"common navigation fits game viewport "+label)
 	var money=header.find_children("*","Label",true,false).filter(func(item):return item.text==str(int(game.campaign().gold))+" G")
 	var menu=header.find_children("*","Button",true,false).filter(func(item):return item.text=="メニュー")
 	check(money.size()==1 and menu.size()==1 and money[0].get_global_rect().end.x<=menu[0].get_global_rect().position.x,"current money precedes common menu "+label)

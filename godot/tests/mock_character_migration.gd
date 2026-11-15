@@ -41,7 +41,7 @@ func run():
 	workspace.set_tab("skills");await settle()
 	check(game.page=="hub","active tab returns to previous page")
 	game.navigate("map");await settle()
-	game.find_child("Header_character",true,false).pressed.emit();await settle()
+	game.find_child("RosterMember_"+str(ids[0]),true,false).pressed.emit();await settle()
 	check(game.find_child("Header_map",true,false)==null,"party header omits map shortcut")
 	game.find_child("Header_character",true,false).pressed.emit();await settle()
 	check(game.page=="map","header toggle restores map")
@@ -49,7 +49,7 @@ func run():
 	game.navigate("character");await settle()
 	game.find_child("Header_character",true,false).pressed.emit();await settle()
 	check(game.page=="board","direct character entry remembers its own origin")
-	game.find_child("Header_character",true,false).pressed.emit();await settle()
+	game.navigate("character");await settle()
 
 	workspace.tab="ability";game.render();await settle()
 	workspace.open_portrait(member);await settle()

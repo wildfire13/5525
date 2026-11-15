@@ -37,10 +37,12 @@ func choose(value: String):
  if ui.locked or ui.presenting or ui.modal_open() or pages.shop_view.busy():return
  if ui.page=="shop" and value in ["buy","sell"] and pages.c().get("selected",[]).has(pages.party_uid):ui.shop_uid=pages.party_uid
  view=value;pages.shop_view.sale.reset();ui.memory.focus_key="";ui.render()
+func facility_name(page: String) -> String:
+ return str({"shop":{"east":"武器屋","west":"防具屋","south":"道具屋","north":"装飾品店"}.get(str(pages.c().get("location")),"商店"),"inn":"宿屋","party":"ギルド"}.get(page,""))
 func render_top(parent: Control,page: String) -> bool:
  sync()
  if not at_top(page):return false
- var title={"shop":{"east":"武器屋","west":"防具屋","south":"道具屋","north":"装飾品店"}.get(str(pages.c().get("location")),"商店"),"inn":"宿屋","party":"ギルド"}.get(page,"")
+ var title=facility_name(page)
  var layout=HBoxContainer.new();layout.name="FacilityEntry";layout.custom_minimum_size.y=ui.mock_shell.content_height();layout.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;layout.add_theme_constant_override("separation",32);parent.add_child(layout)
  var options=VBoxContainer.new();options.name="FacilityChoices";options.custom_minimum_size.x=300;options.add_theme_constant_override("separation",16);layout.add_child(options)
  var town_label=ui.label_(options,ui.town_name(pages.c().get("location","")));town_label.add_theme_font_size_override("font_size",20);town_label.add_theme_color_override("font_color",Color("#faf9f5"));town_label.add_theme_color_override("font_outline_color",Color("#283128"));town_label.add_theme_constant_override("outline_size",6)

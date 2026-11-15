@@ -51,11 +51,27 @@ func toggle_character():
 func navigation(parent):
 	var panel=PanelContainer.new();panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
 	var bar=ui.row(panel);bar.name="CampaignHeader";bar.custom_minimum_size.y=56
-	var brand=ui.label_(bar,"5525",true);brand.size_flags_horizontal=Control.SIZE_FILL;brand.custom_minimum_size.x=160
-	for pair in [["hub","ローカルマップ"],["character","パーティ情報"],["board","クエスト"],["map","ワールドマップ"]]:
-		if ui.page=="character" and pair[0]!="character":continue
-		var action=toggle_character if pair[0]=="character" else ui.navigate.bind(pair[0])
-		var nav=ui.button(bar,pair[1],action,ui.campaign().get("phase")!="town" and pair[0]=="hub");nav.name="Header_"+pair[0];nav.custom_minimum_size=Vector2(140,44);ui.mark_selected(nav,ui.page==pair[0])
+	var place=ui.label_(bar,ui.header.text,true)
+	place.name="HeaderLocation";place.size_flags_horizontal=Control.SIZE_FILL;place.custom_minimum_size.x=160
+	var town=ui.campaign().get("phase")=="town"
+	var facility=ui.pages.facility_entry
+	var links=[]
+	if ui.page=="character":
+		links=[["character","パーティ情報",toggle_character]]
+	elif not town:
+		var viewing_contract=ui.page=="board" and ui.campaign().get("activeQuest") is Dictionary
+		links=[["character","パーティ情報",toggle_character],["board","クエスト",ui.navigate.bind("map" if viewing_contract else "board")]]
+	elif facility.supported(ui.page):
+		links=[["hub",facility.facility_name(ui.page),ui.navigate.bind("hub")]]
+	elif ui.page=="board":
+		links=[["board","掲示板",ui.navigate.bind("hub")]]
+	elif ui.page=="map":
+		links=[["map","ワールドマップ",ui.navigate.bind("hub")]]
+	for link in links:
+		var blocked=facility.supported(ui.page) and (ui.pages.shop_view.busy() or ui.pages.warehouse_view.pending)
+		var nav=ui.button(bar,link[1],link[2],blocked)
+		nav.name="Header_"+str(link[0]);nav.custom_minimum_size=Vector2(140,44)
+		ui.mark_selected(nav,ui.page==link[0] or facility.supported(ui.page))
 	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bar.add_child(spacer)
 	ui.icons.line(ui,bar,"money",str(int(ui.campaign().get("gold",0)))+" G")
 	ui.local_button(bar,"メニュー",ui.open_menu)

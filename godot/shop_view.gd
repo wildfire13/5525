@@ -115,7 +115,7 @@ func render(parent):
 		ui.memory.watch(inventory.get_parent(),"shop_inventory_"+inventory_tab)
 		sale.render_inventory(inventory)
 	var middle=make_panel(layout,"ShopTransaction",0)
-	var stock=make_panel(layout,"ShopCatalog",360)
+	var stock=make_panel(layout,"ShopCatalog",440)
 	backdrop(stock,pages.facility_art.npc.texture,"ShopKeeperArt")
 	l(middle,"購入" if selection_kind=="buy" else "売却" if selection_kind=="sell" else "取引を確認").name="ShopTransactionHeading"
 	var detail=ui.scroller(middle);detail.get_parent().name="ShopTransactionScroll"
@@ -166,7 +166,19 @@ func render_product(parent: Control,item: Dictionary):
 	var line=HBoxContainer.new();line.add_theme_constant_override("separation",8);line.mouse_filter=Control.MOUSE_FILTER_IGNORE;margin.add_child(line)
 	ui.icons.add(line,str(item.id) if c().location=="south" else ui.icons.equipment(item),36)
 	var title=l(line,str(item.name));title.add_theme_font_size_override("font_size",18);title.mouse_filter=Control.MOUSE_FILTER_IGNORE;title.autowrap_mode=TextServer.AUTOWRAP_OFF;title.clip_text=true;choose.tooltip_text=str(item.name)
-	var price=l(line,"%dG" % int(item.price));price.add_theme_font_size_override("font_size",18);price.size_flags_horizontal=Control.SIZE_SHRINK_END;price.autowrap_mode=TextServer.AUTOWRAP_OFF;price.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var values=VBoxContainer.new()
+	values.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	values.alignment=BoxContainer.ALIGNMENT_CENTER
+	values.add_theme_constant_override("separation",0)
+	line.add_child(values)
+	var price=l(values,"%dG" % int(item.price))
+	var weight=l(values,"Wt %s" % (str(item.weight) if item.get("weight")!=null else "不明"))
+	price.add_theme_font_size_override("font_size",18)
+	weight.add_theme_font_size_override("font_size",16)
+	for label in [price,weight]:
+		label.autowrap_mode=TextServer.AUTOWRAP_OFF
+		label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+		label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	list_surface(choose,selection_kind=="buy" and pages.gear_id==str(item.id));ui.memory.key(choose,"product_"+str(item.id))
 	preload("res://item_drag.gd").source(choose,func():
 		if busy():return null

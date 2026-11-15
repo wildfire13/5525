@@ -8,7 +8,7 @@ func pointer_click(control):
 func green(control):return control.get_theme_stylebox("normal").bg_color.is_equal_approx(Color("#236044"))
 func return_layout(id):
 	var back=node(id)
-	var expected="取引終了" if id=="ShopExit" else "ローカルマップ" if id=="Header_hub" else "戻る"
+	var expected="取引終了" if id=="ShopExit" else "掲示板" if id=="Header_board" else "戻る"
 	check(back!=null and back.is_visible_in_tree() and back.text==expected and not back.disabled and not game.town_back.visible,"one available return control "+id)
 	if back==null:return
 	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(back.get_global_rect()),"return remains inside viewport "+id)
