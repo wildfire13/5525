@@ -79,7 +79,7 @@ func navigation(parent):
 		ui.mark_selected(nav,ui.page==link[0] or facility.supported(ui.page))
 	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bar.add_child(spacer)
 	ui.icons.line(ui,bar,"money",str(int(ui.campaign().get("gold",0)))+" G")
-	ui.local_button(bar,"メニュー",ui.open_menu)
+	ui.memory.key(ui.local_button(bar,"メニュー",ui.open_menu),"game_menu")
 func needs_roster() -> bool:
 	return ui.page!="board" and not ui.pages.facility_entry.at_top() and ui.campaign().get("phase")!="result"
 func workspace(parent) -> VBoxContainer:
