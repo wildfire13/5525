@@ -90,7 +90,7 @@ func drag_roster_card(uid: String, cell: int):
 	root.warp_mouse(press.position)
 	root.push_input(press,true)
 	await settle()
-	check(ally(uid).get("pos")==cell and game.pages.party_view.detail_uid.is_empty(),"roster release places member without opening status")
+	check(ally(uid).get("pos")==cell and game.page!="character" and not game.modal_open(),"roster release places member without opening status")
 func run():
 	create_timer(120).timeout.connect(func():print("FAIL deployment D&D watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return

@@ -311,7 +311,7 @@ func reset_context(plan_mode: String="discard",campaign_id: String=""):
 	hub_view.reset()
 	facility_art.reset()
 	if ui.hud!=null:ui.hud.reset_context()
-	reset_items();facility_entry.reset();shop_view.reset(plan_mode,campaign_id);guild_view.reset();party_view.reset();party_view.tab=0;party_view.highlight_slot=""
+	reset_items();facility_entry.reset();shop_view.reset(plan_mode,campaign_id);guild_view.reset();party_view.reset()
 	epoch+=1;invalidate_quote(true);trial_return={};cached_quotes={}
 func request_quote(id: String):await shop_view.select_product(id)
 func select_member(uid: String):await shop_view.select_member(uid)

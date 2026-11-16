@@ -144,7 +144,7 @@ func preview(parent,member,item,equip):
 	var quote=result.get("previewGear",{})
 	if quote is Dictionary and quote.has("before"):
 		# Keep skills visual; comparison heading identifies the exact selected slot.
-		text.text=ui.pages.party_view.owned_equipment_view.comparison(member,item,chosen,quote,true).replace("#8ee6ab","#247044").replace("#ffb1a6","#b04430").replace("#d5dbe2","#707970")
+		text.text=ui.pages.shop_view.comparison_view.comparison_text(member,item,chosen,quote).replace("#8ee6ab","#247044").replace("#ffb1a6","#b04430").replace("#d5dbe2","#707970")
 		text.text="比較対象："+str(ui.campaign().get("slots",{}).get(chosen,chosen))+"\n"+text.text
 		render_comparison_skills(parent,quote)
 		equip.disabled=busy or not item.get("equipSlots",[]).any(func(q):return q.slot==chosen and q.ok);equip.set_meta("base_disabled",equip.disabled)

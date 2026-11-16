@@ -7,7 +7,7 @@ var host_ref: WeakRef
 var epoch := 0
 var connection := 0
 var context_stamp := ""
-func stamp() -> String:return JSON.stringify([ui.page,ui.state().get("actor"),ui.state().get("actions"),ui.pages.party_view.detail_uid,ui.campaign().get("inventoryToken")])
+func stamp() -> String:return JSON.stringify([ui.page,ui.state().get("actor"),ui.state().get("actions"),ui.pages.party_uid,ui.campaign().get("inventoryToken")])
 func configure(frontend,doc: Dictionary,context: String,note: String="",flavor: String=""):
  ui=frontend;epoch=ui.pages.epoch;connection=ui.engine.connection_generation;context_stamp=stamp()
  name="SkillDetailsWindow";title=doc.get("window_title","スキルの説明");exclusive=true;transient=true

@@ -600,7 +600,6 @@ func render():
 			var return_row=row(content);return_row.name="TownReturnRow";return_row.alignment=BoxContainer.ALIGNMENT_END
 			var back=green_button(button(return_row,pages.facility_entry.return_label() if phase=="town" else "広場に移動",pages.acknowledge.bind("hub") if phase=="result" else pages.facility_entry.back,pages.guild_view.busy() if page=="party" else false));back.name="GuildReturn" if page=="party" else "InnReturn" if page=="inn" else "TownReturn"
 
-	pages.party_view.refresh_modal()
 	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else (focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if battle else ""))
 	rendering=false;memory.restore()
 func location_suffix(phase: String,c: Dictionary) -> String:
@@ -972,13 +971,7 @@ func _input(event):
 	if event is InputEventKey:
 		var explanation=find_child("SkillDetailsWindow",true,false)
 		if explanation!=null and explanation.visible:return
-	# Status is nonexclusive only for portrait switching; root shortcuts must
-	# never activate a background button after an outside click moves focus.
-	if event is InputEventKey and is_instance_valid(dialog.window) and dialog.window.title==dialog.STATUS_TITLE and event.keycode not in [KEY_ESCAPE,KEY_F11]:
-		dialog.window.grab_focus();get_viewport().set_input_as_handled();return
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed:
-		if pages!=null and pages.party_view.outside_press(event.position):
-			swallow_mouse_release=true;get_viewport().set_input_as_handled();return
 		if pages!=null:pages.guild_view.outside_press(event.position)
 	if event is InputEventKey and event.pressed and event.echo and event.keycode in [KEY_ENTER,KEY_KP_ENTER,KEY_SPACE]:
 		var focus=get_viewport().gui_get_focus_owner()
@@ -1003,7 +996,7 @@ func show_skill_details(id: String,title_: String,level: int=1,gear: Dictionary=
 	if existing!=null and existing.visible:existing.grab_focus();return
 	var host=dialog.window if is_instance_valid(dialog.window) else self
 	var detail=preload("res://skill_details.gd").new();host.add_child(detail)
-	var context=member_name(str(state().get("actor",""))) if view_kind=="battle" else member_name(pages.party_view.detail_uid if not pages.party_view.detail_uid.is_empty() else pages.party_uid)
+	var context=member_name(str(state().get("actor",""))) if view_kind=="battle" else member_name(pages.party_uid)
 	if not gear.is_empty():context+=" / "+str(gear.get("name",""))
 	detail.configure(self,preload("res://skill_text.gd").document(id,title_,level,campaign(),gear),context,str(gear.get("note","")),str(gear.get("flavor","")))
 func show_equipment_details(entry: Dictionary):
@@ -1014,4 +1007,4 @@ func show_equipment_details(entry: Dictionary):
 	var doc=helper.detail_document(entry);helper.free()
 	var host=dialog.window if is_instance_valid(dialog.window) else self
 	var detail=preload("res://skill_details.gd").new();host.add_child(detail)
-	detail.configure(self,doc,member_name(pages.party_view.detail_uid if not pages.party_view.detail_uid.is_empty() else pages.party_uid)+" / "+str(entry.name),str(entry.get("definition",{}).get("note","")) if entry.kind=="equipment" else "",str(entry.get("definition",{}).get("flavor","")) if entry.kind=="equipment" else "")
+	detail.configure(self,doc,member_name(pages.party_uid)+" / "+str(entry.name),str(entry.get("definition",{}).get("note","")) if entry.kind=="equipment" else "",str(entry.get("definition",{}).get("flavor","")) if entry.kind=="equipment" else "")

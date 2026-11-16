@@ -29,14 +29,14 @@ func build(owner):
 		var matches=ui.roster().filter(func(member):return str(member.id)==str(id))
 		if matches.is_empty():continue
 		var member=matches[0]
-		var disabled_=(ui.modal_open() and view.detail_uid.is_empty()) or (ui.pages.guild_view.available() and ui.pages.guild_view.busy()) or ui.pages.shop_view.stage in ["S4","S5"] or ui.pages.shop_view.unknown
+		var disabled_=ui.modal_open() or (ui.pages.guild_view.available() and ui.pages.guild_view.busy()) or ui.pages.shop_view.stage in ["S4","S5"] or ui.pages.shop_view.unknown
 		var control=ui.button(members,"",func():pass,disabled_)
 		control.set_script(preload("res://party_member_card.gd"));control.configure(self,str(id))
 		control.name="PartyFace_"+str(id);control.set_meta("member_id",str(id));control.set_meta("no_status_hint",true)
 		control.custom_minimum_size=Vector2(96 if standard else 86,custom_minimum_size.y-18);control.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;control.size_flags_vertical=Control.SIZE_EXPAND_FILL
 		control.icon=ui.portraits.texture(member,true);control.expand_icon=true;control.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER;control.vertical_icon_alignment=VERTICAL_ALIGNMENT_TOP;control.add_theme_constant_override("icon_max_width",46 if standard else 32);control.clip_text=true
 		control.tooltip_text=str(member.name)+(" / 戦闘不能" if member.hp<=0 else "")+"\nHP%d/%d MP%d/%d" % [member.hp,member.max,member.mp,member.maxMp]+" / ステータスを開く"
-		if str(id)==view.detail_uid or (ui.pages.shop_view.sale_mode() and str(id)==ui.pages.shop_view.selected_owner()) or (ui.pages.warehouse_view.available() and str(id)==ui.pages.warehouse_view.owner_id):view.tint(control,Color("#243c68"))
+		if (ui.pages.shop_view.sale_mode() and str(id)==ui.pages.shop_view.selected_owner()) or (ui.pages.warehouse_view.available() and str(id)==ui.pages.warehouse_view.owner_id):view.tint(control,Color("#243c68"))
 		elif ui.pages.guild_view.available() and str(id)==ui.pages.guild_view.chosen_id:view.tint(control,Color("#236044"))
 		ui.memory.key(control,"face_"+str(id));ui.memory.item(control,str(id))
 	if guild_drag():
@@ -55,9 +55,7 @@ func slide(direction: int):
 	scroll.scroll_horizontal+=direction*int(maxf(120,scroll.size.x*.7));refresh_arrows()
 func activate(id: String):
 	if ui.locked or ui.presenting or ui.closing or ui.engine.disconnected:return
-	if ui.campaign().get("phase")=="deployment":
-		ui.mock_shell.activate(id)
-	else:view.portrait_pressed(id)
+	ui.mock_shell.activate(id)
 func configure_deployment_card(button,member,line):
 	var id=str(member.id)
 	button.set_script(preload("res://party_member_card.gd"))

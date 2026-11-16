@@ -23,7 +23,7 @@ var inventory_tab := "inventory"
 var selection_kind := ""
 var selected_equipment: Dictionary={}
 var purchase_quantity := 1
-func _init(owner):owner_ref=weakref(owner);ui=owner.ui;sale=preload("res://facility_sale.gd").new(self)
+func _init(owner):owner_ref=weakref(owner);ui=owner.ui;sale=preload("res://facility_sale.gd").new(self);comparison_view=preload("res://shop_comparison.gd").new(self)
 func c() -> Dictionary:return pages.c()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
@@ -79,16 +79,6 @@ func owner_pressed(uid: String) -> bool:
 	if comparison_view!=null:comparison_view.invalidate()
 	if selection_kind!="buy":selection_kind=""
 	ui.render();return true
-func sync_sale_owner_from_status(uid: String) -> bool:
-	if not sale_mode() or busy() or ui.menu.visible or not c().get("selected",[]).has(uid):return false
-	var status=ui.dialog.window;var party=pages.party_view
-	if not is_instance_valid(status) or not status.visible or status.title!=ui.dialog.STATUS_TITLE or status.exclusive:return false
-	if party.committing or party.leave_pending or party.inventory_view.stage in ["confirm","pending","unknown"]:return false
-	for window in ui.find_children("*","Window",true,false):
-		if window!=status and window.visible and window.exclusive:return false
-	ui.shop_uid=uid
-	if sale.owner_id!=uid:sale.apply_owner(uid)
-	return true
 func render(parent):
 	if not c().get("selected",[]).has(ui.shop_uid):
 		ui.shop_uid=str(c().get("selected",[""])[0])
