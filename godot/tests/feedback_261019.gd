@@ -41,8 +41,9 @@ func run():
 		if quest:await game.act("accept",[game.campaign().board[0].id,"recruit-porter-human-female"])
 		var cash=game.campaign().gold;await game.act("depart",["east"])
 		var arrival=await saved();arrival.state.phase="arrival";arrival.state.journey.phase="delivery";arrival.state.journey.stage=2;arrival.state.journey.hours=4
-		arrival.state.journey.party=game.roster().filter(func(u):return game.campaign().selected.has(u.id)).duplicate(true)
-		await game.update({"op":"campaign_load","data":arrival});await settle()
+		arrival.state.journey.party=arrival.state.selected.map(func(id):return game.roster().filter(func(u):return u.id==id)[0].duplicate(true))
+		var loaded=await game.update({"op":"campaign_load","data":arrival});await settle()
+		check(loaded.get("ok",false),"arrival fixture accepts current selected order quest="+str(quest))
 		check(game.campaign().phase=="town" and game.page=="hub" and node("TownHub")!=null,"direct hub arrival quest="+str(quest))
 		check(game.save_notice.visible and game.campaign().gold==cash,"arrival notice with no automatic cargo reward quest="+str(quest))
 		if quest:
@@ -50,6 +51,9 @@ func run():
 			await click("HubFacility_board");check(node("QuestComplete")==null,"board no longer owns delivery action")
 			game.navigate("hub");await settle();await click("HubDeliverCargo")
 			check(game.campaign().activeQuest==null and game.campaign().gold>cash,"hub delivers and pays existing reward")
+			var paid=await saved();var reward=game.campaign().gold
+			await game.act("completeQuest",[]);await settle()
+			check(game.campaign().gold==reward and await saved()==paid,"repeated delivery cannot pay or consume cargo twice")
 	var fixture=battle_fixture();await game.update({"op":"campaign_load","data":fixture.archer});await settle()
 	game.checks_fast=false;game.hud.last_actor="";game.render();await create_timer(.06).timeout
 	check(node("CommandOpeningFlight")!=null and node("CommandOpeningFlight").z_index<game.battle_header.z_index and not game.hud.left_panel.visible,"command panel opens from behind actor card")

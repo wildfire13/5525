@@ -15,7 +15,8 @@ function finish(){
  const f=fixture(true),b=f.state.battle;
  b.units.forEach(u=>{u.next=10000;if(u.side==='enemy')u.hp=0;});
   const archer=b.units.find(u=>u.id===SCOUT),enemy=b.units.find(u=>u.side==='enemy'&&u.job==='warrior');
- archer.next=1;b.actor=archer.id;enemy.hp=1;enemy.pos=34;enemy.next=2;
+  archer.pos=24;archer.next=1;b.actor=archer.id;enemy.hp=1;enemy.pos=34;enemy.next=2;
+  assert(B.legal(b,'attack',enemy.id),'final attack has a reachable enemy');
  assert(C.validate(f.state).ok,C.validate(f.state).error);return f;
 }
 // Keep Unicode intact through Windows OS.execute text decoding.

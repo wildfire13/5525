@@ -15,7 +15,7 @@ func check(ok: bool,detail: String):
 	if not ok:failures.append(detail)
 func settle():
 	for i in range(10):await process_frame
-	while game.locked or game.engine.busy or game.presenting or game.preview_pending:await process_frame
+	while game.locked or game.engine.busy or game.presenting or game.preview_pending or game.hud.menu_transition:await process_frame
 func text(node: Node)->String:
 	var out=[]
 	if node is Label or node is Button:out.append(node.text)
@@ -46,7 +46,14 @@ func camp_cases():
 		for face in faces:
 			rows.append(face.global_position.y)
 			check(face.texture!=null and face.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED,"camp full-body image remains uncropped")
-		check(faces.size()==5 and rows.all(func(y):return absf(y-rows[0])<1),"full body portraits are side by side")
+		var grid_fits=faces.size()==5 and party.columns>1
+		for i in range(faces.size()):
+			for j in range(i):
+				grid_fits=grid_fits and not faces[i].get_global_rect().intersects(faces[j].get_global_rect())
+			if i>0 and i%party.columns!=0:
+				grid_fits=grid_fits and absf(rows[i]-rows[i-1])<1 and faces[i].global_position.x>faces[i-1].global_position.x
+			elif i>0:grid_fits=grid_fits and rows[i]>rows[i-1]
+		check(grid_fits,"five uncropped portraits sit side by side in each responsive grid row at "+str(dims))
 		check(text(party).contains("HP %d/" % before.state.characters[HERO].hp) and text(party).contains("MP %d/" % before.state.characters[HERO].mp) and text(party).contains("戦闘不能"),"camp preserves live resources and KO status")
 		node("InventoryOwner_"+HERO).pressed.emit();await settle()
 		var workspace=game.pages.party_view.workspace

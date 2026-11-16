@@ -42,7 +42,7 @@ func run():
 		check(game.state().units.filter(func(u):return u.id==enemy.id)[0].pos==(23 if id=="grapple" else 24) and game.state().actions==1,"grapple moves or consumes without movement "+id)
 	for id in ["item1","item2","item3"]:
 		await game.update({"op":"campaign_load","data":cases[id]});await settle()
-		await game.choose_command("item");await settle()
+		await game.choose_command("items");await settle()
 		check(game.hud.item_list and node("BattleItemList")!=null,"passive fist permits item command "+id)
 		check(node("BattleItem_potion").tooltip_text.contains("射程無限" if id=="item3" else "自分のみ"),"item tooltip uses equipped level "+id)
 		await click("BattleItem_potion");var target=game.hud.acting() if id!="item3" else game.state().units.filter(func(u):return u.id=="recruit-mage-elf-female")[0]

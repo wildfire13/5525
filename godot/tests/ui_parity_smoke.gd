@@ -57,9 +57,9 @@ func run():
 			await game.act("rest",[]);await settle()
 			check(await saved()==rested,"repeated rest cannot grant resources twice")
 			await game.act("onward",[]);await settle()
-	check(game.campaign().phase=="arrival","second battle reaches destination")
-	if game.campaign().phase=="arrival":
-		await game.act("arrive",[]);await game.act("completeQuest",[]);await settle()
+	check(game.campaign().phase=="town" and game.campaign().location==quest.to,"second battle enters current destination through automatic arrival")
+	if game.campaign().phase=="town" and game.campaign().location==quest.to:
+		await game.act("completeQuest",[]);await settle()
 		check(game.campaign().location==quest.to and game.campaign().result!=null,"delivery produces current destination result")
 	var fixtures=preload("res://tests/ui_current_fixture.gd").fixtures()
 	await game.update({"op":"campaign_load","data":fixtures["synthetic-east"]});game.navigate("shop");game.pages.facility_entry.choose("buy");await settle()

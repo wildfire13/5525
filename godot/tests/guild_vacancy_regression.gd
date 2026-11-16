@@ -6,7 +6,10 @@ func settle():
 	for i in range(12):await process_frame
 	while game.locked or game.engine.busy or game.presenting or game.pages.guild_view.stage=="animating":await process_frame
 func check(ok,label):checks.append({"passed":bool(ok),"label":label});print(("PASS " if ok else "FAIL ")+label)
-func tap(name_: String):game.find_child(name_,true,false).pressed.emit();await settle()
+func tap(name_: String):
+	var button=game.find_child(name_,true,false)
+	check(button is Button and button.is_visible_in_tree() and not button.disabled,"action available "+name_)
+	if button is Button and button.is_visible_in_tree() and not button.disabled:button.pressed.emit();await settle()
 func run():
 	var qa=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/").to_lower()
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
@@ -20,9 +23,9 @@ func run():
 	await tap("GuildMember_recruit-guard-human-female")
 	var guild=game.pages.guild_view
 	check(not game.find_child("GuildAdd",true,false).disabled and not guild.candidate("swap","recruit-porter-human-female","recruit-guard-human-female").is_empty(),"single porter can exchange with reserve or append")
-	await tap("GuildMember_recruit-porter-human-female")
-	check(game.campaign().selected==["recruit-guard-human-female"] and not game.modal_open(),"selecting active counterpart swaps immediately without obsolete picker")
-	await tap("GuildMember_recruit-guard-human-female")
+	check(guild.current_id=="recruit-porter-human-female" and game.campaign().characters==seed.state.characters,"minimum current member selected without changing owner fields")
+	await tap("GuildSwap")
+	check(game.campaign().selected==["recruit-guard-human-female"] and not game.modal_open() and game.campaign().characters==seed.state.characters,"explicit swap commits immediately without obsolete picker and preserves owner fields")
 	check(game.find_child("GuildRemove",true,false).disabled,"last active member cannot be removed")
 	guild.cancel_selection();await settle()
 	await tap("GuildMember_recruit-porter-human-female");await tap("GuildAdd")

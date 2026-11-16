@@ -16,6 +16,14 @@ func run():
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=false
+	# Exercise real playback/signals even when the QA runner disables audio.
+	# Only the output bus is silenced; no saved preferences are modified.
+	var master=AudioServer.get_bus_index("Master")
+	var was_muted=AudioServer.is_bus_mute(master);AudioServer.set_bus_mute(master,true)
+	for kind in ["voice","se"]:
+		game.audio.muted[kind]=false;game.audio.volumes[kind]=100
+	game.audio.apply_levels()
+	check(game.audio.audible("voice") and game.audio.audible("se"),"test-local voice and SE enabled without saving preferences")
 	game.audio.phase_voice_started.connect(func(id,cue):voices.append(id+"/"+cue))
 	game.audio.phase_sound_started.connect(func(id):effects.append(id))
 	game.audio.ui_sound_started.connect(func(id):if id in ["victory","failure"]:results.append(id))
@@ -45,17 +53,21 @@ func run():
 		var reply=await game.engine.request({"op":"act","kind":"attack","target":fixtures.enemy,"presentation":true})
 		check(reply.get("ok",false) and reply.presentation.phase=="action","real attack presentation begins")
 		var p: Dictionary=reply.presentation
+		var voice_stream=game.audio.voice_stream(str(fixtures.actor),"attack")
+		check(p.get("voiceEvents",[]).any(func(e):return e.get("character_id")==fixtures.actor and e.get("cue")=="attack") and voice_stream!=null,"real current-roster attack supplies a loadable exact-ID voice")
+		var voice_delay=voice_stream.get_length()+.04 if voice_stream!=null else .22
+		voice_stream=null
 		keys.append(str(p.id)+":"+str(p.index)+":"+str(p.action_id))
 		var before_voice=voices.size();var before_effect=effects.size()
 		var duration=game.audio.phase(p)
-		check(duration>=.22 and voices.size()==before_voice+1 and effects.size()==before_effect+1,"first phase plays voice and SE and retains ACK delay, connection "+str(connection))
+		check(duration>=voice_delay and voices.size()==before_voice+1 and effects.size()==before_effect+1,"first phase plays voice and SE and retains ACK delay, connection "+str(connection))
 		check(game.audio.phase(p)==0.0 and voices.size()==before_voice+1 and effects.size()==before_effect+1,"same phase replay is suppressed, connection "+str(connection))
 		var duplicate=p.duplicate(true);duplicate.index+=100;duplicate.voiceEvents=[]
 		game.audio.phase(duplicate)
 		check(effects.size()==before_effect+1,"same action impact group remains deduplicated")
 		await game.engine.request({"op":"presentation_finish","id":p.id})
 	check(keys[0]==keys[1] and generations[1]>generations[0],"same Node serial/action IDs are scoped to different connection generations")
-	check(voices==[str(fixtures.start.state.battle.actor)+"/attack",str(fixtures.start.state.battle.actor)+"/attack"] and effects==["attack","attack"],"two connections play exactly two real voices and attack effects")
+	check(voices==[str(fixtures.actor)+"/attack",str(fixtures.actor)+"/attack"] and effects==["attack","attack"],"two connections play exactly two real voices and attack effects")
 	await game.new_game();results.clear()
 	await game.load_game(folder.path_join("finished.json"))
 	check(game.state().get("result")!=null and results==["victory"],"completed battle file load emits victory exactly once")
@@ -75,6 +87,7 @@ func run():
 	await game.load_game(folder.path_join("invalid.json"))
 	check(await snapshot()==before and game.audio.frontend_save()==before_music and results==["victory"],"rejected metadata changes neither state nor audio deduplication")
 	check(await game.audio.finish_audio(),"audio resources drained")
+	AudioServer.set_bus_mute(master,was_muted)
 	game.engine.close_engine();game.queue_free();await process_frame
 	for name in ["start","finished","invalid"]:DirAccess.remove_absolute(folder.path_join(name+".json"))
 	DirAccess.remove_absolute(folder)

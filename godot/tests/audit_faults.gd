@@ -73,6 +73,12 @@ func run():
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true
+	# Result playback must remain active under the runner's AUDIO_OFF override.
+	# Silence the output bus, not the signal-producing SE channel or saved settings.
+	var master=AudioServer.get_bus_index("Master")
+	var was_muted=AudioServer.is_bus_mute(master);AudioServer.set_bus_mute(master,true)
+	game.audio.muted.se=false;game.audio.volumes.se=100;game.audio.apply_levels()
+	check(game.audio.audible("se"),"test-local result SE enabled without saving preferences")
 	game.engine.close_engine();game.engine.node_script=ProjectSettings.globalize_path("res://tests/fault_rules.cjs")
 	OS.set_environment("AUDIT_RULE_MODE","preview");game.engine.start_engine();await game.new_game()
 	var initial=await snapshot(game.engine);initial.state.location="west"
@@ -111,7 +117,7 @@ func run():
 					return da<dz)
 				if cells.is_empty():break
 				await game.update({"op":"act","kind":"move","target":cells[0],"presentation":true})
-		check(game.state().get("result")!=null,"independent trial reaches actual victory")
+		check(game.state().get("result")!=null and not game.state().get("failure",false) and not game.state().units.any(func(u):return u.side=="enemy" and u.hp>0),"independent trial reaches actual victory")
 		var previous=sounds.size();game.render();game.render();game.render()
 		check(sounds.size()==previous and previous==trial+1,"result redraw once, distinct trial victory plays again")
 		await game.act("endTrial",[])
@@ -122,6 +128,7 @@ func run():
 	await game.reconnect_engine()
 	check(not game.engine.disconnected and game.campaign().phase=="town" and not game.retry_button.visible,"UI reconnect returns to load-capable town")
 	check(await game.audio.finish_audio(),"stopped audio resources drain before exit")
+	AudioServer.set_bus_mute(master,was_muted)
 	game.engine.close_engine();await process_frame
 	game.queue_free();await process_frame
 	DirAccess.remove_absolute(path);DirAccess.remove_absolute(folder)

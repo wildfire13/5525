@@ -14,7 +14,14 @@ func settle():
 	while game.locked or game.engine.busy or game.presenting or game.pages.shop_view.quote_worker:await process_frame
 func saved():
 	await settle()
-	return (await game.engine.request({"op":"campaign_save"})).data
+	var reply=await game.engine.request({"op":"campaign_save"})
+	assert(reply.get("ok",false) and reply.has("data"),"campaign_save failed: "+str(reply))
+	return reply.data
+func trial_snapshot():
+	await settle()
+	var reply=await game.engine.request({"op":"view"})
+	assert(reply.get("ok",false),"trial view failed: "+str(reply))
+	return {"state":reply.state.duplicate(true),"campaign":reply.campaign.duplicate(true)}
 func geometry(id):
 	var outside=[]
 	for control in game.find_children("*","Button",true,false):
@@ -51,7 +58,7 @@ func run():
 	await game.act("trial",["recruit-scout-elf-male","twin-bow","rightHand"]);await settle()
 	check("V2-B01",game.hud.state_id()=="B0","live scout trial starts at action list")
 	geometry("V2-B01")
-	game.choose_command("move");var move_before=await saved();var dest=int(game.data.choices.move[0])
+	game.choose_command("move");var move_before=await trial_snapshot();var dest=int(game.data.choices.move[0])
 	await game.on_cell(dest);await settle()
 	check("V2-B03",game.hud.state_id()=="B2" and game.board.ghost.visible,"candidate move shows ghost without consuming turn")
 	game.hud.open_range_reference();await settle()
@@ -59,8 +66,8 @@ func run():
 	game.hud.close_reference();await settle()
 	check("V2-B05",game.hud.state_id()=="B2" and game.preview_ready,"closing range returns valid candidate")
 	game.cancel();await settle()
-	var cancelled_move=await saved()
-	check("V2-B03",game.pending==null and cancelled_move==move_before,"move cancellation preserves exact campaign")
+	var cancelled_move=await trial_snapshot()
+	check("V2-B03",game.pending==null and cancelled_move==move_before,"move cancellation preserves exact trial battle and campaign view")
 	await game.select_skill("archer");await settle()
 	var pair=game.data.choices.skill[0]
 	for uid in pair:

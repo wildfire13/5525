@@ -27,6 +27,11 @@ function actor(b){return b.units.find(u=>u.id===b.actor);}
 assert.equal(B.formation(battle('porter'),'ally'),true);
 assert.equal(B.formation(battle('broken'),'ally'),false);
 assert.equal(actor(battle('mp0')).mp,0);
+for(const name of ['guard','mp0','porter','broken']){
+ const b=battle(name),a=actor(b),option=B.selectedSkillOption(a);
+ assert(option && option.key===a.selectedSkillKey,`${name}: exact current grant selected before cancellation baseline`);
+ assert.equal(B.itemUseLevel(a),name==='porter'||name==='broken'?3:1,`${name}: passive fist item range`);
+}
 for(const name of ['heal_left','heal_right']){
  const b=battle(name),a=actor(b),mp=a.mp;
  assert(B.skillTargets(b,a).includes(ids.guard),`${name}: reachable heal target`);
@@ -60,10 +65,15 @@ for(const [name,value] of Object.entries(skills)){
  }else if(name==='vault'){
   assert(B.skillTargets(b,a).includes(24));
   assert(B.act(b,'skill',24,()=>0));assert.equal(a.pos,24);
- }else if(name.startsWith('grapple')){
+  }else if(name.startsWith('grapple')){
   const enemy=b.units.find(u=>u.side==='enemy'&&u.pos===24);
   assert(B.act(b,'skill',enemy.id,()=>0));
-  assert.equal(enemy.pos,name==='grapple'?23:24);
- }
+   assert.equal(enemy.pos,name==='grapple'?23:24);
+  }else if(name.startsWith('item')){
+   assert.equal(B.itemUseLevel(a),name==='item3'?3:1,`${name}: one/two empty hands retain passive item range`);
+   assert(B.legal(b,'item',a.id),`${name}: wounded owner is a legal potion target`);
+   const mage=b.units.find(u=>u.id===ids.mage);
+   assert.equal(B.legal(b,'item',mage.id),name==='item3',`${name}: only porter range reaches the other wounded recruit`);
+  }
 }
 console.log(`PASS ${count} manual fixtures: current roster, round trips, formation, healing, cover, boost, sweep, vault and grapple`);

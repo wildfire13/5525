@@ -108,7 +108,8 @@ func effects():
 	check("UI03",content(node("ShopComparisonSkills")).contains("俊足") and node("ShopComparisonPayment").text.contains("70G"),"comparison retains named movement effect and canonical 70G purchase price")
 	var gear=game.campaign().shop.filter(func(item):return item.id=="swift-boots")[0]
 	var badges=game.find_children("ComparisonSkill_*swift*","Button",true,false)
-	check("UI03",badges.any(func(badge):return badge.tooltip_text.contains(gear.note) and badge.tooltip_text.contains("移動力+1")),"current movement skill exposes the original equipment movement description")
+	var notes=node("ShopComparisonNotes")
+	check("UI03",is_instance_valid(notes) and notes.is_visible_in_tree() and content(notes).contains(gear.note) and badges.any(func(badge):return badge.tooltip_text.contains("移動力+1")),"comparison shows original equipment note and movement skill tooltip",{"expected":gear.note,"notes":content(notes),"tooltips":badges.map(func(badge):return badge.tooltip_text)})
 func observe_frame():
 	if not monitoring or not game.data.get("presentation") is Dictionary:return
 	var p=game.data.presentation;var key=str(p.id)+":"+str(p.index)

@@ -82,7 +82,7 @@ func layouts():
 		check("AC-S01",node("ShopComparisonStats")!=null and node("ShopComparisonBuy")!=null,"current inline comparison and purchase are available "+str(dims))
 		await load_fixture(fixtures.attack);game.choose_command("move");await game.on_cell(int(game.data.choices.move[0]));await settle()
 		var pending=game.pending;var preview=JSON.stringify(game.preview);var rect=node("BattleConfirm").get_global_rect()
-		var regions=[game.hud.left_panel,game.hud.right_panel,node("BattleConfirm"),node("TargetSummary")]
+		var regions=[game.hud.left_panel,game.hud.right_panel,node("BattleConfirm"),node("DecisionTitle")]
 		check("AC-G02,AC-G03,AC-G04,AC-B01",regions.all(visible),"actor/commands/target/confirm all visible "+str(dims)+" "+str(regions.map(func(region):return {"name":region.name,"visible":region.is_visible_in_tree(),"rect":region.get_global_rect()})))
 		for mode in range(3):
 			game.board.camera_mode=mode;game.board.update_camera();await settle()
@@ -119,7 +119,7 @@ func party_checks():
 	check("AC-G07,AC-P07",game.pages.party_uid==long_uid and text(node("CampaignBody")).contains(long_name),"real recruit keeps full long name in selected detail")
 	var name_tooltips=[roster_button]+roster_button.find_children("*","Control",true,false)
 	check("AC-G07",name_tooltips.any(func(control):return control.tooltip_text.contains(long_name)),"real recruit long roster name remains available on hover/focus")
-	await load_fixture(original);game.pages.party_uid="absent-test-member";game.navigate("character");await settle()
+	await load_fixture(original);game.pages.party_uid="absent-test-member";game.navigate("character");game.render();await settle()
 	check("AC-P07",game.pages.party_uid==game.campaign().selected[0],"absent selected ID safely falls back to first current member after load")
 func shop_checks():
 	await load_fixture(fixtures["synthetic-east"]);game.navigate("shop");game.pages.facility_entry.choose("buy");await settle()

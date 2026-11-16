@@ -46,8 +46,9 @@ func run():
 	game.navigate("hub");await settle()
 	await game.act("depart",[q.to]);var arrival=await saved()
 	arrival.state.phase="arrival";arrival.state.journey.phase="delivery";arrival.state.journey.stage=2;arrival.state.journey.hours=4
-	arrival.state.journey.party=game.roster().filter(func(u):return game.campaign().selected.has(u.id)).duplicate(true)
-	await game.update({"op":"campaign_load","data":arrival});await settle()
+	arrival.state.journey.party=arrival.state.selected.map(func(id):return game.roster().filter(func(u):return u.id==id)[0].duplicate(true))
+	var loaded=await game.update({"op":"campaign_load","data":arrival});await settle()
+	check(loaded.get("ok",false),"arrival fixture accepts current roster in selected order")
 	check(game.page=="hub" and game.campaign().activeQuest!=null and node("TownHub")!=null,"arrival opens hub without auto-delivering cargo")
 	check(node("HubDeliverCargo")!=null and not node("HubDeliverCargo").disabled,"explicit delivery remains available at destination hub")
 	var fixtures=battle_fixture();await game.update({"op":"campaign_load","data":fixtures.guard});await settle()

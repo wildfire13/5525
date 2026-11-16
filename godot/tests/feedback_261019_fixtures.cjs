@@ -1,7 +1,7 @@
 'use strict';
 // Explicit QA-only snapshots. These are controlled battle boundaries, not evidence
 // of reaching the scene by playing every preceding encounter.
-const C=require('../../native/campaign.js'),assert=require('node:assert/strict');
+const C=require('../../native/campaign.js'),B=require('../../native/campaign-battle.js'),assert=require('node:assert/strict');
 const {ids,fresh,save}=require('./ui_current_fixtures.cjs');
 function fixture(kind){
  const s=fresh(),c=s.characters[ids.guard];
@@ -21,7 +21,14 @@ function fixture(kind){
  if(kind==='vault'){b.units.find(u=>u.id===ids.mage).pos=23;enemies[0].pos=25;a.selectedSkill='poleVault';}
  if(kind.startsWith('grapple')){a.selectedSkill='grapple';if(kind==='grapple-blocked')b.units.find(u=>u.id===ids.mage).pos=23;}
  if(kind.startsWith('item')){a.hp-=40;b.units.find(u=>u.id===ids.mage).hp-=30;b.units.find(u=>u.id===ids.mage).pos=23;delete a.selectedSkill;}
- a.next=1;b.actor=a.id;
+  a.next=1;b.actor=a.id;
+  if(kind.startsWith('item')){
+    const level=kind==='item3'?3:1;
+    assert.equal(B.itemUseLevel(a),level,'live equipped fists retain their actual item range');
+    assert(s.characters[a.id].inventory.potion>0,'acting owner carries healing stock');
+    assert(a.hp>0&&a.hp<a.max,'item actor is alive and has a meaningful healing target');
+    assert.equal(b.actions,0,'item boundary has consumed no action');
+  }
  // Enemy actions are selected from the live board on their turn. These
  // fixtures must not restore the retired planned-intent queue.
  assert(C.validate(s).ok,C.validate(s).error);
