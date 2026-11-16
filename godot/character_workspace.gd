@@ -7,11 +7,22 @@ var owner=""
 var busy=false
 var allocating=false
 var equip_slot=""
+var page_body: Control
 var preview_generation=0
 var inventory_filter="all"
 const Drag=preload("res://item_drag.gd")
 func _init(frontend):ui=frontend
+func refresh():
+	if not is_instance_valid(page_body) or not page_body.is_inside_tree() or ui.page!="character":
+		ui.render()
+		return
+	ui.refresh_panel(func():
+		ui.clear(page_body)
+		render(page_body)
+		ui.mock_shell.refresh_roster_selection())
+
 func render(parent):
+	page_body=parent
 	preview_generation+=1
 	var members=ui.roster().filter(func(u):return ui.campaign().get("selected",[]).has(u.id))
 	if members.is_empty():return
@@ -69,7 +80,7 @@ func render(parent):
 					for option in options:
 						selector.add_item(str(ui.campaign().get("slots",{}).get(option.slot,option.slot)));selector.set_item_metadata(selector.item_count-1,str(option.slot))
 						if option.slot==equip_slot:selector.select(selector.item_count-1)
-					selector.disabled=busy;selector.item_selected.connect(func(i):equip_slot=str(selector.get_item_metadata(i));ui.render())
+					selector.disabled=busy;selector.item_selected.connect(func(i):equip_slot=str(selector.get_item_metadata(i));refresh())
 					var chosen=options.filter(func(q):return q.slot==equip_slot)[0]
 					var equip=ui.button(actions,"装備する",perform.bind(owner,str(picked.id),"equip",null,1,equip_slot),true);equip.name="CharacterEquip";equip.tooltip_text=str(chosen.get("reason",""))
 					preview(detail,member,picked,equip)
@@ -81,17 +92,17 @@ func render(parent):
 
 func select_equipped(item: Dictionary):
 	picked=item
-	ui.render()
+	refresh()
 
 func inventory(parent,member):
 	var list_ui=preload("res://member_inventory.gd")
-	var filter=list_ui.add_filter(ui,parent,member,inventory_filter,func(value):inventory_filter=value;picked={};ui.render())
+	var filter=list_ui.add_filter(ui,parent,member,inventory_filter,func(value):inventory_filter=value;picked={};refresh())
 	filter.name="CharacterInventoryFilter"
 	var list=ui.scroller(parent)
 	var entries=ui.campaign().get("inventoryByCharacter",{}).get(str(member.id),{}).get("entries",[])
 	for entry in entries:
 		if not list_ui.matches(entry,inventory_filter):continue
-		var button=list_ui.add_row(ui,list,entry,func():picked=entry;ui.render(),picked.get("id")==entry.id,busy)
+		var button=list_ui.add_row(ui,list,entry,func():picked=entry;refresh(),picked.get("id")==entry.id,busy)
 		Drag.source(button,func():return payload(entry,"transfer",null),str(entry.name),button.icon)
 	if list.get_child_count()==0:ui.label_(list,"アイテムはありません")
 
@@ -144,7 +155,7 @@ func preview(parent,member,item,equip):
 	var quote=result.get("previewGear",{})
 	if quote is Dictionary and quote.has("before"):
 		# Keep skills visual; comparison heading identifies the exact selected slot.
-		text.text=ui.pages.party_view.owned_equipment_view.comparison(member,item,chosen,quote,true).replace("#8ee6ab","#247044").replace("#ffb1a6","#b04430").replace("#d5dbe2","#707970")
+		text.text=ui.pages.shop_view.comparison_view.comparison_text(member,item,chosen,quote).replace("#8ee6ab","#247044").replace("#ffb1a6","#b04430").replace("#d5dbe2","#707970")
 		text.text="比較対象："+str(ui.campaign().get("slots",{}).get(chosen,chosen))+"\n"+text.text
 		render_comparison_skills(parent,quote)
 		equip.disabled=busy or not item.get("equipSlots",[]).any(func(q):return q.slot==chosen and q.ok);equip.set_meta("base_disabled",equip.disabled)
@@ -169,7 +180,7 @@ func ability(parent,member):
 	ui.label_(values,"属性ATK  火%d / 水%d / 地%d" % [stats.get("atkFire",0),stats.get("atkWater",0),stats.get("atkEarth",0)])
 	ui.label_(values,ui.pages.defense_profile(stats))
 	var points=int(member.get("statPoints",0))
-	var allocate=ui.button(parent,"能力を割り振る  "+str(points),func():allocating=true;ui.render(),points<=0);allocate.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+	var allocate=ui.button(parent,"能力を割り振る  "+str(points),func():allocating=true;refresh(),points<=0);allocate.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 func skills(parent,member):
 	var stats=member.get("stats",member);var names=ui.campaign().get("skillNames",{});var definitions=ui.campaign().get("skillDefinitions",{})
 	var columns=ui.row(parent)
@@ -194,10 +205,10 @@ func set_tab(value: String):
 		ui.mock_shell.toggle_character()
 		return
 	if not ui.pages.party_view.guard_leave(set_tab.bind(value)):return
-	tab=value;picked={};allocating=false;ui.render()
+	tab=value;picked={};allocating=false;refresh()
 func end_allocation():
 	if not ui.pages.party_view.guard_leave(end_allocation):return
-	allocating=false;ui.render()
+	allocating=false;refresh()
 func open_portrait(member: Dictionary):
 	if not ui.pages.party_view.guard_leave(open_portrait.bind(member)):return
 	ui.dialog.open(str(member.name)+"の画像",func(body,actions):

@@ -127,7 +127,7 @@ func refresh(money,comparison,conditions,buy):
 	for u in ui.roster():
 		if u.id==owner_id:person=u;break
 	var entry={"name":item().name,"equipSlots":[]}
-	comparison.text=ui.pages.party_view.owned_equipment_view.comparison(person,entry,slot,q,true).replace("#8ee6ab","#277242").replace("#ffb1a6","#a84432").replace("#d5dbe2","#6e786f")
+	comparison.text=comparison_text(person,entry,slot,q).replace("#8ee6ab","#277242").replace("#ffb1a6","#a84432").replace("#d5dbe2","#6e786f")
 	if not panels.is_empty():
 		comparison.hide()
 		for i in range(2):
@@ -136,7 +136,7 @@ func refresh(money,comparison,conditions,buy):
 				var child=panel.get_child(-1);panel.remove_child(child);child.queue_free()
 			var gear=q.get("current" if i==0 else "gear",{})
 			ui.icons.line(ui,panel,ui.icons.equipment(gear),str(gear.get("name","なし")),true)
-		for stat in ui.pages.party_view.owned_equipment_view.stat_changes(person,q):
+		for stat in stat_changes(person,q):
 			for i in range(2):
 				ui.label_(panels[i],"%s　%d" % [stat[0],stat[i+1]])
 	render_skills(q)
@@ -190,3 +190,29 @@ func skill_texture(id: String,level: int) -> Texture2D:
 	if not spec.is_empty() and not spec.get("levels",{}).has(str(level)):
 		return ImageTexture.create_from_image(ui.icons.fit_image(ui.icons.approved_image(spec),64))
 	return ui.icons.texture(ui.icons.skill(id,level))
+
+func equipment_escape(value) -> String:return str(value).replace("[","[lb]")
+func change(title: String,before,after) -> String:
+	var delta=int(after)-int(before);var color="#8ee6ab" if delta>0 else "#ffb1a6" if delta<0 else "#d5dbe2"
+	return "%s: %d → %d [color=%s](%+d)[/color]" % [title,before,after,color,delta]
+func stat_changes(u: Dictionary,q: Dictionary) -> Array:
+	var a: Dictionary=q.before;var z: Dictionary=q.after;
+	var lines=[]
+	for pair in [["HP上限","max"],["MP上限","maxMp"],["行動速度","speed"],["物理DEF","def"],["火DEF","defFire"],["水DEF","defWater"],["地DEF","defEarth"],["火ATK","atkFire"],["水ATK","atkWater"],["地ATK","atkEarth"]]:
+		if int(a.get(pair[1],0))!=int(z.get(pair[1],0)):lines.append([pair[0],a.get(pair[1],0),z.get(pair[1],0)])
+	var before_reach=ui.pages.normal_reach(a);var after_reach=ui.pages.normal_reach(z)
+	if before_reach!=after_reach:lines.append(["通常射程",before_reach,after_reach])
+	for distance in range(1,maxi(before_reach,after_reach)+1):
+		var before_atk=ui.pages.normal_atk(a,distance);var after_atk=ui.pages.normal_atk(z,distance)
+		if before_atk!=after_atk:lines.append(["通常ATK 距離%d" % distance,before_atk,after_atk])
+	for pair in [["現在HP","hp","max"],["現在MP","mp","maxMp"]]:
+		var before=int(u.get(pair[1],0));var after=mini(before,int(z.get(pair[2],before)))
+		if before!=after:lines.append([pair[0],before,after])
+	return lines
+func comparison_text(u: Dictionary,entry: Dictionary,chosen: String,q: Dictionary) -> String:
+	var lines=[]
+	for stat in stat_changes(u,q):lines.append(change(stat[0],stat[1],stat[2]))
+	for candidate in entry.equipSlots:
+		if candidate.slot==chosen and not candidate.ok:lines.append("装備不可: "+equipment_escape(candidate.reason))
+	var heading="現在：%s → 候補：%s" % [equipment_escape(q.get("current",{}).get("name","現在の装備")),equipment_escape(entry.get("name",q.get("gear",{}).get("name","候補装備")))]
+	return heading+"\n"+("\n".join(lines) if not lines.is_empty() else "能力値の変化なし")

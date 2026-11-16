@@ -4,6 +4,7 @@ var ui
 const INK=Color("#29332f")
 const PAPER=Color("#faf9f5")
 const GREEN=Color("#345c4e")
+const ROSTER_WIDTH=280
 const SURFACE_ALPHA=0.90
 const NESTED_SURFACE_ALPHA=0.12
 func _init(frontend):ui=frontend
@@ -57,6 +58,10 @@ func toggle_journey_quest():
 func navigation(parent):
 	var panel=PanelContainer.new();panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
 	var bar=ui.row(panel);bar.name="CampaignHeader";bar.custom_minimum_size.y=56
+	var elapsed=Label.new()
+	elapsed.name="CampaignElapsedTime"
+	elapsed.text=elapsed_time_text()
+	bar.add_child(elapsed)
 	var place=ui.label_(bar,ui.header.text,true)
 	place.name="HeaderLocation";place.size_flags_horizontal=Control.SIZE_FILL;place.custom_minimum_size.x=160
 	var town=ui.campaign().get("phase")=="town"
@@ -80,6 +85,8 @@ func navigation(parent):
 	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bar.add_child(spacer)
 	ui.icons.line(ui,bar,"money",str(int(ui.campaign().get("gold",0)))+" G")
 	ui.memory.key(ui.local_button(bar,"メニュー",ui.open_menu),"game_menu")
+func elapsed_time_text() -> String:
+	return "経過時間：%d時間" % int(ui.campaign().get("worldTime",0))
 func needs_roster() -> bool:
 	return ui.page!="board" and not ui.pages.facility_entry.at_top() and ui.campaign().get("phase")!="result"
 func workspace(parent) -> VBoxContainer:
@@ -97,18 +104,27 @@ func workspace(parent) -> VBoxContainer:
 		if not ids.is_empty() and not ids.has(ui.pages.party_uid):ui.pages.party_uid=str(ids[0])
 		roster(row)
 	var body=VBoxContainer.new();body.name="CampaignBody";body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.size_flags_vertical=Control.SIZE_EXPAND_FILL;row.add_child(body);return body
-func roster(parent):
-	var panel=PanelContainer.new();panel.name="PartyRoster";panel.custom_minimum_size=Vector2(280,content_height());panel.size_flags_horizontal=Control.SIZE_FILL;panel.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
+func roster(parent,deployment=null):
+	var panel=PanelContainer.new();panel.name="PartyRoster";panel.custom_minimum_size=Vector2(ROSTER_WIDTH,content_height());panel.size_flags_horizontal=Control.SIZE_FILL;panel.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
+	if deployment!=null:
+		panel.custom_minimum_size.y=0
+		panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	var body=VBoxContainer.new();panel.add_child(body)
 	var ids=ui.campaign().get("selected",[])
 	ui.label_(body,"パーティメンバー     %d / %d" % [ids.size(),ui.campaign().get("partyLimit",12)])
-	var list=ui.scroller(body);list.get_parent().name="PartyRosterScroll";ui.memory.watch(list.get_parent(),"mock_party_roster");list.get_parent().custom_minimum_size.y=content_height()-64;list.add_theme_constant_override("separation",0)
+	var list=ui.scroller(body);list.get_parent().name="PartyRosterScroll";ui.memory.watch(list.get_parent(),"deployment_roster" if deployment!=null else "mock_party_roster")
+	if deployment==null:list.get_parent().custom_minimum_size.y=content_height()-64
+	list.add_theme_constant_override("separation",0)
 	for id in ids:
 		var matches=ui.roster().filter(func(u):return str(u.id)==str(id))
 		if matches.is_empty():continue
-		var u=matches[0];var button=ui.button(list,"",activate.bind(str(id)));button.set_script(preload("res://roster_drop_target.gd"));button.member_id=str(id);button.name="RosterMember_"+str(id);button.custom_minimum_size=Vector2(254,88);ui.memory.key(button,"mock_roster_member_"+str(id))
+		var u=matches[0]
+		var button=ui.button(list,"",activate.bind(str(id)) if deployment==null else func():pass)
+		button.custom_minimum_size=Vector2(254,88)
+		ui.memory.key(button,"mock_roster_member_"+str(id))
 		var selected=ui.pages.shop_view.selected_owner() if ui.pages.shop_view.sale_mode() else ui.pages.party_uid
-		ui.mark_selected(button,str(id)==selected)
+		ui.mark_selected(button,str(id)==(ui.selected if deployment!=null else selected))
 		var line=HBoxContainer.new();button.add_child(line);line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);line.offset_left=6;line.offset_top=6;line.offset_right=-6;line.offset_bottom=-6;line.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		var portrait=ui.portrait(line,u,false,32);portrait.custom_minimum_size=Vector2(40,72);portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		var info=VBoxContainer.new();info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.mouse_filter=Control.MOUSE_FILTER_IGNORE;line.add_child(info)
@@ -118,14 +134,31 @@ func roster(parent):
 		var detail=ui.label_(info,"%s / %s   Wt %s / %s" % [int(capacity.get("used",0)),int(capacity.get("limit",0)) if capacity.get("limit")!=null else "∞",int(weight.get("total",0)) if weight.get("total")!=null else "?",int(stats.get("str",0))]);detail.add_theme_font_size_override("font_size",16)
 		if weight.get("total")!=null and float(weight.total)>float(stats.get("str",0)):detail.add_theme_color_override("font_color",Color("#b04430"))
 		for child in info.get_children():child.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		if deployment!=null:
+			deployment.configure_deployment_card(button,u,line)
+			continue
+		button.name="RosterMember_"+str(id)
+		button.set_script(preload("res://roster_drop_target.gd"))
+		button.member_id=str(id)
 		button.set_drag_forwarding(Callable(),func(_at,payload):return can_drop(payload,str(id)),func(_at,payload):drop(payload,str(id)))
+	return panel
+func refresh_roster_selection():
+	var roster_panel=ui.content.find_child("PartyRoster",true,false)
+	if roster_panel==null:return
+	for control in roster_panel.find_children("RosterMember_*","Button",true,false):
+		var selected=control.member_id==ui.pages.party_uid
+		if selected!=control.get_meta("selected",false):ui.mark_selected(control,selected)
+
 func activate(id: String):
+	if ui.page=="character" and ui.pages.party_uid==id:
+		toggle_character()
+		return
 	if not ui.pages.party_view.guard_leave(activate.bind(id)):return
 	if ui.page=="shop":ui.pages.shop_view.owner_pressed(id);return
 	ui.pages.party_uid=id
 	if ui.pages.warehouse_view.available():ui.pages.warehouse_view.select_owner(id);return
 	if ui.pages.guild_view.available():ui.pages.guild_view.select_current(id);return
-	if ui.page=="character":ui.render()
+	if ui.page=="character":ui.pages.party_view.workspace.refresh()
 	else:toggle_character()
 func can_drop(payload,id: String) -> bool:
 	if payload is Dictionary and payload.get("kind")=="character_transfer":return payload.get("owner")!=id

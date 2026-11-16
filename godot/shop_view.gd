@@ -23,7 +23,10 @@ var inventory_tab := "inventory"
 var selection_kind := ""
 var selected_equipment: Dictionary={}
 var purchase_quantity := 1
-func _init(owner):owner_ref=weakref(owner);ui=owner.ui;sale=preload("res://facility_sale.gd").new(self)
+var inventory_column: Control
+var catalog_column: Control
+var transaction_column: Control
+func _init(owner):owner_ref=weakref(owner);ui=owner.ui;sale=preload("res://facility_sale.gd").new(self);comparison_view=preload("res://shop_comparison.gd").new(self)
 func c() -> Dictionary:return pages.c()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
@@ -79,16 +82,6 @@ func owner_pressed(uid: String) -> bool:
 	if comparison_view!=null:comparison_view.invalidate()
 	if selection_kind!="buy":selection_kind=""
 	ui.render();return true
-func sync_sale_owner_from_status(uid: String) -> bool:
-	if not sale_mode() or busy() or ui.menu.visible or not c().get("selected",[]).has(uid):return false
-	var status=ui.dialog.window;var party=pages.party_view
-	if not is_instance_valid(status) or not status.visible or status.title!=ui.dialog.STATUS_TITLE or status.exclusive:return false
-	if party.committing or party.leave_pending or party.inventory_view.stage in ["confirm","pending","unknown"]:return false
-	for window in ui.find_children("*","Window",true,false):
-		if window!=status and window.visible and window.exclusive:return false
-	ui.shop_uid=uid
-	if sale.owner_id!=uid:sale.apply_owner(uid)
-	return true
 func render(parent):
 	if not c().get("selected",[]).has(ui.shop_uid):
 		ui.shop_uid=str(c().get("selected",[""])[0])
@@ -96,6 +89,16 @@ func render(parent):
 	var layout=HBoxContainer.new();layout.name="ShopWorkspace";layout.add_theme_constant_override("separation",16);layout.custom_minimum_size.y=ui.mock_shell.content_height();layout.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;parent.add_child(layout)
 	var column=preload("res://member_loadout_column.gd").new()
 	layout.add_child(column)
+	inventory_column=column
+	render_inventory_column(column)
+	var middle=make_panel(layout,"ShopTransaction",0)
+	transaction_column=middle
+	var stock=make_panel(layout,"ShopCatalog",440)
+	catalog_column=stock
+	backdrop(stock,pages.facility_art.npc.texture,"ShopKeeperArt")
+	render_transaction(middle,stock)
+	render_catalog(stock)
+func render_inventory_column(column):
 	var person={}
 	for member in ui.roster():
 		if member.id==ui.shop_uid:person=member;break
@@ -114,9 +117,7 @@ func render(parent):
 		inventory.get_parent().name="ShopInventoryScroll"
 		ui.memory.watch(inventory.get_parent(),"shop_inventory_"+inventory_tab)
 		sale.render_inventory(inventory)
-	var middle=make_panel(layout,"ShopTransaction",0)
-	var stock=make_panel(layout,"ShopCatalog",440)
-	backdrop(stock,pages.facility_art.npc.texture,"ShopKeeperArt")
+func render_transaction(middle,stock):
 	l(middle,"購入" if selection_kind=="buy" else "売却" if selection_kind=="sell" else "取引を確認").name="ShopTransactionHeading"
 	var detail=ui.scroller(middle);detail.get_parent().name="ShopTransactionScroll"
 	render_notice(detail)
@@ -135,10 +136,32 @@ func render(parent):
 			comparison_view.render_inline(detail,footer,pages.gear_id,ui.shop_uid)
 	else:l(detail,"商品またはインベントリのアイテムを選択")
 	var finish=b(footer,"取引終了",finish_trading,busy());finish.name="ShopExit";finish.custom_minimum_size.y=40;finish.size_flags_horizontal=Control.SIZE_SHRINK_END
+func render_catalog(stock):
 	l(stock,"商品リスト").name="ShopCatalogHeading";product_filter(stock)
 	var products=ui.scroller(stock);products.get_parent().name="ShopProductsScroll";ui.memory.watch(products.get_parent(),"shop_products")
-	for item in offered():render_product(products,item)
-	if offered().is_empty():l(products,"販売品はありません")
+	sync_product_rows(products)
+
+func sync_product_rows(products: Control):
+	var items=offered()
+	var visible_ids={}
+	for index in range(items.size()):
+		var item=items[index]
+		var key="Product_"+str(item.id)
+		var control=products.get_node_or_null(key)
+		if control==null:
+			render_product(products,item)
+			control=products.get_node(key)
+		visible_ids[key]=true
+		if control.get_index()!=index:products.move_child(control,index)
+	for control in products.get_children():
+		control.visible=visible_ids.has(str(control.name))
+	if items.is_empty():
+		var empty=products.get_node_or_null("EmptyStock")
+		if empty==null:
+			empty=l(products,"販売品はありません")
+			empty.name="EmptyStock"
+		empty.show()
+
 func make_panel(parent: Control,node_name: String,width: float) -> VBoxContainer:
 	var panel=PanelContainer.new();panel.name=node_name;panel.custom_minimum_size.x=width;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL if width==0 else Control.SIZE_FILL
@@ -152,14 +175,20 @@ func backdrop(body: Control,texture: Texture2D,node_name: String):
 	var layer=Control.new();layer.name=node_name+"Layer";layer.mouse_filter=Control.MOUSE_FILTER_IGNORE;body.get_parent().add_child(layer);body.get_parent().move_child(layer,0);layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);
 	layer.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);image.offset_top=64;image.offset_bottom=-8
 func list_surface(button: Button,selected: bool):
+	ui.mark_selected(button,false)
 	for state_ in ["normal","hover","pressed","disabled"]:
 		var style=button.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
 		style.bg_color=Color("#e0e8dd") if selected or state_ in ["hover","pressed"] else Color(0.98,0.976,0.96,.65)
 		button.add_theme_stylebox_override(state_,style)
 	if selected:ui.mark_selected(button,true)
 func set_inventory_tab(value: String):
-	if busy():return
-	inventory_tab=value;ui.render()
+	if busy() or value==inventory_tab:return
+	inventory_tab=value
+	if not is_instance_valid(inventory_column) or not inventory_column.is_inside_tree():
+		ui.render();return
+	ui.refresh_panel(func():
+		ui.clear(inventory_column)
+		render_inventory_column(inventory_column))
 func render_product(parent: Control,item: Dictionary):
 	var choose=b(parent,"",open_comparison.bind(str(item.id)),busy());choose.name="Product_"+str(item.id);choose.custom_minimum_size=Vector2(0,68);choose.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;choose.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);margin.add_theme_constant_override("margin_left",8);margin.add_theme_constant_override("margin_right",8)
@@ -261,9 +290,19 @@ func product_summary(item: Dictionary) -> String:
 	return " / ".join(parts) if not parts.is_empty() else "補正なし"
 func open_comparison(id: String):
 	if busy() or ui.modal_open():return
+	var previous_product=pages.gear_id
+	var was_buy=selection_kind=="buy"
 	selection_kind="buy";pages.gear_id=id;purchase_quantity=1;sale.item_id="";sale.quote={};sale.generation+=1;sale.previewing=false
 	if comparison_view!=null:comparison_view.invalidate()
-	ui.render()
+	if not was_buy or not is_instance_valid(transaction_column) or not transaction_column.is_inside_tree() or not is_instance_valid(catalog_column) or not catalog_column.is_inside_tree():
+		ui.render();return
+	ui.refresh_panel(func():
+		ui.clear(transaction_column)
+		render_transaction(transaction_column,catalog_column)
+		if previous_product!=id:
+			for product in [previous_product,id]:
+				var control=catalog_column.find_child("Product_"+str(product),true,false)
+				if control!=null:list_surface(control,product==id))
 func render_notice(parent):
 	if message.is_empty():return
 	var notice=l(parent,message);notice.name="ShopNotice";notice.add_theme_color_override("font_color",Color("#a44a35"))
@@ -399,8 +438,19 @@ func back_list():
 	if stage=="S5" or unknown:return
 	generation+=1;stage="S0";consent={};pages.invalidate_quote();ui.render()
 func select_slot(id: String):
-	if busy():return
-	filter_slot=id;ui.memory.scrolls.erase("shop_products");ui.render()
+	if busy() or id==filter_slot:return
+	filter_slot=id
+	if not is_instance_valid(catalog_column) or not catalog_column.is_inside_tree():
+		ui.render()
+		return
+	var selector=catalog_column.get_node("ShopSlotFilter")
+	for index in range(selector.item_count):
+		if selector.get_item_metadata(index)==id:selector.select(index);break
+	var scroll=catalog_column.get_node("ShopProductsScroll")
+	ui.refresh_panel(func():
+		ui.memory.scrolls.erase("shop_products")
+		sync_product_rows(scroll.get_child(0))
+		scroll.scroll_vertical=0)
 func select_member(id: String):
 	if not busy():ui.shop_uid=id
 func select_product(id: String):

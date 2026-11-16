@@ -57,6 +57,40 @@ func reserve_scroll_access(label: String):
 	check(cards.size()==3 and reserve.get_parent()==panel.body,label+" all selected reserves remain in scrollable detail content")
 	var visible_reserves=reserve.get_global_rect().intersection(scroll.get_global_rect())
 	check(not visible_reserves.intersection(panel.footer.get_global_rect()).has_area(),label+" visible reserve cards do not overlap the fixed instruction text")
+func drag_roster_card(uid: String, cell: int):
+	var card=node("PartyFace_"+uid)
+	var start=card.get_global_rect().get_center()
+	var target=game.board.global_position+game.board.project_cell(cell)
+	var press=InputEventMouseButton.new()
+	press.button_index=MOUSE_BUTTON_LEFT
+	press.position=start
+	press.global_position=start
+	press.button_mask=MOUSE_BUTTON_MASK_LEFT
+	press.pressed=true
+	root.warp_mouse(press.position)
+	root.push_input(press,true)
+	await frames(2)
+	var previous=start
+	for fraction in [0.1,0.5,1.0]:
+		var motion=InputEventMouseMotion.new()
+		motion.position=start.lerp(target,fraction)
+		motion.global_position=motion.position
+		motion.relative=motion.position-previous
+		motion.button_mask=MOUSE_BUTTON_MASK_LEFT
+		root.warp_mouse(motion.position)
+		root.push_input(motion,true)
+		previous=motion.position
+		await frames(2)
+	check(root.gui_is_dragging(),"pointer drag starts from visible roster card")
+	press=InputEventMouseButton.new()
+	press.button_index=MOUSE_BUTTON_LEFT
+	press.position=target
+	press.global_position=target
+	press.pressed=false
+	root.warp_mouse(press.position)
+	root.push_input(press,true)
+	await settle()
+	check(ally(uid).get("pos")==cell and game.page!="character" and not game.modal_open(),"roster release places member without opening status")
 func run():
 	create_timer(120).timeout.connect(func():print("FAIL deployment D&D watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
@@ -65,9 +99,26 @@ func run():
 	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle();var sample=fixtures()
 	check((await game.update({"op":"campaign_load","data":sample})).get("ok",false),"valid seven-member deployment restored")
-	await settle();game.board.deployment_assigned.connect(func(uid,pos):drops.append([uid,pos]))
+	await settle()
 	check(root.has_method("gui_cancel_drag"),"runtime exposes actual Viewport drag cancellation API")
 	layout("FHD");reserve_scroll_access("FHD")
+	var strip=game.deployment_party_strip
+	check(strip.is_visible_in_tree() and strip.get_global_rect().end.x<=game.board.get_global_rect().position.x and not strip.get_global_rect().intersects(game.hud.deployment_actions.get_global_rect()),"vertical roster left of field and separate from deployment actions")
+	node("PartyFace_guard").pressed.emit();await settle()
+	check(game.pages.party_uid=="guard" and game.page=="character" and not game.modal_open(),"deployed card opens its member status")
+	node("Header_character").pressed.emit();await settle()
+	game.board.deployment_assigned.connect(func(uid,pos):drops.append([uid,pos]))
+	var roster_move=game.deployment_party_strip.drag_payload("guard")
+	check(game.board._can_drop_data(game.board.project_cell(0),roster_move),"roster can reposition a deployed member when full")
+	check(not game.board._can_drop_data(neutral_point(),roster_move),"roster drag released outside grid cancels")
+	var reserve_card=game.deployment_party_strip.drag_payload("mage-2")
+	check(not game.board._can_drop_data(game.board.project_cell(0),reserve_card),"roster reserve cannot exceed deployment limit")
+	check(game.board._can_drop_data(game.board.project_cell(int(ally("guard").pos)),reserve_card),"roster reserve can replace an ally")
+	var preview=Drag.preview(game,"guard")
+	var ink=preview.find_children("*","Label",true,false)[0].get_theme_color("font_color")
+	var background=preview.get_theme_stylebox("panel").bg_color
+	check((ink.get_luminance()+0.05)/(background.get_luminance()+0.05)>=4.5,"deployment drag preview text contrast")
+	preview.free()
 	var before=await saved();var payload=Drag.make_payload(game,"guard","board")
 	check(Drag.valid(game,payload),"fresh board context is valid")
 	game.menu.show()
@@ -95,7 +146,9 @@ func run():
 	check(root.gui_is_dragging(),"native Control force_drag starts real viewport drag state")
 	var cancel=InputEventKey.new();cancel.keycode=KEY_ESCAPE;cancel.pressed=true;root.push_input(cancel);await frames(2)
 	check(not root.gui_is_dragging() and await saved()==before,"ESC cancels native drag without campaign mutation")
-	await drop("guard","board",0);check(ally("guard").pos==0,"deployed member moves to empty valid ally cell")
+	if DisplayServer.get_name()=="headless":await drop("guard","roster",0)
+	else:await drag_roster_card("guard",0)
+	check(ally("guard").pos==0,"deployed member moves to empty valid ally cell")
 	var original=int(ally("archer").pos);await drop("guard","board",original)
 	check(ally("guard").pos==original and ally("archer").pos==0,"deployed-to-deployed native drop swaps positions")
 	await drop("guard","board",null);check(ally("guard").is_empty() and game.campaign().deploymentRoster.remaining==1,"intentional neutral-area drop returns member to reserve")

@@ -7,6 +7,9 @@ var pages:
 var ui
 var chosen_id := ""
 var current_id := ""
+var reserve: VBoxContainer
+var compare: HBoxContainer
+var footer: HBoxContainer
 var detail_tab := 0
 var origin_id := ""
 var stage := "idle"
@@ -76,20 +79,10 @@ func render(parent):
 	var center=VBoxContainer.new();center.add_theme_constant_override("separation",16);panel.add_child(center)
 	var tabs=ui.row(center)
 	for index in range(3):
-		var tab=b(tabs,["能力","装備","スキル"][index],func():detail_tab=index;ui.render());tab.name="GuildTab_"+str(index);ui.mark_selected(tab,detail_tab==index)
-	var compare=HBoxContainer.new();compare.name="GuildComparisonDetails";compare.size_flags_vertical=Control.SIZE_EXPAND_FILL;compare.add_theme_constant_override("separation",20);center.add_child(compare)
-	render_member(compare,person(current_id),"現在のパーティ")
-	var swap_column=VBoxContainer.new();swap_column.size_flags_vertical=Control.SIZE_EXPAND_FILL;compare.add_child(swap_column)
-	var space=Control.new();space.size_flags_vertical=Control.SIZE_EXPAND_FILL;swap_column.add_child(space)
-	var swap=b(swap_column,"入れ替える",prepare.bind("swap",current_id,chosen_id),busy() or candidate("swap",current_id,chosen_id).is_empty());swap.name="GuildSwap";swap.custom_minimum_size=Vector2(112,48)
-	var space2=Control.new();space2.size_flags_vertical=Control.SIZE_EXPAND_FILL;swap_column.add_child(space2)
-	render_member(compare,person(chosen_id),"控え")
-	var footer=ui.row(center);footer.name="GuildActions"
-	var notice_label=l(footer,notice);notice_label.name="GuildNotice";notice_label.add_theme_font_size_override("font_size",18)
-	var remove=b(footer,"パーティから外す",prepare.bind("remove",current_id,""),busy() or candidate("remove",current_id,"").is_empty());remove.name="GuildRemove"
-	b(footer,"戻る",pages.facility_entry.back,busy()).name="GuildReturn"
+		var tab=b(tabs,["能力","装備","スキル"][index],select_tab.bind(index));tab.name="GuildTab_"+str(index);ui.mark_selected(tab,detail_tab==index)
+	build_comparison(center)
 	var reserve_panel=PanelContainer.new();reserve_panel.custom_minimum_size.x=320;split.add_child(reserve_panel)
-	var reserve=VBoxContainer.new();reserve.name="GuildReserveColumn";reserve.size_flags_vertical=Control.SIZE_EXPAND_FILL;reserve_panel.add_child(reserve)
+	reserve=VBoxContainer.new();reserve.name="GuildReserveColumn";reserve.size_flags_vertical=Control.SIZE_EXPAND_FILL;reserve_panel.add_child(reserve)
 	l(reserve,"控え %d人" % lists[0].size()).name="GuildReserveHeading"
 	reserve_filter(reserve)
 	var body=ui.scroller(reserve);body.get_parent().name="GuildReserveScroll";ui.memory.watch(body.get_parent(),"guild_reserves_"+reserve_job)
@@ -105,7 +98,46 @@ func render(parent):
 		for text in [str(u.name),str(u.get("role",""))+" · Lv."+str(int(u.get("level",1))),"HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]]:
 			var label=l(copy,text);label.add_theme_font_size_override("font_size",18);label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.clip_text=true;label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	if reserves.is_empty():l(body,"この職業の控えはいません")
-	var add=b(reserve,"編成に加える",prepare.bind("add","",chosen_id),busy() or candidate("add","",chosen_id).is_empty());add.name="GuildAdd";add.custom_minimum_size.y=44;ui.green_button(add)
+	var add=b(reserve,"編成に加える",func():prepare("add","",chosen_id),busy() or candidate("add","",chosen_id).is_empty());add.name="GuildAdd";add.custom_minimum_size.y=44;ui.green_button(add)
+func select_tab(index: int):
+	if detail_tab==index:return
+	detail_tab=index
+	refresh_selection()
+
+func refresh_selection():
+	if not is_instance_valid(compare) or not compare.is_inside_tree():
+		ui.render()
+		return
+	ui.refresh_panel(func():
+		var center=compare.get_parent()
+		center.remove_child(compare)
+		compare.queue_free()
+		center.remove_child(footer)
+		footer.queue_free()
+		build_comparison(center)
+		for button in center.find_children("GuildTab_*","Button",true,false):
+			var selected=button.name=="GuildTab_"+str(detail_tab)
+			if button.get_meta("selected",false)!=selected:ui.mark_selected(button,selected)
+		for button in reserve.find_children("GuildMember_*","Button",true,false):
+			var selected=button.get_meta("member_id")==chosen_id
+			if button.get_meta("selected",false)!=selected:ui.mark_selected(button,selected)
+		var add=reserve.find_child("GuildAdd",true,false)
+		add.disabled=busy() or candidate("add","",chosen_id).is_empty()
+		add.set_meta("base_disabled",add.disabled)
+		ui.mock_shell.refresh_roster_selection())
+
+func build_comparison(center):
+	compare=HBoxContainer.new();compare.name="GuildComparisonDetails";compare.size_flags_vertical=Control.SIZE_EXPAND_FILL;compare.add_theme_constant_override("separation",20);center.add_child(compare)
+	render_member(compare,person(current_id),"現在のパーティ")
+	var swap_column=VBoxContainer.new();swap_column.size_flags_vertical=Control.SIZE_EXPAND_FILL;compare.add_child(swap_column)
+	var space=Control.new();space.size_flags_vertical=Control.SIZE_EXPAND_FILL;swap_column.add_child(space)
+	var swap=b(swap_column,"入れ替える",prepare.bind("swap",current_id,chosen_id),busy() or candidate("swap",current_id,chosen_id).is_empty());swap.name="GuildSwap";swap.custom_minimum_size=Vector2(112,48)
+	var space2=Control.new();space2.size_flags_vertical=Control.SIZE_EXPAND_FILL;swap_column.add_child(space2)
+	render_member(compare,person(chosen_id),"控え")
+	footer=ui.row(center);footer.name="GuildActions"
+	var notice_label=l(footer,notice);notice_label.name="GuildNotice";notice_label.add_theme_font_size_override("font_size",18)
+	var remove=b(footer,"パーティから外す",prepare.bind("remove",current_id,""),busy() or candidate("remove",current_id,"").is_empty());remove.name="GuildRemove"
+	b(footer,"戻る",pages.facility_entry.back,busy()).name="GuildReturn"
 func render_member(parent,u: Dictionary,caption: String):
 	var column=VBoxContainer.new();column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;column.size_flags_stretch_ratio=1;parent.add_child(column)
 	if u.is_empty():
@@ -137,15 +169,15 @@ func render_member(parent,u: Dictionary,caption: String):
 		2:pages.party_view.skills(details,u)
 func select_current(id: String):
 	if not available() or busy() or ui.modal_open() or not active(id):return
-	current_id=id;notice="";ui.render()
+	current_id=id;notice="";refresh_selection()
 func choose(id: String):
 	if not available() or busy() or ui.modal_open() or person(id).is_empty() or stage!="idle":return
 	if active(id):select_current(id);return
 	if not reserve_job.is_empty() and str(person(id).get("job",""))!=reserve_job:return
-	chosen_id=id;notice="";ui.memory.request_focus("guild_member_"+id);ui.render()
+	chosen_id=id;notice="";ui.memory.request_focus("guild_member_"+id);refresh_selection()
 func cancel_selection():
 	if busy():return
-	generation+=1;stage="idle";mode="";origin_id="";chosen_id="";notice="";ui.render()
+	generation+=1;stage="idle";mode="";origin_id="";chosen_id="";notice="";refresh_selection()
 func outside_press(point: Vector2):
 	if not available() or busy() or ui.modal_open() or chosen_id.is_empty():return
 	for name_ in ["GuildColumns","PartyRoster","PartyFaceBar"]:

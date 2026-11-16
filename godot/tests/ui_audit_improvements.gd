@@ -4,20 +4,7 @@ func run():
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
- var before=await saved();var uid=str(game.campaign().selected[0])
- game.pages.party_view.open_detail(uid);await settle()
- var original=game.dialog.window.size
- root.size=Vector2i(960,540);await settle()
- check(game.dialog.window.size.y<original.y,"status fits small viewport")
- root.size=Vector2i(1920,1080);await settle()
- check(game.dialog.window.size==original,"status restores intended extent on growth")
- game.dialog.close();game.pages.party_view.open_detail(uid);await settle()
- check(game.dialog.window.size==original,"status reopen preserves preferred extent")
- root.size=Vector2i(960,540);await settle();game.dialog.close();await settle();game.pages.party_view.open_detail(uid);await settle()
- root.size=Vector2i(1920,1080);await settle()
- print("REOPEN preferred=",game.preferences.config.get_value("windows","status")," actual=",game.dialog.window.size," expected=",original," metadata=",game.dialog.window.get_meta("layout_preferred"))
- check(game.dialog.window.size==original,"close and reopen while constrained does not discard preferred extent")
- game.dialog.close();await settle()
+ var before=await saved()
  var d=game.confirm("長い確認文です。".repeat(60),func():pass);await settle()
  for dims in [Vector2i(960,540),Vector2i(1180,812),Vector2i(1920,1080)]:
   root.size=dims;await settle()

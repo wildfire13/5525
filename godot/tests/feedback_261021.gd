@@ -1,4 +1,4 @@
-extends "res://tests/inventory_header_261020.gd"
+extends "res://tests/ui_feedback2_20261016.gd"
 func payload(kind: String,id: String,owner: String="") -> Dictionary:
 	return {"kind":kind,"item":id,"owner":owner,"connection":game.engine.connection_generation,"token":game.campaign().get("inventoryToken"),"epoch":game.pages.epoch}
 func run():
@@ -10,20 +10,25 @@ func run():
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var seed=await saved();seed.state.location="east";seed.state.gold=1000;seed.state.characters.guard.inventory={"spear-wood":1,"greatsword-wood":1,"lone-ring-1":1}
 	await game.update({"op":"campaign_load","data":seed});await settle()
-	var p=game.pages.party_view;p.open_detail("guard");await settle()
-	var owned=p.owned_equipment_view;var before=await saved()
-	check(owned.can_drop(payload("owned_equipment","spear-wood","guard"),"guard","leftHand"),"drop respects left hand")
-	check(not owned.can_drop(payload("owned_equipment","spear-wood","guard"),"guard","feet"),"invalid slot rejects drop")
-	check(not owned.can_drop(payload("owned_equipment","greatsword-wood","guard"),"guard","leftHand"),"two handed weapon rejects left hand")
-	check(owned.can_drop(payload("owned_equipment","lone-ring-1","guard"),"guard","accessory2"),"accessory drop respects second slot")
-	var stale=payload("owned_equipment","spear-wood","guard");stale.token="stale"
-	check(not owned.can_drop(stale,"guard","leftHand"),"stale drag rejects")
-	await owned.drop_equipment(payload("owned_equipment","spear-wood","guard"),"guard","leftHand");await settle()
-	check(p.inventory_view.stage=="confirm" and await saved()==before,"equipment drop opens pure confirmation")
-	await consent(false);check(await saved()==before,"drop cancel preserves complete state")
-	await owned.drop_equipment(payload("owned_equipment","spear-wood","guard"),"guard","leftHand");await settle();await consent(true)
-	check(game.campaign().characters.guard.leftHand=="spear-wood","confirmed drop equips specified hand")
-	game.dialog.close();await enter_facility("shop");await settle()
+	game.pages.party_view.open_inventory("guard");await settle()
+	var before=await saved()
+	for spec in [["spear-wood","feet",false],["greatsword-wood","leftHand",false],["lone-ring-1","accessory2",true],["spear-wood","leftHand",true]]:
+		var entry=game.campaign().inventoryByCharacter.guard.entries.filter(func(e):return e.id==spec[0])[0]
+		var row=game.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text==entry.name)[0]
+		row.pressed.emit();await settle()
+		var selector=node("CharacterEquipSlot");var index=-1
+		for i in range(selector.item_count):
+			if selector.get_item_metadata(i)==spec[1]:index=i
+		if index>=0:
+			selector.select(index);selector.item_selected.emit(index);await settle()
+		check((index>=0 and not node("CharacterEquip").disabled)==spec[2],"equip slot eligibility "+str(spec))
+	var workspace=game.pages.party_view.workspace
+	var stale=workspace.payload(workspace.picked,"transfer",null);stale.token="stale"
+	workspace.drop(stale,"mage");await settle()
+	check(await saved()==before,"slot previews and stale transfer preserve full save")
+	await click("CharacterEquip")
+	check(game.campaign().characters.guard.leftHand=="spear-wood","equip applies to specified hand")
+	await enter_facility("shop");await settle()
 	var shop=game.pages.shop_view
 	check(node("ShopSlotFilter").get_parent()!=node("ShopProductsScroll").get_child(0),"shop filter is outside scrolling list")
 	var data=payload("shop_product","spear-wood")

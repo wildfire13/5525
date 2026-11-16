@@ -86,8 +86,10 @@ func run():
 			await enter_facility(spec[1])
 			for i in range(3):game.render();await settle()
 			check(art.npc.selected_path==path and art.npc.rng.state==state,"NPC repeated renders retain same visit "+str(spec)+str(dims.x))
-			game.pages.party_view.open_detail("guard");await settle();game.pages.party_view.portrait_pressed("archer");await settle();game.dialog.close();await settle()
-			check(art.npc.selected_path==path and art.npc.rng.state==state and (await saved())==before,"NPC owner switching and details preserve NPC and exact save "+str(spec)+str(dims.x))
+			if spec[1] in ["party","shop"]:
+				await click("RosterMember_guard");await click("RosterMember_archer")
+				var owner=game.pages.guild_view.current_id if spec[1]=="party" else game.pages.shop_view.selected_owner()
+				check(owner=="archer" and art.npc.selected_path==path and art.npc.rng.state==state and (await saved())==before,"NPC roster switching preserves NPC and exact save "+str(spec)+str(dims.x))
 			game.navigate("hub");await settle()
 			check(art.npc.selected_path.is_empty() and art.npc.texture==null and art.npc.visit_key.is_empty(),"NPC leaves with facility "+str(spec)+str(dims.x))
 			await enter_facility(spec[1])

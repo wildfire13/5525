@@ -43,10 +43,11 @@ func run():
  root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1280,800)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
+ await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true;await settle();var original=await saved();var town=original.duplicate(true);town.state.location="east"
- town.state.characters.guard.level=29;town.state.characters.guard.xp=2800;town.state.characters.guard.allocations.str=2;town.state.characters.guard.statPoints=54;town.state.characters.guard.skillPoints=28;town.state.characters.guard.weapon="hammer-iron-1"
+ town.state.characters.guard.level=29;town.state.characters.guard.xp=2800;town.state.characters.guard.allocations.str=2;town.state.characters.guard.statPoints=54;town.state.characters.guard.skillPoints=28;town.state.characters.guard.weapon="hammer-iron-1";town.state.characters.guard.leftHand="empty-leftHand"
  check((await game.update({"op":"campaign_load","data":town})).get("ok",false),"isolated level29 hammer fixture passes canonical load")
- await enter_facility("shop");await settle();await os_click(node("PartyFace_guard"));var before=await saved()
+ await preload("res://tests/equipment_hover_f4.gd").enter_equipment_battle(game);await settle();var before=await saved()
  for dims in [Vector2i(1280,800),Vector2i(1180,812),Vector2i(1920,1080)]:
   await os_resize(dims)
   await hover_equipped("upperBody","plain-"+str(dims.x))
@@ -56,11 +57,11 @@ func run():
  for item in [["partner-dagger","pincer","挟撃"],["longspear-wood","poleVault","ポールヴォールト"],["grappling-rope","grapple","引き寄せ"]]:
   town.state.characters.guard.weapon=item[0]
   check((await game.update({"op":"campaign_load","data":town})).get("ok",false),"long skill fixture passes canonical equipment eligibility "+item[0])
-  await enter_facility("shop");await settle();await os_click(node("PartyFace_guard"));await os_resize(Vector2i(1180,812));before=await saved();await hover_equipped("rightHand",item[1]+"-1180")
+  await preload("res://tests/equipment_hover_f4.gd").enter_equipment_battle(game);await settle();await os_resize(Vector2i(1180,812));before=await saved();await hover_equipped("rightHand",item[1]+"-1180")
   check(observations[-1].full_text.contains(item[2]),"tooltip is actual equipped skill rather than previous gear "+item[0])
   check(await saved()==before,"long skill hover is read-only "+item[0]);game.dialog.close();await settle()
  if not baseline:
-  game.pages.party_view.open_detail("guard");await settle()
+  await game.hud.open_equipment_sheet("guard");await settle()
   var source=game.find_children("*","Button",true,false).filter(func(b):return b.get_meta("ui_key","")=="equipment_rightHand")[0]
   var long_note="診断用の長文メモ。".repeat(300)+"末尾の診断文字"
   source.heading="診断用の長い装備名".repeat(32);source.details.append(source.escaped(long_note));source.plain_details.append(long_note);source.tooltip_text+="\n"+long_note

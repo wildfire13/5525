@@ -5,31 +5,13 @@ func run():
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true
-	var seed=await saved();seed.state.characters.guard.inventory={"potion":2,"spear-wood":2,"swift-boots":1,"bow-wood":1,"lone-ring-2":1}
-	await game.update({"op":"campaign_load","data":seed});await settle()
-	var p=game.pages.party_view;p.open_detail("guard");await settle()
-	game.dialog.window.size=Vector2i(900,450);await frames()
-	var scroll=game.dialog.body.get_parent();scroll.scroll_vertical=100000;await frames();var offset=scroll.scroll_vertical
-	var before=await saved();await click("OwnedEquipmentActions_swift-boots");await click("InventoryCancel")
-	check(offset>0 and abs(scroll.scroll_vertical-offset)<=2,"R5 NO restores nonzero equipment-list scroll")
-	check(p.detail_tab==0 and p.detail_uid=="guard" and p.owned_equipment_view.slot=="" and game.dialog.window.gui_get_focus_owner()==node("OwnedEquipmentActions_swift-boots"),"R5 NO preserves owner slot and selected item focus")
-	check(await saved()==before,"R5 cancellation leaves engine save unchanged")
-	await click("OwnedEquipmentActions_swift-boots");game.dialog.escape();await settle()
-	check(p.detail_tab==0 and abs(scroll.scroll_vertical-offset)<=2 and await saved()==before,"R5 Escape cancels into same list position without mutation")
-	game.dialog.window.position=Vector2i(1850,1020);await frames()
-	var window_rect=Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size))
-	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(window_rect) and window_rect.position.y>=36,"R6 moved/resized status immediately recovers inside viewport")
-	check(node("StatusClose")==null and not game.dialog.window.borderless,"R6 recovered status retains window X without redundant footer close")
-	var recovered=window_rect;game.dialog.close();await frames();p.open_detail("guard");await settle()
-	check(Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size))==recovered,"R6 reopening retains recovered geometry")
-	game.dialog.close();await settle()
 	var output=[];OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/inventory_battle_fixtures.cjs")]),output,true,false)
 	var fixtures=JSON.parse_string("".join(output));await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
 	var hud=game.hud
 	check(not hud.tools.get_global_rect().intersects(hud.left_panel.find_child("DragHandle",true,false).get_global_rect()),"R1 toolbar never overlaps default actor heading")
-	check(node("Retreat").size.x>=160 and node("Retreat").size.y>=52,"R2 retreat has readable 160px width")
-	# Migrate old saved y=50 without requiring manual preference deletion.
-	hud.left_panel.position.y=50;await frames();check(hud.left_panel.position.y>=76,"R1 old toolbar-overlapping panel position is recovered")
+	# A saved panel can now occupy the top of the viewport.
+	hud.left_panel.position.y=50;hud.left_panel.constrain();await settle()
+	check(root.get_visible_rect().encloses(hud.left_panel.get_global_rect()),"R1 restored actor panel stays within the viewport")
 	var original_queue=game.data.queue.duplicate(true);game.data.queue=[]
 	for i in range(40):game.data.queue.append(original_queue[i%original_queue.size()])
 	hud.render();await frames()

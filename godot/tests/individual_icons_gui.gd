@@ -1,16 +1,19 @@
-extends "res://tests/equipment_hover_gui.gd"
+extends "res://tests/research2_gui.gd"
 ## Real X11 routes, plus explicitly validated synthetic QA boundaries.
 var icons_baseline=OS.get_environment("INDIVIDUAL_ICONS_BASELINE")=="1"
 var icon_records=[]
 var boundaries=[]
 var canvas_seen={}
+func screen_rect(control: Control) -> Rect2:
+ return Rect2(control.get_global_rect().position+Vector2(control.get_window().position),control.size)
+
 var ui_cases={}
 func fixtures_icons():
  var path=OS.get_environment("INDIVIDUAL_ICONS_FIXTURES")
  if path.is_empty():path=ProjectSettings.globalize_path("res://tests/individual_icons_fixtures.cjs")
  var output=[];var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([path]),output,true,false)
  check(code==0,"QA boundaries pass canonical C.validate and save roundtrip")
- var parsed=JSON.parse_string("".join(output));check(parsed.meta.gear_count==47,"fixture inventory contains 47 current canonical equipment IDs")
+ var parsed=JSON.parse_string("".join(output));check(parsed.meta.gear_count==65,"fixture inventory contains 65 current canonical equipment IDs")
  return parsed.cases
 func art_path(id: String) -> String:
  if not id.begins_with("approved:"):return game.icons.path_for(id)
@@ -49,7 +52,7 @@ func reveal(id: String,scroll_id: String):
  if scroll!=null:scroll.ensure_control_visible(control)
  await settle()
 func inventory_category(value: String):
- var chooser=node("OwnedEquipmentSlot");var wanted=-1
+ var chooser=node("ShopInventoryFilter");var wanted=-1
  for index in range(chooser.item_count):
   if chooser.get_item_metadata(index)==value:wanted=index
  check(wanted>=0,"canonical inventory category exists "+value)
@@ -58,7 +61,7 @@ func inventory_category(value: String):
   await os_key("Down");steps+=1
  check(popup.visible and popup.get_focused_item()==wanted,"actual OS focuses canonical inventory category "+value)
  await os_key("Return")
- check(game.pages.party_view.owned_equipment_view.slot==value,"actual OS category selection applied "+value)
+ check(game.pages.shop_view.sale.inventory_filter==value,"actual OS category selection applied "+value)
 func reveal_battle_row(skill: String):
  var control=node("BattleSkillDetails_"+skill);var parent=control.get_parent()
  while parent!=null and not parent is ScrollContainer:parent=parent.get_parent()
@@ -66,13 +69,15 @@ func reveal_battle_row(skill: String):
  await settle()
 func battle_draw_contract(skill: String,label: String):
  var row=game.data.skillset.filter(func(data):return data.id==skill)[0]
- var level=1
- for source in row.get("sources",[]):level=maxi(level,int(source.get("level",1)))
+ var level=int(row.get("level",1))
  var badged=game.icons.approved.skills.get(skill,{}).has("levels")
  var expected=32 if badged and not icons_baseline else 24
  var control=node("BattleSkill_"+skill);var info=node("BattleSkillDetails_"+skill)
  check(control.get_theme_constant("icon_max_width")==expected,label+" actual draw width "+str(expected)+" "+skill)
  var caption=str(row.name)+(" Lv%d" % level if badged and not icons_baseline else "")
+ var source=game.hud.skill_source_short(row)
+ if not source.is_empty():caption+="（"+source+"）"
+ if int(row.get("cooldown",0))>0:caption+="\nクールタイム中"
  check(control.text.trim_prefix("● ")==caption,label+" caption equals canonical name and source level "+skill)
  check(visible_rect(control).encloses(control.get_global_rect()) and visible_rect(info).encloses(info.get_global_rect()),label+" skill and explanation button both fit panel clip "+skill)
 func selected_flow(skill: String,label: String):
@@ -102,38 +107,37 @@ func selected_flow(skill: String,label: String):
  check(await saved()==selected_boundary,label+" actual target cancellation consumes nothing")
  await capture(label+"-cancelled")
 func normal_route():
- check(game.campaign().phase=="town" and game.campaign().location=="astaris","fresh profile starts in normal square")
- boundaries.append({"key":"fresh-through-first-battle","kind":"actual OS normal route, no fixture"})
- await os_click(node("HubFacility_guild"));await os_click(node("GuildMember_guard"));await os_click(node("GuildDetails"))
- var empty=game.find_children("*","Button",true,false).filter(func(b):return b.get_meta("ui_key","")=="equipment_head")[0]
- check(empty.icon==null,"empty equipped slot remains iconless in actual status")
- var before=await saved();await capture("normal-equipped")
- await os_key("Escape");await os_click(node("GuildReturn"));await os_click(node("HubMap"));await os_click(node("Town_east"));await os_click(node("DepartButton"))
+ check(game.campaign().phase=="town" and game.campaign().location=="astaris","historical roster starts in normal square")
+ boundaries.append({"key":"historical-roster-through-first-battle","kind":"validated historical roster, OS route"})
+ await os_click(node("RosterMember_guard"));var empty=node("CharacterSlot_head")
+ check(empty.icon==null,"empty equipped slot remains iconless")
+ await capture("normal-equipped")
+ await os_click(node("Header_character"));await os_click(node("HubMap"));await os_click(node("Town_east"));await os_click(node("DepartButton"))
  var river=game.find_children("*","Button",true,false).filter(func(b):return b.text.begins_with("川沿いの道"))[0]
  await os_click(river);await os_click(node("DeploymentBegin"))
  check(game.campaign().phase=="battle","actual OS square/map/east/river/start reaches live battle")
  await os_click(game.hud.buttons.skill);await reveal_battle_row("archer");battle_draw_contract("archer","normal list");await capture("normal-battle-skills")
  await selected_flow("archer","normal-archer")
 func inventory_cases():
- await at_fixture("east");await enter_facility("shop");await settle();await os_click(node("PartyFace_guard"))
+ await at_fixture("east");await enter_facility("shop");await settle();await os_click(node("ShopInventoryTab_inventory"))
  var before=await saved()
- check(node("OwnedEquipmentList").get_child_count()/3>=47,"all real equipment remains in existing personal list")
- await reveal("OwnedEquipment_javelin-wood","OwnedEquipmentScroll");await capture("owned-thin-spears")
+ check(node("ShopInventoryScroll").find_children("SaleItem_*","Button",true,false).size()>=65,"all real equipment remains in existing personal list")
+ await reveal("SaleItem_javelin-wood","ShopInventoryScroll");await capture("owned-thin-spears")
  var pixels=[]
  for id in ["spear-wood","longspear-wood","javelin-wood"]:
-  var b=node("OwnedEquipment_"+id);check(not b.text.is_empty() and b.icon!=null,"spear ID retains name beside art "+id);pixels.append(b.icon.get_image().get_data())
-  await reveal("OwnedEquipment_"+id,"OwnedEquipmentScroll");await capture("owned-spear-"+id)
+  var b=node("SaleItem_"+id);check(not b.text.is_empty() and b.icon!=null,"spear ID retains name beside art "+id);pixels.append(b.icon.get_image().get_data())
+  await reveal("SaleItem_"+id,"ShopInventoryScroll");await capture("owned-spear-"+id)
  if not icons_baseline:check(pixels[0]!=pixels[1] and pixels[1]!=pixels[2] and pixels[0]!=pixels[2],"three spear forms retain distinct actual rendered pixels")
- await reveal("OwnedEquipment_bow-silver-2","OwnedEquipmentScroll");await capture("owned-wood-iron-silver")
+ await reveal("SaleItem_bow-silver-2","ShopInventoryScroll");await capture("owned-wood-iron-silver")
  await inventory_category("upperBody")
- await reveal("OwnedEquipment_armor-cloth","OwnedEquipmentScroll");await capture("owned-cloth-leather-metal")
- # Actual equipped native tooltip, long pincer effect, then full details.
- await hover_equipped("rightHand","pincer-equipped")
- await os_click(node("StatusTab_2"));await capture("person-skills32")
- await os_click(node("PartySkillDetails_pincer"));check(node("SkillDetailsBody")!=null,"actual character skill opens body-based full details")
+ await reveal("SaleItem_armor-cloth","ShopInventoryScroll");await capture("owned-cloth-leather-metal")
+ game.pages.party_view.open_inventory("guard");await settle();await os_click(node("CharacterTab_equipment"))
+ var equipped=node("CharacterSlot_rightHand");await os_mouse(screen_rect(equipped).get_center());await create_timer(.85).timeout
+ check(equipped.icon!=null and not equipped.tooltip_text.is_empty(),"equipped weapon has art and hover label");await capture("pincer-equipped")
+ await skill_tab();var skill=game.find_child("CharacterSkill_*_pincer_*",true,false);await reveal_control(skill);await capture("person-skills")
+ await os_click(skill);check(node("SkillDetailsBody")!=null,"character skill opens full details")
  await capture("pincer-full-person");await os_key("Escape")
- check(await saved()==before,"owned list scrolling, hover and full details never mutate save")
- await os_key("Escape")
+ check(await saved()==before,"owned list and full details preserve save")
 func shop_cases():
  for place in ["east","west","north","south"]:
   await at_fixture(place);await enter_facility("shop");await settle();var before=await saved()
@@ -142,22 +146,22 @@ func shop_cases():
   var product="javelin-wood" if place=="east" else "armor-silver-1" if place=="west" else "lone-ring-1"
   await reveal("Product_"+product,"ShopProductsScroll");await capture("shop-"+place)
   await os_click(node("Product_"+product));check(node("ShopComparisonStats")!=null and not node("ShopComparisonProduct").text.is_empty(),"named product comparison opens "+place)
-  await capture("comparison-"+place);await os_click(node("ShopComparisonBack"))
+  await capture("comparison-"+place);await os_click(node("ShopExit"))
   check(await saved()==before,"comparison and cancellation preserve exact save "+place)
  # Representative ordinary purchase, cancel, and two-count sale use canonical quotes.
  await at_fixture("east");await enter_facility("shop");await settle();var before=await saved()
- await reveal("ProductBuy_spear-wood","ShopProductsScroll");await os_click(node("ProductBuy_spear-wood"));await os_click(node("PurchaseDecline"))
+ await reveal("Product_spear-wood","ShopProductsScroll");await os_click(node("Product_spear-wood"));await os_click(node("ShopComparisonBuy"));await os_click(node("PurchaseDecline"))
  check(await saved()==before,"ordinary purchase cancellation consumes no money or inventory")
- await os_click(node("ProductBuy_spear-wood"));await os_click(node("PurchaseAgree"));await os_click(node("PurchaseRecipient_guard"))
+ await os_click(node("ShopComparisonBuy"));await os_click(node("PurchaseAgree"))
  var bought=await saved();var price=game.campaign().shop.filter(func(g):return g.id=="spear-wood")[0].price
  check(int(bought.state.gold)==int(before.state.gold)-int(price) and int(bought.state.characters.guard.inventory["spear-wood"])==int(before.state.characters.guard.inventory["spear-wood"])+1,"actual ordinary purchase matches displayed canonical price and owner quantity")
- await os_click(node("PartyFace_guard"));await reveal("OwnedInventorySell_spear-wood","OwnedEquipmentScroll");await os_click(node("OwnedInventorySell_spear-wood"))
- var quantity=node("InventoryQuantity");await os_click(quantity.get_line_edit());await os_key("Home");await os_key("Delete");await os_key("2");await os_key("Return")
- check(int(node("InventoryQuantity").value)==2,"actual OS sale quantity is two")
+ await os_click(node("ShopInventoryTab_inventory"));await reveal("SaleItem_spear-wood","ShopInventoryScroll");await os_click(node("SaleItem_spear-wood"))
+ var quantity=node("FacilitySaleQuantity");await reveal_control(quantity);await os_click(quantity.get_line_edit());await os_key("Home");await os_key("Delete");await os_key("2");await os_key("Return")
+ check(int(node("FacilitySaleQuantity").value)==2,"actual OS sale quantity is two")
  var quote=(await game.engine.request({"op":"campaign","action":"saleQuote","args":["guard","spear-wood",2]})).saleQuote
- await capture("sale-quantity");await os_click(node("InventoryPrepareSale"));await os_click(node("InventoryCancel"))
+ await capture("sale-quantity");await os_click(node("FacilitySalePrepare"));await os_click(node("FacilitySaleCancel"))
  check(await saved()==bought,"actual sale NO preserves all inventory and money")
- await os_click(node("InventoryPrepareSale"));await os_click(node("InventoryConfirm"));var sold=await saved()
+ await os_click(node("FacilitySalePrepare"));await os_click(node("FacilitySaleConfirm"));var sold=await saved()
  check(int(sold.state.gold)==int(quote.afterGold) and int(sold.state.characters.guard.inventory["spear-wood"])==int(bought.state.characters.guard.inventory["spear-wood"])-2,"actual sale matches canonical total and exact owner quantity")
  await os_key("Escape")
 func battle_cases():
@@ -184,10 +188,11 @@ func run():
  root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(width,812 if width==1180 else 1080)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- game.checks_fast=true;game.audio.fast_mode=true;baseline=icons_baseline;await settle()
+ game.checks_fast=true;game.audio.fast_mode=true;await settle()
  DirAccess.make_dir_recursive_absolute(evidence.path_join("rendered"));ui_cases=fixtures_icons()
+ await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
  await normal_route();await inventory_cases();await shop_cases();await battle_cases()
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"all individual icon UI checks keep BGM voice SE OFF")
- for spec in [["checks.json",checks],["icon-ui-observations.json",icon_records],["fixture-boundaries.json",boundaries],["hover-layout.json",observations]]:
+ for spec in [["checks.json",checks],["icon-ui-observations.json",icon_records],["fixture-boundaries.json",boundaries]]:
   var file=FileAccess.open(evidence.path_join(spec[0]),FileAccess.WRITE);file.store_string(JSON.stringify(spec[1],"\t"));file.close()
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

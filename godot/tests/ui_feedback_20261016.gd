@@ -30,29 +30,27 @@ func run():
 	while game.data.is_empty():await process_frame
 	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.audio.fast_mode=true;game.checks_fast=true
-	var baseline=await saved();baseline.state.characters.guard.inventory={"potion":2,"spear-wood":2,"swift-boots":1}
+	var baseline=await saved()
+	baseline.state.characters.guard.inventory={"potion":2,"spear-wood":2,"swift-boots":1}
 	await game.update({"op":"campaign_load","data":baseline});await settle()
-	var p=game.pages.party_view;p.open_detail("guard");await settle()
-	var status=game.dialog.window;status.position=Vector2i(65,75);status.size=Vector2i(900,720);game.dialog.close();await frames();p.open_detail("guard");await settle()
-	check(game.dialog.window.position==Vector2i(65,75) and game.dialog.window.size==Vector2i(900,720) and not game.dialog.window.unresizable,"S7 status geometry survives close/reopen")
-	check(not node("EquipmentHover").visible,"S8/S9 comparison not permanently displayed")
-	var slot=node("OwnedEquipmentSlot");slot.select(1);slot.item_selected.emit(1);await settle()
-	node("OwnedEquipmentActions_spear-wood").mouse_entered.emit();await settle()
-	check(not node("OwnedEquipmentComparison").text.is_empty() and not node("OwnedEquipmentComparison").text.contains("+0"),"S5/S9 equip hover contains only changed character comparison")
-	check(node("OwnedEquipment_spear-wood").alignment==HORIZONTAL_ALIGNMENT_LEFT and node("OwnedEquipment_spear-wood").icon!=null,"S4 item names left aligned with placeholder item icon")
-	var before=await saved();await click("OwnedEquipmentActions_spear-wood")
-	check(p.inventory_view.stage=="confirm" and node("InventoryConfirm").text=="装備する" and node("InventoryCancel").text=="キャンセル","S10 explicit equip/cancel confirmation")
-	await click("InventoryCancel");check((await saved())==before,"S10 NO preserves inventory and equipment")
-	await click("StatusTab_0");await click("OwnedEquipmentActions_spear-wood");await click("InventoryConfirm")
-	check((await saved()).state.characters.guard.inventory["spear-wood"]==1,"S10 YES equips exactly one")
-	await click("StatusTab_0");check(node("UnequipSelected")!=null and node("UnequipSelected").text=="装備を外す","S11 compact unequip follows owned list")
-	await click("UnequipSelected");check(p.inventory_view.quote.slot=="rightHand","S11 unequip uses selected slot")
-	await click("InventoryConfirm");check((await saved()).state.characters.guard.inventory["spear-wood"]==2,"S11 unequip returns exactly one item")
-	await all_inventory()
-	check(node("OwnedEquipment_potion").tooltip_text.contains("HP") and node("OwnedEquipment_spear-wood").tooltip_text.contains("通常攻撃射程"),"S5 mixed consumables and unequipped gear have tooltips")
+	game.mock_shell.activate("guard");await settle()
+	var workspace=game.pages.party_view.workspace
+	workspace.set_tab("inventory");await settle()
+	var spear=game.campaign().inventoryByCharacter.guard.entries.filter(func(e):return e.id=="spear-wood")[0]
+	var row=game.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text==spear.name)[0]
+	check(row.alignment==HORIZONTAL_ALIGNMENT_LEFT and row.icon!=null,"S4 owned equipment shows a left-aligned name and icon")
+	row.pressed.emit();await settle()
+	check(node("CharacterEquipmentComparison").text.contains("比較対象") and not node("CharacterEquip").disabled,"S5 selected equipment exposes its comparison and equip action")
+	await click("CharacterItemDetails")
+	check(node("SkillDetailsBody").text.contains("通常攻撃射程"),"S5 owned spear details include attack reach")
+	await click("SkillDetailsBack");await click("CharacterEquip")
+	check((await saved()).state.characters.guard.inventory["spear-wood"]==1,"S10 equipping consumes exactly one spear")
+	workspace.set_tab("equipment");await settle();await click("CharacterSlot_rightHand")
+	var remove=game.find_children("*","Button",true,false).filter(func(b):return b.text=="装備を外す")[0]
+	remove.pressed.emit();await settle()
+	check((await saved()).state.characters.guard.inventory["spear-wood"]==2,"S11 unequipping returns exactly one spear")
 	var tip=preload("res://equipment_tooltip.gd").new();tip.configure("armor",{"type":"armor","hp":5,"effect":"archer"},{"definitions":{"archer":{"reach":3}},"descriptions":{"archer":"射程+1"}})
 	check(not tip.tooltip_text.contains("通常攻撃射程") and "\n".join(tip.details).contains("#c7a5ff"),"S6 armor excludes attack reach while skill effect is purple");tip.free()
-	game.dialog.close();await settle()
 	var output=[];var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/inventory_battle_fixtures.cjs")]),output,true,false)
 	check(code==0,"battle fixture generator")
 	var fixtures=JSON.parse_string("".join(output));await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
@@ -83,7 +81,3 @@ func run():
 	var f=FileAccess.open(evidence.path_join("ui-feedback-20261016.json"),FileAccess.WRITE);f.store_string(JSON.stringify(record,"\t"));f.close()
 	game.closing=true;game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames()
 	quit(0 if checks.all(func(c):return c.passed) else 1)
-
-func all_inventory():
-	var chooser=game.find_child("OwnedEquipmentSlot",true,false)
-	chooser.select(0);chooser.item_selected.emit(0);await settle()

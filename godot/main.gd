@@ -21,7 +21,11 @@ var formation := "convoy"
 var destination := ""
 var pages
 var mock_shell
+var campaign_theme: Theme
 var battle_theme: Theme
+var themes_ready := false
+var parked_board
+var parked_epoch := -1
 var gear_preview: Dictionary={}
 var notice := ""
 var save_notice
@@ -100,13 +104,15 @@ func _ready():
 			style.content_margin_left=8;style.content_margin_right=8;style.content_margin_top=4;style.content_margin_bottom=4;theme_.set_stylebox(state_,type_,style)
 		theme_.set_color("font_disabled_color",type_,Color("#9299a3"))
 	theme=theme_
-	battle_theme=theme_.duplicate(true)
+	campaign_theme=theme_
+	battle_theme=theme_.duplicate(false)
 	low_hp_font=FontVariation.new();low_hp_font.base_font=ui_font.base_font;low_hp_font.variation_opentype={weight_axis:700}
 	backdrop_layer=Control.new();backdrop_layer.name="SceneBackdrop";backdrop_layer.mouse_filter=Control.MOUSE_FILTER_IGNORE;backdrop_layer.clip_contents=true;add_child(backdrop_layer);backdrop_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base=VBoxContainer.new();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base.add_theme_constant_override("separation",8)
 	base.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	top=HBoxContainer.new();top.custom_minimum_size.y=44;base.add_child(top)
+	var elapsed=Label.new();elapsed.name="BattleElapsedTime";top.add_child(elapsed)
 	actor_face=portrait(top,{},true,40);actor_face.visible=false
 	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
 
@@ -239,6 +245,13 @@ func show_status_details():
 		local_button(actions,"閉じる",dialog.close),func():
 		if not closing and pages.epoch==epoch and engine.connection_generation==generation and notice==saved_notice:
 			focus_hint=saved_hint;status_override=message;set_status(message);footer.grab_focus())
+# Local interactions can refresh one panel without detaching the surrounding page.
+func refresh_panel(draw: Callable):
+	memory.capture()
+	draw.call()
+	widgets=widgets.filter(func(b):return is_instance_valid(b) and b.is_inside_tree())
+	memory.restore()
+
 func clear(node: Node):
 	for child in node.get_children():node.remove_child(child);child.queue_free()
 func portrait(parent: Node,u: Dictionary,face:=false,size_:=72) -> TextureRect:
@@ -450,6 +463,8 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		notice=str(reply.get("error","操作できません"))
 		if reply.get("connection_lost",false):invalidate_preview();pages.reset_context("disconnect",campaign_identity.current_id)
 	if closing:loading_screen.finish(loading_token);return reply
+	if request.get("op")=="campaign" and request.get("action")=="inn":
+		pages.inn_view.finish_rest(result_before,reply.get("ok",false))
 	render()
 	if request.get("action")=="endTrial" and reply.get("ok",false):await pages.restore_trial()
 	if loading_token>0:
@@ -523,7 +538,7 @@ func render():
 	if not skip_capture_once:memory.capture()
 	skip_capture_once=false
 	audio.follow_connection(engine.connection_generation);audio.sync(data)
-	widgets=widgets.filter(func(b):return is_instance_valid(b) and (b.get_parent()==top or menu.is_ancestor_of(b)))
+	widgets=widgets.filter(func(b):return is_instance_valid(b) and (b.get_parent()==top or menu.is_ancestor_of(b) or (view_kind=="battle" and is_instance_valid(hud.middle) and hud.middle.is_ancestor_of(b))))
 	for b in widgets:
 		b.disabled=bool(b.get_meta("base_disabled",false)) or ((locked or presenting or (engine.disconnected and b!=retry_button)) and not b.get_meta("read_only",false))
 	retry_button.visible=engine.disconnected
@@ -532,24 +547,31 @@ func render():
 	ui_size_mode="standard" if available.x>=1120 and available.y>=720 else "compact"
 	var margin=24 if available.x>=1800 and available.y>=1000 else 12 if ui_size_mode=="standard" else 8
 	base.offset_left=48 if view_kind!="battle" else margin;base.offset_right=-base.offset_left;base.offset_top=12;base.offset_bottom=-margin
-	theme.default_font_size=20
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
-	header.text=town_name(place)
+	header.text="配置" if phase=="deployment" and page=="character" else town_name(place)
 	location_label.text=town_name(place)+location_suffix(phase,c)
 	location_label.tooltip_text=location_label.text
 	gold_feedback.sync(int(c.get("gold",0)))
 	header.tooltip_text=header.text
-	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
+	var inspecting_deployment=phase=="deployment" and page=="character"
+	var battle=not inspecting_deployment and not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
 	base.offset_left=margin if battle else 48;base.offset_right=-base.offset_left
-	if not battle:mock_shell.apply_theme()
-	else:
-		theme=battle_theme.duplicate(true)
+	if not themes_ready:
+		mock_shell.apply_theme()
+		theme=battle_theme
 		preload("res://battle_theme.gd").apply(self)
+		themes_ready=true
+	var next_theme=battle_theme if battle else campaign_theme
+	if theme!=next_theme:theme=next_theme
+	if is_instance_valid(parked_board) and (parked_epoch!=pages.epoch or phase!="deployment"):
+		parked_board.queue_free()
+		parked_board=null
 	resource_header.visible=not battle
 	location_bar.visible=false
 	top.visible=battle or engine.disconnected
+	top.get_node("BattleElapsedTime").text=mock_shell.elapsed_time_text()
 	pages.facility_art.render_background(backdrop_layer,self,battle)
 	actor_face.visible=false
 	var lower_return=phase=="result" or phase=="town" and page!="hub"
@@ -563,18 +585,34 @@ func render():
 		common_menu.offset_bottom=-8
 	footer.visible=not battle and page not in ["shop","party"]
 	if battle:
-		if view_kind!="battle":clear(content);hud.mount();view_kind="battle"
+		if view_kind!="battle":
+			clear(content)
+			if is_instance_valid(parked_board):
+				board=parked_board
+				parked_board=null
+				board.process_mode=Node.PROCESS_MODE_INHERIT
+				board.show()
+			hud.mount()
+			view_kind="battle"
 		render_battle()
 		if is_instance_valid(deployment_party_strip):remove_child(deployment_party_strip);deployment_party_strip.queue_free()
 		deployment_party_strip=null
 		if phase=="deployment":
-			deployment_party_strip=pages.party_view.face_bar(self);deployment_party_strip.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE);deployment_party_strip.offset_left=24;deployment_party_strip.offset_right=-154;deployment_party_strip.offset_top=-114 if ui_size_mode=="standard" else -104;deployment_party_strip.offset_bottom=-30
-			hud.partybar_reserved_height=94 if ui_size_mode=="standard" else 84
-		else:hud.partybar_reserved_height=0
+			deployment_party_strip=pages.party_view.face_bar(self)
+			hud.deployment_workspace.layout()
 	else:
 		if is_instance_valid(deployment_party_strip):remove_child(deployment_party_strip);deployment_party_strip.queue_free()
 		deployment_party_strip=null
-		if is_instance_valid(board):board.persist_camera();board.queue_free()
+		if is_instance_valid(board):
+			if inspecting_deployment:
+				parked_board=board
+				parked_epoch=pages.epoch
+				board.persist_camera()
+				board.hide()
+				board.process_mode=Node.PROCESS_MODE_DISABLED
+			else:
+				board.persist_camera()
+				board.queue_free()
 		board=null;actor_row=null;clear(content);view_kind="page"
 		mock_shell.navigation(content)
 		var body: VBoxContainer=mock_shell.workspace(content)
@@ -596,8 +634,8 @@ func render():
 			var return_row=row(content);return_row.name="TownReturnRow";return_row.alignment=BoxContainer.ALIGNMENT_END
 			var back=green_button(button(return_row,pages.facility_entry.return_label() if phase=="town" else "広場に移動",pages.acknowledge.bind("hub") if phase=="result" else pages.facility_entry.back,pages.guild_view.busy() if page=="party" else false));back.name="GuildReturn" if page=="party" else "InnReturn" if page=="inn" else "TownReturn"
 
-	pages.party_view.refresh_modal()
-	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else (focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if phase in ["battle","deployment"] else ""))
+	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else (focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if battle else ""))
+	widgets=widgets.filter(func(b):return is_instance_valid(b) and b.is_inside_tree())
 	rendering=false;memory.restore()
 func location_suffix(phase: String,c: Dictionary) -> String:
 	if phase!="town":return " / "+{"road":"街道","camp":"野営地","arrival":"到着","delivery":"配達","result":"結果","prepare":"出発準備"}.get(phase,"旅程")
@@ -713,7 +751,14 @@ func on_cell(pos: int):
 	if u.get("side")=="enemy":hud.selected_enemy=str(u.id)
 	if s.get("deploying",false):
 		if u.get("side")=="enemy":hud.render_person();return
-		if u.get("side")=="ally" and u.get("hp",0)>0:hud.selected_enemy="";selected=u.id;render()
+		if u.get("side")=="ally" and u.get("hp",0)>0:
+			hud.selected_enemy=""
+			selected=u.id
+			hud.update_board()
+			refresh_panel(hud.deployment_workspace.render)
+			for card in deployment_party_strip.find_children("PartyFace_*","Button",true,false):
+				var chosen_member=card.get_meta("member_id")==selected
+				if card.get_meta("selected",false)!=chosen_member:mark_selected(card,chosen_member)
 		elif not selected.is_empty():await act("deploy",[selected,pos])
 		return
 	var target=null
@@ -968,13 +1013,7 @@ func _input(event):
 	if event is InputEventKey:
 		var explanation=find_child("SkillDetailsWindow",true,false)
 		if explanation!=null and explanation.visible:return
-	# Status is nonexclusive only for portrait switching; root shortcuts must
-	# never activate a background button after an outside click moves focus.
-	if event is InputEventKey and is_instance_valid(dialog.window) and dialog.window.title==dialog.STATUS_TITLE and event.keycode not in [KEY_ESCAPE,KEY_F11]:
-		dialog.window.grab_focus();get_viewport().set_input_as_handled();return
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed:
-		if pages!=null and pages.party_view.outside_press(event.position):
-			swallow_mouse_release=true;get_viewport().set_input_as_handled();return
 		if pages!=null:pages.guild_view.outside_press(event.position)
 	if event is InputEventKey and event.pressed and event.echo and event.keycode in [KEY_ENTER,KEY_KP_ENTER,KEY_SPACE]:
 		var focus=get_viewport().gui_get_focus_owner()
@@ -999,7 +1038,7 @@ func show_skill_details(id: String,title_: String,level: int=1,gear: Dictionary=
 	if existing!=null and existing.visible:existing.grab_focus();return
 	var host=dialog.window if is_instance_valid(dialog.window) else self
 	var detail=preload("res://skill_details.gd").new();host.add_child(detail)
-	var context=member_name(str(state().get("actor",""))) if view_kind=="battle" else member_name(pages.party_view.detail_uid if not pages.party_view.detail_uid.is_empty() else pages.party_uid)
+	var context=member_name(str(state().get("actor",""))) if view_kind=="battle" else member_name(pages.party_uid)
 	if not gear.is_empty():context+=" / "+str(gear.get("name",""))
 	detail.configure(self,preload("res://skill_text.gd").document(id,title_,level,campaign(),gear),context,str(gear.get("note","")),str(gear.get("flavor","")))
 func show_equipment_details(entry: Dictionary):
@@ -1010,4 +1049,4 @@ func show_equipment_details(entry: Dictionary):
 	var doc=helper.detail_document(entry);helper.free()
 	var host=dialog.window if is_instance_valid(dialog.window) else self
 	var detail=preload("res://skill_details.gd").new();host.add_child(detail)
-	detail.configure(self,doc,member_name(pages.party_view.detail_uid if not pages.party_view.detail_uid.is_empty() else pages.party_uid)+" / "+str(entry.name),str(entry.get("definition",{}).get("note","")) if entry.kind=="equipment" else "",str(entry.get("definition",{}).get("flavor","")) if entry.kind=="equipment" else "")
+	detail.configure(self,doc,member_name(pages.party_uid)+" / "+str(entry.name),str(entry.get("definition",{}).get("note","")) if entry.kind=="equipment" else "",str(entry.get("definition",{}).get("flavor","")) if entry.kind=="equipment" else "")

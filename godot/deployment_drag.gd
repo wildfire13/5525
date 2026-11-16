@@ -14,7 +14,7 @@ static func signature(ui) -> String:
 		positions.append([str(u.id),u.get("side"),u.get("pos"),u.get("hp")])
 	return JSON.stringify([ui.campaign().get("selected",[]),positions,ui.state().get("formationKind"),ui.state().get("deploymentInitial",[])])
 static func make_payload(ui,uid: String,source: String):
-	if not available(ui) or source not in ["party","board"] or not alive(ui,uid):return null
+	if not available(ui) or source not in ["party","board","roster"] or not alive(ui,uid):return null
 	var active=deployed(ui)
 	if not ui.campaign().get("selected",[]).has(uid) or (source=="board" and not active.has(uid)) or (source=="party" and active.has(uid)):return null
 	var journey=ui.campaign().get("journey",{})
@@ -24,7 +24,7 @@ static func valid(ui,payload) -> bool:
 	if not available(ui) or not payload is Dictionary:return false
 	if not payload.get("kind") is String or payload.kind!="deployment_member" or not payload.get("consumed",false) is bool or payload.get("consumed",false):return false
 	var uid=payload.get("uid");var source=payload.get("source")
-	if not uid is String or source not in ["party","board"] or not ui.campaign().get("selected",[]).has(uid) or not alive(ui,uid):return false
+	if not uid is String or source not in ["party","board","roster"] or not ui.campaign().get("selected",[]).has(uid) or not alive(ui,uid):return false
 	var journey=ui.campaign().get("journey",{})
 	if not journey is Dictionary:return false
 	for key in ["epoch","connection","journey_token","stage"]:
@@ -33,7 +33,7 @@ static func valid(ui,payload) -> bool:
 	if payload.epoch!=ui.pages.epoch or payload.connection!=ui.engine.connection_generation or payload.campaign_id!=ui.campaign_identity.current_id:return false
 	if payload.journey_token!=journey.get("token") or payload.stage!=journey.get("stage") or payload.deployment_stamp!=signature(ui):return false
 	var active=deployed(ui)
-	return active.has(uid) if source=="board" else not active.has(uid)
+	return source=="roster" or (active.has(uid) if source=="board" else not active.has(uid))
 static func consume(ui,payload) -> bool:
 	if not valid(ui,payload):return false
 	payload.consumed=true
@@ -45,5 +45,5 @@ static func preview(ui,uid: String) -> Control:
 	for member in ui.campaign().get("roster",[]):
 		if member.get("id")==uid:
 			var image=TextureRect.new();image.texture=ui.portraits.texture(member,true);image.custom_minimum_size=Vector2(42,42);image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;image.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(image)
-			var label=Label.new();label.text=str(member.get("name",uid))+" を配置";label.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(label);break
+			var label=Label.new();label.text=str(member.get("name",uid))+" を配置";label.add_theme_color_override("font_color",Color("#fff6e4"));label.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(label);break
 	return card

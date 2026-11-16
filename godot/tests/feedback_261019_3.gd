@@ -14,7 +14,7 @@ func run():
 	var menu_labels=game.menu.find_children("*","Button",true,false).map(func(b):return b.text)
 	check(menu_labels.slice(0,3)==["セーブ","ロード","行動ログ"] and menu_labels.slice(-3)==["新しい旅","ゲームを終了する","閉じる"],"menu labels and order")
 	check(not menu_labels.has("画像") and not menu_labels.has("拠点・旅程へ"),"redundant menu navigation and portrait entry removed")
-	var seed=await saved();seed.state.characters.guard.inventory["sword-wood"]=1;seed.state.characters.guard.hp=1;seed.state.history.append("履歴保持テスト");seed.state.hours=123
+	var seed=await saved();seed.state.history.append("履歴保持テスト");seed.state.hours=123
 	for place in ["east","west","north","south"]:
 		await load_at(seed,place);await enter_facility("shop");await settle();return_layout("ShopExit")
 		var chooser=node("ShopSlotFilter");check(chooser!=null and chooser.get_item_text(0)=="すべて" and chooser.get_item_icon(0)==null,"all product heading has blank icon "+place)
@@ -36,27 +36,7 @@ func run():
 	if not files.is_empty():files[0].canceled.emit();await settle()
 	check(await saved()==before and is_instance_valid(game.dialog.window),"cancel log export preserves campaign and log window")
 	game.dialog.close();await settle();check(await saved()==before,"log inspection preserves full campaign")
-	await enter_facility("shop");await settle()
-	game.preferences.store_rect("status",Rect2(120,60,1040,700));game.preferences.config.set_value("migration","status_feedback3",false)
-	game.pages.party_view.open_detail("guard");await settle()
-	check(game.dialog.window.size==Vector2i(1760,700),"old narrow status widens whole window once without changing height")
-	check(not game.dialog.body.get_parent().get_parent().find_children("*","Label",true,false).any(func(n):return n.text=="キャラクターステータス"),"status title appears only in window titlebar")
-	check(node("OwnedEquipmentOwner").text==game.member_name("guard")+"のインベントリ" and node("OwnedEquipmentOwner").get_parent()==node("OwnedEquipmentSlot").get_parent(),"owner heading and filter share one row")
-	check(absf(node("OwnedEquipment_potion").get_global_rect().end.x-node("OwnedEquipment_sword-wood").get_global_rect().end.x)<2,"item name column right edges align")
-	check(node("OwnedInventoryUse_potion")!=null,"equipment inventory offers direct item use")
-	before=await saved();await click("OwnedInventoryUse_potion")
-	check(game.pages.party_view.inventory_view.action=="use" and node("InventoryTarget_guard")!=null,"direct use opens existing target selector")
-	await click("InventoryTarget_guard");await consent(false);check(await saved()==before,"direct use cancel leaves full save unchanged")
-	await click("StatusTab_0")
-	for resolution in [Vector2i(1920,1080)]:
-		root.size=resolution;await settle();game.dialog.window.size=Vector2i(resolution.x,700);game.dialog.window.position=Vector2i(0,40);await settle();alignment()
-		var source=node("OwnedEquipmentActions_sword-wood");source.focus_entered.emit();await settle();var hover=node("EquipmentHover")
-		var anchor=Vector2(game.dialog.window.position)+source.get_global_rect().position
-		check(hover.visible and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(hover.position),Vector2(hover.size))),"comparison remains onscreen "+str(resolution))
-		check(absf(float(hover.position.x+hover.size.x)-anchor.x)<30 or absf(float(hover.position.x)-anchor.x-source.size.x)<30,"comparison stays next to candidate "+str(resolution))
-	game.dialog.window.size=Vector2i(1100,700);game.dialog.close();await settle();game.pages.party_view.open_detail("guard");await settle()
-	check(game.dialog.window.size==Vector2i(1100,700),"manual resize after migration remains saved")
-	game.dialog.close();await game.new_game();await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
+	await game.new_game();await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
 	await game.act("accept",[game.campaign().board[0].id,"porter"]);var gold=game.campaign().gold;await game.act("depart",["east"])
 	var arrival=await saved();arrival.state.phase="arrival";arrival.state.journey.phase="delivery";arrival.state.journey.stage=2;arrival.state.journey.hours=4;arrival.state.journey.party=game.roster().filter(func(u):return game.campaign().selected.has(u.id)).duplicate(true)
 	await game.update({"op":"campaign_load","data":arrival});await settle()

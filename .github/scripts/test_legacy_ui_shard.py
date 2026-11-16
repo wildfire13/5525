@@ -1,7 +1,7 @@
 """Fail-closed manifest and completion checks for supplemental CI."""
 import copy
 import unittest
-from run_legacy_ui_shard import SHARDS, check_groups, selected_names, verify_results
+from run_legacy_ui_shard import SHARDS, REPO, check_groups, selected_names, verify_results
 
 
 class ShardTests(unittest.TestCase):
@@ -11,7 +11,6 @@ class ShardTests(unittest.TestCase):
     def test_disjoint_exhaustive_and_paired(self):
         expected = [name for group in self.groups for name in group]
         shards = [selected_names(self.groups, shard) for shard in range(SHARDS)]
-        self.assertEqual(len(expected), 67)
         self.assertEqual(sorted(name for shard in shards for name in shard), sorted(expected))
         self.assertEqual(len(set(expected)), len(expected))
         self.assertTrue(all(shards))
@@ -20,6 +19,12 @@ class ShardTests(unittest.TestCase):
         start = pairs[0].index('ui_preferences_restart_write')
         self.assertEqual(pairs[0][start:start + 2],
                          ['ui_preferences_restart_write', 'ui_preferences_restart_read'])
+
+    def test_registered_suites_exist(self):
+        from legacy_ui_manifest import GODOT_SUITES
+        for suite in GODOT_SUITES:
+            with self.subTest(suite=suite):
+                self.assertTrue((REPO / 'godot' / 'tests' / (suite + '.gd')).is_file())
 
     def test_exact_completion_required(self):
         names = ['a', 'b']

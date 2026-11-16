@@ -45,7 +45,27 @@ func render(parent):
 	if not pages.c().get("hasPorter",false):pages.l(parent,"受注には編成中のポーターが必要です。")
 func choose(id: String):
 	if ui.locked or ui.modal_open():return
-	selected_id=id;ui.memory.request_focus("quest_choice_"+id);ui.render()
+	if id==selected_id:return
+	var active=pages.c().get("activeQuest")
+	var quests=[active] if active is Dictionary else pages.c().get("board",[])
+	for quest in quests:
+		if str(quest.id)!=id:continue
+		var split=ui.content.find_child("QuestBoardColumns",true,false)
+		if split==null:return
+		var list=split.find_child("QuestList",true,false)
+		ui.mark_selected(list.get_node("QuestChoice_"+selected_id),false)
+		selected_id=id
+		ui.mark_selected(list.get_node("QuestChoice_"+id),true)
+		ui.memory.request_focus("quest_choice_"+id)
+		ui.refresh_panel(func():
+			var detail=split.find_child("QuestDetail",true,false)
+			ui.clear(detail)
+			render_detail(detail,quest,active is Dictionary)
+			var requester=split.get_node("QuestRequester")
+			split.remove_child(requester)
+			requester.queue_free()
+			render_requester(split,quest))
+		return
 func time_status(q: Dictionary) -> String:
 	var remaining: int
 	if q.get("scenario",false):

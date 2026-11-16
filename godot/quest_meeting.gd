@@ -32,7 +32,8 @@ func render(parent,q: Dictionary,prefix: String,with_details := false):
 	var m: Dictionary=q.get("meeting",{})
 	if m.is_empty():return
 	var title=ui.label_(parent,"受取人: 行商人",true);title.name=prefix+"Recipient"
-	ui.label_(parent,status(m)).name=prefix+"Status"
+	if prefix!="Quest" or m.get("canWait",false) or m.get("currentStop")==null or m.get("state")=="departed":
+		ui.label_(parent,status(m)).name=prefix+"Status"
 	ui.label_(parent,availability(m)).name="QuestMerchantAvailability" if prefix=="Quest" else "HubMerchantAvailability"
 	ui.label_(parent,deadline_text(m)).name=prefix+"Deadline"
 	if not m.get("cargoAboard",false) and q.get("token")!=null and m.get("finalOpen",true):
@@ -41,11 +42,10 @@ func render(parent,q: Dictionary,prefix: String,with_details := false):
 		var detail=VBoxContainer.new();detail.name=prefix+"ScheduleDetails";detail.visible=false
 		var toggle=ui.button(parent,"停車予定を確認",func():detail.visible=not detail.visible);toggle.name=prefix+"ScheduleToggle"
 		parent.add_child(detail)
-		ui.label_(detail,"予定開始から%d時間" % int(m.get("age",0)))
+		ui.label_(detail,"依頼掲載からの経過時間：%d時間" % int(m.get("age",0)))
 		var windows: Array[String]=[]
 		for window in m.get("schedule",[]):
 			windows.append("%s: %d時間以上%d時間%s" % [ui.town_name(window.stop),int(window.from),int(window.to),"まで" if window.endInclusive else "未満"])
-		windows.append("希望条件: %d時間まで" % int(m.get("deadline",0)))
 		ui.label_(detail,"\n".join(windows)).name="QuestMerchantWindow"
 func wait_label(q: Dictionary) -> String:
 	return "到着まで待つ（%d時間）" % int(q.get("meeting",{}).get("waitHours",0))
@@ -60,7 +60,7 @@ func open_wait():
 	var expected: Dictionary=m.get("waitExpected",{}).duplicate(true)
 	var cargo="到着後、荷物を届けられます。納品は別の操作です。" if m.get("cargoAboard",false) else "待機後も、納品には荷物担当と編成の確認が必要です。"
 	var preferred="待機後は希望条件の期限内です。" if m.get("waitPreferredMet",false) else "待機後は希望条件の期限を超えます。"
-	var text="%sで%d時間待ちます。\n世界時刻 %d → %d時間（予定開始から%d時間）\n他の依頼や世界の予定も進みます。\n\n%s\n%sHP・MPは回復しません。" % [ui.town_name(m.location),int(m.waitHours),int(m.worldTime),int(m.waitUntilWorldTime),int(m.waitUntilAge),cargo,preferred]
+	var text="%sで%d時間待ちます。\n世界時刻 %d → %d時間（依頼掲載からの経過時間：%d時間）\n他の依頼や世界の予定も進みます。\n\n%s\n%sHP・MPは回復しません。" % [ui.town_name(m.location),int(m.waitHours),int(m.worldTime),int(m.waitUntilWorldTime),int(m.waitUntilAge),cargo,preferred]
 	var confirm=ui.confirm(text,func():
 		if ticket!=generation or epoch!=ui.pages.epoch or connection!=ui.engine.connection_generation or page!=ui.page or ui.closing:return
 		var current=ui.campaign().get("activeQuest")
@@ -93,7 +93,7 @@ func open_failure():
 	confirm.canceled.connect(func():generation+=1)
 func forecast_text(f: Dictionary) -> String:
 	var arrival=ui.town_name(f.get("arrivalLocation",""))
-	var lines=["到着直後: %s / 予定開始から%d時間" % [arrival,int(f.get("hours",0))]]
+	var lines=["到着直後: %s / 依頼掲載からの経過時間：%d時間" % [arrival,int(f.get("hours",0))]]
 	if f.get("handoffAvailable",false):
 		lines.append("納品可能。見込み報酬 %dG" % int(f.get("reward",0)))
 	elif f.get("willFail",false):
@@ -109,7 +109,7 @@ func forecast_text(f: Dictionary) -> String:
 	else:lines.append("届け先は%s。%sでは納品できません。" % [ui.town_name(f.get("handoffStop","")),arrival])
 	var after=f.get("afterWait")
 	if after is Dictionary:
-		lines.append("\n待機後: %sで%d時間待つと、予定開始から%d時間" % [arrival,int(f.get("waitHours",0)),int(after.get("hours",0))])
+		lines.append("\n待機後: %sで%d時間待つと、依頼掲載からの経過時間：%d時間" % [arrival,int(f.get("waitHours",0)),int(after.get("hours",0))])
 		lines.append("納品可能。見込み報酬 %dG" % int(after.get("reward",0)) if after.get("handoffAvailable",false) else "受取人は到着しますが、納品には荷物担当と編成の確認が必要です。")
 	if f.get("late",false) and not f.get("willFail",false):
 		if f.get("meeting") is Dictionary and f.meeting.get("finalOpen",false):lines.append("希望条件の期限は超過しています。受取期間内に納品すると遅配になります。")

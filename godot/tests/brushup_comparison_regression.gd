@@ -21,7 +21,7 @@ func expected_comparison(uid: String,position: String="rightHand"):
  var person={}
  for u in game.roster():
   if u.id==uid:person=u;break
- return game.pages.party_view.owned_equipment_view.comparison(person,{"name":"木製の片手槍","equipSlots":[]},position,q,true).replace("#8ee6ab","#277242").replace("#ffb1a6","#a84432").replace("#d5dbe2","#6e786f")
+ return game.pages.shop_view.comparison_view.comparison_text(person,{"name":"木製の片手槍","equipSlots":[]},position,q).replace("#8ee6ab","#277242").replace("#ffb1a6","#a84432").replace("#d5dbe2","#6e786f")
 func selected_owner_is(uid: String) -> bool:
  return game.shop_uid==uid and game.pages.shop_view.comparison_view.owner_id==uid and node("RosterMember_"+uid)!=null
 func run():
@@ -46,14 +46,18 @@ func run():
   var canonical=(await game.engine.request({"op":"campaign","action":"previewGear","args":["guard","spear-wood","rightHand"]})).previewGear
   var shown=node("ShopComparisonStats").text
   check(shown.contains("26 → 23") and shown.contains("(+1)") and shown.contains("(-3)"),"canonical numeric changes include arrows and signed deltas")
-  check(canonical.after.attackWeapons[0].atk==23,"comparison checked against canonical attack stats")
+  var columns=node("ShopComparisonSkills").get_children()
+  var before_stat="通常ATK 距離1　%d" % game.pages.normal_atk(canonical.before,1)
+  var after_stat="通常ATK 距離1　%d" % game.pages.normal_atk(canonical.after,1)
+  check(columns[0].find_children("*","Label",true,false).any(func(label):return label.is_visible_in_tree() and label.text==before_stat) and columns[1].find_children("*","Label",true,false).any(func(label):return label.is_visible_in_tree() and label.text==after_stat) and canonical.after.attackWeapons[0].atk==23,"visible current and candidate attack values match the canonical preview")
   node("RosterMember_mage").grab_focus();await tap("RosterMember_mage")
   var mage_expected=await expected_comparison("mage")
   check(selected_owner_is("mage") and mage_expected!=guard_expected and node("ShopComparisonStats").text==mage_expected,"owner switch replaces guard result with canonical mage comparison")
   check(node("RosterMember_mage").has_focus(),"owner keyboard focus survives rebuild")
   check(node("ShopTransaction").get_global_rect()==rect,"owner switch preserves inline transaction position and size")
   await select_option("ShopComparisonSlot","leftHand")
-  check(node("ShopComparisonStats").text.contains("左手") and node("ShopComparisonSlot").has_focus(),"slot switch replaces context and keeps focus")
+  var left_expected=await expected_comparison("mage","leftHand")
+  check(shop.comparison_view.slot=="leftHand" and node("ShopComparisonStats").text==left_expected and node("ShopComparisonSlot").has_focus(),"slot switch replaces context and keeps focus")
   check((await saved())==before,"preview owners and slots have no campaign side effects")
   await tap("ShopComparisonBuy")
   check(node("PurchasePayment").text.contains("500 → 410G") and game.dialog.body.get_child_count()>0,"comparison purchase preserves canonical payment consent")
@@ -74,9 +78,9 @@ func run():
   node("FacilitySaleQuantity").value=2;await settle()
   check(shop.sale.quote.get("ownerId")=="guard" and shop.sale.quote.get("count")==2 and shop.sale.quote.get("afterGold")==590 and node("FacilitySaleTotals").text.contains("590"),"quantity change displays canonical owner proceeds and final gold")
   check((await saved())==bought,"quantity and sale preview do not mutate state")
-  await tap("FacilitySalePrepare");shop.sale.confirmation.canceled.emit();await settle()
+  await tap("FacilitySalePrepare");await tap("FacilitySaleCancel")
   check((await saved())==bought,"sale cancellation preserves owner and inventory")
-  await tap("FacilitySalePrepare");shop.sale.confirmation.confirmed.emit();await settle()
+  await tap("FacilitySalePrepare");await tap("FacilitySaleConfirm")
   check(int(game.campaign().gold)==590 and int(game.campaign().characters.guard.inventory["spear-wood"])==2,"sale confirmed total matches preview")
   await tap("RosterMember_mage")
   check(node("FacilitySaleTotals")==null and node("SaleItem_spear-wood")==null,"owner switch removes previous sale target and values")

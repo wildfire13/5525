@@ -103,16 +103,19 @@ func commit(token,epoch: int,connection: int,request: int):
  var q: Dictionary=pages.c().get("inn",{})
  if not q.get("needsRecovery",false) or not q.get("affordable",false):return
  pending=true;sequence+=1;var operation=sequence
- var before={}
- for u in pages.roster():
-  if pages.c().get("selected",[]).has(u.id):before[str(u.id)]={"hp":u.hp,"mp":u.mp}
- var reply=await ui.act("inn",[])
- if operation!=sequence or epoch!=pages.epoch or connection!=ui.engine.connection_generation:return
+ await ui.act("inn",[])
+ if operation==sequence:pending=false
+
+# Apply the receipt before the main window draws the new gold and party stats.
+func finish_rest(previous: Dictionary,success: bool):
+ if not pending:return
  pending=false
- if not reply is Dictionary or not reply.get("ok",false):return
+ if not success:return
+ var before={}
+ for u in previous.get("roster",[]):
+  if previous.get("selected",[]).has(u.id):before[str(u.id)]={"hp":u.hp,"mp":u.mp}
  recovered={}
  for u in pages.roster():
   if before.has(str(u.id)) and (int(before[str(u.id)].hp)<int(u.hp) or int(before[str(u.id)].mp)<int(u.mp)):
    recovered[str(u.id)]={"before":before[str(u.id)],"after":{"hp":u.hp,"mp":u.mp}}
  healing_party=before.keys();recovery_started=Time.get_ticks_msec();dialogue=RESTED_GREETING
- if available() and not ui.closing:ui.render()

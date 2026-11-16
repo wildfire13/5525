@@ -10,7 +10,7 @@ func saved():return (await game.engine.request({"op":"campaign_save"})).data
 func party():return game.pages.party_view
 func settle():
 	for i in range(8):await process_frame
-	while game.locked or game.engine.busy or game.presenting or game.pages.shop_view.quote_worker or game.pages.shop_view.plan.refreshing:await process_frame
+	while game.locked or game.engine.busy or game.presenting or game.pages.shop_view.quote_worker:await process_frame
 func member_ids(parent):
 	var ids=[]
 	for child in parent.find_children("*","",true,false):
@@ -23,7 +23,7 @@ func text_in(parent):
 	return "\n".join(texts)
 func load_at(seed,place):
 	var fixture=seed.duplicate(true);fixture.state.location=place
-	await game.update({"op":"campaign_load","data":fixture});game.navigate("party");await settle()
+	await game.update({"op":"campaign_load","data":fixture});game.navigate("character");await settle()
 func close_portraits():
 	var window=node("PortraitChooser");window.hide();window.queue_free();await settle()
 func inspect_locations(seed):
@@ -31,19 +31,15 @@ func inspect_locations(seed):
 		root.size=dims;await settle()
 		for place in ["astaris","east","west","north","south"]:
 			await load_at(seed,place);var before=await saved();game.pages.party_uid="warrior";game.render();await settle()
-			var astaris=place=="astaris";var active=game.campaign().selected;var shown=member_ids(node("PartySplit"));var tag=str(dims.x)+"-"+place
-			check("ROSTER-"+tag,game.visible_roster().size()==(11 if astaris else active.size()) and (astaris or shown.all(func(id):return active.has(id))),"only companions appear outside Astaris; full stored roster remains 11")
-			var selectors=node("PartyReserveSelector")
-			check("SELECTOR-"+tag,(selectors!=null)==(astaris and game.ui_size_mode!="standard"),"compact reserve selector exists only at Astaris")
-			check("FOCUS-"+tag,game.pages.party_uid=="warrior" if astaris else active.has(game.pages.party_uid),"stale reserve selection is replaced by a companion outside Astaris")
-			game.pages.select_party("warrior");party().open_inventory("warrior");await settle()
-			check("DETAIL-"+tag,party().detail_uid=="warrior" if astaris else party().detail_uid.is_empty() and not game.modal_open(),"direct/cached status entry respects reserve visibility")
-			if astaris:node("StatusClose").pressed.emit();await settle()
-			else:
-				party().open_equipment(member("warrior"),member("warrior").equipmentSlots[0]);await settle()
-				check("GEAR-"+tag,not game.modal_open(),"cached reserve equipment callback cannot reopen hidden detail")
+			var astaris=place=="astaris";var active=game.campaign().selected;var tag=str(dims.x)+"-"+place
+			var roster=node("PartyRoster").find_children("RosterMember_*","Button",true,false)
+			check("ROSTER-"+tag,roster.size()==active.size() and roster.all(func(row):return active.has(str(row.name).trim_prefix("RosterMember_"))),"character page lists current companions")
+			check("FOCUS-"+tag,active.has(game.pages.party_uid),"stale reserve selection resolves to a companion")
+			var previous=game.pages.party_uid
+			party().open_inventory("warrior");await settle()
+			check("DETAIL-"+tag,game.pages.party_uid==previous and party().workspace.owner==previous,"reserve cannot replace active inventory owner")
 			game.portrait_dialog();await settle();var chooser=node("PortraitChooser");var portraits=member_ids(chooser)
-			check("PORTRAITS-"+tag,portraits.size()==(11 if astaris else active.size()) and (astaris or portraits.all(func(id):return active.has(id))),"image selector lists only companions outside Astaris")
+			check("PORTRAITS-"+tag,portraits.size()==(game.roster().size() if astaris else active.size()) and (astaris or portraits.all(func(id):return active.has(id))),"image selector lists only companions outside Astaris")
 			check("PORTRAIT-BOUNDS-"+tag,Rect2i(Vector2i.ZERO,root.size).encloses(Rect2i(chooser.position,chooser.size)),"image chooser stays inside the current client area")
 			if astaris:
 				var reserve_rows=chooser.find_children("*","",true,false).filter(func(c):return c.has_meta("member_id") and not active.has(c.get_meta("member_id")))
@@ -51,32 +47,27 @@ func inspect_locations(seed):
 			await close_portraits();check("UNCHANGED-"+tag,await saved()==before,"inspection and rejected callbacks leave campaign exact")
 func denied_and_rejoin(seed):
 	await load_at(seed,"astaris");var original=game.campaign().characters.warrior.duplicate(true);var before=await saved()
-	party().open_inventory("warrior");await settle();var inv=party().inventory_view;inv.pick("potion");await settle()
-	check("ITEM-BUTTONS",node("InventoryUse").disabled and node("InventoryTransfer").disabled and node("InventoryDiscard").disabled,"reserve consumable actions are disabled")
-	inv.pick("sword-wood");await settle()
-	check("GEAR-BUTTONS",node("InventoryEquip").disabled and node("InventoryTransfer").disabled and node("InventoryDiscard").disabled,"reserve owned equipment actions are disabled")
-	party().detail_tab=1;party().refresh_modal();await settle()
-	var allocation=game.find_children("*","Button",true,false).filter(func(b):return str(b.get_meta("ui_key","")).begins_with("allocate_"))
-	check("GROWTH-BUTTONS",allocation.size()==6 and allocation.all(func(b):return b.disabled),"reserve allocation plus/minus controls are disabled")
+	party().open_inventory("warrior");await settle()
+	check("RESERVE-ACTIONS",party().workspace.owner!="warrior","reserve inventory actions are inaccessible")
 	party().change_draft(member("warrior"),"str",1)
-	check("GROWTH-CALLBACK",party().draft_total()==0 and await saved()==before,"cached allocation callback cannot spend reserve points")
-	node("StatusClose").pressed.emit();await settle()
+	check("GROWTH-CALLBACK",party().draft_total()==0 and await saved()==before,"reserve allocation callback cannot spend points")
 	await game.import_portrait(evidence.path_join("does-not-exist.png"),"warrior");game.reset_portrait("warrior");await settle()
 	check("PORTRAIT-CALLBACK",await saved()==before and game.portraits.metadata.characters.is_empty(),"reserve image callback returns before file access or mutation")
 	await game.act("select",[["guard","warrior","porter"]]);await settle()
 	check("REJOIN",game.campaign().characters.warrior==original,"joining preserves complete inventory, equipment, HP/MP and growth")
-	party().open_inventory("warrior");await settle();inv.pick("potion");await settle()
-	check("REJOIN-ACTIONS",not node("InventoryTransfer").disabled and not node("InventoryDiscard").disabled,"joining restores legal inventory operations")
-	node("StatusClose").pressed.emit();await settle()
+	node("RosterMember_warrior").pressed.emit();await settle()
+	if party().workspace.tab!="inventory":party().workspace.set_tab("inventory");await settle()
+	var potion=game.campaign().inventoryByCharacter.warrior.entries.filter(func(e):return e.id=="potion")[0]
+	party().workspace.picked=potion;game.render();await settle()
+	check("REJOIN-ACTIONS",party().workspace.owner=="warrior" and not node("CharacterDiscard").disabled and party().workspace.payload(potion,"transfer",null).allowed.has("porter"),"joining restores discard and transfer")
 	await game.act("select",[["guard","porter"]]);await settle()
 	var envelope=await saved();await game.update({"op":"campaign_load","data":envelope});await settle()
 	await game.act("select",[["porter","warrior","guard"]]);await settle()
 	check("REJOIN-ROUNDTRIP",game.campaign().characters.warrior==original,"removal, save/load, and reordered rejoin preserve every field")
 func departure(seed):
-	await load_at(seed,"astaris");party().open_inventory("warrior");await settle()
+	await load_at(seed,"astaris")
 	await game.act("depart",["east"]);await settle()
 	check("DEPARTURE",game.campaign().phase=="road" and game.campaign().location=="astaris" and not game.reserves_visible() and not game.can_inspect_member("warrior"),"origin still says Astaris on the road, but reserves are hidden")
-	check("STALE-MODAL",party().detail_uid.is_empty() and not game.modal_open(),"departure closes an existing reserve detail without touching stock")
 	var original=game.campaign().characters.warrior.duplicate(true)
 	for phase in ["camp","deployment","battle","arrival","result"]:
 		# Presentation-only phase probe: never send synthetic state to the engine or save it.
@@ -116,9 +107,9 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(evidence.to_lower()+"/"):push_error("User data must be isolated");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	game.checks_fast=true;game.audio.fast_mode=true;var seed=await saved();var reserve=seed.state.characters.warrior
+	game.checks_fast=true;game.audio.fast_mode=true;await preload("res://tests/current_historical_fixture.gd").install(game);await settle();var seed=await saved();var reserve=seed.state.characters.warrior
 	reserve.inventory={"potion":7,"ether":2,"sword-wood":2};reserve.hp=31;reserve.mp=1;reserve.level=2;reserve.xp=100;reserve.statPoints=2;reserve.skillPoints=1
-	await inspect_locations(seed);await denied_and_rejoin(seed);await departure(seed);await retained_plan(seed);await portraits_roundtrip(seed)
+	await inspect_locations(seed);await denied_and_rejoin(seed);await departure(seed);await portraits_roundtrip(seed);await retained_plan(seed)
 	game.closing=true;game.dialog.close(false);game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame
 	var f=FileAccess.open(evidence.path_join("reserve-policy-regression.json"),FileAccess.WRITE);f.store_string(JSON.stringify({"checks":checks},"\t"));f.close()

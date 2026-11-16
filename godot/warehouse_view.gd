@@ -18,6 +18,7 @@ var item_id := ""
 var source := ""
 var quantity := 1
 var pending := false
+var ledger_panel: Control
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
 func available() -> bool:return ui.page=="party" and pages.facility_entry.view=="warehouse" and pages.c().get("warehouseView",{}).get("available",false)
 func busy() -> bool:return pending or ui.locked or ui.presenting or ui.closing or ui.engine.disconnected
@@ -46,6 +47,8 @@ func set_tab(value: String):
 
 func set_filter(value: String,side: String):
 	if busy():return
+	# Re-selecting the active source still clears its item/quantity/error state.
+	if filters.get(side)==value and source!=side:return
 	filters[side]=value
 	if source==side:clear_selection()
 	ui.render()
@@ -65,7 +68,11 @@ func selected_row() -> Dictionary:
 func choose(side: String,id: String):
 	if busy():return
 	clear_selection()
-	source=side;item_id=id;quantity=1;ui.render()
+	source=side;item_id=id;quantity=1
+	if side=="warehouse" and is_instance_valid(ledger_panel) and ledger_panel.is_inside_tree():
+		# The ledger checks its recipient and inventory token before updating the row.
+		if ledger_panel.get_meta("select_row").call(id):return
+	ui.render()
 func quote(side: String,id: String) -> Dictionary:
 	var field="withdrawals" if side=="warehouse" else "deposits"
 	for entry in pages.c().get("warehouseView",{}).get("owners",{}).get(owner_id,{}).get(field,[]):
@@ -126,6 +133,7 @@ func owned_count(id: String) -> int:
 
 func render_ledger(parent: Control,member: Dictionary):
 	var panel=PanelContainer.new();panel.name="WarehouseStorage";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(panel)
+	ledger_panel=panel
 	var column=VBoxContainer.new();column.add_theme_constant_override("separation",16);panel.add_child(column)
 	ui.label_(column,"出庫台帳 — "+str(member.get("name",owner_id)))
 	var filter=Inventory.add_filter(ui,column,member,filters.warehouse,set_filter.bind("warehouse"))
@@ -172,6 +180,16 @@ func render_ledger(parent: Control,member: Dictionary):
 				if cell is Button:ui.mark_selected(cell,cell==button)
 			update_footer.call())
 	if visible_rows==0:ui.label_(body,"アイテムはありません")
+	var select_ledger_row=func(id):
+		if recipient!=owner_id or epoch!=pages.epoch or token!=str(pages.c().get("inventoryToken","")):return false
+		var selected_button=table.get_node_or_null("WarehouseItem_warehouse_"+id)
+		if selected_button==null:return false
+		for cell in table.get_children():
+			if cell is SpinBox:cell.set_value_no_signal(1 if cell.name=="WarehouseQuantity_"+id else 0)
+			if cell is Button:ui.mark_selected(cell,cell==selected_button)
+		update_footer.call()
+		return true
+	panel.set_meta("select_row",select_ledger_row)
 	panel.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data,"warehouse"),func(_at,data):drop(data,"warehouse"))
 	update_footer.call()
 

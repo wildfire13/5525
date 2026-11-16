@@ -10,13 +10,15 @@ func check(ok: bool, label: String):
 	print(("PASS " if ok else "FAIL ") + label)
 func settle():
 	for i in range(10):await process_frame
-	while game.locked or game.engine.busy or game.presenting:await process_frame
+	while game.locked or game.engine.busy or game.presenting or game.loading_screen.active:await process_frame
 func saved():return (await game.engine.request({"op":"campaign_save"})).data
 func bytes():return JSON.stringify(await saved())
 func node(id: String):return game.find_child(id,true,false)
 func install(seed: Dictionary, location: String, age: int, page := "hub"):
 	var fixture=seed.duplicate(true);fixture.state.location=location;fixture.state.worldTime=age;fixture.state.hours=age
-	await game.update({"op":"campaign_load","data":fixture});await settle();game.navigate(page);await settle()
+	var reply=await game.update({"op":"campaign_load","data":fixture})
+	check(reply.get("ok",false),"load "+location+" at "+str(age)+"h: "+str(reply.get("error","")))
+	await settle();game.navigate(page);await settle()
 func press(id: String):
 	var button=node(id);check(button is Button,"button exists: "+id)
 	if button is Button:button.pressed.emit();await settle()
@@ -107,24 +109,11 @@ func run():
 		await install(offparty,"south",36,page)
 		check(node(prefix+"Deadline") is Label and not node(prefix+"Deadline").text.contains("今なら受取可能"),"South36 off-party cargo does not promise receipt on "+page)
 	await install(wheel,"astaris",36,"map");await game.act("depart",["south","convoy"]);await settle()
-	var summary=node("TravelQuestSummary");var summary_text=""
-	if summary!=null:
-		for label in summary.find_children("*","Label",true,false):summary_text+=label.text+"\n"
-	check(summary!=null and summary_text.contains("サウス") and summary_text.contains("次に時間が進むと受取終了") and not summary_text.contains("今なら受取可能"),"road36 summary shares meeting deadline without local receipt promise")
-	# Presentation uses actual native forecasts, including fixed-destination quests.
-	for sample in [["wheel","east","astaris",0],["wheel","east","astaris",22],["turnip","north","east",0],["kiln","astaris","south",0]]:
+	check(node("TravelQuestSummary")==null and node("Header_board") is Button,"road keeps quest access in header")
+	for sample in [["wheel","east","astaris",0],["wheel","east","astaris",31],["turnip","north","east",0],["kiln","astaris","south",21]]:
 		await install(accepted[sample[0]],sample[1],sample[3],"map");await game.act("depart",[sample[2],"convoy"]);await settle()
-		await game.forecast_action("short","travel",["short"]);await settle();var message=node("ConfirmationMessage")
-		check(message is Label,"real forecast confirmation for "+sample[0])
-		if message is Label:
-			if sample[0]=="wheel" and sample[3]==0:check(message.text.contains("到着直後") and message.text.contains("待機後") and message.text.contains("納品可能") and not message.text.contains("見込み報酬 0G"),"early arrival distinguishes wait from zero reward")
-			else:check(message.text.contains("では今は受け取れません") or message.text.contains("では納品できません"),"wrong town forecast never promises handoff")
-		for d in game.find_children("*","ConfirmationDialog",true,false):await cancel(d)
-	for sample in [["kiln","astaris","south",21,"イース"],["wheel","east","astaris",31,"サウス"]]:
-		await install(accepted[sample[0]],sample[1],sample[3],"map");await game.act("depart",[sample[2],"convoy"]);await settle()
-		await game.forecast_action("short","travel",["short"]);await settle();var message=node("ConfirmationMessage")
-		check(message is Label and (message.text.contains("受取期限を超える") if sample[0]=="wheel" else message.text.contains("受取期限は終了")) and message.text.contains(sample[4]) and not message.text.contains("遅配"),"expired wrong-town forecast points to settlement without late-success: "+sample[0])
-		for d in game.find_children("*","ConfirmationDialog",true,false):await cancel(d)
+		await press("RouteChoice_safe")
+		check(node("ConfirmationMessage")==null and game.campaign().phase=="deployment","route selection proceeds without forecast prompt for "+sample[0])
 	for page in ["hub","board"]:
 		await install(wheel,"south",15,page);var id="HubWaitForMerchant" if page=="hub" else "WaitForMerchant"
 		var button=node(id);check(button is Button and contained(button),"wait action contained at "+str(root.size)+" "+page)

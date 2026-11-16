@@ -16,7 +16,7 @@ func run():
   game.page="map";game.render();await settle()
   # B puts time and actions first and deliberately removes undisclosed encounters.
   var chart=node("TownMap");var map_before=await saved()
-  check(labels().has("最短の到着見込 6時間") and chart.event_markers.is_empty(),"approved map shows travel time without inventing encounter information "+str(dims))
+  check(labels().has("最短移動時間：6時間") and chart.event_markers.is_empty(),"approved map shows travel time without inventing encounter information "+str(dims))
   var wheel=InputEventMouseButton.new();wheel.pressed=true;wheel.button_index=MOUSE_BUTTON_WHEEL_UP;wheel.position=chart.size/2
   chart._gui_input(wheel);check(chart.zoom<1.0,"map wheel up zooms out "+str(dims))
   wheel.button_index=MOUSE_BUTTON_WHEEL_DOWN;chart._gui_input(wheel);check(is_equal_approx(chart.zoom,1.0),"map wheel down reverses zoom "+str(dims))

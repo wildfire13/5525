@@ -20,27 +20,23 @@ func observe(label: String,controls: Array):
  for c in controls:
   data.controls[str(c.name)]={"rect":str(screen_rect(c)),"inside_screen":inside(c)}
   if not baseline:check(inside(c),label+" "+str(c.name)+" completely inside screen")
-  if label.begins_with("F3"):
-   var viewport=screen_rect(node("ModalDetailScroll"))
-   data.controls[str(c.name)].inside_viewport=viewport.encloses(screen_rect(c));data.viewport=str(viewport)
-   if not baseline:check(viewport.encloses(screen_rect(c)),label+" "+str(c.name)+" inside scroll viewport without clipping")
  observations.append(data);print("GEOMETRY "+JSON.stringify(data))
 func run():
  create_timer(500).timeout.connect(func():print("FAIL layout GUI watchdog");quit(2))
  root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1180,812)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- game.checks_fast=true;game.audio.fast_mode=true;await settle();var original=await saved()
- var town=original.duplicate(true);town.state.location="east"
- await game.update({"op":"campaign_load","data":town});await enter_facility("shop");await settle();await os_click(node("PartyFace_guard"));await os_click(node("StatusTab_2"));await os_click(node("PartySkillDetails_guard"))
+ game.checks_fast=true;game.audio.fast_mode=true;await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
+ game.pages.party_view.open_inventory("guard");await settle();await skill_tab()
+ var skill=game.find_child("CharacterSkill_*_guard_*",true,false);await reveal_control(skill);await os_click(skill)
  var before=await saved();await snapshot("F1-open-1180")
  await os_resize(Vector2i(960,540));observe("F1-shrink",[node("SkillDetailsBack"),node("SkillDetailsSummary")]);await snapshot("F1-shrink-960")
  if not baseline:
   check(node("SkillDetailsWindow")!=null and await saved()==before,"resize keeps same explanation and save")
-  await os_click(node("SkillDetailsBack"));check(node("SkillDetailsWindow")==null and game.dialog.window!=null and node("PartySkillDetails_guard").has_focus(),"mouse closes resized explanation to same logical skill button")
-  await os_resize(Vector2i(1180,812));await os_click(node("PartySkillDetails_guard"));await os_resize(Vector2i(960,540));await os_resize(Vector2i(1920,1080));observe("F1-restore",[node("SkillDetailsBack")]);await os_key("Escape")
+  await os_click(node("SkillDetailsBack"));check(node("SkillDetailsWindow")==null and game.page=="character" and game.find_child("CharacterSkill_*_guard_*",true,false).has_focus(),"mouse closes resized explanation to same logical skill button")
+  await os_resize(Vector2i(1180,812));skill=game.find_child("CharacterSkill_*_guard_*",true,false);await reveal_control(skill);await os_click(skill);await os_resize(Vector2i(960,540));await os_resize(Vector2i(1920,1080));observe("F1-restore",[node("SkillDetailsBack")]);await os_key("Escape")
  else:await os_key("Escape")
- game.dialog.close();await settle();var cases=cases2()
+ var cases=cases2()
  for which in ["sweep50","sweep100"]:
   await os_resize(Vector2i(1180,812));await game.update({"op":"campaign_load","data":cases[which]});await settle()
   await os_click(game.hud.buttons.skill);await os_click(node("BattleSkill_legSweep"));await os_click(node("BattleSkillDetails_legSweep"));await os_key("Escape")
@@ -66,23 +62,6 @@ func run():
     for panel in [game.hud.left_panel,game.hud.right_panel]:
      for control in [node("BattleHistory"),node("BattleOrderDetails")]:check(not panel.get_global_rect().intersects(control.get_global_rect()),"narrow parent keeps bottom controls clear")
     await snapshot("F2-narrow-960");await os_resize(Vector2i(1180,812))
- var output=[];OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray(["-e","const C=require(process.argv[1]);process.stdout.write(JSON.stringify(C.gear.filter(g=>!g.virtualDefault&&g.type!=='empty'&&!g.id.startsWith('fist-')).map(g=>g.id)));",ProjectSettings.globalize_path("res://../native/campaign.js")]),output,true,false)
- town=original.duplicate(true);town.state.location="east";town.state.gold=500;town.state.characters.guard.inventory={"potion":3,"ether":2}
- for id in JSON.parse_string("".join(output)):town.state.characters.guard.inventory[id]=3
- await game.update({"op":"campaign_load","data":town});await enter_facility("shop");await settle();await os_click(node("PartyFace_guard"));game.dialog.window.size=Vector2i(1180,619);game.dialog.window.position=Vector2i(0,36);await settle()
- var list=node("OwnedEquipmentScroll");list.ensure_control_visible(node("OwnedEquipment_kungfu-pants"));await settle();await os_click(node("OwnedEquipment_kungfu-pants"));await os_click(node("InventoryDetails"));await os_click(node("SkillDetailsBack"))
- observe("F3-pants",[node("InventoryEquip"),node("InventoryList")]);await snapshot("F3-pants-1180x619")
- if not baseline:
-  check(node("ModalDetailScroll").scroll_vertical==0,"pants controls need no outer scroll")
-  await os_click(node("InventoryList"))
- else:game.pages.party_view.inventory_view.show_list();await settle()
- list=node("OwnedEquipmentScroll");list.ensure_control_visible(node("OwnedInventorySell_spear-wood"));await settle();await os_click(node("OwnedInventorySell_spear-wood"))
- var quantity=node("InventoryQuantity");await os_click(quantity.get_line_edit());await os_key("Home");await os_key("Delete");await os_key("2");await os_key("Return")
- before=await saved();await os_click(node("InventoryPrepareSale"));await os_click(node("InventoryCancel"))
- observe("F3-sale-NO",[node("InventoryQuantity"),node("InventorySaleTotals"),node("InventoryPrepareSale"),node("InventoryList")]);await snapshot("F3-sale-NO-1180x619")
- if not baseline:
-  check(node("ModalDetailScroll").scroll_vertical==0 and game.pages.party_view.inventory_view.amount==2 and await saved()==before,"NO keeps quantity and save without outer scroll")
-  await os_click(node("InventoryList"))
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"all layout GUI audio OFF")
  var f=FileAccess.open(evidence.path_join("geometry.json"),FileAccess.WRITE);f.store_string(JSON.stringify(observations,"\t"));f.close()
  f=FileAccess.open(evidence.path_join("checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()

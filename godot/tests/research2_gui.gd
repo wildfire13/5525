@@ -2,6 +2,15 @@ extends "res://tests/brushup_gui.gd"
 func cases2():
  var output=[];OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/feedback_261019_fixtures.cjs")]),output,true,false)
  return JSON.parse_string("".join(output))
+func reveal_control(control: Control):
+ var parent=control.get_parent()
+ while parent!=null:
+  if parent is ScrollContainer:parent.ensure_control_visible(control)
+  parent=parent.get_parent()
+ await settle()
+func skill_tab():
+ var tabs=game.find_children("*","Button",true,false).filter(func(b):return b.is_visible_in_tree() and b.text=="スキル")
+ await os_click(tabs[0])
 func tab_click(index: int):
  var bar=node("SkillDetailsTabs").get_tab_bar();var point=bar.global_position+bar.get_tab_rect(index).get_center()+Vector2(bar.get_window().position)
  await os_mouse(point,"click")
@@ -24,7 +33,7 @@ func run():
  root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(width,812 if width==1180 else 1080)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- game.checks_fast=true;game.audio.fast_mode=true;await settle();var cases=cases2();var original=await saved()
+ game.checks_fast=true;game.audio.fast_mode=true;await preload("res://tests/current_historical_fixture.gd").install(game);await settle();var cases=cases2();var original=await saved()
  await game.update({"op":"campaign_load","data":cases.sweep50});await settle()
  await os_click(game.hud.buttons.skill);await os_click(node("BattleSkillDetails_legSweep"))
  check(node("SkillDetailsWindow")!=null and node("SkillDetailsSummary").text.contains("使用者自身（中心指定）"),"OS opens full skill details with exact center and effect scope")
@@ -52,25 +61,26 @@ func run():
  var seed=original.duplicate(true);seed.state.location="east";seed.state.gold=500;seed.state.characters.guard.inventory={}
  for id in JSON.parse_string("".join(output)):seed.state.characters.guard.inventory[id]=3
  seed.state.characters.guard.inventory.potion=3;seed.state.characters.guard.inventory.ether=2
- game.pages.facility_art.rng.seed=12345
- await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle();await os_click(node("PartyFace_guard"))
- await snapshot("inventory-"+str(width));var list=node("OwnedEquipmentScroll")
- list.ensure_control_visible(node("OwnedEquipment_kungfu-pants"));await settle();await os_click(node("OwnedEquipment_kungfu-pants"));await os_click(node("InventoryDetails"))
- check(node("SkillDetailsBody").text.contains("50%") and node("SkillDetailsBody").text.contains("周囲8マス") and node("SkillDetailsContext").text.contains("ガロ"),"OS unequipped item explanation preserves owner and canonical effects")
- await tab_click(2);check(node("SkillDetailsNote").is_visible_in_tree(),"OS item note is separately readable")
+ await game.update({"op":"campaign_load","data":seed});game.pages.party_view.open_inventory("guard");await settle()
+ await snapshot("inventory-"+str(width))
+ var row=character_item("guard","kungfu-pants");await reveal_control(row);await os_click(row);await os_click(node("CharacterItemDetails"))
+ check(node("SkillDetailsBody").text.contains("50%") and node("SkillDetailsBody").text.contains("周囲8マス") and node("SkillDetailsContext").text.contains("ガロ"),"unequipped item explanation preserves owner and effects")
+ await tab_click(node("SkillDetailsNote").get_parent().get_index());check(node("SkillDetailsNote").is_visible_in_tree(),"item note is separately readable")
  await snapshot("equipment-note-"+str(width));await os_key("Escape")
- check(node("InventoryDetails").has_focus(),"OS item explanation returns focus to same selected item")
- await os_click(node("InventoryList"))
- var source=node("OwnedInventorySell_spear-wood");list=node("OwnedEquipmentScroll");list.ensure_control_visible(source);await settle();var position=list.scroll_vertical;before=await saved()
- await os_click(source);var quantity=node("InventoryQuantity");await os_click(quantity.get_line_edit());await os_key("Home");await os_key("Delete");await os_key("2");await os_key("Return")
- check(int(node("InventoryQuantity").value)==2 and node("InventorySaleTotals").text.contains("×2"),"OS quantity editing retains named item and updates canonical total")
- await snapshot("sale-"+str(width));await os_click(node("InventoryPrepareSale"));await os_click(node("InventoryCancel"))
- check(game.pages.party_view.inventory_view.amount==2 and node("InventoryQuantity").get_line_edit().has_focus() and (await saved())==before,"OS NO preserves quantity owner inventory and editing focus")
- await os_click(node("InventoryList"));check(node("OwnedEquipmentScroll").scroll_vertical==position,"OS return restores originating list position")
- await os_click(node("StatusTab_2"));await os_click(node("PartySkillDetails_guard"));check(game.pages.party_view.detail_uid=="guard" and node("SkillDetailsWindow")!=null,"OS nested skill detail preserves character owner")
- await os_key("Tab");await os_key("Escape");check(game.dialog.window!=null and node("SkillDetailsWindow")==null and game.pages.party_view.detail_uid=="guard","OS nested keyboard close returns to same status")
- await os_click(node("PartyFace_archer"));check(node("InventorySaleTotals")==null,"OS owner switch clears previous sale target and price")
- await os_key("Escape");await settle()
+ check(node("CharacterItemDetails").has_focus(),"explanation returns focus to selected item")
+ await skill_tab();var skill=game.find_child("CharacterSkill_*_guard_*",true,false);await reveal_control(skill);await os_click(skill)
+ check(node("SkillDetailsWindow")!=null and game.pages.party_uid=="guard","skill detail preserves owner")
+ await os_key("Tab");await os_key("Escape");check(skill.has_focus() and game.page=="character","keyboard close returns to same skill")
+ await enter_facility("shop");await settle()
+ await os_click(node("ShopInventoryTab_inventory"));var source=node("SaleItem_spear-wood");await reveal_control(source)
+ var position=node("ShopInventoryScroll").scroll_vertical;before=await saved();await os_click(source)
+ var quantity=node("FacilitySaleQuantity");await reveal_control(quantity);await os_click(quantity.get_line_edit());await os_key("Home");await os_key("Delete");await os_key("2");await os_key("Return")
+ var sale=game.pages.shop_view.sale
+ check(sale.amount==2 and sale.quote.count==2 and node("FacilitySaleTotals").text.contains(str(int(sale.quote.proceeds))+"G"),"quantity editing updates canonical total")
+ await snapshot("sale-"+str(width));await os_click(node("FacilitySalePrepare"));await os_click(node("FacilitySaleCancel"))
+ check(sale.amount==2 and sale.item_id=="spear-wood" and sale.owner_id=="guard" and (await saved())==before,"sale cancel preserves item quantity owner and save")
+ check(node("ShopInventoryScroll").scroll_vertical==position,"sale cancel preserves originating list position")
+ await os_click(node("RosterMember_archer"));check(sale.item_id.is_empty() and node("FacilitySaleTotals")==null,"owner switch clears previous sale target and price")
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"research2 OS checks kept all sound OFF")
  var f=FileAccess.open(evidence.path_join("checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

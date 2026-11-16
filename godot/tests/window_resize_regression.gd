@@ -1,4 +1,4 @@
-extends "res://tests/inventory_header_261020.gd"
+extends "res://tests/ui_feedback_20261016.gd"
 func contained(c: Control) -> bool:
  var w=c.get_window()
  return Rect2(Vector2.ZERO,Vector2(w.size)).encloses(c.get_global_rect()) and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(c.get_global_rect().position+Vector2(w.position),c.size))
@@ -7,8 +7,13 @@ func run():
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  await preload("res://tests/current_historical_fixture.gd").install(game)
- game.checks_fast=true;game.audio.fast_mode=true;await settle();var original=await saved();var town=original.duplicate(true);town.state.location="east"
- await game.update({"op":"campaign_load","data":town});await enter_facility("shop");game.pages.party_view.open_detail("guard");await settle();await click("StatusTab_2");node("PartySkillDetails_guard").grab_focus();await click("PartySkillDetails_guard");var before=await saved()
+ game.checks_fast=true;game.audio.fast_mode=true;await settle()
+ game.navigate("character");game.pages.party_view.workspace.set_tab("skills");await settle()
+ var skills=game.find_children("CharacterSkill_active_*","Button",true,false)
+ check(not skills.is_empty(),"active member has a skill explanation")
+ if skills.is_empty():quit(1);return
+ var origin=str(skills[0].name)
+ node(origin).grab_focus();await click(origin);var before=await saved()
  var detail=node("SkillDetailsWindow")
  for dims in [Vector2i(1920,1080)]:
   root.size_changed.emit();await settle()
@@ -16,7 +21,7 @@ func run():
   check(contained(node("SkillDetailsBack")) and contained(node("SkillDetailsSummary")),"fixed summary and back fit both child and parent "+str(dims))
   check(detail.min_size.y<=dims.y-36 and detail.min_size.y==560,"preferred minimum fits FHD "+str(dims))
   check(await saved()==before,"FHD relayout changes no campaign or owner "+str(dims))
- await click("SkillDetailsBack");check(node("PartySkillDetails_guard").has_focus(),"relayout close restores new instance of same logical character skill button");game.dialog.close();await settle()
+ await click("SkillDetailsBack");check(node(origin).has_focus(),"relayout close restores new instance of same logical character skill button")
  # Long titles and summary still leave the fixed close action reachable.
  var copy=preload("res://skill_text.gd");var doc=copy.document("legSweep","長い足払いの名前".repeat(10),3,game.campaign())
  var extra=preload("res://skill_details.gd").new();game.add_child(extra);extra.configure(game,doc,"ガロ / 長い装備の名前".repeat(8));await settle();root.size=Vector2i(1920,1080);await settle()
