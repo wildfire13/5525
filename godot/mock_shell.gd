@@ -26,6 +26,7 @@ func apply_theme():
 	for kind in ["Button","OptionButton"]:
 		for state in ["normal","hover","pressed","disabled"]:ui.theme.set_stylebox(state,kind,style(Color("#e0e8dd") if state in ["hover","pressed"] else PAPER))
 	ui.theme.set_stylebox("panel","PanelContainer",surface_style())
+	ui.theme.set_stylebox("panel","AcceptDialog",style())
 	for key in ["normal","focus","read_only"]:ui.theme.set_stylebox(key,"LineEdit",style())
 	for key in ["embedded_border","embedded_unfocused_border"]:
 		var frame=surface_style(GREEN);frame.expand_margin_top=32
