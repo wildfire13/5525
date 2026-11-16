@@ -26,14 +26,14 @@ func run():
  var save=(await game.engine.request({"op":"campaign_save"})).data
  save.state.location="east";save.state.gold=9999
  await game.update({"op":"campaign_load","data":save})
- check((await game.update({"op":"campaign","action":"buyGear","args":["recruit-mage-elf-female","staff-silver-1","leftHand"]})).get("ok",false),"live mage equips second heal source")
+ check((await game.update({"op":"campaign","action":"buyGear","args":["character_merina","staff-silver-1","leftHand"]})).get("ok",false),"live mage equips second heal source")
  var dual=(await game.engine.request({"op":"campaign_save"})).data
  for dims in [Vector2i(1920,1080)]:
   await game.update({"op":"campaign_load","data":dual})
-  check((await game.update({"op":"campaign","action":"trial","args":["recruit-mage-elf-female","staff-wood","rightHand"]})).get("ok",false),"live mage enters trial");await settle()
+  check((await game.update({"op":"campaign","action":"trial","args":["character_merina","staff-wood","rightHand"]})).get("ok",false),"live mage enters trial");await settle()
   root.size=dims;game.hud.back_to_commands();await settle()
-  check(game.hud.buttons.attack.text=="攻撃" and unselected_button(game.hud.buttons.attack),"command label has no battle-only dot "+str(dims))
-  check(game.hud.buttons.attack.get_theme_stylebox("normal").bg_color.is_equal_approx(game.theme.get_stylebox("normal","Button").bg_color) and game.hud.buttons.attack.get_theme_color("font_color").is_equal_approx(game.theme.get_color("font_color","Button")),"enabled command keeps battle theme colors "+str(dims))
+  check(game.hud.buttons.action_attack.text=="攻撃" and unselected_button(game.hud.buttons.action_attack),"command label has no battle-only dot "+str(dims))
+  check(game.hud.buttons.action_attack.get_theme_stylebox("normal").bg_color.is_equal_approx(game.theme.get_stylebox("normal","Button").bg_color) and game.hud.buttons.action_attack.get_theme_color("font_color").is_equal_approx(game.theme.get_color("font_color","Button")),"enabled command keeps battle theme colors "+str(dims))
   var ally=game.state().units.filter(func(u):return u.side=="ally")[0]
   var enemy=game.state().units.filter(func(u):return u.side=="enemy")[0]
   for u in [ally,enemy,enemy]:
@@ -46,19 +46,19 @@ func run():
   await game.on_cell(empty);await settle();game.hud.inspect_hover(ally.id,game.board)
   check(game.hud.inspection_pinned and not game.hud.person_box.has_meta("inspected_unit"),"empty cell remains empty on hover "+str(dims))
   await game.on_cell(int(enemy.pos));await settle()
-  game.hud.buttons.skill.pressed.emit();await settle()
-  check(not game.hud.inspection_pinned and selected_button(game.hud.buttons.skill) and selected_palette_all(game.hud.buttons.skill) and game.hud.buttons.skill.get_theme_color("font_color").is_equal_approx(game.theme.get_color("font_color","Button")),"skill parent selected and click clears pin "+str(dims))
-  var choices=game.data.skillset.filter(func(o):return o.id=="mage")
+  game.hud.buttons.action_skill.pressed.emit();await settle()
+  check(not game.hud.inspection_pinned and selected_button(game.hud.buttons.action_skill) and selected_palette_all(game.hud.buttons.action_skill) and game.hud.buttons.action_skill.get_theme_color("font_color").is_equal_approx(game.theme.get_color("font_color","Button")),"skill parent selected and click clears pin "+str(dims))
+  var choices=game.data.skillset.filter(func(o):return o.id=="skill_heal")
   await game.select_skill(choices[1].key);await settle()
   var children=skill_buttons()
   check(children.size()==2 and children.filter(func(b):return selected_button(b)).size()==1 and children.filter(func(b):return unselected_button(b)).size()==1,"only selected grant uses shared palette "+str(dims))
   # Two staves leave no fist: use the original one-staff owner for item selection.
   await game.act("endTrial",[])
   await game.update({"op":"campaign_load","data":save})
-  await game.act("trial",["recruit-mage-elf-female","staff-wood","rightHand"]);await settle()
+  await game.act("trial",["character_merina","staff-wood","rightHand"]);await settle()
   game.hud.buttons.items.pressed.emit();await settle()
-  check(selected_button(game.hud.buttons.items) and unselected_button(game.hud.buttons.skill) and unselected_button(game.hud.buttons.attack),"item parent uses shared selection and clears others "+str(dims))
-  await game.choose_command("item");await settle()
+  check(selected_button(game.hud.buttons.items) and unselected_button(game.hud.buttons.action_skill) and unselected_button(game.hud.buttons.action_attack),"item parent uses shared selection and clears others "+str(dims))
+  await game.choose_command("action_item");await settle()
   check(selected_button(game.find_child("BattleItem_potion",true,false)),"potion child uses shared palette "+str(dims))
   check(not selected_button(game.find_child("BattleItem_ether",true,false)),"other item not selected "+str(dims))
   await game.cancel();await settle()

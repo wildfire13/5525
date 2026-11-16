@@ -6,7 +6,7 @@ const towns=['astaris','east','west','south','north'];
 function at(s,age,town){s.worldTime=s.standaloneEvents.epoch+age;s.hours=s.worldTime;s.location=town;C.view(s);return s;}
 function start(event='wheel',epoch=0){
   const s=C.create();s.hours=epoch;s.worldTime=epoch;s.standaloneEvents.epoch=epoch;s.location={wheel:'east',kiln:'astaris',turnip:'north'}[event];
-  const q=C.board(s).find(q=>q.eventId===event),porter=C.view(s).roster.find(c=>s.selected.includes(c.id)&&c.job==='porter').id;
+  const q=C.board(s).find(q=>q.eventId===event),porter=C.view(s).roster.find(c=>s.selected.includes(c.id)&&c.job==='job_porter').id;
   assert(C.accept(s,q.id,porter));return s;
 }
 let settlements=0,boundaries=0;

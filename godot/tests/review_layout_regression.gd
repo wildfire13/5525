@@ -5,8 +5,8 @@ var checks=[]
 var failures=[]
 var measurements=[]
 var evidence=OS.get_environment("UIUX_REVIEW_EVIDENCE")
-const OWNER="recruit-guard-human-female"
-const SCOUT="recruit-scout-human-female"
+const OWNER="character_mirei"
+const SCOUT="character_rio"
 var fresh_save={}
 func _initialize():call_deferred("run")
 func check(id: String,ok: bool,detail: String):
@@ -76,17 +76,17 @@ func board_case(label: String):
 func battle():
 	root.size=Vector2i(1920,1080);await fixture();await game.act("depart",["astaris","convoy"]);await game.act("travel",["safe"]);await game.act("begin",[]);await settle()
 	var before=await snapshot();await board_case("B0")
-	game.choose_command("move");await game.on_cell(int(game.data.choices.move[0]));await settle();await board_case("B2")
+	game.choose_command("action_move");await game.on_cell(int(game.data.choices.action_move[0]));await settle();await board_case("B2")
 	check("UI2-03",game.board.ghost.visible and game.can_commit(),"movement ghost and confirmation stay available")
-	game.cancel();game.cancel();await settle();game.choose_command("guard");await settle();await board_case("B4")
+	game.cancel();game.cancel();await settle();game.choose_command("action_defend");await settle();await board_case("B4")
 	check("UI2-03",game.can_commit() and await snapshot()==before,"camera, layout, and cancelled previews preserve game state and legal confirmation")
 	await fixture();await game.act("trial",[SCOUT,"twin-bow","rightHand"]);await settle()
-	game.choose_command("attack");var target=game.data.choices.attack[0]
+	game.choose_command("action_attack");var target=game.data.choices.action_attack[0]
 	for u in game.state().units:
 		if u.id==target:await game.on_cell(int(u.pos));break
 	await settle();await board_case("B4-attack")
-	game.choose_command("skill");await settle();await board_case("B3-skill")
-	var pair=game.data.choices.skill[0]
+	game.choose_command("action_skill");await settle();await board_case("B3-skill")
+	var pair=game.data.choices.action_skill[0]
 	for id in pair:
 		for u in game.state().units:
 			if u.id==id:await game.on_cell(int(u.pos));break

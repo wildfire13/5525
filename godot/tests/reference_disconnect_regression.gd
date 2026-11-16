@@ -48,13 +48,13 @@ func visible_notice(node: Node)->bool:
 func snapshot():return (await probe.request({"op":"campaign_save"})).data
 func prepare(reference:=true):
 	await game.update({"op":"campaign_load","data":fixture});await settle()
-	game.choose_command("move" if reference else "attack")
+	game.choose_command("action_move" if reference else "action_attack")
 	if reference:
-		await game.on_cell(int(game.data.choices.move[0]));await settle();game.hud.open_range_reference();await settle()
+		await game.on_cell(int(game.data.choices.action_move[0]));await settle();game.hud.open_range_reference();await settle()
 func start_request(reference: bool,which: String):
 	if reference:game.hud.request_reference(which)
 	else:
-		var target=game.data.choices.attack[0];game.on_cell(int(game.hud.unit(target).pos))
+		var target=game.data.choices.action_attack[0];game.on_cell(int(game.hud.unit(target).pos))
 func wire_case(reference: bool,which: String,exit_mode: String,fault: String):
 	await prepare(reference);var epoch=game.pages.epoch;var connection=probe.connection_generation
 	probe.hold_next=true;probe.timeout_ms=400;start_request(reference,which);await held()
@@ -62,7 +62,7 @@ func wire_case(reference: bool,which: String,exit_mode: String,fault: String):
 		"close":game.hud.close_reference() if reference else game.cancel()
 		"reopen":
 			if reference:game.hud.close_reference();game.hud.open_range_reference()
-			else:game.cancel();game.choose_command("move")
+			else:game.cancel();game.choose_command("action_move")
 	var count=probe.calls.size();mode(fault);var pid=int(probe.handles.pid);probe.release=true;await settle();mode("")
 	var label=("reference/"+which if reference else "normal-preview")+"/"+exit_mode+"/"+fault
 	check(probe.disconnected and not OS.is_process_running(pid),label+" actual EOF/timeout closes only its owned Node")
@@ -81,7 +81,7 @@ func wire_case(reference: bool,which: String,exit_mode: String,fault: String):
 	check(not probe.disconnected and probe.connection_generation>connection and not game.retry_button.visible and game.notice.is_empty(),label+" reconnect establishes a new usable connection")
 func stale_connection_case(reference: bool,fault: String):
 	await prepare(reference);var old_generation=probe.connection_generation;var old_pid=int(probe.handles.pid)
-	probe.hold_loss=true;probe.timeout_ms=400;mode(fault);start_request(reference,"skill");await held(true);mode("")
+	probe.hold_loss=true;probe.timeout_ms=400;mode(fault);start_request(reference,"action_skill");await held(true);mode("")
 	check(probe.disconnected and not OS.is_process_running(old_pid),"late old-connection case has already lost its real Node")
 	await game.reconnect_engine();await settle();if not probe.handles.is_empty():owned.append(int(probe.handles.pid))
 	probe.timeout_ms=15000
@@ -100,11 +100,11 @@ func run():
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle();game.engine.close_engine();game.engine.queue_free()
 	probe=LossProbe.new();game.add_child(probe);game.engine=probe;probe.node_script=ProjectSettings.globalize_path("res://tests/reference_disconnect_rules.cjs");probe.start_engine();owned.append(int(probe.handles.pid));await game.new_game();await settle()
-	for which in ["attack","skill"]:
+	for which in ["action_attack","action_skill"]:
 		for exit_mode in ["open","close","reopen"]:
 			for fault in ["eof","timeout"]:await wire_case(true,which,exit_mode,fault)
 	for exit_mode in ["open","close","reopen"]:
-		for fault in ["eof","timeout"]:await wire_case(false,"attack",exit_mode,fault)
+		for fault in ["eof","timeout"]:await wire_case(false,"action_attack",exit_mode,fault)
 	for reference in [true,false]:
 		for fault in ["eof","timeout"]:await stale_connection_case(reference,fault)
 	await settle();game.closing=true;game.dialog.close(false);await game.audio.finish_audio();probe.close_engine();game.queue_free()

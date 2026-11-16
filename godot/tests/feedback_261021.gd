@@ -8,7 +8,7 @@ func run():
 	while game.data.is_empty():await process_frame
 	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
-	var guard="recruit-guard-human-female";var mage="recruit-mage-elf-female"
+	var guard="character_mirei";var mage="character_merina"
 	var seed=await saved();seed.state.location="east";seed.state.gold=1000;seed.state.characters[guard].inventory={"spear-wood":1,"greatsword-wood":1,"lone-ring-1":1}
 	await game.update({"op":"campaign_load","data":seed});await settle()
 	game.pages.party_view.open_inventory(guard);await settle()
@@ -51,8 +51,8 @@ func run():
 		u.next=1000
 		if u.id==mage:u.next=1;u.hp=20
 	await game.update({"op":"campaign_load","data":heal});await settle()
-	game.hud.open_skills();await settle();await click("BattleSkill_mage")
-	check(node("BattleSkill_mage").get_meta("selected",false) and game.hud.buttons.skill.get_meta("selected",false) and not node("BattleSkill_mage").text.begins_with("● "),"selected skill and its parent category share selection metadata without a text mark")
+	game.hud.open_skills();await settle();await click("BattleSkill_skill_heal")
+	check(node("BattleSkill_skill_heal").get_meta("selected",false) and game.hud.buttons.action_skill.get_meta("selected",false) and not node("BattleSkill_skill_heal").text.begins_with("● "),"selected skill and its parent category share selection metadata without a text mark")
 	check(node("ActionCost").text=="消費MP: 1" and node("TargetSummary").text=="クリックしてターゲットを選択してください。","actual MP cost and single targeting instruction")
 	await game.on_cell(int(game.hud.acting().pos));await settle()
 	check(node("Inspect_hp")!=null and not game.find_children("*","Button",true,false).any(func(b):return b.text=="能力・詳細"),"target abilities displayed inline without detail button")

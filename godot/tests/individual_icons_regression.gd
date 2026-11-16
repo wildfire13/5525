@@ -61,9 +61,9 @@ func run():
 				check(changed>=20,"level badge retains visible pixels "+key)
 			check(image.get_data()==expected.get_data(),"entire canvas matches base plus unclipped badge only "+key)
 			if level in [1,2,3]:image.save_png(evidence.path_join(id+"-"+str(level)+".png"))
-	for id in ["scout","archer"]:
+	for id in ["skill_ambush","skill_snipe"]:
 		check(icons.skill(id,2)==icons.skill(id,1) and icons.skill(id,3)==icons.skill(id,1),"no fabricated advanced levels "+id)
-	for id in ["itemUse","legSweep"]:
+	for id in ["skill_item_use","skill_leg_sweep"]:
 		check(icons.texture(icons.skill(id,1)).get_image().get_data()!=icons.texture(icons.skill(id,2)).get_image().get_data(),"Lv1/Lv2 distinct "+id)
 		check(icons.texture(icons.skill(id,2)).get_image().get_data()!=icons.texture(icons.skill(id,3)).get_image().get_data(),"Lv2/Lv3 distinct "+id)
 	check(icons.equipment({"type":"empty","id":"empty-head","slot":"head"})=="","empty slot remains iconless")

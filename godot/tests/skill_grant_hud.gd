@@ -9,7 +9,7 @@ func settle():
  for i in range(12):await process_frame
  while game.locked or game.engine.busy or game.presenting or game.preview_pending:await process_frame
 func skill_buttons():
- return game.find_children("BattleSkill_mage*","Button",true,false)
+ return game.find_children("BattleSkill_skill_heal*","Button",true,false)
 func run():
  create_timer(90).timeout.connect(func():print("FAIL watchdog");quit(2))
  if OS.get_environment("NATIVE5525_AUDIO_OFF")!="1":push_error("Audio OFF required");quit(2);return
@@ -18,7 +18,7 @@ func run():
  await game.new_game();
  game.checks_fast=true;game.audio.fast_mode=true
  await settle()
- var owner="recruit-mage-elf-female"
+ var owner="character_merina"
  var save=(await game.engine.request({"op":"campaign_save"})).data
  save.state.location="east";save.state.gold=9999
  await game.update({"op":"campaign_load","data":save})
@@ -32,10 +32,10 @@ func run():
    check(buttons[0].icon!=null and buttons[1].icon!=null,"effect ID icons exist at "+str(size))
    check(buttons.any(func(b):return b.text.contains("右手")) and buttons.any(func(b):return b.text.contains("左手")),"source labels at "+str(size))
    check(buttons.all(func(b):return b.autowrap_mode==TextServer.AUTOWRAP_WORD_SMART),"long source labels wrap at "+str(size))
- var choices=game.data.skillset.filter(func(o):return o.id=="mage")
+ var choices=game.data.skillset.filter(func(o):return o.id=="skill_heal")
  await game.select_skill(choices[1].key);await settle()
  check(game.hud.acting().selectedSkillKey==choices[1].key,"second source selected through UI")
- check((await game.update({"op":"act","kind":"skill","target":"recruit-guard-human-female"})).get("ok",false),"heal reaches the current guard recruit");await settle()
+ check((await game.update({"op":"act","kind":"action_skill","target":"character_mirei"})).get("ok",false),"heal reaches the current guard recruit");await settle()
  game.hud.open_skills();await settle()
  var buttons=skill_buttons()
  check(buttons.size()==2 and buttons.filter(func(b):return b.disabled).size()==1,"only used source disabled")

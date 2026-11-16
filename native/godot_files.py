@@ -4,11 +4,19 @@ from pathlib import Path
 from portraits import read_raster, normalize_raster, MAX_PNG_BYTES
 MAX_SAVE = 12 * 1024 * 1024
 
+def portrait_character_aliases():
+    catalog = json.loads((Path(__file__).resolve().parent / 'data' / 'character-identities.json').read_text(encoding='utf-8'))
+    return {entry['legacyId']: entry['id'] for entry in catalog if entry.get('legacyId')}
+
 def prepare_portraits(meta, allowed):
     if meta is None: return {'version': 1, 'characters': {}}
     if not isinstance(meta, dict) or meta.get('version') != 1 or not isinstance(meta.get('characters'), dict):
         raise ValueError('保存画像の形式が不正です')
-    if not set(meta['characters']).issubset(set(allowed)): raise ValueError('保存画像のキャラIDが不正です')
+    aliases = portrait_character_aliases()
+    canonical = lambda value: aliases.get(value, value)
+    character_ids = [canonical(value) for value in meta['characters']]
+    if len(set(character_ids)) != len(character_ids) or not set(character_ids).issubset({canonical(value) for value in allowed}):
+        raise ValueError('保存画像のキャラIDが不正です')
     for entry in meta['characters'].values():
         if not isinstance(entry, dict) or not isinstance(entry.get('png'), str) or len(entry['png']) > 4*((MAX_PNG_BYTES+2)//3):
             raise ValueError('保存画像のサイズが不正です')

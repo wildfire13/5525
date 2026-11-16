@@ -18,7 +18,7 @@ func run():
 	layer.process_mode=Node.PROCESS_MODE_DISABLED
 	check(layer.get_index()<board.overlay.get_index(),"shield stays beneath HP and other numeric labels")
 	check(layer.mouse_filter==Control.MOUSE_FILTER_IGNORE,"shield cannot intercept input")
-	layer.play({"skill_id":"guard","phase":"action","origin":24,"cells":[]},.42)
+	layer.play({"skill_id":"action_defend","phase":"action","origin":24,"cells":[]},.42)
 	layer._process(.21)
 	var before=layer.snapshot()
 	for area in [Vector2(1920,1080)]:

@@ -23,8 +23,8 @@ func run():
  game.checks_fast=true;game.audio.fast_mode=true
  await game.act("depart",["east","convoy"]);await game.act("travel",["safe"]);await game.act("begin",[]);await settle()
  await shot("18-battle-command")
- game.choose_command("move");await settle()
- var moves=game.data.choices.get("move",[])
+ game.choose_command("action_move");await settle()
+ var moves=game.data.choices.get("action_move",[])
  check(not moves.is_empty(),"move choices available")
  if not moves.is_empty():
   var at=game.board.global_position+game.board.project_cell(int(moves[0]))
@@ -34,10 +34,10 @@ func run():
  check(game.pending!=null,"projected board click selects move preview")
  await shot("19-battle-move")
  game.cancel();await settle();check(game.pending==null,"move cancellation")
- game.hud.back_to_commands();game.hud.choose_command("skill");await settle();await shot("20-battle-skills")
- game.hud.back_to_commands();game.choose_command("guard");await settle();await shot("21-battle-guard")
+ game.hud.back_to_commands();game.hud.choose_command("action_skill");await settle();await shot("20-battle-skills")
+ game.hud.back_to_commands();game.choose_command("action_defend");await settle();await shot("21-battle-guard")
  game.hud.back_to_commands();game.open_menu();await shot("22-battle-menu");game.menu.hide()
- var actions_before=int(game.state().get("actions",0));game.choose_command("guard");await settle();await game.commit();await settle()
+ var actions_before=int(game.state().get("actions",0));game.choose_command("action_defend");await settle();await game.commit();await settle()
  check(int(game.state().get("actions",0))>actions_before,"guard executes and advances actual turn")
  if game.find_child("QuitGame",true,false)!=null:
   var field=game.board.get_global_rect()

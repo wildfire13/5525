@@ -22,7 +22,7 @@ func run():
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var before=await saved();await enter_facility("party");await settle()
 	return_layout("GuildReturn")
-	var member=str(game.campaign().selected[0]);var mage="recruit-mage-elf-female";var porter="recruit-porter-human-female"
+	var member=str(game.campaign().selected[0]);var mage="character_merina";var porter="character_yuno"
 	var reserve=str(game.roster().filter(func(u):return not game.campaign().selected.has(u.id))[0].id)
 	await click("RosterMember_"+member)
 	check(not game.modal_open() and game.pages.guild_view.current_id==member,"first guild click selects without opening or changing state")

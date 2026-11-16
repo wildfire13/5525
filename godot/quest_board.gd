@@ -189,7 +189,7 @@ func open_picker(id: String):
 		var buttons: Array=[]
 		var confirm=ui.primary(pages.b(actions,"決定",commit.bind(id,token,epoch,connection,generation),true));confirm.name="QuestCargoConfirm"
 		for member in pages.roster():
-			if not pages.c().selected.has(member.id) or member.job!="porter":continue
+			if not pages.c().selected.has(member.id) or member.job!="job_porter":continue
 			var box=pages.card(choices);box.get_parent().custom_minimum_size.x=240
 			var button=pages.b(box,str(member.name),func():
 				if generation!=picker_generation or submitted:return

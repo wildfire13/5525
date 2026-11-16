@@ -34,7 +34,7 @@ func person(id: String) -> Dictionary:
 		if member.id==id:return member
 	return {}
 func active(id: String) -> bool:return c().get("selected",[]).has(id)
-func porter_count() -> int:return c().get("selected",[]).filter(func(id):return person(str(id)).get("job")=="porter").size()
+func porter_count() -> int:return c().get("selected",[]).filter(func(id):return person(str(id)).get("job")=="job_porter").size()
 func stamp() -> String:return JSON.stringify([pages.epoch,ui.engine.connection_generation,c().get("inventoryToken"),c().get("selected")])
 func groups() -> Array:
 	var current=[];var reserves=[]

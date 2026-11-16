@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "contentVersion": 9,
+  "contentVersion": 10,
   "gear": [
     {
       "id": "empty-rightHand",
@@ -197,7 +197,7 @@
       "weight": 2,
       "sexOnly": "male",
       "salePrice": 15,
-      "effect": "secretPouch",
+      "effect": "skill_secret_pouch",
       "atkFire": 0,
       "atkWater": 0,
       "atkEarth": 0,
@@ -295,7 +295,7 @@
       "grade": 0,
       "material": "wood",
       "note": "両手の2枠を使います。ATK34。「ポールヴォールト」を使用できます。",
-      "skill": "poleVault",
+      "skill": "skill_pole_vault",
       "skillLevel": 1,
       "atkFire": 0,
       "atkWater": 0,
@@ -323,7 +323,7 @@
       "material": "wood",
       "note": "投げることもできる木製の槍。戦闘後に回収する。",
       "weight": 7,
-      "skill": "spearThrow",
+      "skill": "skill_spear_throw",
       "atkFire": 0,
       "atkWater": 0,
       "atkEarth": 0,
@@ -345,7 +345,7 @@
       "int": 0,
       "agi": 0,
       "hp": 0,
-      "effect": "swift",
+      "effect": "skill_swift",
       "note": "移動力+1。先駆けと加算は暫定。価格70Gは試遊用の提案値。",
       "atkFire": 0,
       "atkWater": 0,
@@ -364,7 +364,7 @@
       "type": "armor",
       "material": "cloth",
       "hp": 5,
-      "skill": "legSweep",
+      "skill": "skill_leg_sweep",
       "skillLevel": 1,
       "grade": 0,
       "str": 0,
@@ -389,7 +389,7 @@
       "type": "armor",
       "material": "cloth",
       "hp": 25,
-      "skill": "legSweep",
+      "skill": "skill_leg_sweep",
       "skillLevel": 1,
       "grade": 1,
       "str": 0,
@@ -414,7 +414,7 @@
       "type": "armor",
       "material": "cloth",
       "hp": 25,
-      "skill": "legSweep",
+      "skill": "skill_leg_sweep",
       "skillLevel": 2,
       "grade": 2,
       "str": 0,
@@ -439,7 +439,7 @@
       "type": "armor",
       "material": "cloth",
       "hp": 25,
-      "skill": "legSweep",
+      "skill": "skill_leg_sweep",
       "skillLevel": 3,
       "grade": 3,
       "str": 0,
@@ -471,7 +471,7 @@
       "agi": 0,
       "hp": 0,
       "grade": 0,
-      "skill": "itemUse",
+      "skill": "skill_item_use",
       "skillLevel": 1,
       "price": 0,
       "starterOnly": true,
@@ -500,7 +500,7 @@
       "agi": 0,
       "hp": 0,
       "grade": 1,
-      "skill": "itemUse",
+      "skill": "skill_item_use",
       "skillLevel": 2,
       "price": 100,
       "note": "擬似個人スキルの試験用。価格100Gは仮値。",
@@ -527,12 +527,12 @@
       "agi": 0,
       "hp": 0,
       "grade": 2,
-      "skill": "itemUse",
+      "skill": "skill_item_use",
       "skillLevel": 3,
       "price": 0,
       "starterOnly": true,
       "virtualDefault": true,
-      "jobOnly": "porter",
+      "jobOnly": "job_porter",
       "note": "空の手枠の既定性能。所持品には生成しない。",
       "atkFire": 0,
       "atkWater": 0,
@@ -557,7 +557,7 @@
       "agi": 0,
       "hp": 0,
       "grade": 0,
-      "skill": "grapple",
+      "skill": "skill_grapple",
       "skillLevel": 1,
       "price": 100,
       "note": "装備すると「引き寄せ」を使用できます。穴地形は未実装です。",
@@ -575,7 +575,7 @@
       "id": "undertow-sword",
       "name": "引き波の剣",
       "type": "sword",
-      "skill": "retreatSlash",
+      "skill": "skill_retreat_slash",
       "atk": 26,
       "reach": 1,
       "str": 8,
@@ -600,7 +600,7 @@
       "id": "breaker-hammer",
       "name": "突き崩しの槌",
       "type": "hammer",
-      "skill": "knockback",
+      "skill": "skill_knockback",
       "atk": 29,
       "reach": 1,
       "str": 14,
@@ -626,7 +626,7 @@
       "name": "双射の弓",
       "type": "bow",
       "hands": 2,
-      "skill": "splitShot",
+      "skill": "skill_split_shot",
       "atk": 25,
       "reach": 3,
       "str": 8,
@@ -651,7 +651,7 @@
       "id": "partner-dagger",
       "name": "相棒の短剣",
       "type": "dagger",
-      "skill": "pincer",
+      "skill": "skill_pincer",
       "atk": 23,
       "reach": 1,
       "str": 0,
@@ -676,7 +676,7 @@
       "id": "rest-staff",
       "name": "憩いの杖",
       "type": "staff",
-      "skill": "healingCross",
+      "skill": "skill_healing_cross",
       "atk": 14,
       "reach": 2,
       "str": 0,
@@ -701,7 +701,7 @@
       "id": "battleline-shield",
       "name": "戦列の盾",
       "type": "shield",
-      "skill": "defenseLine",
+      "skill": "skill_defense_line",
       "atk": 20,
       "reach": 1,
       "str": 8,
@@ -726,7 +726,7 @@
       "id": "sharing-tome",
       "name": "分かちの魔導書",
       "type": "book",
-      "skill": "manaGift",
+      "skill": "skill_mana_gift",
       "atk": 14,
       "reach": 2,
       "str": 0,
@@ -777,7 +777,7 @@
       "shopProductId": "return-ring-1",
       "slot": "accessory1",
       "type": "accessory",
-      "effect": "returnHome",
+      "effect": "skill_return_home",
       "material": "cloth",
       "grade": 0,
       "price": 70,
@@ -801,7 +801,7 @@
       "shopProductId": "victory-earring-1",
       "slot": "accessory1",
       "type": "accessory",
-      "effect": "victoryBreath",
+      "effect": "skill_victory_breath",
       "material": "cloth",
       "grade": 0,
       "price": 70,
@@ -825,7 +825,7 @@
       "shopProductId": "lone-ring-1",
       "slot": "accessory1",
       "type": "accessory",
-      "effect": "loneWolf",
+      "effect": "skill_lone_wolf",
       "material": "cloth",
       "grade": 0,
       "price": 70,
@@ -849,7 +849,7 @@
       "shopProductId": "pioneer-gloves-1",
       "slot": "accessory1",
       "type": "accessory",
-      "effect": "firstStride",
+      "effect": "skill_first_stride",
       "material": "cloth",
       "grade": 0,
       "price": 70,
@@ -873,7 +873,7 @@
       "shopProductId": "invasion-charm-1",
       "slot": "accessory1",
       "type": "accessory",
-      "effect": "invasion",
+      "effect": "skill_invasion",
       "material": "cloth",
       "grade": 0,
       "price": 70,
@@ -921,7 +921,7 @@
       "shopProductId": "return-ring-1",
       "slot": "accessory2",
       "type": "accessory",
-      "effect": "returnHome",
+      "effect": "skill_return_home",
       "material": "cloth",
       "grade": 0,
       "price": 70,
@@ -945,7 +945,7 @@
       "shopProductId": "victory-earring-1",
       "slot": "accessory2",
       "type": "accessory",
-      "effect": "victoryBreath",
+      "effect": "skill_victory_breath",
       "material": "cloth",
       "grade": 0,
       "price": 70,
@@ -969,7 +969,7 @@
       "shopProductId": "lone-ring-1",
       "slot": "accessory2",
       "type": "accessory",
-      "effect": "loneWolf",
+      "effect": "skill_lone_wolf",
       "material": "cloth",
       "grade": 0,
       "price": 70,
@@ -993,7 +993,7 @@
       "shopProductId": "pioneer-gloves-1",
       "slot": "accessory2",
       "type": "accessory",
-      "effect": "firstStride",
+      "effect": "skill_first_stride",
       "material": "cloth",
       "grade": 0,
       "price": 70,
@@ -1017,7 +1017,7 @@
       "shopProductId": "invasion-charm-1",
       "slot": "accessory2",
       "type": "accessory",
-      "effect": "invasion",
+      "effect": "skill_invasion",
       "material": "cloth",
       "grade": 0,
       "price": 70,
@@ -1045,7 +1045,7 @@
       "price": 70,
       "atk": 26,
       "reach": 1,
-      "legacySkill": "guard",
+      "legacySkill": "skill_cover",
       "str": 8,
       "int": 0,
       "agi": 0,
@@ -1070,7 +1070,7 @@
       "price": 135,
       "atk": 32,
       "reach": 1,
-      "legacySkill": "guard",
+      "legacySkill": "skill_cover",
       "str": 12,
       "int": 0,
       "agi": 0,
@@ -1096,7 +1096,7 @@
       "price": 70,
       "atk": 25,
       "reach": 3,
-      "skill": "archer",
+      "skill": "skill_snipe",
       "str": 8,
       "int": 0,
       "agi": 10,
@@ -1121,7 +1121,7 @@
       "price": 140,
       "atk": 31,
       "reach": 3,
-      "skill": "archer",
+      "skill": "skill_snipe",
       "str": 11,
       "int": 0,
       "agi": 12,
@@ -1146,7 +1146,7 @@
       "price": 215,
       "atk": 37,
       "reach": 3,
-      "skill": "archer",
+      "skill": "skill_snipe",
       "str": 14,
       "int": 0,
       "agi": 13,
@@ -1170,7 +1170,7 @@
       "price": 70,
       "atk": 14,
       "reach": 2,
-      "skill": "mage",
+      "skill": "skill_heal",
       "str": 0,
       "int": 8,
       "agi": 0,
@@ -1194,7 +1194,7 @@
       "price": 145,
       "atk": 21,
       "reach": 2,
-      "skill": "mage",
+      "skill": "skill_heal",
       "str": 0,
       "int": 12,
       "agi": 0,
@@ -1219,7 +1219,7 @@
       "price": 70,
       "atk": 23,
       "reach": 1,
-      "skill": "scout",
+      "skill": "skill_ambush",
       "skillLevel": 1,
       "str": 0,
       "int": 0,
@@ -1245,7 +1245,7 @@
       "price": 100,
       "atk": 29,
       "reach": 1,
-      "skill": "stamp",
+      "skill": "skill_stamp",
       "str": 14,
       "int": 0,
       "agi": 0,
@@ -1269,7 +1269,7 @@
       "price": 190,
       "atk": 39,
       "reach": 1,
-      "skill": "stamp",
+      "skill": "skill_stamp",
       "str": 18,
       "int": 0,
       "agi": 0,
@@ -1294,7 +1294,7 @@
       "price": 0,
       "atk": 0,
       "reach": 0,
-      "skill": "porter",
+      "skill": "skill_formation_boost",
       "str": 0,
       "int": 0,
       "agi": 0,
@@ -1408,7 +1408,7 @@
       "price": 0,
       "atk": 0,
       "reach": 0,
-      "skill": "guard",
+      "skill": "skill_cover",
       "str": 0,
       "int": 0,
       "agi": 0,
@@ -1433,7 +1433,7 @@
       "price": 0,
       "atk": 0,
       "reach": 0,
-      "skill": "guard",
+      "skill": "skill_cover",
       "str": 0,
       "int": 0,
       "agi": 0,
@@ -1463,7 +1463,7 @@
       "salePrice": 50,
       "hp": 0,
       "flavor": "腰のポーチに、旅の細々とした持ち物を収める。",
-      "effect": "secretPouch",
+      "effect": "skill_secret_pouch",
       "atkFire": 0,
       "atkWater": 0,
       "atkEarth": 0,
@@ -1487,7 +1487,7 @@
       "salePrice": 100,
       "hp": 10,
       "flavor": "腰のポーチに、旅の細々とした持ち物を収める。",
-      "effect": "secretPouch",
+      "effect": "skill_secret_pouch",
       "atkFire": 0,
       "atkWater": 0,
       "atkEarth": 0,
@@ -1511,7 +1511,7 @@
       "salePrice": 150,
       "hp": 0,
       "flavor": "腰のポーチに、旅の細々とした持ち物を収める。",
-      "effect": "secretPouch",
+      "effect": "skill_secret_pouch",
       "skillLevel": 2,
       "atkFire": 0,
       "atkWater": 0,
@@ -1536,7 +1536,7 @@
       "salePrice": 200,
       "hp": 0,
       "flavor": "腰のポーチに、旅の細々とした持ち物を収める。",
-      "effect": "secretPouch",
+      "effect": "skill_secret_pouch",
       "skillLevel": 3,
       "atkFire": 0,
       "atkWater": 0,
@@ -1561,13 +1561,13 @@
         "accessory2"
       ],
       "weight": 10,
-      "jobOnly": "porter",
+      "jobOnly": "job_porter",
       "purchasable": false,
       "sellable": false,
       "transferable": false,
       "removable": false,
       "flavor": "[ポーター専用][解除不可][取引不可]\n不思議なリュック。",
-      "effect": "fourDimensional",
+      "effect": "skill_four_dimensional",
       "atkFire": 0,
       "atkWater": 0,
       "atkEarth": 0,
@@ -1590,13 +1590,13 @@
       "int": 0,
       "agi": 0,
       "weight": 1,
-      "jobOnly": "porter",
+      "jobOnly": "job_porter",
       "purchasable": false,
       "sellable": false,
       "transferable": false,
       "removable": false,
       "flavor": "[ポーター専用][解除不可][取引不可]\n指示を送る笛。",
-      "skill": "porter",
+      "skill": "skill_formation_boost",
       "atkFire": 0,
       "atkWater": 0,
       "atkEarth": 0,
@@ -1620,9 +1620,9 @@
       "int": 0,
       "agi": 10,
       "weight": 10,
-      "jobOnly": "scout",
+      "jobOnly": "job_scout",
       "salePrice": 150,
-      "skill": "archer",
+      "skill": "skill_snipe",
       "skillLevel": 2,
       "atkFire": 0,
       "atkWater": 0,
@@ -1648,10 +1648,10 @@
       "int": 0,
       "agi": 10,
       "weight": 10,
-      "jobOnly": "scout",
+      "jobOnly": "job_scout",
       "salePrice": 200,
       "raceOnly": "elf",
-      "skill": "archer",
+      "skill": "skill_snipe",
       "skillLevel": 3,
       "atkFire": 0,
       "atkWater": 0,
@@ -1678,7 +1678,7 @@
       "weight": 5,
       "salePrice": 100,
       "flavor": "[ドワーフ装備不可]\n木で作られた模擬戦用の短剣。",
-      "skill": "scout",
+      "skill": "skill_ambush",
       "skillLevel": 2,
       "atkFire": 0,
       "atkWater": 0,
@@ -1704,8 +1704,8 @@
       "weight": 5,
       "salePrice": 150,
       "flavor": "[ドワーフ装備不可][スカウト専用]\n木で作られた模擬戦用の短剣。",
-      "jobOnly": "scout",
-      "skill": "scout",
+      "jobOnly": "job_scout",
+      "skill": "skill_ambush",
       "skillLevel": 2,
       "atkFire": 0,
       "atkWater": 0,
@@ -1731,9 +1731,9 @@
       "weight": 3,
       "salePrice": 200,
       "flavor": "[エルフ専用][スカウト専用]\n目を凝らさないと見えない短剣。",
-      "jobOnly": "scout",
+      "jobOnly": "job_scout",
       "raceOnly": "elf",
-      "skill": "scout",
+      "skill": "skill_ambush",
       "skillLevel": 3,
       "atkFire": 0,
       "atkWater": 0,
@@ -1759,11 +1759,11 @@
       "weight": 10,
       "salePrice": 200,
       "flavor": "[エルフ装備不可][ドワーフ装備不可][スカウト専用]\n重いが上等な金属で作られた戦闘用の短剣。",
-      "jobOnly": "scout",
+      "jobOnly": "job_scout",
       "excludedRaces": [
         "elf"
       ],
-      "skill": "scout",
+      "skill": "skill_ambush",
       "skillLevel": 3,
       "atkFire": 0,
       "atkWater": 0,
@@ -1788,13 +1788,13 @@
         "accessory2"
       ],
       "weight": 1,
-      "jobOnly": "scout",
+      "jobOnly": "job_scout",
       "purchasable": false,
       "sellable": false,
       "transferable": false,
       "removable": false,
       "flavor": "[スカウト専用][解除不可][取引不可]\n旅の装いに重ねる、一枚のマント。",
-      "effect": "invasion",
+      "effect": "skill_invasion",
       "atkFire": 0,
       "atkWater": 0,
       "atkEarth": 0,
@@ -1820,7 +1820,7 @@
       "sexOnly": "female",
       "salePrice": 15,
       "flavor": "[女性専用]\n一般的な作業用スカート。",
-      "effect": "secretPouch",
+      "effect": "skill_secret_pouch",
       "atkFire": 0,
       "atkWater": 0,
       "atkEarth": 0,
@@ -1844,7 +1844,7 @@
       "weight": 2,
       "salePrice": 150,
       "flavor": "駆け出し冒険者たちが愛用する動きやすいズボン。",
-      "effect": "evasion",
+      "effect": "skill_evasion",
       "atkFire": 0,
       "atkWater": 0,
       "atkEarth": 0,
@@ -1872,7 +1872,7 @@
       "transferable": false,
       "removable": true,
       "flavor": "[エルフ専用][取引不可]\nエルフの風習として親から贈られる髪飾り。",
-      "effect": "elfProof",
+      "effect": "skill_elf_proof",
       "atkFire": 0,
       "atkWater": 0,
       "atkEarth": 0,
@@ -1900,7 +1900,7 @@
       "transferable": false,
       "removable": true,
       "flavor": "[ドワーフ専用][取引不可]\nドワーフの風習として親から贈られる髪飾り。",
-      "effect": "dwarfProof",
+      "effect": "skill_dwarf_proof",
       "atkFire": 0,
       "atkWater": 0,
       "atkEarth": 0,
@@ -1922,7 +1922,7 @@
       "str": 8,
       "int": 0,
       "agi": 0,
-      "legacySkill": "guard",
+      "legacySkill": "skill_cover",
       "atkFire": 0,
       "atkWater": 0,
       "atkEarth": 0,
@@ -1935,14 +1935,14 @@
     }
   ],
   "definitions": {
-    "itemUse": {
+    "skill_item_use": {
       "name": "拳",
       "classification": "passive",
       "cost": 0,
       "target": "item",
       "description": "バトル中にもアイテムを使用できる。本人の所持品を1個使用。Lv1は自身のみ、Lv2は自身と隣接する味方、Lv3は距離制限なし。MP0。"
     },
-    "legSweep": {
+    "skill_leg_sweep": {
       "name": "足払い",
       "classification": "active",
       "cost": 1,
@@ -1950,7 +1950,7 @@
       "target": "self",
       "description": "周囲8マスの敵それぞれに足払い判定。Lv1:50%、Lv2:75%、Lv3:100%。ダメージ0、成功時は次の1手番をスキップ（重複なし）。MP1。"
     },
-    "grapple": {
+    "skill_grapple": {
       "name": "引き寄せ",
       "classification": "active",
       "cost": 1,
@@ -1958,7 +1958,7 @@
       "target": "unit",
       "description": "右2マス先の敵味方を1マス引き寄せる。途中が占有されている場合もMP1と行動を消費するが移動しない。"
     },
-    "poleVault": {
+    "skill_pole_vault": {
       "name": "ポールヴォールト",
       "classification": "active",
       "cost": 1,
@@ -1966,12 +1966,12 @@
       "target": "cell",
       "description": "上下左右2マス先へ跳躍。途中の空き・人物を問わず、盤内の移動可能な空きマスに着地。MP1。"
     },
-    "swift": {
+    "skill_swift": {
       "name": "俊足",
       "classification": "passive",
       "description": "通常移動力+1。先駆けと加算（暫定）：通常3、初回4。侵入制限・行動数は変更しない。"
     },
-    "retreatSlash": {
+    "skill_retreat_slash": {
       "name": "退き斬り",
       "classification": "active",
       "cost": 1,
@@ -1979,7 +1979,7 @@
       "target": "unit",
       "description": "射程1の敵へ70%攻撃後、自陣側へ1マス後退。退路が塞がる／盤外なら使用不可。MP1。"
     },
-    "knockback": {
+    "skill_knockback": {
       "name": "吹き飛ばし",
       "classification": "active",
       "cost": 1,
@@ -1987,7 +1987,7 @@
       "target": "unit",
       "description": "射程1の敵へ通常攻撃。対象の先が空いていれば1マス押す。盤外・占有時は攻撃のみ。MP1。"
     },
-    "splitShot": {
+    "skill_split_shot": {
       "name": "分け撃ち",
       "classification": "active",
       "cost": 1,
@@ -1995,7 +1995,7 @@
       "target": "pair",
       "description": "射程3の異なる敵2体を順に指定し、各60%攻撃。同じ敵への集中不可。MP1。"
     },
-    "pincer": {
+    "skill_pincer": {
       "name": "挟撃",
       "classification": "active",
       "cost": 1,
@@ -2003,7 +2003,7 @@
       "target": "unit",
       "description": "射程1の敵へ攻撃。対象に別の生存味方が縦横隣接していれば150%、それ以外100%。MP1。"
     },
-    "healingCross": {
+    "skill_healing_cross": {
       "name": "癒しの輪",
       "classification": "active",
       "cost": 2,
@@ -2011,7 +2011,7 @@
       "target": "unit",
       "description": "射程2の生存味方を中心に、中心＋上下左右の生存味方のHPを各30回復。MP2。"
     },
-    "defenseLine": {
+    "skill_defense_line": {
       "name": "防衛線",
       "classification": "active",
       "cost": 1,
@@ -2019,7 +2019,7 @@
       "target": "upToTwo",
       "description": "縦横隣接の味方を1～2人指定。次の本人の番までかばう。同じ対象の重複指定不可。MP1。"
     },
-    "manaGift": {
+    "skill_mana_gift": {
       "name": "魔力譲渡",
       "classification": "active",
       "cost": 0,
@@ -2027,7 +2027,7 @@
       "target": "unit",
       "description": "射程2の別の生存味方へMPを最大2移譲。自分の残量・相手の空き分まで。総量は増えない。1行動。"
     },
-    "returnHome": {
+    "skill_return_home": {
       "name": "帰還",
       "classification": "active",
       "cost": 0,
@@ -2035,62 +2035,62 @@
       "target": "cell",
       "description": "付与元ごとに1戦1回、自陣の指定空きマスへ帰還。MP0、1行動。使用回数はクールタイムで回復しない。"
     },
-    "victoryBreath": {
+    "skill_victory_breath": {
       "name": "一息",
       "classification": "passive",
       "description": "勝利時、生存している装備者のMPを2回復（上限まで）。重複装備しても1回。"
     },
-    "loneWolf": {
+    "skill_lone_wolf": {
       "name": "孤軍",
       "classification": "passive",
       "description": "別の生存味方と縦横隣接していない間、与ダメージ+25%。同効果を複数装備した場合、増加割合を加算。"
     },
-    "firstStride": {
+    "skill_first_stride": {
       "name": "先駆け",
       "classification": "passive",
       "description": "各戦闘の最初の移動だけ経路3まで。短い移動・入替でも消費。侵入制限は変わらない。"
     },
-    "secretPouch": {
+    "skill_secret_pouch": {
       "name": "秘密のポーチ",
       "classification": "passive",
       "description": "インベントリ枠を増やす。Lv1：+1、Lv2：+3、Lv3：+5。同じ効果は加算する。"
     },
-    "holePouch": {
+    "skill_hole_pouch": {
       "name": "穴開きポーチ",
       "classification": "passive",
       "description": "インベントリ枠を減らす。Lv1：-1、Lv2：-3、Lv3：-5。枠数は0未満にならない。"
     },
-    "fourDimensional": {
+    "skill_four_dimensional": {
       "name": "四次元空間",
       "classification": "passive",
       "description": "インベントリの枠数制限がなくなる。"
     },
-    "evasion": {
+    "skill_evasion": {
       "name": "回避",
       "classification": "passive",
       "description": "通常攻撃を10%の確率で回避する。"
     },
-    "speedUp": {
+    "skill_speed_up": {
       "name": "＋スピード",
       "classification": "passive",
       "description": "SPD+10。"
     },
-    "speedDown": {
+    "skill_speed_down": {
       "name": "－スピード",
       "classification": "passive",
       "description": "SPD-10。"
     },
-    "elfProof": {
+    "skill_elf_proof": {
       "name": "エルフの証明",
       "classification": "passive",
       "description": "INTがキャラクターレベルと同じ値だけ上がる。装備を外すと補正を失う。"
     },
-    "dwarfProof": {
+    "skill_dwarf_proof": {
       "name": "ドワーフの証明",
       "classification": "passive",
       "description": "STRがキャラクターレベルと同じ値だけ上がる。装備を外すと補正を失う。"
     },
-    "spearThrow": {
+    "skill_spear_throw": {
       "name": "槍投げ",
       "classification": "active",
       "cost": 0,
@@ -2098,7 +2098,7 @@
       "target": "unit",
       "description": "距離4の敵に通常攻撃と同じ威力で槍を投げる。付与元ごとに1戦1回。投げた手は拳となり、戦闘後に槍が戻る。"
     },
-    "invasion": {
+    "skill_invasion": {
       "name": "侵入",
       "classification": "passive",
       "description": "敵陣にも初期配置できる。戦闘中は全員が敵陣へ移動できる。"
@@ -2170,18 +2170,18 @@
     ]
   },
   "legacySkills": {
-    "guard": "かばう",
-    "archer": "スナイプ",
-    "mage": "ヒール",
-    "scout": "奇襲",
-    "stamp": "スタンプ",
-    "porter": "陣形強化"
+    "skill_cover": "かばう",
+    "skill_snipe": "スナイプ",
+    "skill_heal": "ヒール",
+    "skill_ambush": "奇襲",
+    "skill_stamp": "スタンプ",
+    "skill_formation_boost": "陣形強化"
   },
   "equipmentGrants": [
     {
       "equipmentId": "cloth-lowerBody",
       "slotNo": 1,
-      "id": "secretPouch",
+      "id": "skill_secret_pouch",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2189,7 +2189,7 @@
     {
       "equipmentId": "longspear-wood",
       "slotNo": 1,
-      "id": "poleVault",
+      "id": "skill_pole_vault",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2199,13 +2199,13 @@
       "slotNo": 1,
       "level": 1,
       "sourceField": "skill",
-      "id": "spearThrow",
+      "id": "skill_spear_throw",
       "explicitLevel": false
     },
     {
       "equipmentId": "swift-boots",
       "slotNo": 1,
-      "id": "swift",
+      "id": "skill_swift",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2213,7 +2213,7 @@
     {
       "equipmentId": "kungfu-pants",
       "slotNo": 1,
-      "id": "legSweep",
+      "id": "skill_leg_sweep",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2221,7 +2221,7 @@
     {
       "equipmentId": "kungfu-pants-1",
       "slotNo": 1,
-      "id": "legSweep",
+      "id": "skill_leg_sweep",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2229,7 +2229,7 @@
     {
       "equipmentId": "kungfu-pants-2",
       "slotNo": 1,
-      "id": "legSweep",
+      "id": "skill_leg_sweep",
       "level": 2,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2237,7 +2237,7 @@
     {
       "equipmentId": "kungfu-pants-3",
       "slotNo": 1,
-      "id": "legSweep",
+      "id": "skill_leg_sweep",
       "level": 3,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2245,7 +2245,7 @@
     {
       "equipmentId": "fist",
       "slotNo": 1,
-      "id": "itemUse",
+      "id": "skill_item_use",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2253,7 +2253,7 @@
     {
       "equipmentId": "fist-1",
       "slotNo": 1,
-      "id": "itemUse",
+      "id": "skill_item_use",
       "level": 2,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2261,7 +2261,7 @@
     {
       "equipmentId": "fist-2",
       "slotNo": 1,
-      "id": "itemUse",
+      "id": "skill_item_use",
       "level": 3,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2269,7 +2269,7 @@
     {
       "equipmentId": "grappling-rope",
       "slotNo": 1,
-      "id": "grapple",
+      "id": "skill_grapple",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2277,7 +2277,7 @@
     {
       "equipmentId": "undertow-sword",
       "slotNo": 1,
-      "id": "retreatSlash",
+      "id": "skill_retreat_slash",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2285,7 +2285,7 @@
     {
       "equipmentId": "breaker-hammer",
       "slotNo": 1,
-      "id": "knockback",
+      "id": "skill_knockback",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2293,7 +2293,7 @@
     {
       "equipmentId": "twin-bow",
       "slotNo": 1,
-      "id": "splitShot",
+      "id": "skill_split_shot",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2301,7 +2301,7 @@
     {
       "equipmentId": "partner-dagger",
       "slotNo": 1,
-      "id": "pincer",
+      "id": "skill_pincer",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2309,7 +2309,7 @@
     {
       "equipmentId": "rest-staff",
       "slotNo": 1,
-      "id": "healingCross",
+      "id": "skill_healing_cross",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2317,7 +2317,7 @@
     {
       "equipmentId": "battleline-shield",
       "slotNo": 1,
-      "id": "defenseLine",
+      "id": "skill_defense_line",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2325,7 +2325,7 @@
     {
       "equipmentId": "sharing-tome",
       "slotNo": 1,
-      "id": "manaGift",
+      "id": "skill_mana_gift",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2333,7 +2333,7 @@
     {
       "equipmentId": "return-ring-1",
       "slotNo": 1,
-      "id": "returnHome",
+      "id": "skill_return_home",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2341,7 +2341,7 @@
     {
       "equipmentId": "victory-earring-1",
       "slotNo": 1,
-      "id": "victoryBreath",
+      "id": "skill_victory_breath",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2349,7 +2349,7 @@
     {
       "equipmentId": "lone-ring-1",
       "slotNo": 1,
-      "id": "loneWolf",
+      "id": "skill_lone_wolf",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2357,7 +2357,7 @@
     {
       "equipmentId": "pioneer-gloves-1",
       "slotNo": 1,
-      "id": "firstStride",
+      "id": "skill_first_stride",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2365,7 +2365,7 @@
     {
       "equipmentId": "invasion-charm-1",
       "slotNo": 1,
-      "id": "invasion",
+      "id": "skill_invasion",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2373,7 +2373,7 @@
     {
       "equipmentId": "return-ring-2",
       "slotNo": 1,
-      "id": "returnHome",
+      "id": "skill_return_home",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2381,7 +2381,7 @@
     {
       "equipmentId": "victory-earring-2",
       "slotNo": 1,
-      "id": "victoryBreath",
+      "id": "skill_victory_breath",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2389,7 +2389,7 @@
     {
       "equipmentId": "lone-ring-2",
       "slotNo": 1,
-      "id": "loneWolf",
+      "id": "skill_lone_wolf",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2397,7 +2397,7 @@
     {
       "equipmentId": "pioneer-gloves-2",
       "slotNo": 1,
-      "id": "firstStride",
+      "id": "skill_first_stride",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2405,7 +2405,7 @@
     {
       "equipmentId": "invasion-charm-2",
       "slotNo": 1,
-      "id": "invasion",
+      "id": "skill_invasion",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2413,7 +2413,7 @@
     {
       "equipmentId": "bow-wood",
       "slotNo": 1,
-      "id": "archer",
+      "id": "skill_snipe",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2421,7 +2421,7 @@
     {
       "equipmentId": "bow-wood-1",
       "slotNo": 1,
-      "id": "archer",
+      "id": "skill_snipe",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2429,7 +2429,7 @@
     {
       "equipmentId": "bow-silver-2",
       "slotNo": 1,
-      "id": "archer",
+      "id": "skill_snipe",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2437,7 +2437,7 @@
     {
       "equipmentId": "staff-wood",
       "slotNo": 1,
-      "id": "mage",
+      "id": "skill_heal",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2445,7 +2445,7 @@
     {
       "equipmentId": "staff-silver-1",
       "slotNo": 1,
-      "id": "mage",
+      "id": "skill_heal",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2453,7 +2453,7 @@
     {
       "equipmentId": "dagger-wood",
       "slotNo": 1,
-      "id": "scout",
+      "id": "skill_ambush",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2461,7 +2461,7 @@
     {
       "equipmentId": "hammer-wood",
       "slotNo": 1,
-      "id": "stamp",
+      "id": "skill_stamp",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2469,7 +2469,7 @@
     {
       "equipmentId": "hammer-iron-1",
       "slotNo": 1,
-      "id": "stamp",
+      "id": "skill_stamp",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2477,7 +2477,7 @@
     {
       "equipmentId": "porter-kit",
       "slotNo": 1,
-      "id": "porter",
+      "id": "skill_formation_boost",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2485,7 +2485,7 @@
     {
       "equipmentId": "guard-shield-wood",
       "slotNo": 1,
-      "id": "guard",
+      "id": "skill_cover",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2493,7 +2493,7 @@
     {
       "equipmentId": "guard-shield-iron-1",
       "slotNo": 1,
-      "id": "guard",
+      "id": "skill_cover",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2501,7 +2501,7 @@
     {
       "equipmentId": "pouch-belt",
       "slotNo": 1,
-      "id": "secretPouch",
+      "id": "skill_secret_pouch",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2509,7 +2509,7 @@
     {
       "equipmentId": "pouch-belt-1",
       "slotNo": 1,
-      "id": "secretPouch",
+      "id": "skill_secret_pouch",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2517,7 +2517,7 @@
     {
       "equipmentId": "pouch-belt-2",
       "slotNo": 1,
-      "id": "secretPouch",
+      "id": "skill_secret_pouch",
       "level": 2,
       "sourceField": "effect",
       "explicitLevel": true
@@ -2525,7 +2525,7 @@
     {
       "equipmentId": "pouch-belt-3",
       "slotNo": 1,
-      "id": "secretPouch",
+      "id": "skill_secret_pouch",
       "level": 3,
       "sourceField": "effect",
       "explicitLevel": true
@@ -2533,7 +2533,7 @@
     {
       "equipmentId": "porter-bag",
       "slotNo": 1,
-      "id": "fourDimensional",
+      "id": "skill_four_dimensional",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2541,7 +2541,7 @@
     {
       "equipmentId": "porter-whistle",
       "slotNo": 1,
-      "id": "porter",
+      "id": "skill_formation_boost",
       "level": 1,
       "sourceField": "skill",
       "explicitLevel": false
@@ -2549,7 +2549,7 @@
     {
       "equipmentId": "bow-wood-2",
       "slotNo": 1,
-      "id": "archer",
+      "id": "skill_snipe",
       "level": 2,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2557,7 +2557,7 @@
     {
       "equipmentId": "bow-wood-3",
       "slotNo": 1,
-      "id": "archer",
+      "id": "skill_snipe",
       "level": 3,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2565,7 +2565,7 @@
     {
       "equipmentId": "dagger-wood-1",
       "slotNo": 1,
-      "id": "scout",
+      "id": "skill_ambush",
       "level": 2,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2573,7 +2573,7 @@
     {
       "equipmentId": "dagger-wood-2",
       "slotNo": 1,
-      "id": "scout",
+      "id": "skill_ambush",
       "level": 2,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2581,7 +2581,7 @@
     {
       "equipmentId": "dagger-glass",
       "slotNo": 1,
-      "id": "scout",
+      "id": "skill_ambush",
       "level": 3,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2589,7 +2589,7 @@
     {
       "equipmentId": "dagger-steel",
       "slotNo": 1,
-      "id": "scout",
+      "id": "skill_ambush",
       "level": 3,
       "sourceField": "skill",
       "explicitLevel": true
@@ -2597,7 +2597,7 @@
     {
       "equipmentId": "stealth-cloak",
       "slotNo": 1,
-      "id": "invasion",
+      "id": "skill_invasion",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2605,7 +2605,7 @@
     {
       "equipmentId": "cloth-skirt",
       "slotNo": 1,
-      "id": "secretPouch",
+      "id": "skill_secret_pouch",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2613,7 +2613,7 @@
     {
       "equipmentId": "leggings",
       "slotNo": 1,
-      "id": "evasion",
+      "id": "skill_evasion",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2621,7 +2621,7 @@
     {
       "equipmentId": "elf-hair-ornament",
       "slotNo": 1,
-      "id": "elfProof",
+      "id": "skill_elf_proof",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2629,7 +2629,7 @@
     {
       "equipmentId": "elf-hair-ornament",
       "slotNo": 2,
-      "id": "speedUp",
+      "id": "skill_speed_up",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2637,7 +2637,7 @@
     {
       "equipmentId": "dwarf-hair-ornament",
       "slotNo": 1,
-      "id": "dwarfProof",
+      "id": "skill_dwarf_proof",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false
@@ -2645,7 +2645,7 @@
     {
       "equipmentId": "dwarf-hair-ornament",
       "slotNo": 2,
-      "id": "speedDown",
+      "id": "skill_speed_down",
       "level": 1,
       "sourceField": "effect",
       "explicitLevel": false

@@ -15,7 +15,7 @@ for(const outer of values)for(const inner of values){
  console.log('PASS outer='+String(outer)+' state='+String(inner)+' '+(accepted?'roundtrip':'rejected unchanged'));
 }
 for(const revision of [absent,0,2,null,'1']){
- const s=C.create();assert(C.accept(s,C.board(s)[0].id,"recruit-porter-human-female"));const e=JSON.parse(C.serialize(s));
+ const s=C.create();assert(C.accept(s,C.board(s)[0].id,"character_yuno"));const e=JSON.parse(C.serialize(s));
  if(revision===absent)delete e.state.rollback.cargoRevision;else e.state.rollback.cargoRevision=revision;
  const original=JSON.stringify(e);assert.throws(()=>C.deserialize(e));assert.equal(JSON.stringify(e),original);invalid.push(e);checks++;
  console.log('PASS mismatched rollback marker '+String(revision));

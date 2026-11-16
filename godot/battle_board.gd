@@ -30,7 +30,7 @@ var last_animated_phase := ""
 var portraits
 var data: Dictionary = {}
 var preview: Dictionary = {}
-var kind := "attack"
+var kind := "action_attack"
 var reference_mode := false
 var selected := ""
 var targets: Array = []
@@ -205,7 +205,7 @@ func can_deploy_enemy_side(uid: String) -> bool:
 		if str(member.get("id",""))==uid:
 			var stats=member.get("stats",{})
 			var effects=stats.get("effects",[]) if stats is Dictionary else []
-			return effects is Array and effects.has("invasion")
+			return effects is Array and effects.has("skill_invasion")
 	return false
 func _drop_data(at_position: Vector2,payload):
 	if not _can_drop_data(at_position,payload) or not DeploymentDrag.consume(deployment_ui,payload):return
@@ -356,7 +356,7 @@ func draw_overlay():
 	var resolving=data.get("presentation") is Dictionary
 	var state: Dictionary=data.get("state") if data.get("state") is Dictionary else {}
 	var ranges=preview.get("ranges",data.get("ranges",{}).get(kind,[]))
-	if preview.is_empty() and kind in ["move","return"]:ranges=data.get("choices",{}).get(kind,[])
+	if preview.is_empty() and kind in ["action_move","action_return"]:ranges=data.get("choices",{}).get(kind,[])
 	if state.get("deploying",false): ranges=data.get("deployment",{}).get(selected,{}).get("ranges",[])
 	for p in ranges:
 		var w=point(int(p));var poly=PackedVector2Array()
@@ -513,28 +513,28 @@ func effect_event(p: Dictionary) -> Dictionary:
 		for u in data.get("state",{}).get("units",[]):
 			if u.id==p.get("actor_id"):actor=u;break
 		if actor.is_empty():return {}
-		var kind=str(p.get("kind",""));var skill=str(p.get("skill_id","")) if kind in ["skill","return"] else kind
+		var kind=str(p.get("kind",""));var skill=str(p.get("skill_id","")) if kind in ["action_skill","action_return"] else kind
 		var resolved=p.get("resolved",{});var targets=resolved.get("targets",[]);var cell=-1;var target_id=""
 		if p.get("target") is int or p.get("target") is float:cell=int(p.target)
 		if not targets.is_empty():cell=int(targets[0].cell);target_id=str(targets[0].unit_id)
 		var cells=resolved.get("cells",[]).duplicate()
-		if skill=="healingCross":cells=p.get("resolved_heals",[]).map(func(row):return int(row.cell))
-		elif skill=="legSweep":cells=data.get("ranges",{}).get("skill",[]).duplicate()
-		elif skill=="stamp":
+		if skill=="skill_healing_cross":cells=p.get("resolved_heals",[]).map(func(row):return int(row.cell))
+		elif skill=="skill_leg_sweep":cells=data.get("ranges",{}).get("action_skill",[]).duplicate()
+		elif skill=="skill_stamp":
 			cell=int(p.get("target",-1))
 			if cells.is_empty():cells=data.get("stampAreas",{}).get(str(cell),[]).duplicate()
-		if kind=="attack":
+		if kind=="action_attack":
 			if p.get("attack_visual") is Dictionary:
 				cell=int(p.attack_visual.get("target_cell",-1));target_id=str(p.attack_visual.get("target_unit_id") if p.attack_visual.get("target_unit_id")!=null else "")
 			else:
 				target_id=str(p.get("target",""))
 				for u in data.get("state",{}).get("units",[]):
 					if u.id==target_id:cell=int(u.pos);break
-		if kind=="guard":cell=int(actor.pos)
+		if kind=="action_defend":cell=int(actor.pos)
 		effect_action={"action_id":p.get("action_id"),"skill_id":skill,"kind":kind,"origin":int(actor.pos),"cells":cells,"recipient":cell,"target_id":target_id,"actor_id":str(actor.id),"resolved_status":p.get("resolved_status",[]).duplicate(true),"resolved_support":p.get("resolved_support",[]).duplicate(true),"resolved":resolved.duplicate(true)}
 		if p.get("attack_visual") is Dictionary:effect_action.attack_style=attack_visual_style(actor,p.attack_visual)
 		var event=effect_action.duplicate(true);event.phase="action"
-		if not skill_effects.is_painted(event) or (skill in ["legSweep","stamp"] and cells.is_empty()):return {}
+		if not skill_effects.is_painted(event) or (skill in ["skill_leg_sweep","skill_stamp"] and cells.is_empty()):return {}
 		return event
 	var same=p.get("action_id")==effect_action.get("action_id");var skill=str(effect_action.get("skill_id","")) if same else ""
 	var phase=str(p.get("phase",""));var affected={}
@@ -551,24 +551,24 @@ func effect_event(p: Dictionary) -> Dictionary:
 		event.skill_id=str(p.get("skill_id",skill));event.resource=p.get("resource","");event.amount=int(p.to)-int(p.from);event.origin=int(p.get("source_cell",event.get("origin",affected.pos)));event.donor_amount=int(p.get("donor_amount",0))
 		return event if event.amount>0 and skill_effects.is_painted(event) else {}
 	if phase not in ["heal","hurt"] or p.get("to",0)==p.get("from",0):return {}
-	var expanded=["archer","scout","grapple","retreatSlash","knockback","splitShot","pincer","healingCross","item"]
-	event.skill_id=skill if skill in expanded or skill=="stamp" else "mage" if phase=="heal" and skill=="mage" else "impact"
+	var expanded=["skill_snipe","skill_ambush","skill_grapple","skill_retreat_slash","skill_knockback","skill_split_shot","skill_pincer","skill_healing_cross","action_item"]
+	event.skill_id=skill if skill in expanded or skill=="skill_stamp" else "skill_heal" if phase=="heal" and skill=="skill_heal" else "impact"
 	# Preserve existing fallback handling for ordinary item-less HP changes.
-	if phase=="heal" and skill not in ["mage","healingCross","item"]:return {}
-	if skill=="scout" and phase=="hurt":
+	if phase=="heal" and skill not in ["skill_heal","skill_healing_cross","action_item"]:return {}
+	if skill=="skill_ambush" and phase=="hurt":
 		for actor in data.get("state",{}).get("units",[]):
 			if str(actor.id)==str(event.get("actor_id","")):event.origin=int(actor.pos);break
 	event.amount=int(p.to)-int(p.from);event.guarding=affected.get("guard",false)
-	event.redirected=phase=="hurt" and same and effect_action.get("kind")=="attack" and not str(effect_action.get("target_id","")).is_empty() and effect_action.target_id!=str(affected.id)
+	event.redirected=phase=="hurt" and same and effect_action.get("kind")=="action_attack" and not str(effect_action.get("target_id","")).is_empty() and effect_action.target_id!=str(affected.id)
 	return event
 func passive_events(p: Dictionary) -> Array:
 	var events=[];var current=data.get("presentation")
 	if not current is Dictionary or current.get("id")!=p.get("id") or current.get("index")!=p.get("index"):return events
 	for trigger in p.get("triggered_passives",[]):
-		if trigger.get("skillId")=="victoryBreath" and p.get("phase")=="resource" and p.get("to",0)>p.get("from",0):continue
+		if trigger.get("skillId")=="skill_victory_breath" and p.get("phase")=="resource" and p.get("to",0)>p.get("from",0):continue
 		var cell=int(trigger.get("cell",-1))
 		if cell<0 or cell>=50:continue
-		events.append({"action_id":p.get("action_id"),"skill_id":trigger.skillId,"kind":"passive","phase":"passive","origin":int(p.get("from",cell)) if trigger.skillId=="firstStride" else cell,"recipient":cell,"actor_id":trigger.actorId,"recipient_id":trigger.actorId,"sequence":trigger.sequence,"amount":trigger.get("amount",0)})
+		events.append({"action_id":p.get("action_id"),"skill_id":trigger.skillId,"kind":"passive","phase":"passive","origin":int(p.get("from",cell)) if trigger.skillId=="skill_first_stride" else cell,"recipient":cell,"actor_id":trigger.actorId,"recipient_id":trigger.actorId,"sequence":trigger.sequence,"amount":trigger.get("amount",0)})
 	return events
 func attack_visual_style(actor: Dictionary,visual: Dictionary) -> String:
 	# Only the weapon(s) included by canonical reachFilteredPower may supply style.
@@ -591,7 +591,7 @@ func animate(p: Dictionary) -> float:
 	var extra_duration=0.0
 	for passive in passive_events(p):
 		var duration=skill_effects.phase_duration(passive);skill_effects.play(passive,duration);extra_duration=maxf(extra_duration,duration)
-	if p.get("kind")=="skip":return extra_duration
+	if p.get("kind")=="action_skip":return extra_duration
 	if not actors.has(p.get("unit_id","")) or p.phase not in ["action","move","hurt","heal","resource"]:return extra_duration
 	var root: Node3D=actors[p.unit_id].root
 	var sprite: Sprite3D=actors[p.unit_id].sprite

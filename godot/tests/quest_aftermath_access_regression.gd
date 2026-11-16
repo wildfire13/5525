@@ -28,7 +28,7 @@ func run():
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var seed=await saved();await install(seed,"astaris",0)
-	var porter=game.campaign().selected.filter(func(uid):return game.campaign().roster.any(func(c):return c.id==uid and c.job=="porter"))[0]
+	var porter=game.campaign().selected.filter(func(uid):return game.campaign().roster.any(func(c):return c.id==uid and c.job=="job_porter"))[0]
 	await game.act("accept",["standalone-kiln",porter]);await settle();var kiln=await saved()
 	await install(kiln,"east",20);await game.act("completeQuest",[]);await settle();await press("ResultContinue");var completed=await saved()
 	for sample in [[seed,"south",37,"wheel-aftermath"],[completed,"east",23,"kiln-return"]]:

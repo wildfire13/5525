@@ -13,11 +13,11 @@ func run():
  game.navigate("party");await settle();await os_click(node("FacilityChoice_guild"))
  for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
   root.size=dims;await settle();var before=game.campaign().selected.duplicate()
-  var source=await visible_member("recruit-guard-human-male");var target=await visible_member("recruit-guard-human-female")
+  var source=await visible_member("character_gareth");var target=await visible_member("character_mirei")
   await os_mouse(source,"drag",target)
-  var expected=before.duplicate();expected[expected.find("recruit-guard-human-female")]="recruit-guard-human-male"
+  var expected=before.duplicate();expected[expected.find("character_mirei")]="character_gareth"
   check(game.campaign().selected==expected,"OS reserve to current card swaps "+str(dims))
-  source=await visible_member("recruit-guard-human-female");var face=node("PartyFace_recruit-guard-human-male")
+  source=await visible_member("character_mirei");var face=node("PartyFace_character_gareth")
   await os_mouse(source,"drag",face.get_global_rect().get_center())
   check(game.campaign().selected==before,"OS reserve to lower party face swaps "+str(dims))
   var first=node("PartyFace_"+str(before[0]));var second=node("PartyFace_"+str(before[1]))
@@ -25,10 +25,10 @@ func run():
   expected=before.duplicate();expected[0]=before[1];expected[1]=before[0]
   check(game.campaign().selected==expected,"OS horizontal lower bar drag exchanges "+str(dims))
   await snapshot("guild-drag-"+str(dims.x))
-  source=await visible_member("recruit-guard-human-male");var append=node("GuildPartyAppend");node("PartyFacesScroll").ensure_control_visible(append);await frames(16)
-  await os_mouse(source,"drag",append.get_global_rect().get_center());expected.append("recruit-guard-human-male")
+  source=await visible_member("character_gareth");var append=node("GuildPartyAppend");node("PartyFacesScroll").ensure_control_visible(append);await frames(16)
+  await os_mouse(source,"drag",append.get_global_rect().get_center());expected.append("character_gareth")
   check(game.campaign().selected==expected,"OS reserve to empty lower bar slot appends "+str(dims))
-  guild.choose("recruit-guard-human-male");await settle();await os_click(node("GuildRemove"));guild.cancel_selection();await settle()
+  guild.choose("character_gareth");await settle();await os_click(node("GuildRemove"));guild.cancel_selection();await settle()
  check(game.audio.muted.values().all(func(v):return v),"guild GUI sound3 OFF")
  var f=FileAccess.open(evidence.path_join("checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

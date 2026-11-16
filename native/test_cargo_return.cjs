@@ -5,9 +5,9 @@ function fight(s){
  assert(C.begin(s));
  for(let n=0;n<300&&!s.battle.result;n++){
   const b=clone(s.battle),actor=b.units.find(u=>u.id===b.actor);let {kind,target}=B.chooseAction(b,actor);
-  if(actor.job==='porter'){
-   const hurt=b.units.filter(u=>u.side==='ally'&&u.hp>0&&u.hp<30).sort((a,b)=>a.hp-b.hp).find(u=>B.legal(b,'item',u.id));
-   if(hurt){kind='item';target=hurt.id;}else{kind=B.legal(b,'skill',actor.id)?'skill':'guard';target=kind==='skill'?actor.id:null;}
+  if(actor.job==='job_porter'){
+   const hurt=b.units.filter(u=>u.side==='ally'&&u.hp>0&&u.hp<30).sort((a,b)=>a.hp-b.hp).find(u=>B.legal(b,'action_item',u.id));
+   if(hurt){kind='action_item';target=hurt.id;}else{kind=B.legal(b,'action_skill',actor.id)?'action_skill':'action_defend';target=kind==='action_skill'?actor.id:null;}
   }
   assert(C.act(s,kind,target));
  }
@@ -19,13 +19,13 @@ function trip(s,to){
  const cash=s.gold,bag=clone(s.characters);assert(C.arrive(s));assert.equal(s.phase,'town');assert.equal(s.gold,cash);assert.deepEqual(s.characters,bag);
  assert.deepEqual(C.deserialize(C.serialize(s)),s);
 }
-const s=require('./test-current-fixture.cjs')();assert(C.accept(s,C.board(s)[0].id,"recruit-porter-human-female"));const id=s.activeQuest.cargoItemId;
-assert(C.select(s,["recruit-guard-human-female","recruit-scout-human-male","recruit-mage-elf-female","recruit-scout-human-female"]));trip(s,'east');
-assert(!C.completeQuest(s));assert(s.activeQuest&&s.characters["recruit-porter-human-female"].inventory[id]===1);
-trip(s,'astaris');assert(C.select(s,["recruit-guard-human-female","recruit-scout-human-male","recruit-mage-elf-female","recruit-scout-human-female","recruit-porter-human-female"]));assert(C.inn(s));
-s.characters['recruit-guard-human-female'].inventory.potion=3;
-const potions=C.inventoryQuote(s,"recruit-guard-human-female",'potion','transfer',"recruit-porter-human-female",3);
-assert(potions.ok&&C.inventoryAction(s,"recruit-guard-human-female",'potion','transfer',"recruit-porter-human-female",3,null,potions.token));
+const s=require('./test-current-fixture.cjs')();assert(C.accept(s,C.board(s)[0].id,"character_yuno"));const id=s.activeQuest.cargoItemId;
+assert(C.select(s,["character_mirei","character_kyle","character_merina","character_rio"]));trip(s,'east');
+assert(!C.completeQuest(s));assert(s.activeQuest&&s.characters["character_yuno"].inventory[id]===1);
+trip(s,'astaris');assert(C.select(s,["character_mirei","character_kyle","character_merina","character_rio","character_yuno"]));assert(C.inn(s));
+s.characters['character_mirei'].inventory.potion=3;
+const potions=C.inventoryQuote(s,"character_mirei",'potion','transfer',"character_yuno",3);
+assert(potions.ok&&C.inventoryAction(s,"character_mirei",'potion','transfer',"character_yuno",3,null,potions.token));
 assert(!C.completeQuest(s));trip(s,'east');
-assert.equal(s.activeQuest.elapsedHours,36);assert(C.completeQuest(s));assert.equal(s.result.gold,117);assert(!s.characters["recruit-porter-human-female"].inventory[id]);assert(!C.completeQuest(s));
+assert.equal(s.activeQuest.elapsedHours,36);assert(C.completeQuest(s));assert.equal(s.result.gold,117);assert(!s.characters["character_yuno"].inventory[id]);assert(!C.completeQuest(s));
 console.log(JSON.stringify({passed:true,checks:1,actualBattles:6,hours:36,lateReward:117,route:['astaris','east','astaris','east'],warp:false}));

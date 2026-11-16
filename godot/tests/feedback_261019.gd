@@ -12,11 +12,11 @@ func run():
 	check(rect.position.x>1700 and rect.position.y>1000 and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(rect),"menu fixed in FHD bottom right: "+str(rect))
 	await game.new_game();
 	var stock=await saved()
-	stock.state.characters["recruit-guard-human-female"].inventory={"potion":3,"kungfu-pants":1,"javelin-wood":1}
+	stock.state.characters["character_mirei"].inventory={"potion":3,"kungfu-pants":1,"javelin-wood":1}
 	await game.update({"op":"campaign_load","data":stock});await settle()
 	var before_preview=await saved()
-	game.pages.party_view.open_inventory("recruit-guard-human-female");await settle()
-	var entries=game.campaign().inventoryByCharacter["recruit-guard-human-female"].entries
+	game.pages.party_view.open_inventory("character_mirei");await settle()
+	var entries=game.campaign().inventoryByCharacter["character_mirei"].entries
 	var names={}
 	for item in entries:names[item.id]=item.name
 	var rows=game.find_children("*","Button",true,false)
@@ -38,7 +38,7 @@ func run():
 	# Both free travel and quest arrival normalize before the first visible render.
 	for quest in [false,true]:
 		await game.new_game();await settle()
-		if quest:await game.act("accept",[game.campaign().board[0].id,"recruit-porter-human-female"])
+		if quest:await game.act("accept",[game.campaign().board[0].id,"character_yuno"])
 		var cash=game.campaign().gold;await game.act("depart",["east"])
 		var arrival=await saved();arrival.state.phase="arrival";arrival.state.journey.phase="delivery";arrival.state.journey.stage=2;arrival.state.journey.hours=4
 		arrival.state.journey.party=arrival.state.selected.map(func(id):return game.roster().filter(func(u):return u.id==id)[0].duplicate(true))
@@ -69,7 +69,7 @@ func run():
 		check(panel.global_position.y==0 and panel.global_position.x==0 and panel.z_index>=10,"floating panel reaches screen top while remaining visible")
 		panel.position=Vector2(5000,5000);panel.constrain();await frames()
 		check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(panel.get_global_rect()),"floating panel cannot be lost off screen")
-	var before=await saved();await game.choose_command("move");await game.on_cell(int(game.data.choices.move[0]));await settle()
+	var before=await saved();await game.choose_command("action_move");await game.on_cell(int(game.data.choices.action_move[0]));await settle()
 	await escape_key();check(await saved()==before and game.pending==null,"ESC cancels selected target without action consumption")
 	while not game.hud.action_menu:game.cancel();await settle()
 	await escape_key()

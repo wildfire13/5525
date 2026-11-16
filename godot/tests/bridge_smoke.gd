@@ -43,7 +43,7 @@ func run():
 		d = await bridge.request({"op":"presentation_next","id":p.id,"index":p.index})
 		frames += 1
 	check(d.get("ok",false) and frames > 0 and frames < 200,"ordered ACK drains opening actions")
-	d = await bridge.request({"op":"act","kind":"guard","target":null,"presentation":true})
+	d = await bridge.request({"op":"act","kind":"action_defend","target":null,"presentation":true})
 	check(d.get("ok",false) and d.get("presentation") != null,"battle operation produces presentation")
 	d = await bridge.request({"op":"presentation_finish","id":d.presentation.id})
 	check(d.get("ok",false) and d.get("presentation") == null,"finish settles action once")

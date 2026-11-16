@@ -81,8 +81,8 @@ func run():
 	game.render()
 	await settle()
 	verify_sprites(actor,path)
-	await game.choose_command("move")
-	var moves=game.data.choices.move
+	await game.choose_command("action_move")
+	var moves=game.data.choices.action_move
 	check(not moves.is_empty(),"current actor has a movement preview")
 	if not moves.is_empty():
 		var target=int(moves[0])

@@ -26,7 +26,7 @@ async function main() {
   const start = await call({op: 'campaign_start'});
   assert.equal(start.ok, true);
   assert.equal(Object.keys(start.campaign.characters).length, 24);
-  assert.ok(Object.keys(start.campaign.characters).every(id => id.startsWith('recruit-')));
+  assert.ok(Object.keys(start.campaign.characters).every(id => id.startsWith('character_')));
   await campaign('depart', 'north', 'convoy');
   await campaign('travel', 'short');
   // This run's real deployment save supplies the same random encounter to both
@@ -36,7 +36,7 @@ async function main() {
   const direct = C.deserialize(JSON.stringify(saved.data));
   const snapshot = () => JSON.parse(JSON.stringify(direct.battle));
   assert.ok(direct.battle.units.filter(u => u.side === 'ally')
-   .every(u => u.id.startsWith('recruit-') && u.equipment && u.skillSources.length));
+   .every(u => u.id.startsWith('character_') && u.equipment && u.skillSources.length));
   const opening = await call({op: 'campaign', action: 'begin', args: [], presentation: true});
   assert.equal(opening.ok, true);
   assert.ok(C.begin(direct));
@@ -58,7 +58,7 @@ async function main() {
   }
   assert.ok(direct.battle.result, 'battle reaches a terminal outcome');
   const terminal = snapshot();
-  assert.equal((await call({op: 'act', kind: 'guard'})).ok, false);
+  assert.equal((await call({op: 'act', kind: 'action_defend'})).ok, false);
   assert.deepEqual((await call({op: 'view'})).state, terminal);
   console.log(`PASS current equipped campaign adapter parity over ${terminal.actions} actions through terminal outcome: ${terminal.result}`);
  } finally {

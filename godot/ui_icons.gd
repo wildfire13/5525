@@ -1,15 +1,21 @@
 extends RefCounted
-## R11: canonical adopted artwork; semantic namespaces never change action IDs.
+## Semantic IDs are mapped explicitly to the unchanged adopted artwork keys.
 var cache: Dictionary={}
 var approved: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://assets/approved_v56/recipes.json"))
 var equipment_paths: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://assets/equipment_icons_placeholder/mapping.json"))
 const TEMP_BADGE="res://assets/approved_v56/assets/icons-review-20261020/temporary-outlined.png"
 const ROOT="res://assets/ui_icons/icons64/"
 const SLOTS={"rightHand":"right_hand","leftHand":"left_hand","head":"head","upperBody":"body","lowerBody":"trousers","feet":"feet","accessory1":"accessory","accessory2":"accessory"}
-const JOBS={"guard":"warrior","warrior":"warrior","archer":"scout","scout":"scout","mage":"mage","porter":"porter"}
-const SKILLS={"swift":"feet","retreatSlash":"sheet_one_handed_sword","knockback":"sheet_hammer","splitShot":"sheet_bow","pincer":"dagger","healingCross":"sheet_staff","defenseLine":"sheet_shield","manaGift":"book","returnHome":"accessory","victoryBreath":"accessory","loneWolf":"accessory","firstStride":"accessory","invasion":"accessory","archer":"sheet_bow","mage":"sheet_staff","scout":"dagger","stamp":"sheet_hammer","porter":"skill","guard":"sheet_shield"}
+const JOBS={"job_warrior":"warrior","job_archer":"scout","job_scout":"scout","job_mage":"mage","job_porter":"porter"}
+const SKILL_ARTWORK={"skill_cover":"guard","skill_snipe":"archer","skill_heal":"mage","skill_ambush":"scout","skill_formation_boost":"porter","skill_stamp":"stamp","skill_item_use":"itemUse","skill_leg_sweep":"legSweep","skill_grapple":"grapple","skill_pole_vault":"poleVault","skill_swift":"swift","skill_retreat_slash":"retreatSlash","skill_knockback":"knockback","skill_split_shot":"splitShot","skill_pincer":"pincer","skill_healing_cross":"healingCross","skill_defense_line":"defenseLine","skill_mana_gift":"manaGift","skill_return_home":"returnHome","skill_victory_breath":"victoryBreath","skill_lone_wolf":"loneWolf","skill_first_stride":"firstStride","skill_secret_pouch":"secretPouch","skill_hole_pouch":"holePouch","skill_four_dimensional":"fourDimensional","skill_evasion":"evasion","skill_speed_up":"speedUp","skill_speed_down":"speedDown","skill_elf_proof":"elfProof","skill_dwarf_proof":"dwarfProof","skill_spear_throw":"spearThrow","skill_invasion":"invasion"}
+const COMMAND_ARTWORK={"action_attack":"attack","action_move":"move","action_skill":"skill","action_defend":"defend","action_return":"accessory","action_item":"potion","action_ether":"ether","items":"items"}
 const WEAPONS={"sword":"sheet_one_handed_sword","greatsword":"sheet_two_handed_sword","spear":"sheet_spear","bow":"sheet_bow","hammer":"sheet_hammer","staff":"sheet_staff","shield":"sheet_shield","dagger":"dagger","book":"book","gun":"gun","empty":"unarmed"}
 const FACILITIES={"weapon":"weapon_shop","armor":"armor_shop","items":"item_shop","accessory":"accessory_shop","inn":"inn"}
+func _init():
+	var current={}
+	for id in SKILL_ARTWORK:
+		if approved.skills.has(SKILL_ARTWORK[id]):current[id]=approved.skills[SKILL_ARTWORK[id]]
+	approved.skills=current
 func texture(id: String) -> Texture2D:
 	if id.is_empty():return null
 	if not cache.has(id):
@@ -104,6 +110,6 @@ func gear(item: Dictionary) -> String:
 	if item.get("type")=="accessory":return "accessory"
 	if item.get("type")=="armor":return slot({"armor":"upperBody"}.get(item.get("slot"),item.get("slot","")))
 	return WEAPONS.get(item.get("type",""),slot(item.get("slot","")))
-func command(id: String) -> String:return {"guard":"defend","return":"accessory","item":"potion","ether":"ether"}.get(id,id)
+func command(id: String) -> String:return COMMAND_ARTWORK.get(id,"")
 func place(id: String) -> String:return "castle" if id=="astaris" else "village"
 func shop(id: String) -> String:return {"east":"weapon_shop","west":"armor_shop","south":"item_shop","north":"accessory_shop"}.get(id,"")

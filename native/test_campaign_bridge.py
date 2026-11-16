@@ -8,9 +8,9 @@ from bridge_test_session import Session, BASE
 POLICY = """
 const B=require('./campaign-battle.js'),fs=require('node:fs'),s=JSON.parse(fs.readFileSync(0,'utf8'));
 const a=s.units.find(u=>u.id===s.actor);let {kind,target}=B.chooseAction(s,a);
-if(a.job==='porter'){
- const moves=[...B.paths(s,a).keys()].filter(p=>p!==a.pos&&p%10>a.pos%10&&B.legalFor(s,a,'move',p)).sort((l,r)=>r%10-l%10||l-r);
- if(moves.length){kind='move';target=moves[0];}else{kind=B.legal(s,'skill',a.id)?'skill':'guard';target=kind==='skill'?a.id:null;}
+if(a.job==='job_porter'){
+ const moves=[...B.paths(s,a).keys()].filter(p=>p!==a.pos&&p%10>a.pos%10&&B.legalFor(s,a,'action_move',p)).sort((l,r)=>r%10-l%10||l-r);
+ if(moves.length){kind='action_move';target=moves[0];}else{kind=B.legal(s,'action_skill',a.id)?'action_skill':'action_defend';target=kind==='action_skill'?a.id:null;}
 }
 console.log(JSON.stringify({kind,target:target??null}));
 """
@@ -33,7 +33,7 @@ class CampaignBridgeTests(unittest.TestCase):
             r=subprocess.run(['node','-e',POLICY],cwd=BASE,input=json.dumps(self.data['state']),text=True,capture_output=True,check=True)
             self.data=self.bridge.call(op='act',**json.loads(r.stdout));self.assertTrue(self.data['ok'],self.data.get('error'))
         self.assertTrue(self.data['state']['result']);self.action('finishBattle')
-    def journey(self,destination,quest=True,owner='recruit-porter-human-female'):
+    def journey(self,destination,quest=True,owner='character_yuno'):
         if quest:
             self.action('accept',next(q['id'] for q in self.data['campaign']['board'] if q['to']==destination),owner)
             accepted=self.save()['state']['activeQuest']
@@ -60,14 +60,14 @@ class CampaignBridgeTests(unittest.TestCase):
         r=copy.deepcopy(self.data['campaign']['result']);self.action('acknowledge');return r
     def test_accept_requires_explicit_selected_porter(self):
         qid=self.data['campaign']['board'][0]['id'];before=self.save()
-        for args in [(qid,),(qid,'recruit-guard-human-female'),(qid,'recruit-porter-human-male')]:
+        for args in [(qid,),(qid,'character_mirei'),(qid,'character_teo')]:
             self.action('accept',*args,ok=False);self.assertEqual(self.save(),before)
-        self.action('select',['recruit-guard-human-female','recruit-porter-human-female','recruit-porter-human-male'])
-        self.action('accept',qid,'recruit-porter-human-male')
+        self.action('select',['character_mirei','character_yuno','character_teo'])
+        self.action('accept',qid,'character_teo')
         quest=self.data['campaign']['activeQuest']
-        self.assertEqual(quest['cargoOwnerId'],'recruit-porter-human-male')
-        self.assertEqual(self.data['campaign']['characters']['recruit-porter-human-male']['inventory'][quest['cargoItemId']],1)
-        self.assertNotIn(quest['cargoItemId'],self.data['campaign']['characters']['recruit-porter-human-female']['inventory'])
+        self.assertEqual(quest['cargoOwnerId'],'character_teo')
+        self.assertEqual(self.data['campaign']['characters']['character_teo']['inventory'][quest['cargoItemId']],1)
+        self.assertNotIn(quest['cargoItemId'],self.data['campaign']['characters']['character_yuno']['inventory'])
         self.assertEqual(self.data['campaign']['phase'],'town')
     def test_reject_and_roundtrip_atomic(self):
         saved=self.save();self.action('buyItem','potion',1,ok=False);self.action('depart','nowhere',ok=False)
@@ -78,19 +78,19 @@ class CampaignBridgeTests(unittest.TestCase):
         log=self.bridge.call(op='export')['data'];self.assertEqual(log['mode'],'campaign');self.assertEqual(log['campaign']['location'],'astaris')
     def test_repeat_trial_inventory_purchase_and_questless(self):
         first=self.journey('east');self.assertGreater(first['gold'],0);snapshot=self.save()
-        self.action('trial','recruit-mage-elf-female','hammer-wood');self.assertIsNotNone(self.data['trial']);self.assertEqual(self.data['state']['actor'],'recruit-mage-elf-female')
-        self.data=self.bridge.call(op='act',kind='skill',target=25);self.assertTrue(self.data['ok']);self.assertEqual(self.data['state']['units'][0]['equippedSkill'],'stamp')
+        self.action('trial','character_merina','hammer-wood');self.assertIsNotNone(self.data['trial']);self.assertEqual(self.data['state']['actor'],'character_merina')
+        self.data=self.bridge.call(op='act',kind='action_skill',target=25);self.assertTrue(self.data['ok']);self.assertEqual(self.data['state']['units'][0]['equippedSkill'],'skill_stamp')
         self.action('accept','invalid',ok=False);self.action('endTrial');self.assertEqual(self.save(),snapshot)
-        self.action('buyGear','recruit-mage-elf-female','hammer-iron-1',ok=False);self.assertEqual(self.save(),snapshot)
-        self.action('buyGear','recruit-mage-elf-female','hammer-wood');self.assertEqual(self.data['campaign']['characters']['recruit-mage-elf-female']['weapon'],'hammer-wood')
-        self.assertEqual(self.data['campaign']['characters']['recruit-mage-elf-female']['inventory']['staff-wood'],1)
-        bought=self.save();self.action('buyGear','recruit-mage-elf-female','hammer-wood',ok=False);self.assertEqual(self.save(),bought)
-        self.action('inventoryQuote','recruit-mage-elf-female','staff-wood','equip',None,1,'rightHand')
+        self.action('buyGear','character_merina','hammer-iron-1',ok=False);self.assertEqual(self.save(),snapshot)
+        self.action('buyGear','character_merina','hammer-wood');self.assertEqual(self.data['campaign']['characters']['character_merina']['weapon'],'hammer-wood')
+        self.assertEqual(self.data['campaign']['characters']['character_merina']['inventory']['staff-wood'],1)
+        bought=self.save();self.action('buyGear','character_merina','hammer-wood',ok=False);self.assertEqual(self.save(),bought)
+        self.action('inventoryQuote','character_merina','staff-wood','equip',None,1,'rightHand')
         quote=self.data['inventoryQuote'];self.assertTrue(quote['ok'])
         gold=self.data['campaign']['gold']
-        self.action('inventoryAction','recruit-mage-elf-female','staff-wood','equip',None,1,'rightHand',quote['token'])
+        self.action('inventoryAction','character_merina','staff-wood','equip',None,1,'rightHand',quote['token'])
         self.assertEqual(self.data['campaign']['gold'],gold)
-        self.assertEqual(self.data['campaign']['characters']['recruit-mage-elf-female']['inventory']['hammer-wood'],1)
+        self.assertEqual(self.data['campaign']['characters']['character_merina']['inventory']['hammer-wood'],1)
         second=self.journey('astaris');self.assertGreater(second['gold'],0)
         self.assertEqual(self.data['campaign']['completed'],2)
         # Recover after the round trip before measuring the questless journey's rewards.
@@ -108,13 +108,13 @@ class CampaignBridgeTests(unittest.TestCase):
 const C=require('./campaign.js'); let seed=0;
 const rng=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
 for(let i=0;i<100;i++){const s=C.create();C.depart(s,'north');C.travel(s,'short',rng);C.begin(s);
-if(s.battle.units.some(u=>u.side==='enemy'&&u.job==='scout')){console.log(C.serialize(s));break;}}
+if(s.battle.units.some(u=>u.side==='enemy'&&u.job==='job_scout')){console.log(C.serialize(s));break;}}
 """
         result=subprocess.run(['node','-e',generator],cwd=BASE,text=True,capture_output=True,check=True)
         valid=json.loads(result.stdout); live=self.save()
         for field in ('pos','hp'):
             bad=copy.deepcopy(valid)
-            scout=next(u for u in bad['state']['battle']['units'] if u['side']=='enemy' and u['job']=='scout')
+            scout=next(u for u in bad['state']['battle']['units'] if u['side']=='enemy' and u['job']=='job_scout')
             del scout[field]
             self.assertFalse(self.bridge.call(op='campaign_load',data=bad)['ok'])
             self.assertEqual(self.save(),live)
@@ -124,7 +124,7 @@ if(s.battle.units.some(u=>u.side==='enemy'&&u.job==='scout')){console.log(C.seri
             self.assertEqual(self.save(),live)
         self.data=self.bridge.call(op='campaign_load',data=valid);self.assertTrue(self.data['ok'])
         for _ in range(3):
-            self.data=self.bridge.call(op='act',kind='guard',target=None);self.assertTrue(self.data['ok'])
+            self.data=self.bridge.call(op='act',kind='action_defend',target=None);self.assertTrue(self.data['ok'])
     def test_restart_mid_journey(self):
         self.action('depart','north');self.action('travel','safe');saved=self.save()
         self.bridge.close();self.bridge=Session(22);self.data=self.bridge.call(op='campaign_load',data=saved)

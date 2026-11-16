@@ -1,4 +1,5 @@
 extends Node
+const PortraitCatalog=preload("res://portraits.gd")
 var bgm: AudioStreamPlayer
 var quest: AudioStreamPlayer
 var voice: AudioStreamPlayer
@@ -7,6 +8,7 @@ var ui_player: AudioStreamPlayer
 var bgm_catalog: Dictionary = {}
 var voices: Dictionary = {}
 var event_voices: Dictionary = {}
+var voice_keys: Dictionary = {}
 var voice_queue: Array = []
 var quest_voice_keys: Dictionary = {}
 var suppress_result_voice_once := false
@@ -57,6 +59,8 @@ func _ready():
 	var m = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("music/manifest.json")))
 	for t in m.tracks: bgm_catalog[t.id]=base.path_join("music").path_join(t.filename)
 	bgm_catalog["battle2"]=bgm_catalog[m.routes.battle]
+	for person in PortraitCatalog.catalog_by_id(PortraitCatalog.read_character_catalog()).values():
+		voice_keys[person.id]=person.voiceKey
 	var v = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("voices/manifest.json")))
 	for c in v.characters:
 		for cue in c.prepared: voices[c.id+"/"+cue] = base.path_join("voices").path_join(c.prepared[cue].path)
@@ -133,6 +137,8 @@ func sync(d: Dictionary) -> void:
 	var c: Dictionary = d.get("campaign",{})
 	choose_journey(c)
 	var state: Dictionary = d.get("state") if d.get("state") is Dictionary else {}
+	for person in c.get("roster",[])+state.get("units",[]):
+		if not str(person.get("voiceKey","")).is_empty():voice_keys[str(person.id)]=str(person.voiceKey)
 	var phase = c.get("phase","town")
 	var battle = (phase=="battle" or d.get("trial") != null) and state.get("result")==null
 	var on_road = phase in ["road","deployment","battle","camp"] and not battle and d.get("trial")==null
@@ -237,10 +243,10 @@ func phase(p: Dictionary) -> float:
 		duration=maxf(duration,queue_voices(p.voiceEvents))
 	var se_id=""
 	if p.phase=="action":
-		if p.get("kind")=="attack":se_id="attack"
-		elif p.get("kind") in ["skill","return"]:
-			se_id="attack" if p.get("skill_id") in ["archer","scout","stamp","retreatSlash","knockback","splitShot","pincer"] else "skill"
-		elif p.get("kind")=="ether":se_id="heal"
+		if p.get("kind")=="action_attack":se_id="attack"
+		elif p.get("kind") in ["action_skill","action_return"]:
+			se_id="attack" if p.get("skill_id") in ["skill_snipe","skill_ambush","skill_stamp","skill_retreat_slash","skill_knockback","skill_split_shot","skill_pincer"] else "skill"
+		elif p.get("kind")=="action_ether":se_id="heal"
 	elif p.phase=="hurt":se_id="hit"
 	elif p.phase=="heal":se_id="heal"
 	var group=str(connection_generation)+":group:"+str(p.action_id)+":"+p.phase+":"+str(p.get("impact_group_id",0))
@@ -253,9 +259,10 @@ func phase(p: Dictionary) -> float:
 
 # New roster voices are exact-ID assets, never inferred from an unknown portrait/job.
 func voice_stream(uid: String,cue: String) -> AudioStream:
+	var asset_key=str(voice_keys.get(uid,uid))
 	var event_cue="attack" if cue.begins_with("skill:") else "damage" if cue=="hurt" else cue
-	var path=str(event_voices.get(uid+"/"+event_cue,""))
-	if path.is_empty():return load_wav(str(voices.get(uid+"/"+cue,"")))
+	var path=str(event_voices.get(asset_key+"/"+event_cue,""))
+	if path.is_empty():return load_wav(str(voices.get(asset_key+"/"+cue,"")))
 	if not streams.has(path):streams[path]=AudioStreamMP3.load_from_file(path)
 	return streams[path]
 func stop_voice() -> void:
@@ -289,7 +296,7 @@ func celebrate(units: Array,cue: String) -> void:
 	var candidates: Array=[]
 	for u in units:
 		var uid=str(u.get("id",""))
-		if u.get("side","ally")=="ally" and (cue!="battle_win" or u.get("hp",0)>0) and event_voices.has(uid+"/"+cue):
+		if u.get("side","ally")=="ally" and (cue!="battle_win" or u.get("hp",0)>0) and event_voices.has(str(voice_keys.get(uid,uid))+"/"+cue):
 			candidates.append(uid)
 	if not candidates.is_empty():queue_voices([{"character_id":candidates[randi()%candidates.size()],"cue":cue}])
 func quest_completed(c: Dictionary) -> void:

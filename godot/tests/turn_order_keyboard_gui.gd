@@ -8,7 +8,7 @@ func run():
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true;var cases=preload("res://tests/ui_current_fixture.gd").fixtures()
  for dims in [Vector2i(1920,1080)]:
-  root.size=dims;await game.update({"op":"campaign_load","data":cases.attack});await settle();await os_click(game.hud.buttons.attack)
+  root.size=dims;await game.update({"op":"campaign_load","data":cases.attack});await settle();await os_click(game.hud.buttons.action_attack)
   var queue=node("TurnOrderViewport");var before=await saved();var cell=game.board.keyboard_cell
   for i in range(30):
    if queue.has_focus():break

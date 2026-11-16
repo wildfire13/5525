@@ -1,6 +1,6 @@
 'use strict';
 const C=require('../../native/campaign.js'),assert=require('node:assert/strict');
-const guardId='recruit-guard-human-female',scoutId='recruit-scout-elf-male',porterId='recruit-porter-human-female';
+const guardId='character_mirei',scoutId='character_shion',porterId='character_yuno';
 function make(actor){
  const s=C.create();s.characters[guardId].inventory={potion:3,ether:1};s.characters[guardId].leftHand='empty-leftHand';assert(C.inventoryAction(s,guardId,'ether','transfer',porterId,1,null,C.inventoryToken(s)));
  // The archer case compares another owner's stock. Keep it one-handed so

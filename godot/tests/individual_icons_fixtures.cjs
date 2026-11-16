@@ -4,7 +4,7 @@
 const C=require('../../native/campaign.js');
 const B=require('../../native/campaign-battle.js');
 const assert=require('node:assert/strict');
-const OWNER='recruit-guard-human-female',PORTER='recruit-porter-human-female';
+const OWNER='character_mirei',PORTER='character_yuno';
 const gear=C.gear.filter(g=>!g.virtualDefault&&g.type!=='empty'&&!g.id.startsWith('fist-'));
 function base(){
  const s=C.create(),c=s.characters[OWNER];s.gold=5000;s.location='east';

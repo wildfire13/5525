@@ -49,7 +49,7 @@ func run():
 		await install(seed,sample[1],0,"board");await press("QuestChoice_"+id)
 		var before=await bytes();await press("QuestStory_"+id);dialogue_cast(sample[3],id+" request")
 		check(await bytes()==before,id+" request reading preserves save bytes");await close_story()
-		var porter=game.campaign().selected.filter(func(uid):return game.campaign().roster.any(func(c):return c.id==uid and c.job=="porter"))[0]
+		var porter=game.campaign().selected.filter(func(uid):return game.campaign().roster.any(func(c):return c.id==uid and c.job=="job_porter"))[0]
 		await game.act("accept",[id,porter]);await settle();accepted[sample[0]]=await saved()
 		game.navigate("board");await settle();before=await bytes();await press("QuestStory_"+id)
 		var scene=node("QuestDialogue");dialogue_cast(sample[3],id+" active reread")

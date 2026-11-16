@@ -13,20 +13,20 @@ func settle():
 	while game.locked or game.engine.busy or game.presenting or shop().quote_worker or shop().sale.previewing:await process_frame
 func shop_cases():
 	var before=await saved()
-	node("RosterMember_recruit-guard-human-female").pressed.emit();await settle()
+	node("RosterMember_character_mirei").pressed.emit();await settle()
 	node("Product_spear-wood").pressed.emit();await settle()
 	var comparison=shop().comparison_view
 	for rule in [[10,9,"#ffb1a6"],[10,11,"#8ee6ab"],[10,10,"#d5dbe2"]]:
 		check("COLOR-"+str(rule[1]),comparison.change("▼ ▲ ＝",rule[0],rule[1]).contains("[color="+rule[2]+"]"),"comparison color follows numeric change")
-	var canonical=(await game.engine.request({"op":"campaign","action":"previewGear","args":["recruit-guard-human-female","spear-wood","rightHand"]})).previewGear
-	var owner=game.roster().filter(func(member):return member.id=="recruit-guard-human-female")[0]
+	var canonical=(await game.engine.request({"op":"campaign","action":"previewGear","args":["character_mirei","spear-wood","rightHand"]})).previewGear
+	var owner=game.roster().filter(func(member):return member.id=="character_mirei")[0]
 	var changes=comparison.stat_changes(owner,canonical)
 	check("COMPARE-present",not changes.is_empty() and comparison.panels.size()==2,"shop shows current and candidate equipment")
 	for stat in changes:
 		for side in range(2):
 			var labels=comparison.panels[side].find_children("*","Label",true,false)
 			check("COMPARE-"+str(stat[0])+str(side),labels.any(func(label):return label.is_visible_in_tree() and label.text=="%s　%d" % [stat[0],stat[side+1]]),"visible comparison shows the quoted value")
-	node("RosterMember_recruit-mage-elf-female").pressed.emit();await settle()
+	node("RosterMember_character_merina").pressed.emit();await settle()
 	node("SaleItem_hammer-wood").pressed.emit();await settle()
 	var sale=shop().sale
 	var quote=sale.quote.duplicate(true)
@@ -41,29 +41,29 @@ func shop_cases():
 	node("FacilitySalePrepare").pressed.emit();await settle()
 	sale.confirmation.confirmed.emit();await settle()
 	var after=await saved()
-	check("SALE-context",shop().selected_owner()=="recruit-mage-elf-female" and after.state.gold==quote.afterGold and not after.state.characters["recruit-mage-elf-female"].inventory.has("hammer-wood"),"sale credits quoted proceeds for the selected owner")
+	check("SALE-context",shop().selected_owner()=="character_merina" and after.state.gold==quote.afterGold and not after.state.characters["character_merina"].inventory.has("hammer-wood"),"sale credits quoted proceeds for the selected owner")
 func pending_cases(seed):
 	game.engine.close_engine();game.engine.queue_free();await process_frame
 	var probe=preload("res://tests/inventory_pending_probe.gd").new();game.add_child(probe);game.engine=probe;probe.start_engine()
 	await game.new_game();await game.update({"op":"campaign_load","data":seed});await settle()
-	game.pages.party_view.open_inventory("recruit-guard-human-female");await settle()
+	game.pages.party_view.open_inventory("character_mirei");await settle()
 	var workspace=game.pages.party_view.workspace
 	for action in ["inventoryQuote","inventoryAction"]:
 		var before=await saved()
 		probe.hold_action=action
-		workspace.perform("recruit-guard-human-female","potion","use","recruit-mage-elf-female",1,null)
+		workspace.perform("character_mirei","potion","use","character_merina",1,null)
 		while not probe.waiting:await process_frame
 		check("LOCK-"+action,workspace.busy,"workspace is busy during "+action)
 		if action=="inventoryQuote":
 			check("LOCK-quote-pure",await saved()==before,"held quote has not consumed an item")
-		workspace.perform("recruit-guard-human-female","potion","use","recruit-mage-elf-female",1,null)
+		workspace.perform("character_mirei","potion","use","character_merina",1,null)
 		probe.deliver=true
 		while workspace.busy:await process_frame
 		var after=await saved()
-		check("LOCK-once-"+action,after.state.characters["recruit-guard-human-female"].inventory.potion==2 and after.state.characters["recruit-mage-elf-female"].hp==56,"duplicate use consumes and heals exactly once")
+		check("LOCK-once-"+action,after.state.characters["character_mirei"].inventory.potion==2 and after.state.characters["character_merina"].hp==56,"duplicate use consumes and heals exactly once")
 		if action=="inventoryQuote":
 			await game.update({"op":"campaign_load","data":seed});await settle()
-			game.pages.party_view.open_inventory("recruit-guard-human-female");await settle()
+			game.pages.party_view.open_inventory("character_mirei");await settle()
 func run():
 	create_timer(150).timeout.connect(func():print("FAIL inventory review watchdog");quit(2))
 	evidence=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/")
@@ -72,8 +72,8 @@ func run():
 	while game.data.is_empty():await process_frame
 	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true
-	var seed=await saved();seed.state.location="east";seed.state.characters["recruit-guard-human-female"].inventory={"potion":3};seed.state.gold=120;seed.state.characters["recruit-mage-elf-female"].inventory["hammer-wood"]=1;seed.state.characters["recruit-mage-elf-female"].hp=1
-	await game.update({"op":"campaign_load","data":seed});game.shop_uid="recruit-guard-human-female";game.shop_slot="rightHand";game.navigate("shop");game.pages.facility_entry.choose("buy");await settle()
+	var seed=await saved();seed.state.location="east";seed.state.characters["character_mirei"].inventory={"potion":3};seed.state.gold=120;seed.state.characters["character_merina"].inventory["hammer-wood"]=1;seed.state.characters["character_merina"].hp=1
+	await game.update({"op":"campaign_load","data":seed});game.shop_uid="character_mirei";game.shop_slot="rightHand";game.navigate("shop");game.pages.facility_entry.choose("buy");await settle()
 	await shop_cases();await pending_cases(seed)
 	var f=FileAccess.open(evidence.path_join("uiux-inventory-review.json"),FileAccess.WRITE);f.store_string(JSON.stringify({"checks":checks},"\t"));f.close()
 	game.closing=true;game.dialog.close(false);game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine();game.queue_free()

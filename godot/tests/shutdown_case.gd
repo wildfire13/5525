@@ -16,7 +16,7 @@ func run():
 		game.engine.close_engine();game.engine.node_script=ProjectSettings.globalize_path("res://tests/fault_rules.cjs")
 		OS.set_environment("AUDIT_RULE_MODE","ack");game.engine.start_engine();await game.new_game()
 		await game.act("depart",["north","convoy"]);await game.act("travel",["safe"]);await game.act("begin",[])
-		game.call_deferred("update",{"op":"act","kind":"guard","target":null,"presentation":true})
+		game.call_deferred("update",{"op":"act","kind":"action_defend","target":null,"presentation":true})
 		while not game.presenting or not game.engine.busy:await process_frame
 	var file=FileAccess.open(marker,FileAccess.WRITE)
 	file.store_string(JSON.stringify({"node":game.engine.handles.pid,"helpers":game.engine.owned_io_pids,"busy":game.engine.busy,"presenting":game.presenting,"mode":mode}));file.close()

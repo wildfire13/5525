@@ -5,7 +5,7 @@ const C=require('./campaign.js');
 function setup(event,location){
   const s=C.create();s.location=location;
   const q=C.board(s).find(q=>q.eventId===event);assert(q,`${event} offer present at ${location}`);
-  const porter=s.selected.find(id=>C.view(s).roster.find(c=>c.id===id).job==='porter');
+  const porter=s.selected.find(id=>C.view(s).roster.find(c=>c.id===id).job==='job_porter');
   assert(C.accept(s,q.id,porter));assert.equal(C.validate(s).ok,true,C.validate(s).error);return s;
 }
 function stateAt(s,worldTime,location){s.worldTime=worldTime;s.hours=worldTime;s.location=location;}
@@ -71,12 +71,12 @@ function stateAt(s,worldTime,location){s.worldTime=worldTime;s.hours=worldTime;s
   stateAt(wrong,22,'astaris');wrong.phase='town';wrong.journey=null;wrong.battle=null;assert.equal(C.completeQuest(wrong),false,'merchant cannot be received at the other town');
   const moving=setup('wheel','east');stateAt(moving,16,'east');assert(C.depart(moving,'south'));assert.equal(C.forecast(moving,'short').handoffAvailable,true);
   assert(C.travel(moving,'short',()=>.5));assert.equal(moving.worldTime,18);assert.equal(moving.activeQuest.to,'south');assert.equal(moving.activeQuest.text,'替えの車輪をサウスまで届けてください。');
-  const s=C.create();s.location='north';const offer=C.board(s).find(q=>!q.scenario&&q.to==='astaris');assert(offer);assert(C.accept(s,offer.id,s.selected.find(id=>C.view(s).roster.find(c=>c.id===id).job==='porter')));assert(C.depart(s,'astaris'));const normal=C.forecast(s,'safe');assert.equal(normal.reward,117);assert.equal(normal.scenario,undefined);
+  const s=C.create();s.location='north';const offer=C.board(s).find(q=>!q.scenario&&q.to==='astaris');assert(offer);assert(C.accept(s,offer.id,s.selected.find(id=>C.view(s).roster.find(c=>c.id===id).job==='job_porter')));assert(C.depart(s,'astaris'));const normal=C.forecast(s,'safe');assert.equal(normal.reward,117);assert.equal(normal.scenario,undefined);
 }
 // Current save with a nonzero calendar epoch.
 {
   const loaded=C.create(); loaded.worldTime=42; loaded.hours=42; loaded.standaloneEvents.epoch=42;
-  loaded.location='east';const offer=C.board(loaded).find(q=>q.eventId==='wheel');assert(offer);const porter=loaded.selected.find(id=>C.view(loaded).roster.find(c=>c.id===id).job==='porter');assert(C.accept(loaded,offer.id,porter));
+  loaded.location='east';const offer=C.board(loaded).find(q=>q.eventId==='wheel');assert(offer);const porter=loaded.selected.find(id=>C.view(loaded).roster.find(c=>c.id===id).job==='job_porter');assert(C.accept(loaded,offer.id,porter));
   loaded.worldTime=64;loaded.hours=64;const storedQuest=JSON.stringify(loaded.activeQuest),dynamic=C.view(loaded).activeQuest;assert.equal(dynamic.to,'south');assert(dynamic.text.includes('サウス'));assert.equal(JSON.stringify(loaded.activeQuest),storedQuest,'derived presentation does not rewrite stored active quest');
   const round=C.deserialize(C.serialize(loaded));assert.equal(round.standaloneEvents.epoch,42);assert.equal(C.view(round).activeQuest.to,'south');assert(C.view(round).activeQuest.text.includes('サウス'));
 }

@@ -5,9 +5,9 @@
 function capture(state, engine, kind, run) {
   const events = [], descriptors = [];
   const actor = state?.units.find(u => u.id === state.actor);
-  if (actor?.side === 'ally' && ['attack', 'skill', 'return'].includes(kind)) {
+  if (actor?.side === 'ally' && ['action_attack', 'action_skill', 'action_return'].includes(kind)) {
     events.push({character_id: actor.id,
-      cue: kind === 'return' ? 'skill:returnHome' : kind === 'skill' ? 'skill:' + engine.activeSkill(actor) : 'attack'});
+      cue: kind === 'action_return' ? 'skill:skill_return_home' : kind === 'action_skill' ? 'skill:' + engine.activeSkill(actor) : 'attack'});
   }
   try {
     for (const unit of state?.units || []) {

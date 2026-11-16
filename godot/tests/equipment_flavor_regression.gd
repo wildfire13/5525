@@ -29,7 +29,7 @@ func run():
 	check(button.plain_details.any(func(line):return line==source_hair.flavor),"multiline flavor remains a full plain hover detail")
 	check(button.details.any(func(line):return line.begins_with("[lb]ドワーフ装備不可]")),"condition tag brackets are escaped in rich tooltip markup")
 	var pouch=source.gear.filter(func(g):return g.id=="pouch-belt-3")[0]
-	button.configure(pouch.name,pouch,{"names":{"secretPouch":"秘密のポーチ"},"definitions":{}})
+	button.configure(pouch.name,pouch,{"names":{"skill_secret_pouch":"秘密のポーチ"},"definitions":{}})
 	check(button.plain_details.any(func(line):return line.contains("インベントリ枠") and line.contains("5増やす")),"pouch capacity remains available in existing skill information")
 	var leggings=source.gear.filter(func(g):return g.id=="leggings")[0]
 	button.configure(leggings.name,leggings,{})

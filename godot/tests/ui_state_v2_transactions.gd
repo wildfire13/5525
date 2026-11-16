@@ -8,7 +8,7 @@ class PurchaseProbe extends "res://tests/v2_bridge_probe.gd":
 			lose_purchase=false
 			return _disconnect("injected_lost_inventory_purchase")
 		return reply
-const GUARD="recruit-guard-human-female"
+const GUARD="character_mirei"
 var game
 var probe
 var checks=[]
@@ -46,7 +46,7 @@ func run():
 	accept=await confirm();var calls=buy_count();probe.hold_action="buyInventory";accept.pressed.emit();accept.pressed.emit()
 	while not probe.holding:await process_frame
 	check("V2-S10",game.pages.shop_view.stage=="S5" and buy_count()==calls+1,"duplicate confirmation sends only one inventory purchase")
-	game.pages.shop_view.select_member("recruit-scout-elf-male");game.pages.shop_view.escape()
+	game.pages.shop_view.select_member("character_shion");game.pages.shop_view.escape()
 	check("V2-S10",game.shop_uid==GUARD and game.pages.shop_view.stage=="S5","pending purchase keeps recipient and stage")
 	probe.release=true;await settle();var purchased=await saved()
 	check("V2-S08",purchased.state.gold==quoted.afterGold and purchased.state.characters[GUARD].inventory["spear-wood"]==1 and purchased.state.characters[GUARD].weapon==original.state.characters[GUARD].weapon,"purchase adds inventory once and never auto-equips")
@@ -64,8 +64,8 @@ func run():
 		game.pages.shop_view.open_comparison(product.id);await settle()
 	check("V2-S20",await saved()==before,"browsing live products changes no campaign resources")
 	await game.act("trial",[GUARD,"spear-wood","rightHand"]);await settle()
-	game.choose_command("attack");probe.hold_action="preview"
-	var target=game.data.choices.attack[0]
+	game.choose_command("action_attack");probe.hold_action="preview"
+	var target=game.data.choices.action_attack[0]
 	for unit in game.state().units:
 		if unit.id==target:game.on_cell(int(unit.pos));break
 	while not probe.holding:await process_frame

@@ -1,6 +1,6 @@
 extends "res://tests/brushup_gui.gd"
-const INJURED="recruit-guard-human-female"
-const TIRED="recruit-scout-elf-male"
+const INJURED="character_mirei"
+const TIRED="character_shion"
 func inn_consent():
  for d in game.find_children("*","ConfirmationDialog",true,false):
   if d.visible:return d

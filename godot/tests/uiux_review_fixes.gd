@@ -84,13 +84,13 @@ func shop():
 		node("PurchaseDecline").pressed.emit();await settle();var after=geometry()
 		var cancelled=await snapshot()
 		check("UI01",after.ShopTransaction==initial.ShopTransaction and cancelled==before,"purchase cancel keeps operation position and campaign",after)
-		await game.act("trial",["recruit-guard-human-female","spear-wood","rightHand"]);await settle();game.choose_command("guard");await game.commit();await settle();await game.act("endTrial",[]);await settle()
+		await game.act("trial",["character_mirei","spear-wood","rightHand"]);await settle();game.choose_command("action_defend");await game.commit();await settle();await game.act("endTrial",[]);await settle()
 		var restored=await snapshot()
 		check("UI01",restored==before and game.page=="shop","trial return keeps original campaign and shop")
 		await capture("shop-return-"+str(dims.x))
 	root.size=Vector2i(1920,1080);await settle()
 func camp():
-	await load_fixture("synthetic-one-hit-victory");game.choose_command("attack");await game.on_cell(35);await game.commit();await settle();await game.act("finishBattle",[]);await settle()
+	await load_fixture("synthetic-one-hit-victory");game.choose_command("action_attack");await game.on_cell(35);await game.commit();await settle();await game.act("finishBattle",[]);await settle()
 	check("UI02",game.campaign().phase=="camp","review victory fixture reaches camp")
 	check("UI02",game.results_view.active,"battle reward receipt precedes camp interaction")
 	if game.results_view.active:game.results_view.continue_button.pressed.emit();await settle()
@@ -124,11 +124,11 @@ func frame_capture(key:String):
 	var p=game.data.get("presentation")
 	if p is Dictionary and str(p.id)+":"+str(p.index)==key:root.get_texture().get_image().save_png(evidence.path_join("captures/"+tag+"-frame-"+key.replace(":","-")+".png"))
 func presentation():
-	await load_fixture("porter-enemy-attack");game.command="skill";game.render();await settle()
+	await load_fixture("porter-enemy-attack");game.command="action_skill";game.render();await settle()
 	var before=await snapshot();monitoring=true;process_frame.connect(observe_frame)
 	game.checks_fast=not visual
-	await game.choose_command("skill");await settle();await game.commit();await settle();monitoring=false;process_frame.disconnect(observe_frame);game.checks_fast=true
-	var enemy_frames=frames.filter(func(f):return f.action.get("actor_id")=="enemy-mage-2" and f.action.get("kind")=="attack")
+	await game.choose_command("action_skill");await settle();await game.commit();await settle();monitoring=false;process_frame.disconnect(observe_frame);game.checks_fast=true
+	var enemy_frames=frames.filter(func(f):return f.action.get("actor_id")=="enemy-mage-2" and f.action.get("kind")=="action_attack")
 	check("UI04",enemy_frames.size()>=2,"porter boost is followed by real enemy healer attack frames",{"frames":enemy_frames.size()})
 	var accurate=true;var locked=true
 	for f in enemy_frames:
@@ -136,5 +136,5 @@ func presentation():
 		locked=locked and not f.can_commit
 	check("UI04",accurate and locked,"all enemy attack and impact frames explain current action with selection retired")
 	check("UI04",game.data.get("presentation")==null and game.hud.state_id()=="B0" and game.pending==null and not game.presenting,"next ally opens fresh action list only after presentation completes (V2-B13)")
-	check("UI04",game.state().actions>before.state.battle.actions and game.hud.unit("recruit-porter-human-female").mp==before.state.battle.units.filter(func(u):return u.id=="recruit-porter-human-female")[0].mp-1,"boost keeps existing MP and engine progression")
+	check("UI04",game.state().actions>before.state.battle.actions and game.hud.unit("character_yuno").mp==before.state.battle.units.filter(func(u):return u.id=="character_yuno")[0].mp-1,"boost keeps existing MP and engine progression")
 	await capture("after-enemy-sequence")

@@ -7,7 +7,7 @@ func run():
 	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var before=await saved()
-	var owner="recruit-guard-human-female"
+	var owner="character_mirei"
 	game.navigate("map");await settle();await click("RosterMember_"+owner)
 	game.pages.party_view.workspace.set_tab("ability");await settle()
 	var badge=node("ElementIcon_earth")

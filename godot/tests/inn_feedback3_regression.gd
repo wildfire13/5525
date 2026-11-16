@@ -1,6 +1,6 @@
 extends "res://tests/ui_feedback_20261016.gd"
-const INJURED="recruit-guard-human-female"
-const TIRED="recruit-scout-elf-male"
+const INJURED="character_mirei"
+const TIRED="character_shion"
 func consent():
  for d in game.find_children("*","ConfirmationDialog",true,false):
   if d.visible:return d

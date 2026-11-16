@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict');
 const C=require('./campaign.js'),B=require('./campaign-battle.js'),master=require('./master-data.cjs').getMaster();
 const clone=x=>JSON.parse(JSON.stringify(x));
-const guard='recruit-guard-human-female',mage='recruit-mage-elf-female';
+const guard='character_mirei',mage='character_merina';
 function start(state){assert(C.depart(state,'east'));assert(C.travel(state,'safe',()=>0));return state.battle;}
 
 // Every physical record has a reviewable provisional Wt. Virtual slots/fists stay weightless.
@@ -33,7 +33,7 @@ assert(master.gear.some(x=>x.def>0)&&master.gear.some(x=>x.defFire>0)&&master.ge
 // A KO member's own equipment and bags are shared across the full selected party,
 // including the roster member outside the five combat slots. A new KO takes effect after battle.
 {
- const s=C.create(),reserve='recruit-guard-elf-female';assert(C.select(s,[...s.selected,reserve]));
+ const s=C.create(),reserve='character_sera';assert(C.select(s,[...s.selected,reserve]));
  s.characters[guard].hp=0;s.characters[guard].inventory.potion=4;
  const own=C.inventoryView(s,guard).weight.total,alive=s.selected.filter(id=>s.characters[id].hp>0).length;
  const b=start(s);for(const id of s.battleSelected){const u=b.units.find(x=>x.id===id);if(u?.side==='ally'&&u.hp>0)assert.equal(u.fallenWeightShare,own/alive);}
@@ -52,7 +52,7 @@ assert(master.gear.some(x=>x.def>0)&&master.gear.some(x=>x.defFire>0)&&master.ge
  }
  assert(C.begin(s));
  const carrier=enemies.at(-1);carrier.hp=1;s.battle.actor=carrier.id;
- assert.equal(B.chooseAction(s.battle,carrier).kind,'item');assert(B.stepEnemy(s.battle));
+ assert.equal(B.chooseAction(s.battle,carrier).kind, 'action_item');assert(B.stepEnemy(s.battle));
  assert.equal(carrier.inventory.potion,0);
 
  // Use a heavier test weapon to cross STR with the real one-potion encounter.
@@ -86,7 +86,7 @@ assert(master.gear.some(x=>x.def>0)&&master.gear.some(x=>x.defFire>0)&&master.ge
 
 // Fire > Earth > Water > Fire. DEF is subtracted before the 25% matchup factor.
 {
- const battle=B.create({ally:["recruit-mage-elf-female"],enemy:['guard'],deployment:true}),enemy=battle.units.find(u=>u.side==='enemy');
+ const battle=B.create({ally:["character_merina"],enemy:['guard'],deployment:true}),enemy=battle.units.find(u=>u.side==='enemy');
  enemy.element='earth';enemy.hp=100;enemy.max=100;enemy.defFire=5;
  B.receive(battle,enemy,{physical:0,fire:20,water:0,earth:0},false);assert.equal(enemy.hp,81); // round((20-5)*1.25) = 19
  enemy.element='water';enemy.hp=100;enemy.defFire=5;
@@ -97,7 +97,7 @@ assert(master.gear.some(x=>x.def>0)&&master.gear.some(x=>x.defFire>0)&&master.ge
 
 // DEF can reduce damage to zero; it never creates a heal or a forced 1 point hit.
 {
- const b=B.create({ally:["recruit-guard-human-female"],enemy:['guard'],deployment:true}),enemy=b.units.find(u=>u.side==='enemy');enemy.hp=50;enemy.def=10;
+ const b=B.create({ally:["character_mirei"],enemy:['guard'],deployment:true}),enemy=b.units.find(u=>u.side==='enemy');enemy.hp=50;enemy.def=10;
  B.receive(b,enemy,1,false);assert.equal(enemy.hp,50);
  B.receive(b,enemy,{physical:0,fire:0,water:0,earth:0},false);assert.equal(enemy.hp,50);
 }

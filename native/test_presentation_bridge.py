@@ -13,11 +13,11 @@ class PresentationBridgeTests(unittest.TestCase):
 
     def test_phase_state_save_lock_and_stale_ack(self):
         before = copy.deepcopy(self.data['state'])
-        data = self.bridge.call(op='act', kind='skill', target=['enemy-guard', 'enemy-archer'], presentation=True)
+        data = self.bridge.call(op='act', kind='action_skill', target=['enemy-guard', 'enemy-archer'], presentation=True)
         token = data['presentation']
         self.assertEqual(token['phase'], 'action')
         self.assertEqual(data['state']['units'], before['units'])
-        for request in [dict(op='act', kind='guard'), dict(op='campaign_save'), dict(op='campaign_start'),
+        for request in [dict(op='act', kind='action_defend'), dict(op='campaign_save'), dict(op='campaign_start'),
                         dict(op='campaign', action='endTrial'), dict(op='campaign_load', data={}), dict(op='export')]:
             self.assertFalse(self.bridge.call(**request)['ok'])
         next_data = self.bridge.call(op='presentation_next', id=token['id'], index=token['index'])
@@ -34,7 +34,7 @@ class PresentationBridgeTests(unittest.TestCase):
         self.assertTrue(self.bridge.call(op='campaign_save')['ok'])
 
     def test_finish_is_idempotent_and_no_voice_replay(self):
-        data = self.bridge.call(op='act', kind='attack', target='enemy-guard', presentation=True)
+        data = self.bridge.call(op='act', kind='action_attack', target='enemy-guard', presentation=True)
         token = data['presentation']
         done = self.bridge.call(op='presentation_finish', id=token['id'])
         self.assertTrue(done['ok'])

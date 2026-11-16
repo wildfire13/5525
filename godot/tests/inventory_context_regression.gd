@@ -45,11 +45,11 @@ func run():
 	var actual=game.engine;var delayed=DelayedSaleEngine.new();delayed.actual=actual;game.add_child(delayed);game.engine=delayed
 	node("SaleItem_spear-wood").pressed.emit()
 	while not delayed.held:await process_frame
-	await tap("RosterMember_recruit-scout-elf-male")
+	await tap("RosterMember_character_shion")
 	delayed.release=true
 	while delayed.held:await process_frame
 	await settle();game.engine=actual;delayed.queue_free()
-	check(sale.owner_id=="recruit-scout-elf-male" and sale.item_id.is_empty() and sale.quote.is_empty(),"late quote cannot overwrite the newly selected owner")
+	check(sale.owner_id=="character_shion" and sale.item_id.is_empty() and sale.quote.is_empty(),"late quote cannot overwrite the newly selected owner")
 	check((await saved())==before,"switching owners during a quote preserves the entire save")
 	check(audio_off(),"all inventory checks kept BGM voice and SE OFF")
 	var f=FileAccess.open(qa.path_join("inventory-context-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()

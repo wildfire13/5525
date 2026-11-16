@@ -11,7 +11,7 @@ class VoiceBridgeTests(unittest.TestCase):
         bridge = Session()
         self.addCleanup(bridge.close)
         trial(bridge, SCOUT, 'victory-earring-1', 'north')
-        response = bridge.call(op='act', kind='attack', target='enemy-guard')
+        response = bridge.call(op='act', kind='action_attack', target='enemy-guard')
         self.assertTrue(response['ok'])
         self.assertEqual(response['voiceEvents'], [{'character_id': SCOUT, 'cue': 'attack'}])
         self.assertNotIn('voiceEvents', bridge.call(op='view'))
@@ -41,14 +41,14 @@ class VoiceBridgeTests(unittest.TestCase):
     def test_eight_new_active_skills_emit_one_matching_voice_per_action(self):
         bridge = Session(5525)
         self.addCleanup(bridge.close)
-        cases = [(HUMAN_MAGE, 'undertow-sword', 'retreatSlash'), (HUMAN_MAGE, 'breaker-hammer', 'knockback'),
-                 (SCOUT, 'twin-bow', 'splitShot'), (SCOUT, 'partner-dagger', 'pincer'),
-                 (HUMAN_MAGE, 'rest-staff', 'healingCross'), (HUMAN_MAGE, 'battleline-shield', 'defenseLine'),
-                 (HUMAN_MAGE, 'sharing-tome', 'manaGift'), (PORTER, 'return-ring-1', 'returnHome')]
+        cases = [(HUMAN_MAGE, 'undertow-sword', 'skill_retreat_slash'), (HUMAN_MAGE, 'breaker-hammer', 'skill_knockback'),
+                 (SCOUT, 'twin-bow', 'skill_split_shot'), (SCOUT, 'partner-dagger', 'skill_pincer'),
+                 (HUMAN_MAGE, 'rest-staff', 'skill_healing_cross'), (HUMAN_MAGE, 'battleline-shield', 'skill_defense_line'),
+                 (HUMAN_MAGE, 'sharing-tome', 'skill_mana_gift'), (PORTER, 'return-ring-1', 'skill_return_home')]
         for uid, gear, skill in cases:
             with self.subTest(skill=skill):
-                data = trial(bridge, uid, gear, 'north' if skill == 'returnHome' else 'east')
-                mode = 'return' if skill == 'returnHome' else 'skill'
+                data = trial(bridge, uid, gear, 'north' if skill == 'skill_return_home' else 'east')
+                mode = 'action_return' if skill == 'skill_return_home' else 'action_skill'
                 target = data['choices'][mode][0]
                 before = bridge.call(op='view')
                 preview = bridge.call(op='preview', kind=mode, target=target)
@@ -68,9 +68,9 @@ class VoiceBridgeTests(unittest.TestCase):
     def test_passive_activation_does_not_emit_skill_speech(self):
         bridge = Session(5525)
         self.addCleanup(bridge.close)
-        for gear, skill, action in [('victory-earring-1', 'victoryBreath', 'attack'),
-                                    ('lone-ring-1', 'loneWolf', 'attack'),
-                                    ('pioneer-gloves-1', 'firstStride', 'move')]:
+        for gear, skill, action in [('victory-earring-1', 'skill_victory_breath', 'action_attack'),
+                                    ('lone-ring-1', 'skill_lone_wolf', 'action_attack'),
+                                    ('pioneer-gloves-1', 'skill_first_stride', 'action_move')]:
             data = trial(bridge, HUMAN_MAGE, gear, 'north')
             result = bridge.call(op='act', kind=action, target=data['choices'][action][0])
             self.assertTrue(result['ok'])

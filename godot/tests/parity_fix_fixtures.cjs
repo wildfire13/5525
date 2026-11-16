@@ -1,6 +1,6 @@
 'use strict';
 const C=require('../../native/campaign.js'),B=require('../../native/campaign-battle.js'),assert=require('assert/strict');
-const GUARD='recruit-guard-human-female',SCOUT='recruit-scout-human-female',MAGE='recruit-mage-elf-female';
+const GUARD='character_mirei',SCOUT='character_rio',MAGE='character_merina';
 function battle(actor=GUARD,gear=null){
  const s=C.create();s.location='east';s.gold=1000;
  if(gear){const c=s.characters[actor];c.xp=100;c.level=2;c.statPoints=1;c.skillPoints=1;c.allocations.str=1;}

@@ -54,18 +54,18 @@ func item_cases():
 			var roster=node("PartyRoster")
 			check(roster.find_children("RosterMember_*","Button",true,false).size()==selected.size(),"UX01 shared roster contains the selected party "+context)
 			check(party.find_children("FullBodyPortrait","TextureRect",true,false).size()==selected.size(),"UX01 owner portraits match the party "+context)
-			var owner=node("ItemMember_recruit-guard-human-female")
-			check(text(owner).contains("HP %d/" % before.state.characters["recruit-guard-human-female"].hp) and text(owner).contains("MP %d/" % before.state.characters["recruit-guard-human-female"].mp),"UX01 guard card shows current resources "+context)
-			if before.state.characters["recruit-mage-elf-female"].hp==0:check(text(node("ItemMember_recruit-mage-elf-female")).contains("戦闘不能"),"UX01 defeated owner remains identifiable")
-			check(root.get_visible_rect().encloses(node("RosterMember_recruit-guard-human-female").get_global_rect()),"UX01 roster entry visible "+context)
-			node("InventoryOwner_recruit-guard-human-female").pressed.emit();await settle()
-			check(game.page=="character" and game.pages.party_uid=="recruit-guard-human-female" and game.pages.party_view.workspace.tab=="inventory" and await snapshot()==before,"UX01 owner opens inventory without consuming")
+			var owner=node("ItemMember_character_mirei")
+			check(text(owner).contains("HP %d/" % before.state.characters["character_mirei"].hp) and text(owner).contains("MP %d/" % before.state.characters["character_mirei"].mp),"UX01 guard card shows current resources "+context)
+			if before.state.characters["character_merina"].hp==0:check(text(node("ItemMember_character_merina")).contains("戦闘不能"),"UX01 defeated owner remains identifiable")
+			check(root.get_visible_rect().encloses(node("RosterMember_character_mirei").get_global_rect()),"UX01 roster entry visible "+context)
+			node("InventoryOwner_character_mirei").pressed.emit();await settle()
+			check(game.page=="character" and game.pages.party_uid=="character_mirei" and game.pages.party_view.workspace.tab=="inventory" and await snapshot()==before,"UX01 owner opens inventory without consuming")
 			node("Header_character").pressed.emit();await settle()
-			check(game.page=="items" and node("InventoryOwner_recruit-guard-human-female")!=null and await snapshot()==before,"UX01 return to owner cards preserves save")
+			check(game.page=="items" and node("InventoryOwner_character_mirei")!=null and await snapshot()==before,"UX01 return to owner cards preserves save")
 	root.size=Vector2i(1920,1080)
 	for context in ["town","road","north_travel"]:
 		await restore(context,"hub")
-		var member=node("RosterMember_recruit-guard-human-female")
+		var member=node("RosterMember_character_mirei")
 		check(text(member).contains("HP") and text(member).contains("MP"),"UX01 resource overview remains on "+context)
 func result_cases():
 	for id in ["north_delivery","north_travel","east_travel","west_travel","south_travel","astaris_travel"]:
@@ -106,17 +106,17 @@ func icon_cases():
 	await restore("town","board","east");check(node("QuestList").find_children("QuestChoice_*","Button",true,false).size()==game.campaign().board.size(),"Q04 village displays its current offers");record("Q04-village-board",game.content)
 	await restore("town","shop","north");await game.pages.shop_view.select_slot("accessory1");await settle();check(not game.pages.offered().is_empty() and game.pages.offered().all(func(g):return g.get("shopProductId",g.id)==g.id and g.get("allowedSlots",[g.slot]).has("accessory1")),"Q04 accessory filter lists canonical products");record("Q04-accessory",game.content)
 	await restore("town","shop","east");await game.pages.shop_view.select_slot("sword");await settle();record("Q04-weapon-shop",game.content)
-	await restore("heal_left");var before=await snapshot();await game.choose_command("skill");await game.on_cell(24);await icon_case("Q03-healing",["hp","mp","healing"]);check(await snapshot()==before,"EV01 heal prediction does not consume")
-	await restore("guard");before=await snapshot();await game.choose_command("guard");await icon_case("Q03-defense",["defense_up"]);check(await snapshot()==before,"EV01 defense prediction does not consume")
-	await restore("porter");before=await snapshot();await game.choose_command("skill");await icon_case("Q03-formation",["skill","attack_up","defense_up"]);check(await snapshot()==before,"EV01 boost prediction does not consume")
-	await restore("town","shop","east");await game.act("trial",["recruit-scout-elf-male","twin-bow","rightHand"]);await game.choose_command("skill");await settle()
-	var pair=game.data.choices.skill[0]
+	await restore("heal_left");var before=await snapshot();await game.choose_command("action_skill");await game.on_cell(24);await icon_case("Q03-healing",["hp","mp","healing"]);check(await snapshot()==before,"EV01 heal prediction does not consume")
+	await restore("guard");before=await snapshot();await game.choose_command("action_defend");await icon_case("Q03-defense",["defense_up"]);check(await snapshot()==before,"EV01 defense prediction does not consume")
+	await restore("porter");before=await snapshot();await game.choose_command("action_skill");await icon_case("Q03-formation",["skill","attack_up","defense_up"]);check(await snapshot()==before,"EV01 boost prediction does not consume")
+	await restore("town","shop","east");await game.act("trial",["character_shion","twin-bow","rightHand"]);await game.choose_command("action_skill");await settle()
+	var pair=game.data.choices.action_skill[0]
 	for uid in pair:
 		for unit in game.state().units:
 			if unit.id==uid:await game.on_cell(int(unit.pos));break
 	await icon_case("Q03-multiple-damage",["damage"]);check(game.preview.damagePreview.size()==2 and game.can_commit(),"Q03 real two-target prediction remains available")
-	await game.act("endTrial",[]);await restore("town","shop","north");await game.act("trial",["recruit-guard-human-female","return-ring-1","accessory1"]);await game.choose_command("skill");await game.select_skill("returnHome");await game.on_cell(0);await settle();record("Q03-return",game.content)
-	check(game.command=="return" and game.can_commit() and text(game.content).contains("MP0"),"Q03 return stays available through skills at zero MP cost")
+	await game.act("endTrial",[]);await restore("town","shop","north");await game.act("trial",["character_mirei","return-ring-1","accessory1"]);await game.choose_command("action_skill");await game.select_skill("skill_return_home");await game.on_cell(0);await settle();record("Q03-return",game.content)
+	check(game.command=="action_return" and game.can_commit() and text(game.content).contains("MP0"),"Q03 return stays available through skills at zero MP cost")
 func run():
 	if evidence.is_empty():evidence=ProjectSettings.globalize_path("user://ui-review-fixes")
 	fixtures=preload("res://tests/ui_current_fixture.gd").generate("res://tests/ui_review_fixes_fixtures.cjs")

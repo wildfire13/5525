@@ -9,18 +9,18 @@ class CampaignFormationTests(unittest.TestCase):
         self.assertTrue(self.bridge.call(op='campaign_start')['ok'])
         for action,args in [('depart',['north']),('travel',['safe']),('begin',[])]:
             self.assertTrue(self.bridge.call(op='campaign',action=action,args=args)['ok'])
-        porter='recruit-porter-human-female'
+        porter='character_yuno'
         data=self.bridge.call(op='view')
         for _ in range(10):
             if data['state']['actor']==porter:break
-            data=self.bridge.call(op='act',kind='guard')
+            data=self.bridge.call(op='act',kind='action_defend')
         self.assertEqual(data['state']['actor'],porter)
-        data=self.bridge.call(op='act',kind='skill',target=porter)
+        data=self.bridge.call(op='act',kind='action_skill',target=porter)
         self.assertTrue(data['ok']);self.assertTrue(data['boosted']['ally'])
     def test_second_porter_cannot_complete_a_guard_slot_in_live_bridge_view(self):
         bridge=self.bridge
-        ids=['recruit-porter-human-male','recruit-porter-human-female','recruit-guard-human-female',
-             'recruit-scout-human-female','recruit-mage-elf-female']
+        ids=['character_teo','character_yuno','character_mirei',
+             'character_rio','character_merina']
         self.assertTrue(bridge.call(op='campaign_start')['ok'])
         for action,args in [('select',[ids]),('accept',['sluice-bell',ids[0]]),('depart',['east']),('travel',['short'])]:
             data=bridge.call(op='campaign',action=action,args=args)

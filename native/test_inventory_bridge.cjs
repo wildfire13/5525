@@ -17,16 +17,16 @@ const campaign=(action,args)=>request({op:'campaign',action,args});
     // Current start has 24 new IDs and empty inventories. Seed this inventory
     // transaction fixture explicitly; do not assume old default gifts.
     const fixture=require('./test-current-fixture.cjs')();
-    fixture.characters['recruit-guard-human-female'].inventory={potion:3,ether:1};
+    fixture.characters['character_mirei'].inventory={potion:3,ether:1};
     assert((await request({op:'campaign_load',data:JSON.parse(require('./campaign.js').serialize(fixture))})).ok);
     const initial=(await request({op:'campaign_save'})).data;
-    const q=(await campaign('inventoryQuote',['recruit-guard-human-female','potion','transfer','recruit-mage-elf-female',2,null])).inventoryQuote;
+    const q=(await campaign('inventoryQuote',['character_mirei','potion','transfer','character_merina',2,null])).inventoryQuote;
     assert(q.ok);assert.deepEqual((await request({op:'campaign_save'})).data,initial,'readonly confirmation/cancel leaves saved state exact');
-    const args=['recruit-guard-human-female','potion','transfer','recruit-mage-elf-female',2,null,q.token];
-    view=await campaign('inventoryAction',args);assert(view.ok);assert.equal(view.campaign.characters["recruit-guard-human-female"].inventory.potion,1);assert.equal(view.campaign.characters["recruit-mage-elf-female"].inventory.potion,2);
+    const args=['character_mirei','potion','transfer','character_merina',2,null,q.token];
+    view=await campaign('inventoryAction',args);assert(view.ok);assert.equal(view.campaign.characters["character_mirei"].inventory.potion,1);assert.equal(view.campaign.characters["character_merina"].inventory.potion,2);
     const after=(await request({op:'campaign_save'})).data;
     view=await campaign('inventoryAction',args);assert.equal(view.ok,false);assert.deepEqual((await request({op:'campaign_save'})).data,after,'duplicate request cannot transfer twice');
-    const broken=structuredClone(after);delete broken.state.characters["recruit-guard-human-female"].inventory;
+    const broken=structuredClone(after);delete broken.state.characters["character_mirei"].inventory;
     assert.equal((await request({op:'campaign_load',data:broken})).ok,false);
     assert.deepEqual((await request({op:'campaign_save'})).data,after,'failed load preserves running state');
     assert.equal((await request({op:'campaign_load',data:after})).ok,true);

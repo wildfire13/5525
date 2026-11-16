@@ -86,7 +86,7 @@ func run():
 	await frames();gate.release=true;await settle()
 	check(not game.modal_open() and shop.stage=="S0","closing a newer file picker does not revive old purchase")
 	check((await saved())==before,"all abandoned quotes and modal changes preserve full save")
-	var owner="recruit-mage-elf-female"
+	var owner="character_merina"
 	game.find_child("RosterMember_"+owner,true,false).pressed.emit();await settle()
 	game.find_child("Product_javelin-wood",true,false).pressed.emit();await settle()
 	game.find_child("ShopComparisonBuy",true,false).pressed.emit();await settle()

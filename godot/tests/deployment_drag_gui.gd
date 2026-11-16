@@ -1,12 +1,12 @@
 extends "res://tests/deployment_drag_regression.gd"
 ## Actual X11/XTest drag/drop, not signal simulation. Canonical current recruits.
-const HERO="recruit-guard-human-female"
-const ARCHER="recruit-scout-human-male"
-const SCOUT="recruit-scout-human-female"
-const PORTER="recruit-porter-human-female"
-const RESERVE_GUARD="recruit-guard-dwarf-male"
-const RESERVE_SCOUT="recruit-scout-elf-female"
-const RESERVE_MAGE="recruit-mage-human-male"
+const HERO="character_mirei"
+const ARCHER="character_kyle"
+const SCOUT="character_rio"
+const PORTER="character_yuno"
+const RESERVE_GUARD="character_grant"
+const RESERVE_SCOUT="character_lucia"
+const RESERVE_MAGE="character_cassian"
 var request_id=0
 var legacy_dispatches=[]
 var observed_native_drag := false

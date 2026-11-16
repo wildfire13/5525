@@ -1,10 +1,10 @@
 extends "res://tests/guild_regression.gd"
-const CURRENT="recruit-guard-human-female"
-const RESERVE="recruit-guard-human-male"
-const MAGE="recruit-mage-elf-female"
-const RESERVE_MAGE="recruit-mage-human-male"
-const PORTER="recruit-porter-human-female"
-const CARGO_REPLACEMENT="recruit-guard-elf-male"
+const CURRENT="character_mirei"
+const RESERVE="character_gareth"
+const MAGE="character_merina"
+const RESERVE_MAGE="character_cassian"
+const PORTER="character_yuno"
+const CARGO_REPLACEMENT="character_leon"
 func scroll_positions() -> Array:return [node("GuildReserveScroll").scroll_vertical,current_scroll().scroll_vertical]
 func middle_scroll():
  node("GuildReserveScroll").scroll_vertical=60;current_scroll().scroll_vertical=60;await frames(12)

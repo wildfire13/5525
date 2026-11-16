@@ -10,12 +10,12 @@ func _init(layer):
   if ResourceLoader.exists(path):fx.textures[key]=load(path)
 func supports(event: Dictionary) -> bool:
  var skill=str(event.get("skill_id",""));var phase=str(event.get("phase",""))
- if skill=="guard":return event.get("kind","")!="guard" and phase=="action"
- if skill in ["defenseLine","porter","healingCross","manaGift"]:return phase in ["action","heal","resource"]
- if skill in ["item","ether"]:return phase in ["heal","resource"]
- return skill in ["loneWolf","firstStride","victoryBreath"] and (phase=="passive" or (skill=="victoryBreath" and phase=="resource"))
+ if skill=="skill_cover":return event.get("kind","")!="action_defend" and phase=="action"
+ if skill in ["skill_defense_line","skill_formation_boost","skill_healing_cross","skill_mana_gift"]:return phase in ["action","heal","resource"]
+ if skill in ["action_item","action_ether"]:return phase in ["heal","resource"]
+ return skill in ["skill_lone_wolf","skill_first_stride","skill_victory_breath"] and (phase=="passive" or (skill=="skill_victory_breath" and phase=="resource"))
 func duration(event: Dictionary) -> float:
- return (.26 if event.get("phase")=="action" else .46) if event.get("skill_id")=="manaGift" else .38 if event.get("phase")=="passive" else .52
+ return (.26 if event.get("phase")=="action" else .46) if event.get("skill_id")=="skill_mana_gift" else .38 if event.get("phase")=="passive" else .52
 func _valid(cell: int) -> bool:return cell>=0 and cell<50
 func _rows(event: Dictionary) -> Array:
  var rows=[];var seen=[]
@@ -44,21 +44,21 @@ func _petals(cell: int,key: String,count: int,height:=.36,delay:=0.0):
 func play(event: Dictionary):
  if not supports(event):return
  var skill=str(event.get("skill_id",""));var phase=str(event.get("phase",""));var origin=int(event.get("origin",-1));var cell=int(event.get("recipient",-1))
- if skill=="guard":
+ if skill=="skill_cover":
   for result in _rows(event).filter(func(row):return row.get("status","")=="cover").slice(0,1):
    var target=int(result.cell)
    var wing=_art("sup_wing",target,Vector3(.36,.88,.06),Vector2(1.00,1.15),.48,0,false,"support_wing")
    if not wing.is_empty():wing.travel=Vector3(-.10,.10,0)
    _link("sup_ribbon",origin,target,.46,.065,.06)
    _petals(target,"sup_bastion",2,.36,.08)
- elif skill=="defenseLine":
+ elif skill=="skill_defense_line":
   var previous=origin
   for result in _rows(event).filter(func(row):return row.get("status","")=="covers").slice(0,2):
    var target=int(result.cell)
    var pillar=_art("sup_bastion",target,Vector3(0,.64,.04),Vector2(.82,1.10),.46,.03,false,"support_bastion")
    if not pillar.is_empty():pillar.travel=Vector3(0,.13,0)
    _link("sup_bastion",previous,target,.16,.10,.08);previous=target
- elif skill=="porter":
+ elif skill=="skill_formation_boost":
   var boosts=_rows(event).filter(func(row):return row.get("status","")=="boost")
   if boosts.is_empty():return
   for value in event.get("cells",[]).slice(0,6):
@@ -67,7 +67,7 @@ func play(event: Dictionary):
    var banner=_art("sup_banner",target,Vector3(.48,.48 if target==origin else .08,0),Vector2(.86,.55) if target==origin else Vector2(.50,.32),.46,.04,false,"support_formation")
    if not banner.is_empty():banner.sprite_anchor=true;banner.opacity=.76 if target==origin else .58
    _petals(target,"sup_banner",1,.32,.10)
- elif skill=="healingCross":
+ elif skill=="skill_healing_cross":
   if phase=="action":
    # Canonical affected cells are supplied by the presentation; no radius inference.
    for target in event.get("cells",[]).slice(0,5):
@@ -75,7 +75,7 @@ func play(event: Dictionary):
     var flower=_art("sup_bloom",int(target),Vector3(0,.085,0),Vector2(.85,.85),.44,.04,true,"support_cross_cast")
     if not flower.is_empty():flower.opacity=.35;fx._mask(flower,[int(target)])
   elif phase=="heal" and int(event.get("amount",0))>0:_heal(cell,int(event.amount),false)
- elif skill=="manaGift":
+ elif skill=="skill_mana_gift":
   if phase=="action" and _valid(origin):
    var gathered=_art("sup_ribbon",origin,Vector3(.22,.66,0),Vector2(.40,.18),.24,0,false,"mana_prepare")
    if not gathered.is_empty():gathered.opacity=.56;gathered.travel=Vector3(0,.08,0)
@@ -92,21 +92,21 @@ func play(event: Dictionary):
     for unit in fx.board().data.get("state",{}).get("units",[]):
      if str(unit.id)==str(event.get("actor_id","")):donor_name=str(unit.get("name",""));break
     fx._caption(origin,donor_name+" %d MP" % spent,Color("#c9bce9"),0,.38,{"height":-.10,"drift":-.04,"font_size":17})
- elif skill in ["item","ether"]:
+ elif skill in ["action_item","action_ether"]:
   if phase in ["heal","resource"] and int(event.get("amount",0))>0:_heal(cell,int(event.amount),phase=="resource",true)
- elif skill=="victoryBreath" and phase=="resource":
+ elif skill=="skill_victory_breath" and phase=="resource":
   if event.get("resource")=="mp" and _valid(cell) and int(event.get("amount",0))>0:
    _breath(cell)
    fx._caption(cell,"+%d MP" % int(event.amount),Color("#e5d5ff"),.06,.43)
  elif phase=="passive" and event.has("sequence"):
-  if skill=="loneWolf" and _valid(origin):
+  if skill=="skill_lone_wolf" and _valid(origin):
    var fang=_art("sup_fang",origin,Vector3(.32,.72,.06),Vector2(.66,.62),.24,0,false,"support_lone_fang")
    if not fang.is_empty():fang.fast=true;fang.travel=Vector3(.12,.08,0)
-  elif skill=="firstStride" and _valid(origin):
+  elif skill=="skill_first_stride" and _valid(origin):
    for i in range(2):
     var wind=_art("sup_stride",origin,Vector3(0,.07+float(i)*.015,0),Vector2(.74,.56),.34,float(i)*.07,true,"support_stride")
     if not wind.is_empty():wind.follow_id=str(event.get("actor_id",""));wind.angle=float(i)*PI;wind.opacity=.55
-  elif skill=="victoryBreath" and _valid(cell):_breath(cell)
+  elif skill=="skill_victory_breath" and _valid(cell):_breath(cell)
 func _breath(cell: int):
  var breath=_art("sup_breath",cell,Vector3(.25,1.02,0),Vector2(.51,.39),.40,0,false,"support_breath")
  if not breath.is_empty():breath.travel=Vector3(.16,.24,0)

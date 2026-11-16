@@ -79,8 +79,8 @@ func presentation_case():
 	root.size=Vector2i(800,600);game.checks_fast=false
 	for which in ["self","other","finish"]:
 		await restore(which);process_frame.connect(observe)
-		game.choose_command("attack" if which=="finish" else "skill")
-		var target="recruit-mage-elf-female" if which=="self" else "recruit-guard-human-female" if which=="other" else game.data.choices.attack[0]
+		game.choose_command("action_attack" if which=="finish" else "action_skill")
+		var target="character_merina" if which=="self" else "character_mirei" if which=="other" else game.data.choices.action_attack[0]
 		await game.on_cell(int(game.hud.unit(target).pos));await settle();await game.commit();await settle();process_frame.disconnect(observe)
 		if which=="finish":check("JY-02",game.state().get("result")!=null,"also observed the final action through victory and settlement")
 	game.checks_fast=true
@@ -88,12 +88,12 @@ func presentation_case():
 	check("JY-02",phases.all(func(p):return p.head_matches and p.header_matches),"action label and primary queue portrait match the same presentation actor on every phase")
 	check("JY-02",phases.all(func(p):return p.queue_matches),"current prediction cards match live queue entries and distinguish the executing owner from future turns")
 	check("JY-02",phases.any(func(p):return p.phase=="heal" and p.unit!=p.actor),"healed recipient is distinguishable from action owner")
-	check("JY-05",phases.all(func(p):return p.recipient_matches) and phases.any(func(p):return p.phase=="heal" and p.actor=="recruit-mage-elf-female" and p.unit=="recruit-mage-elf-female"),"actual result names only the received unit, including single-target self heal with other available candidates")
+	check("JY-05",phases.all(func(p):return p.recipient_matches) and phases.any(func(p):return p.phase=="heal" and p.actor=="character_merina" and p.unit=="character_merina"),"actual result names only the received unit, including single-target self heal with other available candidates")
 func movement_cases():
 	for dims in [Vector2i(1178,814),Vector2i(800,600)]:
 		root.size=dims;await restore()
 		for mode in range(3):
-			game.board.camera_yaw=[0.0,.45,-.45][mode];game.board.camera_pitch=[.65,.9,.4][mode];game.board.update_camera();game.choose_command("move");await settle();var before=await snapshot();var first=geometry();var dest=int(game.data.choices.move[0])
+			game.board.camera_yaw=[0.0,.45,-.45][mode];game.board.camera_pitch=[.65,.9,.4][mode];game.board.update_camera();game.choose_command("action_move");await settle();var before=await snapshot();var first=geometry();var dest=int(game.data.choices.action_move[0])
 			await game.on_cell(dest);await settle();var original=game.preview.duplicate(true);var placed=geometry()
 			check("JY-03",stable(first,placed),str(dims)+" view "+str(mode)+" selection and ghost keep all 50 projected positions and camera unchanged")
 			game.preview.risks=["長い敵の名前と予告条件を確認するための表示試験".repeat(12)];game.render();await settle();var long_text=geometry();check("JY-03",stable(first,long_text),"long forecast cannot resize or move board");game.preview=original;game.render();await settle()
@@ -102,22 +102,22 @@ func movement_cases():
 				if child is Window and child.visible and Rect2(Vector2(child.position),Vector2(child.size)).intersects(game.board.get_global_rect()):overlay=true
 			check("JY-04",not overlay and stable(first,open) and game.board.ghost.visible,"reference leaves ghost and full board unobscured at identical coordinates")
 			check("JY-04",not game.can_commit(),"reference cannot execute an attack or movement")
-			for which in ["skill","attack"]:
+			for which in ["action_skill","action_attack"]:
 				await game.hud.request_reference(which);await settle()
-				var expected=await game.engine.request({"op":"preview","kind":"move","target":dest,"previewKind":which})
+				var expected=await game.engine.request({"op":"preview","kind":"action_move","target":dest,"previewKind":which})
 				check("JY-04",game.hud.reference_preview==expected.preview and game.board.preview==expected.preview and game.preview==original and stable(first,geometry()),which+" reference renders real canonical ranges at the same ghost without replacing its move decision")
 			var bounds=game.hud.right_panel.get_global_rect();var controls_fit=true
 			for control in game.hud.decision_footer.get_children():controls_fit=controls_fit and bounds.encloses(control.get_global_rect()) and root.get_visible_rect().encloses(control.get_global_rect())
 			var scroll=game.hud.right_panel.body.get_parent()
 			check("JY-04",controls_fit and scroll.get_global_rect().encloses(game.hud.target_box.get_global_rect()),"reference text fits its visible viewport and pinned controls fit the target panel without scrolling: "+str({"controls_fit":controls_fit,"panel":bounds,"footer":game.hud.decision_footer.get_global_rect(),"scroll":scroll.get_global_rect(),"reference":game.hud.target_box.get_global_rect()}))
-			await click(game.board.global_position+game.board.project_cell(int(game.data.choices.move[-1])));check("JY-04",game.pending==dest and game.hud.range_reference,"board click cannot replace destination through reference mode")
+			await click(game.board.global_position+game.board.project_cell(int(game.data.choices.action_move[-1])));check("JY-04",game.pending==dest and game.hud.range_reference,"board click cannot replace destination through reference mode")
 			await escape();check("JY-04",not game.hud.range_reference and game.pending==dest and game.preview==original and game.can_commit(),"Escape returns to the same executable movement ghost")
 			game.cancel();await settle();check("JY-03",stable(first,geometry()),"cancel restores choice without moving any cell");check("JY-04",await snapshot()==before,"reference and cancellation change no resources")
 			measurements.append({"window":str(dims),"mode":mode,"select":recorded(first),"ghost":recorded(placed),"long_text":recorded(long_text),"reference":recorded(open),"cancel":recorded(geometry()),"stable":stable(first,placed) and stable(first,open)})
 func target_details():
 	await restore();var before=await snapshot()
-	for id in ["recruit-mage-elf-female","recruit-guard-human-female"]:
-		game.choose_command("skill");await game.on_cell(int(game.hud.unit(id).pos));await settle();game.hud.open_action_details();await settle();var detail=text(game.dialog.body)
+	for id in ["character_merina","character_mirei"]:
+		game.choose_command("action_skill");await game.on_cell(int(game.hud.unit(id).pos));await settle();game.hud.open_action_details();await settle();var detail=text(game.dialog.body)
 		check("JY-05",detail.contains("指定対象: "+str(game.hud.unit(id).name)) and not detail.contains("指定対象: "+id),"selected heal target uses the person's name")
 		check("JY-05",detail.contains("候補") and detail.contains("実受領者") and not detail.contains("影響候補:"),"candidate list is clearly distinguished from actual recipients")
 		game.dialog.close();game.cancel();await settle()

@@ -6,7 +6,7 @@ func run():
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var seed=await saved();await install(seed,"east",0,"board")
-	var porter=game.campaign().selected.filter(func(uid):return game.campaign().roster.any(func(c):return c.id==uid and c.job=="porter"))[0]
+	var porter=game.campaign().selected.filter(func(uid):return game.campaign().roster.any(func(c):return c.id==uid and c.job=="job_porter"))[0]
 	await game.act("accept",["standalone-wheel",porter]);await settle();var wheel=await saved()
 	for town in ["astaris","east","west","south","north"]:
 		for offparty in [false,true]:

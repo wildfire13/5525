@@ -71,7 +71,7 @@ func skills(parent,u: Dictionary):
 		l(parent,preload("res://skill_text.gd").plain(preload("res://skill_text.gd").document(id,str(names.get(id,id)),level,pages.c(),gear)))
 		l(parent,"由来: "+str(pages.c().slots.get(source.slot,source.slot))+" / "+str(gear.get("name",source.itemId)))
 
-	if u.get("job")=="porter":l(parent,"ポーターは武器交換後も攻撃・攻撃スキルを使用できません。陣形強化は既存条件に従います。")
+	if u.get("job")=="job_porter":l(parent,"ポーターは武器交換後も攻撃・攻撃スキルを使用できません。陣形強化は既存条件に従います。")
 
 func identity(parent,u: Dictionary):
 	var r=ui.row(parent)

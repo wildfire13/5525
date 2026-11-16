@@ -6,6 +6,25 @@ from pathlib import Path
 from godot_files import write_new, run, prepare_portraits
 from portraits import read_raster
 class GodotFilesTests(unittest.TestCase):
+    def test_portrait_aliases_follow_shared_catalog_and_reject_collisions(self):
+        catalog=json.loads((Path(__file__).parent/'data/character-identities.json').read_text(encoding='utf-8'))
+        aliases=godot_files.portrait_character_aliases()
+        self.assertEqual(aliases,{entry['legacyId']:entry['id'] for entry in catalog if entry.get('legacyId')})
+        portrait=run({'action':'portrait','path':str(Path(__file__).parent/'assets/characters/guard-human-female-01.png')})
+        for legacy,person in aliases.items():
+            meta={'version':1,'characters':{legacy:portrait}}
+            self.assertEqual(prepare_portraits(meta,[person]),meta)
+            with self.assertRaises(ValueError):
+                prepare_portraits({'version':1,'characters':{legacy:portrait,person:portrait}},[person])
+        # A future catalog entry needs no second Python registry or shipped alias.
+        future=catalog+[{'id':'character_catalog_test','legacyId':'old-test'},
+                        {'id':'character_catalog_new','voiceKey':'independent-voice'}]
+        with patch.object(Path,'read_text',return_value=json.dumps(future)):
+            meta={'version':1,'characters':{'old-test':portrait}}
+            self.assertEqual(prepare_portraits(meta,['character_catalog_test']),meta)
+            self.assertNotIn(None,godot_files.portrait_character_aliases())
+            self.assertEqual(prepare_portraits({'version':1,'characters':{'character_catalog_new':portrait}},['character_catalog_new'])['characters']['character_catalog_new'],portrait)
+
     def test_unconfirmed_creation_cannot_replace_existing_utf8_json(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'new.json'; data={'name':'アスタリス'}
@@ -31,6 +50,25 @@ class GodotFilesTests(unittest.TestCase):
             data['nativePortraits']['characters']={'not-in-save':portrait}
             path.write_text(json.dumps(data))
             with self.assertRaises(ValueError):run({'action':'read','path':str(path),'allowed':['not-in-save']})
+
+    def test_person_portraits_roundtrip_without_deriving_identity_from_attributes(self):
+        portrait=run({'action':'portrait','path':str(Path(__file__).parent/'assets/characters/guard-human-female-01.png')})
+        other=run({'action':'portrait','path':str(Path(__file__).parent/'assets/characters/scout-human-female-01.png')})
+        # Two individuals can share all demographic attributes and still retain
+        # independent imported portraits. Old shipped IDs remain valid input to
+        # this file layer; campaign loading owns their semantic migration.
+        for ids in [('character_mirei','character_test_companion'),
+                    ('recruit-guard-human-female','character_test_companion')]:
+            with self.subTest(ids=ids), tempfile.TemporaryDirectory() as folder:
+                people={uid:dict(job='job_warrior',race='human',sex='female',name='変更後の名前') for uid in ids}
+                data={'format':'5525-native-campaign','state':{'characters':people},
+                      'nativePortraits':{'version':1,'characters':dict(zip(ids,[portrait,other]))}}
+                path=Path(folder)/'二人の画像.json'
+                write_new(path,data)
+                loaded=run({'action':'read','path':str(path),'allowed':[]})
+                self.assertEqual(loaded,data)
+                self.assertNotEqual(loaded['nativePortraits']['characters'][ids[0]]['sha256'],
+                                    loaded['nativePortraits']['characters'][ids[1]]['sha256'])
 
     @unittest.skipUnless(os.name == 'nt', 'Windows no-replace rename')
     def test_windows_does_not_require_hardlinks(self):

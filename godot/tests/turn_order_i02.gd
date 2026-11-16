@@ -37,7 +37,7 @@ func run():
 	game.dialog.close();game.data=original;game.render();await settle()
 	check(await saved()==before,"reading order and history never mutates engine state")
 	# Real action at normal speed: fixed controls must remain outside the slide.
-	game.hud.choose_command("guard");await settle();game.checks_fast=false;game.commit()
+	game.hud.choose_command("action_defend");await settle();game.checks_fast=false;game.commit()
 	while not game.hud.animation_trace.any(func(e):return e.stage=="queue_slide"):await process_frame
 	var detail_position=node("BattleOrderDetails").global_position;var history_position=node("BattleHistory").global_position
 	await create_timer(.12).timeout

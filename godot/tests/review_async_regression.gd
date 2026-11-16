@@ -5,7 +5,7 @@ var probe
 var checks=[]
 var failures=[]
 var q=OS.get_environment("UIUX_REVIEW_EVIDENCE")
-const OWNER="recruit-guard-human-female"
+const OWNER="character_mirei"
 var fresh_save={}
 func _initialize():call_deferred("run")
 func check(id: String,ok: bool,detail: String):
@@ -68,9 +68,9 @@ func quote_cases():
 				"product":press("Product_staff-wood")
 				"product_aba":
 					press("Product_staff-wood");press("Product_spear-wood")
-				"member":press("RosterMember_recruit-mage-elf-female")
+				"member":press("RosterMember_character_merina")
 				"member_aba":
-					for uid in ["recruit-mage-elf-female","recruit-porter-human-female",OWNER]:
+					for uid in ["character_merina","character_yuno",OWNER]:
 						press("RosterMember_"+uid)
 			if action!="cancel":
 				check("D01",control("ShopComparisonBuy").disabled and not game.modal_open(),"replacement cannot use the held comparison to confirm")
@@ -84,7 +84,7 @@ func quote_cases():
 				check("D01",control("ShopComparisonBuy")==null and not game.modal_open() and shop.selection_kind.is_empty(),"cancelled comparison cannot return after stale "+str(fail))
 			else:
 				var wanted="staff-wood" if action=="product" else "spear-wood"
-				var owner="recruit-mage-elf-female" if action=="member" else OWNER
+				var owner="character_merina" if action=="member" else OWNER
 				var expected=(await probe.request({"op":"campaign","action":"previewGear","args":[owner,wanted,"rightHand"]})).previewGear
 				var rendered=shop.comparison_view.comparison_text(game.roster().filter(func(u):return u.id==owner)[0],{"name":expected.gear.name,"equipSlots":[]},"rightHand",expected).replace("#8ee6ab","#277242").replace("#ffb1a6","#a84432").replace("#d5dbe2","#6e786f")
 				check("D01",shop.comparison_view.item_id==wanted and shop.comparison_view.owner_id==owner and comparison_text()==rendered and not control("ShopComparisonBuy").disabled and not game.modal_open(),action+" ignores stale "+("failure" if fail else "success")+" and completes only the latest canonical comparison")
@@ -140,7 +140,7 @@ func quote_cases():
 	check("D01",probe.calls.all(func(call):return call.get("action","") not in ["buyInventory","buyItem","buyGear","buyPlan","inventoryAction","sellInventory","useItem"]),"quote failure, cancellation and reconnect never submit an economic mutation")
 func reference_case(which: String,exit_mode: String,fail:=false):
 	await fixture();await game.act("depart",["astaris","convoy"]);await game.act("travel",["safe"]);await game.act("begin",[]);await settle()
-	game.choose_command("move");await game.on_cell(int(game.data.choices.move[0]));await settle()
+	game.choose_command("action_move");await game.on_cell(int(game.data.choices.action_move[0]));await settle()
 	var before=await snapshot();var destination=game.pending;var original=game.preview.duplicate(true);var epoch=game.pages.epoch
 	game.hud.open_range_reference();await settle();var old_body=game.hud.target_box
 	probe.hold_reply_action="preview";probe.fail_held_reply=fail
@@ -170,7 +170,7 @@ func shop_facts():
 	var chosen=control("Product_staff-wood");var other=control("Product_spear-wood")
 	control("ShopComparisonSlot").grab_focus()
 	check("UX-SELECT",chosen.get_meta("selected",false) and chosen.has_theme_stylebox_override("normal") and chosen.get_theme_stylebox("normal").border_width_left==2 and not other.get_meta("selected",false) and control("ShopComparisonProduct").text==chosen.tooltip_text,"selection has a persistent product title, border and background independent of focus")
-	press("ComparisonSkill_追加_mage_1");await settle();press("SkillDetailsBack");await settle()
+	press("ComparisonSkill_追加_skill_heal_1");await settle();press("SkillDetailsBack");await settle()
 	check("UX-SELECT",control("Product_staff-wood").get_meta("selected",false) and control("ShopComparisonProduct").text==chosen.tooltip_text,"detail return retains the selected product marker")
 	press("Product_spear-wood");await settle()
 	check("UX-SELECT",not control("Product_staff-wood").get_meta("selected",false) and control("Product_spear-wood").get_meta("selected",false),"reselection moves the marker to exactly the current candidate")
@@ -179,11 +179,11 @@ func shop_facts():
 	for dims in [Vector2i(1920,1080)]:
 		root.size=dims;await fixture("west");var before=await snapshot();press("Product_swift-boots");await settle()
 		var gear=game.campaign().shop.filter(func(item):return item.id=="swift-boots")[0]
-		var doc=preload("res://skill_text.gd").document("swift",game.campaign().skillNames.swift,1,game.campaign(),gear)
+		var doc=preload("res://skill_text.gd").document("skill_swift",game.campaign().skillNames.swift,1,game.campaign(),gear)
 		var description=preload("res://skill_text.gd").plain(doc)
-		var effects=game.find_children("ComparisonSkill_追加_swift_*","Button",true,false)
+		var effects=game.find_children("ComparisonSkill_追加_skill_swift_*","Button",true,false)
 		check("UX-SWIFT",effects.size()==1 and effects[0].tooltip_text.contains(description),"comparison exposes the canonical movement effect and stacking conditions")
-		press("ComparisonSkill_追加_swift_1");await settle()
+		press("ComparisonSkill_追加_skill_swift_1");await settle()
 		check("UX-SWIFT",text(control("SkillDetailsWindow")).contains("通常移動力+1"),"comparison skill opens the full movement benefit explanation")
 		press("SkillDetailsBack");await settle()
 		var pane=control("ShopTransactionScroll")

@@ -16,13 +16,13 @@ test('distinct item IDs occupy slots regardless of quantity',()=>{
   assert.deepEqual(I.occupancy(bag,2),{used:4,limit:2,overflow:['belt-plus1','belt-plus2']});
   assert.deepEqual(I.occupancy(bag,null),{used:4,limit:null,overflow:[]});
   assert.equal(I.canReceive({potion:1},'potion',50,1),true);
-  assert.equal(I.canReceive({potion:1},'ether',1,1),false);
+  assert.equal(I.canReceive({potion:1}, 'ether',1,1),false);
   assert.equal(I.canReceive({},'potion',1,0),false);
 });
 test('overfull recipient refused while outgoing transfer can resolve excess',()=>{
   const from={potion:3,ether:1},to={potion:2};
   assert.equal(I.canReceive(from,'potion',1,1),false);
-  const move=I.transfer(from,to,'ether',1);
+  const move=I.transfer(from,to, 'ether',1);
   assert.deepEqual(I.occupancy(move.source,1).overflow,[]);
   assert.deepEqual(from,{potion:3,ether:1});
   assert.deepEqual(to,{potion:2});

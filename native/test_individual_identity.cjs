@@ -1,0 +1,36 @@
+'use strict';
+// Inject only into this test process, before the production roster is built.
+// Nothing is added to the shipped recruit roster or game saves.
+const assert=require('node:assert/strict');
+const identities=require('./character-identities.cjs');
+const first=identities.find(person=>person.id==='character_mirei');
+const second={...first,id:'character_rowan',name:'同じ属性の別人',portraitKey:'guard-human-male-01',voiceKey:'recruit-mage-human-male'};
+delete second.legacyId;
+identities.push(second);
+first.name='変更後の表示名';
+const B=require('./campaign-battle.js'),C=require('./campaign.js'),IDs=require('./semantic-ids.cjs');
+assert(!Object.hasOwn(IDs.characters,'undefined'));
+const s=C.create();
+assert.equal(Object.keys(s.characters).length,25);
+assert(C.select(s,[...s.selected,second.id]));
+assert(s.selected.includes(first.id)&&s.selected.includes(second.id));
+s.location='east';s.gold=10000;
+assert(C.buyGear(s,second.id,'hammer-wood','rightHand'));
+assert.notEqual(s.characters[first.id].weapon,s.characters[second.id].weapon);
+s.characters[first.id].inventory={potion:2};
+s.characters[second.id].inventory={ether:1};
+const q=C.inventoryQuote(s,first.id,'potion','transfer',second.id,1);
+assert(q.ok);assert(C.inventoryAction(s,first.id,'potion','transfer',second.id,1,null,q.token));
+assert.deepEqual(s.characters[first.id].inventory,{potion:1});
+assert.deepEqual(s.characters[second.id].inventory,{ether:1,potion:1});
+const roster=C.view(s).roster,one=roster.find(person=>person.id===first.id),two=roster.find(person=>person.id===second.id);
+assert.equal(one.name,'変更後の表示名');
+for(const field of ['job','race','sex'])assert.equal(one[field],two[field]);
+assert.notEqual(one.portraitKey,two.portraitKey);
+assert.notEqual(one.voiceKey,two.voiceKey);
+assert.equal(B.roster.find(person=>person.id===first.id).image,`characters/${first.portraitKey}.png`);
+const saved=C.serialize(s),loaded=C.deserialize(saved);
+assert.deepEqual(loaded,s);
+assert.equal(C.serialize(loaded),saved);
+assert(loaded.selected.includes(first.id)&&loaded.selected.includes(second.id));
+console.log('PASS distinct individual identity through production roster, create, selection, equipment, ownership, display rename and reload');

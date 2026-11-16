@@ -33,8 +33,8 @@ func run():
   await game.preview_gear("javelin-wood");await capture("S01-"+str(dims.x))
   await game.update({"op":"campaign_load","data":original})
   await game.act("depart",["east","convoy"]);await game.act("travel",["safe"]);await capture("B17-"+str(dims.x))
-  await game.act("begin",[]);game.choose_command("move")
-  if not game.data.choices.move.is_empty():await game.on_cell(int(game.data.choices.move[0]))
+  await game.act("begin",[]);game.choose_command("action_move")
+  if not game.data.choices.action_move.is_empty():await game.on_cell(int(game.data.choices.action_move[0]))
   await capture("B08-"+str(dims.x))
  var file=FileAccess.open(OS.get_environment("UIUX_EVIDENCE").path_join("reports/visual-layout.json"),FileAccess.WRITE);file.store_string(JSON.stringify({"captures":captures,"input":"Godot callbacks, rendered visible window","synthetic_shop_location":true,"subjective_listening":false},"  "));file.close()
  await settle();await game.audio.finish_audio();game.engine.close_engine();await create_timer(.3).timeout

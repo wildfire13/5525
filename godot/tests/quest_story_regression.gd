@@ -56,7 +56,7 @@ func run():
 	check(window_label is Label and not window_label.text.contains("希望条件") and window_label.text.contains("サウス") and window_label.text.contains("18時間以上36時間まで"),"board shows South stop window with inclusive end")
 	check(game.find_child("QuestStatus",true,false)==null,"board omits redundant current-stop line")
 	check(availability is Label and availability.text.contains("サウスへ向かってください"),"board directs player to merchant's different stop")
-	var carrier=game.campaign().selected.filter(func(id):return game.campaign().roster.any(func(c):return c.id==id and c.job=="porter"))[0]
+	var carrier=game.campaign().selected.filter(func(id):return game.campaign().roster.any(func(c):return c.id==id and c.job=="job_porter"))[0]
 	await game.act("accept",["standalone-wheel",carrier]);await process_frame;await process_frame
 	var accepted_save=await game.engine.request({"op":"campaign_save"});var wait_fixture=accepted_save.data.duplicate(true)
 	wait_fixture.state.location="astaris";wait_fixture.state.worldTime=8;wait_fixture.state.hours=8

@@ -5,8 +5,8 @@ const B = require('./campaign-battle.js');
 
 function acceptContract() {
   const s = C.create();
-  const party = s.selected.filter(id => id !== 'recruit-scout-elf-male');
-  const porter = party.find(id => B.roster.find(u => u.id === id).job === 'porter');
+  const party = s.selected.filter(id => id !== 'character_shion');
+  const porter = party.find(id => B.roster.find(u => u.id === id).job === 'job_porter');
   assert(C.select(s, party));
   assert(C.accept(s, 'sluice-bell', porter));
   assert(C.depart(s, 'east'));
@@ -21,7 +21,7 @@ function verifyClosedBoard(result) {
   const offers=C.view(saved).board;
   assert(offers.length>0);
   assert(!offers.some(q=>q.id==='sluice-bell'));
-  const porter=saved.selected.find(id=>B.roster.find(u=>u.id===id).job==='porter');
+  const porter=saved.selected.find(id=>B.roster.find(u=>u.id===id).job==='job_porter');
   assert(!C.accept(saved,'sluice-bell',porter));
   assert(C.accept(saved,offers[0].id,porter));
 }
@@ -33,16 +33,16 @@ function roundtrip(s) {
 function escortAction(battle) {
   const actor = battle.units.find(u => u.id === battle.actor);
   const gate = battle.sluice;
-  if (actor.job !== 'porter' && !gate.open && B.legal(battle, 'move', gate.lever)) {
-    return {kind:'move', target:gate.lever};
+  if (actor.job !== 'job_porter' && !gate.open && B.legal(battle, 'action_move', gate.lever)) {
+    return {kind:'action_move', target:gate.lever};
   }
   const fallback = B.chooseAction(battle, actor);
-  if (actor.job === 'porter') {
+  if (actor.job === 'job_porter') {
     const path = B.paths(battle, actor).get(gate.exit) || [];
-    const next = path.filter(p => p !== gate.lever && (gate.open || p !== gate.exit) && B.legal(battle, 'move', p)).at(-1);
-    if (next !== undefined) return {kind:'move', target:next};
-  } else if (fallback.kind === 'move') {
-    return {kind:'guard', target:null};
+    const next = path.filter(p => p !== gate.lever && (gate.open || p !== gate.exit) && B.legal(battle, 'action_move', p)).at(-1);
+    if (next !== undefined) return {kind:'action_move', target:next};
+  } else if (fallback.kind === 'action_move') {
+    return {kind:'action_defend', target:null};
   }
   return fallback;
 }
@@ -54,16 +54,16 @@ for (const gateState of ['closed', 'open', 'ordinary']) {
   assert(C.travel(s, 'short', () => 0));
   assert(C.begin(s));
   const b = s.battle;
-  const porter = b.units.find(u => u.side === 'ally' && u.job === 'porter');
+  const porter = b.units.find(u => u.side === 'ally' && u.job === 'job_porter');
   porter.pos = 48;
   b.actor = porter.id;
   for (const u of b.units) u.next = u === porter ? 1 : 10000;
   if (gateState === 'open') {
-    const operator = b.units.find(u => u.side === 'ally' && u.job !== 'porter');
+    const operator = b.units.find(u => u.side === 'ally' && u.job !== 'job_porter');
     operator.pos = b.sluice.lever;
     b.sluice.open = true;
   }
-  assert(C.act(s, 'move', 49));
+  assert(C.act(s, 'action_move', 49));
   assert.equal(porter.pos, 49);
   if (gateState === 'ordinary') assert.equal(b.resultKind, 'breakthrough');
   else {
@@ -91,7 +91,7 @@ for (const firstRoute of ['short', 'safe']) {
     }
     assert.equal(b.resultKind, 'breakthrough');
     assert(b.units.some(u => u.side === 'enemy' && u.hp > 0));
-    assert(b.units.some(u => u.job === 'porter' && u.pos === b.sluice.exit));
+    assert(b.units.some(u => u.job === 'job_porter' && u.pos === b.sluice.exit));
     roundtrip(s);
     assert(C.finishBattle(s));
     if (stage === 0) {
@@ -124,14 +124,14 @@ const b = s.battle;
 const guard = b.units.find(u => u.side === 'ally' && u.pos === 13);
 const archer = b.units.find(u => u.id === 'enemy-archer');
 assert(B.formation(b));
-assert.equal(B.chooseAction(b, archer).kind, 'guard');
+assert.equal(B.chooseAction(b, archer).kind, 'action_defend');
 for (const unit of b.units) unit.next = unit === guard ? 0 : 10000;
 b.actor = guard.id;
-assert(B.act(b, 'move', b.sluice.lever));
+assert(B.act(b, 'action_move', b.sluice.lever));
 assert.equal(b.sluice.open, true);
 assert.equal(B.formation(b), false);
 assert.equal(B.chooseAction(b, archer).target, guard.id);
-assert(B.act(b, 'move', 13));
+assert(B.act(b, 'action_move', 13));
 assert.equal(b.sluice.open, false);
 assert(B.formation(b));
 b.sluice.open = true;
@@ -139,21 +139,21 @@ assert.equal(C.validate(s).ok, false);
 
 const solo = acceptContract();
 assert(C.travel(solo, 'short'));
-const porter = solo.battle.units.find(u => u.side === 'ally' && u.job === 'porter');
+const porter = solo.battle.units.find(u => u.side === 'ally' && u.job === 'job_porter');
 assert(C.deploy(solo, porter.id, 14));
 assert(C.begin(solo));
 assert.equal(solo.battle.sluice.open, false, 'deployment does not operate the winch');
 for (const unit of solo.battle.units) unit.next = unit === porter ? 0 : 10000;
 solo.battle.actor = porter.id;
-assert(B.act(solo.battle, 'move', 4));
-assert(B.act(solo.battle, 'move', 14));
+assert(B.act(solo.battle, 'action_move', 4));
+assert(B.act(solo.battle, 'action_move', 14));
 assert.equal(solo.battle.sluice.open, false, 'the porter cannot work the winch');
 
 const river = acceptContract();
 assert(C.travel(river, 'safe'));
 const keeper = river.battle.units.find(u => u.id === 'enemy-guard');
 const advance = B.chooseAction(river.battle, keeper);
-assert.equal(advance.kind, 'move');
+assert.equal(advance.kind, 'action_move');
 assert.equal(advance.target, river.battle.sluice.lever);
 
 // Recreate the blocked two-step exit from the continuous playtest.
@@ -162,8 +162,8 @@ const relay = acceptContract();
 assert(C.travel(relay, 'short'));
 assert(C.begin(relay));
 const fight = relay.battle;
-const runner = fight.units.find(u => u.side === 'ally' && u.job === 'porter');
-const operator = fight.units.find(u => u.side === 'ally' && u.job === 'mage');
+const runner = fight.units.find(u => u.side === 'ally' && u.job === 'job_porter');
+const operator = fight.units.find(u => u.side === 'ally' && u.job === 'job_mage');
 const obstruction = fight.units.find(u => u.id === 'enemy-archer');
 runner.pos = 15;
 operator.pos = fight.sluice.lever;
@@ -172,17 +172,17 @@ obstruction.hp = 1;
 fight.sluice.open = true;
 fight.actor = operator.id;
 for (const unit of fight.units) unit.next = unit === operator ? 1 : unit === runner ? 120 : 100;
-assert(!B.legalFor(fight, runner, 'move', fight.sluice.exit));
+assert(!B.legalFor(fight, runner, 'action_move', fight.sluice.exit));
 const alreadyUsed = C.deserialize(C.serialize(relay));
 alreadyUsed.battle.sluice.relayUsed = true;
-assert(C.act(alreadyUsed, 'attack', obstruction.id));
+assert(C.act(alreadyUsed, 'action_attack', obstruction.id));
 assert.notEqual(alreadyUsed.battle.actor, runner.id, 'no second signal when another blocker falls');
-assert(C.act(relay, 'attack', obstruction.id));
+assert(C.act(relay, 'action_attack', obstruction.id));
 assert.equal(fight.actor, runner.id);
 assert.equal(fight.sluice.relayUsed, true);
-assert(B.legal(fight, 'move', fight.sluice.exit));
+assert(B.legal(fight, 'action_move', fight.sluice.exit));
 roundtrip(relay);
-assert(C.act(relay, 'guard', null));
+assert(C.act(relay, 'action_defend', null));
 assert.equal(fight.sluice.relayUsed, true);
 assert(!fight.result);
 
@@ -193,7 +193,7 @@ for(const loss of ['retreat','porter','defeat']){
   if(loss==='retreat')assert(C.retreat(lost));
   else{
     const allies=lost.battle.units.filter(u=>u.side==='ally');
-    for(const ally of allies)if(loss==='defeat'||ally.job==='porter')ally.hp=0;
+    for(const ally of allies)if(loss==='defeat'||ally.job==='job_porter')ally.hp=0;
     lost.battle.resultKind='defeat';lost.battle.result='敗北';lost.battle.failure='porter';
     assert(C.finishBattle(lost));
   }

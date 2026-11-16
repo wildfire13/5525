@@ -25,21 +25,21 @@ function capture(state,engine,run) {
     // enemyAction marks even misses; its nested apply must not duplicate it.
     if(current===actor&&statusAction?.kind===kind)return;
     current=actor;actionNumber++;spoken.clear();
-    const cue=kind==='return'?'skill:returnHome':kind==='skill'?'skill:'+eng.activeSkill(actor):'attack';
-    add('action',actor,{kind,skill_id:['skill','cast'].includes(kind)?eng.activeSkill(actor):kind==='return'?'returnHome':null,target:clone(target??null),label:actor.name+'：'+
-      (kind==='skill'?eng.skillName(actor):({attack:'攻撃',move:'移動',guard:'防御',item:'回復薬',ether:'エーテル',return:'帰還',skip:'足払いで手番をスキップ',cast:'スタンプの構え'}[kind]||kind)),
-      voiceEvents:actor.side==='ally'&&['attack','skill','return'].includes(kind)?[{character_id:actor.id,cue}]:[]});
+    const cue=kind==='action_return'?'skill:skill_return_home':kind==='action_skill'?'skill:'+eng.activeSkill(actor):'attack';
+    add('action',actor,{kind,skill_id:['action_skill','action_cast'].includes(kind)?eng.activeSkill(actor):kind==='action_return'?'skill_return_home':null,target:clone(target??null),label:actor.name+'：'+
+      (kind==='action_skill'?eng.skillName(actor):({action_attack:'攻撃',action_move:'移動',action_defend:'防御',action_item:'回復薬',action_ether:'エーテル',action_return:'帰還',action_skip:'足払いで手番をスキップ',action_cast:'スタンプの構え'}[kind]||kind)),
+      voiceEvents:actor.side==='ally'&&['action_attack','action_skill','action_return'].includes(kind)?[{character_id:actor.id,cue}]:[]});
     statusAction=frames[frames.length-1];
     const targets=(Array.isArray(target)?target:[target]).flatMap(id=>{
       const unit=state.units.find(unit=>unit.hp>0&&(typeof id==='number'?unit.pos===id:unit.id===id));
       return unit?[{unit_id:unit.id,cell:unit.pos}]:[];
     });
-    const helpers=kind==='skill'&&statusAction.skill_id==='pincer'&&targets.length&&typeof engine.range==='function'
+    const helpers=kind==='action_skill'&&statusAction.skill_id==='skill_pincer'&&targets.length&&typeof engine.range==='function'
       ?state.units.filter(unit=>unit.hp>0&&unit.side===actor.side&&unit.id!==actor.id&&engine.range(unit,{pos:targets[0].cell})===1).map(unit=>({unit_id:unit.id,cell:unit.pos})):[];
     statusAction.resolved={targets,pincer_success:helpers.length>0,pincer_helpers:helpers};
-    if(statusAction.skill_id==='stamp'&&Array.isArray(eng.resolvedCells))statusAction.resolved.cells=clone(eng.resolvedCells);
-    if(kind==='skill'&&statusAction.skill_id==='healingCross'&&targets.length&&typeof engine.crossCells==='function')statusAction.resolved.cells=clone(engine.crossCells(targets[0].cell));
-    if(kind==='attack'||kind==='skill'){
+    if(statusAction.skill_id==='skill_stamp'&&Array.isArray(eng.resolvedCells))statusAction.resolved.cells=clone(eng.resolvedCells);
+    if(kind==='action_skill'&&statusAction.skill_id==='skill_healing_cross'&&targets.length&&typeof engine.crossCells==='function')statusAction.resolved.cells=clone(engine.crossCells(targets[0].cell));
+    if(kind==='action_attack'||kind==='action_skill'){
       // The actor and target are resolved from the current board at action time.
       let recipient=state.units.find(unit=>unit.hp>0&&unit.id===targets[0]?.unit_id);
       let targetCell=typeof target==='number'?target:recipient?.pos;
@@ -49,7 +49,7 @@ function capture(state,engine,run) {
         targeting:recipient?'unit':'unknown',weapons,
         abstract:weapons.length===0||weapons.some(weapon=>typeof weapon.itemId!=='string'||!weapon.itemId)};
     }
-    if(kind==='skill'&&statusAction.skill_id==='legSweep'&&typeof engine.sweepTargets==='function'){
+    if(kind==='action_skill'&&statusAction.skill_id==='skill_leg_sweep'&&typeof engine.sweepTargets==='function'){
       // These are resolved presentation results, not a new roll or a state
       // difference. A successful reapplication to an already-active status
       // must remain distinguishable from a failed reapplication.
@@ -71,10 +71,10 @@ function capture(state,engine,run) {
         if(key==='mp'&&next<previous)return;
         const phase=key==='mp'?'resource':key==='pos'?'move':next<previous?'hurt':'heal';
         add(phase,unit,{...(phase==='resource'?{resource:'mp',skill_id:statusAction?.skill_id||statusAction?.kind||null}:{}),
-          ...(phase==='resource'&&statusAction?.skill_id==='manaGift'&&current?{source_actor_id:current.id,source_cell:current.pos,
+          ...(phase==='resource'&&statusAction?.skill_id==='skill_mana_gift'&&current?{source_actor_id:current.id,source_cell:current.pos,
             donor_amount:current.mp-statusAction.state.units.find(unit=>unit.id===current.id).mp}:{}),
           ...(phase==='move'?{source_skill:statusAction?.skill_id||null,source_actor_id:current?.id||null,target_id:unit.id}:{}),
-          ...(phase==='move'&&unit===current&&statusAction?.skill_id==='poleVault'?{jump:true}:{}),from:previous,to:next,label:unit.name+'：'+
+          ...(phase==='move'&&unit===current&&statusAction?.skill_id==='skill_pole_vault'?{jump:true}:{}),from:previous,to:next,label:unit.name+'：'+
           (phase==='move'?'移動':phase==='resource'?'MP回復 '+(next-previous):phase==='hurt'?'被ダメージ '+(previous-next):'HP回復 '+(next-previous)),
           voiceEvents:phase==='hurt'&&unit.side==='ally'?[{character_id:unit.id,cue:'hurt'},...(previous>0&&next<=0?[{character_id:unit.id,cue:'incapacitated'}]:[])]:[]});
       }});
@@ -96,9 +96,9 @@ function capture(state,engine,run) {
           delete unit[key];Object.defineProperty(unit,key,{...observed,enumerable:true});
         }
         written=true;
-        if(!statusAction||unit!==current||statusAction.kind!=='skill')return;
+        if(!statusAction||unit!==current||statusAction.kind!=='action_skill')return;
         const skill=statusAction.skill_id;
-        if(!((key==='cover'&&skill==='guard'&&typeof next==='string')||(key==='covers'&&skill==='defenseLine'&&Array.isArray(next)&&next.length)||(key==='boost'&&skill==='porter'&&next===true)))return;
+        if(!((key==='cover'&&skill==='skill_cover'&&typeof next==='string')||(key==='covers'&&skill==='skill_defense_line'&&Array.isArray(next)&&next.length)||(key==='boost'&&skill==='skill_formation_boost'&&next===true)))return;
         const ids=key==='boost'?[unit.id]:key==='cover'?[next]:next;
         if(key==='boost')statusAction.resolved.cells=state.units.filter(recipient=>recipient.hp>0&&recipient.side===unit.side).map(recipient=>recipient.pos);
         for(const id of ids){const recipient=state.units.find(unit=>unit.id===id);if(recipient)(statusAction.resolved_support||=[]).push({unit_id:id,cell:recipient.pos,status:key,success:true});}
@@ -127,19 +127,19 @@ function capture(state,engine,run) {
     }
     const ok=run();
     if(ok)add('settled',current,{label:'行動結果'});
-    if(ok)for(const action of frames.filter(row=>row.phase==='action'&&row.skill_id==='healingCross'))action.resolved_heals=frames.filter(row=>row.action_number===action.action_number&&row.phase==='heal'&&row.to>row.from).map(row=>({unit_id:row.unit_id,cell:row.state.units.find(unit=>unit.id===row.unit_id).pos,amount:row.to-row.from}));
+    if(ok)for(const action of frames.filter(row=>row.phase==='action'&&row.skill_id==='skill_healing_cross'))action.resolved_heals=frames.filter(row=>row.action_number===action.action_number&&row.phase==='heal'&&row.to>row.from).map(row=>({unit_id:row.unit_id,cell:row.state.units.find(unit=>unit.id===row.unit_id).pos,amount:row.to-row.from}));
     if(ok)for(const event of (state.skillEvents||[]).filter(event=>event.sequence>initialSequence&&event.classification==='passive')){
       const first=frames.findIndex(frame=>(frame.state.skillEventSequence||0)>=event.sequence);
       if(first<0)continue;
       const frame=frames[first],number=frame.action_number;
       let packet;
-      if(event.skillId==='victoryBreath'){
+      if(event.skillId==='skill_victory_breath'){
         packet=event.amount>0?frames.slice(0,first+1).reverse().find(row=>row.phase==='resource'&&row.unit_id===event.actorId&&row.action_number===number&&!row.triggered_passives):null;
-        if(packet)packet.skill_id='victoryBreath';
+        if(packet)packet.skill_id='skill_victory_breath';
         else packet=frames.find(row=>row.phase==='settled'&&row.action_number===number)||frames[frames.length-1];
       }else{
-        const phase=event.skillId==='firstStride'?'move':event.skillId==='loneWolf'?'hurt':null;
-        packet=phase?frames.slice(first).find(row=>row.action_number===number&&row.phase===phase&&(event.skillId!=='firstStride'||row.unit_id===event.actorId)):null;
+        const phase=event.skillId==='skill_first_stride'?'move':event.skillId==='skill_lone_wolf'?'hurt':null;
+        packet=phase?frames.slice(first).find(row=>row.action_number===number&&row.phase===phase&&(event.skillId!=='skill_first_stride'||row.unit_id===event.actorId)):null;
       }
       const unit=(packet||frame).state.units.find(unit=>unit.id===event.actorId);
       const resolved={...clone(event),cell:unit?.pos??null};

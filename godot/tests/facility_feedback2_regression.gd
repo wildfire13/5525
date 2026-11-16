@@ -1,6 +1,6 @@
 extends "res://tests/ui_feedback_20261016.gd"
-const SELLER="recruit-guard-human-female"
-const OTHER="recruit-scout-human-female"
+const SELLER="character_mirei"
+const OTHER="character_rio"
 func fresh_at(seed: Dictionary,place: String):
  var data=seed.duplicate(true);data.state.location=place;game.page="hub";await game.update({"op":"campaign_load","data":data});await settle()
 func run():

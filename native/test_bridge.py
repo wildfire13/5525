@@ -15,16 +15,16 @@ class BridgeTests(unittest.TestCase):
     def test_invalid_is_unchanged(self):
         trial(self.b, SCOUT, 'bow-wood')
         before = self.b.call(op='view')['state']
-        data = self.b.call(op='act', kind='move', target=49)
+        data = self.b.call(op='act', kind='action_move', target=49)
         self.assertFalse(data['ok'])
         self.assertEqual(data['state'], before)
 
     def test_victory(self):
         trial(self.b, MAGE, 'victory-earring-1', 'north')
-        data = accepted(self.b, op='act', kind='attack', target='enemy-guard')
+        data = accepted(self.b, op='act', kind='action_attack', target='enemy-guard')
         self.assertIn('勝利', data['state']['result'])
         self.assertIsNone(data['state']['actor'])
-        self.assertFalse(self.b.call(op='act', kind='guard')['ok'])
+        self.assertFalse(self.b.call(op='act', kind='action_defend')['ok'])
 
     def test_defeat(self):
         journey(self.b, [SCOUT], [(SCOUT, 4)])
@@ -44,7 +44,7 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(data['stampAreas']['15'], [5, 15, 25])
         before = {u['id']: u for u in data['state']['units']}
         self.assertFalse(any(u['hp'] > 0 and u['pos'] == 15 for u in before.values()))
-        data = accepted(self.b, op='act', kind='skill', target=15, presentation=True)
+        data = accepted(self.b, op='act', kind='action_skill', target=15, presentation=True)
         while data['presentation']['phase'] != 'settled':
             token = data['presentation']
             data = accepted(self.b, op='presentation_next', id=token['id'], index=token['index'])
@@ -58,7 +58,7 @@ class BridgeTests(unittest.TestCase):
     def test_equipped_snipe_and_new_campaign(self):
         data = trial(self.b, SCOUT, 'bow-wood')
         actor = next(u for u in data['state']['units'] if u['id'] == SCOUT)
-        data = accepted(self.b, op='act', kind='skill', target=data['choices']['skill'][0])
+        data = accepted(self.b, op='act', kind='action_skill', target=data['choices']['action_skill'][0])
         self.assertEqual(next(u for u in data['state']['units'] if u['id'] == SCOUT)['mp'], actor['mp'] - 1)
         data = fresh_campaign(self.b)
         self.assertIsNone(data['state'])

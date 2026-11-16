@@ -7,7 +7,7 @@ func run():
 	while game.data.is_empty() and Time.get_ticks_msec()<startup_deadline:await process_frame
 	if game.data.is_empty():print("BLOCKED game bridge did not become ready");quit(2);return
 	game.checks_fast=true;game.audio.fast_mode=true
-	var ids=["recruit-porter-human-male","recruit-porter-human-female","recruit-guard-human-female","recruit-scout-human-female","recruit-mage-elf-female"]
+	var ids=["character_teo","character_yuno","character_mirei","character_rio","character_merina"]
 	for step in [["select",[ids]],["accept",["sluice-bell",ids[0]]],["depart",["east"]],["travel",["short"]]]:
 		var result=await game.update({"op":"campaign","action":step[0],"args":step[1]})
 		check(result.get("ok",false),"fresh campaign: "+step[0])

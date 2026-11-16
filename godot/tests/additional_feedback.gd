@@ -7,7 +7,7 @@ func run():
 	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var tooltip=preload("res://equipment_tooltip.gd").new()
-	var ether={"resource":"mp","amount":3,"battleRole":"porter","name":"エーテル"};var unchanged=ether.duplicate(true)
+	var ether={"resource":"mp","amount":3,"battleRole":"job_porter","name":"エーテル"};var unchanged=ether.duplicate(true)
 	tooltip.configure_entry({"name":"エーテル","kind":"consumable","definition":ether},{})
 	check(tooltip.tooltip_text.contains("戦闘での使用条件：ポーター") and not tooltip.tooltip_text.contains("porter") and ether==unchanged,"I12 localizes porter display only without changing item definition")
 	tooltip.free()
@@ -34,8 +34,8 @@ func run():
 	var selected={}
 	for i in range(40):hub.reset();hub.select_art("astaris");selected[hub.artwork.style]=true
 	check(selected.size()==3,"art catalog supports additional variants without code changes")
-	var q=game.campaign().board[0];await game.act("accept",[q.id,"recruit-porter-human-female"]);await settle()
-	game.pages.party_view.open_inventory("recruit-porter-human-female");await settle()
+	var q=game.campaign().board[0];await game.act("accept",[q.id,"character_yuno"]);await settle()
+	game.pages.party_view.open_inventory("character_yuno");await settle()
 	var cargo=game.campaign().activeQuest.cargoItemId
 	var rows=game.find_children("*","Button",true,false).filter(func(button):return button.tooltip_text=="荷物")
 	check(rows.size()==1,"porter inventory contains accepted cargo")
@@ -52,7 +52,7 @@ func run():
 	check(game.page=="hub" and game.campaign().activeQuest!=null and node("TownHub")!=null,"arrival opens hub without auto-delivering cargo")
 	check(node("HubDeliverCargo")!=null and not node("HubDeliverCargo").disabled,"explicit delivery remains available at destination hub")
 	var fixtures=battle_fixture();await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
-	await game.choose_command("item");await game.on_cell(int(game.hud.acting().pos));await settle()
+	await game.choose_command("action_item");await game.on_cell(int(game.hud.acting().pos));await settle()
 	var prediction=node("PredictionSummary")
 	check(prediction.text.contains(game.hud.acting().name+" HP") and prediction.global_position.y<node("ActionCost").global_position.y and node("ActionCost").global_position.y<node("ActionAvailability").global_position.y,"I01 named target and predicted HP precede cost and availability")
 	var before=await saved();var pending=game.pending;var chosen=game.chosen.duplicate()

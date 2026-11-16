@@ -85,7 +85,7 @@ func configure(title: String,gear: Dictionary,context: Dictionary):
 		line("装備メモ（原文）")
 		line(str(gear.note))
 	if context.get("occupied",false):line("両手装備で使用中（独立した追加装備ではありません）")
-	if context.get("job")=="porter" and attacks:line("この人物は通常攻撃不可（ポーター）")
+	if context.get("job")=="job_porter" and attacks:line("この人物は通常攻撃不可（ポーター）")
 	tooltip_text=heading+"\n"+"\n".join(plain_details)
 func configure_entry(entry: Dictionary,campaign: Dictionary):
 	connect_hover();close_hover()
@@ -95,7 +95,7 @@ func configure_entry(entry: Dictionary,campaign: Dictionary):
 	else:
 		heading=str(entry.name);details.clear();plain_details.clear()
 		if gear.has("resource"):line(preload("res://item_menu.gd").effect(gear))
-		if gear.has("battleRole"):line("戦闘での使用条件："+("ポーター" if gear.battleRole=="porter" else str(gear.battleRole)))
+		if gear.has("battleRole"):line("戦闘での使用条件："+("ポーター" if gear.battleRole=="job_porter" else str(gear.battleRole)))
 		line(str(gear.get("note",gear.get("description","依頼に関わる所持品" if entry.get("kind")=="quest" else "使用時に1個消費"))))
 		tooltip_text=heading+"\n"+"\n".join(plain_details)
 func detail_document(entry: Dictionary) -> Dictionary:

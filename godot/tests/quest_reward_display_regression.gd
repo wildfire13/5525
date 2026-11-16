@@ -62,7 +62,7 @@ func run():
 		if offers.size() != 1:continue
 		var q = offers[0]
 		await verify_rewards(q,sample[2],sample[3],sample[4],sample[5],str(q.id) + " offered")
-		var carrier = game.campaign().selected.filter(func(id):return game.campaign().roster.any(func(c):return c.id == id and c.job == "porter"))[0]
+		var carrier = game.campaign().selected.filter(func(id):return game.campaign().roster.any(func(c):return c.id == id and c.job == "job_porter"))[0]
 		await game.act("accept",[q.id,carrier]);await settle()
 		check(game.campaign().activeQuest is Dictionary,str(q.id) + " accepted")
 		await verify_rewards(game.campaign().activeQuest,sample[2],sample[3],sample[4],sample[5],str(q.id) + " accepted")

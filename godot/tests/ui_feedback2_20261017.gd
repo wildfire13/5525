@@ -7,7 +7,7 @@ func run():
 	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var baseline=await saved();var seed=baseline.duplicate(true);seed.state.location="west"
-	seed.state.characters["recruit-guard-human-female"].inventory["sword-wood"]=1
+	seed.state.characters["character_mirei"].inventory["sword-wood"]=1
 	await game.update({"op":"campaign_load","data":seed});game.navigate("map");await settle()
 	var map=node("TownMap");var current=map.buttons[map.current]
 	check(current.disabled and current.get_theme_stylebox("disabled").bg_color==Color("#345c4e") and current.get_node("TownContents").get_child(2).text=="出発地","map current town remains disabled with distinct paper-palette fill and origin label")
@@ -26,7 +26,7 @@ func run():
 	var trial=node("ProductTrial_armor-cloth")
 	check(await saved()==trial_before and node("ShopComparisonBuy")!=null and trial!=null and transaction.get_global_rect().encloses(trial.get_global_rect()),"shop comparison preserves complete save and retains contained trial and purchase buttons")
 	await click("ProductTrial_armor-cloth")
-	check(node("TrialRecipient_recruit-guard-human-female")!=null and game.dialog.window.title=="木人で試す人物" and await saved()==trial_before,"inline trial opens real recipient selection without changing save")
+	check(node("TrialRecipient_character_mirei")!=null and game.dialog.window.title=="木人で試す人物" and await saved()==trial_before,"inline trial opens real recipient selection without changing save")
 	await click("TrialRecipientCancel");check(await saved()==trial_before,"trial cancellation preserves full save")
 	game.navigate("character");await settle()
 	var workspace=game.pages.party_view.workspace
@@ -40,9 +40,9 @@ func run():
 	check(file_dialog.file_mode==FileDialog.FILE_MODE_OPEN_FILE and file_dialog.filters[0].contains("*.png"),"image change opens existing image file picker")
 	file_dialog.canceled.emit();await settle()
 	check(await saved()==before and game.page=="character" and workspace.tab=="ability","canceling image selection preserves save and ability page")
-	if game.pages.party_uid!="recruit-guard-human-female":await click("RosterMember_recruit-guard-human-female")
+	if game.pages.party_uid!="character_mirei":await click("RosterMember_character_mirei")
 	await click("CharacterTab_inventory")
-	var sword=game.campaign().inventoryByCharacter["recruit-guard-human-female"].entries.filter(func(e):return e.id=="sword-wood")[0]
+	var sword=game.campaign().inventoryByCharacter["character_mirei"].entries.filter(func(e):return e.id=="sword-wood")[0]
 	var rows=game.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text==sword.name)
 	check(rows.size()==1 and rows[0].icon==game.icons.texture(game.icons.equipment(sword)),"personal inventory uses the individual sword image")
 	var mapped_ids=game.icons.equipment_paths.keys();mapped_ids.sort()
@@ -63,17 +63,17 @@ func run():
 	game.dialog.close();await settle()
 	var fixtures=battle_fixture();await game.update({"op":"campaign_load","data":fixtures.archer});await settle()
 	var hud=game.hud
-	game.checks_fast=false;hud.choose_command("skill");await create_timer(.06).timeout
+	game.checks_fast=false;hud.choose_command("action_skill");await create_timer(.06).timeout
 	check(node("BattleSkillListSlide").content.position.y<0,"opening list visibly travels from behind parent command")
 	await create_timer(.25).timeout;await settle()
 	check(node("BattleSkillListSlide").clip_contents and node("BattleSkillListSlide").content.position.y==0,"skill list reveals below clipped command edge")
-	hud.choose_command("skill");await create_timer(.06).timeout
+	hud.choose_command("action_skill");await create_timer(.06).timeout
 	check(node("BattleSkillListSlide")!=null and node("BattleSkillListSlide").content.position.y<0,"closing list travels behind parent before removal")
 	await create_timer(.25).timeout;await settle();game.checks_fast=true;check(node("BattleSkillList")==null,"second skill command closes list")
 	hud.choose_command("items");await settle();hud.choose_command("items");await settle();check(node("BattleItemList")==null,"second item command closes list")
-	hud.choose_command("skill");await settle();hud.choose_command("attack");await settle();check(node("BattleSkillList")==null and node("BattleItemList")==null,"another command closes both lists")
-	hud.choose_command("skill");await settle()
-	var skill_button=node("BattleSkill_scout")
+	hud.choose_command("action_skill");await settle();hud.choose_command("action_attack");await settle();check(node("BattleSkillList")==null and node("BattleItemList")==null,"another command closes both lists")
+	hud.choose_command("action_skill");await settle()
+	var skill_button=node("BattleSkill_skill_ambush")
 	var description=skill_button.tooltip_text
 	check(description.begins_with("[奇襲Lv1]") and description.contains("消費MP:") and description.contains("対象:") and description.contains("スキル効果:"),"skill tooltip follows requested four-part template")
 	var tooltip=skill_button._make_custom_tooltip(description.repeat(8));root.add_child(tooltip);await frames()
@@ -81,17 +81,17 @@ func run():
 	var porter=preload("res://tests/ui_current_fixture.gd").fixtures().porter
 	# Keep a legal save while filling all three basic formation cells.
 	# The Porter anchors the current three-cell formation at 22.
-	for pair in [["recruit-guard-human-female",24],["recruit-scout-elf-male",13],["recruit-mage-elf-female",33]]:
+	for pair in [["character_mirei",24],["character_shion",13],["character_merina",33]]:
 		var person=porter.state.battle.units.filter(func(u):return u.id==pair[0])[0]
 		var other=porter.state.battle.units.filter(func(u):return u.id!=pair[0] and u.pos==pair[1])
 		if not other.is_empty():other[0].pos=person.pos
 		person.pos=pair[1]
 	await game.update({"op":"campaign_load","data":porter});await settle();hud.open_skills();await settle()
-	before=await saved();await click("BattleSkill_porter")
-	check(game.pending=="recruit-porter-human-female" and game.find_children("*","Button",true,false).any(func(b):return b.get_meta("ui_key","")=="battle_commit" and b.text.ends_with("を実行")) and game.can_commit(),"self-target porter skips target picking into execute/cancel")
-	check(node("BattleSkill_porter").tooltip_text.contains("×1.75") and node("BattleSkill_porter").tooltip_text.contains("×0.65"),"porter tooltip retains real multipliers instead of example 25 percent")
+	before=await saved();await click("BattleSkill_skill_formation_boost")
+	check(game.pending=="character_yuno" and game.find_children("*","Button",true,false).any(func(b):return b.get_meta("ui_key","")=="battle_commit" and b.text.ends_with("を実行")) and game.can_commit(),"self-target porter skips target picking into execute/cancel")
+	check(node("BattleSkill_skill_formation_boost").tooltip_text.contains("×1.75") and node("BattleSkill_skill_formation_boost").tooltip_text.contains("×0.65"),"porter tooltip retains real multipliers instead of example 25 percent")
 	before=await saved();game.cancel();await settle();check(await saved()==before and not game.can_commit(),"self skill cancel preserves complete save")
-	await click("BattleSkill_porter");var actions=int(game.state().actions);game.checks_fast=false;game.commit();game.commit()
+	await click("BattleSkill_skill_formation_boost");var actions=int(game.state().actions);game.checks_fast=false;game.commit();game.commit()
 	while hud.animation_trace.is_empty():await process_frame
 	for tick in range(120):
 		if is_instance_valid(hud.action_visual) and hud.action_visual.scale.x<1:break

@@ -3,7 +3,7 @@ var game
 var checks=[]
 var phases=[]
 var evidence=OS.get_environment("UIUX_REVIEW_EVIDENCE")
-const GUARD="recruit-guard-human-female"
+const GUARD="character_mirei"
 func _initialize():call_deferred("run")
 func node(id):return game.find_child(id,true,false)
 func check(id,ok,detail):
@@ -55,10 +55,10 @@ func run():
 		node("PurchaseDecline").pressed.emit();await settle()
 		var cancelled=await saved()
 		check("V2-S07",cancelled==before,"repeated purchase cancellation preserves all resources")
-	await game.act("trial",["recruit-scout-elf-male","twin-bow","rightHand"]);await settle()
+	await game.act("trial",["character_shion","twin-bow","rightHand"]);await settle()
 	check("V2-B01",game.hud.state_id()=="B0","live scout trial starts at action list")
 	geometry("V2-B01")
-	game.choose_command("move");var move_before=await trial_snapshot();var dest=int(game.data.choices.move[0])
+	game.choose_command("action_move");var move_before=await trial_snapshot();var dest=int(game.data.choices.action_move[0])
 	await game.on_cell(dest);await settle()
 	check("V2-B03",game.hud.state_id()=="B2" and game.board.ghost.visible,"candidate move shows ghost without consuming turn")
 	game.hud.open_range_reference();await settle()
@@ -68,8 +68,8 @@ func run():
 	game.cancel();await settle()
 	var cancelled_move=await trial_snapshot()
 	check("V2-B03",game.pending==null and cancelled_move==move_before,"move cancellation preserves exact trial battle and campaign view")
-	await game.select_skill("archer");await settle()
-	var pair=game.data.choices.skill[0]
+	await game.select_skill("skill_snipe");await settle()
+	var pair=game.data.choices.action_skill[0]
 	for uid in pair:
 		for unit in game.state().units:
 			if unit.id==uid:await game.on_cell(int(unit.pos));break

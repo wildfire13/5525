@@ -34,7 +34,7 @@ func close_popup(result):
 static func enter_equipment_battle(frontend):
 	await frontend.act("depart",["astaris","convoy"])
 	await frontend.act("travel",["safe"])
-	await frontend.hud.open_equipment_sheet("recruit-guard-human-female")
+	await frontend.hud.open_equipment_sheet("character_mirei")
 
 func run():
 	create_timer(180).timeout.connect(func():print("FAIL F4 equipment hover watchdog");quit(2))
@@ -44,7 +44,7 @@ func run():
 	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var seed=await saved();seed.state.location="east"
-	var hero=seed.state.characters["recruit-guard-human-female"];hero.level=29;hero.xp=2800;hero.allocations.str=2;hero.allocations.agi=1;hero.statPoints=53;hero.skillPoints=28;hero.leftHand="empty-leftHand"
+	var hero=seed.state.characters["character_mirei"];hero.level=29;hero.xp=2800;hero.allocations.str=2;hero.allocations.agi=1;hero.statPoints=53;hero.skillPoints=28;hero.leftHand="empty-leftHand"
 	for dims in [Vector2i(1920,1080)]:
 		root.size=dims;await settle()
 		for gear in ["hammer-iron-1","partner-dagger","longspear-wood","grappling-rope"]:
@@ -72,7 +72,7 @@ func run():
 	# scroll reaches the end; no second window is needed to recover omitted text.
 	root.size=Vector2i(1920,1080);await game.update({"op":"campaign_load","data":seed});await enter_equipment_battle(game);await settle()
 	game.dialog.window.size=Vector2i(1180,420);await settle()
-	var before=await saved();var source=equipped("rightHand");var definition=game.roster().filter(func(u):return u.id=="recruit-guard-human-female")[0].equipmentDetails.rightHand.duplicate(true)
+	var before=await saved();var source=equipped("rightHand");var definition=game.roster().filter(func(u):return u.id=="character_mirei")[0].equipmentDetails.rightHand.duplicate(true)
 	var note="長い原文 [角括弧] の完全保持。".repeat(220)+"原文の最後まで保持"
 	definition.note=note;source.configure(definition.name,definition,{"names":game.campaign().skillNames,"definitions":game.campaign().skillDefinitions,"title_size":20,"detail_size":16})
 	var full=source.tooltip_text;var result=await popup_for(source);geometry(result,"oversize original note")
@@ -87,7 +87,7 @@ func run():
 	# Reopening the sheet rebuilds the equipped buttons.
 	for dims in [Vector2i(1920,1080)]:
 		var old=result.popup
-		await game.hud.open_equipment_sheet("recruit-guard-human-female");await settle()
+		await game.hud.open_equipment_sheet("character_mirei");await settle()
 		check(not is_instance_valid(old) or not old.visible,"F4 rerender retires old hover with its rebuilt source "+str(dims))
 		source=equipped("rightHand");source.configure(definition.name,definition,{"names":game.campaign().skillNames,"definitions":game.campaign().skillDefinitions,"title_size":20,"detail_size":16})
 		result=await popup_for(source);geometry(result,"rerender and rehover "+str(dims))

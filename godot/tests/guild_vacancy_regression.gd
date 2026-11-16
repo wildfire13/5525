@@ -17,19 +17,19 @@ func run():
 	while game.data.is_empty():await process_frame
 	await game.new_game()
 	game.audio.fast_mode=true;game.checks_fast=true
-	var seed=(await game.engine.request({"op":"campaign_save"})).data;seed.state.selected=["recruit-porter-human-female"]
+	var seed=(await game.engine.request({"op":"campaign_save"})).data;seed.state.selected=["character_yuno"]
 	var reply=await game.update({"op":"campaign_load","data":seed});await enter_facility("party");await settle()
-	check(reply.get("ok",false) and game.campaign().selected==["recruit-porter-human-female"],"single porter remains valid minimum composition")
-	await tap("GuildMember_recruit-guard-human-female")
+	check(reply.get("ok",false) and game.campaign().selected==["character_yuno"],"single porter remains valid minimum composition")
+	await tap("GuildMember_character_mirei")
 	var guild=game.pages.guild_view
-	check(not game.find_child("GuildAdd",true,false).disabled and not guild.candidate("swap","recruit-porter-human-female","recruit-guard-human-female").is_empty(),"single porter can exchange with reserve or append")
-	check(guild.current_id=="recruit-porter-human-female" and game.campaign().characters==seed.state.characters,"minimum current member selected without changing owner fields")
+	check(not game.find_child("GuildAdd",true,false).disabled and not guild.candidate("swap","character_yuno","character_mirei").is_empty(),"single porter can exchange with reserve or append")
+	check(guild.current_id=="character_yuno" and game.campaign().characters==seed.state.characters,"minimum current member selected without changing owner fields")
 	await tap("GuildSwap")
-	check(game.campaign().selected==["recruit-guard-human-female"] and not game.modal_open() and game.campaign().characters==seed.state.characters,"explicit swap commits immediately without obsolete picker and preserves owner fields")
+	check(game.campaign().selected==["character_mirei"] and not game.modal_open() and game.campaign().characters==seed.state.characters,"explicit swap commits immediately without obsolete picker and preserves owner fields")
 	check(game.find_child("GuildRemove",true,false).disabled,"last active member cannot be removed")
 	guild.cancel_selection();await settle()
-	await tap("GuildMember_recruit-porter-human-female");await tap("GuildAdd")
-	check(game.campaign().selected==["recruit-guard-human-female","recruit-porter-human-female"] and game.campaign().characters==seed.state.characters,"append to minimum party keeps order and all owner fields")
+	await tap("GuildMember_character_yuno");await tap("GuildAdd")
+	check(game.campaign().selected==["character_mirei","character_yuno"] and game.campaign().characters==seed.state.characters,"append to minimum party keeps order and all owner fields")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame
 	var f=FileAccess.open(OS.get_environment("INVENTORY_QA_ROOT").path_join("vacancy-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()

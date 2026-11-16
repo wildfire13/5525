@@ -21,7 +21,7 @@ func run():
 	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	await game.update({"op":"campaign_load","data":battle_fixture().guard});await settle()
-	await game.choose_command("attack");await settle()
+	await game.choose_command("action_attack");await settle()
 	var board=game.board
 	# Observe the real board input callback without selecting/executing actions.
 	board.cell_clicked.disconnect(game.on_cell)

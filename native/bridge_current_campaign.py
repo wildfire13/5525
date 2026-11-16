@@ -5,12 +5,12 @@ trials or purchases. Characters, equipment, enemies and battles come from the
 campaign's public operations, never historical fixtures or reset scenarios.
 """
 
-GUARD = 'recruit-guard-human-female'
-SCOUT = 'recruit-scout-human-female'
-MAGE = 'recruit-mage-elf-female'
-HUMAN_MAGE = 'recruit-mage-human-female'
-AMBUSH = 'recruit-scout-elf-male'
-PORTER = 'recruit-porter-human-female'
+GUARD = 'character_mirei'
+SCOUT = 'character_rio'
+MAGE = 'character_merina'
+HUMAN_MAGE = 'character_roze'
+AMBUSH = 'character_shion'
+PORTER = 'character_yuno'
 
 
 def accepted(bridge, **request):
@@ -27,7 +27,7 @@ def campaign(bridge, action, *args, **options):
 def fresh_campaign(bridge, selected=None, location=None):
     data = accepted(bridge, op='campaign_start')
     characters = data['campaign']['characters']
-    assert len(characters) == 24 and all(uid.startswith('recruit-') for uid in characters)
+    assert len(characters) == 24 and all(uid.startswith('character_') for uid in characters)
     if selected is not None:
         data = campaign(bridge, 'select', selected)
     if location is not None:
@@ -42,7 +42,7 @@ def trial(bridge, uid, gear, location='east'):
     fresh_campaign(bridge, selected, location)
     data = campaign(bridge, 'trial', uid, gear)
     assert data['state']['actor'] == uid
-    assert all(u['id'].startswith('recruit-') for u in data['state']['units'] if u['side'] == 'ally')
+    assert all(u['id'].startswith('character_') for u in data['state']['units'] if u['side'] == 'ally')
     return data
 
 
@@ -62,7 +62,7 @@ def reach_actor(bridge, data, uid):
         if data['state']['actor'] == uid:
             return data
         assert data['state']['result'] is None, 'Battle ended before requested actor'
-        data = accepted(bridge, op='act', kind='guard')
+        data = accepted(bridge, op='act', kind='action_defend')
     raise AssertionError('Requested actor did not become active within 80 guards')
 
 
@@ -70,5 +70,5 @@ def guard_to_result(bridge, data):
     for _ in range(500):
         if data['state']['result']:
             return data
-        data = accepted(bridge, op='act', kind='guard')
+        data = accepted(bridge, op='act', kind='action_defend')
     raise AssertionError('Battle did not end within 500 guards')

@@ -1,7 +1,7 @@
 'use strict';
 // Isolated current-schema fixtures, never a player's profile.
 const C=require('../../native/campaign.js');
-const s=C.create(), actorId='recruit-guard-human-female', porterId='recruit-porter-human-female';
+const s=C.create(), actorId='character_mirei', porterId='character_yuno';
 s.selected=[actorId,porterId];
 s.characters[actorId].weapon='hammer-wood';
 s.characters[actorId].leftHand='empty-leftHand';

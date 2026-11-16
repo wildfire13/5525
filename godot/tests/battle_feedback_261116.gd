@@ -30,7 +30,7 @@ func run():
 		if fighter.id==battle.actor:
 			fighter.next=1
 			fighter.mp=0
-			fighter.selectedSkill="scout"
+			fighter.selectedSkill="skill_ambush"
 	root.size=Vector2i(1920,1080)
 	game=load("res://main.tscn").instantiate()
 	root.add_child(game)
@@ -47,17 +47,17 @@ func run():
 		var labels=left.find_children("*","Label",true,false).filter(func(label):return label.text.begins_with(prefix))
 		check(labels.size()==1 and labels[0].tooltip_text.contains("行動速度"),prefix+" tooltip")
 	var foe=game.board.unit_at(25)
-	var attack_button=hud.buttons.attack
+	var attack_button=hud.buttons.action_attack
 	var first_card=game.find_child("TurnCard_0",true,false)
-	await game.choose_command("skill")
+	await game.choose_command("action_skill")
 	await settle()
-	var chosen=await game.engine.request({"op":"hover_preview","kind":"skill","uid":foe.id})
+	var chosen=await game.engine.request({"op":"hover_preview","kind":"action_skill","uid":foe.id})
 	check(chosen.hover.status=="insufficient_mp","in-range ambush identifies missing MP")
-	var invalid=await game.engine.request({"op":"hover_preview","kind":"skill","uid":porter_id})
+	var invalid=await game.engine.request({"op":"hover_preview","kind":"action_skill","uid":porter_id})
 	check(invalid.hover.status=="unavailable","wrong side stays unavailable")
 	await game.on_cell(25)
 	await settle()
-	check(is_instance_valid(attack_button) and attack_button==hud.buttons.attack,"target selection retains command buttons")
+	check(is_instance_valid(attack_button) and attack_button==hud.buttons.action_attack,"target selection retains command buttons")
 	check(is_instance_valid(first_card) and first_card==game.find_child("TurnCard_0",true,false),"target selection retains turn cards")
 	hud.pin_inspection(25)
 	game.board.hover_uid=foe.id
@@ -69,7 +69,7 @@ func run():
 	check(hud.person_box.find_child("EnemyInventory",true,false)==null,"enemy inventory removed from inspection")
 	var profile=hud.person_box.find_child("ElementalCombatProfile",true,false)
 	check(profile.columns==5 and profile.get_child_count()==10,"ATK and DEF each show physical and three elemental values")
-	var mage=foe.merged({"job":"mage","role":"ヒーラー"},true)
+	var mage=foe.merged({"job":"job_mage","role":"ヒーラー"},true)
 	var sample=VBoxContainer.new()
 	root.add_child(sample)
 	hud.render_person_content(sample,mage,true)

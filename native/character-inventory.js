@@ -51,8 +51,8 @@ function weight(bag,lookup){
   return {known,total:unknown.length?null:known,unknown};
 }
 const items = [
-  {id:'potion',name:'ポーション',price:40,amount:55,resource:'hp',battleKind:'item',weight:1},
-  {id:'ether',name:'エーテル',price:30,amount:3,resource:'mp',battleKind:'ether',battleRole:'porter',weight:1},
+  {id:'potion',name:'ポーション',price:40,amount:55,resource:'hp',battleKind:'action_item',weight:1},
+  {id:'ether',name:'エーテル',price:30,amount:3,resource:'mp',battleKind:'action_ether',battleRole:'job_porter',weight:1},
 ];
 
 function equipmentWeight(eq,lookup){

@@ -1,7 +1,7 @@
 'use strict';
 // Synthetic review states only: victories are forced to reach result UI, not a combat proof.
 const C=require('../../native/campaign.js'),assert=require('node:assert/strict');
-function acceptWithPorter(s,id){return C.accept(s,id,s.selected.find(uid=>C.view(s).roster.find(u=>u.id===uid)?.job==='porter'));}
+function acceptWithPorter(s,id){return C.accept(s,id,s.selected.find(uid=>C.view(s).roster.find(u=>u.id===uid)?.job==='job_porter'));}
 const {fixtures:followup,ids,fresh}=require('./ui_current_fixtures.cjs');
 function save(s){assert(C.validate(s).ok,C.validate(s).error);return JSON.parse(C.serialize(s));}
 function result(destination,accepted=false){

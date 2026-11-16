@@ -16,31 +16,31 @@ func unit(state: Dictionary,id) -> Dictionary:
 func load_frame(fixture: Dictionary,frame: Dictionary,index: int):
 	var d=game.data.duplicate(true)
 	d.state=frame.state.duplicate(true);d.presentation=frame.presentation.duplicate(true)
-	d.ranges=fixture.geometry.ranges.duplicate(true) if index==0 else {"skill":[]}
-	d.choices=fixture.geometry.choices.duplicate(true) if index==0 else {"skill":[]}
+	d.ranges=fixture.geometry.ranges.duplicate(true) if index==0 else {"action_skill":[]}
+	d.choices=fixture.geometry.choices.duplicate(true) if index==0 else {"action_skill":[]}
 	d.stampAreas=fixture.geometry.stampAreas.duplicate(true) if index==0 else {}
-	board.update_state(d,{},"attack","",[])
+	board.update_state(d,{},"action_attack","",[])
 func expect_event(fixture: Dictionary,frame: Dictionary,context: Dictionary) -> Dictionary:
 	var p=frame.presentation;var actor=unit(frame.state,p.actor_id)
 	if p.phase=="action":
-		var skill=p.get("skill_id","") if p.kind=="skill" else p.kind
-		if skill not in ["legSweep","mage","stamp","attack","guard","archer"]:return {}
-		var cells=fixture.expected.cells.map(func(value):return int(value)) if skill in ["legSweep","stamp"] else []
+		var skill=p.get("skill_id","") if p.kind=="action_skill" else p.kind
+		if skill not in ["skill_leg_sweep","skill_heal","skill_stamp","action_attack","action_defend","skill_snipe"]:return {}
+		var cells=fixture.expected.cells.map(func(value):return int(value)) if skill in ["skill_leg_sweep","skill_stamp"] else []
 		return {"skill_id":skill,"phase":"action","origin":actor.pos,"cells":cells}
 	if p.phase in ["hurt","heal"]:
 		var hit={}
 		for item in fixture.expected.impacts:
 			if item.action_id==p.action_id and item.unit_id==p.unit_id and item.phase==p.phase:hit=item;break
 		if hit.is_empty():return {}
-		return {"skill_id":"mage" if p.phase=="heal" else str(context.get("skill_id")) if context.get("skill_id") in ["stamp","archer"] and context.get("action_id")==p.action_id else "impact","phase":p.phase,"recipient":unit(frame.state,p.unit_id).pos,"guarding":hit.guarding,"redirected":hit.redirected}
+		return {"skill_id":"skill_heal" if p.phase=="heal" else str(context.get("skill_id")) if context.get("skill_id") in ["skill_stamp","skill_snipe"] and context.get("action_id")==p.action_id else "impact","phase":p.phase,"recipient":unit(frame.state,p.unit_id).pos,"guarding":hit.guarding,"redirected":hit.redirected}
 	return {}
 func expected_vfx_duration(event: Dictionary) -> float:
-	if event.get("skill_id")=="archer":return .24 if event.get("phase")=="hurt" else .32
-	if event.get("skill_id")=="legSweep" and event.get("phase")=="action":return .76
-	if event.get("skill_id")=="mage":return .36 if event.get("phase")=="action" else .58
-	if event.get("skill_id")=="guard" and event.get("kind")=="guard" and event.get("phase")=="action":return .58
-	if event.get("skill_id")=="stamp":return .34 if event.get("phase")=="action" else .24
-	if event.get("skill_id")=="attack" and event.get("phase")=="action":return .30
+	if event.get("skill_id")=="skill_snipe":return .24 if event.get("phase")=="hurt" else .32
+	if event.get("skill_id")=="skill_leg_sweep" and event.get("phase")=="action":return .76
+	if event.get("skill_id")=="skill_heal":return .36 if event.get("phase")=="action" else .58
+	if event.get("skill_id")=="action_defend" and event.get("kind")=="action_defend" and event.get("phase")=="action":return .58
+	if event.get("skill_id")=="skill_stamp":return .34 if event.get("phase")=="action" else .24
+	if event.get("skill_id")=="action_attack" and event.get("phase")=="action":return .30
 	if event.get("phase")=="hurt" and (event.get("guarding",false) or event.get("redirected",false)):return .3
 	if event.get("phase")=="hurt" and event.get("skill_id")=="impact":return .20
 	return .3 if event.get("phase")=="heal" else .42
@@ -66,7 +66,7 @@ func replay(name: String,fixture: Dictionary):
 			for key in expected:
 				check(snap.event.get(key)==expected[key],tag+" exact "+key+" "+str(expected[key]))
 			check(is_equal_approx(snap.duration,expected_vfx_duration(snap.event)) and snap.elapsed==0,tag+" single fresh event uses documented production profile timing")
-			if p.phase=="action" and p.kind=="attack":
+			if p.phase=="action" and p.kind=="action_attack":
 				var cell=unit(frame.state,p.target).get("pos",-1)
 				check(snap.event.recipient==cell and not snap.event.get("guarding",false) and not snap.event.get("redirected",false),tag+" neutral attack follows its current target, no success claim")
 			board.skill_effects._process(.1)
@@ -107,10 +107,10 @@ func boundaries(fixture: Dictionary):
 		var d=game.data.duplicate(true);d.state=action.state.duplicate(true);d.erase("presentation")
 		if transition=="finish":d.state.result="win"
 		if transition=="end":d.state={}
-		board.update_state(d,{},"attack","",[])
+		board.update_state(d,{},"action_attack","",[])
 		check(not board.skill_effects.snapshot().active and board.effect_action.is_empty(),transition+" without pending presentation clears all residual effects")
 	var preview=game.data.duplicate(true);preview.state=action.state.duplicate(true);preview.erase("presentation")
-	board.update_state(preview,{"cells":[25],"damage":999},"skill","guard",[25])
+	board.update_state(preview,{"cells":[25],"damage":999},"action_skill","skill_cover",[25])
 	check(board.effect_event(action.presentation).is_empty() and not board.skill_effects.snapshot().active,"preview and cancelled/unaccepted packet cannot trigger effect")
 	for jump in [false,true]:
 		var f=action.duplicate(true);f.presentation.phase="move";f.presentation.from=24;f.presentation.to=23;f.presentation.jump=jump;f.presentation.index=500+(1 if jump else 0)
@@ -118,7 +118,7 @@ func boundaries(fixture: Dictionary):
 		check(is_equal_approx(board.animate(f.presentation),.32 if jump else .24) and not board.skill_effects.snapshot().active,"existing "+("jump" if jump else "move")+" timing and no fabricated skill effect")
 func geometry_boundaries(stamp: Dictionary,sweep: Dictionary):
 	# Resolved cells from the accepted action are the effect renderer's geometry.
-	var frame=stamp.frames.filter(func(f):return f.presentation.phase=="action" and f.presentation.kind=="skill")[0].duplicate(true)
+	var frame=stamp.frames.filter(func(f):return f.presentation.phase=="action" and f.presentation.kind=="action_skill")[0].duplicate(true)
 	var enemy=frame.state.units.filter(func(u):return u.side=="enemy")[0]
 	frame.presentation.resolved={"cells":[15,25,35]}
 	frame.presentation.actor_id=enemy.id;frame.presentation.unit_id=enemy.id
@@ -128,7 +128,7 @@ func geometry_boundaries(stamp: Dictionary,sweep: Dictionary):
 	var action=sweep.frames[0]
 	load_frame(sweep,action,0);board.animate(action.presentation)
 	var skipped=action.duplicate(true)
-	skipped.presentation.phase="action";skipped.presentation.kind="skip";skipped.presentation.erase("skill_id")
+	skipped.presentation.phase="action";skipped.presentation.kind="action_skip";skipped.presentation.erase("skill_id")
 	skipped.presentation.action_id="different-skipped-action";skipped.presentation.index=1000
 	load_frame(sweep,skipped,1)
 	check(board.animate(skipped.presentation)==0 and not board.skill_effects.snapshot().active and board.effect_action.is_empty(),"separate skipped action cannot retain sweep range or casting")

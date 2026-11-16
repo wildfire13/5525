@@ -1,6 +1,6 @@
 // Isolated, validated quest boundary; preceding battle victories are injected, not playthrough evidence.
 const C=require('../../native/campaign.js'),assert=require('node:assert/strict');
-const s=C.create(),q=C.board(s)[0],porter=s.selected.find(id=>id.startsWith('recruit-porter-'));
+const s=C.create(),q=C.board(s)[0],porter=C.view(s).roster.find(member=>member.job==='job_porter'&&s.selected.includes(member.id)).id;
 assert(C.accept(s,q.id,porter));assert(C.depart(s,q.to));
 for(let i=0;i<2;i++){
  assert(C.travel(s,'safe',()=>0));assert(C.begin(s));

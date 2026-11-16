@@ -12,8 +12,8 @@ func run():
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var seed=await saved()
-	var empty_owner="recruit-scout-human-female"
-	var stocked_owner="recruit-guard-human-female"
+	var empty_owner="character_rio"
+	var stocked_owner="character_mirei"
 	seed.state.characters[empty_owner].inventory={}
 	seed.state.characters[stocked_owner].inventory={"potion":1}
 	await game.update({"op":"campaign_load","data":seed});await settle()

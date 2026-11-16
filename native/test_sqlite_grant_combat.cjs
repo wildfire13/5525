@@ -7,17 +7,17 @@ const hammer=C.gear.find(g=>g.id==='hammer-wood'),originalSkill=hammer.skill,ori
 let checks=0;
 try{
  for(const stampSlot of [2,3]){
-  hammer.skill='mage';
+  hammer.skill='skill_heal';
   master.grantsByEquipment[hammer.id]=[
-    {slotNo:1,id:'mage',level:1,sourceField:'skill',explicitLevel:false},
-    ...(stampSlot===3?[{slotNo:2,id:'guard',level:1,sourceField:'skill',explicitLevel:false}]:[]),
-   {slotNo:stampSlot,id:'stamp',level:1,sourceField:'skill',explicitLevel:false}];
-  const state=C.create();state.location='east';state.characters["recruit-guard-human-female"].weapon=hammer.id;
-  assert.equal(C.stats(state.characters["recruit-guard-human-female"]).skillSources.find(g=>g.id==='stamp').grantSlot,stampSlot);
-  const displayed=C.view(state).roster.find(u=>u.id==="recruit-guard-human-female").equipmentDetails.rightHand;
-  assert.equal(displayed.skillGrants.find(g=>g.id==='stamp').slotNo,stampSlot);
-  const trial=C.trial(state,"recruit-guard-human-female",hammer.id,'rightHand');assert.ok(trial);
-  const battle=trial.battle,actor=battle.units.find(u=>u.id==="recruit-guard-human-female");
+    {slotNo:1,id:'skill_heal',level:1,sourceField:'skill',explicitLevel:false},
+    ...(stampSlot===3?[{slotNo:2,id:'skill_cover',level:1,sourceField:'skill',explicitLevel:false}]:[]),
+   {slotNo:stampSlot,id:'skill_stamp',level:1,sourceField:'skill',explicitLevel:false}];
+  const state=C.create();state.location='east';state.characters["character_mirei"].weapon=hammer.id;
+  assert.equal(C.stats(state.characters["character_mirei"]).skillSources.find(g=>g.id==='skill_stamp').grantSlot,stampSlot);
+  const displayed=C.view(state).roster.find(u=>u.id==="character_mirei").equipmentDetails.rightHand;
+  assert.equal(displayed.skillGrants.find(g=>g.id==='skill_stamp').slotNo,stampSlot);
+  const trial=C.trial(state,"character_mirei",hammer.id,'rightHand');assert.ok(trial);
+  const battle=trial.battle,actor=battle.units.find(u=>u.id==="character_mirei");
   actor.pos=24;actor.next=1;actor.mp=actor.maxMp=10;battle.actor=actor.id;
   let allyIndex=0,enemyIndex=0;
   for(const u of battle.units.filter(u=>u!==actor)){
@@ -25,16 +25,16 @@ try{
    u.pos=u.side==='enemy'?[15,25,35][enemyIndex++]:[0,10][allyIndex++];
   }
   assert.equal(enemyIndex,3,'three actual recipients exercise both outer cells');
-  const option=B.activeSkillOptions(actor).find(g=>g.id==='stamp');assert.equal(option.grantSlot,stampSlot);
+  const option=B.activeSkillOptions(actor).find(g=>g.id==='skill_stamp');assert.equal(option.grantSlot,stampSlot);
   assert.ok(B.selectSkill(battle,option.key));assert.deepEqual(B.stampCells(actor,25).sort((a,b)=>a-b),[15,25,35]);
-  const before=structuredClone(battle),preview=B.damagePreview(battle,actor,'skill',25);
+  const before=structuredClone(battle),preview=B.damagePreview(battle,actor,'action_skill',25);
   assert.deepEqual(battle,before,'preview must not consume any grant or mutate battle');
   assert.deepEqual(preview,[],'reservation has no immediate damage preview');
   const hp=Object.fromEntries(battle.units.map(u=>[u.id,u.hp]));
-  assert.ok(C.trialAct(trial,'skill',25));assert.equal(actor.mp,9);assert.equal(battle.actions,2);
+  assert.ok(C.trialAct(trial, 'action_skill',25));assert.equal(actor.mp,9);assert.equal(battle.actions,2);
   for(const target of battle.units.filter(u=>u.side==='enemy'))assert.equal(hp[target.id]-target.hp,29,'secondary grant covers all three reserved cells');
-  assert.equal(B.activeSkillOptions(actor).find(g=>g.id==='stamp').cooldown,1);
-  assert.equal(B.activeSkillOptions(actor).find(g=>g.id==='mage').cooldown,0);
+  assert.equal(B.activeSkillOptions(actor).find(g=>g.id==='skill_stamp').cooldown,1);
+  assert.equal(B.activeSkillOptions(actor).find(g=>g.id==='skill_heal').cooldown,0);
   checks++;
  }
 }finally{hammer.skill=originalSkill;master.grantsByEquipment[hammer.id]=originalGrants;}

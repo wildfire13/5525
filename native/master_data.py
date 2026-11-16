@@ -27,7 +27,7 @@ FIELDS = ('skill','effect')
 REFERENCE_FIELDS = FIELDS+('legacySkill',)
 SLOTS = {'weapon','armor','head','upperBody','lowerBody','rightHand','leftHand','feet','accessory1','accessory2'}
 KINDS = {'accessory','armor','book','bow','dagger','empty','fist','greatsword','hammer','other','rope','shield','spear','staff','sword'}
-LEVELLED = {'itemUse','scout','archer','legSweep','grapple','poleVault','secretPouch','holePouch'}
+LEVELLED = {'skill_item_use','skill_ambush','skill_snipe','skill_leg_sweep','skill_grapple','skill_pole_vault','skill_secret_pouch','skill_hole_pouch'}
 NUMERIC_FIELDS = {'atk','atkFire','atkWater','atkEarth','def','defFire','defWater','defEarth','hp','mp','str','int','agi','reach','weight'}
 SIGNED_FIELDS = {'agiBonus'}
 
@@ -56,7 +56,7 @@ def validate_equipment(g):
     for key in ('material','note','flavor','shopProductId'):
         if key in g and not isinstance(g[key],str): raise ValueError('invalid equipment text')
     if 'material' in g and g['material'] not in ('cloth','iron','leather','silver','wood','glass','steel'): raise ValueError('invalid material')
-    if 'jobOnly' in g and g['jobOnly'] not in ('porter','warrior','scout','mage','archer'): raise ValueError('invalid equipment job')
+    if 'jobOnly' in g and g['jobOnly'] not in ('job_porter','job_warrior','job_scout','job_mage','job_archer'): raise ValueError('invalid equipment job')
 
 def integer(v, minimum=0):
     return type(v) is int and minimum <= v <= 9007199254740991

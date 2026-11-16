@@ -1,6 +1,6 @@
 extends SceneTree
-const OWNER="recruit-guard-human-female"
-const PORTER="recruit-porter-human-female"
+const OWNER="character_mirei"
+const PORTER="character_yuno"
 class DelayedEngine extends Node:
 	var actual
 	var hold_next=true

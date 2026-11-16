@@ -20,8 +20,14 @@ func run():
 	check(game.campaign().location=="astaris","single-window campaign initial state")
 	game.navigate("party");await process_frame
 	check(game.roster().size()==24,"24 new guild candidates")
-	var portrait_donor=game.roster().filter(func(member):return member.id=="recruit-guard-human-male")
-	check(portrait_donor.size()==1 and portrait_donor[0].name=="ガレス" and portrait_donor[0].image=="characters/guard-human-male-01.png" and game.member_name("recruit-guard-human-male")=="ガレス","proposal name follows the existing male human warrior ID and portrait")
+	var portrait_donor=game.roster().filter(func(member):return member.id=="character_gareth")
+	check(portrait_donor.size()==1 and portrait_donor[0].name=="ガレス" and portrait_donor[0].image=="characters/guard-human-male-01.png" and game.member_name("character_gareth")=="ガレス","proposal name follows the existing male human warrior ID and portrait")
+	check(game.roster().all(func(member):return member.id.begins_with("character_") and member.job.begins_with("job_") and member.has("portraitKey") and member.has("voiceKey")),"all current people have independent individual, job, portrait and voice identities")
+	var second=portrait_donor[0].duplicate(true);second.id="character_same_demographics_probe";second.name="検査用";second.image="missing-probe.png"
+	var first_image=game.portraits.image_for(portrait_donor[0]);var second_image=game.portraits.image_for(second)
+	check(first_image!=null and second_image!=null and first_image.get_data()==second_image.get_data(),"another person with identical demographics uses its explicit portraitKey")
+	var voice_data=game.data.duplicate(true);voice_data.campaign.roster.append(second);game.audio.sync(voice_data)
+	check(game.audio.voice_stream(second.id,"attack")!=null and game.audio.voice_stream(second.id,"attack")==game.audio.voice_stream(portrait_donor[0].id,"attack"),"another individual uses explicit voiceKey rather than deriving a voice from demographics")
 	game.navigate("items");await process_frame
 	await game.act("depart",["east"]);await game.act("travel",["safe"]);await game.act("begin",[])
 	check(game.state().units.filter(func(u):return u.side=="ally").all(func(u):return u.has("attackWeapons")),"allied battle units carry their equipped weapons")
@@ -49,7 +55,7 @@ func run():
 	check(game.board!=null and game.state().deploying,"deployment in same window")
 	await game.act("begin",[])
 	check(game.data.get("presentation")==null and not game.presenting,"sequential opening ACK settles")
-	await game.update({"op":"act","kind":"guard","target":null,"presentation":true})
+	await game.update({"op":"act","kind":"action_defend","target":null,"presentation":true})
 	check(game.data.get("presentation")==null,"action/causal enemy phases settle")
 	check(game.audio.frontend_save()==music,"battle does not reroll journey music")
 	var save=await game.engine.request({"op":"campaign_save"})
@@ -78,11 +84,11 @@ func run():
 	await game.act("trial",[owner_id,"swift-boots","feet"])
 	check(game.data.get("trial")!=null,"trial uses same root window: "+game.notice)
 	var before_move=JSON.stringify(game.state())
-	game.choose_command("move")
-	await game.on_cell(int(game.data.choices.move[0]))
+	game.choose_command("action_move")
+	await game.on_cell(int(game.data.choices.action_move[0]))
 	check(game.pending!=null and game.board.ghost.visible,"movement preview creates transparent ghost")
-	await game.inspect_movement("skill")
-	check(game.preview.get("previewKind")=="skill","movement preview supports current skill range")
+	await game.inspect_movement("action_skill")
+	check(game.preview.get("previewKind")=="action_skill","movement preview supports current skill range")
 	game.cancel()
 	check(JSON.stringify(game.state())==before_move,"cancel preview consumes no action/resources")
 	await game.act("endTrial",[])
@@ -90,16 +96,16 @@ func run():
 	check(before.data==after.data,"trial does not mutate campaign")
 	var east=after.data.duplicate(true);east.state.location="east"
 	await game.update({"op":"campaign_load","data":east})
-	var bow_user=game.roster().filter(func(member):return member.job=="scout" and game.campaign().selected.has(member.id))[0]
+	var bow_user=game.roster().filter(func(member):return member.job=="job_scout" and game.campaign().selected.has(member.id))[0]
 	await game.act("trial",[bow_user.id,"twin-bow","rightHand"])
-	game.choose_command("attack")
-	var single=game.data.choices.attack[0]
+	game.choose_command("action_attack")
+	var single=game.data.choices.action_attack[0]
 	for unit in game.state().units:
 		if unit.id==single:await game.on_cell(int(unit.pos));break
 	check(game.pending==single and game.chosen==[single],"single target visibly retained for confirmation")
 	game.cancel()
-	game.choose_command("skill")
-	var pair: Array=game.data.choices.skill[0].duplicate();pair.reverse()
+	game.choose_command("action_skill")
+	var pair: Array=game.data.choices.action_skill[0].duplicate();pair.reverse()
 	for uid in pair:
 		for u in game.state().units:
 			if u.id==uid:await game.on_cell(int(u.pos));break
@@ -112,17 +118,37 @@ func run():
 	await game.act("endTrial",[])
 	check(game.audio.voices.size()==137 and game.audio.sounds.size()==8,"all existing voice and SE cues mapped")
 	check(not game.audio.valid_metadata({"version":1,"journey_key":"x","quest_id":"untrusted"}),"invalid saved music rejected without mutation")
-	await game.import_portrait(ProjectSettings.globalize_path("res://../native/assets/"+portrait_donor[0].image),owner_id)
-	check(game.portraits.metadata.characters.has(owner_id),"custom portrait uses existing normalization")
+	var portrait_owner_id="character_mirei"
+	check(game.active_member(portrait_owner_id),"explicit portrait owner is selected in fresh campaign")
+	await game.import_portrait(ProjectSettings.globalize_path("res://../native/assets/"+portrait_donor[0].image),portrait_owner_id)
+	check(game.portraits.metadata.characters.has(portrait_owner_id),"custom portrait uses existing normalization")
+	var imported=game.portraits.metadata.duplicate(true)
 	while game.engine.busy or game.pages.shop_view.quote_worker:await process_frame
 	var saved=await game.engine.request({"op":"campaign_save"})
-	saved.data.nativePortraits=game.portraits.metadata;saved.data.godotFrontend=game.audio.frontend_save()
+	saved.data.nativePortraits=imported.duplicate(true);saved.data.godotFrontend=game.audio.frontend_save()
 	var file=OS.get_temp_dir().path_join("5525-godot-test-"+str(Time.get_ticks_usec())+".json")
 	var written=await game.engine.request({"op":"godot_io","action":"write","path":file,"data":saved.data})
 	check(written.get("ok",false),"isolated save file written")
-	await game.new_game();await game.load_game(file)
-	check(game.portraits.metadata.characters.has(owner_id),"portrait restored from embedded save")
+	var portrait_read=await game.engine.request({"op":"godot_io","action":"read","path":file,"allowed":[]})
+	check(portrait_read.get("ok",false),"embedded portrait file readable immediately after write: "+str(portrait_read.get("error","")))
+	await game.new_game()
+	check(game.portraits.metadata.characters.is_empty(),"fresh campaign clears custom portrait overrides")
+	await game.load_game(file)
+	check(game.portraits.metadata.characters.has(portrait_owner_id),"portrait restored from embedded save: "+game.notice)
+	check(game.portraits.metadata==imported and game.portraits.overrides.has(portrait_owner_id),"embedded portrait bytes and active override survive reload")
+	var renamed=game.roster().filter(func(person):return person.id==portrait_owner_id)[0].duplicate(true)
+	renamed.name="同名検査";renamed.job="job_mage";renamed.race="elf";renamed.sex="male"
+	check(game.portraits.overrides.has(portrait_owner_id) and game.portraits.image_for(renamed).get_data()==game.portraits.overrides[portrait_owner_id].get_data(),"custom portrait follows explicit character_mirei despite changed presentation attributes")
 	DirAccess.remove_absolute(file)
+	var legacy_id="recruit-guard-human-female"
+	var old_envelope=JSON.parse_string(JSON.stringify(saved.data).replace('"'+portrait_owner_id+'"','"'+legacy_id+'"'))
+	var legacy_file=OS.get_temp_dir().path_join("5525-godot-legacy-portrait-"+str(Time.get_ticks_usec())+".json")
+	var old_written=await game.engine.request({"op":"godot_io","action":"write","path":legacy_file,"data":old_envelope})
+	check(old_written.get("ok",false),"shipped-ID portrait fixture passes incoming-ID file validation")
+	await game.new_game();await game.load_game(legacy_file)
+	check(game.portraits.metadata.characters.has(portrait_owner_id) and not game.portraits.metadata.characters.has(legacy_id) and game.roster().any(func(person):return person.id==portrait_owner_id),"load activates migrated custom portraits under immutable individual IDs")
+	check(game.portraits.metadata==imported and game.portraits.overrides.has(portrait_owner_id),"shipped-ID migration preserves exact embedded portrait and activates override")
+	DirAccess.remove_absolute(legacy_file)
 	game.closing=true;game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine()
 	await create_timer(.15).timeout
 	game.queue_free();await process_frame

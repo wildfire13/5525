@@ -44,13 +44,13 @@ func run():
 	game.navigate("map");await capture("02-map")
 	game.navigate("party");await capture("03-party")
 	var saved=(await game.engine.request({"op":"campaign_save"})).data
-	saved.state.characters["recruit-guard-human-female"].xp=300;saved.state.characters["recruit-guard-human-female"].level=4;saved.state.characters["recruit-guard-human-female"].statPoints=6;saved.state.characters["recruit-guard-human-female"].skillPoints=3
-	await game.update({"op":"campaign_load","data":saved});game.navigate("map");await settle();await click(node("RosterMember_recruit-guard-human-female"))
+	saved.state.characters["character_mirei"].xp=300;saved.state.characters["character_mirei"].level=4;saved.state.characters["character_mirei"].statPoints=6;saved.state.characters["character_mirei"].skillPoints=3
+	await game.update({"op":"campaign_load","data":saved});game.navigate("map");await settle();await click(node("RosterMember_character_mirei"))
 	var workspace=game.pages.party_view.workspace
 	workspace.set_tab("ability");await settle()
 	var allocate=game.find_children("*","Button",true,false).filter(func(b):return b.text.begins_with("能力を割り振る"))[0]
 	allocate.pressed.emit();await settle()
-	var member=game.roster().filter(func(u):return u.id=="recruit-guard-human-female")[0]
+	var member=game.roster().filter(func(u):return u.id=="character_mirei")[0]
 	game.pages.party_view.change_draft(member,"str",1);game.pages.party_view.change_draft(member,"int",1);await capture("04-growth")
 	await click(node("AllocationConfirm"));await capture("05-growth-confirm")
 	node("AllocationConfirmation").canceled.emit();await settle();game.pages.party_view.clear_draft();game.dialog.close();await settle()
@@ -66,13 +66,13 @@ func run():
 	game.board.camera_yaw=original_yaw;game.board.update_camera();game.hud.open_skills();await settle()
 	var details=game.find_children("BattleSkillDetails_*","Button",true,false)
 	await click(details[0]);await capture("10-skill-content");await click(node("SkillDetailsBack"))
-	await game.choose_command("move");await settle()
-	var positions=game.data.get("choices",{}).get("move",[])
+	await game.choose_command("action_move");await settle()
+	var positions=game.data.get("choices",{}).get("action_move",[])
 	if not positions.is_empty():await game.on_cell(int(positions[0]));await settle()
 	await capture("11-move-ghost")
 	await key(KEY_F11);await capture("12-fullscreen");await key(KEY_F11)
 	var fixture=preload("res://tests/ui_current_fixture.gd").generate("res://tests/inventory_battle_fixtures.cjs").archer
-	await game.update({"op":"campaign_load","data":fixture});await game.choose_command("attack");await hover(25);await capture("13-legal-attack-hover")
+	await game.update({"op":"campaign_load","data":fixture});await game.choose_command("action_attack");await hover(25);await capture("13-legal-attack-hover")
 	game.hide();var panel=PanelContainer.new();root.add_child(panel);panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var margin=MarginContainer.new();panel.add_child(margin)
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,24)

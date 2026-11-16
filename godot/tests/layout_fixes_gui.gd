@@ -27,19 +27,19 @@ func run():
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true;await game.new_game();await settle()
- game.pages.party_view.open_inventory("recruit-guard-human-female");await settle();await skill_tab()
- var skill=game.find_child("CharacterSkill_*_guard_*",true,false);await reveal_control(skill);await os_click(skill)
+ game.pages.party_view.open_inventory("character_mirei");await settle();await skill_tab()
+ var skill=game.find_child("CharacterSkill_*_skill_cover_*",true,false);await reveal_control(skill);await os_click(skill)
  var before=await saved();await snapshot("F1-open-1180")
  await os_resize(Vector2i(960,540));observe("F1-shrink",[node("SkillDetailsBack"),node("SkillDetailsSummary")]);await snapshot("F1-shrink-960")
  if not baseline:
   check(node("SkillDetailsWindow")!=null and await saved()==before,"resize keeps same explanation and save")
-  await os_click(node("SkillDetailsBack"));check(node("SkillDetailsWindow")==null and game.page=="character" and game.find_child("CharacterSkill_*_guard_*",true,false).has_focus(),"mouse closes resized explanation to same logical skill button")
-  await os_resize(Vector2i(1180,812));skill=game.find_child("CharacterSkill_*_guard_*",true,false);await reveal_control(skill);await os_click(skill);await os_resize(Vector2i(960,540));await os_resize(Vector2i(1920,1080));observe("F1-restore",[node("SkillDetailsBack")]);await os_key("Escape")
+  await os_click(node("SkillDetailsBack"));check(node("SkillDetailsWindow")==null and game.page=="character" and game.find_child("CharacterSkill_*_skill_cover_*",true,false).has_focus(),"mouse closes resized explanation to same logical skill button")
+  await os_resize(Vector2i(1180,812));skill=game.find_child("CharacterSkill_*_skill_cover_*",true,false);await reveal_control(skill);await os_click(skill);await os_resize(Vector2i(960,540));await os_resize(Vector2i(1920,1080));observe("F1-restore",[node("SkillDetailsBack")]);await os_key("Escape")
  else:await os_key("Escape")
  var cases=cases2()
  for which in ["sweep50","sweep100"]:
   await os_resize(Vector2i(1180,812));await game.update({"op":"campaign_load","data":cases[which]});await settle()
-  await os_click(game.hud.buttons.skill);await os_click(node("BattleSkill_legSweep"));await os_click(node("BattleSkillDetails_legSweep"));await os_key("Escape")
+  await os_click(game.hud.buttons.action_skill);await os_click(node("BattleSkill_skill_leg_sweep"));await os_click(node("BattleSkillDetails_skill_leg_sweep"));await os_key("Escape")
   observe("F2-"+which,[node("BattleHistory"),node("BattleOrderDetails")]);await snapshot("F2-"+which+"-1180")
   if not baseline:
    for panel in [game.hud.left_panel,game.hud.right_panel]:

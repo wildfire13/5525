@@ -1,5 +1,5 @@
 extends SceneTree
-const OWNER="recruit-guard-human-female"
+const OWNER="character_mirei"
 var game
 var checks=[]
 var geometry=[]

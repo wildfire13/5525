@@ -1,8 +1,8 @@
 extends SceneTree
-const GUARD="recruit-guard-human-female"
-const PORTER="recruit-porter-human-female"
-const OTHER_PORTER="recruit-porter-human-male"
-const SCOUT="recruit-scout-elf-male"
+const GUARD="character_mirei"
+const PORTER="character_yuno"
+const OTHER_PORTER="character_teo"
+const SCOUT="character_shion"
 var game
 var checks=[]
 func _initialize():call_deferred("run")

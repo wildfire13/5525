@@ -1,7 +1,7 @@
 extends "res://tests/feedback_261019_3.gd"
-const INVENTORY_OWNER="recruit-guard-human-female"
-const INVENTORY_PORTER="recruit-porter-human-female"
-const INVENTORY_SCOUT="recruit-scout-elf-male"
+const INVENTORY_OWNER="character_mirei"
+const INVENTORY_PORTER="character_yuno"
+const INVENTORY_SCOUT="character_shion"
 func character_item(uid: String,id: String):
 	var filter=node("CharacterInventoryFilter")
 	var entries=game.campaign().inventoryByCharacter[uid].entries

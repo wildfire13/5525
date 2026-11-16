@@ -21,7 +21,7 @@ func run():
  await game.new_game();
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
  var original=await saved();var east=original.duplicate(true);east.state.location="east";east.state.gold=500
- east.state.characters["recruit-guard-human-female"].inventory={"spear-wood":3,"swift-boots":1,"potion":2}
+ east.state.characters["character_mirei"].inventory={"spear-wood":3,"swift-boots":1,"potion":2}
  var operations=[]
  var widths=[Vector2i(1920,1080)]
  if not OS.get_environment("BRUSHUP_GUI_WIDTH").is_empty():widths=[Vector2i(int(OS.get_environment("BRUSHUP_GUI_WIDTH")),812 if OS.get_environment("BRUSHUP_GUI_WIDTH")=="1180" else 1080)]
@@ -32,24 +32,24 @@ func run():
   print("GUI_GUILD_START ",game.page," ",game.pages.guild_view.stage," ",game.locked)
   await snapshot("guild-start-"+str(dims.x))
   var start=request_id
-  await os_click(node("RosterMember_recruit-guard-human-female"));check(game.pages.guild_view.current_id=="recruit-guard-human-female","OS selects current named member")
-  await os_click(node("GuildTab_1"));check(game.pages.guild_view.detail_tab==1 and game.pages.guild_view.current_id=="recruit-guard-human-female","OS equipment tab retains selected guild member")
+  await os_click(node("RosterMember_character_mirei"));check(game.pages.guild_view.current_id=="character_mirei","OS selects current named member")
+  await os_click(node("GuildTab_1"));check(game.pages.guild_view.detail_tab==1 and game.pages.guild_view.current_id=="character_mirei","OS equipment tab retains selected guild member")
   await os_click(node("GuildReserveJobFilter"));await os_key("Home");await os_key("Down");await os_key("Return")
   print("GUI_FILTER ",game.pages.guild_view.reserve_job," chosen=",game.pages.guild_view.chosen_id)
-  check(game.pages.guild_view.reserve_job!="" and game.pages.guild_view.current_id=="recruit-guard-human-female","OS job filter keeps current swap target")
+  check(game.pages.guild_view.reserve_job!="" and game.pages.guild_view.current_id=="character_mirei","OS job filter keeps current swap target")
   await snapshot("guild-filtered-"+str(dims.x))
   await os_click(node("GuildReserveJobFilter"));await os_key("Home");await os_key("Return")
-  await os_click(node("GuildMember_recruit-guard-human-male"));await os_click(node("GuildSwap"));await create_timer(.5).timeout;await settle()
-  check(game.campaign().selected[0]=="recruit-guard-human-male","OS two member choices still perform one confirmed swap")
+  await os_click(node("GuildMember_character_gareth"));await os_click(node("GuildSwap"));await create_timer(.5).timeout;await settle()
+  check(game.campaign().selected[0]=="character_gareth","OS two member choices still perform one confirmed swap")
   operations.append({"task":"guild comparison/filter/swap","width":dims.x,"events":request_id-start,"swap_member_clicks":2})
   await game.update({"op":"campaign_load","data":east});await enter_facility("shop");await settle()
-  await os_click(node("RosterMember_recruit-guard-human-female"))
+  await os_click(node("RosterMember_character_mirei"))
   var before=await saved();await os_click(node("Product_spear-wood"));await settle()
   var comparison=game.pages.shop_view.comparison_view
-  check(comparison.owner_id=="recruit-guard-human-female" and node("ShopComparisonProduct").text=="木製の片手槍","OS product click opens selected owner's comparison")
+  check(comparison.owner_id=="character_mirei" and node("ShopComparisonProduct").text=="木製の片手槍","OS product click opens selected owner's comparison")
   await snapshot("comparison-"+str(dims.x))
-  await os_click(node("RosterMember_recruit-scout-elf-male"))
-  check(comparison.owner_id=="recruit-scout-elf-male" and node("RosterMember_recruit-scout-elf-male").has_focus(),"OS owner change updates comparison and keyboard focus")
+  await os_click(node("RosterMember_character_shion"))
+  check(comparison.owner_id=="character_shion" and node("RosterMember_character_shion").has_focus(),"OS owner change updates comparison and keyboard focus")
   await os_click(node("ShopComparisonSlot"));await os_key("End");await os_key("Return");await settle()
   check(comparison.slot=="leftHand" and node("ShopComparisonSlot").has_focus(),"OS keyboard slot change updates same comparison")
   await os_click(node("ShopComparisonBuy"));await os_click(node("PurchaseDecline"))
@@ -58,16 +58,16 @@ func run():
   await game.pages.shop_view.confirm_purchase("spear-wood");await settle();await os_click(node("PurchaseAgree"))
   check(node("RecipientPayment").text.contains("500 → 410G"),"OS recipient selection shows payment")
   await snapshot("recipient-"+str(dims.x))
-  await os_click(node("PurchaseRecipient_recruit-guard-human-female"));check(int(game.campaign().gold)==410 and int(game.campaign().characters["recruit-guard-human-female"].inventory["spear-wood"])==4,"OS purchase commits exact owner and amount")
+  await os_click(node("PurchaseRecipient_character_mirei"));check(int(game.campaign().gold)==410 and int(game.campaign().characters["character_mirei"].inventory["spear-wood"])==4,"OS purchase commits exact owner and amount")
   operations.append({"task":"selected owner inventory purchase","width":dims.x,"clicks":request_id-start_buy})
-  await os_click(node("RosterMember_recruit-guard-human-female"));await os_click(node("ShopInventoryTab_inventory"));await os_click(node("SaleItem_spear-wood"))
+  await os_click(node("RosterMember_character_mirei"));await os_click(node("ShopInventoryTab_inventory"));await os_click(node("SaleItem_spear-wood"))
   await snapshot("sale-"+str(dims.x))
   var bought=await saved();await os_click(node("FacilitySalePrepare"));await os_click(node("FacilitySaleCancel"))
   check((await saved())==bought,"OS sale cancellation preserves inventory and gold")
-  await os_click(node("RosterMember_recruit-mage-elf-female"));check(node("FacilitySaleTotals")==null and node("SaleItem_spear-wood")==null,"OS roster switch clears previous owner's sale action")
+  await os_click(node("RosterMember_character_merina"));check(node("FacilitySaleTotals")==null and node("SaleItem_spear-wood")==null,"OS roster switch clears previous owner's sale action")
   await os_key("Escape");await settle()
   await game.update({"op":"campaign_load","data":bought});await enter_facility("shop");await settle()
-  check(int(game.campaign().gold)==410 and int(game.campaign().characters["recruit-guard-human-female"].inventory["spear-wood"])==4,"reload retains canonical purchase result")
+  check(int(game.campaign().gold)==410 and int(game.campaign().characters["character_mirei"].inventory["spear-wood"])==4,"reload retains canonical purchase result")
   var south=original.duplicate(true);south.state.location="south";south.state.gold=500
   await game.update({"op":"campaign_load","data":south});await enter_facility("shop");await settle();await snapshot("consumables-"+str(dims.x))
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"BGM voice SE stayed OFF during real input QA")

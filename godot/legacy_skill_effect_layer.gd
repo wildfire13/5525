@@ -20,7 +20,7 @@ func play(event: Dictionary, duration: float) -> void:
 	var phase = str(event.get("phase", ""))
 	if not is_finite(duration) or duration <= 0.0:
 		return
-	if not ((phase == "action" and skill in ["legSweep", "mage", "stamp", "attack", "guard"]) or (phase == "heal" and skill == "mage") or (phase == "hurt" and skill in ["stamp", "impact"])):
+	if not ((phase == "action" and skill in ["skill_leg_sweep", "skill_heal", "skill_stamp", "action_attack", "action_defend"]) or (phase == "heal" and skill == "skill_heal") or (phase == "hurt" and skill in ["skill_stamp", "impact"])):
 		return
 	var origin = int(event.get("origin", -1))
 	var recipient = int(event.get("recipient", -1))
@@ -32,7 +32,7 @@ func play(event: Dictionary, duration: float) -> void:
 		if not (value is int or value is float):
 			continue
 		var cell = int(value)
-		if _valid_cell(cell) and not cells.has(cell) and not (skill == "legSweep" and cell == origin):
+		if _valid_cell(cell) and not cells.has(cell) and not (skill == "skill_leg_sweep" and cell == origin):
 			cells.append(cell)
 	_event["cells"] = cells
 	_duration = duration
@@ -141,20 +141,20 @@ func _draw() -> void:
 	var skill = str(_event.get("skill_id", ""))
 	var phase = str(_event.get("phase", ""))
 	if phase == "action":
-		_ring(origin, t, Color(MINT if skill == "mage" else INK, fade * .6))
-		if skill == "legSweep":
+		_ring(origin, t, Color(MINT if skill == "skill_heal" else INK, fade * .6))
+		if skill == "skill_leg_sweep":
 			for cell in _event.get("cells", []):
 				# Local arcs never imply a successful knockdown or expand the range.
 				_ground_arc(cell, .28 + t * .23, -.8 + t * .7, PI * 1.05, Color(INK, fade))
 				_ground_arc(cell, .19 + t * .2, -.5 + t * .7, PI * .72, Color(OCHRE, fade * .65))
-		elif skill == "stamp":
+		elif skill == "skill_stamp":
 			for cell in _event.get("cells", []):
 				var inset = .26 + t * .16
 				_stroke(cell, [Vector3(-inset, .055, -.3), Vector3(0, .055, -.1), Vector3(inset, .055, -.3)], Color(INK, fade), 2.0)
 				_stroke(cell, [Vector3(-inset, .055, .05), Vector3(0, .055, .25), Vector3(inset, .055, .05)], Color(OCHRE, fade), 2.0)
-		elif skill == "attack":
+		elif skill == "action_attack":
 			_attack_preparation(origin, recipient, t, Color(INK, fade * .75))
-		elif skill == "guard":
+		elif skill == "action_defend":
 			_shield(origin, Color(INK, fade))
 	elif phase == "heal":
 		_ring(recipient, t, Color(MINT, fade * .7))

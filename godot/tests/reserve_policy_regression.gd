@@ -1,7 +1,7 @@
 extends SceneTree
-const RESERVE="recruit-guard-human-male"
-const GUARD="recruit-guard-human-female"
-const PORTER="recruit-porter-human-female"
+const RESERVE="character_gareth"
+const GUARD="character_mirei"
+const PORTER="character_yuno"
 var game
 var checks=[]
 var evidence=""

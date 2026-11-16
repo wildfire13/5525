@@ -37,8 +37,8 @@ class DebugStoreTests(unittest.TestCase):
     def send(self,p,value):
         p.stdin.write(json.dumps(value)+'\n');p.stdin.flush();return json.loads(p.stdout.readline())
     def test_roundtrip_snapshot_and_clean_close(self):
-        grant=dict(slot='rightHand',grant=2,item_ref='f'*64,skill='mage')
-        value=event();value['data']={'before':{'actor':2,'order':[2,1],'selected_grant':grant,'selected_return_grant':dict(grant,skill='returnHome'),'cooldowns':[dict(grant,actor=2,remaining=1)],'returns':[]},'after':{'actor':1,'selected_grant':None},'busy':False,'reason':'success'}
+        grant=dict(slot='rightHand',grant=2,item_ref='f'*64,skill='skill_heal')
+        value=event();value['data']={'before':{'actor':2,'order':[2,1],'selected_grant':grant,'selected_return_grant':dict(grant,skill='skill_return_home'),'cooldowns':[dict(grant,actor=2,remaining=1)],'returns':[]},'after':{'actor':1,'selected_grant':None},'busy':False,'reason':'success'}
         s=self.store();self.assertTrue(s.handle(batch([value]))['ok'])
         self.assertEqual(D.read_events(self.path)[0]['data'],value['data'])
         self.assertEqual(D.read_events(self.path)[0]['elapsed_ms'],10)
@@ -70,7 +70,7 @@ class DebugStoreTests(unittest.TestCase):
         for key in ['session','version']:
             r=batch();r[key]=secret;inputs.append(r)
         r=batch();r['events'][0]['data']={'before':{'actor':secret}};inputs.append(r)
-        r=batch();r['events'][0]['data']={'before':{'selected_grant':dict(slot='rightHand',grant=1,item_ref=secret,skill='mage')}};inputs.append(r)
+        r=batch();r['events'][0]['data']={'before':{'selected_grant':dict(slot='rightHand',grant=1,item_ref=secret,skill='skill_heal')}};inputs.append(r)
         s=self.store()
         for value in inputs:
             result=s.handle(value);self.assertEqual(result,{'ok':False,'code':'invalid'});self.assertNotIn(secret,json.dumps(result))
@@ -115,9 +115,9 @@ class DebugStoreTests(unittest.TestCase):
         with closing(sqlite3.connect(self.path)) as db:self.assertLessEqual(db.execute('PRAGMA page_count').fetchone()[0]*4096,D.MAX_DB_BYTES)
         self.assertLessEqual(self.path.stat().st_size,D.MAX_DB_BYTES)
     def test_payload_budget_trims_oldest_and_preserves_latest(self):
-        grant=dict(slot='rightHand',grant=2,item_ref='f'*64,skill='mage')
+        grant=dict(slot='rightHand',grant=2,item_ref='f'*64,skill='skill_heal')
         snapshot=dict(actor=1,order=list(range(16)),selected_grant=grant,
-            selected_return_grant=dict(grant,skill='returnHome'),
+            selected_return_grant=dict(grant,skill='skill_return_home'),
             cooldowns=[dict(grant,actor=n,remaining=1) for n in range(64)],
             returns=[dict(grant,actor=n,used=False) for n in range(16)])
         data=dict(before=snapshot,after=snapshot,reason='success')

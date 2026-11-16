@@ -5,7 +5,7 @@ const C=require('./campaign.js');
 function setup(event='wheel',epoch=0){
   const s=C.create();s.worldTime=epoch;s.hours=epoch;s.standaloneEvents.epoch=epoch;
   s.location={wheel:'east',turnip:'north',kiln:'astaris'}[event];
-  const q=C.board(s).find(q=>q.eventId===event),porter=C.view(s).roster.find(c=>s.selected.includes(c.id)&&c.job==='porter').id;
+  const q=C.board(s).find(q=>q.eventId===event),porter=C.view(s).roster.find(c=>s.selected.includes(c.id)&&c.job==='job_porter').id;
   assert(C.accept(s,q.id,porter));return s;
 }
 function at(s,age,place){s.worldTime=s.standaloneEvents.epoch+age;s.hours=s.worldTime;s.location=place;return s;}

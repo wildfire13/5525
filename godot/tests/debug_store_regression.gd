@@ -47,11 +47,11 @@ func causal_after(expected: Dictionary,label: String):
  check(not rows.is_empty() and rows[-1].request_id==observed[-1].request_id,"final state links to originating action: "+label)
 func source_case() -> Dictionary:
  var script="""const C=require(process.argv[1]),B=require(process.argv[2]),assert=require('node:assert/strict');
-const s=C.create();Object.assign(s.characters['recruit-mage-elf-female'],{leftHand:'staff-wood',accessory1:'return-ring-1',accessory2:'return-ring-2'});
+const s=C.create();Object.assign(s.characters['character_merina'],{leftHand:'staff-wood',accessory1:'return-ring-1',accessory2:'return-ring-2'});
 assert(C.validate(s).ok);assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));
-const a=s.battle.units.find(u=>u.id==='recruit-mage-elf-female'),b=s.battle.units.find(u=>u.id==='recruit-guard-human-female');a.pos=23;b.pos=24;assert(b.hp>80);b.hp-=80;
+const a=s.battle.units.find(u=>u.id==='character_merina'),b=s.battle.units.find(u=>u.id==='character_mirei');a.pos=23;b.pos=24;assert(b.hp>80);b.hp-=80;
 for(const u of s.battle.units)u.next=100000;a.next=1;s.battle.actor=a.id;assert(C.validate(s).ok);
-const skills=B.activeSkillOptions(a),returns=B.returnSkillOptions(a);assert.equal(skills.filter(x=>x.id==='mage').length,2);assert.equal(returns.length,2);
+const skills=B.activeSkillOptions(a),returns=B.returnSkillOptions(a);assert.equal(skills.filter(x=>x.id==='skill_heal').length,2);assert.equal(returns.length,2);
  require('node:fs').writeFileSync(process.argv[3],JSON.stringify({save:JSON.parse(C.serialize(s)),actor:a.id,target:b.id,skills,returns}),'utf8');"""
  var path=ProjectSettings.globalize_path("user://debug-store-fixture.json")
  var output=[];var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),["-e",script,ProjectSettings.globalize_path("res://../native/campaign.js"),ProjectSettings.globalize_path("res://../native/campaign-battle.js"),path],output,true,false)
@@ -83,24 +83,24 @@ func run():
  var fixture=source_case()
  await request({"op":"campaign_load","data":fixture.save},"campaign_load")
  await request({"op":"select_skill","skillId":fixture.skills[0].key},"select_skill")
- var before_cancel=await saved();game.command="skill";game.cancel();await settle()
+ var before_cancel=await saved();game.command="action_skill";game.cancel();await settle()
  check(await saved()==before_cancel,"skill cancel preserves real battle state")
- await request({"op":"act","kind":"skill","target":fixture.target,"presentation":true},"act.skill")
+ await request({"op":"act","kind":"action_skill","target":fixture.target,"presentation":true},"act.action_skill")
  var after=latest_after();check(after.get("cooldowns",[]).any(func(g):return g.slot==fixture.skills[0].slot and g.remaining==1),"final presentation state persists used source CT1")
  check(not after.get("cooldowns",[]).any(func(g):return g.slot==fixture.skills[1].slot),"unused identical source has no fabricated CT")
  causal_after(after,"skill CT1")
- await request({"op":"act","kind":"skill","target":fixture.target,"presentation":false},"act.skill",false)
- await request({"op":"act","kind":"guard","presentation":true},"act.guard")
+ await request({"op":"act","kind":"action_skill","target":fixture.target,"presentation":false},"act.action_skill",false)
+ await request({"op":"act","kind":"action_defend","presentation":true},"act.action_defend")
  after=latest_after();check(after.get("cooldowns",[]).is_empty(),"guard opportunity final presentation persists CT expiration")
  causal_after(after,"guard CT expiration")
  await request({"op":"select_return_skill","skillId":fixture.returns[0].key},"select_return_skill")
- await request({"op":"act","kind":"return","target":3,"presentation":true},"act.return")
+ await request({"op":"act","kind":"action_return","target":3,"presentation":true},"act.action_return")
  after=latest_after();check(after.get("returns",[]).any(func(g):return g.slot=="accessory1" and g.used),"final presentation persists selected return source used")
  check(not after.get("returns",[]).any(func(g):return g.slot=="accessory2" and g.used),"other return source remains unused")
  causal_after(after,"first return")
- await request({"op":"act","kind":"return","target":2},"act.return",false)
+ await request({"op":"act","kind":"action_return","target":2},"act.action_return",false)
  await request({"op":"select_return_skill","skillId":fixture.returns[1].key},"select_return_skill")
- await request({"op":"act","kind":"return","target":2,"presentation":true},"act.return")
+ await request({"op":"act","kind":"action_return","target":2,"presentation":true},"act.action_return")
  after=latest_after();check(after.get("returns",[]).size()==2 and after.returns.all(func(g):return g.used),"both distinct return grants persist consumed state")
  causal_after(after,"second return")
  await drain();var all=read_db();var serialized=JSON.stringify(readback)
@@ -114,9 +114,9 @@ func run():
  check(monotonic,"stored sequence and session elapsed times remain ordered")
  check(starts.keys()==ends.keys() and starts.values().all(func(n):return n==1) and ends.values().all(func(n):return n==1),"all observed attempted requests have exactly one start and end")
  var sanitizer=preload("res://debug_events.gd").new();sanitizer.configure("0".repeat(32))
- var enemy={"id":"PRIVATE_SENTINEL","selectedSkillKey":"legacy:scout","skillCooldowns":{"legacy:scout":1,"legacy:PRIVATE_SENTINEL":1}}
+ var enemy={"id":"PRIVATE_SENTINEL","selectedSkillKey":"legacy:skill_ambush","skillCooldowns":{"legacy:skill_ambush":1,"legacy:PRIVATE_SENTINEL":1}}
  var snap=sanitizer.snapshot({"state":{"actor":"PRIVATE_SENTINEL","units":[enemy]},"queue":[{"id":"PRIVATE_SENTINEL"}]})
- check(snap.cooldowns.size()==1 and snap.cooldowns[0].remaining==1 and snap.selected_grant.skill=="scout","known legacy enemy source CT retained and unknown legacy suffix rejected")
+ check(snap.cooldowns.size()==1 and snap.cooldowns[0].remaining==1 and snap.selected_grant.skill=="skill_ambush","known legacy enemy source CT retained and unknown legacy suffix rejected")
  check(not JSON.stringify(snap).contains("PRIVATE_SENTINEL"),"legacy actor/source sentinel never crosses sanitized boundary")
  var release=ReleaseStore.new();root.add_child(release);release.start(ProjectSettings.globalize_path("res://../native"));release.begin_request({"op":"campaign_save"});release.local_event("file_open","cancel");release.pump()
  check(not release.active and release.session.is_empty() and release.queue.is_empty() and release.transport.handles.is_empty(),"release-disabled branch starts no worker or queue/session")

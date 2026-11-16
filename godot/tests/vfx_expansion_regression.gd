@@ -49,6 +49,8 @@ func run():
    load_frame(c,frame,index);var before=board.data.duplicate(true)
    board.animate(p);fx.set_process(false)
    var snap=fx.snapshot();var e=snap.event
+   if name_=="guard" and p.phase=="action":
+    check(e.get("skill_id")=="skill_cover" and e.get("kind")=="action_skill" and fx.emitters.any(func(row):return row.key=="sup_wing"),"cover skill routes to support wings, not the defend posture")
    if not e.is_empty():
     check(snap.emitter_count>0,name_+" committed visual contains actual graphics "+str(index))
     observed.append(e.duplicate(true))
@@ -68,7 +70,7 @@ func run():
    check(not fx.snapshot().active,name_+" effect expires "+str(index))
   if not c.expected.accepted:check(observed.is_empty(),name_+" rejected action never creates success effect")
   if name_ in ["grapple_blocked","knockback_blocked","knockback_kill","knockback_edge"]:check(not observed.any(func(e):return e.get("phase")=="move"),name_+" no fabricated movement")
-  if name_=="victoryBreath_full":check(not observed.any(func(e):return e.get("skill_id")=="victoryBreath" and e.get("phase")=="resource"),name_+" amount zero never shows MP recovery")
+  if name_=="victoryBreath_full":check(not observed.any(func(e):return e.get("skill_id")=="skill_victory_breath" and e.get("phase")=="resource"),name_+" amount zero never shows MP recovery")
   if c.expected.accepted and name_!="firstStride_used":check(not observed.is_empty(),name_+" accepted expanded skill has visible event")
   check(randi()==expected_next,name_+" rendering consumes no global Godot RNG")
   fx.clear();await process_frame;await process_frame
@@ -79,7 +81,7 @@ func run():
  var c=generated.cases.knockback;var action=c.frames[0]
  load_frame(c,action,0);board.animate(action.presentation)
  var d=board.data.duplicate(true);d.erase("presentation")
- board.update_state(d,{"damage":999},"skill","",[])
+ board.update_state(d,{"damage":999},"action_skill","",[])
  check(not fx.snapshot().active and board.effect_action.is_empty(),"preview/cancel/reload clears residual effect")
  check(board.effect_event(action.presentation).is_empty(),"packet absent from accepted presentation cannot activate")
  load_frame(c,action,0);var stale=action.presentation.duplicate(true);stale.id=int(stale.id)+100

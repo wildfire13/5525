@@ -10,7 +10,7 @@ func run():
  for dims in [Vector2i(1920,1080)]:
   root.size=dims;await game.update({"op":"campaign_load","data":seed});await enter_facility("inn");await settle()
   check(not labels().any(func(s):return s.begins_with("パーティ全員で")) and labels().has("全員が全回復しています。料金はかかりません。"),"full party hides charge but retains free status "+str(dims))
-  var injured=seed.duplicate(true);injured.state.characters["recruit-guard-human-female"].hp=1
+  var injured=seed.duplicate(true);injured.state.characters["character_mirei"].hp=1
   await game.update({"op":"campaign_load","data":injured});await enter_facility("inn");await settle()
   check(labels().has("パーティ全員で%dG" % game.campaign().inn.price) and not labels().any(func(s):return s.contains("仮料金")),"injured party retains exact price "+str(dims))
   game.page="map";game.render();await settle()
@@ -31,7 +31,7 @@ func run():
  check(not doc.body_text.contains(gear.flavor) and not doc.body_text.contains(gear.note) and doc.body_text.contains("付与スキル：なし"),"detail_document keeps flavor and note in separate display tabs instead of clipping them")
  tip.free()
  var item_tip=preload("res://equipment_tooltip.gd").new()
- var item={"kind":"item","name":"試験アイテム","count":1,"definition":{"description":"説明"}}
+ var item={"kind":"action_item","name":"試験アイテム","count":1,"definition":{"description":"説明"}}
  item_tip.configure_entry(item,game.campaign())
  check(item_tip.detail_document(item).body_text=="説明","item description is not treated as equipment flavor separator")
  item_tip.free();game.show_equipment_details(entry);await settle()

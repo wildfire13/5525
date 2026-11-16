@@ -38,10 +38,11 @@ func keyed(value: String):
 func prepare(c: Dictionary):
  check((await game.update({"op":"campaign_load","data":c.save})).get("ok",false),"validated effect boundary loaded")
  await settle()
- if c.request.kind=="skill":
-  await os_click(game.hud.buttons.skill);await os_click(node("BattleSkill_"+str(c.expected.skill_id)))
+ while is_instance_valid(game.hud.opening_visual):await process_frame
+ if c.request.kind=="action_skill":
+  await os_click(game.hud.buttons.action_skill);await os_click(node("BattleSkill_"+str(c.expected.skill_id)))
  else:await os_click(game.hud.buttons[str(c.request.kind)])
- if c.request.kind!="guard" and game.pending==null:
+ if c.request.kind!="action_defend" and game.pending==null:
   var cell=int(c.request.target) if c.request.target is float or c.request.target is int else -1
   if cell<0:
    for unit in game.state().units:
@@ -75,7 +76,7 @@ func benchmark(c: Dictionary,dims: Vector2i):
  game.board.camera_yaw=0;game.board.world.zoom=16.5;game.board.update_camera();await frames(30)
  var before=await saved();var samples=[];var process_ms=[];var calls=[];var nodes=[];var memories=[];var last=Time.get_ticks_usec()
  for index in range(180):
-  if not baseline and index%2==0:game.board.skill_effects.play({"skill_id":"legSweep","phase":"action","origin":24,"cells":c.geometry.sweepCells},.42)
+  if not baseline and index%2==0:game.board.skill_effects.play({"skill_id":"skill_leg_sweep","phase":"action","origin":24,"cells":c.geometry.sweepCells},.42)
   await process_frame;var now=Time.get_ticks_usec();samples.append((now-last)/1000.0);last=now
   process_ms.append(Performance.get_monitor(Performance.TIME_PROCESS)*1000.0);calls.append(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME));nodes.append(Performance.get_monitor(Performance.OBJECT_NODE_COUNT));memories.append(Performance.get_monitor(Performance.MEMORY_STATIC))
  if not baseline:game.board.skill_effects.clear()

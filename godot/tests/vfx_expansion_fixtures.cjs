@@ -6,19 +6,20 @@ const {spawnSync}=require('node:child_process');
 const C=require('../../native/campaign.js'), B=require('../../native/campaign-battle.js');
 const {Presentation}=require('../../native/battle-presentation.cjs');
 const clone=x=>JSON.parse(JSON.stringify(x));
-const ids={guard:'recruit-guard-human-female',archer:'recruit-scout-elf-male',mage:'recruit-mage-elf-female',scout:'recruit-scout-human-female',porter:'recruit-porter-human-female'};
-const equipment={defenseLine:'battleline-shield',healingCross:'rest-staff',manaGift:'sharing-tome',poleVault:'longspear-wood',grapple:'grappling-rope',retreatSlash:'undertow-sword',knockback:'breaker-hammer',splitShot:'twin-bow',pincer:'partner-dagger'};
+const ids={guard:'character_mirei',archer:'character_shion',mage:'character_merina',scout:'character_rio',porter:'character_yuno'};
+const equipment={skill_defense_line:'battleline-shield',skill_healing_cross:'rest-staff',skill_mana_gift:'sharing-tome',skill_pole_vault:'longspear-wood',skill_grapple:'grappling-rope',skill_retreat_slash:'undertow-sword',skill_knockback:'breaker-hammer',skill_split_shot:'twin-bow',skill_pincer:'partner-dagger'};
+const caseSkills={guard:'skill_cover',defenseLine:'skill_defense_line',healingCross:'skill_healing_cross',manaGift:'skill_mana_gift',poleVault:'skill_pole_vault',grapple:'skill_grapple',retreatSlash:'skill_retreat_slash',knockback:'skill_knockback',splitShot:'skill_split_shot',pincer:'skill_pincer',porter:'skill_formation_boost'};
 const specs=[];
-function add(id,skill,variant='normal',actor='guard',kind='skill'){if(skill==='pincer')actor='scout';specs.push({id,skill,variant,actor,kind});}
-for(const skill of ['guard','defenseLine','healingCross','manaGift','poleVault','grapple','retreatSlash','knockback','splitShot','pincer'])add(skill,skill);
-add('archer','archer','normal','archer');add('scout','scout','normal','scout');add('porter','porter','normal','porter');
-for(const [skill,variants] of Object.entries({guard:['self','repeat','mp0'],defenseLine:['one','duplicate','repeat'],healingCross:['full','edge'],manaGift:['cap','one','mp0','full'],grapple:['blocked','ally'],knockback:['blocked','kill','edge'],pincer:['alone'],splitShot:['cover','duplicate','single'],retreatSlash:['blocked','edge'],porter:['broken','repeat','mp0']}))for(const variant of variants)add(skill+'_'+variant,skill,variant,skill==='porter'?'porter':'guard');
-for(const variant of ['normal','edge','used','occupied','enemy','same'])add('return_'+variant,'returnHome',variant,'guard','return');
-for(const variant of ['normal','cap','full','empty','mp0'])add('item_'+variant,'itemUse',variant,'guard','item');
-for(const variant of ['normal','cap','full','empty','wrongJob'])add('ether_'+variant,'itemUse',variant,variant==='wrongJob'?'guard':'porter','ether');
-for(const variant of ['normal','adjacent'])add('loneWolf_'+variant,'loneWolf',variant,'guard','attack');
-for(const variant of ['normal','used','short'])add('firstStride_'+variant,'firstStride',variant,'guard','move');
-for(const variant of ['normal','cap','full','dead'])add('victoryBreath_'+variant,'victoryBreath',variant,'guard','attack');
+function add(id,skill,variant='normal',actor='guard',kind='action_skill'){if(skill==='skill_pincer')actor='scout';specs.push({id,skill,variant,actor,kind});}
+for(const id of ['guard','defenseLine','healingCross','manaGift','poleVault','grapple','retreatSlash','knockback','splitShot','pincer'])add(id,caseSkills[id]);
+add('archer','skill_snipe','normal','archer');add('scout','skill_ambush','normal','scout');add('porter','skill_formation_boost','normal','porter');
+for(const [id,variants] of Object.entries({guard:['self','repeat','mp0'],defenseLine:['one','duplicate','repeat'],healingCross:['full','edge'],manaGift:['cap','one','mp0','full'],grapple:['blocked','ally'],knockback:['blocked','kill','edge'],pincer:['alone'],splitShot:['cover','duplicate','single'],retreatSlash:['blocked','edge'],porter:['broken','repeat','mp0']}))for(const variant of variants)add(id+'_'+variant,caseSkills[id],variant,id==='porter'?'porter':'guard');
+for(const variant of ['normal','edge','used','occupied','enemy','same'])add('return_'+variant,'skill_return_home',variant,'guard','action_return');
+for(const variant of ['normal','cap','full','empty','mp0'])add('item_'+variant,'skill_item_use',variant,'guard','action_item');
+for(const variant of ['normal','cap','full','empty','wrongJob'])add('ether_'+variant,'skill_item_use',variant,variant==='wrongJob'?'guard':'porter','action_ether');
+for(const variant of ['normal','adjacent'])add('loneWolf_'+variant,'skill_lone_wolf',variant,'guard','action_attack');
+for(const variant of ['normal','used','short'])add('firstStride_'+variant,'skill_first_stride',variant,'guard','action_move');
+for(const variant of ['normal','cap','full','dead'])add('victoryBreath_'+variant,'skill_victory_breath',variant,'guard','action_attack');
 function build(spec){
  const {skill,variant,actor:role,kind}=spec,s=C.create(),actorId=ids[role];
  s.selected=Object.values(ids);
@@ -26,10 +27,10 @@ function build(spec){
  s.characters[ids.archer].leftHand='empty-leftHand';
  s.characters[ids.scout].weapon='dagger-wood';
  if(equipment[skill])s.characters[actorId].weapon=equipment[skill];
- if(['poleVault','splitShot'].includes(skill))s.characters[actorId].leftHand='empty-leftHand';
- if(['returnHome','loneWolf','firstStride'].includes(skill))s.characters[actorId].accessory1={returnHome:'return-ring-1',loneWolf:'lone-ring-1',firstStride:'pioneer-gloves-1'}[skill];
- if(skill==='victoryBreath')s.characters[ids.mage].accessory1='victory-earring-1';
- if(skill==='itemUse'){if(role!=='porter')s.characters[actorId].weapon='empty-rightHand';s.characters[actorId].accessory2='pouch-belt-3';s.characters[actorId].inventory={potion:2,ether:2};}
+ if(['skill_pole_vault','skill_split_shot'].includes(skill))s.characters[actorId].leftHand='empty-leftHand';
+ if(['skill_return_home','skill_lone_wolf','skill_first_stride'].includes(skill))s.characters[actorId].accessory1={skill_return_home:'return-ring-1',skill_lone_wolf:'lone-ring-1',skill_first_stride:'pioneer-gloves-1'}[skill];
+ if(skill==='skill_victory_breath')s.characters[ids.mage].accessory1='victory-earring-1';
+ if(skill==='skill_item_use'){if(role!=='porter')s.characters[actorId].weapon='empty-rightHand';s.characters[actorId].accessory2='pouch-belt-3';s.characters[actorId].inventory={potion:2,ether:2};}
  assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>0));assert(C.begin(s),spec.id+" begin");
  const b=s.battle, find=id=>b.units.find(u=>u.id===(ids[id]||id)),a=find(actorId),enemies=b.units.filter(u=>u.side==='enemy'),e=enemies[0];
  assert.deepEqual(b.units.filter(u=>u.side==='ally').map(u=>u.id),s.selected,spec.id+' current recruits only');
@@ -37,27 +38,27 @@ function build(spec){
  const positions=Object.fromEntries(Object.entries({guard:24,archer:14,mage:23,scout:34,porter:32}).map(([role,pos])=>[ids[role],pos]));
  b.units.forEach(u=>{u.hp=u.max;u.mp=u.maxMp;u.next=10000;u.guard=false;u.cover=null;u.boost=false;if(u.side==='ally')u.pos=positions[u.id];});
  if(spec.id==='victoryBreath_dead')B.receive(b,find('mage'),10000,false);
- enemies.forEach((u,i)=>u.pos=[25,15,35][i]);if(skill==='pincer'){find('guard').pos=22;a.pos=24;}a.next=1;find(role==='archer'?'mage':'archer').next=2;b.actor=a.id;
- if(kind==='skill')assert(B.selectSkill(b,skill),spec.id+' equipped skill selection');
+ enemies.forEach((u,i)=>u.pos=[25,15,35][i]);if(skill==='skill_pincer'){find('guard').pos=22;a.pos=24;}a.next=1;find(role==='archer'?'mage':'archer').next=2;b.actor=a.id;
+ if(kind==='action_skill')assert(B.selectSkill(b,skill),spec.id+' equipped skill selection');
  let target=e.id;
- if(skill==='guard'){target=ids.mage;if(variant==='self')target=a.id;if(variant==='repeat')a.cover=target;}
- if(skill==='defenseLine'){target=variant==='one'?[ids.mage]:variant==='duplicate'?[ids.mage,ids.mage]:[ids.archer,ids.mage];if(variant==='repeat')a.covers=[...target];}
- if(skill==='healingCross'){target=a.id;find('mage').hp-=45;find('archer').hp-=7;find('scout').hp-=30;if(variant==='full')b.units.filter(u=>u.side==='ally').forEach(u=>u.hp=u.max);if(variant==='edge'){a.pos=0;find('mage').pos=1;find('archer').pos=10;}}
- if(skill==='manaGift'){target='mage';find('mage').mp-=variant==='cap'?1:3;if(variant==='one')a.mp=1;if(variant==='full')find('mage').mp=find('mage').maxMp;}
- if(skill==='poleVault')target=22;
- if(skill==='grapple'){a.pos=22;find('mage').pos=13;target=variant==='ally'?'archer':e.id;if(variant==='ally')find('archer').pos=24;else e.pos=24;if(variant==='blocked')find('mage').pos=23;}
- if(skill==='retreatSlash'){find('mage').pos=12;if(variant==='blocked')find('mage').pos=23;if(variant==='edge'){a.pos=20;e.pos=21;}}
- if(skill==='knockback'){if(variant==='blocked')enemies[1].pos=26;if(variant==='kill')e.hp=1;if(variant==='edge'){a.pos=23;e.pos=24;find('mage').pos=13;enemies[1].pos=14;target=enemies[1].id;a.pos=4;find('archer').pos=12;}}
- if(skill==='splitShot'){target=variant==='duplicate'?[e.id,e.id]:variant==='single'?[e.id]:[enemies[1].id,enemies[2].id];if(variant==='cover'){e.cover=enemies[1].id;e.covers=[enemies[1].id,enemies[2].id];}}
- if(skill==='pincer'){if(variant==='alone'){find('archer').pos=12;find('mage').pos=13;}else {find('archer').pos=15;enemies[1].pos=16;}}
- if(skill==='archer'){a.pos=23;find('mage').pos=13;}
- if(skill==='scout'){a.pos=22;find('mage').pos=13;find('guard').pos=2;}
- if(skill==='porter'){target=a.id;find('guard').pos=24;find('archer').pos=13;find('mage').pos=33;find('porter').pos=22;if(variant==='broken')find('guard').pos=23;if(variant==='repeat')a.boost=true;}
- if(skill==='returnHome'){target=variant==='edge'?0:variant==='occupied'?14:variant==='enemy'?25:variant==='same'?a.pos:22;if(variant==='used'){a.returnUsed=true;a.returnUsedGrants=Object.fromEntries(B.returnSkillOptions(a).map(option=>[option.key,true]));}}
- if(kind==='item'||kind==='ether'){target=a.id;if(kind==='item')a.hp-=variant==='cap'?7:70;else a.mp-=variant==='cap'?1:4;if(variant==='full'){a.hp=a.max;a.mp=a.maxMp;}if(variant==='empty'){const item=kind==='item'?'potion':'ether';b.itemInventories[a.id][item]=0;if(item==='potion')b.potions.ally=Object.values(b.itemInventories).reduce((n,x)=>n+x.potion,0);else b.ethers=Object.values(b.itemInventories).reduce((n,x)=>n+x.ether,0);}}
- if(skill==='loneWolf'){find('mage').pos=12;find('archer').pos=13;find('scout').pos=3;if(variant==='adjacent')find('mage').pos=23;}
- if(skill==='firstStride'){target=variant==='swap'?24:variant==='short'?22:variant==='used'?21:20;a.pos=23;find('mage').pos=12;if(variant==='used')a.firstMoveUsed=true;}
- if(skill==='victoryBreath'){enemies.slice(1).forEach(u=>u.hp=0);e.hp=1;const m=find('mage');m.mp=variant==='full'?m.maxMp:variant==='cap'?m.maxMp-1:m.maxMp-3;}
+ if(skill==='skill_cover'){target=ids.mage;if(variant==='self')target=a.id;if(variant==='repeat')a.cover=target;}
+ if(skill==='skill_defense_line'){target=variant==='one'?[ids.mage]:variant==='duplicate'?[ids.mage,ids.mage]:[ids.archer,ids.mage];if(variant==='repeat')a.covers=[...target];}
+ if(skill==='skill_healing_cross'){target=a.id;find('mage').hp-=45;find('archer').hp-=7;find('scout').hp-=30;if(variant==='full')b.units.filter(u=>u.side==='ally').forEach(u=>u.hp=u.max);if(variant==='edge'){a.pos=0;find('mage').pos=1;find('archer').pos=10;}}
+ if(skill==='skill_mana_gift'){target='mage';find('mage').mp-=variant==='cap'?1:3;if(variant==='one')a.mp=1;if(variant==='full')find('mage').mp=find('mage').maxMp;}
+ if(skill==='skill_pole_vault')target=22;
+ if(skill==='skill_grapple'){a.pos=22;find('mage').pos=13;target=variant==='ally'?'archer':e.id;if(variant==='ally')find('archer').pos=24;else e.pos=24;if(variant==='blocked')find('mage').pos=23;}
+ if(skill==='skill_retreat_slash'){find('mage').pos=12;if(variant==='blocked')find('mage').pos=23;if(variant==='edge'){a.pos=20;e.pos=21;}}
+ if(skill==='skill_knockback'){if(variant==='blocked')enemies[1].pos=26;if(variant==='kill')e.hp=1;if(variant==='edge'){a.pos=23;e.pos=24;find('mage').pos=13;enemies[1].pos=14;target=enemies[1].id;a.pos=4;find('archer').pos=12;}}
+ if(skill==='skill_split_shot'){target=variant==='duplicate'?[e.id,e.id]:variant==='single'?[e.id]:[enemies[1].id,enemies[2].id];if(variant==='cover'){e.cover=enemies[1].id;e.covers=[enemies[1].id,enemies[2].id];}}
+ if(skill==='skill_pincer'){if(variant==='alone'){find('archer').pos=12;find('mage').pos=13;}else {find('archer').pos=15;enemies[1].pos=16;}}
+ if(skill==='skill_snipe'){a.pos=23;find('mage').pos=13;}
+ if(skill==='skill_ambush'){a.pos=22;find('mage').pos=13;find('guard').pos=2;}
+ if(skill==='skill_formation_boost'){target=a.id;find('guard').pos=24;find('archer').pos=13;find('mage').pos=33;find('porter').pos=22;if(variant==='broken')find('guard').pos=23;if(variant==='repeat')a.boost=true;}
+ if(skill==='skill_return_home'){target=variant==='edge'?0:variant==='occupied'?14:variant==='enemy'?25:variant==='same'?a.pos:22;if(variant==='used'){a.returnUsed=true;a.returnUsedGrants=Object.fromEntries(B.returnSkillOptions(a).map(option=>[option.key,true]));}}
+ if(kind==='action_item'||kind==='action_ether'){target=a.id;if(kind==='action_item')a.hp-=variant==='cap'?7:70;else a.mp-=variant==='cap'?1:4;if(variant==='full'){a.hp=a.max;a.mp=a.maxMp;}if(variant==='empty'){const item=kind==='action_item'?'potion':'ether';b.itemInventories[a.id][item]=0;if(item==='potion')b.potions.ally=Object.values(b.itemInventories).reduce((n,x)=>n+x.potion,0);else b.ethers=Object.values(b.itemInventories).reduce((n,x)=>n+x.ether,0);}}
+ if(skill==='skill_lone_wolf'){find('mage').pos=12;find('archer').pos=13;find('scout').pos=3;if(variant==='adjacent')find('mage').pos=23;}
+ if(skill==='skill_first_stride'){target=variant==='swap'?24:variant==='short'?22:variant==='used'?21:20;a.pos=23;find('mage').pos=12;if(variant==='used')a.firstMoveUsed=true;}
+ if(skill==='skill_victory_breath'){enemies.slice(1).forEach(u=>u.hp=0);e.hp=1;const m=find('mage');m.mp=variant==='full'?m.maxMp:variant==='cap'?m.maxMp-1:m.maxMp-3;}
  if(variant==='mp0')a.mp=0;
  if(typeof target==='string')target=ids[target]||target;
  if(Array.isArray(target))target=target.map(id=>ids[id]||id);
@@ -79,15 +80,15 @@ function observe(spec){
  const events=(observed.battle.skillEvents||[]).filter(e=>e.sequence>(initial.skillEventSequence||0));
  const actor=initial.units.find(u=>u.id===initial.actor);
  const choices=B.skillTargets(initial,actor);
- const geometry={ranges:{skill:Array.from({length:50},(_,p)=>p).filter(p=>{const u=initial.units.find(u=>u.hp>0&&u.pos===p);return B.inRange(actor,u?.side||'enemy',p,'skill',initial);})},choices:{skill:choices},stampAreas:{},sweepCells:[]};
+ const geometry={ranges:{action_skill:Array.from({length:50},(_,p)=>p).filter(p=>{const u=initial.units.find(u=>u.hp>0&&u.pos===p);return B.inRange(actor,u?.side||'enemy',p,'action_skill',initial);})},choices:{action_skill:choices},stampAreas:{},sweepCells:[]};
  const rejected=/^(guard_(self|mp0)|defenseLine_duplicate|healingCross_full|manaGift_(mp0|full)|splitShot_(duplicate|single)|retreatSlash_(blocked|edge)|porter_(broken|mp0)|return_(used|occupied|enemy|same)|item_(full|empty)|ether_(full|empty|wrongJob))$/.test(spec.id);
  assert.equal(accepted,!rejected,spec.id+' intended legal boundary');
  if(spec.id==='grapple_blocked')assert.equal(impacts.length,0);
  if(['knockback_blocked','knockback_kill','knockback_edge'].includes(spec.id))assert.equal(impacts.filter(x=>x.phase==='move').length,0);
  if(spec.id==='splitShot_cover')assert.deepEqual(impacts.map(x=>x.unit_id),[initial.units.find(x=>x.side==='enemy').id,initial.units.find(x=>x.side==='enemy').id]);
  if(spec.id==='loneWolf_adjacent'||spec.id==='firstStride_used'||spec.id==='victoryBreath_dead')assert(!events.some(e=>e.skillId===spec.skill));
- if(spec.id==='victoryBreath_full')assert.equal(events.find(e=>e.skillId==='victoryBreath').amount,0);
- const expected={accepted,actor_id:actor.id,kind:request.kind,skill_id:request.kind==='skill'?spec.skill:request.kind==='return'?'returnHome':request.kind==='item'||request.kind==='ether'?'itemUse':null,target:request.target,impacts,events,random_calls:oc,final_save_sha256:createHash('sha256').update(C.serialize(observed)).digest('hex')};
+ if(spec.id==='victoryBreath_full')assert.equal(events.find(e=>e.skillId==='skill_victory_breath').amount,0);
+ const expected={accepted,actor_id:actor.id,kind:request.kind,skill_id:request.kind==='action_skill'?spec.skill:request.kind==='action_return'?'skill_return_home':request.kind==='action_item'||request.kind==='action_ether'?'skill_item_use':null,target:request.target,impacts,events,random_calls:oc,final_save_sha256:createHash('sha256').update(C.serialize(observed)).digest('hex')};
  const campaign=C.deserialize(JSON.stringify(save));assert.equal(C.act(campaign,request.kind,request.target),accepted,spec.id+' campaign legality');assert(C.validate(campaign).ok);
  return {save,request,geometry,frames,expected,campaign_final_battle:clone(campaign.battle)};
 }

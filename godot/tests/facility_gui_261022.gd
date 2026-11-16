@@ -41,7 +41,7 @@ func run():
 	for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
 		root.size=dims;root.position=Vector2i.ZERO;await settle()
 		for spec in cases:
-			var scenario=seed.duplicate(true);scenario.state.location=spec[0];scenario.state.characters["recruit-guard-human-female"].hp=1
+			var scenario=seed.duplicate(true);scenario.state.location=spec[0];scenario.state.characters["character_mirei"].hp=1
 			await game.update({"op":"campaign_load","data":scenario});await enter_facility(spec[1]);await settle()
 			var before=await saved()
 			for variant in production[spec[2]]:
@@ -55,7 +55,7 @@ func run():
 			art.catalog=production.duplicate(true)
 			if spec[0]=="east":
 				var state=art.rng.state
-				var product=node("Product_spear-wood");var receiver=node("PartyFace_recruit-guard-human-female")
+				var product=node("Product_spear-wood");var receiver=node("PartyFace_character_mirei")
 				await os_mouse(product.get_global_rect().get_center(),"drag",receiver.get_global_rect().get_center())
 				check(node("PurchaseDecline")!=null,"OS product drag opens purchase consent")
 				if node("PurchaseDecline")!=null:await os_click(node("PurchaseDecline"))
@@ -67,7 +67,7 @@ func run():
 				var map=node("TownMap");var dest=map.buttons.keys().filter(func(id):return id!=map.current and id!=map.selected)[0]
 				await os_click(map.buttons[dest]);check(node("TownMap").selected==dest,"OS map destination works over background")
 			if spec[1]=="party":
-				await os_click(node("GuildMember_recruit-guard-human-female"));check(game.pages.guild_view.chosen_id=="recruit-guard-human-female","OS guild member selects over background")
+				await os_click(node("GuildMember_character_mirei"));check(game.pages.guild_view.chosen_id=="character_mirei","OS guild member selects over background")
 			if spec[1]=="inn":
 				await os_click(node("InnStay"))
 				var confirmations=game.find_children("*","ConfirmationDialog",true,false)
@@ -75,7 +75,7 @@ func run():
 				if not confirmations.is_empty():await os_click(confirmations[0].get_cancel_button())
 			check(await saved()==before,"GUI inspection and cancellation preserve exact save and progress RNG")
 	# Actual OS events travel through the window and Godot hit testing.
-	await game.update({"op":"campaign_load","data":battle_fixture().guard});await settle();await game.choose_command("attack");await settle()
+	await game.update({"op":"campaign_load","data":battle_fixture().guard});await settle();await game.choose_command("action_attack");await settle()
 	game.board.cell_clicked.disconnect(game.on_cell);var clicked=[]
 	game.board.cell_clicked.connect(func(pos):clicked.append(pos))
 	var before=await saved();var occupied=int(game.state().units[0].pos);var empty=-1

@@ -2,7 +2,7 @@
 const C = require('../../native/campaign.js');
 const assert = require('node:assert/strict');
 const s = C.create();
-const owner = 'recruit-guard-human-female';
+const owner = 'character_mirei';
 s.characters[owner].lowerBody = 'kungfu-pants';
 assert(C.depart(s, 'east'));
 assert(C.travel(s, 'short', () => 0));
@@ -17,7 +17,7 @@ b.units.filter(u => u.side === 'enemy').forEach((u, i) => {
 });
 actor.pos = 24;
 actor.next = 1;
-actor.selectedSkill = 'legSweep';
+actor.selectedSkill = 'skill_leg_sweep';
 b.actor = owner;
 assert(C.validate(s).ok, C.validate(s).error);
 console.log(JSON.stringify({sweep50: JSON.parse(C.serialize(s))}).replace(/[^\x00-\x7f]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')));

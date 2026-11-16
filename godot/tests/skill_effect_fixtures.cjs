@@ -9,7 +9,7 @@ const C=require('../../native/campaign.js');
 const B=require('../../native/campaign-battle.js');
 const {Presentation}=require('../../native/battle-presentation.cjs');
 const clone=value=>JSON.parse(JSON.stringify(value));
-const ids={guard:'recruit-guard-human-female',archer:'recruit-scout-elf-male',mage:'recruit-mage-elf-female',scout:'recruit-scout-human-female',porter:'recruit-porter-human-female'};
+const ids={guard:'character_mirei',archer:'character_shion',mage:'character_merina',scout:'character_rio',porter:'character_yuno'};
 const validate=(state,label)=>assert(C.validate(state).ok,`${label}: ${C.validate(state).error}`);
 
 function campaign(kind){
@@ -31,9 +31,12 @@ function campaign(kind){
   const actor=b.units.find(u=>u.id===ids[kind.startsWith('heal')?'mage':kind==='attackRanged'?'archer':kind==='porterBreakthrough'?'porter':'guard']);
   if(kind==='porterBreakthrough')actor.pos=48;
   actor.next=1;b.actor=actor.id;
-  if(kind.startsWith('sweep')||kind.startsWith('stamp')||kind.startsWith('heal'))actor.selectedSkill=kind.startsWith('sweep')?'legSweep':kind.startsWith('stamp')?'stamp':'mage';
+  if(kind.startsWith('sweep')||kind.startsWith('stamp')||kind.startsWith('heal')){
+    const skill=kind.startsWith('sweep')?'skill_leg_sweep':kind.startsWith('stamp')?'skill_stamp':'skill_heal';
+    assert(B.selectSkill(b,skill),`${kind} selects a valid current equipment grant`);
+  }
   let target=kind==='porterBreakthrough'?49:kind.startsWith('sweep')?actor.id:kind.startsWith('stamp')?25:kind.startsWith('attack')?enemies[0].id:ids.guard;
-  let actionKind=kind==='porterBreakthrough'?'move':kind.startsWith('attack')?'attack':kind==='guard'?'guard':'skill';
+  let actionKind=kind==='porterBreakthrough'?'action_move':kind.startsWith('attack')?'action_attack':kind==='guard'?'action_defend':'action_skill';
   if(kind==='attackRanged')actor.pos=23;
   if(kind==='attackGuarded')enemies[0].guard=true;
   if(kind==='guard'){target=null;b.units.find(u=>u.id===ids.archer).next=2;}
@@ -63,17 +66,17 @@ function campaign(kind){
 
 function geometry(b){
   const actor=b.units.find(u=>u.id===b.actor);
-  if(!actor)return {ranges:{skill:[]},choices:{skill:[]},stampAreas:{},sweepCells:[]};
-  const skill=B.activeSkill(actor),support=['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(skill);
+  if(!actor)return {ranges:{action_skill:[]},choices:{action_skill:[]},stampAreas:{},sweepCells:[]};
+  const skill=B.activeSkill(actor),support=['skill_heal','skill_cover','skill_formation_boost','skill_healing_cross','skill_defense_line','skill_mana_gift'].includes(skill);
   const choices=B.skillTargets(b,actor);
   return {
-    ranges:{skill:Array.from({length:50},(_,p)=>p).filter(p=>{
+    ranges:{action_skill:Array.from({length:50},(_,p)=>p).filter(p=>{
       const target=b.units.find(u=>u.hp>0&&u.pos===p);
-      return B.inRange(actor,target?.side||(support?'ally':'enemy'),p,'skill',b);
+      return B.inRange(actor,target?.side||(support?'ally':'enemy'),p,'action_skill',b);
     })},
-    choices:{skill:choices},
-    stampAreas:skill==='stamp'?Object.fromEntries(choices.map(p=>[p,B.stampCells(actor,p)])):{},
-    sweepCells:skill==='legSweep'?B.sweepCells(actor):[],
+    choices:{action_skill:choices},
+    stampAreas:skill==='skill_stamp'?Object.fromEntries(choices.map(p=>[p,B.stampCells(actor,p)])):{},
+    sweepCells:skill==='skill_leg_sweep'?B.sweepCells(actor):[],
   };
 }
 
@@ -104,11 +107,11 @@ function observe(name){
     assert(phase.phase==='heal'?phase.to>phase.from:phase.to<phase.from);
     const action=frames.find(row=>row.presentation.phase==='action'&&row.presentation.action_id===phase.action_id)?.presentation;
     const recipient=f.state.units.find(u=>u.id===phase.unit_id);
-    return {phase:phase.phase,unit_id:phase.unit_id,from:phase.from,to:phase.to,delta:phase.to-phase.from,actor_id:phase.actor_id,action_id:phase.action_id,guarding:!!recipient.guard,redirected:action?.kind==='attack'&&typeof action.target==='string'&&action.target!==phase.unit_id};
+    return {phase:phase.phase,unit_id:phase.unit_id,from:phase.from,to:phase.to,delta:phase.to-phase.from,actor_id:phase.actor_id,action_id:phase.action_id,guarding:!!recipient.guard,redirected:action?.kind==='action_attack'&&typeof action.target==='string'&&action.target!==phase.unit_id};
   });
   const settled=frames.find(f=>f.presentation.phase==='settled');
   const newSkips=settled?settled.state.units.filter(u=>u.skipNextTurn&&!initial.units.find(old=>old.id===u.id).skipNextTurn).map(u=>u.id):[];
-  const expected={accepted,kind:request.kind,skill_id:request.kind==='skill'?B.activeSkill(initial.units.find(u=>u.id===initial.actor)):null,actor_id:initial.actor,target:request.target,
+  const expected={accepted,kind:request.kind,skill_id:request.kind==='action_skill'?B.activeSkill(initial.units.find(u=>u.id===initial.actor)):null,actor_id:initial.actor,target:request.target,
     cells:name.startsWith('sweep')?g.sweepCells:name.startsWith('stamp')?g.stampAreas[request.target]:[],impacts,new_skips:newSkips,
     random_calls:observedRandomCalls,final_actor:observed.battle.actor,frame_phases:frames.map(f=>f.presentation.phase),
     final_save_sha256:createHash('sha256').update(C.serialize(observed)).digest('hex')};
@@ -117,7 +120,7 @@ function observe(name){
     assert(frames.filter(f=>f.presentation.phase!=='action').every(f=>f.presentation.skill_id===undefined),`${name} skill_id belongs only to action`);
     if(name.startsWith('stamp')){
       const actions=frames.filter(f=>f.presentation.phase==='action');
-      assert.deepEqual(actions.map(f=>f.presentation.kind),name==='stampNextActor'?['cast']:['cast','skill'],`${name} reservation precedes personal-opportunity resolution`);
+      assert.deepEqual(actions.map(f=>f.presentation.kind),name==='stampNextActor'?['action_cast']:['action_cast','action_skill'],`${name} reservation precedes personal-opportunity resolution`);
       assert.equal(new Set(actions.map(f=>f.presentation.action_id)).size,actions.length,`${name} distinct reservation and resolution identities`);
       assert.equal(initial.units.find(u=>u.id===initial.actor).mp-observed.battle.units.find(u=>u.id===initial.actor).mp,1,`${name} reservation is charged once`);
     }else if(name!=='attackSequence')assert.equal(new Set(frames.map(f=>f.presentation.action_id)).size,1,`${name} one causal action id`);
@@ -147,7 +150,7 @@ function observe(name){
   }
   const actions=frames.filter(f=>f.presentation.phase==='action');
   expected.actions=actions.map(f=>({action_id:f.presentation.action_id,kind:f.presentation.kind,skill_id:f.presentation.skill_id,actor_id:f.presentation.actor_id,target:f.presentation.target}));
-  expected.attack_misses=expected.actions.filter(action=>action.kind==='attack'&&!impacts.some(hit=>hit.action_id===action.action_id)).map(action=>action.action_id);
+  expected.attack_misses=expected.actions.filter(action=>action.kind==='action_attack'&&!impacts.some(hit=>hit.action_id===action.action_id)).map(action=>action.action_id);
   if(name==='attackMelee')assert.deepEqual(impacts.map(hit=>hit.delta),[-Math.min(initial.units.find(u=>u.id===request.target).hp,B.attackPreview(initial,initial.units.find(u=>u.id===initial.actor),initial.units.find(u=>u.id===request.target)).damage)]);
   if(name==='attackRanged')assert.deepEqual(impacts.map(hit=>hit.delta),[-Math.min(initial.units.find(u=>u.id===request.target).hp,B.attackPreview(initial,initial.units.find(u=>u.id===initial.actor),initial.units.find(u=>u.id===request.target)).damage)]);
   if(name==='attackGuarded')assert.deepEqual(impacts.map(hit=>[hit.delta,hit.guarding]),[[-Math.min(initial.units.find(u=>u.id===request.target).hp,B.attackPreview(initial,initial.units.find(u=>u.id===initial.actor),initial.units.find(u=>u.id===request.target)).damage),true]]);
@@ -170,13 +173,13 @@ function verifyBridge(){
     const replies=child.stdout.trim().split(/\r?\n/).map(line=>JSON.parse(line));assert.equal(replies.length,3);
     const [loaded,preview,saved]=replies;assert(loaded.ok,`${name} actual bridge loads canonical save`);
     assert.equal(preview.presentation,undefined,`${name} preview never starts presentation`);
-    assert.deepEqual(loaded.ranges.skill,c.geometry.ranges.skill,`${name} actual bridge ranges`);
-    assert.deepEqual(loaded.choices.skill,c.geometry.choices.skill,`${name} actual bridge choices`);
+    assert.deepEqual(loaded.ranges.action_skill,c.geometry.ranges.action_skill,`${name} actual bridge ranges`);
+    assert.deepEqual(loaded.choices.action_skill,c.geometry.choices.action_skill,`${name} actual bridge choices`);
     assert.deepEqual(loaded.stampAreas,c.geometry.stampAreas,`${name} actual bridge stampAreas`);
     assert.equal(preview.ok,c.expected.accepted,`${name} actual preview legality`);
     if(c.expected.accepted&&c.expected.cells.length)assert.deepEqual(preview.preview.cells,c.expected.cells,`${name} actual preview cells`);
     assert.deepEqual(saved.data,c.save,`${name} preview/inspection keeps exact save`);
-    rows.push({name,passed:true,ranges:c.geometry.ranges.skill.length,cells:c.expected.cells.length,impacts:c.expected.impacts.length,new_skips:c.expected.new_skips.length});
+    rows.push({name,passed:true,ranges:c.geometry.ranges.action_skill.length,cells:c.expected.cells.length,impacts:c.expected.impacts.length,new_skips:c.expected.new_skips.length});
   }
   return rows;
 }

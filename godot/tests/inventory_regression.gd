@@ -4,8 +4,8 @@ var game
 var checks: Array=[]
 var failures: Array=[]
 var evidence := ""
-const OWNER = "recruit-guard-human-female"
-const TARGET = "recruit-mage-elf-female"
+const OWNER = "character_mirei"
+const TARGET = "character_merina"
 func _initialize():call_deferred("run")
 func check(id: String,passed: bool,detail: String):
 	checks.append({"id":id,"passed":passed,"detail":detail})

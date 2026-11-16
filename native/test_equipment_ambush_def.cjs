@@ -2,9 +2,9 @@
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 let checks=0;
 function check(ok,message){assert(ok,message);checks++;}
-function unit(id,side,pos){return {id,side,pos,job:'scout',hp:100,max:100,mp:9,maxMp:9,atk:23,reach:1,agi:10,def:0,guard:false,cover:null};}
+function unit(id,side,pos){return {id,side,pos,job:'job_scout',hp:100,max:100,mp:9,maxMp:9,atk:23,reach:1,agi:10,def:0,guard:false,cover:null};}
 for(const side of ['ally','enemy'])for(const level of [1,2,3]){
- const a=unit('actor',side,22);a.skillStage=999;a.skillSources=[{id:'scout',level}];
+ const a=unit('actor',side,22);a.skillStage=999;a.skillSources=[{id:'skill_ambush',level}];
  for(const [direction,pos] of [['right',24],['left',20],['up',2],['down',42],['diagonal',44]]){
   const b=unit('target',side==='ally'?'enemy':'ally',pos),s={units:[a,b],log:[]};
   const expected=level===1?direction===(side==='ally'?'right':'left'):level===2?['left','right'].includes(direction):direction!=='diagonal';
@@ -19,10 +19,10 @@ for(const side of ['ally','enemy'])for(const def of [0,7,100]){
  B.receive(s,b,23);check(100-b.hp===prediction.damage,'DEF execution matches '+side+'/'+def);
 }
 {
- const s=B.create({ally:["recruit-scout-human-female","recruit-porter-human-female"],enemy:['scout'],deployment:true}),a=s.units.find(u=>u.side==='enemy'),target=s.units.find(u=>u.id==="recruit-scout-human-female"),porter=s.units.find(u=>u.job==='porter');
- a.pos=22;a.next=0;a.skillSources=[{id:'scout',level:3}];target.pos=2;target.hp=100;target.def=7;target.next=1;porter.pos=0;porter.next=1;
+ const s=B.create({ally:["character_rio","character_yuno"],enemy:['scout'],deployment:true}),a=s.units.find(u=>u.side==='enemy'),target=s.units.find(u=>u.id==="character_rio"),porter=s.units.find(u=>u.job==='job_porter');
+ a.pos=22;a.next=0;a.skillSources=[{id:'skill_ambush',level:3}];target.pos=2;target.hp=100;target.def=7;target.next=1;porter.pos=0;porter.next=1;
  s.deploying=false;s.actor=a.id;
- const action=B.chooseAction(s,a);check(action.kind==='skill'&&action.target===target.id,'enemy selects equipment-Lv3 vertical ambush from current state');
+ const action=B.chooseAction(s,a);check(action.kind==='action_skill'&&action.target===target.id,'enemy selects equipment-Lv3 vertical ambush from current state');
  const expected=Math.max(0,a.atk-target.def);check(B.stepEnemy(s)&&a.pos===12&&target.hp===100-expected,'enemy vertical execution lands adjacent and subtracts ally DEF');
 }
 {
@@ -37,45 +37,45 @@ const master=require('./master-data.cjs').getMaster();
 const dagger=C.gear.find(g=>g.id==='dagger-wood'),originalLevel=dagger.skillLevel,daggerGrants=structuredClone(master.grantsByEquipment[dagger.id]);
 {
  const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=1000;
- check(C.buyGear(s,"recruit-scout-human-female",'sword-wood','rightHand'),'actual weapon change succeeds');
- check(!C.stats(s.characters["recruit-scout-human-female"]).activeSkills.includes('scout'),'removing ambush weapon removes its skill');
- check(C.inventoryAction(s,"recruit-scout-human-female",'dagger-wood','equip',null,1,'rightHand',C.inventoryToken(s)),'owned dagger can be re-equipped');
- check(C.stats(s.characters["recruit-scout-human-female"]).skillSources.some(source=>source.id==='scout'&&source.level===1),'re-equipping restores equipment-derived level');
+ check(C.buyGear(s,"character_rio",'sword-wood','rightHand'),'actual weapon change succeeds');
+ check(!C.stats(s.characters["character_rio"]).activeSkills.includes('skill_ambush'),'removing ambush weapon removes its skill');
+ check(C.inventoryAction(s,"character_rio",'dagger-wood','equip',null,1,'rightHand',C.inventoryToken(s)),'owned dagger can be re-equipped');
+ check(C.stats(s.characters["character_rio"]).skillSources.some(source=>source.id==='skill_ambush'&&source.level===1),'re-equipping restores equipment-derived level');
 }
 try{
  for(const level of [1,2,3]){
   dagger.skillLevel=level;master.grantsByEquipment[dagger.id][0].level=level;
-  const s=require('./test-current-fixture.cjs')();s.xp=9900;s.level=100;s.characters["recruit-scout-human-female"].xp=200;s.characters["recruit-scout-human-female"].level=3;s.characters["recruit-scout-human-female"].statPoints=4;s.characters["recruit-scout-human-female"].skillPoints=2;
+  const s=require('./test-current-fixture.cjs')();s.xp=9900;s.level=100;s.characters["character_rio"].xp=200;s.characters["character_rio"].level=3;s.characters["character_rio"].statPoints=4;s.characters["character_rio"].skillPoints=2;
   C.depart(s,'east');C.travel(s,'safe',()=>.3);
-  const actor=s.battle.units.find(u=>u.id==="recruit-scout-human-female");
+  const actor=s.battle.units.find(u=>u.id==="character_rio");
   check(B.skillLevel(actor)===level,'normal battle uses gear level independent of team/personal levels');
-  const scouts=s.battle.units.filter(u=>u.job==='scout'&&u.side==='enemy');check(scouts.length>0,'fixture actually contains enemy scout');
+  const scouts=s.battle.units.filter(u=>u.job==='job_scout'&&u.side==='enemy');check(scouts.length>0,'fixture actually contains enemy scout');
   for(const enemy of scouts)check(B.skillLevel(enemy)===level,'enemy uses same gear definition');
   s.location='east';s.phase='town';s.journey=null;s.battle=null;s.rollback=null;
-  const t=C.trial(s,"recruit-scout-human-female",'dagger-wood');check(B.skillLevel(t.battle.units.find(u=>u.id==="recruit-scout-human-female"))===level,'trial uses same gear level');
+  const t=C.trial(s,"character_rio",'dagger-wood');check(B.skillLevel(t.battle.units.find(u=>u.id==="character_rio"))===level,'trial uses same gear level');
  }
 }finally{dagger.skillLevel=originalLevel;master.grantsByEquipment[dagger.id]=structuredClone(daggerGrants);}
 {
  const staff=C.gear.find(g=>g.id==='staff-wood'),oldSkill=staff.skill,oldLevel=staff.skillLevel,staffGrants=structuredClone(master.grantsByEquipment[staff.id]);
  try{
-  staff.skill='scout';
+  staff.skill='skill_ambush';
   for(const [right,left] of [[1,2],[2,3],[2,2]]){
    dagger.skillLevel=right;staff.skillLevel=left;
    master.grantsByEquipment[dagger.id][0].level=right;
-   master.grantsByEquipment[staff.id]=[{slotNo:1,id:'scout',level:left,sourceField:'skill',explicitLevel:true}];
+   master.grantsByEquipment[staff.id]=[{slotNo:1,id:'skill_ambush',level:left,sourceField:'skill',explicitLevel:true}];
    const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=2000;
-   check(C.buyGear(s,"recruit-mage-elf-female",'dagger-wood','rightHand')&&C.buyGear(s,"recruit-mage-elf-female",'staff-wood','leftHand'),'two distinct equipped skill sources');
+   check(C.buyGear(s,"character_merina",'dagger-wood','rightHand')&&C.buyGear(s,"character_merina",'staff-wood','leftHand'),'two distinct equipped skill sources');
    C.depart(s,'astaris');C.travel(s,'safe',()=>.3);
-   const actor=s.battle.units.find(u=>u.id==="recruit-mage-elf-female");
-   check(B.activeSkillOptions(actor).filter(o=>o.id==='scout').length===2,'normal battle retains both grants');
+   const actor=s.battle.units.find(u=>u.id==="character_merina");
+   check(B.activeSkillOptions(actor).filter(o=>o.id==='skill_ambush').length===2,'normal battle retains both grants');
    for(const [index,expected] of [right,left].entries()){
-    const option=B.activeSkillOptions(actor).filter(o=>o.id==='scout')[index];actor.selectedSkill='scout';actor.selectedSkillKey=option.key;
+    const option=B.activeSkillOptions(actor).filter(o=>o.id==='skill_ambush')[index];actor.selectedSkill='skill_ambush';actor.selectedSkillKey=option.key;
     check(B.skillLevel(actor)===expected&&B.skillInfo(actor).level===expected,'normal battle/description use selected grant level');
    }
-   const copy=require('./test-current-fixture.cjs')();copy.location='east';copy.characters["recruit-mage-elf-female"].weapon='dagger-wood';copy.characters["recruit-mage-elf-female"].leftHand='staff-wood';
-   const trial=C.trial(copy,"recruit-mage-elf-female",'dagger-wood','rightHand'),hero=trial.battle.units.find(u=>u.id==="recruit-mage-elf-female");
+   const copy=require('./test-current-fixture.cjs')();copy.location='east';copy.characters["character_merina"].weapon='dagger-wood';copy.characters["character_merina"].leftHand='staff-wood';
+   const trial=C.trial(copy,"character_merina",'dagger-wood','rightHand'),hero=trial.battle.units.find(u=>u.id==="character_merina");
    for(const [index,expected] of [right,left].entries()){
-    const option=B.activeSkillOptions(hero).filter(o=>o.id==='scout')[index];hero.selectedSkill='scout';hero.selectedSkillKey=option.key;
+    const option=B.activeSkillOptions(hero).filter(o=>o.id==='skill_ambush')[index];hero.selectedSkill='skill_ambush';hero.selectedSkillKey=option.key;
     check(B.skillLevel(hero)===expected&&B.skillInfo(hero).level===expected,'trial/description use selected grant level');
    }
   }
@@ -86,12 +86,12 @@ try{
  }
 }
 {
- const a=unit('a','ally',22);a.skillSources=[{id:'scout',level:1},{id:'scout',level:1}];check(B.skillLevel(a)===1,'duplicate equal levels do not accumulate');
+ const a=unit('a','ally',22);a.skillSources=[{id:'skill_ambush',level:1},{id:'skill_ambush',level:1}];check(B.skillLevel(a)===1,'duplicate equal levels do not accumulate');
  for(const [left,right] of [[1,2],[2,3],[2,2]]){
-  a.skillSources=[{id:'scout',level:left},{id:'scout',level:right}];
+  a.skillSources=[{id:'skill_ambush',level:left},{id:'skill_ambush',level:right}];
   const options=B.activeSkillOptions(a);check(options.length===2&&options[0].key!==options[1].key,'distinct buttons for mixed or equal levels');
   for(const [index,expected] of [left,right].entries()){
-   a.selectedSkill='scout';a.selectedSkillKey=options[index].key;
+   a.selectedSkill='skill_ambush';a.selectedSkillKey=options[index].key;
    check(B.skillLevel(a)===expected,'mixed levels use selected source, never max or sum');
    check(B.skillInfo(a).level===expected,'description agrees with selected source');
   }
@@ -99,12 +99,12 @@ try{
 }
 {
  const s=require('./test-current-fixture.cjs')();check(Object.values(s.characters).every(c=>c.def===0),'all new character DEF zero');
- s.characters["recruit-guard-human-female"].def=5;C.depart(s,'east');C.travel(s,'safe',()=>.0);
+ s.characters["character_mirei"].def=5;C.depart(s,'east');C.travel(s,'safe',()=>.0);
  const enemies=s.battle.units.filter(u=>u.side==='enemy');check(enemies.every(u=>Number.isFinite(u.def)&&u.def>=0&&u.equipment&&u.attackWeapons?.length),'enemy gear supplies combat DEF');check(enemies.some(u=>u.def>0),'equipped enemies receive provisional DEF');
- const expectedGuardDef=C.stats(s.characters["recruit-guard-human-female"]).def;check(s.battle.units.find(u=>u.id==="recruit-guard-human-female").def===expectedGuardDef&&expectedGuardDef>5,'character and equipped DEF combine in combat');
- const loaded=C.deserialize(C.serialize(s));check(loaded.characters["recruit-guard-human-female"].def===5&&loaded.battle.units.find(u=>u.id==="recruit-guard-human-female").def===expectedGuardDef,'positive and equipment DEF roundtrip');
+ const expectedGuardDef=C.stats(s.characters["character_mirei"]).def;check(s.battle.units.find(u=>u.id==="character_mirei").def===expectedGuardDef&&expectedGuardDef>5,'character and equipped DEF combine in combat');
+ const loaded=C.deserialize(C.serialize(s));check(loaded.characters["character_mirei"].def===5&&loaded.battle.units.find(u=>u.id==="character_mirei").def===expectedGuardDef,'positive and equipment DEF roundtrip');
 }
 {
- for(const value of [-1,.5,'4']){const bad=require('./test-current-fixture.cjs')();bad.characters["recruit-guard-human-female"].def=value;check(!C.validate(bad).ok,'invalid DEF rejected');}
+ for(const value of [-1,.5,'4']){const bad=require('./test-current-fixture.cjs')();bad.characters["character_mirei"].def=value;check(!C.validate(bad).ok,'invalid DEF rejected');}
 }
 console.log('PASS '+checks+' scoped equipment-level/DEF checks (Lv2/3 definitions changed in-memory only; no new priced items)');

@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require(
 // Current production start, legal commands only. Deterministic route draw and
 // an engine-policy bot are not an OS/manual playthrough.
 let s=C.create(),actions=0;
-const porter=s.selected.find(id=>C.view(s).roster.find(c=>c.id===id).job==='porter');
+const porter=s.selected.find(id=>C.view(s).roster.find(c=>c.id===id).job==='job_porter');
 assert(C.accept(s,C.board(s).find(q=>q.to==='east').id,porter));assert(C.depart(s,'east'));
 for(let leg=0;leg<2;leg++){
  assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));

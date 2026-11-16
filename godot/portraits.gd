@@ -1,4 +1,27 @@
 extends RefCounted
+## Native and Godot share one ordered catalog of people and explicit asset keys.
+static func read_character_catalog() -> Array:
+	var native_root=ProjectSettings.globalize_path("res://../native/assets").get_base_dir()
+	var path=native_root.path_join("data/character-identities.json")
+	if not FileAccess.file_exists(path):
+		push_error("Character identity catalog is missing: "+path);return []
+	var parser=JSON.new()
+	if parser.parse(FileAccess.get_file_as_string(path))!=OK or not parser.data is Array:
+		push_error("Character identity catalog must be a JSON array: "+path);return []
+	return parser.data
+static func catalog_by_id(rows: Array) -> Dictionary:
+	var result={}
+	for person in rows:
+		if not person is Dictionary:
+			push_error("Character identity catalog contains a non-object entry");return {}
+		for field in ["id","portraitKey","voiceKey"]:
+			if not person.get(field) is String or str(person[field]).is_empty():
+				push_error("Character identity catalog requires a nonempty "+field);return {}
+		if result.has(person.id):
+			push_error("Character identity catalog contains a duplicate ID: "+str(person.id));return {}
+		result[person.id]=person
+	return result
+var characters: Dictionary=catalog_by_id(read_character_catalog())
 var overrides: Dictionary = {}
 var textures: Dictionary = {}
 var faces: Dictionary = {}
@@ -22,14 +45,12 @@ func image_for(u: Dictionary) -> Image:
 	if u.get("side","ally") != "enemy" and overrides.has(u.get("id","")):
 		return overrides[u.id]
 	var file = str(u.get("image","knight.png"))
-	# Saved journey/battle snapshots can still contain the old generic image.
-	# Only supplied recruit portraits are remapped; personal overrides stay first.
+	# Personal overrides stay first, and physical filenames stay unchanged.
 	if u.get("side","ally") != "enemy":
-		for job in ["scout","porter","guard","mage"]:
-			for race in ["human","elf","dwarf"]:
-				for sex in ["male","female"]:
-					if str(u.get("id","")) == "recruit-" + job + "-" + race + "-" + sex:
-						file = "characters/" + job + "-" + race + "-" + sex + "-01.png"
+		if not str(u.get("portraitKey","")).is_empty():
+			file = "characters/" + str(u.portraitKey) + ".png"
+		elif characters.has(u.get("id","")):
+			file = "characters/" + str(characters[u.id].portraitKey) + ".png"
 	if u.get("side","ally") == "enemy": file = "enemy/enemy_" + file
 	var path = ProjectSettings.globalize_path("res://../native/assets/").path_join(file)
 	if not FileAccess.file_exists(path): return null

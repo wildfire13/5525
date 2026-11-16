@@ -13,7 +13,7 @@ func run():
 	# Dummy output only; never alter saved user preferences or enable OS sound.
 	audio.test_silence=true;audio.muted.voice=false;audio.volumes.voice=100;audio.apply_levels()
 	audio.phase_voice_started.connect(func(uid,cue):heard.append([uid,cue]))
-	var uid="recruit-guard-human-male"
+	var uid="character_gareth"
 	check(audio.event_voices.size()==120,"120 adopted event assets, candidate variants excluded")
 	for key in audio.event_voices:
 		var parts=key.split("/");var stream=audio.voice_stream(parts[0],parts[1])
@@ -36,7 +36,7 @@ func run():
 	audio.muted.voice=false;audio.volumes.voice=0;audio.apply_levels();audio.queue_voices([{"character_id":uid,"cue":"attack"}]);check(heard.size()==before,"zero volume prevents voice")
 	audio.volumes.voice=30;audio.apply_levels();check(is_equal_approx(audio.voice.volume_db,linear_to_db(.3)),"voice volume respected")
 	audio.reset_character_events();heard.clear()
-	var reserve="recruit-mage-elf-female"
+	var reserve="character_merina"
 	var c={"completed":1,"selected":[uid,reserve],"roster":[{"id":uid,"hp":10},{"id":reserve,"hp":0},{"id":"unknown","hp":10}]}
 	audio.quest_completed(c);var selected=heard[0][0];audio.quest_completed(c)
 	check(heard.size()==1 and selected in [uid,reserve] and audio.voice_queue.is_empty(),"quest selects one party member, repeat does not reroll")

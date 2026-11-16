@@ -12,9 +12,9 @@ func run():
 	while game.data.is_empty():await process_frame
 	await preload("res://tests/ui_current_fixture.gd").install(game)
 	var before=(await game.engine.request({"op":"campaign_save"})).data
-	game.pages.party_view.open_inventory("recruit-guard-human-female");await frames()
+	game.pages.party_view.open_inventory("character_mirei");await frames()
 	# Use view-only copies of a real entry so the normal inventory renderer supplies the rows.
-	var inventory=game.campaign().inventoryByCharacter["recruit-guard-human-female"]
+	var inventory=game.campaign().inventoryByCharacter["character_mirei"]
 	var original=inventory.entries[0]
 	var items=[]
 	for i in range(80):

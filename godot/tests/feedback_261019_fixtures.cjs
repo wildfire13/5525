@@ -17,9 +17,9 @@ function fixture(kind){
  const positions={[ids.guard]:22,[ids.archer]:12,[ids.mage]:13,[ids.scout]:4,[ids.porter]:32};
  for(const u of b.units){u.hp=u.max;u.mp=u.maxMp;u.next=100;u.guard=false;u.cover=null;u.boost=false;if(u.side==='ally')u.pos=positions[u.id];}
  const enemies=b.units.filter(u=>u.side==='enemy');enemies.forEach((e,i)=>{e.pos=[24,15,35][i];e.next=80+i;});
- if(kind.startsWith('sweep')){a.pos=24;enemies.forEach((e,i)=>{e.pos=[25,15,35][i];e.next=2+i;});a.selectedSkill='legSweep';}
- if(kind==='vault'){b.units.find(u=>u.id===ids.mage).pos=23;enemies[0].pos=25;a.selectedSkill='poleVault';}
- if(kind.startsWith('grapple')){a.selectedSkill='grapple';if(kind==='grapple-blocked')b.units.find(u=>u.id===ids.mage).pos=23;}
+ if(kind.startsWith('sweep')){a.pos=24;enemies.forEach((e,i)=>{e.pos=[25,15,35][i];e.next=2+i;});a.selectedSkill='skill_leg_sweep';}
+ if(kind==='vault'){b.units.find(u=>u.id===ids.mage).pos=23;enemies[0].pos=25;a.selectedSkill='skill_pole_vault';}
+ if(kind.startsWith('grapple')){a.selectedSkill='skill_grapple';if(kind==='grapple-blocked')b.units.find(u=>u.id===ids.mage).pos=23;}
  if(kind.startsWith('item')){a.hp-=40;b.units.find(u=>u.id===ids.mage).hp-=30;b.units.find(u=>u.id===ids.mage).pos=23;delete a.selectedSkill;}
   a.next=1;b.actor=a.id;
   if(kind.startsWith('item')){

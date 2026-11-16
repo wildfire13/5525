@@ -32,9 +32,12 @@ func run():
     var f=c.frames[index];load_frame(c,f,index);var data_before=board.data.duplicate(true)
     board.animate(f.presentation);fx.set_process(false)
     var e=fx.snapshot().event
+    if key=="guard" and f.presentation.phase=="action":
+     check(e.get("skill_id")=="action_defend" and e.get("kind")=="action_defend" and is_equal_approx(fx.snapshot().duration,.58),"defend routes to its painted posture, not the cover skill")
+     check(not fx.emitters.is_empty() and fx.emitters.all(func(row):return row.key.begins_with("guard_")),"defend creates shield artwork without cover support wings")
     if not e.is_empty():
      check(not fx.legacy.snapshot().active,key+" painted action never duplicates legacy "+str(index))
-     if e.skill_id=="legSweep":
+     if e.skill_id=="skill_leg_sweep":
       var successes=e.get("resolved_status",[]).filter(func(s):return s.get("success",false)).size()
       check(fx.captions.size()==successes,key+" only confirmed sweep successes have status labels")
       check(fx.captions.all(func(row):return row.text=="手番スキップ"),key+" sweep never invents damage")
@@ -42,12 +45,12 @@ func run():
        if row.material.get_shader_parameter("ground_masked"):
         var allowed=row.material.get_shader_parameter("allowed_cells")
         check(allowed.size()==50 and range(50).all(func(cell):return allowed[cell]==0 or e.cells.has(cell)),key+" ground paint limited to canonical cells")
-     if e.skill_id=="stamp" and e.phase=="action":
+     if e.skill_id=="skill_stamp" and e.phase=="action":
       check(fx.emitters.filter(func(row):return row.tag in ["stamp_ground","rubble"]).all(func(row):return row.age<=-.31),key+" no floor debris before contact")
       check(fx.emitters.filter(func(row):return row.tag=="stamp_fall").size()==1,key+" dedicated vertical fall, no sweep brush")
      if e.phase in ["hurt","heal"]:
       check(e.amount==int(f.presentation.to)-int(f.presentation.from),key+" exact committed HP delta")
-     if e.skill_id=="attack":
+     if e.skill_id=="action_attack":
       check(fx.emitters.all(func(row):return row.tag not in ["contact","stamp_ground","guard_hit"]),key+" attack preparation cannot claim hit")
       var expected_style="bow" if key=="attackRanged" else "sword" if key=="attackMelee" else ""
       if not expected_style.is_empty():check(e.attack_style==expected_style,key+" actual contributing weapon style")
@@ -58,7 +61,7 @@ func run():
    check(fx.emitters.is_empty() and fx.captions.is_empty() and fx.reactions.is_empty() and fx.stage.get_child_count()==0,key+" repeat "+str(repeat)+" clears every effect node")
   check((await game.engine.request({"op":"campaign_save"})).data==native_before,key+" render-only replay has exact native save parity")
  # Stamp keeps the current attacker artwork throughout the animation.
- var c=cases.stamp;var stamp_frame=c.frames.filter(func(f):return f.presentation.phase=="action" and f.presentation.kind=="skill")[0]
+ var c=cases.stamp;var stamp_frame=c.frames.filter(func(f):return f.presentation.phase=="action" and f.presentation.kind=="action_skill")[0]
  await game.update({"op":"campaign_load","data":c.save});load_frame(c,stamp_frame,0)
  var actor=str(stamp_frame.presentation.actor_id);var original=board.actors[actor].sprite.texture
  board.animate(stamp_frame.presentation);fx.set_process(false);fx._process(.2)
@@ -78,7 +81,7 @@ func run():
  for yaw in [-.45,0.0,.45]:
   board.camera_yaw=yaw;board.update_camera()
   var from=board.point(23)+Vector3(0,.83,0);var to=board.point(25)+Vector3(0,.83,0);var direction=(board.project(to)-board.project(from)).normalized()
-  fx.play({"skill_id":"attack","phase":"action","origin":23,"recipient":25,"attack_style":"bow","cells":[]},.30);fx.set_process(false);fx._process(.14)
+  fx.play({"skill_id":"action_attack","phase":"action","origin":23,"recipient":25,"attack_style":"bow","cells":[]},.30);fx.set_process(false);fx._process(.14)
   var row=fx.emitters.filter(func(item):return item.tag=="projectile")[0]
   var at=row.node.global_position;var right=(board.project(at+row.node.global_basis.x)-board.project(at)).normalized()
   check(right.dot(direction)>.999,"projectile head points along travel at camera yaw "+str(yaw))

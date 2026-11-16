@@ -2,8 +2,8 @@ extends SceneTree
 # Current-roster journey and resource parity; retired sidebars and buy/equip flow removed.
 var game
 var checks=[]
-const GUARD="recruit-guard-human-female"
-const PORTER="recruit-porter-human-female"
+const GUARD="character_mirei"
+const PORTER="character_yuno"
 var scratch=OS.get_temp_dir().path_join("5525-ui-parity-%d.json" % OS.get_process_id())
 func _initialize():call_deferred("run")
 func check(ok,detail):
@@ -67,8 +67,8 @@ func run():
 	check(node("ShopComparisonStats")!=null and node("ShopComparisonPayment").text.contains("90G"),"live equipment comparison retains full inventory purchase price")
 	await game.pages.shop_view.confirm_purchase("spear-wood",GUARD);await settle();node("PurchaseDecline").pressed.emit();await settle()
 	check(await saved()==before,"shop decline preserves all campaign resources")
-	await game.act("trial",[GUARD,"hammer-wood","rightHand"]);await settle();await game.select_skill("stamp");await settle()
-	if not game.data.choices.skill.is_empty():await game.on_cell(int(game.data.choices.skill[0]));await settle()
+	await game.act("trial",[GUARD,"hammer-wood","rightHand"]);await settle();await game.select_skill("skill_stamp");await settle()
+	if not game.data.choices.action_skill.is_empty():await game.on_cell(int(game.data.choices.action_skill[0]));await settle()
 	check(game.can_commit() and not game.preview.get("cells",[]).is_empty(),"explicit hammer grants live guard canonical area preview")
 	await game.act("endTrial",[]);await settle()
 	check(await saved()==before,"trial restores original live-roster equipment and resources")

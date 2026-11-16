@@ -2,9 +2,9 @@ extends SceneTree
 var game
 var checks=[]
 var seed={}
-const MAGE="recruit-mage-elf-female"
-const GUARD="recruit-guard-human-female"
-const SCOUT="recruit-scout-elf-male"
+const MAGE="character_merina"
+const GUARD="character_mirei"
+const SCOUT="character_shion"
 func _initialize():call_deferred("run")
 func check(ok,label):
 	checks.append({"passed":bool(ok),"label":label});print(("PASS " if ok else "FAIL ")+label)

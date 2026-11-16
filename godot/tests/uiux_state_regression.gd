@@ -2,7 +2,7 @@ extends SceneTree
 var game
 var checks=[]
 var q=OS.get_environment("UIUX_REVIEW_EVIDENCE")
-const GUARD="recruit-guard-human-female"
+const GUARD="character_mirei"
 func _initialize():call_deferred("run")
 func node(id):return game.find_child(id,true,false)
 func check(id,ok,detail):
@@ -40,7 +40,7 @@ func run():
 				var rebuilt=await saved()
 				check("C01",str(game.footer.get_meta("full_message",""))==message and rebuilt==before,"closing explanation and rebuilding preserve status and campaign")
 			await game.act("trial",[GUARD,product,"rightHand"]);await settle()
-			game.choose_command("guard");await game.commit();await settle();await game.act("endTrial",[]);await settle()
+			game.choose_command("action_defend");await game.commit();await settle();await game.act("endTrial",[]);await settle()
 			var restored=await saved()
 			check("TRANSITION",game.page=="shop" and restored==before,"trial returns to shop with exact original resources")
 	var file=FileAccess.open(q.path_join("reports/repeated-state-v2.json"),FileAccess.WRITE);file.store_string(JSON.stringify({"checks":checks},"  "));file.close()

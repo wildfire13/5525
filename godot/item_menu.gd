@@ -2,8 +2,8 @@ extends RefCounted
 ## Shared catalog presentation. The engine remains the source of legal actions.
 static func definitions(campaign: Dictionary) -> Array:
 	return campaign.get("itemDefinitions",[
-		{"id":"potion","name":"ポーション","amount":55,"resource":"hp","battleKind":"item"},
-		{"id":"ether","name":"エーテル","amount":3,"resource":"mp","battleKind":"ether","battleRole":"porter"}])
+		{"id":"potion","name":"ポーション","amount":55,"resource":"hp","battleKind":"action_item"},
+		{"id":"ether","name":"エーテル","amount":3,"resource":"mp","battleKind":"action_ether","battleRole":"job_porter"}])
 static func effect(item: Dictionary) -> String:
 	return "%s+%d（上限まで）" % [str(item.resource).to_upper(),item.amount]
 static func camp_reason(item: Dictionary,u: Dictionary,inventory: Dictionary) -> String:

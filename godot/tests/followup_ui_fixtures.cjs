@@ -11,7 +11,7 @@ function battle(actor=ids.guard,mp=3,formed=true){
  const b=s.battle;
  for(const u of b.units){u.hp=u.max;u.next=u.side==='ally'?2:10000;}
  b.actor=actor;const a=b.units.find(u=>u.id===actor);a.next=1;a.mp=mp;
- const guard=b.units.find(u=>u.id===ids.guard);guard.hp=60;guard.mp=actor===ids.guard?mp:0;guard.selectedSkill='guard';
+ const guard=b.units.find(u=>u.id===ids.guard);guard.hp=60;guard.mp=actor===ids.guard?mp:0;guard.selectedSkill='skill_cover';
  b.units.find(u=>u.id===ids.mage).hp=0;
  // Keep the three formation cells occupied, using the living scout in place of the mage.
  guard.pos=24;b.units.find(u=>u.id===ids.archer).pos=13;
@@ -19,7 +19,7 @@ function battle(actor=ids.guard,mp=3,formed=true){
  if(!formed)scout.pos=30;
  b.units.find(u=>u.id===ids.porter).pos=actor===ids.porter?22:23;
   b.potions.ally=3;b.ethers=4;
-  assert(B.selectSkill(b,actor===ids.porter?'porter':'guard'),'preselect current source-qualified skill');
+  assert(B.selectSkill(b,actor===ids.porter?'skill_formation_boost':'skill_cover'),'preselect current source-qualified skill');
  if(actor===ids.porter)assert.equal(B.formation(b,'ally'),formed);
  assert(C.validate(s).ok,C.validate(s).error);
  return save(s);
@@ -39,6 +39,6 @@ function support(right,left,skill){
   assert(B.selectSkill(b,skill),'preselect current source-qualified support skill');
  assert(C.validate(s).ok,C.validate(s).error);return save(s);
 }
-const result={heal_left:support('sword-wood','staff-wood','mage'),heal_right:support('staff-wood','sword-wood','mage'),cover_staff:support('staff-wood','guard-shield-wood','guard'),camp:camp(),guard:battle(),mp0:battle(ids.guard,0),porter:battle(ids.porter),broken:battle(ids.porter,3,false)};
+const result={heal_left:support('sword-wood','staff-wood','skill_heal'),heal_right:support('staff-wood','sword-wood','skill_heal'),cover_staff:support('staff-wood','guard-shield-wood','skill_cover'),camp:camp(),guard:battle(),mp0:battle(ids.guard,0),porter:battle(ids.porter),broken:battle(ids.porter,3,false)};
 if(require.main===module)console.log(JSON.stringify(result).replace(/[^\x00-\x7f]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0')));
 module.exports=result;

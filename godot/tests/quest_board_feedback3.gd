@@ -1,7 +1,7 @@
 extends "res://tests/facility_gui_261022.gd"
-const GUARD="recruit-guard-human-female"
-const PORTER="recruit-porter-human-female"
-const OTHER_PORTER="recruit-porter-human-male"
+const GUARD="character_mirei"
+const PORTER="character_yuno"
+const OTHER_PORTER="character_teo"
 func choose(control):
  if DisplayServer.get_name()=="headless":control.pressed.emit();await settle()
  else:await os_click(control)

@@ -22,7 +22,7 @@ func run():
   check(await saved()==before,"FHD relayout changes no campaign or owner "+str(dims))
  await click("SkillDetailsBack");check(node(origin).has_focus(),"relayout close restores new instance of same logical character skill button")
  # Long titles and summary still leave the fixed close action reachable.
- var copy=preload("res://skill_text.gd");var doc=copy.document("legSweep","長い足払いの名前".repeat(10),3,game.campaign())
+ var copy=preload("res://skill_text.gd");var doc=copy.document("skill_leg_sweep","長い足払いの名前".repeat(10),3,game.campaign())
  var extra=preload("res://skill_details.gd").new();game.add_child(extra);extra.configure(game,doc,"ガロ / 長い装備の名前".repeat(8));await settle();root.size=Vector2i(1920,1080);await settle()
  check(contained(node("SkillDetailsBack")) and contained(node("SkillDetailsSummary")),"long title context and sweep area leave footer inside FHD")
  await click("SkillDetailsBack")

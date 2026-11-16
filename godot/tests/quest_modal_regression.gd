@@ -87,7 +87,7 @@ func run():
 		# Completion dialogue must not dismiss or acknowledge the receipt behind it.
 		var fixture = seed.duplicate(true);fixture.state.location = sample[1]
 		await game.update({"op":"campaign_load","data":fixture});await settle()
-		var porter = game.campaign().selected.filter(func(uid):return game.campaign().roster.any(func(c):return c.id == uid and c.job == "porter"))[0]
+		var porter = game.campaign().selected.filter(func(uid):return game.campaign().roster.any(func(c):return c.id == uid and c.job == "job_porter"))[0]
 		await game.act("accept",[id,porter]);await settle()
 		var ready = await saved();ready.state.location = sample[2];ready.state.worldTime = 10;ready.state.hours = 10
 		await game.update({"op":"campaign_load","data":ready});await settle();await game.act("completeQuest",[]);await settle()

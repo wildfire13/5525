@@ -84,7 +84,7 @@ func selected_flow(skill: String,label: String):
  await reveal_battle_row(skill);await os_click(node("BattleSkill_"+skill))
  var selected_boundary=await saved()
  if not game.can_commit():
-  var candidates=game.data.choices.get("skill",[])
+  var candidates=game.data.choices.get("action_skill",[])
   var points=[]
   for id in candidates:
    var cell=int(id) if id is float or id is int else int(game.hud.unit(str(id)).get("pos",-1))
@@ -116,8 +116,8 @@ func normal_route():
  var river=game.find_children("*","Button",true,false).filter(func(b):return b.text.begins_with("川沿いの道"))[0]
  await os_click(river);await os_click(node("DeploymentBegin"))
  check(game.campaign().phase=="battle","actual OS square/map/east/river/start reaches live battle")
- await os_click(game.hud.buttons.skill);await reveal_battle_row("archer");battle_draw_contract("archer","normal list");await capture("normal-battle-skills")
- await selected_flow("archer","normal-archer")
+ await os_click(game.hud.buttons.action_skill);await reveal_battle_row("skill_snipe");battle_draw_contract("skill_snipe","normal list");await capture("normal-battle-skills")
+ await selected_flow("skill_snipe","normal-archer")
 func inventory_cases():
  await at_fixture("east");await enter_facility("shop");await settle();await os_click(node("ShopInventoryTab_inventory"))
  var before=await saved()
@@ -131,10 +131,10 @@ func inventory_cases():
  await reveal("SaleItem_bow-silver-2","ShopInventoryScroll");await capture("owned-wood-iron-silver")
  await inventory_category("upperBody")
  await reveal("SaleItem_armor-cloth","ShopInventoryScroll");await capture("owned-cloth-leather-metal")
- game.pages.party_view.open_inventory("recruit-guard-human-female");await settle();await os_click(node("CharacterTab_equipment"))
+ game.pages.party_view.open_inventory("character_mirei");await settle();await os_click(node("CharacterTab_equipment"))
  var equipped=node("CharacterSlot_rightHand");await os_mouse(screen_rect(equipped).get_center());await create_timer(.85).timeout
  check(equipped.icon!=null and not equipped.tooltip_text.is_empty(),"equipped weapon has art and hover label");await capture("pincer-equipped")
- await skill_tab();var skill=game.find_child("CharacterSkill_*_pincer_*",true,false);await reveal_control(skill);await capture("person-skills")
+ await skill_tab();var skill=game.find_child("CharacterSkill_*_skill_pincer_*",true,false);await reveal_control(skill);await capture("person-skills")
  await os_click(skill);check(node("SkillDetailsBody")!=null,"character skill opens full details")
  await capture("pincer-full-person");await os_key("Escape")
  check(await saved()==before,"owned list and full details preserve save")
@@ -154,33 +154,33 @@ func shop_cases():
  check(await saved()==before,"ordinary purchase cancellation consumes no money or inventory")
  await os_click(node("ShopComparisonBuy"));await os_click(node("PurchaseAgree"))
  var bought=await saved();var price=game.campaign().shop.filter(func(g):return g.id=="spear-wood")[0].price
- check(int(bought.state.gold)==int(before.state.gold)-int(price) and int(bought.state.characters["recruit-guard-human-female"].inventory["spear-wood"])==int(before.state.characters["recruit-guard-human-female"].inventory["spear-wood"])+1,"actual ordinary purchase matches displayed canonical price and owner quantity")
+ check(int(bought.state.gold)==int(before.state.gold)-int(price) and int(bought.state.characters["character_mirei"].inventory["spear-wood"])==int(before.state.characters["character_mirei"].inventory["spear-wood"])+1,"actual ordinary purchase matches displayed canonical price and owner quantity")
  await os_click(node("ShopInventoryTab_inventory"));await reveal("SaleItem_spear-wood","ShopInventoryScroll");await os_click(node("SaleItem_spear-wood"))
  var quantity=node("FacilitySaleQuantity");await reveal_control(quantity);await os_click(quantity.get_line_edit());await os_key("Home");await os_key("Delete");await os_key("2");await os_key("Return")
  check(int(node("FacilitySaleQuantity").value)==2,"actual OS sale quantity is two")
- var quote=(await game.engine.request({"op":"campaign","action":"saleQuote","args":["recruit-guard-human-female","spear-wood",2]})).saleQuote
+ var quote=(await game.engine.request({"op":"campaign","action":"saleQuote","args":["character_mirei","spear-wood",2]})).saleQuote
  await capture("sale-quantity");await os_click(node("FacilitySalePrepare"));await os_click(node("FacilitySaleCancel"))
  check(await saved()==bought,"actual sale NO preserves all inventory and money")
  await os_click(node("FacilitySalePrepare"));await os_click(node("FacilitySaleConfirm"));var sold=await saved()
- check(int(sold.state.gold)==int(quote.afterGold) and int(sold.state.characters["recruit-guard-human-female"].inventory["spear-wood"])==int(bought.state.characters["recruit-guard-human-female"].inventory["spear-wood"])-2,"actual sale matches canonical total and exact owner quantity")
+ check(int(sold.state.gold)==int(quote.afterGold) and int(sold.state.characters["character_mirei"].inventory["spear-wood"])==int(bought.state.characters["character_mirei"].inventory["spear-wood"])-2,"actual sale matches canonical total and exact owner quantity")
  await os_key("Escape")
 func battle_cases():
- for key in ["sweep1","sweep2","sweep3","pincer","item1","item3"]:
-  await at_fixture(key);var before=await saved();await os_click(game.hud.buttons.skill)
-  var skill="pincer" if key=="pincer" else "itemUse" if key.begins_with("item") else "legSweep"
+ for key in ["sweep1","sweep2","sweep3","skill_pincer","item1","item3"]:
+  await at_fixture(key);var before=await saved();await os_click(game.hud.buttons.action_skill)
+  var skill="skill_pincer" if key=="skill_pincer" else "skill_item_use" if key.begins_with("item") else "skill_leg_sweep"
   var button=node("BattleSkill_"+skill)
   check(button!=null and button.icon!=null,"canonical skill has actual battle icon "+key)
   await reveal_battle_row(skill);battle_draw_contract(skill,key+" list")
   await capture("battle-"+key)
-  if key in ["sweep1","pincer"]:
-   var detail="stamp" if key=="sweep1" else "pincer"
+  if key in ["sweep1","skill_pincer"]:
+   var detail="skill_stamp" if key=="sweep1" else "skill_pincer"
    var control=node("BattleSkill_"+detail)
    await os_mouse(screen_rect(control).get_center());await create_timer(.85).timeout;await frames()
    await capture("battle-hover-"+detail)
    await os_click(node("BattleSkillDetails_"+detail));check(node("SkillDetailsBody")!=null,"actual battle skill opens long/short full text "+detail)
    await capture("battle-full-"+detail);await os_key("Escape")
   check(await saved()==before,"battle skill list hover/full details preserve exact save "+key)
-  if key=="sweep1":await selected_flow("legSweep","sweep-selected")
+  if key=="sweep1":await selected_flow("skill_leg_sweep","sweep-selected")
 func run():
  create_timer(600).timeout.connect(func():print("FAIL individual icons GUI watchdog");quit(2))
  check(DisplayServer.get_name()!="headless","individual icons use real X11 rendering and XTest input")

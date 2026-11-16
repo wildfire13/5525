@@ -1,5 +1,5 @@
 extends "res://tests/brushup_gui.gd"
-const RESEARCH_OWNER="recruit-guard-human-female"
+const RESEARCH_OWNER="character_mirei"
 func cases2():
  var output=[];OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/research_current_fixtures.cjs")]),output,true,false)
  return JSON.parse_string("".join(output))
@@ -37,21 +37,21 @@ func run():
  game.checks_fast=true;game.audio.fast_mode=true;await settle();var cases=cases2();var original=await saved()
  var owner_name=game.campaign().roster.filter(func(c):return c.id==RESEARCH_OWNER)[0].name
  await game.update({"op":"campaign_load","data":cases.sweep50});await settle()
- await os_click(game.hud.buttons.skill);await os_click(node("BattleSkillDetails_legSweep"))
+ await os_click(game.hud.buttons.action_skill);await os_click(node("BattleSkillDetails_skill_leg_sweep"))
  check(node("SkillDetailsWindow")!=null and node("SkillDetailsSummary").text.contains("使用者自身（中心指定）"),"OS opens full skill details with exact center and effect scope")
  await snapshot("skill-details-"+str(width));var before=await saved();await tab_click(1)
  check(node("SkillDetailsGlossary").is_visible_in_tree(),"OS terms tab separates timing and inventory vocabulary")
  await snapshot("skill-terms-"+str(width));await os_key("Tab");await os_key("Escape")
  check(node("SkillDetailsWindow")==null and game.hud.skill_list and (await saved())==before,"OS keyboard returns to unchanged skill selection")
- await os_click(node("BattleSkill_legSweep"));check(game.can_commit() and game.preview.cells.size()==8,"OS skill selection still selects the canonical eight-cell preview")
+ await os_click(node("BattleSkill_skill_leg_sweep"));check(game.can_commit() and game.preview.cells.size()==8,"OS skill selection still selects the canonical eight-cell preview")
  var pending=game.pending;var preview=game.preview.duplicate(true)
- game.show_skill_details("legSweep","足払い",1);await settle()
+ game.show_skill_details("skill_leg_sweep","足払い",1);await settle()
  await os_mouse(game.board.global_position+game.board.project_cell(25),"click")
  check(game.pending==pending and game.preview==preview and (await saved())==before,"exclusive details do not pass clicks to the battle board")
  await os_click(node("SkillDetailsBack"));await os_click(game.find_children("*","Button",true,false).filter(func(b):return b.get_meta("ui_key","")=="battle_cancel")[0])
  check(game.pending==null and (await saved())==before,"OS target cancel consumes no action MP or item")
  # Long body only: fixed summary and back, actual wheel/key scrolling to last line.
- var copy=preload("res://skill_text.gd");var doc=copy.document("pincer","挟撃",1,game.campaign());doc.conditions=[];doc.limits=[];doc.effect=["長い説明の折返し確認。".repeat(180)+"最終行の到達確認"]
+ var copy=preload("res://skill_text.gd");var doc=copy.document("skill_pincer","挟撃",1,game.campaign());doc.conditions=[];doc.limits=[];doc.effect=["長い説明の折返し確認。".repeat(180)+"最終行の到達確認"]
  var detail=preload("res://skill_details.gd").new();game.add_child(detail);detail.configure(game,doc,owner_name+" / 足払い");await settle()
  var body=node("SkillDetailsBody");var scroll=body.get_parent();var summary_at=node("SkillDetailsSummary").get_global_rect();var back_at=node("SkillDetailsBack").get_global_rect()
  await os_mouse(scroll.get_global_rect().get_center()+Vector2(detail.position),"click")
@@ -70,7 +70,7 @@ func run():
  await tab_click(node("SkillDetailsNote").get_parent().get_index());check(node("SkillDetailsNote").is_visible_in_tree(),"item note is separately readable")
  await snapshot("equipment-note-"+str(width));await os_key("Escape")
  check(node("CharacterItemDetails").has_focus(),"explanation returns focus to selected item")
- await skill_tab();var skill=game.find_child("CharacterSkill_*_guard_*",true,false);await reveal_control(skill);await os_click(skill)
+ await skill_tab();var skill=game.find_child("CharacterSkill_*_skill_cover_*",true,false);await reveal_control(skill);await os_click(skill)
  check(node("SkillDetailsWindow")!=null and game.pages.party_uid==RESEARCH_OWNER,"skill detail preserves owner")
  await os_key("Tab");await os_key("Escape");check(skill.has_focus() and game.page=="character","keyboard close returns to same skill")
  await enter_facility("shop");await settle()
@@ -82,7 +82,7 @@ func run():
  await snapshot("sale-"+str(width));await os_click(node("FacilitySalePrepare"));await os_click(node("FacilitySaleCancel"))
  check(sale.amount==2 and sale.item_id=="spear-wood" and sale.owner_id==RESEARCH_OWNER and (await saved())==before,"sale cancel preserves item quantity owner and save")
  check(node("ShopInventoryScroll").scroll_vertical==position,"sale cancel preserves originating list position")
- await os_click(node("RosterMember_recruit-scout-elf-male"));check(sale.item_id.is_empty() and node("FacilitySaleTotals")==null,"owner switch clears previous sale target and price")
+ await os_click(node("RosterMember_character_shion"));check(sale.item_id.is_empty() and node("FacilitySaleTotals")==null,"owner switch clears previous sale target and price")
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"research2 OS checks kept all sound OFF")
  var f=FileAccess.open(evidence.path_join("checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

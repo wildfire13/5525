@@ -11,10 +11,10 @@ func run():
 	while game.data.is_empty():await process_frame
 	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true
-	var seed=await saved();seed.state.characters["recruit-guard-human-female"].inventory={"potion":3,"spear-wood":2,"swift-boots":1}
+	var seed=await saved();seed.state.characters["character_mirei"].inventory={"potion":3,"spear-wood":2,"swift-boots":1}
 	await game.update({"op":"campaign_load","data":seed});await settle()
-	game.pages.party_view.open_inventory("recruit-guard-human-female");await settle()
-	var entry=game.campaign().inventoryByCharacter["recruit-guard-human-female"].entries.filter(func(e):return e.id=="swift-boots")[0]
+	game.pages.party_view.open_inventory("character_mirei");await settle()
+	var entry=game.campaign().inventoryByCharacter["character_mirei"].entries.filter(func(e):return e.id=="swift-boots")[0]
 	var boots=game.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text==entry.name)[0]
 	boots.pressed.emit();await settle()
 	var comparison=node("CharacterEquipmentComparison")
@@ -23,8 +23,8 @@ func run():
 	var text=game.pages.shop_view.comparison_view.comparison_text({"hp":144,"mp":10},{"equipSlots":[]},"upperBody",q)
 	check(text.contains("-38") and not text.contains("MP") and not text.contains("現在HP") and not text.contains("DEF"),"S3 retains HP upper limit -38 and omits unchanged resources")
 	var equip=node("CharacterEquip");equip.pressed.emit();equip.pressed.emit();await settle()
-	check(not (await saved()).state.characters["recruit-guard-human-female"].inventory.has("swift-boots"),"S4 repeated equip consumes exactly one pair of boots")
-	entry=game.campaign().inventoryByCharacter["recruit-guard-human-female"].entries.filter(func(e):return e.id=="potion")[0]
+	check(not (await saved()).state.characters["character_mirei"].inventory.has("swift-boots"),"S4 repeated equip consumes exactly one pair of boots")
+	entry=game.campaign().inventoryByCharacter["character_mirei"].entries.filter(func(e):return e.id=="potion")[0]
 	var potion=game.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text==entry.name)[0]
 	potion.pressed.emit();await settle()
 	await click("CharacterItemDetails")
@@ -34,7 +34,7 @@ func run():
 	check(node("CharacterDiscardQuantity").value==1,"S4 discard defaults to one item")
 	game.dialog.close();await settle();check(await saved()==before,"S4 discard cancel preserves all inventory")
 	await click("CharacterDiscard");await click("CharacterDiscardConfirm")
-	check((await saved()).state.characters["recruit-guard-human-female"].inventory.potion==2,"S4 discard removes exactly one")
+	check((await saved()).state.characters["character_mirei"].inventory.potion==2,"S4 discard removes exactly one")
 	game.navigate("map");await settle()
 	var map=node("TownMap")
 	check(map.buttons[map.current].disabled and map.buttons[map.current].get_theme_stylebox("disabled").bg_color==Color("#345c4e"),"S5 current location uses dark paper-palette fill and cannot be selected")
@@ -62,36 +62,36 @@ func run():
 	game.data.campaign.shop=original_shop
 	var fixture=battle_fixture();await game.update({"op":"campaign_load","data":fixture.guard});await settle()
 	var hud=game.hud;hud.open_items();await settle()
-	var list=node("BattleItemList");check(list.get_parent().get_parent()==hud.bottom_commands and list.get_parent().get_index()>hud.buttons.items.get_index() and list.get_parent().get_index()<hud.buttons.guard.get_index(),"S9 item list between item and guard commands")
+	var list=node("BattleItemList");check(list.get_parent().get_parent()==hud.bottom_commands and list.get_parent().get_index()>hud.buttons.items.get_index() and list.get_parent().get_index()<hud.buttons.action_defend.get_index(),"S9 item list between item and guard commands")
 	before=await saved();await click("BattleItem_potion");await game.on_cell(int(hud.acting().pos));await settle()
 	check(game.find_children("*","Button",true,false).any(func(b):return b.get_meta("ui_key","")=="battle_commit" and b.text.ends_with("を実行")) and game.can_commit() and node("PredictionSummary")!=null,"S8/9 self item target shows prediction and execute consent")
 	game.cancel();await settle();check(await saved()==before and not game.can_commit(),"S9 item cancellation consumes no stock or action")
 	# Healer with missing HP, plus a full-HP self hover. Both use actual bridge predictions.
-	var heal=fixture.guard.duplicate(true);heal.state.battle.actor="recruit-mage-elf-female"
+	var heal=fixture.guard.duplicate(true);heal.state.battle.actor="character_merina"
 	for u in heal.state.battle.units:
 		u.next=1000
-		if u.id=="recruit-mage-elf-female":u.next=1;u.hp=20
+		if u.id=="character_merina":u.next=1;u.hp=20
 	check((await game.update({"op":"campaign_load","data":heal})).get("ok",false),"valid healer fixture");await settle();hud.open_skills();await settle()
-	list=node("BattleSkillList");check(list.get_parent().get_parent()==hud.bottom_commands and list.get_parent().get_index()>hud.buttons.skill.get_index() and list.get_parent().get_index()<hud.buttons.items.get_index(),"S9 skill list between skill and item commands")
-	check(not node("BattleSkill_mage").tooltip_text.is_empty(),"S9 skill descriptions on hover")
+	list=node("BattleSkillList");check(list.get_parent().get_parent()==hud.bottom_commands and list.get_parent().get_index()>hud.buttons.action_skill.get_index() and list.get_parent().get_index()<hud.buttons.items.get_index(),"S9 skill list between skill and item commands")
+	check(not node("BattleSkill_skill_heal").tooltip_text.is_empty(),"S9 skill descriptions on hover")
 	var original_skills=game.data.skillset.duplicate(true)
 	for i in range(40):game.data.skillset.append({"id":"long-"+str(i),"name":"長いスキル名".repeat(12)})
 	game.render();await settle()
 	check(node("BattleSkillList").get_child_count()>=41 and hud.left_panel.body.get_parent().get_v_scroll_bar().max_value>hud.left_panel.body.get_parent().size.y,"S9 many long skills scroll within saved actor window")
 	game.data.skillset=original_skills;game.render();await settle()
 
-	await click("BattleSkill_mage");await game.on_cell(int(hud.acting().pos));await settle()
-	var prediction=await game.engine.request({"op":"hover_preview","kind":"skill","uid":"recruit-mage-elf-female"})
-	check(prediction.hover.accuracy==100 and prediction.hover.effectPreview.any(func(e):return e.id=="recruit-mage-elf-female" and e.hp>0),"S8 self heal predicts recovery with 100 percent hit")
+	await click("BattleSkill_skill_heal");await game.on_cell(int(hud.acting().pos));await settle()
+	var prediction=await game.engine.request({"op":"hover_preview","kind":"action_skill","uid":"character_merina"})
+	check(prediction.hover.accuracy==100 and prediction.hover.effectPreview.any(func(e):return e.id=="character_merina" and e.hp>0),"S8 self heal predicts recovery with 100 percent hit")
 	check(game.find_children("*","Button",true,false).any(func(b):return b.get_meta("ui_key","")=="battle_commit" and b.text.ends_with("を実行")) and node("PredictionSummary")!=null and game.can_commit(),"S9 skill target click produces execute/cancel consent")
 	before=await saved();game.cancel();await settle();check(await saved()==before and not game.can_commit(),"S9 skill cancel preserves MP HP inventory and action")
 	await game.on_cell(int(hud.acting().pos));await settle();var action_count=int(game.state().actions)
 	game.commit();game.commit();await settle();check(int(game.state().actions)==action_count+1,"S9 skill execution completes once through action guard")
 	for u in heal.state.battle.units:
-		if u.id=="recruit-mage-elf-female":u.hp=u.max
-	await game.update({"op":"campaign_load","data":heal});await settle();await game.select_skill("mage");await settle()
-	prediction=await game.engine.request({"op":"hover_preview","kind":"skill","uid":"recruit-mage-elf-female"})
+		if u.id=="character_merina":u.hp=u.max
+	await game.update({"op":"campaign_load","data":heal});await settle();await game.select_skill("skill_heal");await settle()
+	prediction=await game.engine.request({"op":"hover_preview","kind":"action_skill","uid":"character_merina"})
 	check(prediction.hover.fullHealth and prediction.hover.accuracy==100 and prediction.hover.status=="ready","S8 full HP self heal provides explicit zero-effect hover")
-	check(not game.data.choices.skill.has("recruit-mage-elf-female"),"S8 full HP hover does not enable wasteful execution")
+	check(not game.data.choices.action_skill.has("character_merina"),"S8 full HP hover does not enable wasteful execution")
 	var f=FileAccess.open(evidence.path_join("ui-feedback2.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
 	game.closing=true;game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

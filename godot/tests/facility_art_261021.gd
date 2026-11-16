@@ -41,10 +41,10 @@ func run():
 				var filter=node("ShopSlotFilter");filter.item_selected.emit(0);await settle()
 				check(art.rng.state==state and art.artwork==artwork,"shop filter keeps visit artwork")
 			if spec[0]=="east" and dims==Vector2i(1920,1080):
-				await game.pages.shop_view.confirm_purchase("spear-wood","recruit-mage-elf-female");await settle();await click("PurchaseDecline")
+				await game.pages.shop_view.confirm_purchase("spear-wood","character_merina");await settle();await click("PurchaseDecline")
 				check(await saved()==before and art.rng.state==state,"purchase cancellation preserves campaign and artwork")
-				await game.pages.shop_view.confirm_purchase("spear-wood","recruit-mage-elf-female");await settle();await click("PurchaseAgree")
-				check(game.campaign().characters["recruit-mage-elf-female"].inventory.get("spear-wood",0)==int(before.state.characters["recruit-mage-elf-female"].inventory.get("spear-wood",0))+1 and art.rng.state==state,"confirmed purchase works over fixed background")
+				await game.pages.shop_view.confirm_purchase("spear-wood","character_merina");await settle();await click("PurchaseAgree")
+				check(game.campaign().characters["character_merina"].inventory.get("spear-wood",0)==int(before.state.characters["character_merina"].inventory.get("spear-wood",0))+1 and art.rng.state==state,"confirmed purchase works over fixed background")
 				before=await saved()
 			if spec[1]=="map":
 				check(node("TownMap")!=null and node("DepartButton")!=null,"map controls remain available over background")

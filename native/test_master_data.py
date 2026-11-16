@@ -96,13 +96,13 @@ class MasterTests(unittest.TestCase):
         # Later slots must not silently raise the level of the legacy first-slot projection.
         with closing(sqlite3.connect(self.db)) as db, db:
             db.execute('PRAGMA foreign_keys=ON')
-            db.execute("INSERT INTO equipment_skill VALUES('kungfu-pants',2,'legSweep',3,'skill',1)")
+            db.execute("INSERT INTO equipment_skill VALUES('kungfu-pants',2,'skill_leg_sweep',3,'skill',1)")
         actual=read(self.db)
         gear=next(g for g in actual['gear'] if g['id']=='kungfu-pants')
         self.assertEqual(gear['skillLevel'],1)
         self.assertEqual([g['level'] for g in actual['grantsByEquipment']['kungfu-pants']],[1,3])
     def test_source_duplicate_grants_roundtrip(self):
-        self.source['equipmentGrants'].append(dict(equipmentId='kungfu-pants',slotNo=2,id='legSweep',level=3,sourceField='skill',explicitLevel=True))
+        self.source['equipmentGrants'].append(dict(equipmentId='kungfu-pants',slotNo=2,id='skill_leg_sweep',level=3,sourceField='skill',explicitLevel=True))
         # The canonical order is equipment order then grant slot.
         order={g['id']:i for i,g in enumerate(self.source['gear'])}
         self.source['equipmentGrants'].sort(key=lambda g:(order[g['equipmentId']],g['slotNo']))
@@ -110,28 +110,28 @@ class MasterTests(unittest.TestCase):
         self.assertEqual(len(read(self.db)['grantsByEquipment']['kungfu-pants']),2)
     def test_runtime_rejects_invalid_skill_definition(self):
         with closing(sqlite3.connect(self.db)) as db, db:
-            definition=json.loads(db.execute("SELECT definition FROM skill WHERE id='legSweep'").fetchone()[0]);definition['reach']='near'
-            db.execute("UPDATE skill SET definition=? WHERE id='legSweep'",(json.dumps(definition),))
+            definition=json.loads(db.execute("SELECT definition FROM skill WHERE id='skill_leg_sweep'").fetchone()[0]);definition['reach']='near'
+            db.execute("UPDATE skill SET definition=? WHERE id='skill_leg_sweep'",(json.dumps(definition),))
         with self.assertRaises(ValueError):read(self.db)
     def test_legacy_relation_does_not_consume_real_grant_slots(self):
         sword=next(g for g in self.source['gear'] if g['id']=='sword-wood')
-        self.assertEqual(sword['legacySkill'],'guard')
+        self.assertEqual(sword['legacySkill'],'skill_cover')
         self.assertFalse(any(g['equipmentId']==sword['id'] for g in self.source['equipmentGrants']))
-        sword['skill']='mage'
-        for slot,skill in enumerate(['mage','stamp','knockback'],1):
+        sword['skill']='skill_heal'
+        for slot,skill in enumerate(['skill_heal','skill_stamp','skill_knockback'],1):
             self.source['equipmentGrants'].append(dict(equipmentId=sword['id'],slotNo=slot,id=skill,level=1,sourceField='skill',explicitLevel=False))
         order={g['id']:i for i,g in enumerate(self.source['gear'])}
         self.source['equipmentGrants'].sort(key=lambda g:(order[g['equipmentId']],g['slotNo']))
         self.write();actual=read(self.db)
-        self.assertEqual(next(g for g in actual['gear'] if g['id']==sword['id'])['legacySkill'],'guard')
+        self.assertEqual(next(g for g in actual['gear'] if g['id']==sword['id'])['legacySkill'],'skill_cover')
         self.assertEqual([g['slotNo'] for g in actual['grantsByEquipment'][sword['id']]],[1,2,3])
         with closing(sqlite3.connect(self.db)) as db, db:
-            self.assertEqual(db.execute('SELECT skill_id FROM equipment_legacy_skill WHERE equipment_id=?',(sword['id'],)).fetchone(),('guard',))
+            self.assertEqual(db.execute('SELECT skill_id FROM equipment_legacy_skill WHERE equipment_id=?',(sword['id'],)).fetchone(),('skill_cover',))
     def test_legacy_reference_corruption_rejected(self):
         with closing(sqlite3.connect(self.db)) as db, db:db.execute("UPDATE equipment_legacy_skill SET skill_id='missing'")
         with self.assertRaises(ValueError):read(self.db)
     def test_legacy_reference_cannot_be_a_real_grant(self):
-        self.source['equipmentGrants'].append(dict(equipmentId='sword-wood',slotNo=1,id='guard',level=1,sourceField='legacySkill',explicitLevel=False))
+        self.source['equipmentGrants'].append(dict(equipmentId='sword-wood',slotNo=1,id='skill_cover',level=1,sourceField='legacySkill',explicitLevel=False))
         with self.assertRaises(ValueError):self.write()
     def tracked_connections(self, fail_insert=False):
         opened=[]
@@ -182,7 +182,7 @@ class MasterTests(unittest.TestCase):
         self.assertEqual(self.db.read_bytes(),original);self.assertEqual(set(self.root.iterdir()),before)
     def test_projection_failure_closes_both_connections_and_preserves_previous(self):
         original=self.db.read_bytes();before=set(self.root.iterdir())
-        self.source['gear'][0]['skill']='mage';self.src.write_text(json.dumps(self.source))
+        self.source['gear'][0]['skill']='skill_heal';self.src.write_text(json.dumps(self.source))
         opened,connect=self.tracked_connections()
         with patch('master_data.sqlite3.connect',side_effect=connect):
             with self.assertRaises(ValueError):build(self.src,self.db)

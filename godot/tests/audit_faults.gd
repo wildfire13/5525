@@ -83,31 +83,31 @@ func run():
 	OS.set_environment("AUDIT_RULE_MODE","preview");game.engine.start_engine();await game.new_game()
 	var initial=await snapshot(game.engine);initial.state.location="west"
 	await game.update({"op":"campaign_load","data":initial})
-	await game.act("trial",["recruit-guard-human-female","swift-boots","feet"])
+	await game.act("trial",["character_mirei","swift-boots","feet"])
 	var before=JSON.stringify(game.state(),"",true,true)
-	game.choose_command("move")
-	game.call_deferred("on_cell",int(game.data.choices.move[0]));await until_busy()
+	game.choose_command("action_move")
+	game.call_deferred("on_cell",int(game.data.choices.action_move[0]));await until_busy()
 	await esc();await esc();await esc();await settle()
 	check(game.pending==null and game.preview.is_empty() and not game.board.ghost.visible,"Esc during delayed preview never revives ghost or range")
 	check(JSON.stringify(game.state(),"",true,true)==before,"delayed cancelled preview consumes no action or resources")
-	game.choose_command("move");await game.on_cell(int(game.data.choices.move[0]))
+	game.choose_command("action_move");await game.on_cell(int(game.data.choices.action_move[0]))
 	game.call_deferred("inspect_movement","skill");await until_busy();await esc();await settle()
 	check(game.pending==null and game.preview.is_empty() and not game.board.ghost.visible,"Esc cancels delayed alternate range preview")
-	game.choose_command("move");game.call_deferred("on_cell",int(game.data.choices.move[0]));await until_busy()
-	game.choose_command("guard");await settle()
-	check(game.command=="guard" and game.preview.is_empty() and game.pending==null,"command change invalidates previous request token")
+	game.choose_command("action_move");game.call_deferred("on_cell",int(game.data.choices.action_move[0]));await until_busy()
+	game.choose_command("action_defend");await settle()
+	check(game.command=="action_defend" and game.preview.is_empty() and game.pending==null,"command change invalidates previous request token")
 	await game.act("endTrial",[])
 	# R09: accessory trials now belong to North; armor trial above stays in West.
 	initial=await snapshot(game.engine);initial.state.location="north";await game.update({"op":"campaign_load","data":initial})
 	game.audio.ui_sound_started.connect(func(id):if id in ["victory","failure"]:sounds.append(id))
 	for trial in range(2):
-		await game.act("trial",["recruit-guard-human-female","victory-earring-1","accessory1"])
+		await game.act("trial",["character_mirei","victory-earring-1","accessory1"])
 		check(game.data.get("trial")!=null,"real victory-breath trial starts")
 		for turn in range(30):
 			if game.state().get("result")!=null:break
-			if not game.data.choices.attack.is_empty():await game.update({"op":"act","kind":"attack","target":game.data.choices.attack[0],"presentation":true})
+			if not game.data.choices.action_attack.is_empty():await game.update({"op":"act","kind":"action_attack","target":game.data.choices.action_attack[0],"presentation":true})
 			else:
-				var cells: Array=game.data.choices.move.duplicate()
+				var cells: Array=game.data.choices.action_move.duplicate()
 				var enemies=game.state().units.filter(func(u):return u.side=="enemy" and u.hp>0)
 				cells.sort_custom(func(a,z):
 					var da=100;var dz=100
@@ -116,7 +116,7 @@ func run():
 						dz=mini(dz,absi(int(z)%10-int(e.pos)%10)+absi(int(z)/10-int(e.pos)/10))
 					return da<dz)
 				if cells.is_empty():break
-				await game.update({"op":"act","kind":"move","target":cells[0],"presentation":true})
+				await game.update({"op":"act","kind":"action_move","target":cells[0],"presentation":true})
 		check(game.state().get("result")!=null and not game.state().get("failure",false) and not game.state().units.any(func(u):return u.side=="enemy" and u.hp>0),"independent trial reaches actual victory")
 		var previous=sounds.size();game.render();game.render();game.render()
 		check(sounds.size()==previous and previous==trial+1,"result redraw once, distinct trial victory plays again")

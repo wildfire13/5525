@@ -21,7 +21,7 @@ func run():
 	chart.zoom=1.4;chart.pan=Vector2(20,10)
 	chart.buttons.west.pressed.emit()
 	check(game.destination=="west" and chart.selected=="west" and chart.pan==Vector2(20,10) and chart==game.find_child("TownMap",true,false),"destination changes in place and keeps map position")
-	var offers=game.campaign().board;var porter=game.roster().filter(func(u):return u.job=="porter" and game.campaign().selected.has(u.id))[0]
+	var offers=game.campaign().board;var porter=game.roster().filter(func(u):return u.job=="job_porter" and game.campaign().selected.has(u.id))[0]
 	await game.act("accept",[offers[0].id,porter.id]);game.navigate("map")
 	for i in range(5):await process_frame
 	check(game.find_child("TravelQuestSummary",true,false)==null and game.find_child("TownMap",true,false).quest_destination==offers[0].to,"map keeps destination without duplicate summary")

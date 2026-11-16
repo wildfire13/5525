@@ -44,16 +44,16 @@ func phase_duration(event: Dictionary) -> float:
  if physical!=null and physical.supports(event):return physical.duration(event)
  if support!=null and support.supports(event):return support.duration(event)
  var skill=event.get("skill_id","");var phase=event.get("phase","")
- if skill=="legSweep" and phase=="action":return .76
- if skill=="mage":return .36 if phase=="action" else .58
- if skill=="guard" and phase=="action" and event.get("kind")=="guard":return .58
- if skill=="stamp":return .34 if phase=="action" else .24
- if skill=="attack" and phase=="action":return .30
+ if skill=="skill_leg_sweep" and phase=="action":return .76
+ if skill=="skill_heal":return .36 if phase=="action" else .58
+ if skill=="action_defend" and phase=="action" and event.get("kind")=="action_defend":return .58
+ if skill=="skill_stamp":return .34 if phase=="action" else .24
+ if skill=="action_attack" and phase=="action":return .30
  if phase=="hurt" and (event.get("guarding",false) or event.get("redirected",false)):return .3
  if phase=="hurt" and skill=="impact":return .20
  return .3 if phase=="heal" else .42
 func is_painted(event: Dictionary) -> bool:
- return (physical!=null and physical.supports(event)) or (support!=null and support.supports(event)) or event.get("skill_id") in ["legSweep","mage","stamp","attack","impact"] or (event.get("skill_id")=="guard" and event.get("kind")=="guard")
+ return (physical!=null and physical.supports(event)) or (support!=null and support.supports(event)) or event.get("skill_id") in ["skill_leg_sweep","skill_heal","skill_stamp","action_attack","impact"] or (event.get("skill_id")=="action_defend" and event.get("kind")=="action_defend")
 func snapshot() -> Dictionary:
  return {"active":not _event.is_empty(),"event":_event.duplicate(true),"elapsed":_elapsed,"duration":_duration,"progress":clampf(_elapsed/_duration,0,1) if _duration>0 else 0.0,"emitter_count":emitters.size(),"caption_count":captions.size(),"texture_count":textures.size()}
 func end_phase():
@@ -73,11 +73,11 @@ func play(event: Dictionary,duration: float):
  if not is_finite(duration) or duration<=0:return
  var skill=str(event.get("skill_id",""));var phase=str(event.get("phase",""))
  var expanded=(physical!=null and physical.supports(event)) or (support!=null and support.supports(event))
- if not expanded and not ((phase=="action" and skill in ["legSweep","mage","stamp","attack","guard"]) or (phase=="heal" and skill=="mage") or (phase=="hurt" and skill in ["stamp","impact"])):return
+ if not expanded and not ((phase=="action" and skill in ["skill_leg_sweep","skill_heal","skill_stamp","action_attack","action_defend"]) or (phase=="heal" and skill=="skill_heal") or (phase=="hurt" and skill in ["skill_stamp","impact"])):return
  if not _valid_cell(int(event.get("origin",-1)) if phase=="action" else int(event.get("recipient",-1))):return
  _event=event.duplicate(true);_event.cells=[]
  for value in event.get("cells",[]):
-  if (value is int or value is float) and _valid_cell(int(value)) and not (skill=="legSweep" and int(value)==int(event.origin)) and not _event.cells.has(int(value)):_event.cells.append(int(value))
+  if (value is int or value is float) and _valid_cell(int(value)) and not (skill=="skill_leg_sweep" and int(value)==int(event.origin)) and not _event.cells.has(int(value)):_event.cells.append(int(value))
  event=_event
  _elapsed=0;_duration=duration;serial+=1
  if expanded:
@@ -86,14 +86,14 @@ func play(event: Dictionary,duration: float):
  elif not is_painted(event):legacy.play(event,duration)
  else:
   if phase=="action":
-   if skill=="legSweep":_sweep(event)
-   elif skill=="mage":_heal_cast(event)
-   elif skill=="guard":_guard(event,false)
-   elif skill=="attack":_attack(event)
-   elif skill=="stamp":_stamp_cast(event)
+   if skill=="skill_leg_sweep":_sweep(event)
+   elif skill=="skill_heal":_heal_cast(event)
+   elif skill=="action_defend":_guard(event,false)
+   elif skill=="action_attack":_attack(event)
+   elif skill=="skill_stamp":_stamp_cast(event)
   elif phase=="heal":_heal_result(event)
   elif phase=="hurt":
-   if skill=="stamp":_stamp_result(event)
+   if skill=="skill_stamp":_stamp_result(event)
    elif event.get("guarding",false) or event.get("redirected",false):_guard(event,true)
    else:_impact(event)
  set_process(true);_process(0.0);queue_redraw()

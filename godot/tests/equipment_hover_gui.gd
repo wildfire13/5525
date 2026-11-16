@@ -45,7 +45,7 @@ func run():
  while game.data.is_empty():await process_frame
  await game.new_game();
  game.checks_fast=true;game.audio.fast_mode=true;await settle();var original=await saved();var town=original.duplicate(true);town.state.location="east"
- var hero=town.state.characters["recruit-guard-human-female"]
+ var hero=town.state.characters["character_mirei"]
  hero.level=29;hero.xp=2800;hero.allocations.str=2;hero.statPoints=54;hero.skillPoints=28;hero.weapon="hammer-iron-1";hero.leftHand="empty-leftHand"
  check((await game.update({"op":"campaign_load","data":town})).get("ok",false),"isolated level29 hammer fixture passes canonical load")
  await preload("res://tests/equipment_hover_f4.gd").enter_equipment_battle(game);await settle();var before=await saved()
@@ -55,14 +55,14 @@ func run():
   await hover_equipped("rightHand","stamp-"+str(dims.x))
   check(await saved()==before,"equipped hover and resize never mutate campaign "+str(dims.x))
   game.dialog.close();await settle();hero.allocations.agi=1;hero.statPoints=53;hero.leftHand="empty-leftHand"
- for item in [["partner-dagger","pincer","挟撃"],["longspear-wood","poleVault","ポールヴォールト"],["grappling-rope","grapple","引き寄せ"]]:
+ for item in [["partner-dagger","skill_pincer","挟撃"],["longspear-wood","skill_pole_vault","ポールヴォールト"],["grappling-rope","skill_grapple","引き寄せ"]]:
    hero.weapon=item[0]
   check((await game.update({"op":"campaign_load","data":town})).get("ok",false),"long skill fixture passes canonical equipment eligibility "+item[0])
   await preload("res://tests/equipment_hover_f4.gd").enter_equipment_battle(game);await settle();await os_resize(Vector2i(1180,812));before=await saved();await hover_equipped("rightHand",item[1]+"-1180")
   check(observations[-1].full_text.contains(item[2]),"tooltip is actual equipped skill rather than previous gear "+item[0])
   check(await saved()==before,"long skill hover is read-only "+item[0]);game.dialog.close();await settle()
  if not baseline:
-   await game.hud.open_equipment_sheet("recruit-guard-human-female");await settle()
+   await game.hud.open_equipment_sheet("character_mirei");await settle()
   var source=game.find_children("*","Button",true,false).filter(func(b):return b.get_meta("ui_key","")=="equipment_rightHand")[0]
   var long_note="診断用の長文メモ。".repeat(300)+"末尾の診断文字"
   source.heading="診断用の長い装備名".repeat(32);source.details.append(source.escaped(long_note));source.plain_details.append(long_note);source.tooltip_text+="\n"+long_note

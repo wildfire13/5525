@@ -22,7 +22,7 @@ func run():
 	check(game.dialog.window.find_children("OrderDetail_*","Label",true,false).size()==40,"R4 all forty entries remain available in order details")
 	game.dialog.close()
 	game.data.queue=original_queue;game.render();await settle()
-	await game.choose_command("item");await game.on_cell(int(hud.acting().pos));await settle()
+	await game.choose_command("action_item");await game.on_cell(int(hud.acting().pos));await settle()
 	var viewport=game.hud.right_panel.body.get_parent().get_global_rect()
 	check(node("PredictionSummary")!=null and viewport.encloses(node("PredictionSummary").get_global_rect()),"R3 self-potion HP prediction visible without scrolling")
 	var confirm=game.find_children("*","Button",true,false).filter(func(b):return b.get_meta("ui_key","")=="battle_commit")[0]

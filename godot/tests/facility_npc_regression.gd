@@ -1,6 +1,6 @@
 extends "res://tests/inventory_header_261020.gd"
-const BUYER="recruit-guard-human-female"
-const OTHER="recruit-scout-human-female"
+const BUYER="character_mirei"
+const OTHER="character_rio"
 ## Synthetic, isolated NPC lifecycle/layout checks. Real rendering is separate QA.
 # Two layout passes on each side of settle are sufficient for this node-geometry
 # suite; settle still waits for engine requests, locks and presentation to finish.

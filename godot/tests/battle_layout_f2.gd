@@ -58,9 +58,9 @@ func run():
 			var scroll=node("TurnOrderViewport");scroll.scroll_horizontal=100000;await frames()
 			check(scroll.get_global_rect().encloses(cards[-1].get_global_rect()),"F2 horizontal scroll exposes fifth predicted card "+label)
 			scroll.scroll_horizontal=0
-			game.hud.open_skills();await settle();await click("BattleSkillDetails_legSweep");await click("SkillDetailsBack")
+			game.hud.open_skills();await settle();await click("BattleSkillDetails_skill_leg_sweep");await click("SkillDetailsBack")
 			protected_controls("skill explanation closed "+label)
-			await game.select_skill("legSweep");await settle()
+			await game.select_skill("skill_leg_sweep");await settle()
 			# Selection now persists an exact grant key. Reading windows must stay
 			# pure after that deliberate selection; no resources may change here.
 			var selected_save=await saved();var expected=before.duplicate(true)

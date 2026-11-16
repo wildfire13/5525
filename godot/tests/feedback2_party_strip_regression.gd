@@ -4,9 +4,9 @@ extends SceneTree
 var game
 var checks=[]
 var evidence=OS.get_environment("INVENTORY_QA_ROOT")
-const OWNER="recruit-guard-human-female"
-const OTHER="recruit-scout-human-female"
-const RESERVE="recruit-guard-human-male"
+const OWNER="character_mirei"
+const OTHER="character_rio"
+const RESERVE="character_gareth"
 func _initialize():call_deferred("run")
 func check(ok,label):checks.append({"passed":bool(ok),"label":label});print(("PASS " if ok else "FAIL ")+label)
 func frames(n:=5):

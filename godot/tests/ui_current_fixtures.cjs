@@ -2,8 +2,8 @@
 // Fresh live recruits with explicit scenario equipment; enemy identities stay native.
 const C=require('../../native/campaign.js'),B=require('../../native/campaign-battle.js');
 const assert=require('node:assert/strict');
-const ids={guard:'recruit-guard-human-female',scout:'recruit-scout-human-female',
- archer:'recruit-scout-elf-male',mage:'recruit-mage-elf-female',porter:'recruit-porter-human-female'};
+const ids={guard:'character_mirei',scout:'character_rio',
+ archer:'character_shion',mage:'character_merina',porter:'character_yuno'};
 function fresh(){
  const s=C.create();
  for(const u of Object.values(s.characters))u.accessory2='pouch-belt-3';

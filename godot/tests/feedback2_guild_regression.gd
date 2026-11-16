@@ -75,13 +75,13 @@ func run():
   await tap("GuildMember_"+removed);await tap("GuildAdd");wanted.append(removed)
   check(game.campaign().selected==wanted,"central add returns named reserve to the end")
   check((await saved()).state.characters==seed.state.characters,"reorder/remove/re-add leave personal ownership unchanged")
-  var sole="recruit-guard-human-female"
+  var sole="character_mirei"
   await game.update({"op":"campaign","action":"select","args":[[sole]]});await settle();guild.choose(sole);await settle();var one=await saved()
   check(node("GuildRemove").disabled and guild.candidate("remove",sole,"").is_empty() and labels(node("PartyRoster")).contains("1 / 12"),"minimum one member enforced without a porter condition")
   guild.cancel_selection();await settle();check((await saved())==one,"selection cancellation never removes last member")
   await game.update({"op":"campaign_load","data":seed});game.navigate("party");await settle()
   if node("FacilityChoice_guild")!=null:await tap("FacilityChoice_guild")
-  var porter="recruit-porter-human-female"
+  var porter="character_yuno"
   await game.act("accept",[game.campaign().board[0].id,porter]);await settle();var cargo=await saved();guild.choose(porter);await settle();await tap("GuildRemove")
   check(guild.stage=="confirm" and node("GuildConfirmCancel")!=null,"cargo owner removal retains existing confirmation contract")
   await tap("GuildConfirmCancel");check((await saved())==cargo and guild.stage=="idle","cargo removal cancellation preserves save")

@@ -36,9 +36,9 @@ func prepare() -> bool:
 	if not reply.get("ok",false):check("battle-fixture-load",false,str(reply.get("error","missing response")));return false
 	if not is_instance_valid(game.board):check("battle-fixture-board",false,"campaign battle loaded without BattleBoard");return false
 	check("battle-fixture-load",true)
-	game.board.set_hover("");await game.choose_command("attack");await settle();return true
+	game.board.set_hover("");await game.choose_command("action_attack");await settle();return true
 func trigger():
-	probe.hold=true;game.board.set_hover(str(game.data.choices.attack[0]))
+	probe.hold=true;game.board.set_hover(str(game.data.choices.action_attack[0]))
 	var deadline=Time.get_ticks_msec()+5000
 	while not probe.waiting and Time.get_ticks_msec()<deadline:await process_frame
 	return probe.waiting
@@ -63,7 +63,7 @@ func delayed(fault,new_battle):
 	else:await game.new_game();await settle()
 	probe.timeout_ms=15000
 	check(label+"-old-board-freed",not is_instance_valid(old))
-	if new_battle:await prepare();game.board.set_hover("guard");await settle()
+	if new_battle:await prepare();game.board.set_hover("character_mirei");await settle()
 	var before=await saved();var generation=game.generation;var pending=game.pending;var pid=int(probe.handles.pid)
 	game.notice="fresh session";game.render();await frames()
 	var current=game.board;var person=game.hud.inspected_uid;var caption=current.hover_caption if current else "";var call_count=probe.calls.size()
@@ -76,10 +76,10 @@ func delayed(fault,new_battle):
 func null_and_foreign():
 	if not await prepare():return
 	var old=game.board;var person=game.hud.inspected_uid
-	game.hud.selected_cell=24;old.set_hover("guard");var shown=game.hud.inspected_uid;game.board=null;old.set_hover("");game.hud.render_person();game.hud.refresh_hover();await frames()
+	game.hud.selected_cell=24;old.set_hover("character_mirei");var shown=game.hud.inspected_uid;game.board=null;old.set_hover("");game.hud.render_person();game.hud.refresh_hover();await frames()
 	check("null-board-no-inspection-mutation",game.hud.inspected_uid==shown)
-	game.board=old;var foreign=Node.new();root.add_child(foreign);game.hud.inspect_hover("mage",foreign);check("foreign-board-rejected",game.hud.inspected_uid==shown);foreign.free()
-	game.hud.inspect_hover("mage",foreign);check("freed-board-callback-rejected",game.hud.inspected_uid==shown)
+	game.board=old;var foreign=Node.new();root.add_child(foreign);game.hud.inspect_hover("character_merina",foreign);check("foreign-board-rejected",game.hud.inspected_uid==shown);foreign.free()
+	game.hud.inspect_hover("character_merina",foreign);check("freed-board-callback-rejected",game.hud.inspected_uid==shown)
 	await game.new_game();await settle();check("teardown-town",game.board==null and game.campaign().phase=="town")
 func current_response(fault):
 	if not await prepare():return
@@ -92,7 +92,7 @@ func current_response(fault):
 func busy_teardown():
 	if not await prepare():return
 	var old=game.board;var source_id=old.get_instance_id();var inspected=game.hud.inspected_uid;var calls=probe.calls.size()
-	probe.busy=true;game.hud.request_hover("guard",game.hud.hover_generation,game.generation,probe.connection_generation,source_id)
+	probe.busy=true;game.hud.request_hover("character_mirei",game.hud.hover_generation,game.generation,probe.connection_generation,source_id)
 	# Keep the token intact to exercise source lifetime validation in the busy wait.
 	game.board=null;old.queue_free();await frames();probe.busy=false;await frames()
 	check("busy-wait-old-board-freed",not is_instance_valid(old))

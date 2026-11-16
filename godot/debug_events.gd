@@ -3,11 +3,11 @@ extends RefCounted
 const OPS=["campaign_start","campaign_save","campaign_load","select_skill","select_return_skill","preview","hover_preview","reset","journey_start","export"]
 const CAMPAIGN=["select","accept","depart","travel","deploy","deployment_assign","chooseFormation","deployment_reset","begin","retreat","finishBattle","rest","onward","arrive","acknowledge","completeQuest","buyGear","buyItem","inn","useItem","inventoryAction","warehouseAction","buyInventory","buyPlan","sellInventory","allocate","allocateBatch","trial","endTrial"]
 const READ_ONLY=["forecast","previewGear","inventoryQuote","purchasePlan","saleQuote","purchaseQuote"]
-const ACTIONS=["attack","move","skill","item","ether","guard","return"]
+const ACTIONS=["action_attack","action_move","action_skill","action_item","action_ether","action_defend","action_return"]
 const FILES=["read","write","write_target","recover_write","portrait"]
 const UI=["file_save","file_open","confirm","navigate","load_metadata"]
 const SLOTS=["head","upperBody","lowerBody","rightHand","leftHand","feet","accessory1","accessory2",""]
-const SKILLS=["guard","archer","mage","scout","porter","stamp","itemUse","legSweep","grapple","poleVault","retreatSlash","knockback","pincer","healingCross","defenseLine","manaGift","splitShot","returnHome","firstStride","loneWolf","victoryBreath","invasion","swift"]
+const SKILLS=["skill_cover","skill_snipe","skill_heal","skill_ambush","skill_formation_boost","skill_stamp","skill_item_use","skill_leg_sweep","skill_grapple","skill_pole_vault","skill_retreat_slash","skill_knockback","skill_pincer","skill_healing_cross","skill_defense_line","skill_mana_gift","skill_split_shot","skill_return_home","skill_first_stride","skill_lone_wolf","skill_victory_breath","skill_invasion","skill_swift"]
 var salt=""
 var actors={}
 func configure(session: String):salt=session;actors.clear()

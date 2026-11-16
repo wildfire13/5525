@@ -5,10 +5,10 @@ var checks=[]
 var failures=[]
 var evidence=OS.get_environment("UIUX_REVIEW_EVIDENCE")
 var boost_phases=[]
-const HERO="recruit-guard-human-female"
-const ARCHER="recruit-scout-elf-male"
-const MAGE="recruit-mage-elf-female"
-const PORTER="recruit-porter-human-female"
+const HERO="character_mirei"
+const ARCHER="character_shion"
+const MAGE="character_merina"
+const PORTER="character_yuno"
 func _initialize():call_deferred("run")
 func check(ok: bool,detail: String):
 	checks.append({"passed":ok,"detail":detail});print(("PASS " if ok else "FAIL ")+detail)
@@ -33,7 +33,7 @@ func snapshot():return (await game.engine.request({"op":"campaign_save"})).data
 func restore(which: String):
 	game.page="board";await game.update({"op":"campaign_load","data":fixtures[which]});await settle()
 func observe():
-	if game.data.get("presentation") is Dictionary and game.data.presentation.get("skill_id")=="porter":boost_phases.append(text(game.hud.target_box))
+	if game.data.get("presentation") is Dictionary and game.data.presentation.get("skill_id")=="skill_formation_boost":boost_phases.append(text(game.hud.target_box))
 func choose_item(owner: String,id: String):
 	var entry=game.campaign().inventoryByCharacter[owner].entries.filter(func(e):return e.id==id)[0]
 	var row=game.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text==entry.name)[0]
@@ -76,38 +76,38 @@ func battle_cases():
 		await press("アイテム");check(game.hud.item_list and node("BattleItem_ether").disabled and node("BattleItem_ether").tooltip_text.contains("ポーター専用"),"non-porter sees explicit ether restriction")
 		await game.on_cell(24);check(game.pending==null and not game.can_commit(),"item list cannot commit or select board targets")
 		node("BattleItem_potion").pressed.emit();await settle();await game.on_cell(24);await settle()
-		check(game.command=="item" and game.pending==HERO and game.can_commit(),"potion item list reaches ordinary engine preview")
+		check(game.command=="action_item" and game.pending==HERO and game.can_commit(),"potion item list reaches ordinary engine preview")
 		await press("キャンセル");await press("アイテム");check(await snapshot()==before and game.board.get_global_rect()==rect,"battle item back clears target and preserves save and board geometry")
-		await press("スキル");node("BattleSkillDetails_guard").pressed.emit();await settle()
+		await press("スキル");node("BattleSkillDetails_skill_cover").pressed.emit();await settle()
 		var detail=node("SkillDetailsWindow")
 		check(detail!=null and detail.visible and not game.can_commit(),"skill explanation opens before target selection without executing")
-		detail.close_requested.emit();await settle();node("BattleSkill_guard").pressed.emit();await settle()
+		detail.close_requested.emit();await settle();node("BattleSkill_skill_cover").pressed.emit();await settle()
 		await game.on_cell(23);await settle();check(game.can_commit() and not button(game.hud.command_name()+"を実行").disabled,"cover can preview a reachable ally")
 		var footer=game.hud.decision_footer.get_global_rect();check(root.get_visible_rect().encloses(footer),"execute and back footer stays inside viewport")
 		await press("スキル");check(game.hud.action_menu and game.pending==null and await snapshot()==before,"skill back returns directly to action list without cost")
-		await restore("mp0");await press("スキル");node("BattleSkill_guard").pressed.emit();await settle();check(text(game.hud.target_box).contains("MP不足（現在0／必要1）") and not node("BattleSkill_guard").disabled and not game.can_commit(),"MP0 cover explains shortage while keeping skill selection available")
+		await restore("mp0");await press("スキル");node("BattleSkill_skill_cover").pressed.emit();await settle();check(text(game.hud.target_box).contains("MP不足（現在0／必要1）") and not node("BattleSkill_skill_cover").disabled and not game.can_commit(),"MP0 cover explains shortage while keeping skill selection available")
 		var no_mp=await snapshot();await press("スキル");check(await snapshot()==no_mp,"MP0 inspection and back consume nothing")
 	await restore("porter");var before=await snapshot();await press("アイテム")
 	check(not node("BattleItem_ether").disabled,"porter can choose ether from the same item list")
 	node("BattleItem_ether").pressed.emit();await settle();await game.on_cell(24);await settle();await game.commit();await settle()
 	var after=await snapshot();check(game.hud.unit(HERO).mp==3 and after.state.battle.ethers==before.state.battle.ethers-1 and after.state.battle.actions==before.state.battle.actions+1,"battle ether preserves MP+3, one item and one action")
-	await restore("porter");before=await snapshot();await press("スキル");node("BattleSkill_porter").pressed.emit();await settle()
-	var effect=node("BattleSkill_porter").tooltip_text
+	await restore("porter");before=await snapshot();await press("スキル");node("BattleSkill_skill_formation_boost").pressed.emit();await settle()
+	var effect=node("BattleSkill_skill_formation_boost").tooltip_text
 	check(game.pending==PORTER and game.can_commit() and not game.modal_open(),"formation boost prepares canonical self token without a modal")
 	for phrase in ["味方全員","3マス外","成立している間だけ","×1.5","×0.75","×1.75","×0.65","置き換え","使用者の次の番まで","陣形が崩れている間","加算されません"]:check(effect.contains(phrase),"formation effect explains "+phrase)
 	await press("スキル");check(await snapshot()==before,"formation content inspection and back never execute")
-	await press("スキル");node("BattleSkill_porter").pressed.emit();await settle();process_frame.connect(observe);await press(game.hud.command_name()+"を実行");process_frame.disconnect(observe);after=await snapshot()
+	await press("スキル");node("BattleSkill_skill_formation_boost").pressed.emit();await settle();process_frame.connect(observe);await press(game.hud.command_name()+"を実行");process_frame.disconnect(observe);after=await snapshot()
 	check(game.hud.unit(PORTER).boost and game.hud.unit(PORTER).mp==2 and after.state.battle.actions==before.state.battle.actions+1,"formation execute retains canonical boost, MP1 and one action")
 	check(not boost_phases.is_empty() and boost_phases.any(func(value):return value.contains("効果対象: 味方全員")),"formation presentation does not mislabel the porter as the only beneficiary")
-	await restore("broken");await press("スキル");node("BattleSkill_porter").pressed.emit();await settle();check(not game.can_commit() and text(game.hud.target_box).contains("護送陣が未成立"),"broken formation explains inability to execute")
+	await restore("broken");await press("スキル");node("BattleSkill_skill_formation_boost").pressed.emit();await settle();check(not game.can_commit() and text(game.hud.target_box).contains("護送陣が未成立"),"broken formation explains inability to execute")
 func support_cases():
 	for which in ["heal_left","heal_right"]:
-		await restore(which);var before=await snapshot();await press("スキル");node("BattleSkill_mage").pressed.emit();await settle()
-		check(game.data.skillReach==2 and game.data.normalAttackReach==2 and game.data.choices.skill.has(HERO),which+" bridge exposes heal reach2 with normal reach unchanged")
+		await restore(which);var before=await snapshot();await press("スキル");node("BattleSkill_skill_heal").pressed.emit();await settle()
+		check(game.data.skillReach==2 and game.data.normalAttackReach==2 and game.data.choices.action_skill.has(HERO),which+" bridge exposes heal reach2 with normal reach unchanged")
 		await game.on_cell(24);await settle();check(game.can_commit(),which+" Godot previews heal at distance2")
 		await press(game.hud.command_name()+"を実行");check(game.hud.unit(HERO).hp==70 and game.hud.unit(MAGE).mp==before.state.battle.units.filter(func(u):return u.id==MAGE)[0].mp-1,which+" executed heal restores60 and costs1MP")
-	await restore("cover_staff");await press("スキル");node("BattleSkill_guard").pressed.emit();await settle()
-	check(game.data.skillReach==1 and game.data.normalAttackReach==2 and not game.data.choices.skill.has(HERO),"staff cover has fixed1 while normal staff reach stays2")
+	await restore("cover_staff");await press("スキル");node("BattleSkill_skill_cover").pressed.emit();await settle()
+	check(game.data.skillReach==1 and game.data.normalAttackReach==2 and not game.data.choices.action_skill.has(HERO),"staff cover has fixed1 while normal staff reach stays2")
 	await game.on_cell(24);await settle();check(not game.can_commit(),"staff cover rejects distance2 in Godot controls")
 	await game.on_cell(21);await settle();check(game.can_commit(),"staff cover allows adjacent living ally")
 	await press(game.hud.command_name()+"を実行");check(game.hud.unit(MAGE).cover==PORTER,"staff cover executes for an adjacent ally")

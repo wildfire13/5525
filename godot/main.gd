@@ -12,10 +12,10 @@ var campaign_identity=preload("res://campaign_identity.gd").new()
 var preview: Dictionary={}
 var pending=null
 var chosen: Array=[]
-var command := "attack"
+var command := "action_attack"
 var page := "hub"
 var selected := ""
-var shop_uid := "guard"
+var shop_uid := ""
 var shop_slot := "rightHand"
 var formation := "convoy"
 var destination := ""
@@ -444,8 +444,11 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 			if request.get("op") in ["campaign_load","campaign_start"]:
 				audio.reset_character_events()
 				audio.suppress_result_voice_once=request.get("op")=="campaign_load"
-			if frontend.has("images"):
-				portraits.activate(frontend.images);audio.restore(frontend.music)
+			if request.get("op")=="campaign_load":
+				portraits.activate(reply.get("nativePortraits",{"version":1,"characters":{}}))
+			elif frontend.has("images"):
+				portraits.activate(frontend.images)
+			if frontend.has("music"):audio.restore(frontend.music)
 			if request.get("op")=="campaign_load":
 				save_notice.dismiss();results_view.reset();campaign_identity.accept_load(incoming);pages.reset_context("load",campaign_identity.current_id);memory.reset();skip_capture_once=true
 			elif request.get("op")=="campaign_start":
@@ -679,7 +682,7 @@ func select_shop(uid: String):await pages.select_member(uid)
 func render_shop(body):pages.shop(body)
 func preview_gear(id: String):await pages.request_quote(id)
 func inspect_movement(which: String):
-	if command!="move" or pending==null:return
+	if command!="action_move" or pending==null:return
 	await request_preview(which)
 func render_battle():hud.render()
 func command_hint() -> String:
@@ -690,16 +693,16 @@ func command_hint() -> String:
 
 	var skill=data.get("skillInfo")
 	var hints={
-		"attack":"通常攻撃: 縦横距離%d以内。対象に届く武器のATKを合算。" % data.get("normalAttackReach",0),
-		"move":"移動: 経路%d以内。キャラを通り抜け不可。味方・敵陣どちらへも移動できます。" % data.get("moveReach",2)+("味方を選ぶと位置交換。MP消費なし。" if a.get("job")=="porter" else ""),
-		"skill":skill.get("description","") if skill is Dictionary else legacy_skill_description(str(data.get("skill","")),1),
-		"return":"帰還: 装備中のみ、1戦1回。自陣の空きマスを指定。MP0・1行動。",
-		"item":item_hint("potion"),
-		"ether":item_hint("ether"),
-		"guard":"防御: 次の本人の番まで被ダメージ半減。MP消費なし。"}
+		"action_attack":"通常攻撃: 縦横距離%d以内。対象に届く武器のATKを合算。" % data.get("normalAttackReach",0),
+		"action_move":"移動: 経路%d以内。キャラを通り抜け不可。味方・敵陣どちらへも移動できます。" % data.get("moveReach",2)+("味方を選ぶと位置交換。MP消費なし。" if a.get("job")=="job_porter" else ""),
+		"action_skill":skill.get("description","") if skill is Dictionary else legacy_skill_description(str(data.get("skill","")),1),
+		"action_return":"帰還: 装備中のみ、1戦1回。自陣の空きマスを指定。MP0・1行動。",
+		"action_item":item_hint("potion"),
+		"action_ether":item_hint("ether"),
+		"action_defend":"防御: 次の本人の番まで被ダメージ半減。MP消費なし。"}
 	var hint=str(hints.get(command,""))
 	if not hud.skill_unavailable_reason().is_empty():hint+="\n"+hud.skill_unavailable_reason()
-	elif command!="guard" and data.get("choices",{}).get(command,[]).is_empty():hint+="\n今は合法な対象なし。射程・HP/MP・陣形・進路を確認してください。"
+	elif command!="action_defend" and data.get("choices",{}).get(command,[]).is_empty():hint+="\n今は合法な対象なし。射程・HP/MP・陣形・進路を確認してください。"
 	return hint
 func render_unit_details(parent: Node,s: Dictionary):
 	label_(parent,"全員の状態",true)
@@ -712,31 +715,31 @@ func render_unit_details(parent: Node,s: Dictionary):
 func choose_command(value: String):
 	if locked or presenting or closing or hud.range_reference or hud.menu_transition:return
 	hud.clear_inspection()
-	if value not in ["skill","items","item","ether","return"]:hud.expanded_menu=""
+	if value not in ["action_skill","items","action_item","action_ether","action_return"]:hud.expanded_menu=""
 	if value=="items":hud.open_items();return
-	if value=="skill" and data.get("skillset",[]).is_empty() and hud.has_return():value="return"
+	if value=="action_skill" and data.get("skillset",[]).is_empty() and hud.has_return():value="action_return"
 	invalidate_preview();command=value;hud.action_menu=false;hud.item_list=false;hud.skill_list=false;hud.selected_cell=-1;hud.selected_enemy=""
-	if value=="skill":await prepare_skill_preview()
+	if value=="action_skill":await prepare_skill_preview()
 	render()
 func prepare_skill_preview():
 	# The engine requires the porter ID, but the effect belongs to the whole side.
-	if command=="skill" and data.get("skill")=="陣形強化" and data.get("choices",{}).get("skill",[]).has(state().get("actor")):
+	if command=="action_skill" and data.get("skill")=="陣形強化" and data.get("choices",{}).get("action_skill",[]).has(state().get("actor")):
 		pending=state().actor
-		await request_preview("attack")
+		await request_preview("action_attack")
 func select_skill(id: String):
 	if locked or presenting or closing or hud.menu_transition:return
-	if id=="returnHome":
+	if id=="skill_return_home":
 		await select_return_skill(id);return
-	invalidate_preview();command="skill";hud.action_menu=false;hud.item_list=false;hud.skill_list=false
+	invalidate_preview();command="action_skill";hud.action_menu=false;hud.item_list=false;hud.skill_list=false
 	await update({"op":"select_skill","skillId":id})
 	if not data.get("ok",false):return
-	if hud.acting().get("selectedSkill","")=="itemUse":hud.open_items();return
+	if hud.acting().get("selectedSkill","")=="skill_item_use":hud.open_items();return
 	if data.get("skill")=="陣形強化" or (data.get("skillInfo") is Dictionary and data.skillInfo.get("target")=="self"):
-		if data.get("choices",{}).get("skill",[]).has(state().get("actor")):
-			pending=state().actor;await request_preview("attack")
+		if data.get("choices",{}).get("action_skill",[]).has(state().get("actor")):
+			pending=state().actor;await request_preview("action_attack")
 func select_return_skill(key: String):
 	if locked or presenting or closing or hud.menu_transition:return
-	invalidate_preview();command="return";hud.action_menu=false;hud.item_list=false;hud.skill_list=false
+	invalidate_preview();command="action_return";hud.action_menu=false;hud.item_list=false;hud.skill_list=false
 	await update({"op":"select_return_skill","skillId":key})
 func deployment_assigned(uid: String,pos):
 	if locked or presenting or closing or campaign().get("phase")!="deployment":return
@@ -765,13 +768,13 @@ func on_cell(pos: int):
 		elif not selected.is_empty():await act("deploy",[selected,pos])
 		return
 	var target=null
-	if command in ["move","return"] or command=="skill" and (data.get("skill")=="スタンプ" or data.get("skillInfo") is Dictionary and data.skillInfo.get("target")=="cell"):target=pos
+	if command in ["action_move","action_return"] or command=="action_skill" and (data.get("skill")=="スタンプ" or data.get("skillInfo") is Dictionary and data.skillInfo.get("target")=="cell"):target=pos
 	elif not u.is_empty():target=u.id
 	if target==null:invalidate_preview();render();return
 	generation+=1;preview={};preview_ready=false;preview_pending=false
 	var options=data.get("choices",{}).get(command,[])
 	if target is int:options=options.map(func(value):return int(value))
-	var paired=command=="skill" and data.get("skillInfo")!=null and data.skillInfo.get("target") in ["pair","upToTwo"]
+	var paired=command=="action_skill" and data.get("skillInfo")!=null and data.skillInfo.get("target") in ["pair","upToTwo"]
 	if paired:
 		if chosen.has(target):chosen.erase(target)
 		elif chosen.size()<2:chosen.append(target)
@@ -784,7 +787,7 @@ func on_cell(pos: int):
 		render();return
 	if not paired and target is String:chosen=[target]
 	pending=target
-	await request_preview("attack")
+	await request_preview("action_attack")
 func request_preview(which: String):
 	generation+=1;preview={};preview_ready=false;preview_pending=true
 	var token=generation;var actor=state().get("actor");var action_count=state().get("actions");var kind=command
@@ -808,13 +811,13 @@ func cancel():
 	if locked or presenting or closing:return
 	if hud.range_reference:hud.close_reference();return
 	if hud.item_list or hud.skill_list:hud.back_to_commands();return
-	if command in ["skill","return"] and not hud.action_menu:
+	if command in ["action_skill","action_return"] and not hud.action_menu:
 		if pending!=null or not chosen.is_empty():
 			if data.get("skill")=="陣形強化" or (data.get("skillInfo") is Dictionary and data.skillInfo.get("target")=="self"):hud.open_skills()
 			else:invalidate_preview();hud.selected_cell=-1;audio.ui("cancel");render()
 		else:hud.open_skills()
 		return
-	if command in ["item","ether"] and not hud.action_menu:hud.open_items();return
+	if command in ["action_item","action_ether"] and not hud.action_menu:hud.open_items();return
 	var had_target=pending!=null or not chosen.is_empty()
 	invalidate_preview();hud.selected_cell=-1;hud.selected_enemy=""
 	if not had_target:hud.action_menu=true
@@ -888,7 +891,7 @@ func load_game(path: String):
 	var images: Dictionary=envelope.get("nativePortraits",{"version":1,"characters":{}})
 	var music=envelope.get("godotFrontend",{})
 	if not audio.valid_metadata(music):record_debug_event("load_metadata","failed");notice="旅曲の保存情報が不正です";render();return
-	envelope.erase("nativePortraits");envelope.erase("godotFrontend")
+	envelope.erase("godotFrontend")
 	await update({"op":"campaign_load","data":envelope},{"images":images,"music":music,"source_path":path})
 func show_action_log():
 	dialog.open("行動ログ",func(body,actions):
@@ -930,7 +933,7 @@ func can_commit() -> bool:
 	if locked or presenting or closing or engine.disconnected or preview_pending or hud.range_reference or hud.action_menu or hud.item_list or hud.skill_list:return false
 	if state().is_empty() or state().get("deploying",false) or state().get("result")!=null:return false
 	if hud.acting().get("side")!="ally":return false
-	return command=="guard" or (pending!=null and preview_ready and not preview.is_empty())
+	return command=="action_defend" or (pending!=null and preview_ready and not preview.is_empty())
 func local_button(parent: Node,text: String,callback: Callable) -> Button:
 	var control=button(parent,text,callback);control.set_meta("read_only",true);control.disabled=false;return control
 func green_button(control: Button) -> Button:
@@ -1033,7 +1036,7 @@ func legacy_skill_description(name_: String,stage:=1) -> String:
 	return preload("res://skill_text.gd").legacy(name_,stage)
 func item_hint(id: String) -> String:
 	for item in preload("res://item_menu.gd").definitions(campaign()):
-		if item.id==id:return "%s: %s / %s / 本人の所持品1個・1行動。" % [item.name,preload("res://item_menu.gd").effect(item),hud.item_range_text()]+(" ポーターのみ。" if item.get("battleRole")=="porter" else "")
+		if item.id==id:return "%s: %s / %s / 本人の所持品1個・1行動。" % [item.name,preload("res://item_menu.gd").effect(item),hud.item_range_text()]+(" ポーターのみ。" if item.get("battleRole")=="job_porter" else "")
 	return ""
 func show_skill_details(id: String,title_: String,level: int=1,gear: Dictionary={}):
 	if locked or presenting or closing:return

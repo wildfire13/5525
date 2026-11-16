@@ -42,7 +42,7 @@ class PreviewBridgeTests(unittest.TestCase):
         self.assertTrue(self.data['ok'])
         return self.data
 
-    def preview(self, kind, target, preview_kind='attack'):
+    def preview(self, kind, target, preview_kind='action_attack'):
         before = self.view()
         response = self.bridge.call(op='preview', kind=kind, target=target,
                                     previewKind=preview_kind)
@@ -68,14 +68,14 @@ class PreviewBridgeTests(unittest.TestCase):
             if self.data['state']['actor'] == actor_id:
                 return self.data['state']
             self.assertIsNone(self.data['state']['result'], 'Battle ended before requested actor')
-            self.data = self.bridge.call(op='act', kind='guard')
+            self.data = self.bridge.call(op='act', kind='action_defend')
             self.assertTrue(self.data['ok'])
         self.fail('Requested actor did not become active within 20 legal guards')
 
     def test_stamp_selected_empty_center_reports_only_affected_enemy(self):
         state = self.prepare_stamp()
         self.assertFalse(any(u['hp'] > 0 and u['pos'] == 15 for u in state['units']))
-        p = self.preview('skill', 15)
+        p = self.preview('action_skill', 15)
         self.assertEqual(p['cells'], [5, 15, 25])
         self.assertEqual(p['ranges'], [5, 15, 25])
         affected = [u['name'] for u in state['units']
@@ -92,12 +92,12 @@ class PreviewBridgeTests(unittest.TestCase):
         self.data = journey(self.bridge, deployments=[(GUARD, 40), (MAGE, 24), (SCOUT, 35)], stamp=True)
         self.journey('begin')
         state = self.reach_actor(MAGE)
-        selected = self.preview('skill', 25)
+        selected = self.preview('action_skill', 25)
         self.assertIn(35, selected['cells'])
         self.assertEqual(unit(state, SCOUT)['pos'], 35)
         self.assertNotIn(unit(state, SCOUT)['name'], selected['targets'])
         self.assertTrue(selected['targets'])
-        p = self.preview('move', 14, 'skill')
+        p = self.preview('action_move', 14, 'action_skill')
         self.assertEqual(p['destination'], 14)
         self.assertEqual(p['path'], [14])
         self.assertEqual(unit({'units': p['units']}, MAGE)['pos'], 14)
@@ -107,7 +107,7 @@ class PreviewBridgeTests(unittest.TestCase):
         self.assertTrue(p['targets'])
         self.assertEqual(p['ranges'], [15])
         self.assertEqual(p['cells'], [])
-        attack = self.preview('move', 15, 'attack')
+        attack = self.preview('action_move', 15, 'action_attack')
         self.assertEqual(attack['targets'], [u['name'] for u in state['units']
                                            if u['side'] == 'enemy' and u['hp'] > 0 and u['pos'] in (5, 25, 14, 16)])
         self.assertTrue(attack['targets'])
@@ -126,8 +126,8 @@ class PreviewBridgeTests(unittest.TestCase):
         self.assertEqual(len(targets), 1, 'Preview fixture needs one live enemy at position 5')
         target = targets[0]
         self.assertEqual(target['pos'], 5)
-        self.assertIn(target['id'], self.data['choices']['skill'])
-        p = self.preview('skill', target['id'])
+        self.assertIn(target['id'], self.data['choices']['action_skill'])
+        p = self.preview('action_skill', target['id'])
         self.assertEqual(p['destination'], 4)
         self.assertEqual(p['path'], [1, 2, 3, 4])
         future = {'units': p['units']}
@@ -147,7 +147,7 @@ class PreviewBridgeTests(unittest.TestCase):
         state = self.reach_actor(PORTER)
         self.assertEqual(unit(state, PORTER)['pos'], 22)
         self.assertEqual(unit(state, GUARD)['pos'], 24)
-        p = self.preview('move', 24, 'skill')
+        p = self.preview('action_move', 24, 'action_skill')
         self.assertEqual(p['swap'], GUARD)
         self.assertEqual(p['destination'], 24)
         self.assertEqual(p['path'], [23, 24])
@@ -163,35 +163,35 @@ class PreviewBridgeTests(unittest.TestCase):
     def test_cancel_record_and_repeated_preview_do_not_consume_or_queue_action(self):
         self.prepare_stamp()
         before = self.view()
-        expected = self.preview('skill', 15)
+        expected = self.preview('action_skill', 15)
         for _ in range(3):
-            self.assertEqual(self.preview('skill', 15), expected)
+            self.assertEqual(self.preview('action_skill', 15), expected)
         cancelled = self.bridge.call(op='record', type='battle.preview.cancelled',
                                       details={'destination': None, 'target': 15})
         self.assertTrue(cancelled['ok'])
         self.assertEqual(self.view(), before)
         # A rejected later preview must not execute the older valid one.
-        self.assertFalse(self.bridge.call(op='preview', kind='skill', target=49)['ok'])
+        self.assertFalse(self.bridge.call(op='preview', kind='action_skill', target=49)['ok'])
         self.assertEqual(self.view(), before)
-        self.assertEqual(self.preview('skill', 15), expected)
-        after = self.bridge.call(op='act', kind='skill', target=15)
+        self.assertEqual(self.preview('action_skill', 15), expected)
+        after = self.bridge.call(op='act', kind='action_skill', target=15)
         self.assertTrue(after['ok'])
         self.assertEqual(after['state']['actions'], before['state']['actions'] + 1)
         self.assertEqual(unit(after['state'], MAGE)['mp'], unit(before['state'], MAGE)['mp'] - 1)
 
     def test_invalid_deployment_and_terminal_preview_are_read_only(self):
         before = self.view()
-        self.assertFalse(self.bridge.call(op='preview', kind='move', target=49)['ok'])
+        self.assertFalse(self.bridge.call(op='preview', kind='action_move', target=49)['ok'])
         self.assertEqual(self.view(), before)
         self.prepare_journey()
         before = self.view()
-        self.assertFalse(self.bridge.call(op='preview', kind='move', target=0)['ok'])
+        self.assertFalse(self.bridge.call(op='preview', kind='action_move', target=0)['ok'])
         self.assertEqual(self.view(), before)
         self.data = trial(self.bridge, MAGE, 'victory-earring-1', 'north')
-        self.data = self.bridge.call(op='act', kind='attack', target='enemy-guard')
+        self.data = self.bridge.call(op='act', kind='action_attack', target='enemy-guard')
         self.assertIsNotNone(self.data['state']['result'])
         before = self.view()
-        self.assertFalse(self.bridge.call(op='preview', kind='guard')['ok'])
+        self.assertFalse(self.bridge.call(op='preview', kind='action_defend')['ok'])
         self.assertEqual(self.view(), before)
 
     def test_move_preview_formation_break_and_cancel_restore(self):
@@ -199,7 +199,7 @@ class PreviewBridgeTests(unittest.TestCase):
         self.journey('begin')
         state = self.reach_actor(PORTER)
         self.assertEqual(state['actor'], PORTER)
-        p = self.preview('move', 23)
+        p = self.preview('action_move', 23)
         self.assertTrue(p['formationBefore'])
         self.assertFalse(p['formationAfter'])
         self.assertEqual(unit({'units': p['units']}, PORTER)['pos'], 23)

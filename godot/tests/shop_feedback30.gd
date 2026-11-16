@@ -10,7 +10,7 @@ func run():
  while game.data.is_empty():await process_frame
  await game.new_game();
  game.audio.fast_mode=true;game.checks_fast=true
- var owner="recruit-guard-human-female"
+ var owner="character_mirei"
  var seed=await saved();seed.state.location="east";seed.state.gold=1000;seed.state.characters[owner].inventory={"sword-wood":3};seed.state.characters[owner].xp=100;seed.state.characters[owner].level=2;seed.state.characters[owner].allocations.agi=1;seed.state.characters[owner].statPoints=1;seed.state.characters[owner].skillPoints=1;seed.state.characters[owner].weapon="hammer-wood";seed.state.characters[owner].leftHand="empty-leftHand"
  await game.update({"op":"campaign_load","data":seed});await enter_facility("shop")
  var shop=game.pages.shop_view
@@ -24,8 +24,8 @@ func run():
  check(node("ShopComparisonBuy").get_parent()==node("ShopTransactionFooter") and not game.modal_open(),"inline purchase button stays in transaction footer outside scroller")
  var icons=node("ShopComparisonSkills").find_children("ComparisonSkill*","Button",true,false)
  check(icons.size()>=2 and icons.all(func(b):return b.icon!=null and b.text.begins_with("Lv") and b.tooltip_text.contains("付与枠")),"gained and lost skills have icons and level/detail hover")
- check(comparison.removed_sources([{"id":"scout","level":1},{"id":"scout","level":1}],[{"id":"scout","level":1}]).size()==1,"duplicate grant removal is counted independently")
- check(comparison.removed_sources([{"id":"scout","level":3}],[{"id":"scout","level":2}]).size()==1,"different levels remain distinct")
+ check(comparison.removed_sources([{"id":"skill_ambush","level":1},{"id":"skill_ambush","level":1}],[{"id":"skill_ambush","level":1}]).size()==1,"duplicate grant removal is counted independently")
+ check(comparison.removed_sources([{"id":"skill_ambush","level":3}],[{"id":"skill_ambush","level":2}]).size()==1,"different levels remain distinct")
  var inline_button=node("ShopComparisonBuy");var footer_rect=inline_button.get_global_rect()
  node("ShopTransactionScroll").scroll_vertical=100;await frames(10)
  check(inline_button.get_global_rect()==footer_rect and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(footer_rect),"FHD inline purchase stays visible while details scroll")

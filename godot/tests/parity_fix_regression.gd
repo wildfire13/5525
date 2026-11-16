@@ -33,7 +33,7 @@ func respond(yes: bool):
 func labels_starting(text: String) -> Array:
 	return game.find_children("*","Label",true,false).filter(func(l):return l.text.begins_with(text))
 func resource_emphasis(expected_low: bool):
-	var actor=game.state().units.filter(func(u):return u.id=="recruit-guard-human-female")[0]
+	var actor=game.state().units.filter(func(u):return u.id=="character_mirei")[0]
 	var caption="HP %d/%d" % [actor.hp,actor.max]
 	var actor_labels=game.hud.dock.find_children("*","Label",true,false).filter(func(l):return l.text==caption and l.is_visible_in_tree())
 	check(not actor_labels.is_empty(),"current actor HP label exists")
@@ -89,17 +89,17 @@ func run():
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true
 	await restore(fixture.low)
-	var low=game.board.actors["recruit-guard-human-female"].label;var boundary=game.board.actors["recruit-scout-human-female"].label
+	var low=game.board.actors["character_mirei"].label;var boundary=game.board.actors["character_rio"].label
 	check(low.font is FontVariation and low.font.variation_embolden>0 and low.modulate==Color("#ff9494"),"current guard below quarter HP is red bold")
 	check(not boundary.font is FontVariation and boundary.modulate!=Color("#ff9494"),"current scout at quarter HP stays normal")
 	await resource_emphasis(true)
 	await capture("low-hp-red-bold")
-	var exact=fixture.low.duplicate(true);var unit=exact.state.battle.units.filter(func(u):return u.id=="recruit-guard-human-female")[0];unit.hp=ceili(float(unit.max)/4.0)
+	var exact=fixture.low.duplicate(true);var unit=exact.state.battle.units.filter(func(u):return u.id=="character_mirei")[0];unit.hp=ceili(float(unit.max)/4.0)
 	await restore(exact)
-	check(not game.board.actors["recruit-guard-human-female"].label.font is FontVariation,"current maximum HP boundary restores normal board weight")
+	check(not game.board.actors["character_mirei"].label.font is FontVariation,"current maximum HP boundary restores normal board weight")
 	await resource_emphasis(false)
 	var recovered=exact.duplicate(true)
-	var recovered_unit=recovered.state.battle.units.filter(func(u):return u.id=="recruit-guard-human-female")[0]
+	var recovered_unit=recovered.state.battle.units.filter(func(u):return u.id=="character_mirei")[0]
 	recovered_unit.hp=recovered_unit.max
 	await restore(recovered);await resource_emphasis(false)
 	for camera in range(3):
@@ -107,8 +107,8 @@ func run():
 		check(game.board.cell_at(game.board.project_cell(24))==24,"font change retains camera "+str(camera)+" projection")
 	for case in ["attack","split","heal"]:
 		await restore(fixture[case])
-		var target=game.data.choices.skill[0] if case=="split" else "recruit-guard-human-female" if case=="heal" else game.state().units.filter(func(u):return u.side=="enemy")[0].id
-		await observe(case,"attack" if case=="attack" else "skill",target)
+		var target=game.data.choices.action_skill[0] if case=="split" else "character_mirei" if case=="heal" else game.state().units.filter(func(u):return u.side=="enemy")[0].id
+		await observe(case,"action_attack" if case=="attack" else "action_skill",target)
 	# Exercise the actual save-dialog callback for first creation and repeat saves.
 	await game.new_game();var original=await snapshot()
 	var path=folder.path_join("progress.json")

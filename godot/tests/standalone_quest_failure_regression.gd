@@ -51,7 +51,7 @@ func run():
 		var q = game.campaign().board.filter(func(entry):return entry.id == id)[0]
 		verify_client(q,id + " offered")
 		check(await saved() == fixture,id + " board rendering is read-only")
-		var carrier = game.campaign().selected.filter(func(uid):return game.campaign().roster.any(func(c):return c.id == uid and c.job == "porter"))[0]
+		var carrier = game.campaign().selected.filter(func(uid):return game.campaign().roster.any(func(c):return c.id == uid and c.job == "job_porter"))[0]
 		await game.act("accept",[id,carrier]);await settle()
 		verify_client(game.campaign().activeQuest,id + " accepted")
 		var accepted = await saved();accepted.state.location = sample[2]

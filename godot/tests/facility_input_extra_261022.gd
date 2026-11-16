@@ -12,8 +12,8 @@ func run():
 		check(game.pages.guild_view.detail_tab==tab and art.rng.state==rng_state and art.artwork==artwork,"OS guild comparison tab holds visit artwork "+str(tab))
 	# Archer at cell24 has an enemy at25; the guard fixture intentionally
 	# has no in-range attack target and is for inventory/hover checks.
-	await game.update({"op":"campaign_load","data":battle_fixture().archer});await settle();await game.choose_command("attack");await settle()
-	var before=await saved();var target=str(game.data.choices.attack[0]);var target_cell=-1
+	await game.update({"op":"campaign_load","data":battle_fixture().archer});await settle();await game.choose_command("action_attack");await settle()
+	var before=await saved();var target=str(game.data.choices.action_attack[0]);var target_cell=-1
 	for u in game.state().units:
 		if u.id==target:target_cell=int(u.pos)
 	check(target_cell>=0,"valid real attack target")

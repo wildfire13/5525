@@ -60,8 +60,8 @@ func run():
 	while game.data.is_empty():await process_frame
 	await game.new_game();
 	game.audio.fast_mode=true;game.checks_fast=true;actual=game.engine
-	var guard="recruit-guard-human-female";var alternate="recruit-guard-human-male";var warrior="recruit-guard-elf-female"
-	var archer="recruit-scout-elf-male";var mage="recruit-mage-elf-female";var scout="recruit-scout-human-female";var porter="recruit-porter-human-female";var reserve_porter="recruit-porter-human-male"
+	var guard="character_mirei";var alternate="character_gareth";var warrior="character_sera"
+	var archer="character_shion";var mage="character_merina";var scout="character_rio";var porter="character_yuno";var reserve_porter="character_teo"
 	var seed=await saved();seed.state.characters[guard].accessory2="pouch-belt-3";seed.state.characters[alternate].accessory2="pouch-belt-3";seed.state.characters[warrior].accessory2="pouch-belt-3"
 	seed.state.characters[guard].inventory={"potion":2};seed.state.characters[alternate].inventory={"ether":4};seed.state.characters[warrior].inventory={"potion":1,"sword-wood":1};seed.state.characters[warrior].statPoints=2
 	seed.state.characters[warrior].xp=100;seed.state.characters[warrior].level=2;seed.state.characters[warrior].skillPoints=1
@@ -76,7 +76,7 @@ func run():
 	var before=await saved()
 	check(game.page=="party" and game.header.text=="アスタリス" and node("GuildComparison")!=null and node("PartyRoster")!=null,"G01 formation service opens named formation page")
 	var reserve_ids=game.campaign().roster.filter(func(member):return not game.campaign().selected.has(member.id)).map(func(member):return str(member.id))
-	check(game.campaign().roster.size()==24 and reserve_ids.size()==19 and game.campaign().roster.all(func(member):return str(member.id).begins_with("recruit-")),"G02 fresh campaign contains exactly twenty-four live recruits and nineteen reserves")
+	check(game.campaign().roster.size()==24 and reserve_ids.size()==19 and game.campaign().roster.all(func(member):return str(member.id).begins_with("character_")),"G02 fresh campaign contains exactly twenty-four live recruits and nineteen reserves")
 	check(current_ids()==game.campaign().selected and ids("GuildReserveScroll")==reserve_ids,"G02 lists retain selected and complete reserve order")
 	check(labels(node("GuildComparison")).contains("Lv.1") and labels(node("RosterMember_"+guard)).contains("HP") and not labels(node("RosterMember_"+porter)).contains("編成固定"),"G02 rows show resources and level without job-based lock")
 	await tap("RosterMember_"+guard)

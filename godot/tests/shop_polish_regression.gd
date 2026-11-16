@@ -1,8 +1,8 @@
 extends SceneTree
 var game
 var checks=[]
-const GUARD="recruit-guard-human-female"
-const SCOUT="recruit-scout-elf-male"
+const GUARD="character_mirei"
+const SCOUT="character_shion"
 func _initialize():call_deferred("run")
 func check(ok,label):checks.append({"passed":bool(ok),"label":label});print(("PASS " if ok else "FAIL ")+label)
 func settle():
@@ -38,7 +38,7 @@ func run():
 	var shop=game.pages.shop_view;var y=row_y()
 	check(node("ShopNotice")==null and shop.transaction.is_empty(),"shop starts without a transaction notice")
 	await tap("RosterMember_"+GUARD)
-	for spec in [["undertow-sword","retreatSlash","退き斬り"],["twin-bow","splitShot","分け撃ち"],["dagger-wood","scout","奇襲"]]:
+	for spec in [["undertow-sword","skill_retreat_slash","退き斬り"],["twin-bow","skill_split_shot","分け撃ち"],["dagger-wood","skill_ambush","奇襲"]]:
 		await tap("Product_"+spec[0])
 		var skills=node("ShopComparisonSkills").find_children("ComparisonSkill_追加_"+spec[1]+"_*","Button",true,false)
 		check(skills.size()==1 and skills[0].tooltip_text.contains(spec[2]) and skills[0].text=="Lv1","inline comparison shows the named skill and level for "+spec[0])

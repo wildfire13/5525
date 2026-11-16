@@ -50,7 +50,7 @@ func run():
 			check(not game.engine.disconnected and not OS.is_process_running(old_pid),"successful reconnect owns a new Node")
 		generations.append(game.engine.connection_generation)
 		await game.load_game(folder.path_join("start.json"))
-		var reply=await game.engine.request({"op":"act","kind":"attack","target":fixtures.enemy,"presentation":true})
+		var reply=await game.engine.request({"op":"act","kind":"action_attack","target":fixtures.enemy,"presentation":true})
 		check(reply.get("ok",false) and reply.presentation.phase=="action","real attack presentation begins")
 		var p: Dictionary=reply.presentation
 		var voice_stream=game.audio.voice_stream(str(fixtures.actor),"attack")

@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const C=require('../../native/campaign.js'),B=require('../../native/campaign-battle.js');
 const out=path.resolve(__dirname,'../qa/visual');
-const PORTER='recruit-porter-human-female',MAGE='recruit-mage-elf-female',GUARD='recruit-guard-human-female';
+const PORTER='character_yuno',MAGE='character_merina',GUARD='character_mirei';
 const s=C.create();s.location='west';s.gold=5000;s.characters[PORTER].inventory={ether:1};
 assert(C.buyGear(s,PORTER,'swift-boots','feet'));
 s.location='north';
