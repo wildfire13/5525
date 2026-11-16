@@ -92,7 +92,7 @@ func stale_connection_case(reference: bool,fault: String):
 	game.hud.close_reference();await settle()
 func run():
 	if evidence.is_empty():evidence=ProjectSettings.globalize_path("user://reference-disconnect")
-	DirAccess.make_dir_recursive_absolute(evidence.path_join("reports"));OS.set_environment("REFERENCE_WIRE_EVIDENCE",evidence);mode("");root.size=Vector2i(800,600)
+	DirAccess.make_dir_recursive_absolute(evidence.path_join("reports"));OS.set_environment("REFERENCE_WIRE_EVIDENCE",evidence);mode("");root.size=Vector2i(1920,1080)
 	var output=[];var node=OS.get_environment("NATIVE5525_NODE");if node.is_empty():node="node"
 	var code=OS.execute(node,PackedStringArray([ProjectSettings.globalize_path("res://tests/parity_fix_fixtures.cjs")]),output,false,false);var fixtures=JSON.parse_string("".join(output))
 	if code!=0 or not fixtures is Dictionary:quit(2);return
