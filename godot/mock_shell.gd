@@ -142,6 +142,13 @@ func roster(parent,deployment=null):
 		button.member_id=str(id)
 		button.set_drag_forwarding(Callable(),func(_at,payload):return can_drop(payload,str(id)),func(_at,payload):drop(payload,str(id)))
 	return panel
+func refresh_roster_selection():
+	var roster_panel=ui.content.find_child("PartyRoster",true,false)
+	if roster_panel==null:return
+	for control in roster_panel.find_children("RosterMember_*","Button",true,false):
+		var selected=control.member_id==ui.pages.party_uid
+		if selected!=control.get_meta("selected",false):ui.mark_selected(control,selected)
+
 func activate(id: String):
 	if ui.page=="character" and ui.pages.party_uid==id:
 		toggle_character()
@@ -151,7 +158,7 @@ func activate(id: String):
 	ui.pages.party_uid=id
 	if ui.pages.warehouse_view.available():ui.pages.warehouse_view.select_owner(id);return
 	if ui.pages.guild_view.available():ui.pages.guild_view.select_current(id);return
-	if ui.page=="character":ui.render()
+	if ui.page=="character":ui.pages.party_view.workspace.refresh()
 	else:toggle_character()
 func can_drop(payload,id: String) -> bool:
 	if payload is Dictionary and payload.get("kind")=="character_transfer":return payload.get("owner")!=id

@@ -103,13 +103,6 @@ func quest_info(parent,q: Dictionary):
 func hub(parent):hub_view.render(parent)
 func board(parent):quest_board.render(parent)
 func accept(id: String):quest_board.open_picker(id)
-func select_destination(id: String):
-	var chart=ui.find_child("TownMap",true,false)
-	var view_zoom=chart.zoom if is_instance_valid(chart) else 1.0
-	var view_pan=chart.pan if is_instance_valid(chart) else Vector2.ZERO
-	ui.destination=id;ui.render()
-	chart=ui.find_child("TownMap",true,false)
-	if is_instance_valid(chart):chart.zoom=view_zoom;chart.pan=view_pan;chart.layout()
 func map(parent):
 	var surface=card(parent);surface.get_parent().custom_minimum_size.y=ui.mock_shell.content_height();parent=surface
 	var available=[]
@@ -119,14 +112,18 @@ func map(parent):
 	var chart=preload("res://town_map.gd").new();chart.name="TownMap"
 	chart.towns=c().get("locations",[]);chart.current=c().location;chart.selected=ui.destination;chart.available=available;chart.routes=c().get("routes",{});chart.icons=ui.icons
 	chart.quest_destination=str(quest.to) if quest is Dictionary else ""
-	parent.add_child(chart);chart.custom_minimum_size.y=ui.mock_shell.content_height()-228;chart.size_flags_vertical=Control.SIZE_EXPAND_FILL;chart.destination_selected.connect(select_destination)
+	parent.add_child(chart);chart.custom_minimum_size.y=ui.mock_shell.content_height()-228;chart.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	for id in chart.buttons:ui.widgets.append(chart.buttons[id])
 	var actions=row(parent);actions.name="MapControls";actions.custom_minimum_size.y=72
 	var route=VBoxContainer.new();route.custom_minimum_size.x=320;actions.add_child(route)
-	l(route,town(c().location)+" → "+town(ui.destination),true)
+	var route_title=l(route,town(c().location)+" → "+town(ui.destination),true)
+	chart.destination_selected.connect(func(id):
+		ui.destination=id
+		chart.select_town(id)
+		route_title.text=town(c().location)+" → "+town(id))
 	l(route,"最短移動時間：6時間")
 	var over=c().get("inventoryOverflow",[])
-	var depart=ui.green_button(b(actions,"出発する",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not over.is_empty()));depart.name="DepartButton"
+	var depart=ui.green_button(b(actions,"出発する",func():ui.act("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not over.is_empty()));depart.name="DepartButton"
 	if not over.is_empty():depart.tooltip_text="インベントリ枠を超えているメンバーがいます"
 	b(actions,"都市に入る" if c().location=="astaris" else "村に入る",ui.navigate.bind("hub"))
 	var space=Control.new();space.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(space)
@@ -143,13 +140,9 @@ func journey(parent):
 	strip.origin=town(journey_.get("origin",c().get("location","")))
 	strip.destination=town(journey_.get("outboundDestination",journey_.get("destination","")))
 	strip.returning=journey_.get("returning",false);strip.stage=int(journey_.get("stage",0));strip.phase=phase;parent.add_child(strip)
-	var toggle=b(parent,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",func():travel_map_expanded=not travel_map_expanded;ui.render());toggle.name="TravelMapToggle";toggle.size_flags_horizontal=Control.SIZE_SHRINK_END
-	if travel_map_expanded:
-		var chart=preload("res://town_map.gd").new();chart.name="TravelFullMap";chart.read_only=true
-		chart.towns=c().get("locations",[]);chart.current=str(journey_.get("origin",c().get("location","")));chart.selected=str(journey_.get("outboundDestination",journey_.get("destination","")))
-		chart.available=chart.towns.map(func(place):return place.id);chart.routes=c().get("routes",{});chart.icons=ui.icons
-		var quest=c().get("activeQuest");chart.quest_destination=str(quest.to) if quest is Dictionary else ""
-		parent.add_child(chart);chart.custom_minimum_size.y=300;chart.size_flags_vertical=Control.SIZE_FILL
+	var toggle=b(parent,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",toggle_travel_map.bind(parent,journey_))
+	toggle.name="TravelMapToggle";toggle.size_flags_horizontal=Control.SIZE_SHRINK_END
+	if travel_map_expanded:add_travel_map(parent,journey_)
 	var actions=row(parent);actions.name="CampActions";actions.custom_minimum_size.y=72
 	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(copy)
 	l(copy,"帰路" if strip.returning else "野営地" if phase=="camp" else "到着" if phase in ["arrival","delivery"] else "%d区間目の道" % (int(journey_.get("stage",0))+1),true)
@@ -184,6 +177,25 @@ func journey(parent):
 			l(parent, gate_note)
 	if phase=="camp":
 		b(parent,"インベントリ",party_view.open_camp_inventory)
+func toggle_travel_map(parent,journey_):
+	travel_map_expanded=not travel_map_expanded
+	var toggle=parent.get_node("TravelMapToggle")
+	toggle.text="経路だけ表示" if travel_map_expanded else "ワールドマップを表示"
+	if travel_map_expanded:
+		add_travel_map(parent,journey_)
+		parent.move_child(parent.get_node("TravelFullMap"),toggle.get_index()+1)
+	else:
+		var chart=parent.get_node("TravelFullMap")
+		parent.remove_child(chart)
+		chart.queue_free()
+
+func add_travel_map(parent,journey_):
+	var chart=preload("res://town_map.gd").new();chart.name="TravelFullMap";chart.read_only=true
+	chart.towns=c().get("locations",[]);chart.current=str(journey_.get("origin",c().get("location","")));chart.selected=str(journey_.get("outboundDestination",journey_.get("destination","")))
+	chart.available=chart.towns.map(func(place):return place.id);chart.routes=c().get("routes",{});chart.icons=ui.icons
+	var quest=c().get("activeQuest");chart.quest_destination=str(quest.to) if quest is Dictionary else ""
+	parent.add_child(chart);chart.custom_minimum_size.y=300;chart.size_flags_vertical=Control.SIZE_FILL
+
 func party(parent):
 	if not facility_entry.render_top(parent,"party"):
 		if facility_entry.supported("party"):facility_entry.render_dialogue()

@@ -26,7 +26,11 @@ func run():
  check(node("GuildReturn")!=null,"guild return is inside service")
  var guild=game.pages.guild_view
  var candidate=guild.groups()[0][0]
+ var reserve_list=node("GuildReserveScroll")
  guild.choose(str(candidate.id));await settle()
+ check(node("GuildReserveScroll")==reserve_list,"selecting a reserve keeps its list")
+ node("GuildTab_1").pressed.emit();await settle()
+ check(node("GuildReserveScroll")==reserve_list and node("GuildTab_1").get_meta("selected"),"equipment comparison keeps list and updates tab")
  check(node("GuildSwap")!=null and not node("GuildSwap").disabled,"selecting reserve enables explicit swap")
  await capture("guild-comparison")
  var old_ids=game.campaign().selected.duplicate()

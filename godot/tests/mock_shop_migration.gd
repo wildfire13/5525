@@ -26,6 +26,16 @@ func run():
  await game.update({"op":"campaign_load","data":save})
  game.navigate("shop");game.pages.facility_entry.choose("buy");await settle()
  var shop=game.pages.shop_view
+ var spear_name="Product_"+str(shop.offered().filter(func(item):return item.get("type")=="spear")[0].id)
+ var spear=game.find_child(spear_name,true,false)
+ var stock_filter=game.find_child("ShopSlotFilter",true,false)
+ shop.select_slot("spear");await settle()
+ check(stock_filter==game.find_child("ShopSlotFilter",true,false) and spear.is_visible_in_tree(),"weapon filter retains the selector and matching product")
+ var filtered=shop.offered().map(func(item):return "Product_"+str(item.id))
+ for button in game.find_children("Product_*","Button",true,false):
+  check(button.is_visible_in_tree()==filtered.has(str(button.name)),"filter visibility "+str(button.name))
+ shop.select_slot("all");await settle()
+ check(spear==game.find_child(spear_name,true,false),"clearing filter reuses the same product")
  check(game.find_child("ShopInventory",true,false)!=null and game.find_child("ShopCatalog",true,false)!=null,"inventory and stock shown together")
  check(game.find_child("ShopExit",true,false)!=null,"transaction exit exists without selection")
  check(is_equal_approx(game.find_child("ShopCustomerArt",true,false).modulate.a,.22) and is_equal_approx(game.find_child("ShopKeeperArt",true,false).modulate.a,.2),"both portraits use translucent backdrop")

@@ -44,6 +44,8 @@ func run():
 		var labels=left.find_children("*","Label",true,false).filter(func(label):return label.text.begins_with(prefix))
 		check(labels.size()==1 and labels[0].tooltip_text.contains("行動速度"),prefix+" tooltip")
 	var foe=game.board.unit_at(25)
+	var attack_button=hud.buttons.attack
+	var first_card=game.find_child("TurnCard_0",true,false)
 	await game.choose_command("skill")
 	await settle()
 	var chosen=await game.engine.request({"op":"hover_preview","kind":"skill","uid":foe.id})
@@ -52,6 +54,8 @@ func run():
 	check(invalid.hover.status=="unavailable","wrong side stays unavailable")
 	await game.on_cell(25)
 	await settle()
+	check(is_instance_valid(attack_button) and attack_button==hud.buttons.attack,"target selection retains command buttons")
+	check(is_instance_valid(first_card) and first_card==game.find_child("TurnCard_0",true,false),"target selection retains turn cards")
 	hud.pin_inspection(25)
 	game.board.hover_uid=foe.id
 	hud.invalidate_hover()

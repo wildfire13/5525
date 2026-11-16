@@ -91,7 +91,7 @@ func change_draft(u: Dictionary,stat: String,amount: int):
 	if ui.locked or committing or pages.c().get("phase")!="town" or not ui.active_member(str(u.id)):return
 	ensure_draft(u)
 	if amount>0 and draft_total()>=int(u.get("statPoints",0)) or amount<0 and int(draft[stat])<=0:return
-	draft[stat]+=amount;ui.render()
+	draft[stat]+=amount;workspace.refresh()
 func point_help():
 	var dialog=ui.confirm("レベルアップで獲得し、STR・INT・AGIに配分できる未使用ポイントです。\n確定前の＋／−だけを調整できます。",func():pass)
 	dialog.ok_button_text="閉じる";dialog.get_cancel_button().hide();dialog.get_ok_button().grab_focus()

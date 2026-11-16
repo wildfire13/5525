@@ -17,11 +17,19 @@ func run():
 	check(game.find_child("TownMap",true,false).event_markers.is_empty(),"undisclosed route encounters are not drawn")
 	check(game.find_child("DepartButton",true,false)!=null,"departure in map action row")
 	check(game.find_child("TravelQuestDetails",true,false)==null,"no quest detail button without active quest")
+	var chart=game.find_child("TownMap",true,false)
+	chart.zoom=1.4;chart.pan=Vector2(20,10)
+	chart.buttons.west.pressed.emit()
+	check(game.destination=="west" and chart.selected=="west" and chart.pan==Vector2(20,10) and chart==game.find_child("TownMap",true,false),"destination changes in place and keeps map position")
 	var offers=game.campaign().board;var porter=game.roster().filter(func(u):return u.job=="porter" and game.campaign().selected.has(u.id))[0]
 	await game.act("accept",[offers[0].id,porter.id]);game.navigate("map")
 	for i in range(5):await process_frame
 	check(game.find_child("TravelQuestSummary",true,false)==null and game.find_child("TownMap",true,false).quest_destination==offers[0].to,"map keeps destination without duplicate summary")
-	await game.act("depart",[offers[0].to,"convoy"])
+	chart=game.find_child("TownMap",true,false)
+	chart.buttons[offers[0].to].pressed.emit()
+	game.find_child("DepartButton",true,false).pressed.emit()
+	while game.locked:await process_frame
+	check(game.campaign().journey.destination==offers[0].to,"depart uses the selected destination")
 	for i in range(5):await process_frame
 	var strip=game.find_child("TravelRouteStrip",true,false)
 	check(strip!=null,"horizontal travel strip mounted")
@@ -37,7 +45,7 @@ func run():
 	check(full_map!=null and full_map.read_only,"expanded travel map is read only")
 	game.find_child("TravelMapToggle",true,false).pressed.emit()
 	for i in range(5):await process_frame
-	check(game.find_child("TravelFullMap",true,false)==null and game.find_child("TravelRouteStrip",true,false)!=null,"collapse restores compact route only")
+	check(game.find_child("TravelFullMap",true,false)==null and game.find_child("TravelRouteStrip",true,false)==strip,"collapse restores compact route only")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(3):await process_frame
 	quit(0 if failures.is_empty() else 1)

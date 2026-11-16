@@ -40,12 +40,27 @@ func _ready():
 		b.disabled=read_only or id==current or not available.has(id)
 		b.tooltip_text="出発地" if id==current else "この拠点へは直接移動できません" if not available.has(id) else "目的地" if read_only and id==selected else "" if read_only else "行先に選ぶ"
 		var style=StyleBoxFlat.new();style.bg_color=Color("#345c4e") if id==current else Color("#fff0ba") if id==quest_destination else Color("#e4eee0") if available.has(id) else Color("#d4d8d0")
-		style.border_color=Color("#37758a") if id==selected else Color("#b88722") if id==quest_destination else Color("#6e8a71");style.set_border_width_all(3 if id==selected else 2 if id==quest_destination else 1);style.set_corner_radius_all(4)
+		style.set_corner_radius_all(4)
 		for state_ in ["normal","disabled","hover","focus","pressed"]:b.add_theme_stylebox_override(state_,style)
 		title.add_theme_color_override("font_color",Color("#faf9f5") if id==current else Color("#345c4e") if available.has(id) else Color("#899085"))
-		var state_label=Label.new();state_label.text="出発地" if id==current else "クエスト目的地" if id==quest_destination else "目的地" if id==selected else "";state_label.add_theme_font_size_override("font_size",12);state_label.add_theme_color_override("font_color",Color("#faf9f5") if id==current else Color("#657465"));state_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;state_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.add_child(state_label)
-		add_child(b);buttons[id]=b;b.pressed.connect(func():destination_selected.emit(id))
+		var state_label=Label.new();state_label.name="TownState";state_label.add_theme_font_size_override("font_size",12);state_label.add_theme_color_override("font_color",Color("#faf9f5") if id==current else Color("#657465"));state_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;state_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.add_child(state_label)
+		add_child(b);buttons[id]=b;update_town_selection(id);b.pressed.connect(func():destination_selected.emit(id))
 	resized.connect(layout);layout()
+func select_town(id: String):
+	if id==selected:return
+	var previous=selected
+	selected=id
+	if buttons.has(previous):update_town_selection(previous)
+	update_town_selection(id)
+	queue_redraw()
+
+func update_town_selection(id: String):
+	var button=buttons[id]
+	var style=button.get_theme_stylebox("normal")
+	style.border_color=Color("#37758a") if id==selected else Color("#b88722") if id==quest_destination else Color("#6e8a71");style.set_border_width_all(3 if id==selected else 2 if id==quest_destination else 1)
+	var state_label=button.get_node("TownContents/TownState")
+	state_label.text="出発地" if id==current else "クエスト目的地" if id==quest_destination else "目的地" if id==selected else ""
+
 func layout():
 	for id in buttons:
 		var content=buttons[id].get_node("TownContents")

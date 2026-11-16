@@ -34,9 +34,11 @@ func run():
 	await workspace.perform(ids[0],sword,"equip",null,1,"rightHand");await settle()
 	member=game.roster().filter(func(u):return u.id==ids[0])[0]
 	check(member.equipmentSlots.any(func(e):return e.slot=="rightHand" and e.id==sword),"inventory equipment connected")
+	var roster_id=game.find_child("PartyRoster",true,false).get_instance_id()
 	for tab in ["inventory","ability","skills"]:
 		workspace.set_tab(tab);await settle()
 		check(game.find_child("CharacterPortrait",true,false).get_global_rect()==portrait_rect,"same portrait bounds in "+tab)
+		check(game.find_child("PartyRoster",true,false).get_instance_id()==roster_id,"tab keeps party roster")
 		check(game.find_child("PartyRoster",true,false).size.x==280,"fixed roster width in "+tab)
 	workspace.set_tab("skills");await settle()
 	check(game.page=="hub","active tab returns to previous page")

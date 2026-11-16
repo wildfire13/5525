@@ -33,7 +33,7 @@ func capture_scroll(scroll: ScrollContainer):
 	var entry={"id":"","index":0,"offset":scroll.scroll_vertical,"horizontal":scroll.scroll_horizontal}
 	for index in range(children.size()):
 		var node=children[index]
-		if node is Control and node.position.y<=scroll.scroll_vertical:
+		if node is Control and node.visible and node.position.y<=scroll.scroll_vertical:
 			entry.id=str(node.get_meta("anchor_id",node.name));entry.index=index;entry.offset=scroll.scroll_vertical-node.position.y
 	scrolls[str(scroll.get_meta("scroll_key"))]=entry
 func restore():

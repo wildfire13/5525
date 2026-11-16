@@ -53,7 +53,7 @@ func render_background(parent: Control,ui,battle: bool):
 		return
 	ui.pages.hub_view.select_art(str(c.get("location","")))
 	var town_art=ui.pages.hub_view.artwork
-	var town_texture=load(town_art.path) if not town_art.is_empty() else null
+	var town_texture=load(town_art.path) if texture==null and not town_art.is_empty() else null
 	fullscreen(parent,town_texture)
 func fullscreen(parent: Control,town_texture: Texture2D=null):
 	var selected=texture if texture!=null else town_texture

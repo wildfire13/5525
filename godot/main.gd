@@ -245,6 +245,13 @@ func show_status_details():
 		local_button(actions,"閉じる",dialog.close),func():
 		if not closing and pages.epoch==epoch and engine.connection_generation==generation and notice==saved_notice:
 			focus_hint=saved_hint;status_override=message;set_status(message);footer.grab_focus())
+# Local interactions can refresh one panel without detaching the surrounding page.
+func refresh_panel(draw: Callable):
+	memory.capture()
+	draw.call()
+	widgets=widgets.filter(func(b):return is_instance_valid(b) and b.is_inside_tree())
+	memory.restore()
+
 func clear(node: Node):
 	for child in node.get_children():node.remove_child(child);child.queue_free()
 func portrait(parent: Node,u: Dictionary,face:=false,size_:=72) -> TextureRect:
@@ -456,6 +463,8 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		notice=str(reply.get("error","操作できません"))
 		if reply.get("connection_lost",false):invalidate_preview();pages.reset_context("disconnect",campaign_identity.current_id)
 	if closing:loading_screen.finish(loading_token);return reply
+	if request.get("op")=="campaign" and request.get("action")=="inn":
+		pages.inn_view.finish_rest(result_before,reply.get("ok",false))
 	render()
 	if request.get("action")=="endTrial" and reply.get("ok",false):await pages.restore_trial()
 	if loading_token>0:
@@ -529,7 +538,7 @@ func render():
 	if not skip_capture_once:memory.capture()
 	skip_capture_once=false
 	audio.follow_connection(engine.connection_generation);audio.sync(data)
-	widgets=widgets.filter(func(b):return is_instance_valid(b) and (b.get_parent()==top or menu.is_ancestor_of(b)))
+	widgets=widgets.filter(func(b):return is_instance_valid(b) and (b.get_parent()==top or menu.is_ancestor_of(b) or (view_kind=="battle" and is_instance_valid(hud.middle) and hud.middle.is_ancestor_of(b))))
 	for b in widgets:
 		b.disabled=bool(b.get_meta("base_disabled",false)) or ((locked or presenting or (engine.disconnected and b!=retry_button)) and not b.get_meta("read_only",false))
 	retry_button.visible=engine.disconnected
@@ -590,9 +599,7 @@ func render():
 		deployment_party_strip=null
 		if phase=="deployment":
 			deployment_party_strip=pages.party_view.face_bar(self)
-			hud.partybar_reserved_height=0
 			hud.deployment_workspace.layout()
-		else:hud.partybar_reserved_height=0
 	else:
 		if is_instance_valid(deployment_party_strip):remove_child(deployment_party_strip);deployment_party_strip.queue_free()
 		deployment_party_strip=null
@@ -628,6 +635,7 @@ func render():
 			var back=green_button(button(return_row,pages.facility_entry.return_label() if phase=="town" else "広場に移動",pages.acknowledge.bind("hub") if phase=="result" else pages.facility_entry.back,pages.guild_view.busy() if page=="party" else false));back.name="GuildReturn" if page=="party" else "InnReturn" if page=="inn" else "TownReturn"
 
 	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else (focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if battle else ""))
+	widgets=widgets.filter(func(b):return is_instance_valid(b) and b.is_inside_tree())
 	rendering=false;memory.restore()
 func location_suffix(phase: String,c: Dictionary) -> String:
 	if phase!="town":return " / "+{"road":"街道","camp":"野営地","arrival":"到着","delivery":"配達","result":"結果","prepare":"出発準備"}.get(phase,"旅程")
@@ -743,7 +751,14 @@ func on_cell(pos: int):
 	if u.get("side")=="enemy":hud.selected_enemy=str(u.id)
 	if s.get("deploying",false):
 		if u.get("side")=="enemy":hud.render_person();return
-		if u.get("side")=="ally" and u.get("hp",0)>0:hud.selected_enemy="";selected=u.id;render()
+		if u.get("side")=="ally" and u.get("hp",0)>0:
+			hud.selected_enemy=""
+			selected=u.id
+			hud.update_board()
+			refresh_panel(hud.deployment_workspace.render)
+			for card in deployment_party_strip.find_children("PartyFace_*","Button",true,false):
+				var chosen_member=card.get_meta("member_id")==selected
+				if card.get_meta("selected",false)!=chosen_member:mark_selected(card,chosen_member)
 		elif not selected.is_empty():await act("deploy",[selected,pos])
 		return
 	var target=null

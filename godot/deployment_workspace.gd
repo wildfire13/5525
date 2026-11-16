@@ -5,6 +5,10 @@ var hud:
  get:return hud_ref.get_ref()
  set(value):hud_ref=weakref(value)
 var last_selected=""
+const Shell=preload("res://mock_shell.gd")
+var panel_style=Shell.surface_style()
+var button_style=Shell.style()
+var highlighted_style=Shell.style(Color("#e0e8dd"))
 var normal_panel_style
 func restore():
  if normal_panel_style!=null:hud.right_panel.add_theme_stylebox_override("panel",normal_panel_style)
@@ -31,9 +35,9 @@ func layout():
  hud.right_panel.pending_restore=null;hud.right_panel.position=Vector2(field_left+field_width+20,0);hud.right_panel.size=Vector2(sidebar_width,controls_bottom-64)
  hud.right_panel.find_child("DragHandle",true,false).hide()
  if normal_panel_style==null:normal_panel_style=hud.right_panel.get_theme_stylebox("panel").duplicate()
- hud.right_panel.add_theme_stylebox_override("panel",ui.mock_shell.surface_style())
+ hud.right_panel.add_theme_stylebox_override("panel",panel_style)
  hud.deployment_bar.position=Vector2(field_left,0);hud.deployment_bar.size=Vector2(field_width,72)
- hud.deployment_bar.add_theme_stylebox_override("panel",ui.mock_shell.surface_style())
+ hud.deployment_bar.add_theme_stylebox_override("panel",panel_style)
  hud.deployment_actions.position=Vector2(field_left+field_width-500,controls_bottom-56);hud.deployment_actions.size=Vector2(500,56)
  ui.board.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
  ui.board.position=area.global_position+Vector2(field_left,80);ui.board.size=Vector2(field_width,maxf(1,controls_bottom-144));ui.board.deployment_bottom_limit=0;ui.board.update_camera()
@@ -85,7 +89,7 @@ func render():
   for button in box.find_children("*","Button",true,false):
    if box==hud.deployment_actions:button.custom_minimum_size=Vector2(156,56);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
    if button.name=="DeploymentBegin":continue
-   for state in ["normal","hover","pressed","disabled"]:button.add_theme_stylebox_override(state,ui.mock_shell.style(Color("#e0e8dd") if state in ["hover","pressed"] else Color("#faf9f5")))
+   for state in ["normal","hover","pressed","disabled"]:button.add_theme_stylebox_override(state,highlighted_style if state in ["hover","pressed"] else button_style)
    for color in ["font_color","font_hover_color","font_pressed_color"]:button.add_theme_color_override(color,Color("#293b33"))
  for child in hud.deployment_options.find_children("*","Label",true,false):child.add_theme_color_override("font_color",Color("#293b33"))
  layout()

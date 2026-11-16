@@ -18,6 +18,10 @@ var shifted_action := ""
 var queue_distance := 0
 var animation_trace: Array=[]
 var queue_at_start: Array=[]
+# Engine replies replace ui.data. Local selections and their previews share one snapshot.
+var selection_snapshot: Dictionary
+var selection_size: Vector2
+var previous_menu := ""
 var last_actor := ""
 var last_action_count := -1
 var detail_tab := 0
@@ -52,10 +56,6 @@ var deployment_options: VBoxContainer
 var deployment_actions: HBoxContainer
 var deployment_layout := false
 var deployment_workspace=preload("res://deployment_workspace.gd").new()
-var partybar_reserved_height := 0.0:
-	set(value):
-		partybar_reserved_height=maxf(0,value)
-		if is_instance_valid(middle):resize()
 var left_info: VBoxContainer
 var person_box: VBoxContainer
 var inspected_uid := ""
@@ -93,11 +93,13 @@ func state_id() -> String:
 	if ui.command=="move":return "B2" if ui.pending!=null else "B1"
 	return "B4" if ui.pending!=null or ui.command=="guard" else "B3"
 func reset_context():
+	selection_snapshot={}
 	clear_opening_visual()
 	expanded_menu="";menu_transition=false;menu_ticket+=1;clear_action_visual();shifted_action="";queue_distance=0;animation_trace.clear()
 	inspected_uid="";inspection_pinned=false;invalidate_hover();skill_content_open=false
 	discard_reference();item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";last_actor="";last_action_count=-1;presentation_action={};queue_at_start=[]
 func mount():
+	selection_snapshot={}
 	deployment_workspace.hud=self
 	deployment_layout=false
 	middle=Control.new();middle.name="BattleOverlay";middle.mouse_filter=Control.MOUSE_FILTER_IGNORE;middle.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.content.add_child(middle);middle.size=Vector2(ui.size.x-48,ui.size.y-130);ui.battle_row=middle
@@ -134,10 +136,6 @@ func resize():
 	var footer_end=middle.size.y-8
 	var common_menu=ui.find_child("CommonMenuButton",true,false)
 	if is_instance_valid(common_menu) and common_menu.is_visible_in_tree():footer_end=minf(footer_end,common_menu.global_position.y-middle.global_position.y-8)
-	if deployment_layout and partybar_reserved_height>0:
-		var partybar=ui.get("deployment_party_strip")
-		if is_instance_valid(partybar):footer_end=minf(footer_end,partybar.global_position.y-middle.global_position.y-8)
-		else:footer_end-=partybar_reserved_height
 	var action_height=maxf(1,deployment_actions.get_combined_minimum_size().y)
 	deployment_actions.size=Vector2(330,action_height);deployment_actions.position=Vector2(middle.size.x-330,footer_end-action_height)
 	var formation_height=maxf(action_height,deployment_bar.get_combined_minimum_size().y)
@@ -173,9 +171,54 @@ func render():
 	right_panel.find_child("DragHandle",true,false).text="敵の情報  ⋮" if deploying else "対象 / 効果  ⋮"
 	deployment_bar.visible=deploying;deployment_actions.visible=deploying;ui.battle_header.visible=not deploying
 	ui.clear(deployment_options);ui.clear(deployment_actions)
+	if deploying and phase==null and not ui.engine.disconnected:
+		selection_snapshot={}
+		tools.hide()
+		render_actor(a)
+		render_deployment()
+		update_board()
+		deployment_workspace.render()
+		ui.board.inspected_enemy=""
+		refresh_hover()
+		return
 	update_board()
+	render_actor(a)
+	var selecting=not deploying and not ui.presenting and phase==null and s.get("result")==null and not ui.engine.disconnected and not range_reference
+	var reuse=selecting and not opening and is_same(selection_snapshot,ui.data) and selection_size==ui.size
+	if reuse:
+		ui.clear(target_box)
+		ui.clear(decision_footer)
+		if expanded_menu.is_empty() and previous_menu.is_empty():
+			for kind in buttons:
+				var selected=command_selected(kind)
+				if buttons[kind].get_meta("selected",false)!=selected:
+					ui.mark_selected(buttons[kind],selected)
+		else:
+			ui.clear(bottom_commands)
+			render_bottom_commands()
+	else:
+		build_panels(s,phase,a,deploying)
+	selection_snapshot=ui.data if selecting else {}
+	selection_size=ui.size
+	previous_menu=expanded_menu
+	if not deploying:render_person()
+	if ui.engine.disconnected:l(command_box,"接続が終了しました",true)
+	elif phase is Dictionary:render_presentation(phase)
+	elif s.get("deploying",false):render_deployment()
+	elif s.get("result")!=null:render_result()
+	elif range_reference:render_reference()
+	elif not action_menu and (item_list or skill_list):
+		l(target_box,"左の一覧から選択してください。")
+	elif not action_menu:presentation_action={};render_target()
+	if deploying:
+		deployment_workspace.render()
+		update_board()
+	ui.board.inspected_enemy="";refresh_hover();resize()
+	if is_instance_valid(opening_visual):left_panel.hide()
+	if opening:open_actor_panel()
+func build_panels(s,phase,a,deploying):
 	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(left_panel.body);ui.clear(right_panel.body);ui.clear(right_panel.footer)
-	render_queue();render_actor(a)
+	render_queue()
 	tools.visible=not deploying;tools.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	if not deploying:
 		local(tools,"戦闘の詳細",toggle_details).name="BattleDetails"
@@ -209,21 +252,10 @@ func render():
 	bottom_commands=VBoxContainer.new();bottom_commands.name="ActorCommands";left_info.add_child(bottom_commands);
 	if not deploying:render_bottom_commands()
 	actor_box=left_info;command_box=left_info
-	person_box=VBoxContainer.new();person_box.name="BattlePersonInfo";right_panel.body.add_child(person_box);render_person()
+	person_box=VBoxContainer.new();person_box.name="BattlePersonInfo";right_panel.body.add_child(person_box)
 	target_box=VBoxContainer.new();target_box.name="DecisionContent";right_panel.body.add_child(target_box);right_panel.body.move_child(target_box,0)
 	decision_footer=right_panel.footer
-	if ui.engine.disconnected:l(command_box,"接続が終了しました",true)
-	elif phase is Dictionary:render_presentation(phase)
-	elif s.get("deploying",false):render_deployment()
-	elif s.get("result")!=null:render_result()
-	elif range_reference:render_reference()
-	elif not action_menu and (item_list or skill_list):
-		l(target_box,"左の一覧から選択してください。")
-	elif not action_menu:presentation_action={};render_target()
-	if deploying:deployment_workspace.render()
-	update_board();ui.board.inspected_enemy="";refresh_hover();resize()
-	if is_instance_valid(opening_visual):left_panel.hide()
-	if opening:open_actor_panel()
+
 func open_history():
 	ui.dialog.open("戦闘履歴",func(body,actions):
 		l(body,"ログ（実結果・直近40件）",true)
@@ -306,12 +338,14 @@ func selected_target_text(target) -> String:
 	if target is Array:return " / ".join(target.map(target_name))
 	if target is int or target is float:return coord(target)
 	return "対象不要" if ui.command=="guard" else "未選択"
+func command_selected(kind: String) -> bool:
+	return not action_menu and (ui.command==kind or kind=="skill" and ui.command=="return" or kind=="items" and ui.command in ["item","ether"])
 func render_bottom_commands():
 	buttons.clear()
 	var a=acting()
 	for pair in COMMANDS:
 		var eligible=pair[0] in ["guard","items"] or not ui.data.get("choices",{}).get(pair[0],[]).is_empty() or pair[0]=="skill" and (not ui.data.get("skillset",[]).is_empty() or has_return())
-		var selected=not action_menu and (ui.command==pair[0] or pair[0]=="skill" and ui.command=="return" or pair[0]=="items" and ui.command in ["item","ether"])
+		var selected=command_selected(pair[0])
 		var control=ui.icons.apply(b(bottom_commands,pair[1],choose_command.bind(pair[0]),a.get("side")!="ally" or ui.state().get("deploying",false) or ui.state().get("result")!=null or ui.data.get("presentation") is Dictionary or range_reference),ui.icons.command(pair[0]),40 if ui.size.x>=1800 else 24);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.y=64 if ui.ui_size_mode=="standard" else 44
 		control.tooltip_text=pair[1]+(" / 今は合法な対象なし" if not eligible else "");ui.memory.key(control,"command_"+pair[0]);buttons[pair[0]]=control
 		control.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
@@ -685,9 +719,6 @@ func render_deployment():
 		ui.selected=""
 		for u in s.units:
 			if u.side=="ally" and u.hp>0:ui.selected=u.id;break
-	left_info.set_meta("inspected_unit",ui.selected)
-	if ui.selected.is_empty():l(left_info,"下の控えメンバーを味方のマスへドラッグして配置してください。")
-	else:render_person_content(left_info,unit(ui.selected))
 	ui.battle_actions=deployment_actions
 	b(deployment_actions,"配置リセット",reset_deployment).name="DeploymentReset"
 	var job=ui.campaign().get("activeQuest")
