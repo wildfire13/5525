@@ -57,6 +57,10 @@ func toggle_journey_quest():
 func navigation(parent):
 	var panel=PanelContainer.new();panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
 	var bar=ui.row(panel);bar.name="CampaignHeader";bar.custom_minimum_size.y=56
+	var elapsed=Label.new()
+	elapsed.name="CampaignElapsedTime"
+	elapsed.text=elapsed_time_text()
+	bar.add_child(elapsed)
 	var place=ui.label_(bar,ui.header.text,true)
 	place.name="HeaderLocation";place.size_flags_horizontal=Control.SIZE_FILL;place.custom_minimum_size.x=160
 	var town=ui.campaign().get("phase")=="town"
@@ -78,11 +82,10 @@ func navigation(parent):
 		nav.name="Header_"+str(link[0]);nav.custom_minimum_size=Vector2(140,44)
 		ui.mark_selected(nav,ui.page==link[0] or facility.supported(ui.page))
 	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bar.add_child(spacer)
-	ui.label_(bar,elapsed_time_text()).name="CampaignElapsedTime"
 	ui.icons.line(ui,bar,"money",str(int(ui.campaign().get("gold",0)))+" G")
 	ui.memory.key(ui.local_button(bar,"メニュー",ui.open_menu),"game_menu")
 func elapsed_time_text() -> String:
-	return "経過時間 %d時間" % int(ui.campaign().get("worldTime",0))
+	return "経過時間：%d時間" % int(ui.campaign().get("worldTime",0))
 func needs_roster() -> bool:
 	return ui.page!="board" and not ui.pages.facility_entry.at_top() and ui.campaign().get("phase")!="result"
 func workspace(parent) -> VBoxContainer:

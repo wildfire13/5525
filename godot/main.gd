@@ -107,9 +107,9 @@ func _ready():
 	base.add_theme_constant_override("separation",8)
 	base.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	top=HBoxContainer.new();top.custom_minimum_size.y=44;base.add_child(top)
+	var elapsed=Label.new();elapsed.name="BattleElapsedTime";top.add_child(elapsed)
 	actor_face=portrait(top,{},true,40);actor_face.visible=false
 	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
-	var elapsed=Label.new();elapsed.name="BattleElapsedTime";top.add_child(elapsed)
 
 	town_back=button(top,"拠点へ",navigate.bind("hub"));town_back.visible=false
 	var menu_button=local_button(self,"メニュー",open_menu);menu_button.name="CommonMenuButton"
