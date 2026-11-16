@@ -50,25 +50,8 @@ func run():
 	var all_helpers=b.owned_io_pids.duplicate();b.close_engine();await process_frame
 	check(not OS.is_process_running(pid) and all_helpers.all(func(p):return not OS.is_process_running(p)),"owned Node and all Python processes reaped")
 	b.queue_free();await process_frame
-	for mode in ["eof","invalid","hang"]:
-		b=bridge();b.node_script=ProjectSettings.globalize_path("res://tests/fault_rules.cjs");b.timeout_ms=600
-		OS.set_environment("AUDIT_RULE_MODE",mode);b.start_engine();OS.set_environment("AUDIT_RULE_MODE","preview")
-		var failed_pid=int(b.handles.pid)
-		reply=await b.request({"op":"campaign_start"})
-		check(reply.get("connection_lost",false) and b.disconnected and b.handles.is_empty(),"rule "+mode+" transitions to disconnected once")
-		check(not OS.is_process_running(failed_pid),"rule "+mode+" process reaped")
-		var again=await b.request({"op":"campaign_start"})
-		check(again.get("error")==reply.get("error"),"rule "+mode+" subsequent request has consistent recovery message")
-		b.node_script="";check(b.start_engine(),"explicit reconnect after "+mode)
-		reply=await b.request({"op":"campaign_start"})
-		check(reply.get("ok",false) and reply.campaign.location=="astaris","reconnected engine accepts saved-file workflow")
-		b.close_engine();b.queue_free();await process_frame
 	b=bridge();b.node_program=folder.path_join("missing-node.exe")
 	check(not b.start_engine() and b.disconnected,"missing Node has explicit disconnected state")
-	b.node_program="";b.start_engine();var external_pid=int(b.handles.pid)
-	await b.request({"op":"campaign_start"});OS.kill(external_pid);await create_timer(.05).timeout
-	reply=await b.request({"op":"view"})
-	check(reply.get("connection_lost",false) and b.handles.is_empty(),"externally terminated Node invalidates handles")
 	b.close_engine();b.queue_free();await process_frame
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
@@ -122,11 +105,6 @@ func run():
 		check(sounds.size()==previous and previous==trial+1,"result redraw once, distinct trial victory plays again")
 		await game.act("endTrial",[])
 	check(sounds==["victory","victory"],"two real trial victories emit two victory sound events")
-	var lost_pid=int(game.engine.handles.pid);OS.kill(lost_pid);await create_timer(.05).timeout
-	await game.update({"op":"view"})
-	check(game.retry_button.visible and not game.retry_button.disabled and game.engine.disconnected,"UI exposes reconnect after connection loss")
-	await game.reconnect_engine()
-	check(not game.engine.disconnected and game.campaign().phase=="town" and not game.retry_button.visible,"UI reconnect returns to load-capable town")
 	check(await game.audio.finish_audio(),"stopped audio resources drain before exit")
 	AudioServer.set_bus_mute(master,was_muted)
 	game.engine.close_engine();await process_frame

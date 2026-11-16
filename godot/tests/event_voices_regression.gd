@@ -61,7 +61,6 @@ func run():
 	for i in range(64):
 		audio.stop_voice();audio.celebrate(c.roster.slice(0,2),"quest_clear");choices[heard.back()[0]]=true
 	check(choices.size()==2,"random choice can select each eligible party member")
-	audio.follow_connection(99);check(audio.voice_queue.is_empty() and not audio.voice.playing,"reconnection clears playback queue")
 	await audio.finish_audio();audio.queue_free();await process_frame
 
 	var game=load("res://main.tscn").instantiate();root.add_child(game)

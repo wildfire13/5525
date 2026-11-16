@@ -109,13 +109,6 @@ func run():
 		check(await saved() == before,"load is not applied before confirmation")
 		dialog_.canceled.emit();await settle()
 		check(await saved() == before and game.page == "board","cancel load preserves campaign and originating page")
-	var generation = game.engine.connection_generation
-	game.retry_button.pressed.emit();await settle();dialog_ = visible_confirmation()
-	check(dialog_ is ConfirmationDialog,"reconnect handler uses confirmation")
-	if dialog_ is ConfirmationDialog:
-		verify_confirmation(dialog_,"reconnect")
-		dialog_.canceled.emit();await settle()
-		check(game.engine.connection_generation == generation and await saved() == before,"cancel reconnect never restarts engine or changes save")
 	game.dialog.open("確認の親ウィンドウ",func(body,_actions):game.label_(body,"人工状態の確認"));await settle()
 	var calls = [0];dialog_ = game.confirm("長い確認文です。".repeat(60),func():calls[0] += 1);await settle()
 	verify_confirmation(dialog_,"nested long confirmation")

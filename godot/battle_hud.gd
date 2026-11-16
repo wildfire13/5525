@@ -949,7 +949,7 @@ func refresh_hover():
 	request_hover(uid,hover_generation,ui.generation,ui.engine.connection_generation,ui.board.get_instance_id())
 func request_hover(uid: String,token: int,generation: int,connection: int,source_id: int):
 	# Only a stable ID crosses awaits: an old board can be freed before either
-	# the busy wait or transport response completes, including after reconnect.
+	# the busy wait or transport response completes.
 	while ui.engine.busy and not ui.closing:
 		await ui.get_tree().process_frame
 		if token!=hover_generation or not live_board(source_id):return

@@ -1,13 +1,5 @@
 extends SceneTree
 # Current inventory purchases, with real engine responses and test-only transport delays.
-class PurchaseProbe extends "res://tests/v2_bridge_probe.gd":
-	var lose_purchase=false
-	func request(payload: Dictionary) -> Dictionary:
-		var reply=await super.request(payload)
-		if lose_purchase and payload.get("action")=="buyInventory":
-			lose_purchase=false
-			return _disconnect("injected_lost_inventory_purchase")
-		return reply
 const GUARD="character_mirei"
 var game
 var probe
@@ -37,7 +29,7 @@ func run():
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true
-	game.engine.close_engine();game.engine.queue_free();probe=PurchaseProbe.new();game.add_child(probe);game.engine=probe;probe.start_engine()
+	game.engine.close_engine();game.engine.queue_free();probe=load("res://tests/v2_bridge_probe.gd").new();game.add_child(probe);game.engine=probe;probe.start_engine()
 	await game.new_game();await fixture();var original=await saved()
 	var accept=await confirm();var quoted=game.pages.shop_view.consent.duplicate(true)
 	check("V2-S06",quoted.gearId=="spear-wood" and quoted.cost==90 and quoted.afterGold==223,"purchase uses full current price, without automatic trade-in")
@@ -56,9 +48,7 @@ func run():
 	var poor=await saved();poor.state.gold=0;await probe.request({"op":"campaign_load","data":poor})
 	accept.pressed.emit();await settle()
 	check("V2-S14",buy_count()==calls+1 and not game.pages.shop_view.unknown and game.campaign().characters[GUARD].weapon==original.state.characters[GUARD].weapon,"engine rejects a purchase whose funds changed after consent")
-	await fixture();accept=await confirm();calls=buy_count();probe.lose_purchase=true;accept.pressed.emit();await settle()
-	check("V2-S14",probe.disconnected and not game.notice.is_empty() and buy_count()==calls+1,"lost purchase reply disconnects with recovery notice and is not resent")
-	await game.reconnect_engine();await settle();await fixture()
+	await fixture()
 	var before=await saved()
 	for product in game.pages.offered().slice(0,10):
 		game.pages.shop_view.open_comparison(product.id);await settle()

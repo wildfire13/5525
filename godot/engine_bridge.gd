@@ -1,4 +1,5 @@
 extends Node
+signal engine_stopped
 signal diagnostic_completed(file_operation: bool, ok: bool, duration_ms: int)
 var debug_store: Node
 ## Rules and files own separate processes; a file timeout never kills game state.
@@ -21,7 +22,7 @@ var python_program:=""
 var io_script:=""
 var owned_io_pids: Array[int]=[]
 func start_engine() -> bool:
-	if busy:return false
+	if busy or disconnected:return false
 	native_dir=ProjectSettings.globalize_path("res://../native")
 	if OS.is_debug_build() and debug_store==null:
 		debug_store=preload("res://debug_store.gd").new();add_child(debug_store);debug_store.start(native_dir,python_program)
@@ -31,11 +32,15 @@ func start_engine() -> bool:
 	closing=false;last_error=""
 	disconnected=not transport.start(program,PackedStringArray([script]))
 	if not disconnected:connection_generation+=1
-	if disconnected:last_error="Node.js 22以上を起動できません。実行ファイルを確認し「再接続」を選んでください。"
+	if disconnected:last_error="ゲーム処理（Node.js）を起動できません。Node.jsの設定を確認して、ゲームを起動し直してください。"
 	return not disconnected
 func _disconnect(code: String) -> Dictionary:
 	transport.close();disconnected=true
-	last_error="ゲーム接続が終了しました（%s）。未保存の進行は失われています。再接続して保存済みファイルを読み込めます。" % code
+	var reason="ゲーム処理（Node.js）が終了しました。"
+	if code=="timeout":reason="ゲーム処理（Node.js）が応答しませんでした。"
+	elif code=="invalid_reply":reason="ゲーム処理（Node.js）からの応答を読み取れませんでした。"
+	last_error=reason+"\nゲームを起動し直してください。最後に保存したところから再開できます。"
+	engine_stopped.emit()
 	return {"ok":false,"connection_lost":true,"error":last_error}
 func _run_file(payload: Dictionary,script: String,budget: int) -> Dictionary:
 	var program=python_program if not python_program.is_empty() else OS.get_environment("NATIVE5525_PYTHON")

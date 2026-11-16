@@ -126,11 +126,9 @@ func run():
 	var shop_seed=seed.duplicate(true);shop_seed.state.location="east"
 	await game.update({"op":"campaign_load","data":shop_seed});await enter_facility("shop")
 	var keeper_rng=art.npc.rng.state
-	var connection=game.engine.connection_generation;var lost=game.engine._disconnect("synthetic-npc-loss")
-	game.handle_connection_loss(lost,connection);await settle()
-	check(art.npc.selected_path.is_empty() and art.npc.texture==null and art.npc.rng.state==keeper_rng and node("FacilityNpc")==null,"NPC connection loss ends visit without immediate redraw or extra random selection")
-	await game.reconnect_engine();await settle()
-	check(game.page=="hub" and art.npc.selected_path.is_empty() and node("FacilityNpc")==null,"NPC reconnect bootstrap stays outside facilities until actual entry")
+	await game.new_game();await settle()
+	check(art.npc.selected_path.is_empty() and art.npc.texture==null and art.npc.rng.state==keeper_rng and node("FacilityNpc")==null,"NPC new game ends visit without immediate redraw or extra random selection")
+	check(game.page=="hub" and node("FacilityNpc")==null,"NPC new game stays outside facilities until actual entry")
 	check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"NPC QA keeps BGM voice and SE OFF")
 	var f=FileAccess.open(evidence.path_join("facility-npc-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames()

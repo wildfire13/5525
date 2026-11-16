@@ -12,14 +12,10 @@ func check(ok: bool,label: String):
 	print(("PASS " if ok else "FAIL ")+label)
 func _initialize():call_deferred("run")
 func snapshot():return (await game.engine.request({"op":"campaign_save"})).data
-func run():
+func fresh_app():
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=false
-	# Exercise real playback/signals even when the QA runner disables audio.
-	# Only the output bus is silenced; no saved preferences are modified.
-	var master=AudioServer.get_bus_index("Master")
-	var was_muted=AudioServer.is_bus_mute(master);AudioServer.set_bus_mute(master,true)
 	for kind in ["voice","se"]:
 		game.audio.muted[kind]=false;game.audio.volumes[kind]=100
 	game.audio.apply_levels()
@@ -27,6 +23,12 @@ func run():
 	game.audio.phase_voice_started.connect(func(id,cue):voices.append(id+"/"+cue))
 	game.audio.phase_sound_started.connect(func(id):effects.append(id))
 	game.audio.ui_sound_started.connect(func(id):if id in ["victory","failure"]:results.append(id))
+func run():
+	# Exercise real playback/signals even when the QA runner disables audio.
+	# Only the output bus is silenced; no saved preferences are modified.
+	var master=AudioServer.get_bus_index("Master")
+	var was_muted=AudioServer.is_bus_mute(master);AudioServer.set_bus_mute(master,true)
+	await fresh_app()
 	var output=[]
 	var node=OS.get_environment("NATIVE5525_NODE")
 	if node.is_empty():node="node"
@@ -39,16 +41,13 @@ func run():
 		var reply=await game.engine.request({"op":"godot_io","action":"write","path":folder.path_join(name+".json"),"data":fixtures[name]})
 		check(reply.get("ok",false),"new fixture file "+name)
 	var keys=[]
-	var generations=[]
-	for connection in range(2):
-		if connection==1:
+	for session in range(2):
+		if session==1:
 			var old_pid=int(game.engine.handles.pid)
-			OS.kill(old_pid);await create_timer(.05).timeout
-			await game.update({"op":"view"})
-			check(game.engine.disconnected,"real Node termination exposes reconnect")
-			await game.reconnect_engine()
-			check(not game.engine.disconnected and not OS.is_process_running(old_pid),"successful reconnect owns a new Node")
-		generations.append(game.engine.connection_generation)
+			check(await game.audio.finish_audio(),"first app audio resources drained")
+			game.engine.close_engine();game.queue_free();await process_frame
+			check(not OS.is_process_running(old_pid),"first app closes its owned Node before a fresh launch")
+			await fresh_app()
 		await game.load_game(folder.path_join("start.json"))
 		var reply=await game.engine.request({"op":"act","kind":"action_attack","target":fixtures.enemy,"presentation":true})
 		check(reply.get("ok",false) and reply.presentation.phase=="action","real attack presentation begins")
@@ -60,14 +59,14 @@ func run():
 		keys.append(str(p.id)+":"+str(p.index)+":"+str(p.action_id))
 		var before_voice=voices.size();var before_effect=effects.size()
 		var duration=game.audio.phase(p)
-		check(duration>=voice_delay and voices.size()==before_voice+1 and effects.size()==before_effect+1,"first phase plays voice and SE and retains ACK delay, connection "+str(connection))
-		check(game.audio.phase(p)==0.0 and voices.size()==before_voice+1 and effects.size()==before_effect+1,"same phase replay is suppressed, connection "+str(connection))
+		check(duration>=voice_delay and voices.size()==before_voice+1 and effects.size()==before_effect+1,"first phase plays voice and SE and retains ACK delay, session "+str(session))
+		check(game.audio.phase(p)==0.0 and voices.size()==before_voice+1 and effects.size()==before_effect+1,"same phase replay is suppressed, session "+str(session))
 		var duplicate=p.duplicate(true);duplicate.index+=100;duplicate.voiceEvents=[]
 		game.audio.phase(duplicate)
 		check(effects.size()==before_effect+1,"same action impact group remains deduplicated")
 		await game.engine.request({"op":"presentation_finish","id":p.id})
-	check(keys[0]==keys[1] and generations[1]>generations[0],"same Node serial/action IDs are scoped to different connection generations")
-	check(voices==[str(fixtures.actor)+"/attack",str(fixtures.actor)+"/attack"] and effects==["attack","attack"],"two connections play exactly two real voices and attack effects")
+	check(keys[0]==keys[1],"fresh apps independently play matching Node serial/action IDs")
+	check(voices==[str(fixtures.actor)+"/attack",str(fixtures.actor)+"/attack"] and effects==["attack","attack"],"two fresh apps play exactly two real voices and attack effects")
 	await game.new_game();results.clear()
 	await game.load_game(folder.path_join("finished.json"))
 	check(game.state().get("result")!=null and results==["victory"],"completed battle file load emits victory exactly once")
@@ -91,5 +90,5 @@ func run():
 	game.engine.close_engine();game.queue_free();await process_frame
 	for name in ["start","finished","invalid"]:DirAccess.remove_absolute(folder.path_join(name+".json"))
 	DirAccess.remove_absolute(folder)
-	print(JSON.stringify({"suite":"audio_regression","checks":count,"failures":failures,"gui":false,"subjective_listening":false,"presentation_keys":keys,"generations":generations,"voices":voices,"effects":effects}))
+	print(JSON.stringify({"suite":"audio_regression","checks":count,"failures":failures,"gui":false,"subjective_listening":false,"presentation_keys":keys,"voices":voices,"effects":effects}))
 	quit(0 if failures.is_empty() else 1)

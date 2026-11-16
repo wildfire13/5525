@@ -1,10 +1,4 @@
 extends "res://tests/owned_equipment_regression.gd"
-class DisconnectEngine extends DelayedEngine:
- func request(payload):
-  if payload.get("action")=="previewGear":
-   await get_tree().process_frame
-   return actual._disconnect("synthetic-preview-loss")
-  return await actual.request(payload)
 var out=OS.get_environment("INVENTORY_QA_ROOT")
 func select_option(name_: String,value: String):
  var chooser=node(name_)
@@ -131,11 +125,6 @@ func run():
  await game.update({"op":"campaign_load","data":full});await enter_facility("shop");await settle();await tap("Product_potion");node("ShopPurchaseQuantity").value=5;await settle()
  check(node("ProductBuy_potion_1").disabled and node("ProductBuy_potion_1").tooltip_text.contains("上限"),"consumable cap uses existing 99 stock rule and explains disabled action")
  var full_before=await saved();await game.pages.shop_view.confirm_purchase("potion","character_mirei");await settle();check((await saved())==full_before and not game.modal_open(),"programmatic over-cap purchase preserves full save")
- await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle()
- var failed=DisconnectEngine.new();failed.actual=game.engine;game.add_child(failed);game.engine=failed
- game.pages.shop_view.open_comparison("spear-wood");await settle()
- check(game.engine.disconnected and not game.modal_open() and game.retry_button.visible,"comparison connection loss uses existing recovery UI and cannot confirm purchase")
- game.engine=failed.actual;failed.queue_free();await frames()
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"all checks kept three sound categories muted")
  var f=FileAccess.open(out.path_join("brushup-comparison-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

@@ -53,7 +53,7 @@ var actor_row: HBoxContainer
 var widgets: Array[Button]=[]
 var view_kind := ""
 var generation := 0
-var retry_button: Button
+var stop_dialog: AcceptDialog
 var low_hp_font: FontVariation
 var heading_font: FontVariation
 var memory
@@ -121,7 +121,6 @@ func _ready():
 	memory.key(menu_button,"game_menu")
 	menu_button.z_index=61
 	menu_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);menu_button.offset_left=-136;menu_button.offset_top=-64;menu_button.offset_right=-12;menu_button.offset_bottom=-8
-	retry_button=button(top,"再接続",func():confirm("ゲーム接続を再開します。失われた未保存の進行は復元できません。\n再接続後、保存済みファイルを読み込んでください。",reconnect_engine));retry_button.visible=false
 	audio=preload("res://audio.gd").new();add_child(audio)
 	save_notice=preload("res://save_notice.gd").new();save_notice.name="SaveNotice";add_child(save_notice)
 	debug_view=preload("res://debug_window.gd").new();debug_view.configure(self);add_child(debug_view)
@@ -176,6 +175,7 @@ func _ready():
 	var location_row=row(location_bar);location_label=Label.new();location_label.name="CommonLocation";location_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;location_label.clip_text=true;location_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;location_row.add_child(location_label)
 	resource_header=row(location_row);gold_header=icons.line(self,resource_header,"money","");gold_header.name="CommonGold"
 	engine=preload("res://engine_bridge.gd").new();add_child(engine)
+	engine.engine_stopped.connect(show_engine_stop,CONNECT_DEFERRED)
 	if debug_view.is_enabled():engine.diagnostic_completed.connect(debug_view.request_finished)
 	resized.connect(queue_layout)
 	if not engine.start_engine():notice=engine.last_error;render();return
@@ -370,11 +370,12 @@ func _unhandled_key_input(event):
 func _notification(what):
 	if what==NOTIFICATION_WM_CLOSE_REQUEST and not closing:close_game()
 func close_game():
+	if closing:return
 	if is_instance_valid(board):board.persist_camera()
 	if is_instance_valid(dialog.window):dialog.remember()
 	closing=true;results_view.reset();loading_screen.finish(loading_screen.sequence);invalidate_preview()
 	while engine.busy:await get_tree().process_frame
-	if data.get("presentation")!=null:await engine.request({"op":"presentation_finish","id":data.presentation.id})
+	if not engine.disconnected and data.get("presentation")!=null:await engine.request({"op":"presentation_finish","id":data.presentation.id})
 	await audio.finish_audio()
 	if engine.has_method("finish_diagnostics"):await engine.finish_diagnostics()
 	engine.close_engine()
@@ -453,8 +454,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 				save_notice.dismiss();results_view.reset();campaign_identity.accept_load(incoming);pages.reset_context("load",campaign_identity.current_id);memory.reset();skip_capture_once=true
 			elif request.get("op")=="campaign_start":
 				save_notice.dismiss();results_view.reset()
-				if frontend.get("reconnect_bootstrap",false):campaign_identity.reconnect_bootstrap();pages.reset_context("reconnect")
-				else:campaign_identity.new_campaign();pages.reset_context()
+				campaign_identity.new_campaign();pages.reset_context()
 				memory.reset();skip_capture_once=true
 			if arrived or request.get("action")=="arrive":
 				pages.hub_view.reset();page="hub"
@@ -504,27 +504,36 @@ func act(action: String,args: Array=[]):
 	invalidate_preview()
 	var response=await update({"op":"campaign","action":action,"args":args,"presentation":action=="begin"})
 	return response
-func reconnect_engine():
-	# Cancel session confirmations before bootstrap; reconnect is not a new game.
-	pages.reset_context("disconnect",campaign_identity.current_id)
-	if engine.start_engine():
-		locked=false;await new_game(true)
-	else:notice=engine.last_error;render()
+func show_engine_stop():
+	if closing or is_instance_valid(stop_dialog):return
+	for window in find_children("*","Window",true,false):
+		if window.visible:window.hide()
+	menu.hide()
+	stop_dialog=AcceptDialog.new()
+	stop_dialog.name="EngineStopDialog"
+	stop_dialog.title="ゲームを続けられません"
+	stop_dialog.dialog_text=engine.last_error if not engine.last_error.is_empty() else notice
+	stop_dialog.ok_button_text="ゲームを終了"
+	stop_dialog.dialog_hide_on_ok=false
+	stop_dialog.exclusive=true
+	add_child(stop_dialog)
+	stop_dialog.confirmed.connect(close_game)
+	stop_dialog.canceled.connect(close_game)
+	stop_dialog.popup_centered()
 func invalidate_preview():
 	if pages!=null:pages.shop_view.cancel_pending()
 	if hud!=null:hud.discard_reference();hud.invalidate_hover()
 	generation+=1;pending=null;chosen=[];preview={};preview_ready=false;preview_pending=false
 func handle_connection_loss(reply: Dictionary,connection: int) -> bool:
 	# Loss belongs to the connection, not to the preview that happened to detect it.
-	# Ignore notifications from a connection already replaced by an explicit reconnect.
 	if closing or connection!=engine.connection_generation or not reply.get("connection_lost",false):return false
 	invalidate_preview();pages.reset_context("disconnect",campaign_identity.current_id);status_override=""
-	notice=str(reply.get("error","ゲーム接続が終了しました。再接続してください。"))
+	notice=str(reply.get("error","ゲーム処理が停止しました。ゲームを起動し直してください。"))
 	render();return true
-func new_game(reconnect_bootstrap:=false):
+func new_game():
 	invalidate_preview()
 	portraits.activate({"version":1,"characters":{}});audio.restore({});gear_preview={};page="hub"
-	await update({"op":"campaign_start"},{"reconnect_bootstrap":reconnect_bootstrap})
+	await update({"op":"campaign_start"})
 func record_debug_event(name: String,reason: String):
 	if engine!=null and engine.has_method("debug_local_event"):engine.debug_local_event(name,reason)
 func record_debug_rejection(request: Dictionary):
@@ -539,6 +548,9 @@ func navigate(value: String):
 	pages.quest_board.meeting.reset()
 	invalidate_preview();pages.facility_entry.navigate(value);page=value;pages.reset_items();pages.invalidate_quote(false);memory.focus_key="";render()
 func render():
+	if engine!=null and engine.disconnected:
+		show_engine_stop.call_deferred()
+		return
 	if rendering:return
 	rendering=true
 	if not skip_capture_once:memory.capture()
@@ -546,8 +558,7 @@ func render():
 	audio.follow_connection(engine.connection_generation);audio.sync(data)
 	widgets=widgets.filter(func(b):return is_instance_valid(b) and (b.get_parent()==top or menu.is_ancestor_of(b) or (view_kind=="battle" and is_instance_valid(hud.middle) and hud.middle.is_ancestor_of(b))))
 	for b in widgets:
-		b.disabled=bool(b.get_meta("base_disabled",false)) or ((locked or presenting or (engine.disconnected and b!=retry_button)) and not b.get_meta("read_only",false))
-	retry_button.visible=engine.disconnected
+		b.disabled=bool(b.get_meta("base_disabled",false)) or ((locked or presenting) and not b.get_meta("read_only",false))
 	var available=get_viewport_rect().size
 	content.add_theme_constant_override("separation",8)
 	ui_size_mode="standard" if available.x>=1120 and available.y>=720 else "compact"

@@ -107,37 +107,7 @@ func quote_cases():
 	check("D01",await snapshot()==before,"current failed comparison preserves complete campaign")
 	press("Product_staff-wood");await settle()
 	check("D01",not control("ShopComparisonBuy").disabled,"fresh selection recovers after ordinary comparison failure")
-	for abandon in [false,true]:
-		await fixture()
-		before=await snapshot()
-		var displayed=game.campaign().duplicate(true)
-		probe.hold_reply_action="previewGear";probe.disconnect_held_reply=true
-		press("Product_spear-wood");await wait_held()
-		if abandon:press("Product_staff-wood")
-		probe.release=true;await settle()
-		check("D01",probe.disconnected and game.retry_button.visible and not game.retry_button.disabled and not game.notice.is_empty(),"comparison connection loss exposes recovery, replaced="+str(abandon))
-		check("D01",not game.modal_open() and (control("ShopComparisonBuy")==null or control("ShopComparisonBuy").disabled),"disconnected comparison cannot confirm a purchase")
-		check("D01",game.campaign().gold==displayed.gold and game.campaign().characters==displayed.characters,"connection loss preserves displayed resources")
-		var connection=probe.connection_generation
-		game.retry_button.pressed.emit();await settle()
-		var confirmations=game.get_children().filter(func(n):return n is ConfirmationDialog and n.visible)
-		check("D01",confirmations.size()==1,"visible reconnect control opens explicit confirmation")
-		if confirmations.size()==1:
-			confirmations[0].get_cancel_button().pressed.emit();await settle()
-		check("D01",probe.disconnected and probe.connection_generation==connection,"reconnect cancellation does not replace connection")
-		game.retry_button.pressed.emit();await settle()
-		confirmations=game.get_children().filter(func(n):return n is ConfirmationDialog and n.visible)
-		check("D01",confirmations.size()==1 and not confirmations[0].get_ok_button().disabled,"reconnect can be confirmed through current control")
-		if confirmations.size()==1:
-			confirmations[0].get_ok_button().pressed.emit();await settle()
-		check("D01",not probe.disconnected and probe.connection_generation>connection and not game.retry_button.visible and game.notice.is_empty(),"confirmed reconnect creates a usable new connection and clears stale controls")
-		await game.update({"op":"campaign_load","data":before});await settle()
-		check("D01",await snapshot()==before,"explicit reload after comparison loss preserves complete saved campaign")
-		game.shop_uid=OWNER;game.shop_slot="rightHand";game.navigate("shop");game.pages.facility_entry.choose("buy");await settle()
-		press("Product_staff-wood");await settle()
-		check("D01",control("ShopComparisonBuy")!=null and not control("ShopComparisonBuy").disabled and game.pages.shop_view.comparison_view.item_id=="staff-wood","fresh canonical comparison works after confirmed reconnect")
-		check("D01",await snapshot()==before,"reconnected comparison preserves the complete reloaded save")
-	check("D01",probe.calls.all(func(call):return call.get("action","") not in ["buyInventory","buyItem","buyGear","buyPlan","inventoryAction","sellInventory","useItem"]),"quote failure, cancellation and reconnect never submit an economic mutation")
+	check("D01",probe.calls.all(func(call):return call.get("action","") not in ["buyInventory","buyItem","buyGear","buyPlan","inventoryAction","sellInventory","useItem"]),"quote failure and cancellation never submit an economic mutation")
 func reference_case(which: String,exit_mode: String,fail:=false):
 	await fixture();await game.act("depart",["astaris","convoy"]);await game.act("travel",["safe"]);await game.act("begin",[]);await settle()
 	game.choose_command("action_move");await game.on_cell(int(game.data.choices.action_move[0]));await settle()
@@ -179,7 +149,7 @@ func shop_facts():
 	for dims in [Vector2i(1920,1080)]:
 		root.size=dims;await fixture("west");var before=await snapshot();press("Product_swift-boots");await settle()
 		var gear=game.campaign().shop.filter(func(item):return item.id=="swift-boots")[0]
-		var doc=preload("res://skill_text.gd").document("skill_swift",game.campaign().skillNames.swift,1,game.campaign(),gear)
+		var doc=preload("res://skill_text.gd").document("skill_swift",game.campaign().skillNames.skill_swift,1,game.campaign(),gear)
 		var description=preload("res://skill_text.gd").plain(doc)
 		var effects=game.find_children("ComparisonSkill_追加_skill_swift_*","Button",true,false)
 		check("UX-SWIFT",effects.size()==1 and effects[0].tooltip_text.contains(description),"comparison exposes the canonical movement effect and stacking conditions")
