@@ -20,7 +20,7 @@ func run():
 	var offers=game.campaign().board;var porter=game.roster().filter(func(u):return u.job=="porter" and game.campaign().selected.has(u.id))[0]
 	await game.act("accept",[offers[0].id,porter.id]);game.navigate("map")
 	for i in range(5):await process_frame
-	check(game.find_child("TravelQuestDetails",true,false)!=null,"active quest detail button")
+	check(game.find_child("TravelQuestSummary",true,false)==null and game.find_child("TownMap",true,false).quest_destination==offers[0].to,"map keeps destination without duplicate summary")
 	await game.act("depart",[offers[0].to,"convoy"])
 	for i in range(5):await process_frame
 	var strip=game.find_child("TravelRouteStrip",true,false)

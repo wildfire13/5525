@@ -16,7 +16,7 @@ SUITES = [
     'mock_shop_migration', 'mock_facility_migration', 'mock_facility_presentation',
     'facility_readability_polish', 'background_ui_polish', 'shop_entry_position',
     'mock_travel_regression', 'mock_journey_integration', 'mock_service_regression',
-    'mock_deployment_regression', 'combat_b_ui', 'battle_selection_regression',
+    'mock_deployment_regression', 'combat_b_ui', 'battle_feedback_261116', 'battle_selection_regression',
     'menu_exit_regression', 'quest_reward_display_regression',
     'standalone_quest_failure_regression', 'quest_modal_regression',
     'npc_meeting_regression', 'town_meeting_layout_regression', 'quest_decisions_regression', 'quest_aftermath_access_regression',

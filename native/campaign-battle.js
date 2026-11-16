@@ -217,7 +217,7 @@ const Battle = (() => {
   const templates = [
     {job:"guard",name:"ガロ",role:"盾役",icon:"盾",pos:24,max:180,atk:26,agi:10,reach:1,mp:6,image:"knight.png"},
     {job:"archer",name:"リノ",role:"弓手",icon:"弓",pos:13,max:100,atk:25,agi:14,reach:3,mp:4,image:"archer.png"},
-    {job:"mage",name:"ミオ",role:"ヒーラー",icon:"癒",pos:33,max:100,atk:14,agi:11,reach:2,mp:8,image:"healer.png"},
+    {job:"mage",name:"ミオ",role:"魔法使い",icon:"癒",pos:33,max:100,atk:14,agi:11,reach:2,mp:8,image:"healer.png"},
     {job:"scout",name:"ニカ",role:"スカウト",icon:"斥",pos:4,max:105,atk:23,agi:13,reach:1,mp:5,image:"scout.png"},
     {job:"porter",name:"トワ",role:"ポーター",icon:"運",pos:22,max:110,atk:0,agi:12,reach:0,mp:6,image:"porter.png"},
     {job:"warrior",name:"槌戦士（仮）",role:"槌戦士",icon:"槌",weapon:"hammer",pos:24,max:180,atk:26,agi:10,reach:1,mp:6,image:"warrior.png"}

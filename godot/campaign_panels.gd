@@ -70,7 +70,7 @@ func element_name(element) -> String:
 	return {"fire":"火","water":"水","earth":"地","none":"無属性"}.get(str(element),"無属性")
 func elemental_combat_line(parent,stats: Dictionary):
 	var detail=row(parent);detail.name="ElementalCombatProfile"
-	var explanation="各属性攻撃は対応する属性DEFを引いてから相性を適用。火＞地＞水＞火。相性有利×1.25、不利×0.75。同属性・無属性・物理は等倍。"
+	var explanation=ElementBadges.MATCHUP_TIP
 	var title=l(detail,"属性 ATK/DEF",false);title.tooltip_text=explanation
 	for element in ["fire","water","earth"]:
 		ElementBadges.add(detail,element,24)
@@ -110,20 +110,6 @@ func select_destination(id: String):
 	ui.destination=id;ui.render()
 	chart=ui.find_child("TownMap",true,false)
 	if is_instance_valid(chart):chart.zoom=view_zoom;chart.pan=view_pan;chart.layout()
-func active_quest_summary(parent):
-	var quest=c().get("activeQuest")
-	var line=row(parent);line.name="TravelQuestSummary"
-	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;line.add_child(copy)
-	if not quest is Dictionary:
-		l(copy,"進行中のクエスト");l(copy,"なし");return
-	if quest.get("meeting") is Dictionary:
-		l(copy,str(quest.name)+" · 受取人: 行商人")
-		l(copy,quest_board.meeting.status(quest.meeting))
-		l(copy,quest_board.meeting.deadline_text(quest.meeting))
-	else:
-		l(copy,"進行中のクエスト · "+quest_board.time_status(quest))
-		l(copy,str(quest.name)+" · 配達先 "+town(quest.to))
-	b(line,"内容確認",ui.navigate.bind("board")).name="TravelQuestDetails"
 func map(parent):
 	var surface=card(parent);surface.get_parent().custom_minimum_size.y=ui.mock_shell.content_height();parent=surface
 	var available=[]
@@ -138,14 +124,13 @@ func map(parent):
 	var actions=row(parent);actions.name="MapControls";actions.custom_minimum_size.y=72
 	var route=VBoxContainer.new();route.custom_minimum_size.x=320;actions.add_child(route)
 	l(route,town(c().location)+" → "+town(ui.destination),true)
-	l(route,"最短の到着見込 6時間")
+	l(route,"最短移動時間：6時間")
 	var over=c().get("inventoryOverflow",[])
 	var depart=ui.green_button(b(actions,"出発する",ui.act.bind("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not over.is_empty()));depart.name="DepartButton"
 	if not over.is_empty():depart.tooltip_text="インベントリ枠を超えているメンバーがいます"
 	b(actions,"都市に入る" if c().location=="astaris" else "村に入る",ui.navigate.bind("hub"))
 	var space=Control.new();space.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(space)
 	b(actions,"全体表示",chart.reset_view).name="MapFit"
-	parent.add_child(HSeparator.new());active_quest_summary(parent)
 func choose_formation(value: String):ui.formation=value;ui.render()
 func shop_guide(parent):
 	var facilities=row(parent)
@@ -188,7 +173,7 @@ func journey(parent):
 			var caption = "%s\n移動 %d時間" % [route[1], route[2]]
 			if sluice_trip:
 				caption += "\n陣形の外にいる味方が射手に狙われる" if route[0] == "short" else "\n番人が巻上機を塞ぐ"
-			var choose = b(choices, caption, ui.forecast_action.bind(route[0], "travel", [route[0]]))
+			var choose = b(choices, caption, ui.act.bind("travel", [route[0]]))
 			choose.name = "RouteChoice_" + route[0]
 			choose.custom_minimum_size = Vector2(400, 100) if sluice_trip else Vector2(260, 80)
 		if sluice_trip:
@@ -199,7 +184,6 @@ func journey(parent):
 			l(parent, gate_note)
 	if phase=="camp":
 		b(parent,"インベントリ",party_view.open_camp_inventory)
-	parent.add_child(HSeparator.new());active_quest_summary(parent)
 func party(parent):
 	if not facility_entry.render_top(parent,"party"):
 		if facility_entry.supported("party"):facility_entry.render_dialogue()

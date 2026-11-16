@@ -194,7 +194,7 @@ func _can_drop_data(at_position: Vector2,payload) -> bool:
 	if cell%10>=5 and not can_deploy_enemy_side(str(payload.uid)):return false
 	var occupant=unit_at(cell)
 	if not occupant.is_empty() and occupant.get("side")!="ally":return false
-	if payload.source=="board":return true
+	if payload.source=="board" or (payload.source=="roster" and DeploymentDrag.deployed(deployment_ui).has(payload.uid)):return true
 	if not occupant.is_empty():return true
 	var roster=deployment_ui.campaign().get("deploymentRoster",{})
 	return int(roster.get("remaining",0))>0

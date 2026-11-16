@@ -78,8 +78,11 @@ func navigation(parent):
 		nav.name="Header_"+str(link[0]);nav.custom_minimum_size=Vector2(140,44)
 		ui.mark_selected(nav,ui.page==link[0] or facility.supported(ui.page))
 	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bar.add_child(spacer)
+	ui.label_(bar,elapsed_time_text()).name="CampaignElapsedTime"
 	ui.icons.line(ui,bar,"money",str(int(ui.campaign().get("gold",0)))+" G")
 	ui.memory.key(ui.local_button(bar,"メニュー",ui.open_menu),"game_menu")
+func elapsed_time_text() -> String:
+	return "経過時間 %d時間" % int(ui.campaign().get("worldTime",0))
 func needs_roster() -> bool:
 	return ui.page!="board" and not ui.pages.facility_entry.at_top() and ui.campaign().get("phase")!="result"
 func workspace(parent) -> VBoxContainer:
@@ -120,6 +123,9 @@ func roster(parent):
 		for child in info.get_children():child.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		button.set_drag_forwarding(Callable(),func(_at,payload):return can_drop(payload,str(id)),func(_at,payload):drop(payload,str(id)))
 func activate(id: String):
+	if ui.page=="character" and ui.pages.party_uid==id:
+		toggle_character()
+		return
 	if not ui.pages.party_view.guard_leave(activate.bind(id)):return
 	if ui.page=="shop":ui.pages.shop_view.owner_pressed(id);return
 	ui.pages.party_uid=id

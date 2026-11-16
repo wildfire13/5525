@@ -193,12 +193,18 @@ func render():
 	if phase is Dictionary and (is_instance_valid(action_visual) or str(phase.get("action_id",""))==shifted_action):left_panel.hide()
 	left_info=left_panel.body
 	if a.get("side")=="ally":
-		var hero=ui.row(left_info);ui.portrait(hero,a,true,48);l(hero,str(a.name),true)
-		var health=l(left_info,"HP %d/%d   MP %d/%d" % [a.hp,a.max,a.mp,a.maxMp]);ui.emphasize_low_hp(health,a)
-		var battle_stats=ui.row(left_info);ElementBadges.add(battle_stats,str(a.get("element","none")),28)
-		l(battle_stats,"SPD %s" % a.get("agi",0))
+		combat_portrait(left_info,a)
+		combat_resources(left_info,a,true)
+		var battle_stats=ui.row(left_info)
+		ElementBadges.add(battle_stats,str(a.get("element","none")),28)
+		battle_stats.tooltip_text=""
+		var speed=l(battle_stats,"SPD %s" % a.get("agi",0))
+		speed.mouse_filter=Control.MOUSE_FILTER_STOP
+		speed.tooltip_text="行動速度。高いほど次の手番が早く回ります。"
 		if a.has("carriedWeight"):
-			l(battle_stats,"Wt %.1f / %.1f" % [float(a.get("carriedWeight",0))+float(a.get("fallenWeightShare",0)),float(a.get("weightLimit",0))])
+			var weight=l(battle_stats,"Wt %.1f / %.1f" % [float(a.get("carriedWeight",0))+float(a.get("fallenWeightShare",0)),float(a.get("weightLimit",0))])
+			weight.mouse_filter=Control.MOUSE_FILTER_STOP
+			weight.tooltip_text="所持重量 / STR上限。上限を超えると行動速度が半減します。"
 	bottom_commands=VBoxContainer.new();bottom_commands.name="ActorCommands";left_info.add_child(bottom_commands);
 	if not deploying:render_bottom_commands()
 	actor_box=left_info;command_box=left_info
@@ -210,10 +216,9 @@ func render():
 	elif s.get("deploying",false):render_deployment()
 	elif s.get("result")!=null:render_result()
 	elif range_reference:render_reference()
-	elif action_menu:render_commands()
-	elif item_list or skill_list:
+	elif not action_menu and (item_list or skill_list):
 		l(target_box,"左の一覧から選択してください。")
-	else:presentation_action={};render_target()
+	elif not action_menu:presentation_action={};render_target()
 	if deploying:deployment_workspace.render()
 	update_board();ui.board.inspected_enemy="";refresh_hover();resize()
 	if is_instance_valid(opening_visual):left_panel.hide()
@@ -278,6 +283,14 @@ func render_queue():
 		panel.add_theme_stylebox_override("panel",style);panel.tooltip_text=str(u.name)+(" / "+str(entries[index].label) if not entries[index].label.is_empty() else "")
 		var row=ui.row(panel);ui.portrait(row,u,true,32 if ui.ui_size_mode=="standard" else 24)
 		var label=l(row,("● " if index==0 else "")+str(u.name));label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size=Vector2(132,24);label.clip_text=true;label.max_lines_visible=1;label.tooltip_text=str(u.name)
+		var inspect=Button.new()
+		inspect.name="InspectTurnMember"
+		inspect.flat=true
+		inspect.set_meta("read_only",true)
+		inspect.tooltip_text=str(u.name)+"の装備とインベントリ"
+		inspect.accessibility_name=inspect.tooltip_text
+		inspect.pressed.connect(open_equipment_sheet.bind(str(u.id)))
+		panel.add_child(inspect)
 	var all_=local(line,"順番詳細",open_order_details);all_.name="BattleOrderDetails";all_.custom_minimum_size=Vector2(QUEUE_CARD_WIDTH,40);all_.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
 	var history=local(line,"戦闘履歴",open_history);history.name="BattleHistory";history.custom_minimum_size=Vector2(QUEUE_CARD_WIDTH,40);history.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 	if presenting and str(ui.data.presentation.get("action_id",""))==shifted_action:queue_scroll.set_deferred("scroll_horizontal",queue_distance)
@@ -292,8 +305,6 @@ func selected_target_text(target) -> String:
 	if target is Array:return " / ".join(target.map(target_name))
 	if target is int or target is float:return coord(target)
 	return "対象不要" if ui.command=="guard" else "未選択"
-func render_commands():
-	local(command_box,"能力・行動条件の詳細",open_action_details)
 func render_bottom_commands():
 	buttons.clear()
 	var a=acting()
@@ -301,7 +312,7 @@ func render_bottom_commands():
 		var eligible=pair[0] in ["guard","items"] or not ui.data.get("choices",{}).get(pair[0],[]).is_empty() or pair[0]=="skill" and (not ui.data.get("skillset",[]).is_empty() or has_return())
 		var selected=not action_menu and (ui.command==pair[0] or pair[0]=="skill" and ui.command=="return" or pair[0]=="items" and ui.command in ["item","ether"])
 		var control=ui.icons.apply(b(bottom_commands,pair[1],choose_command.bind(pair[0]),a.get("side")!="ally" or ui.state().get("deploying",false) or ui.state().get("result")!=null or ui.data.get("presentation") is Dictionary or range_reference),ui.icons.command(pair[0]),40 if ui.size.x>=1800 else 24);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.y=64 if ui.ui_size_mode=="standard" else 44
-		control.tooltip_text=pair[1]+(" / 今は合法な対象なし。条件を詳細で確認" if not eligible else "");ui.memory.key(control,"command_"+pair[0]);buttons[pair[0]]=control
+		control.tooltip_text=pair[1]+(" / 今は合法な対象なし" if not eligible else "");ui.memory.key(control,"command_"+pair[0]);buttons[pair[0]]=control
 		control.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
 		control.add_theme_constant_override("h_separation",8)
 		ui.mark_selected(control,selected)
@@ -394,19 +405,21 @@ func render_target():
 	var stage=state_id();var heading=ui.row(target_box) if ui.ui_size_mode!="standard" and ui.command=="skill" else target_box
 	var title=l(heading,"移動先の確認・仮置き" if stage=="B2" else "移動先を選択" if stage=="B1" else command_name(),true)
 	title.name="DecisionTitle"
+	title.visible=ui.command!="skill"
 	var split=VBoxContainer.new();split.add_theme_constant_override("separation",12);split.size_flags_vertical=Control.SIZE_EXPAND_FILL;target_box.add_child(split)
 	var main=VBoxContainer.new();main.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(main)
 	var facts=VBoxContainer.new();facts.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(facts)
 	facts.add_theme_constant_override("separation",6 if ui.ui_size_mode=="standard" else 4)
 	if ui.command=="move":render_move(main,facts)
 	else:render_prediction(main,facts)
-	var cost=l(main,cost_text());cost.name="ActionCost"
+	var cost=l(main,cost_text());cost.name="ActionCost";cost.visible=ui.command!="skill"
 	var availability=l(main,"");availability.name="ActionAvailability"
 	if ui.preview_pending:availability.text="予測を取得中…"
 	elif ui.can_commit():availability.text=""
 	elif not skill_unavailable_reason().is_empty():availability.text=skill_unavailable_reason()
 	elif not ui.notice.is_empty():availability.text=ui.notice
 	elif not action_menu and selected_cell>=0:availability.text="射程・条件を確認してください。"
+	availability.visible=ui.command!="skill" or (not availability.text.begins_with("MP不足") and not availability.text.is_empty())
 	for fact in facts.get_children():
 		if fact is Label:fact.add_theme_color_override("font_color",Color("#58675f"))
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
@@ -477,7 +490,7 @@ func render_prediction(main,facts):
 	if ui.command=="skill" and ui.data.get("skill")=="足払い":summary="対象：自分の周囲8マスの生存敵 / ダメージ0"
 	if ui.command=="skill" and ui.data.get("skill")=="陣形強化":summary="対象: 味方全員（陣形の3マス外も含む）"
 	var target=l(main,summary,true);target.name="TargetSummary";ui.short_name(target,summary)
-	target.visible=not ui.pending is String or ui.command=="guard"
+	target.visible=(not ui.pending is String or ui.command=="guard") and (ui.command!="skill" or selected_cell<0)
 	var hits=ui.preview.get("damagePreview",[])
 	if ui.preview_ready:
 		for hit in hits:
@@ -692,7 +705,7 @@ func reset_deployment():
 func render_result():
 	l(target_box,"木人の結果" if ui.data.get("trial") is Dictionary else "戦闘結果",true);l(target_box,str(ui.state().result))
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";ui.green_button(b(ui.battle_actions,"戦闘を終えて街道へ",ui.act.bind("finishBattle",[]),ui.data.get("trial")!=null))
-func open_equipment_sheet():
+func open_equipment_sheet(requested_id: String=""):
 	var reply=await ui.engine.request({"op":"battle_equipment"})
 	if not reply.get("ok",false) or ui.closing:return
 	var members=reply.get("members",[])
@@ -700,6 +713,7 @@ func open_equipment_sheet():
 	var selected_id=inspected_uid
 	if ui.state().get("deploying",false):
 		selected_id=selected_enemy if not selected_enemy.is_empty() else ui.selected
+	if not requested_id.is_empty():selected_id=requested_id
 	var selected_members=members.filter(func(m):return m.id==selected_id)
 	var member=members[0] if selected_members.is_empty() else selected_members[0]
 	show_equipment_sheet(members,member)
@@ -721,6 +735,23 @@ func show_equipment_sheet(members: Array,member: Dictionary):
 			ui.dialog.open(str(slot.label)+" / "+ui.pages.party_view.equipment_name(slot),func(details,buttons):
 				ui.pages.describe_gear(details,member.equipmentDetails[slot.slot],true)
 				local(buttons,"装備一覧へ",show_equipment_sheet.bind(members,member)).name="BattleEquipmentBack"))
+		l(sheet,"インベントリ",true)
+		var entries=ui.campaign().get("inventoryByCharacter",{}).get(member.id,{}).get("entries",[])
+		var remaining=ui.state().get("itemInventories",{}).get(member.id,{})
+		if member.side=="enemy":
+			entries=[]
+			var inventory=unit(member.id).get("inventory",{})
+			for id in inventory:
+				if inventory[id]>0:
+					var definitions=ui.campaign().get("itemDefinitions",[]).filter(func(item):return item.id==id)
+					entries.append({"name":definitions[0].name if not definitions.is_empty() else id,"count":inventory[id]})
+		var inventory_list=VBoxContainer.new()
+		inventory_list.name="BattleInventory"
+		sheet.add_child(inventory_list)
+		for entry in entries:
+			var count=remaining.get(entry.get("id",""),entry.count)
+			if count>0:l(inventory_list,"%s ×%d" % [entry.name,count])
+		if inventory_list.get_child_count()==0:l(inventory_list,"なし")
 		local(actions,"閉じる",ui.dialog.close).name="CloseBattleEquipment")
 
 func toggle_details():
@@ -787,30 +818,58 @@ func enemy_loadout(parent,u: Dictionary):
 	var count=int(u.inventory.get("potion",0))
 	l(parent,"所持品　"+("ポーション ×%d" % count if count>0 else "なし")).name="EnemyInventory"
 
-func render_person_content(parent,u: Dictionary,expanded:=false):
+func combat_portrait(parent,u: Dictionary):
 	var hero=ui.row(parent);ui.portrait(hero,u,true,64 if ui.ui_size_mode=="standard" else 40);l(hero,str(u.name),true)
-	var character={}
-	for member in ui.roster():
-		if member.id==u.id:character=member;break
-	if expanded and u.get("side")=="enemy":enemy_loadout(parent,u)
-	if expanded:ui.pages.party_view.identity(parent,character if not character.is_empty() else u)
+func combat_resources(parent,u: Dictionary,expanded: bool):
 	var resources=ui.row(parent) if ui.ui_size_mode!="standard" else parent
 	for resource in ["hp","mp"]:
 		var resource_box=VBoxContainer.new();resource_box.size_flags_horizontal=Control.SIZE_EXPAND_FILL;resources.add_child(resource_box)
 		var value=u.get(resource,0);var maximum=u.get("max" if resource=="hp" else "maxMp",0)
 		var number=ui.icons.line(ui,resource_box,resource,"%s %d/%d" % [resource.to_upper(),value,maximum]);number.add_theme_color_override("font_color",Color("#29332f"))
+		if resource=="hp":ui.emphasize_low_hp(number,u)
 		if ui.ui_size_mode!="standard":number.text="%d/%d" % [value,maximum];number.tooltip_text=resource.to_upper();number.autowrap_mode=TextServer.AUTOWRAP_OFF
 		if not expanded:continue
 		var bar=ProgressBar.new();bar.name="Inspect_"+resource;bar.max_value=maxi(1,int(maximum));bar.value=value;bar.show_percentage=false;bar.custom_minimum_size.y=8;bar.mouse_filter=Control.MOUSE_FILTER_IGNORE;resource_box.add_child(bar)
 		var track=StyleBoxFlat.new();track.bg_color=Color("#dbe1d9");track.set_corner_radius_all(3)
 		var fill=StyleBoxFlat.new();fill.bg_color=Color("#df958b") if resource=="hp" and value*4<maximum else Color("#8dc9af") if resource=="hp" else Color("#93b6df");fill.set_corner_radius_all(3)
 		bar.add_theme_stylebox_override("background",track);bar.add_theme_stylebox_override("fill",fill)
+func render_person_content(parent,u: Dictionary,expanded:=false):
+	combat_portrait(parent,u)
+	var character={}
+	for member in ui.roster():
+		if member.id==u.id:character=member;break
+	if expanded and ui.state().get("deploying",false) and u.get("side")=="enemy":enemy_loadout(parent,u)
+	if expanded:
+		var identity=character if not character.is_empty() else u
+		if u.side=="enemy":
+			var jobs={"warrior":"戦士","scout":"スカウト","mage":"魔法使い","porter":"ポーター"}
+			var current_job=ui.icons.job(str(u.job))
+			if jobs.has(current_job):identity=identity.merged({"role":jobs[current_job]},true)
+		ui.pages.party_view.identity(parent,identity)
+	combat_resources(parent,u,expanded)
 	if u.get("skipNextTurn",false):l(parent,"足払い：次の1手番をスキップ")
 	var stats=character.get("stats",{});var breakdown=stats.get("attributeBreakdown",{})
-	var inspected_stats=ui.row(parent);ElementBadges.add(inspected_stats,str(u.get("element","none")),24)
-	var defense=l(inspected_stats,"%s / 属性 %s" % [ui.pages.defense_profile(u),ui.pages.element_name(u.get("element","none"))])
-	defense.tooltip_text="キャラクター属性は受ける属性攻撃の相性判定に使用。"
-	ui.pages.elemental_combat_line(parent,u)
+	var profile=GridContainer.new()
+	profile.name="ElementalCombatProfile"
+	profile.tooltip_text=ElementBadges.MATCHUP_TIP
+	profile.columns=5
+	profile.add_theme_constant_override("h_separation",8)
+	parent.add_child(profile)
+	for stat in ["atk","def"]:
+		var title=l(profile,stat.to_upper())
+		title.tooltip_text=ElementBadges.MATCHUP_TIP
+		title.autowrap_mode=TextServer.AUTOWRAP_OFF
+		for element in ["","fire","water","earth"]:
+			var cell=ui.row(profile)
+			cell.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+			cell.add_theme_constant_override("separation",4)
+			if element.is_empty():
+				ui.icons.add(cell,"attack" if stat=="atk" else "defend",20)
+				cell.tooltip_text="物理攻撃力" if stat=="atk" else "物理防御力"
+			else:ElementBadges.add(cell,element,20)
+			var value=l(cell,str(int(u.get(stat+element.capitalize(),0))))
+			value.tooltip_text=ElementBadges.MATCHUP_TIP
+			value.autowrap_mode=TextServer.AUTOWRAP_OFF
 	if u.has("carriedWeight"):
 		var carried=float(u.get("carriedWeight",0))+float(u.get("fallenWeightShare",0));var limit=float(u.get("weightLimit",0))
 		l(parent,"Wt %.1f / STR上限 %.1f%s" % [carried,limit,"（超過: SPD 50%）" if u.get("overburdened",false) else ""])
@@ -868,6 +927,7 @@ func request_hover(uid: String,token: int,generation: int,connection: int,source
 	if not live_board(source_id) or token!=hover_generation or generation!=ui.generation or connection!=ui.engine.connection_generation or ui.board.hover_uid!=uid:return
 	if not reply.get("ok",false):ui.board.hover_caption="予測：未取得";return
 	var prediction=reply.get("hover",{})
+	if prediction.get("status")=="insufficient_mp":ui.board.hover_caption="実行不可（MP不足）";return
 	if prediction.get("status")!="ready":ui.board.hover_caption="異なる2人の対象を指定" if prediction.get("status")=="needs_targets" else "対象外";return
 	var parts=[]
 	for hit in prediction.get("damagePreview",[]):

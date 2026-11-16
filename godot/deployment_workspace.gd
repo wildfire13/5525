@@ -19,18 +19,24 @@ func layout():
  var area=hud.middle
  hud.left_panel.hide()
  var sidebar_width=360.0
- var field_width=maxf(600,area.size.x-sidebar_width-20)
- hud.right_panel.pending_restore=null;hud.right_panel.position=Vector2(field_width+20,0);hud.right_panel.size=Vector2(sidebar_width,area.size.y-80)
+ var roster_width=300.0
+ var field_left=roster_width+16
+ var strip=ui.get("deployment_party_strip")
+ var controls_bottom=area.size.y
+ if is_instance_valid(strip):
+  strip.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+  strip.position=area.global_position
+  strip.size=Vector2(roster_width,controls_bottom-8)
+ var field_width=maxf(1,area.size.x-field_left-sidebar_width-20)
+ hud.right_panel.pending_restore=null;hud.right_panel.position=Vector2(field_left+field_width+20,0);hud.right_panel.size=Vector2(sidebar_width,controls_bottom-64)
  hud.right_panel.find_child("DragHandle",true,false).hide()
  if normal_panel_style==null:normal_panel_style=hud.right_panel.get_theme_stylebox("panel").duplicate()
  hud.right_panel.add_theme_stylebox_override("panel",ui.mock_shell.surface_style())
- hud.deployment_bar.position=Vector2.ZERO;hud.deployment_bar.size=Vector2(field_width,72)
+ hud.deployment_bar.position=Vector2(field_left,0);hud.deployment_bar.size=Vector2(field_width,72)
  hud.deployment_bar.add_theme_stylebox_override("panel",ui.mock_shell.surface_style())
- hud.deployment_actions.position=Vector2(field_width-500,area.size.y-64);hud.deployment_actions.size=Vector2(500,56)
+ hud.deployment_actions.position=Vector2(field_left+field_width-500,controls_bottom-56);hud.deployment_actions.size=Vector2(500,56)
  ui.board.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
- ui.board.position=area.global_position+Vector2(0,80);ui.board.size=Vector2(field_width,maxf(300,area.size.y-160));ui.board.deployment_bottom_limit=0;ui.board.update_camera()
- var strip=ui.get("deployment_party_strip")
- if is_instance_valid(strip):strip.hide()
+ ui.board.position=area.global_position+Vector2(field_left,80);ui.board.size=Vector2(field_width,maxf(1,controls_bottom-144));ui.board.deployment_bottom_limit=0;ui.board.update_camera()
 func render():
  if ui.selected!=last_selected:hud.selected_enemy="";last_selected=ui.selected
  ui.header.add_theme_color_override("font_color",Color("#293b33"))

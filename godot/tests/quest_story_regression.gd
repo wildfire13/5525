@@ -52,7 +52,9 @@ func run():
 	var wheel_choice=game.find_child("QuestChoice_standalone-wheel",true,false)
 	if wheel_choice is Button:wheel_choice.pressed.emit();await process_frame
 	var window_label=game.find_child("QuestMerchantWindow",true,false);var availability=game.find_child("QuestMerchantAvailability",true,false)
-	check(window_label is Label and window_label.text.contains("サウス") and window_label.text.contains("18時間以上36時間まで"),"board shows South stop window with inclusive end")
+	check(window_label.get_parent().get_children().any(func(child):return child is Label and child.text=="依頼掲載からの経過時間：22時間"),"schedule time starts at posting even before acceptance")
+	check(window_label is Label and not window_label.text.contains("希望条件") and window_label.text.contains("サウス") and window_label.text.contains("18時間以上36時間まで"),"board shows South stop window with inclusive end")
+	check(game.find_child("QuestStatus",true,false)==null,"board omits redundant current-stop line")
 	check(availability is Label and availability.text.contains("サウスへ向かってください"),"board directs player to merchant's different stop")
 	var carrier=game.campaign().selected.filter(func(id):return game.campaign().roster.any(func(c):return c.id==id and c.job=="porter"))[0]
 	await game.act("accept",["standalone-wheel",carrier]);await process_frame;await process_frame
@@ -74,18 +76,16 @@ func run():
 	await game.update({"op":"campaign_load","data":forecast_fixture});game.navigate("map");await process_frame;await process_frame
 	var depart_reply=await game.engine.request({"op":"campaign","action":"depart","args":["astaris","convoy"]})
 	if depart_reply.get("campaign") is Dictionary:game.data=depart_reply;game.render();await process_frame
-	await game.forecast_action("short","travel",["short"]);await process_frame;await process_frame
-	var forecast_message=game.find_child("ConfirmationMessage",true,false)
-	check(forecast_message is Label and forecast_message.text.contains("サウス") and forecast_message.text.contains("アスタリスでは今は受け取れません"),"ETA warning rejects a town where the merchant will not be")
-	for node in game.find_children("*","ConfirmationDialog",true,false):node.get_cancel_button().pressed.emit()
+	game.find_child("RouteChoice_short",true,false).pressed.emit();await process_frame
+	while game.locked or game.engine.busy:await process_frame
+	check(not game.modal_open() and game.campaign().phase=="deployment","route selection proceeds directly (merchant already in South)")
 	var before_fixture=accepted_save.data.duplicate(true);before_fixture.state.location="east";before_fixture.state.worldTime=3;before_fixture.state.hours=3
 	await game.update({"op":"campaign_load","data":before_fixture});game.navigate("map");await process_frame;await process_frame
 	var before_depart=await game.engine.request({"op":"campaign","action":"depart","args":["astaris","convoy"]})
 	if before_depart.get("campaign") is Dictionary:game.data=before_depart;game.render();await process_frame
-	await game.forecast_action("short","travel",["short"]);await process_frame;await process_frame
-	var before_message=game.find_child("ConfirmationMessage",true,false)
-	check(before_message is Label and before_message.text.contains("まだ到着前") and before_message.text.contains("待機後: アスタリスで") and not before_message.text.contains("null"),"ETA under +10h explains pending arrival without null stop text")
-	for node in game.find_children("*","ConfirmationDialog",true,false):node.get_cancel_button().pressed.emit()
+	game.find_child("RouteChoice_short",true,false).pressed.emit();await process_frame
+	while game.locked or game.engine.busy:await process_frame
+	check(not game.modal_open() and game.campaign().phase=="deployment","route selection proceeds directly (merchant still travelling)")
 	var south_stop_fixture=accepted_save.data.duplicate(true);south_stop_fixture.state.location="astaris";south_stop_fixture.state.worldTime=22;south_stop_fixture.state.hours=22
 	await game.update({"op":"campaign_load","data":south_stop_fixture});game.navigate("board");await process_frame;await process_frame
 	var south_stop_label=game.find_child("QuestMerchantAvailability",true,false)
@@ -94,10 +94,9 @@ func run():
 	await game.update({"op":"campaign_load","data":departed_fixture});game.navigate("map");await process_frame;await process_frame
 	var departed_reply=await game.engine.request({"op":"campaign","action":"depart","args":["south","convoy"]})
 	if departed_reply.get("campaign") is Dictionary:game.data=departed_reply;game.render();await process_frame
-	await game.forecast_action("short","travel",["short"]);await process_frame;await process_frame
-	var departed_message=game.find_child("ConfirmationMessage",true,false)
-	check(departed_message is Label and departed_message.text.contains("サウスを出発済み") and not departed_message.text.contains("null"),"ETA beyond +36h explains departure without null stop text")
-	for node in game.find_children("*","ConfirmationDialog",true,false):node.get_cancel_button().pressed.emit()
+	game.find_child("RouteChoice_short",true,false).pressed.emit();await process_frame
+	while game.locked or game.engine.busy:await process_frame
+	check(not game.modal_open() and game.campaign().phase=="deployment","route selection proceeds directly (receipt deadline approaching)")
 	if not failures.is_empty():print("FAILURES: "+"; ".join(failures))
 	else:print("quest story regression: "+str(checks)+" checks passed; FHD geometry verified without a GUI framebuffer")
 	game.closing=true;game.dialog.close(false);await game.audio.finish_audio();game.engine.close_engine()

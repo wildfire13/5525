@@ -1,5 +1,5 @@
 extends Button
-## A short horizontal swipe scrolls the strip; a deployment drag leaves it vertically.
+## Deployment and guild cards can be dragged toward a target in any direction.
 var strip_ref: WeakRef
 var uid := ""
 var pointer_start := Vector2.ZERO
@@ -28,7 +28,7 @@ func _gui_input(event):
 	elif event is InputEventMouseMotion and tracking:
 		var delta_=get_global_mouse_position()-pointer_start
 		if delta_.length()>10:suppress_click=true
-		if not owner_.guild_drag() and absf(delta_.x)>12 and absf(delta_.x)>absf(delta_.y)*1.25:swiping=true
+		if allows_swipe(owner_) and absf(delta_.x)>12 and absf(delta_.x)>absf(delta_.y)*1.25:swiping=true
 		if swiping:owner_.scroll.scroll_horizontal=scroll_start-int(delta_.x);accept_event()
 	elif event is InputEventScreenTouch:
 		if event.pressed:pointer_start=get_global_transform_with_canvas()*event.position;scroll_start=owner_.scroll.scroll_horizontal;tracking=true;swiping=false;suppress_click=false
@@ -36,13 +36,15 @@ func _gui_input(event):
 	elif event is InputEventScreenDrag and tracking:
 		var delta_=get_global_transform_with_canvas()*event.position-pointer_start
 		if delta_.length()>10:suppress_click=true
-		if absf(delta_.x)>12 and absf(delta_.x)>absf(delta_.y)*1.25:swiping=true
+		if owner_.ui.campaign().get("phase")!="deployment" and absf(delta_.x)>12 and absf(delta_.x)>absf(delta_.y)*1.25:swiping=true
 		if swiping:owner_.scroll.scroll_horizontal=scroll_start-int(delta_.x);accept_event()
+func allows_swipe(owner_) -> bool:
+	return not owner_.guild_drag() and owner_.ui.campaign().get("phase")!="deployment"
 func _get_drag_data(at: Vector2):
 	var owner_=owner_strip()
 	if owner_==null or disabled:return null
 	var delta_=get_global_mouse_position()-pointer_start if tracking else get_global_mouse_position()-(global_position+at)
-	if swiping or (not owner_.guild_drag() and absf(delta_.x)>absf(delta_.y)*1.25):
+	if swiping or (allows_swipe(owner_) and absf(delta_.x)>absf(delta_.y)*1.25):
 		suppress_click=true;return null
 	var data=owner_.drag_payload(uid)
 	if data!=null:suppress_click=true;tracking=false;set_drag_preview(preload("res://deployment_drag.gd").preview(owner_.ui,uid))

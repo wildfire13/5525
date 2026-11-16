@@ -237,10 +237,12 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       if(r.kind==='skill'&&skill==='legSweep'&&(u?.id===a.id||B.sweepTargets(state,a).some(t=>t.id===u?.id)))target=a.id;
       if(r.kind==='skill'&&['pair','upToTwo'].includes(shape))target=[...new Set([...(Array.isArray(r.chosen)?r.chosen:[]),u?.id].filter(Boolean))];
       const legal=!!a&&a.side==='ally'&&!!u&&['attack','skill','item','ether'].includes(r.kind)&&B.legal(state,r.kind,target);
+      const cost=a&&B.skillCost(a);
+      const lacksMp=!legal&&a?.side==='ally'&&u&&r.kind==='skill'&&a.mp<cost&&B.legalFor(state,{...a,mp:cost},'skill',target);
       const support=r.kind!=='attack'&&(r.kind!=='skill'||['mage','guard','porter','healingCross','defenseLine','manaGift'].includes(skill));
       const recovery=r.kind==='item'||r.kind==='ether'||r.kind==='skill'&&['mage','healingCross','manaGift'].includes(skill);
       const fullHealth=!!a&&a===u&&a.side==='ally'&&a.hp>0&&a.hp===a.max&&a.mp>0&&!state.deploying&&!state.result&&r.kind==='skill'&&skill==='mage';
-      response={ok:true,hover:{status:legal||fullHealth?'ready':shape==='pair'&&target?.length<2?'needs_targets':'unavailable',fullHealth,accuracy:legal&&r.kind==='skill'&&skill==='stamp'?null:legal&&r.kind==='attack'?Math.round(100*(1-(B.attackPreview(state,a,u)?.evasionChance||0))):legal&&r.kind==='skill'&&skill==='legSweep'?B.sweepChance(a)*100:legal&&(!support||recovery)||fullHealth?100:null,...(legal?preview(r.kind,target).preview:{})}};
+      response={ok:true,hover:{status:legal||fullHealth?'ready':lacksMp?'insufficient_mp':shape==='pair'&&target?.length<2?'needs_targets':'unavailable',fullHealth,accuracy:legal&&r.kind==='skill'&&skill==='stamp'?null:legal&&r.kind==='attack'?Math.round(100*(1-(B.attackPreview(state,a,u)?.evasionChance||0))):legal&&r.kind==='skill'&&skill==='legSweep'?B.sweepChance(a)*100:legal&&(!support||recovery)||fullHealth?100:null,...(legal?preview(r.kind,target).preview:{})}};
     }
     else if(r.op==='preview')response=preview(r.kind,r.target,r.previewKind);
     else if(r.op==='godot_io')response=require('./godot-io.cjs')(r);

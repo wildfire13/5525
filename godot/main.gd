@@ -109,6 +109,7 @@ func _ready():
 	top=HBoxContainer.new();top.custom_minimum_size.y=44;base.add_child(top)
 	actor_face=portrait(top,{},true,40);actor_face.visible=false
 	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
+	var elapsed=Label.new();elapsed.name="BattleElapsedTime";top.add_child(elapsed)
 
 	town_back=button(top,"拠点へ",navigate.bind("hub"));town_back.visible=false
 	var menu_button=local_button(self,"メニュー",open_menu);menu_button.name="CommonMenuButton"
@@ -550,6 +551,7 @@ func render():
 	resource_header.visible=not battle
 	location_bar.visible=false
 	top.visible=battle or engine.disconnected
+	top.get_node("BattleElapsedTime").text=mock_shell.elapsed_time_text()
 	pages.facility_art.render_background(backdrop_layer,self,battle)
 	actor_face.visible=false
 	var lower_return=phase=="result" or phase=="town" and page!="hub"
@@ -568,8 +570,9 @@ func render():
 		if is_instance_valid(deployment_party_strip):remove_child(deployment_party_strip);deployment_party_strip.queue_free()
 		deployment_party_strip=null
 		if phase=="deployment":
-			deployment_party_strip=pages.party_view.face_bar(self);deployment_party_strip.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE);deployment_party_strip.offset_left=24;deployment_party_strip.offset_right=-154;deployment_party_strip.offset_top=-114 if ui_size_mode=="standard" else -104;deployment_party_strip.offset_bottom=-30
-			hud.partybar_reserved_height=94 if ui_size_mode=="standard" else 84
+			deployment_party_strip=pages.party_view.face_bar(self)
+			hud.partybar_reserved_height=0
+			hud.deployment_workspace.layout()
 		else:hud.partybar_reserved_height=0
 	else:
 		if is_instance_valid(deployment_party_strip):remove_child(deployment_party_strip);deployment_party_strip.queue_free()

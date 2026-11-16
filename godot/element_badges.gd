@@ -1,4 +1,5 @@
 extends RefCounted
+const MATCHUP_TIP="各属性攻撃は対応する属性DEFを引いてから相性を適用。火＞地＞水＞火。相性有利×1.25、不利×0.75。同属性・無属性・物理は等倍。"
 ## Approved elemental artwork and concise explanations for existing combat values.
 const SPECS={
 	"fire":{"label":"火","path":"res://assets/element_icons/火属性.png","tip":"火属性。火の攻撃は地属性に有利、水属性に不利。"},
