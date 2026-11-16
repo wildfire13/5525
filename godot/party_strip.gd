@@ -55,7 +55,9 @@ func slide(direction: int):
 	scroll.scroll_horizontal+=direction*int(maxf(120,scroll.size.x*.7));refresh_arrows()
 func activate(id: String):
 	if ui.locked or ui.presenting or ui.closing or ui.engine.disconnected:return
-	view.portrait_pressed(id)
+	if ui.campaign().get("phase")=="deployment":
+		ui.mock_shell.activate(id)
+	else:view.portrait_pressed(id)
 func configure_deployment_card(button,member,line):
 	var id=str(member.id)
 	button.set_script(preload("res://party_member_card.gd"))

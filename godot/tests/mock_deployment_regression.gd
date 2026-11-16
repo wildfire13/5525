@@ -38,8 +38,19 @@ func run():
  cards.custom_minimum_size.y=0;strip.scroll.scroll_vertical=0;await settle()
  var ally=game.state().units.filter(func(u):return u.side=="ally")[0];var id=ally.id;var pos=ally.pos
  game.find_child("PartyFace_"+str(id),true,false).pressed.emit();await settle()
- check(game.pages.party_view.detail_uid==id and game.dialog.window.visible,"vertical member click opens status")
- game.dialog.close();await settle()
+ check(game.page=="character" and game.pages.party_uid==id and game.find_child("CharacterPortrait",true,false)!=null and not game.modal_open(),"deployment card opens the shared full-page party information")
+ if DisplayServer.get_name()!="headless" and not OS.get_environment("CHARACTER_DEPLOYMENT_CAPTURE").is_empty():
+  await RenderingServer.frame_post_draw
+  root.get_texture().get_image().save_png(OS.get_environment("CHARACTER_DEPLOYMENT_CAPTURE"))
+ var workspace=game.pages.party_view.workspace
+ for tab in ["inventory","ability","skills","equipment"]:
+  workspace.set_tab(tab);await settle()
+  check(workspace.tab==tab and game.page=="character","deployment opens shared "+tab+" tab")
+ var other=game.campaign().selected.filter(func(uid):return uid!=id)[0]
+ game.find_child("RosterMember_"+str(other),true,false).pressed.emit();await settle()
+ check(game.pages.party_uid==other,"shared roster switches inspected member")
+ game.find_child("RosterMember_"+str(other),true,false).pressed.emit();await settle()
+ check(game.view_kind=="battle" and game.campaign().phase=="deployment" and game.state().units.any(func(u):return u.id==id and u.pos==pos),"closing party information restores unchanged deployment")
  var enemy=game.state().units.filter(func(u):return u.side=="enemy")[0]
  await game.on_cell(int(enemy.pos));await settle()
  check(game.hud.selected_enemy==enemy.id and game.hud.right_panel.body.find_children("*","Label",true,false).any(func(l):return l.text==enemy.name),"enemy inspection in same sidebar")
@@ -47,6 +58,10 @@ func run():
  check(game.hud.selected_enemy=="","ally selection restores inspector")
  await game.deployment_assigned(id,null);await settle()
  check(game.find_child("DeploymentReserves",true,false).find_children("*","Button",true,false).size()>0,"removed member appears in reserves")
+ var reserve=game.find_child("DeploymentReserves",true,false).find_children("*","Button",false,false)[0]
+ reserve.pressed.emit();await settle()
+ check(game.page=="character" and game.pages.party_uid==id,"reserve inspection uses the same party information")
+ game.find_child("Header_character",true,false).pressed.emit();await settle()
  var drag=preload("res://deployment_drag.gd");var payload=drag.make_payload(game,id,"party")
  check(payload is Dictionary and drag.valid(game,payload),"reserve drag uses validated existing payload")
  var card=game.find_child("PartyFace_"+str(id),true,false)

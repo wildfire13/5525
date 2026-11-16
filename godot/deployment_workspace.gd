@@ -75,7 +75,7 @@ func render():
  reserve_area.set_drag_forwarding(Callable(),func(_at,data):return Drag.valid(ui,data) and data.source=="board",func(_at,data):if Drag.consume(ui,data):ui.deployment_assigned(str(data.uid),null))
  if reserves.is_empty():label(reserve_area,"控えはいません")
  for member in reserves:
-  var card=ui.button(reserve_area,str(member.name),func():ui.pages.party_view.open_detail(str(member.id)));card.alignment=HORIZONTAL_ALIGNMENT_LEFT;card.icon=ui.portraits.texture(member,true);card.expand_icon=true;card.add_theme_constant_override("icon_max_width",40);card.custom_minimum_size.y=56;card.tooltip_text="味方のマスへドラッグして配置"
+  var card=ui.button(reserve_area,str(member.name),ui.mock_shell.activate.bind(str(member.id)));card.alignment=HORIZONTAL_ALIGNMENT_LEFT;card.icon=ui.portraits.texture(member,true);card.expand_icon=true;card.add_theme_constant_override("icon_max_width",40);card.custom_minimum_size.y=56;card.tooltip_text="味方のマスへドラッグして配置"
   card.set_drag_forwarding(func(_at):var data=Drag.make_payload(ui,str(member.id),"party");if data!=null:card.set_drag_preview(Drag.preview(ui,str(member.id)));return data,Callable(),Callable())
  for member in ui.roster():
   if deployed.has(member.id) and member.hp<=0:ui.button(reserve_area,str(member.name)+"を控えに戻す",ui.deployment_assigned.bind(str(member.id),null))

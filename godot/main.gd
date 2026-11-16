@@ -536,12 +536,13 @@ func render():
 	theme.default_font_size=20
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
-	header.text=town_name(place)
+	header.text="配置" if phase=="deployment" and page=="character" else town_name(place)
 	location_label.text=town_name(place)+location_suffix(phase,c)
 	location_label.tooltip_text=location_label.text
 	gold_feedback.sync(int(c.get("gold",0)))
 	header.tooltip_text=header.text
-	var battle=not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
+	var inspecting_deployment=phase=="deployment" and page=="character"
+	var battle=not inspecting_deployment and not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
 	base.offset_left=margin if battle else 48;base.offset_right=-base.offset_left
 	if not battle:mock_shell.apply_theme()
@@ -600,7 +601,7 @@ func render():
 			var back=green_button(button(return_row,pages.facility_entry.return_label() if phase=="town" else "広場に移動",pages.acknowledge.bind("hub") if phase=="result" else pages.facility_entry.back,pages.guild_view.busy() if page=="party" else false));back.name="GuildReturn" if page=="party" else "InnReturn" if page=="inn" else "TownReturn"
 
 	pages.party_view.refresh_modal()
-	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else (focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if phase in ["battle","deployment"] else ""))
+	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else (focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if battle else ""))
 	rendering=false;memory.restore()
 func location_suffix(phase: String,c: Dictionary) -> String:
 	if phase!="town":return " / "+{"road":"街道","camp":"野営地","arrival":"到着","delivery":"配達","result":"結果","prepare":"出発準備"}.get(phase,"旅程")
