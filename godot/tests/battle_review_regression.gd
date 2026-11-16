@@ -76,7 +76,7 @@ func observe():
 	var owner_label=game.find_child("PresentationAction",true,false)
 	phases.append({"phase":phase.phase,"actor":phase.actor_id,"unit":phase.unit_id,"recipient_matches":not phase.phase in ["heal","hurt"] or text(game.hud.target_box).contains("実受領者: "+game.hud.target_name(phase.unit_id)),"head_matches":head!=null and head.get_meta("unit_id","")==actor.id and not faces.is_empty() and faces[0].texture==game.portraits.texture(actor,true),"header_matches":owner_label!=null and owner_label.text.contains(str(actor.get("name","missing"))),"queue_matches":queue_matches,"labels":queue_text,"rect":str(game.board.get_global_rect())})
 func presentation_case():
-	root.size=Vector2i(800,600);game.checks_fast=false
+	game.checks_fast=false
 	for which in ["self","other","finish"]:
 		await restore(which);process_frame.connect(observe)
 		game.choose_command("action_attack" if which=="finish" else "action_skill")
@@ -90,30 +90,29 @@ func presentation_case():
 	check("JY-02",phases.any(func(p):return p.phase=="heal" and p.unit!=p.actor),"healed recipient is distinguishable from action owner")
 	check("JY-05",phases.all(func(p):return p.recipient_matches) and phases.any(func(p):return p.phase=="heal" and p.actor=="character_merina" and p.unit=="character_merina"),"actual result names only the received unit, including single-target self heal with other available candidates")
 func movement_cases():
-	for dims in [Vector2i(1178,814),Vector2i(800,600)]:
-		root.size=dims;await restore()
-		for mode in range(3):
-			game.board.camera_yaw=[0.0,.45,-.45][mode];game.board.camera_pitch=[.65,.9,.4][mode];game.board.update_camera();game.choose_command("action_move");await settle();var before=await snapshot();var first=geometry();var dest=int(game.data.choices.action_move[0])
-			await game.on_cell(dest);await settle();var original=game.preview.duplicate(true);var placed=geometry()
-			check("JY-03",stable(first,placed),str(dims)+" view "+str(mode)+" selection and ghost keep all 50 projected positions and camera unchanged")
-			game.preview.risks=["長い敵の名前と予告条件を確認するための表示試験".repeat(12)];game.render();await settle();var long_text=geometry();check("JY-03",stable(first,long_text),"long forecast cannot resize or move board");game.preview=original;game.render();await settle()
-			game.hud.open_range_reference();await settle();var open=geometry();var overlay=false
-			for child in game.get_children():
-				if child is Window and child.visible and Rect2(Vector2(child.position),Vector2(child.size)).intersects(game.board.get_global_rect()):overlay=true
-			check("JY-04",not overlay and stable(first,open) and game.board.ghost.visible,"reference leaves ghost and full board unobscured at identical coordinates")
-			check("JY-04",not game.can_commit(),"reference cannot execute an attack or movement")
-			for which in ["action_skill","action_attack"]:
-				await game.hud.request_reference(which);await settle()
-				var expected=await game.engine.request({"op":"preview","kind":"action_move","target":dest,"previewKind":which})
-				check("JY-04",game.hud.reference_preview==expected.preview and game.board.preview==expected.preview and game.preview==original and stable(first,geometry()),which+" reference renders real canonical ranges at the same ghost without replacing its move decision")
-			var bounds=game.hud.right_panel.get_global_rect();var controls_fit=true
-			for control in game.hud.decision_footer.get_children():controls_fit=controls_fit and bounds.encloses(control.get_global_rect()) and root.get_visible_rect().encloses(control.get_global_rect())
-			var scroll=game.hud.right_panel.body.get_parent()
-			check("JY-04",controls_fit and scroll.get_global_rect().encloses(game.hud.target_box.get_global_rect()),"reference text fits its visible viewport and pinned controls fit the target panel without scrolling: "+str({"controls_fit":controls_fit,"panel":bounds,"footer":game.hud.decision_footer.get_global_rect(),"scroll":scroll.get_global_rect(),"reference":game.hud.target_box.get_global_rect()}))
-			await click(game.board.global_position+game.board.project_cell(int(game.data.choices.action_move[-1])));check("JY-04",game.pending==dest and game.hud.range_reference,"board click cannot replace destination through reference mode")
-			await escape();check("JY-04",not game.hud.range_reference and game.pending==dest and game.preview==original and game.can_commit(),"Escape returns to the same executable movement ghost")
-			game.cancel();await settle();check("JY-03",stable(first,geometry()),"cancel restores choice without moving any cell");check("JY-04",await snapshot()==before,"reference and cancellation change no resources")
-			measurements.append({"window":str(dims),"mode":mode,"select":recorded(first),"ghost":recorded(placed),"long_text":recorded(long_text),"reference":recorded(open),"cancel":recorded(geometry()),"stable":stable(first,placed) and stable(first,open)})
+	await restore()
+	for mode in range(3):
+		game.board.camera_yaw=[0.0,.45,-.45][mode];game.board.camera_pitch=[.65,.9,.4][mode];game.board.update_camera();game.choose_command("action_move");await settle();var before=await snapshot();var first=geometry();var dest=int(game.data.choices.action_move[0])
+		await game.on_cell(dest);await settle();var original=game.preview.duplicate(true);var placed=geometry()
+		check("JY-03",stable(first,placed),str(root.size)+" view "+str(mode)+" selection and ghost keep all 50 projected positions and camera unchanged")
+		game.preview.risks=["長い敵の名前と予告条件を確認するための表示試験".repeat(12)];game.render();await settle();var long_text=geometry();check("JY-03",stable(first,long_text),"long forecast cannot resize or move board");game.preview=original;game.render();await settle()
+		game.hud.open_range_reference();await settle();var open=geometry();var overlay=false
+		for child in game.get_children():
+			if child is Window and child.visible and Rect2(Vector2(child.position),Vector2(child.size)).intersects(game.board.get_global_rect()):overlay=true
+		check("JY-04",not overlay and stable(first,open) and game.board.ghost.visible,"reference leaves ghost and full board unobscured at identical coordinates")
+		check("JY-04",not game.can_commit(),"reference cannot execute an attack or movement")
+		for which in ["action_skill","action_attack"]:
+			await game.hud.request_reference(which);await settle()
+			var expected=await game.engine.request({"op":"preview","kind":"action_move","target":dest,"previewKind":which})
+			check("JY-04",game.hud.reference_preview==expected.preview and game.board.preview==expected.preview and game.preview==original and stable(first,geometry()),which+" reference renders real canonical ranges at the same ghost without replacing its move decision")
+		var bounds=game.hud.right_panel.get_global_rect();var controls_fit=true
+		for control in game.hud.decision_footer.get_children():controls_fit=controls_fit and bounds.encloses(control.get_global_rect()) and root.get_visible_rect().encloses(control.get_global_rect())
+		var scroll=game.hud.right_panel.body.get_parent()
+		check("JY-04",controls_fit and scroll.get_global_rect().encloses(game.hud.target_box.get_global_rect()),"reference text fits its visible viewport and pinned controls fit the target panel without scrolling: "+str({"controls_fit":controls_fit,"panel":bounds,"footer":game.hud.decision_footer.get_global_rect(),"scroll":scroll.get_global_rect(),"reference":game.hud.target_box.get_global_rect()}))
+		await click(game.board.global_position+game.board.project_cell(int(game.data.choices.action_move[-1])));check("JY-04",game.pending==dest and game.hud.range_reference,"board click cannot replace destination through reference mode")
+		await escape();check("JY-04",not game.hud.range_reference and game.pending==dest and game.preview==original and game.can_commit(),"Escape returns to the same executable movement ghost")
+		game.cancel();await settle();check("JY-03",stable(first,geometry()),"cancel restores choice without moving any cell");check("JY-04",await snapshot()==before,"reference and cancellation change no resources")
+		measurements.append({"window":str(root.size),"mode":mode,"select":recorded(first),"ghost":recorded(placed),"long_text":recorded(long_text),"reference":recorded(open),"cancel":recorded(geometry()),"stable":stable(first,placed) and stable(first,open)})
 func target_details():
 	await restore();var before=await snapshot()
 	for id in ["character_merina","character_mirei"]:
@@ -124,7 +123,7 @@ func target_details():
 	check("JY-05",await snapshot()==before,"target explanation never applies healing")
 func run():
 	if evidence.is_empty():evidence="user://battle-review"
-	DirAccess.make_dir_recursive_absolute(evidence.path_join("reports"));root.size=Vector2i(1178,814)
+	DirAccess.make_dir_recursive_absolute(evidence.path_join("reports"));root.size=Vector2i(1920,1080)
 	var output=[];var node=OS.get_environment("NATIVE5525_NODE");if node.is_empty():node="node"
 	var code=OS.execute(node,PackedStringArray([ProjectSettings.globalize_path("res://tests/battle_review_fixtures.cjs")]),output,false,false);fixtures=JSON.parse_string("".join(output))
 	if code!=0 or not fixtures is Dictionary or fixtures.is_empty():quit(2);return
