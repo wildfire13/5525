@@ -21,7 +21,11 @@ var formation := "convoy"
 var destination := ""
 var pages
 var mock_shell
+var campaign_theme: Theme
 var battle_theme: Theme
+var themes_ready := false
+var parked_board
+var parked_epoch := -1
 var gear_preview: Dictionary={}
 var notice := ""
 var save_notice
@@ -100,7 +104,8 @@ func _ready():
 			style.content_margin_left=8;style.content_margin_right=8;style.content_margin_top=4;style.content_margin_bottom=4;theme_.set_stylebox(state_,type_,style)
 		theme_.set_color("font_disabled_color",type_,Color("#9299a3"))
 	theme=theme_
-	battle_theme=theme_.duplicate(true)
+	campaign_theme=theme_
+	battle_theme=theme_.duplicate(false)
 	low_hp_font=FontVariation.new();low_hp_font.base_font=ui_font.base_font;low_hp_font.variation_opentype={weight_axis:700}
 	backdrop_layer=Control.new();backdrop_layer.name="SceneBackdrop";backdrop_layer.mouse_filter=Control.MOUSE_FILTER_IGNORE;backdrop_layer.clip_contents=true;add_child(backdrop_layer);backdrop_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base=VBoxContainer.new();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -533,7 +538,6 @@ func render():
 	ui_size_mode="standard" if available.x>=1120 and available.y>=720 else "compact"
 	var margin=24 if available.x>=1800 and available.y>=1000 else 12 if ui_size_mode=="standard" else 8
 	base.offset_left=48 if view_kind!="battle" else margin;base.offset_right=-base.offset_left;base.offset_top=12;base.offset_bottom=-margin
-	theme.default_font_size=20
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
 	header.text="配置" if phase=="deployment" and page=="character" else town_name(place)
@@ -545,10 +549,16 @@ func render():
 	var battle=not inspecting_deployment and not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
 	base.offset_left=margin if battle else 48;base.offset_right=-base.offset_left
-	if not battle:mock_shell.apply_theme()
-	else:
-		theme=battle_theme.duplicate(true)
+	if not themes_ready:
+		mock_shell.apply_theme()
+		theme=battle_theme
 		preload("res://battle_theme.gd").apply(self)
+		themes_ready=true
+	var next_theme=battle_theme if battle else campaign_theme
+	if theme!=next_theme:theme=next_theme
+	if is_instance_valid(parked_board) and (parked_epoch!=pages.epoch or phase!="deployment"):
+		parked_board.queue_free()
+		parked_board=null
 	resource_header.visible=not battle
 	location_bar.visible=false
 	top.visible=battle or engine.disconnected
@@ -566,7 +576,15 @@ func render():
 		common_menu.offset_bottom=-8
 	footer.visible=not battle and page not in ["shop","party"]
 	if battle:
-		if view_kind!="battle":clear(content);hud.mount();view_kind="battle"
+		if view_kind!="battle":
+			clear(content)
+			if is_instance_valid(parked_board):
+				board=parked_board
+				parked_board=null
+				board.process_mode=Node.PROCESS_MODE_INHERIT
+				board.show()
+			hud.mount()
+			view_kind="battle"
 		render_battle()
 		if is_instance_valid(deployment_party_strip):remove_child(deployment_party_strip);deployment_party_strip.queue_free()
 		deployment_party_strip=null
@@ -578,7 +596,16 @@ func render():
 	else:
 		if is_instance_valid(deployment_party_strip):remove_child(deployment_party_strip);deployment_party_strip.queue_free()
 		deployment_party_strip=null
-		if is_instance_valid(board):board.persist_camera();board.queue_free()
+		if is_instance_valid(board):
+			if inspecting_deployment:
+				parked_board=board
+				parked_epoch=pages.epoch
+				board.persist_camera()
+				board.hide()
+				board.process_mode=Node.PROCESS_MODE_DISABLED
+			else:
+				board.persist_camera()
+				board.queue_free()
 		board=null;actor_row=null;clear(content);view_kind="page"
 		mock_shell.navigation(content)
 		var body: VBoxContainer=mock_shell.workspace(content)

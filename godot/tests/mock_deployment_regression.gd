@@ -37,7 +37,9 @@ func run():
  check(strip.scroll.scroll_vertical>0,"vertical overflow scroll reaches lower members")
  cards.custom_minimum_size.y=0;strip.scroll.scroll_vertical=0;await settle()
  var ally=game.state().units.filter(func(u):return u.side=="ally")[0];var id=ally.id;var pos=ally.pos
+ var original_board=game.board
  game.find_child("PartyFace_"+str(id),true,false).pressed.emit();await settle()
+ check(not original_board.is_visible_in_tree() and not original_board.can_process(),"inspected deployment board is suspended")
  check(game.page=="character" and game.pages.party_uid==id and game.find_child("CharacterPortrait",true,false)!=null and not game.modal_open(),"deployment card opens the shared full-page party information")
  if DisplayServer.get_name()!="headless" and not OS.get_environment("CHARACTER_DEPLOYMENT_CAPTURE").is_empty():
   await RenderingServer.frame_post_draw
@@ -50,6 +52,7 @@ func run():
  game.find_child("RosterMember_"+str(other),true,false).pressed.emit();await settle()
  check(game.pages.party_uid==other,"shared roster switches inspected member")
  game.find_child("RosterMember_"+str(other),true,false).pressed.emit();await settle()
+ check(game.board==original_board and original_board.can_process() and original_board.is_visible_in_tree(),"return reuses the live deployment board")
  check(game.view_kind=="battle" and game.campaign().phase=="deployment" and game.state().units.any(func(u):return u.id==id and u.pos==pos),"closing party information restores unchanged deployment")
  var enemy=game.state().units.filter(func(u):return u.side=="enemy")[0]
  await game.on_cell(int(enemy.pos));await settle()
