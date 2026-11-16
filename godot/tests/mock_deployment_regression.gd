@@ -16,6 +16,7 @@ func run():
  var field=game.board.get_global_rect();var sidebar=game.hud.right_panel.get_global_rect()
  var strip=game.deployment_party_strip
  var cards=strip.scroll.get_child(0)
+ check(strip.find_child("PartyRoster",true,false)!=null and strip.size.x==game.mock_shell.ROSTER_WIDTH,"deployment uses the campaign roster and its width")
  check(cards.vertical and strip.scroll.vertical_scroll_mode==ScrollContainer.SCROLL_MODE_AUTO,"deployment roster uses vertical scrolling")
  check(strip.get_global_rect().end.x<field.position.x and not strip.get_global_rect().intersects(sidebar),"roster left, battlefield center, inspector right")
  check(not strip.get_global_rect().intersects(game.find_child("CommonMenuButton",true,false).get_global_rect()),"roster avoids menu")

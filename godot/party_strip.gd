@@ -8,27 +8,23 @@ var ui:
 var scroll: ScrollContainer
 var left: Button
 var right: Button
-var vertical_list=false
 const Drag=preload("res://deployment_drag.gd")
 func build(owner):
 	owner_ref=weakref(owner);name="PartyFaceBar"
 	var standard=ui.ui_size_mode=="standard"
-	vertical_list=ui.campaign().get("phase")=="deployment"
+	if ui.campaign().get("phase")=="deployment":
+		var panel=ui.mock_shell.roster(self,self)
+		scroll=panel.find_child("PartyRosterScroll",true,false)
+		for surface in [panel,panel.get_child(0),scroll,scroll.get_child(0)]:
+			surface.set_drag_forwarding(Callable(),_can_drop_data,_drop_data)
+		return
 	custom_minimum_size.y=84 if standard else 74
 	size_flags_horizontal=Control.SIZE_EXPAND_FILL;mouse_filter=Control.MOUSE_FILTER_PASS
 	add_theme_constant_override("separation",6)
 	left=ui.button(self,"‹",slide.bind(-1));left.name="PartySlideLeft";left.custom_minimum_size=Vector2(38,custom_minimum_size.y);left.tooltip_text="パーティー一覧を左へ";left.set_meta("no_status_hint",true)
 	scroll=ScrollContainer.new();scroll.name="PartyFacesScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;add_child(scroll);ui.memory.watch(scroll,"party_faces")
-	var members: BoxContainer=VBoxContainer.new() if vertical_list else HBoxContainer.new()
+	var members: BoxContainer=HBoxContainer.new()
 	members.name="PartyFaces";members.add_theme_constant_override("separation",6);members.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.add_child(members)
-	if vertical_list:
-		custom_minimum_size=Vector2(300,0)
-		left.hide()
-		scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
-		scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
-		members.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		members.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
-	var deployed=Drag.deployed(ui) if ui.campaign().get("phase")=="deployment" else []
 	for id in ui.campaign().get("selected",[]):
 		var matches=ui.roster().filter(func(member):return str(member.id)==str(id))
 		if matches.is_empty():continue
@@ -40,37 +36,12 @@ func build(owner):
 		control.custom_minimum_size=Vector2(96 if standard else 86,custom_minimum_size.y-18);control.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;control.size_flags_vertical=Control.SIZE_EXPAND_FILL
 		control.icon=ui.portraits.texture(member,true);control.expand_icon=true;control.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER;control.vertical_icon_alignment=VERTICAL_ALIGNMENT_TOP;control.add_theme_constant_override("icon_max_width",46 if standard else 32);control.clip_text=true
 		control.tooltip_text=str(member.name)+(" / 戦闘不能" if member.hp<=0 else "")+"\nHP%d/%d MP%d/%d" % [member.hp,member.max,member.mp,member.maxMp]+" / ステータスを開く"
-		if ui.campaign().get("phase")=="deployment":
-			control.text=str(member.name)+"\nHP %d/%d  MP %d/%d" % [member.hp,member.max,member.mp,member.maxMp]
-			control.custom_minimum_size.x=250
-			control.custom_minimum_size.y=96
-			control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-			control.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
-			control.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
-			control.vertical_icon_alignment=VERTICAL_ALIGNMENT_CENTER
-			control.add_theme_font_size_override("font_size",16)
-			var badge=Label.new();badge.name="DeploymentMemberState";badge.text="出場" if deployed.has(str(id)) else "控え";badge.add_theme_font_size_override("font_size",13);badge.add_theme_color_override("font_color",Color("#d7ebd5") if deployed.has(str(id)) else Color("#e8cc94"));badge.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;badge.mouse_filter=Control.MOUSE_FILTER_IGNORE;control.add_child(badge);badge.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE);badge.offset_top=4;badge.offset_bottom=24;badge.offset_right=-4
-			if member.hp<=0:
-				badge.text="戦闘不能";badge.add_theme_color_override("font_color",Color("#ffac9a"))
-				control.tooltip_text+=" / 戦闘不能のため出場できません。"
-				if deployed.has(str(id)):
-					badge.hide()
-					var remove=ui.button(control,"除外",remove_inactive.bind(str(id),Drag.signature(ui),ui.pages.epoch,ui.engine.connection_generation),ui.modal_open())
-					remove.name="DeploymentRemoveInactive_"+str(id);remove.tooltip_text="戦闘不能の出場枠を外して控えへ戻します。HPや所持品は変わりません。";remove.set_meta("no_status_hint",true);remove.add_theme_font_size_override("font_size",12);remove.custom_minimum_size=Vector2(0,22);remove.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE);remove.offset_top=-24;remove.offset_bottom=-2;remove.offset_left=3;remove.offset_right=-3
-					for state_ in ["normal","hover","pressed","disabled"]:
-						var style=remove.get_theme_stylebox(state_).duplicate();style.content_margin_top=0;style.content_margin_bottom=0;remove.add_theme_stylebox_override(state_,style)
-			else:control.tooltip_text+=" / 盤面へドラッグして配置"
 		if str(id)==view.detail_uid or (ui.pages.shop_view.sale_mode() and str(id)==ui.pages.shop_view.selected_owner()) or (ui.pages.warehouse_view.available() and str(id)==ui.pages.warehouse_view.owner_id):view.tint(control,Color("#243c68"))
 		elif ui.pages.guild_view.available() and str(id)==ui.pages.guild_view.chosen_id:view.tint(control,Color("#236044"))
-		elif ui.campaign().get("phase")=="deployment":
-			view.tint(control,Color("#294b51") if deployed.has(str(id)) else Color("#494137"))
-		if ui.campaign().get("phase")=="deployment":
-			for key in ["font_color","font_hover_color","font_pressed_color"]:control.add_theme_color_override(key,Color("#fff6e4"))
 		ui.memory.key(control,"face_"+str(id));ui.memory.item(control,str(id))
 	if guild_drag():
 		var slot=Button.new();slot.name="GuildPartyAppend";slot.text="満員" if ui.campaign().get("selected",[]).size()>=ui.pages.guild_view.party_limit() else "＋";slot.custom_minimum_size=Vector2(72,custom_minimum_size.y-18);slot.tooltip_text="控えをここへドラッグして末尾に追加";members.add_child(slot);slot.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data),func(_at,data):drop(data))
 	right=ui.button(self,"›",slide.bind(1));right.name="PartySlideRight";right.custom_minimum_size=Vector2(38,custom_minimum_size.y);right.tooltip_text="パーティー一覧を右へ";right.set_meta("no_status_hint",true)
-	if vertical_list:right.hide()
 	scroll.get_h_scroll_bar().value_changed.connect(func(_v):refresh_arrows())
 	scroll.resized.connect(refresh_arrows,CONNECT_DEFERRED);refresh_arrows.call_deferred()
 func refresh_arrows():
@@ -85,6 +56,27 @@ func slide(direction: int):
 func activate(id: String):
 	if ui.locked or ui.presenting or ui.closing or ui.engine.disconnected:return
 	view.portrait_pressed(id)
+func configure_deployment_card(button,member,line):
+	var id=str(member.id)
+	button.set_script(preload("res://party_member_card.gd"))
+	button.configure(self,id)
+	button.name="PartyFace_"+id
+	button.set_meta("member_id",id)
+	button.set_meta("no_status_hint",true)
+	var deployed=Drag.deployed(ui).has(id)
+	var state=Label.new()
+	state.name="DeploymentMemberState"
+	state.text="戦闘不能" if member.hp<=0 else ("出場" if deployed else "控え")
+	state.add_theme_font_size_override("font_size",13)
+	state.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	line.add_child(state)
+	if deployed and member.hp<=0:
+		var remove=ui.button(line,"除外",remove_inactive.bind(id,Drag.signature(ui),ui.pages.epoch,ui.engine.connection_generation),ui.modal_open())
+		remove.name="DeploymentRemoveInactive_"+id
+		remove.tooltip_text="戦闘不能の出場枠を外して控えへ戻します。"
+		remove.custom_minimum_size=Vector2.ZERO
+		state.hide()
+	button.tooltip_text="人物詳細を開く" if member.hp<=0 else "人物詳細を開く / 盤面へドラッグして配置"
 func remove_inactive(id: String,stamp: String,epoch: int,connection: int):
 	if not Drag.available(ui) or stamp!=Drag.signature(ui) or epoch!=ui.pages.epoch or connection!=ui.engine.connection_generation or not Drag.deployed(ui).has(id):return
 	for member in ui.roster():
