@@ -13,12 +13,12 @@ func popup_for(source):
 	await settle()
 	var popup=source.hover_window;var box=popup.content
 	check(source._make_custom_tooltip("")==null,"native empty-tooltip callback cannot create a second popup")
-	check(game.modal_open(),"existing status modal remains active while game-root hover is open")
+	check(game.modal_open(),"battle equipment sheet remains active while game-root hover is open")
 	return {"popup":popup,"box":box,"first_height":box.get_combined_minimum_size().y}
 func geometry(result,label: String):
 	var popup=result.popup;var box=result.box;var body=box.find_child("EquipmentTooltipDetails",true,false);var scroll=box.find_child("EquipmentTooltipScroll",true,false)
 	check(popup.visible,"F4 geometry is measured on a visible popup "+label)
-	check(popup.get_parent() is CanvasLayer and popup.get_parent().get_parent()==root and popup.get_parent().layer==1025,"hover draws above embedded status in game coordinates "+label)
+	check(popup.get_parent() is CanvasLayer and popup.get_parent().get_parent()==root and popup.get_parent().layer==1025,"hover draws above battle equipment sheet in game coordinates "+label)
 	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(popup.position),Vector2(popup.size))),"F4 popup fits game viewport "+label)
 	check(absf(box.size.y-box.get_combined_minimum_size().y)<=4,"F4 background follows visible full/scrollable content "+label)
 	check(not body.get_meta("excerpt",true),"F4 no excerpt or cut text "+label)
@@ -31,6 +31,11 @@ func geometry(result,label: String):
 	measurements.append({"case":label,"root":str(root.size),"popup":str(Rect2(Vector2(popup.position),Vector2(popup.size))),"box":str(box.size),"body_height":body.size.y,"content_height":body.get_content_height(),"scroll_height":scroll.size.y,"scrollable":box.get_meta("scrollable",false)})
 func close_popup(result):
 	result.popup.hide();await frames()
+static func enter_equipment_battle(frontend):
+	await frontend.act("depart",["astaris","convoy"])
+	await frontend.act("travel",["safe"])
+	await frontend.hud.open_equipment_sheet("guard")
+
 func run():
 	create_timer(180).timeout.connect(func():print("FAIL F4 equipment hover watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):push_error("Isolated F4 profile required");quit(2);return
@@ -45,7 +50,7 @@ func run():
 		for gear in ["hammer-iron-1","partner-dagger","longspear-wood","grappling-rope"]:
 			hero.weapon=gear
 			check((await game.update({"op":"campaign_load","data":seed})).get("ok",false),"F4 canonical equipped level29 fixture "+gear)
-			await enter_facility("shop");game.pages.party_view.open_detail("guard");await settle()
+			await enter_equipment_battle(game);await settle()
 			if dims.x==1920:game.dialog.window.size=Vector2i(1280,640);await settle()
 			var before=await saved()
 			for slot in (["upperBody","rightHand"] if gear=="hammer-iron-1" else ["rightHand"]):
@@ -65,7 +70,7 @@ func run():
 			game.dialog.close();await settle()
 	# Oversize original material remains complete in this same hover. Its own
 	# scroll reaches the end; no second window is needed to recover omitted text.
-	root.size=Vector2i(1920,1080);await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");game.pages.party_view.open_detail("guard");await settle()
+	root.size=Vector2i(1920,1080);await game.update({"op":"campaign_load","data":seed});await enter_equipment_battle(game);await settle()
 	game.dialog.window.size=Vector2i(1180,420);await settle()
 	var before=await saved();var source=equipped("rightHand");var definition=game.roster().filter(func(u):return u.id=="guard")[0].equipmentDetails.rightHand.duplicate(true)
 	var note="長い原文 [角括弧] の完全保持。".repeat(220)+"原文の最後まで保持"
@@ -74,35 +79,29 @@ func run():
 	var body=result.box.find_child("EquipmentTooltipDetails",true,false);var hint=result.box.find_child("EquipmentTooltipHint",true,false);var scroll=result.box.find_child("EquipmentTooltipScroll",true,false)
 	check(source.tooltip_text.ends_with(note) and body.get_parsed_text().ends_with(note) and source.plain_details.any(func(line):return line.contains("火") and line.contains("水") and line.contains("地")),"F4 oversize hover preserves all accessible blocks and icon-coded ATK/DEF without excerpt")
 	check(hint.visible and hint.text.contains("スクロール") and not hint.text.contains("抜粋"),"F4 long hover has local scroll instruction")
-	check(result.popup.position.y+result.popup.size.y>game.dialog.window.position.y+game.dialog.window.size.y and result.popup.position.y+result.popup.size.y>=root.size.y-20,"F4 full hover uses game height beyond short character window")
+	check(result.popup.position.y+result.popup.size.y>game.dialog.window.position.y+game.dialog.window.size.y and result.popup.position.y+result.popup.size.y>=root.size.y-20,"F4 full hover uses game height beyond short equipment sheet")
 	scroll.scroll_vertical=100000;await settle()
 	print("SCROLL_END visible=",result.popup.visible," offset=",scroll.scroll_vertical," max ",scroll.get_v_scroll_bar().max_value," page ",scroll.get_v_scroll_bar().page," body ",body.get_global_rect()," scroll ",scroll.get_global_rect())
 	check(scroll.scroll_vertical>0 and body.get_global_rect().end.y<=scroll.get_global_rect().end.y+4,"F4 same hover reaches complete original final line")
 	check(source.tooltip_text==full and source.tooltip_text.ends_with(note),"F4 popup does not rewrite original note")
-	# Rebuilding the character view at FHD must not
-	# leave a detached/stale tooltip; hover the newly rendered source again.
+	# Reopening the sheet rebuilds the equipped buttons.
 	for dims in [Vector2i(1920,1080)]:
 		var old=result.popup
-		game.render();await settle()
+		await game.hud.open_equipment_sheet("guard");await settle()
 		check(not is_instance_valid(old) or not old.visible,"F4 rerender retires old hover with its rebuilt source "+str(dims))
 		source=equipped("rightHand");source.configure(definition.name,definition,{"names":game.campaign().skillNames,"definitions":game.campaign().skillDefinitions,"title_size":20,"detail_size":16})
 		result=await popup_for(source);geometry(result,"rerender and rehover "+str(dims))
 		check(result.box.find_child("EquipmentTooltipDetails",true,false).get_parsed_text().ends_with(note),"F4 rebuilt hover keeps entire original note "+str(dims))
 	await close_popup(result)
-	# Comparison and description hover exclude each other, without changing
-	# the selected item or taking keyboard focus away from the character view.
 	var equipped_source=equipped("rightHand");var other_source=equipped("upperBody")
 	equipped_source.show_hover();await frames(2);var first=equipped_source.hover_window
 	other_source.show_hover();await frames(2)
 	check(not first.visible and other_source.hover_window.visible,"F4 opening another equipment hover hides the previous one")
-	var compare=preload("res://hover_comparison.gd").new();compare.ui=game;game.dialog.window.add_child(compare);compare.content.text="比較の確認";compare.show_for(equipped_source);await frames(2)
-	check(not other_source.hover_window.visible and compare.visible,"F4 comparison hides full hover without replacing selected equipment")
-	equipped_source.show_hover();await frames(2)
-	check(not compare.visible and equipped_source.hover_window.visible,"F4 full hover hides stale comparison")
-	compare.queue_free();await frames(2)
+	var active_popup=other_source.hover_window
 	game.dialog.escape();await settle()
-	check(not is_instance_valid(equipped_source.hover_window) if is_instance_valid(equipped_source) else true,"F4 Escape frees source-owned root hover")
-	check(game.page=="shop" and game.pages.facility_entry.view=="buy","F4 status hover and closing preserve shop purchase context")
+	check(not is_instance_valid(active_popup),"F4 Escape frees source-owned root hover")
+	check(not game.modal_open() and (await saved())==before,"F4 closing equipment hover preserves the battle save")
+	await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");before=await saved()
 	var catalog=node("Product_spear-wood")
 	check(catalog!=null,"F4 actual root shop product is available")
 	catalog.pressed.emit();await settle()

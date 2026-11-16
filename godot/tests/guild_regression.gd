@@ -43,7 +43,7 @@ func settle():
 	await frames(4)
 func tap(name_: String):
 	var control=node(name_)
-	if control==null:push_error("Missing control "+name_+" / detail="+game.pages.party_view.detail_uid+" / chosen="+game.pages.guild_view.chosen_id);quit(2);return
+	if control==null:push_error("Missing control "+name_+" / chosen="+game.pages.guild_view.chosen_id);quit(2);return
 	control.pressed.emit();await settle()
 func saved():return (await actual.request({"op":"campaign_save"})).data
 func ids(name_: String):
@@ -105,12 +105,8 @@ func run():
 	check(game.campaign().selected==["guard-2","mage","scout","porter","archer"] and (await saved()).state.characters==before.state.characters,"G04 addition appends and preserves owner data")
 	var roundtrip=await saved();await game.update({"op":"campaign_load","data":roundtrip});await enter_facility("party");await settle()
 	check(game.campaign().selected==roundtrip.state.selected,"G10 save/load retains composition and order")
-	await tap("GuildMember_warrior");game.pages.party_view.open_detail("warrior");await settle();await all_inventory();await tap("OwnedEquipment_potion")
-	check(node("InventoryUse").disabled and node("InventoryTransfer").disabled and node("InventoryDiscard").disabled,"G07 reserve inventory restrictions remain")
-	await tap("StatusTab_1")
-	check(game.find_children("*","Button",true,false).filter(func(b):return str(b.get_meta("ui_key","")).begins_with("allocate_")).all(func(b):return b.disabled),"G07 reserve growth editing disabled")
-	check(game.find_children("*","Button",true,false).all(func(b):return b.get_meta("ui_key","")!="party_membership"),"G01 no old growth-tab membership controls")
-	game.dialog.close();await settle();check((await saved())==roundtrip,"G05 detail inspection changes no state")
+	await tap("GuildMember_warrior");await tap("GuildTab_1")
+	check(guild.chosen_id=="warrior" and guild.detail_tab==1 and (await saved())==roundtrip,"G05 reserve equipment inspection preserves the full save")
 	guild.cancel_selection();await settle()
 	await tap("RosterMember_guard-2");await tap("GuildMember_guard");recorder.reject_next=true;await tap("GuildSwap")
 	check(guild.stage=="idle" and guild.notice.contains("拒否") and (await saved())==roundtrip,"G10 rejected select preserves state and explains reason")
@@ -136,8 +132,7 @@ func run():
 	check(game.page=="hub" and (await saved())==cargo,"G01 entry return reaches town hub without mutation")
 	var elsewhere=roundtrip.duplicate(true);elsewhere.state.location="east";await game.update({"op":"campaign_load","data":elsewhere});game.navigate("hub");await settle()
 	check(node("HubFacility_guild")==null and not guild.available(),"G01 no guild outside Astaris")
-	game.pages.party_view.open_detail("guard");await settle()
-	check(not game.modal_open() and not game.can_inspect_member("guard"),"G07 noncompanion detail hidden outside Astaris")
+	check(not game.can_inspect_member("guard"),"G07 noncompanion is unavailable outside Astaris")
 	await enter_facility("shop");await settle()
 	game.pages.shop_view.open_comparison("undertow-sword");await settle()
 	check(node("ShopComparisonBuy")!=null and node("ShopComparisonStats")!=null,"G10 shop inline comparison and purchase flow present")
@@ -145,15 +140,11 @@ func run():
 	check(game.dialog.window.title=="購入の確認" and node("PurchaseAgree")!=null and node("PurchaseRecipient_guard")==null,"G10 payment precedes recipient")
 	await tap("PurchaseDecline");await tap("RosterMember_archer")
 	check(game.shop_uid=="archer","G10 shop roster selects purchase owner without mutation")
-	game.navigate("character");await settle();await tap("RosterMember_archer")
+	game.navigate("character");await settle();await tap("RosterMember_guard-2");await tap("RosterMember_archer")
 	check(game.page=="character" and game.pages.party_uid=="archer" and node("CharacterSlot_head")!=null and game.pages.party_view.workspace.owner=="archer","G10 shared roster opens named character workspace")
 	game.engine=actual;recorder.queue_free();game.closing=true;await game.audio.finish_audio();actual.close_engine();game.queue_free();await frames()
 	var f=FileAccess.open(OS.get_environment("INVENTORY_QA_ROOT").path_join("guild-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
 	quit(0 if checks.all(func(row):return row.passed) else 1)
-
-func all_inventory():
-	var chooser=game.find_child("OwnedEquipmentSlot",true,false)
-	chooser.select(0);chooser.item_selected.emit(0);await settle()
 
 func enter_facility(page: String):
 	game.navigate(page);await settle()

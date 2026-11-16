@@ -24,7 +24,9 @@ func load_at(place: String,gold:=1000,inventory: Dictionary={}):
 	game.dialog.close(false)
 	var data=seed.duplicate(true);data.state.location=place;data.state.gold=gold
 	data.state.characters.mage.inventory=inventory.duplicate(true)
-	await game.update({"op":"campaign_load","data":data});await enter_facility("shop");await settle()
+	await game.update({"op":"campaign_load","data":data})
+	if place!="astaris":await enter_facility("shop")
+	await settle()
 func run():
 	var evidence=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/")
 	if evidence.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(evidence.to_lower()+"/"):push_error("Isolated profile required");quit(2);return
@@ -66,9 +68,6 @@ func run():
 	check(after.state.gold==900 and after.state.characters.mage.inventory.get("javelin-wood",0)==1,"double click commits exactly one unit to mage")
 	check(after.state.characters.mage.weapon==before.state.characters.mage.weapon and after.state.characters.guard==before.state.characters.guard,"no automatic equipment or other owner's inventory mutation")
 	check(shop.stage=="S0" and not game.modal_open(),"successful receipt returns safely to trading workspace")
-	game.pages.party_view.open_detail("mage");await settle()
-	check(game.dialog.window.title=="キャラクターステータス" and game.pages.party_view.detail_uid=="mage","personal status remains available during shop transaction")
-	game.dialog.close();await settle()
 	check(exists("SaleItem_javelin-wood") and shop.sale.owner_id=="mage","shop inventory exposes purchased item for selected owner's sale")
 	await tap("SaleItem_javelin-wood");await tap("FacilitySalePrepare")
 	var inv=shop.sale
@@ -80,9 +79,12 @@ func run():
 	var sale_dialog=inv.confirmation;sale_dialog.confirmed.emit();sale_dialog.confirmed.emit();await settle()
 	check(game.campaign().gold==1000 and not game.campaign().characters.mage.inventory.has("javelin-wood"),"repeated sale confirmation commits once and removes actual owner's unit")
 	game.dialog.close();await settle()
-	await load_at("astaris",1000,{"javelin-wood":1});game.navigate("board");await settle();game.pages.party_view.open_inventory("mage");await settle()
-	check(not exists("OwnedInventorySell_javelin-wood"),"sale is absent outside equipment shop")
-	await tap("OwnedEquipment_javelin-wood");check(not exists("InventorySell"),"item action has no sale outside shop")
+	await load_at("astaris",1000,{"javelin-wood":1});game.navigate("map");await settle();await tap("RosterMember_mage");await tap("CharacterTab_inventory")
+	var inventory=node("CharacterInventoryFilter").get_parent()
+	var owned=inventory.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text==source_javelin.name)
+	check(owned.size()==1 and not exists("FacilitySalePrepare"),"character inventory shows the owned weapon outside the shop")
+	if owned.size()==1:owned[0].pressed.emit();await settle()
+	check(exists("CharacterDiscard") and not exists("FacilitySalePrepare") and not exists("FacilitySaleConfirm"),"character item actions outside shop exclude sale")
 	await load_at("east",0)
 	await tap("Product_javelin-wood")
 	check(button("ShopComparisonBuy").disabled and not button("ProductTrial_javelin-wood").disabled,"insufficient money blocks purchase, not trial")
@@ -108,10 +110,6 @@ func run():
 	for i in range(8):await process_frame
 	var file=FileAccess.open(evidence.path_join("focused-checks.json"),FileAccess.WRITE);file.store_string(JSON.stringify(checks,"\t"));file.close()
 	quit(0 if checks.all(func(row):return row.passed) else 1)
-
-func all_inventory():
-	var chooser=game.find_child("OwnedEquipmentSlot",true,false)
-	chooser.select(0);chooser.item_selected.emit(0);await settle()
 
 func enter_facility(page: String):
 	game.navigate(page);await settle()

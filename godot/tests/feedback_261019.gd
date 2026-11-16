@@ -8,31 +8,37 @@ func run():
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
-	var seed=await saved();seed.state.characters.guard.inventory={"potion":3,"spear-wood":1,"kungfu-pants":1,"javelin-wood":1}
-	await game.update({"op":"campaign_load","data":seed});await settle()
 	var menu_button=node("CommonMenuButton");var rect=menu_button.get_global_rect()
 	check(rect.position.x>1700 and rect.position.y>1000 and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(rect),"menu fixed in FHD bottom right: "+str(rect))
-	var party=game.pages.party_view;party.open_detail("guard");await settle()
-	check(node("StatusEquipped").get_global_rect().end.x<=node("StatusOwnedInventory").global_position.x,"owned inventory alongside equipped slots")
-	check(node("OwnedEquipment_potion")!=null and node("OwnedEquipment_javelin-wood")!=null,"equipment view includes consumables and equipment")
-	# Stress only the view projection; never send synthetic item IDs to the engine.
-	var original_entries=game.campaign().inventoryByCharacter.guard.entries.duplicate(true)
-	var long_entries=[]
-	for i in range(36):
-		var entry=original_entries[i%original_entries.size()].duplicate(true);entry.id="layout-stress-"+str(i);entry.name="長い所持品の名称".repeat(12);long_entries.append(entry)
-	game.campaign().inventoryByCharacter.guard.entries=long_entries;party.refresh_modal();await settle()
-	check(node("OwnedEquipmentList").get_child_count()==36*3 and node("StatusEquipmentSplit").size.x<=game.dialog.window.size.x,"many long inventory names wrap inside status width")
-	check(node("OwnedEquipmentList").size.y>game.dialog.window.size.y,"large owner inventory remains in scrollable dialog content")
-	game.campaign().inventoryByCharacter.guard.entries=original_entries;party.refresh_modal();await settle()
-	var slot=game.campaign().roster.filter(func(u):return u.id=="guard")[0].equipmentSlots.filter(func(e):return e.slot=="lowerBody")[0]
-	party.open_equipment(game.campaign().roster.filter(func(u):return u.id=="guard")[0],slot);await settle()
-	check(party.owned_equipment_view.slot=="lowerBody" and node("OwnedEquipment_kungfu-pants")!=null and node("OwnedEquipment_potion")==null,"clicking equipped body part filters owner inventory")
-	var before=await saved();await click("OwnedEquipmentActions_kungfu-pants");await consent(false)
-	check(await saved()==before,"cancel equipment preview preserves full state")
-	game.dialog.close();await game.new_game();await settle()
+	await preload("res://tests/current_historical_fixture.gd").install(game)
+	var stock=await saved()
+	stock.state.characters.guard.inventory={"potion":3,"kungfu-pants":1,"javelin-wood":1}
+	await game.update({"op":"campaign_load","data":stock});await settle()
+	var before_preview=await saved()
+	game.pages.party_view.open_inventory("guard");await settle()
+	var entries=game.campaign().inventoryByCharacter.guard.entries
+	var names={}
+	for item in entries:names[item.id]=item.name
+	var rows=game.find_children("*","Button",true,false)
+	for id in ["potion","javelin-wood"]:
+		check(rows.any(func(b):return b.tooltip_text==names[id]),"inventory includes "+id)
+	var filter=node("CharacterInventoryFilter")
+	for index in range(filter.item_count):
+		if filter.get_item_metadata(index)=="lowerBody":
+			filter.select(index);filter.item_selected.emit(index);break
+	await settle()
+	rows=game.find_children("*","Button",true,false)
+	var pants=rows.filter(func(b):return b.tooltip_text==names["kungfu-pants"])
+	check(pants.size()==1 and not rows.any(func(b):return b.tooltip_text==names["potion"]),"lower body filter shows matching owned equipment")
+	if pants.size()==1:
+		pants[0].pressed.emit();await settle()
+		check(node("CharacterEquipmentComparison")!=null,"selected equipment opens an inline preview")
+		await click("Header_character")
+		check(await saved()==before_preview,"leaving equipment preview preserves the full save")
 	# Both free travel and quest arrival normalize before the first visible render.
 	for quest in [false,true]:
 		await game.new_game();await settle()
+		await preload("res://tests/current_historical_fixture.gd").install(game)
 		if quest:await game.act("accept",[game.campaign().board[0].id,"porter"])
 		var cash=game.campaign().gold;await game.act("depart",["east"])
 		var arrival=await saved();arrival.state.phase="arrival";arrival.state.journey.phase="delivery";arrival.state.journey.stage=2;arrival.state.journey.hours=4
@@ -60,7 +66,7 @@ func run():
 		check(panel.global_position.y==0 and panel.global_position.x==0 and panel.z_index>=10,"floating panel reaches screen top while remaining visible")
 		panel.position=Vector2(5000,5000);panel.constrain();await frames()
 		check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(panel.get_global_rect()),"floating panel cannot be lost off screen")
-	before=await saved();await game.choose_command("move");await game.on_cell(int(game.data.choices.move[0]));await settle()
+	var before=await saved();await game.choose_command("move");await game.on_cell(int(game.data.choices.move[0]));await settle()
 	await escape_key();check(await saved()==before and game.pending==null,"ESC cancels selected target without action consumption")
 	while not game.hud.action_menu:game.cancel();await settle()
 	await escape_key()

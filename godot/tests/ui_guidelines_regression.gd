@@ -4,19 +4,16 @@ func run():
  root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1920,1080)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
+ await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
- var seed=await saved();var leader=str(game.campaign().selected[0])
+ var seed=await saved()
  for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
-  root.size=dims;await settle();game.pages.party_view.open_detail(leader);await settle()
-  for tab in range(3):
-   await choose(node("StatusTab_"+str(tab)))
-   check(node("StatusTab_"+str(tab)).get_meta("selected",false),"selected tab explicit "+str(dims)+str(tab))
-   check(node("StatusLeftTabs").size.y<=60,"tabs do not stretch to inventory header")
-   check(node("StatusEquipped").global_position.y-node("StatusLeftTabs").get_global_rect().end.y<=12,"detail starts directly below tabs")
-  await choose(node("StatusTab_0"))
-  if DisplayServer.get_name()!="headless":await snapshot("status-"+str(dims.x))
-  check(await saved()==seed,"tab changes preserve full save")
-  game.dialog.close();game.navigate("board");await settle()
+  root.size=dims;game.navigate("character");await settle()
+  for tab in ["inventory","equipment"]:
+   await choose(node("CharacterTab_"+tab))
+   check(node("CharacterTab_"+tab).get_meta("selected",false),"selected loadout tab explicit "+str(dims)+tab)
+  check(await saved()==seed,"loadout tab changes preserve full save")
+  game.navigate("board");await settle()
   var y=node("QuestAccept").global_position.y
   var quantities=node("QuestCargoItems").find_children("*","Label",true,false)
   check(not quantities.is_empty() and quantities.all(func(label):return label.autowrap_mode==TextServer.AUTOWRAP_OFF and label.size.x>=label.get_minimum_size().x),"cargo quantities stay readable on the current board")

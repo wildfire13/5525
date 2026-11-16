@@ -10,24 +10,37 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	var before=(await game.engine.request({"op":"campaign_save"})).data
-	# View-only synthetic stress data, never sent to the rules engine or saved.
-	var entry=game.campaign().inventoryByCharacter.guard.entries[0].duplicate(true)
+	game.pages.party_view.open_inventory("guard");await frames()
+	# Use view-only copies of a real entry so the normal inventory renderer supplies the rows.
+	var inventory=game.campaign().inventoryByCharacter.guard
+	var original=inventory.entries[0]
 	var items=[]
 	for i in range(80):
-		var item=entry.duplicate(true);item.id="stress-"+str(i);item.name="長い表示名・性能の確認用".repeat(8)+str(i);items.append(item)
-	game.data.campaign.inventoryByCharacter.guard.entries=items
-	var p=game.pages.party_view;p.open_detail("guard");p.detail_tab=3;p.refresh_modal();await frames()
-	check(game.find_children("InventoryItem_stress-*","Button",true,false).size()==80,"S4/S5 eighty mixed entries render without hardcoded item count")
-	check(game.dialog.body.get_parent().get_v_scroll_bar().max_value>game.dialog.body.get_parent().size.y,"S7 many items scroll instead of shrinking text")
-	var button=game.find_child("InventoryItem_stress-79",true,false)
-	check(button.alignment==HORIZONTAL_ALIGNMENT_LEFT and button.autowrap_mode==TextServer.AUTOWRAP_WORD_SMART,"S4 long item names wrap left-aligned")
-	var hover=preload("res://hover_comparison.gd").new();hover.ui=game;game.dialog.window.add_child(hover);hover.show_for(button,true);hover.content.text="長いスキル名・性能説明".repeat(200);await frames()
-	var bounds=Rect2(Vector2.ZERO,Vector2(root.size))
-	check(bounds.encloses(Rect2(Vector2(hover.position),Vector2(hover.size))),"S5/S9 long hover content stays inside root viewport")
-	check(hover.content.get_parent().get_v_scroll_bar().max_value>hover.size.y,"S5 long hover content is scrollable")
-	game.dialog.window.size=Vector2i(700,600);await frames();hover.place();await frames()
-	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(hover.position),Vector2(hover.size))),"S5 hover remains bounded after window resize")
+		var item=original.duplicate(true)
+		if i%2==0:
+			item.kind="quest"
+			item.id="stress-"+str(i)
+		else:
+			item.kind="equipment"
+			item.type="sword"
+			item.id="stress-sword-"+str(i)
+		item.name="長い表示名・性能の確認用".repeat(8)+str(i)
+		items.append(item)
+	inventory.entries=items
+	game.render();await frames()
+	var rows=game.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text.begins_with("長い表示名"))
+	check(rows.size()==80,"S4/S5 character inventory renders all eighty entries")
+	if rows.size()==80:
+		var last=rows.back()
+		var scroll=last.get_parent()
+		while scroll!=null and not scroll is ScrollContainer:scroll=scroll.get_parent()
+		check(scroll!=null and scroll.get_v_scroll_bar().max_value>scroll.size.y,"S7 long inventory scrolls")
+		if scroll!=null:
+			scroll.ensure_control_visible(last);await frames()
+			check(scroll.get_global_rect().intersects(last.get_global_rect()),"S7 last inventory entry reachable")
+		check(last.alignment==HORIZONTAL_ALIGNMENT_LEFT and last.clip_text and last.tooltip_text==items.back().name,"S4 clipped long names retain the full tooltip")
 	var roster=game.data.campaign.roster;var selected=game.data.campaign.selected
 	for i in range(7):
 		var member=roster[0].duplicate(true);member.id="extra-"+str(i);member.name="追加表示"+str(i);roster.append(member);selected.append(member.id)

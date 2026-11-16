@@ -13,8 +13,8 @@ class DelayedSaleEngine extends DelayedEngine:
 func audio_off() -> bool:return game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se
 func run():
 	create_timer(180).timeout.connect(func():print("FAIL inventory context watchdog");quit(2))
-	var qa=OS.get_environment("INVENTORY_QA_ROOT")
-	if qa.is_empty() or not OS.get_user_data_dir().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
+	var qa=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/").trim_suffix("/")
+	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa.to_lower()+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	await preload("res://tests/current_historical_fixture.gd").install(game)

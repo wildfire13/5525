@@ -54,9 +54,8 @@ func run():
 	check(guild.current_id=="guard" and node("RosterMember_guard")!=null,"A1 changing reserve criteria retains current member context")
 	var filter_area=node("GuildReserveFilter").get_global_rect().get_center();guild.outside_press(filter_area);await settle()
 	check(guild.current_id=="guard","A1 filter click is not mistaken for outside cancellation")
-	game.pages.party_view.open_detail(guild.current_id);await settle();check(game.pages.party_view.detail_uid=="guard","A1 existing detail opens for named selected current member")
-	game.dialog.close();await settle()
-	check(guild.current_id=="guard" and guild.reserve_job=="porter" and (await saved())==seed,"A1 closing detail keeps selection/filter and exact saved state")
+	await tap("GuildTab_1")
+	check(guild.detail_tab==1 and guild.current_id=="guard" and guild.reserve_job=="porter" and (await saved())==seed,"A1 inline equipment comparison keeps selected member, filter and save")
 	guild.cancel_selection();await settle();await filter_job("")
 	var scroll=node("GuildReserveScroll");scroll.scroll_vertical=150;await frames();var offset=scroll.scroll_vertical
 	await filter_job("mage");await filter_job("")

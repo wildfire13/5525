@@ -67,13 +67,9 @@ func run():
   var full=await saved();check(full.state.characters==seed.state.characters and full.state.gold==seed.state.gold,"joining seven additional people preserves equipment inventories growth and money")
   var extra=roster_ids.filter(func(id):return not wanted.has(id))[0];guild.choose(extra);await settle()
   check(node("GuildAdd").disabled and guild.candidate("add","",extra).is_empty() and (await saved())==full,"canonical full party rejects a thirteenth member without mutation")
-  # The capacity probe selected a reserve. Clear that selection so the next
-  # current-member click opens its details instead of performing a legal swap.
-  guild.cancel_selection();await settle();check((await saved())==full,"ending capacity probe preserves full party before details checks")
+  guild.cancel_selection();await settle();check((await saved())==full,"ending capacity probe preserves full party")
   var scroll=current_scroll();scroll.scroll_vertical=500;await frames();var chosen=roster_ids[7];var position=current_scroll().scroll_vertical;guild.choose(chosen);await settle()
-  check(position>0 and current_scroll().scroll_vertical==position,"selecting current identity retains a genuine scrolled roster")
-  game.pages.party_view.open_detail(chosen);await settle();check(game.pages.party_view.detail_uid==chosen,"central details opens the selected personal identity")
-  game.dialog.close(false);await settle();check(guild.current_id==chosen and current_scroll().scroll_vertical==position,"details close preserves selected identity and list position")
+  check(guild.current_id==chosen and position>0 and current_scroll().scroll_vertical==position,"selecting current identity retains a genuinely scrolled roster")
   guild.cancel_selection();await settle();var payload=guild.drag_payload(wanted[0]);game.mock_shell.drop(payload,wanted[7]);await settle();var swap=wanted[0];wanted[0]=wanted[7];wanted[7]=swap
   check(game.campaign().selected==wanted,"twelve-member reorder retains exact slot order through shared roster drag/drop flow")
   await tap("RosterMember_"+wanted[3]);var removed=wanted[3];await tap("GuildRemove");wanted.erase(removed)

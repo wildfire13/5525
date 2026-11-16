@@ -4,6 +4,7 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var tooltip=preload("res://equipment_tooltip.gd").new()
 	var ether={"resource":"mp","amount":3,"battleRole":"porter","name":"エーテル"};var unchanged=ether.duplicate(true)
@@ -20,8 +21,11 @@ func run():
 		check(game.find_children("HubFacility_*","Button",true,false).size()==place.facilities.size(),"only existing facilities for "+place.id)
 		var chosen=hub.artwork.duplicate(true);var before=await saved()
 		for facility in place.facilities:
-			await click("HubFacility_"+facility);check(game.town_back.visible,"facility return available "+place.id+"/"+facility)
-			game.town_back.pressed.emit();await settle()
+			await click("HubFacility_"+facility)
+			var back=node("Header_board" if facility=="board" else "FacilityExit")
+			check(back!=null and back.is_visible_in_tree(),"facility return available "+place.id+"/"+facility)
+			if back!=null:
+				back.pressed.emit();await settle()
 			check(game.page=="hub" and hub.artwork==chosen,"same visit retains art "+place.id+"/"+facility)
 		check(await saved()==before,"hub navigation preserves campaign "+place.id)
 	# Stable visit selection is independent of the number of variants.
@@ -31,12 +35,15 @@ func run():
 	for i in range(40):hub.reset();hub.select_art("astaris");selected[hub.artwork.style]=true
 	check(selected.size()==3,"art catalog supports additional variants without code changes")
 	var q=game.campaign().board[0];await game.act("accept",[q.id,"porter"]);await settle()
-	game.pages.party_view.open_detail("porter");await settle();await click("StatusTab_3")
+	game.pages.party_view.open_inventory("porter");await settle()
 	var cargo=game.campaign().activeQuest.cargoItemId
-	game.pages.party_view.inventory_view.pick(cargo);await settle()
-	check(node("InventoryUse").disabled and game.dialog.window.find_children("*","Label",true,false).any(func(n):return n.text.contains("依頼の荷物は使用できません")),"cargo has delivery-specific disabled use explanation")
-	check(not game.dialog.window.find_children("*","Label",true,false).any(func(n):return n.text.contains("回復対象がいません")),"cargo never borrows recovery explanation")
-	game.dialog.close()
+	var rows=game.find_children("*","Button",true,false).filter(func(button):return button.tooltip_text=="荷物")
+	check(rows.size()==1,"porter inventory contains accepted cargo")
+	if rows.size()==1:rows[0].pressed.emit();await settle()
+	var discard=node("CharacterDiscard")
+	check(game.pages.party_view.workspace.picked.get("id")==cargo and discard!=null and discard.disabled and discard.tooltip_text.contains("使用・売却・廃棄はできません"),"cargo selection explains its delivery restrictions")
+	check(not game.find_children("*","Button",true,false).any(func(button):return button.text.ends_with("に使う")) and discard!=null and not discard.tooltip_text.contains("回復対象がいません"),"cargo offers no recovery target or recovery explanation")
+	game.navigate("hub");await settle()
 	await game.act("depart",[q.to]);var arrival=await saved()
 	arrival.state.phase="arrival";arrival.state.journey.phase="delivery";arrival.state.journey.stage=2;arrival.state.journey.hours=4
 	arrival.state.journey.party=game.roster().filter(func(u):return game.campaign().selected.has(u.id)).duplicate(true)
@@ -45,13 +52,12 @@ func run():
 	check(node("HubDeliverCargo")!=null and not node("HubDeliverCargo").disabled,"explicit delivery remains available at destination hub")
 	var fixtures=battle_fixture();await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
 	await game.choose_command("item");await game.on_cell(int(game.hud.acting().pos));await settle()
-	var names=["TargetSummary","PredictionSummary","ActionCost","ActionAvailability"]
-	var positions=names.map(func(n):return node(n).global_position.y)
-	check(positions[0]<positions[1] and positions[1]<positions[2] and positions[2]<positions[3],"I01 target then HP then cost then availability")
+	var prediction=node("PredictionSummary")
+	check(prediction.text.contains(game.hud.acting().name+" HP") and prediction.global_position.y<node("ActionCost").global_position.y and node("ActionCost").global_position.y<node("ActionAvailability").global_position.y,"I01 named target and predicted HP precede cost and availability")
 	var before=await saved();var pending=game.pending;var chosen=game.chosen.duplicate()
 	var enemy=game.state().units.filter(func(u):return u.side=="enemy")[0]
 	game.hud.inspect_hover(enemy.id,game.board);await settle()
-	check(node("InspectedPersonHeading").text=="参照："+enemy.name and node("InspectedPersonHeading").global_position.y>node("ActionAvailability").global_position.y,"hover reference labelled after decision summary")
+	check(node("InspectedPersonHeading").text=="参照" and game.hud.person_box.get_meta("inspected_unit","")==enemy.id and node("InspectedPersonHeading").global_position.y>node("ActionAvailability").global_position.y,"hover reference labelled after decision summary")
 	check(game.pending==pending and game.chosen==chosen and await saved()==before,"hover never replaces confirmed target or changes save")
 	var scroll=game.hud.right_panel.body.get_parent();scroll.scroll_vertical=100000;await frames()
 	check(game.hud.right_panel.get_global_rect().encloses(node("BattleConfirm").get_global_rect()),"confirm and cancel remain pinned outside scroll")

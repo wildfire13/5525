@@ -7,11 +7,9 @@ func run():
 	while game.data.is_empty():await process_frame
 	game.audio.fast_mode=true;game.checks_fast=true;await settle()
 	await enter_facility("party");await settle();var art=game.pages.facility_art;var rng_state=art.rng.state;var artwork=art.artwork.duplicate()
-	game.pages.party_view.open_detail("guard");await settle()
 	for tab in [1,2,0]:
-		await os_click(node("StatusTab_"+str(tab)))
-		check(game.pages.party_view.detail_tab==tab and art.rng.state==rng_state and art.artwork==artwork,"OS status tab holds visit artwork "+str(tab))
-	game.dialog.close();await settle();check(art.rng.state==rng_state and art.artwork==artwork,"status close holds visit artwork")
+		await os_click(node("GuildTab_"+str(tab)))
+		check(game.pages.guild_view.detail_tab==tab and art.rng.state==rng_state and art.artwork==artwork,"OS guild comparison tab holds visit artwork "+str(tab))
 	# Archer at cell24 has an enemy at25; the guard fixture intentionally
 	# has no in-range attack target and is for inventory/hover checks.
 	await game.update({"op":"campaign_load","data":battle_fixture().archer});await settle();await game.choose_command("attack");await settle()

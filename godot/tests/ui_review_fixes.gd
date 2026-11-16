@@ -25,6 +25,8 @@ func restore(id: String,page: String="board",location: String=""):
 	var saved=fixtures[id].duplicate(true)
 	if not location.is_empty():saved.state.location=location
 	game.page=page;await game.update({"op":"campaign_load","data":saved});await settle()
+	if page in ["shop","inn"] and game.pages.facility_entry.at_top():
+		game.pages.facility_entry.choose("buy" if page=="shop" else "inn");await settle()
 func record(id: String,scope: Node):
 	var icons=[]
 	for n in scope.find_children("*","Control",true,false):
@@ -35,39 +37,64 @@ func record(id: String,scope: Node):
 func item_cases():
 	for dims in [Vector2i(1920,1080),Vector2i(800,600)]:
 		root.size=dims
-		for context in [["camp","board",""],["camp","items",""],["town","items",""]]:
-			await restore(context[0],context[1],context[2]);var before=await snapshot()
-			var bar=node("PartyFaceBar");var party=node("CampParty") if context[0]=="camp" else node("ItemParty")
-			var label="UX01 "+str(dims)+" "+str(context)
-			check(bar!=null and bar.get_child_count()==5 and not text(bar).contains("HP") and not text(bar).contains("MP"),label+" detail bar has no duplicate resource list")
-			check(party!=null and party.find_children("FullBodyPortrait","TextureRect",true,false).size()==5 and text(party).contains("HP %d/" % before.state.characters.guard.hp) and text(party).contains("MP %d/" % before.state.characters.guard.mp),label+" full-body owner cards retain resources")
-			check(node("PartyFace_mage").text.contains("戦闘不能"),label+" detail bar retains KO")
-			check(root.get_visible_rect().encloses(bar.get_global_rect()),label+" persistent entry remains in viewport")
+		await restore("camp","hub")
+		var camp_before=await snapshot()
+		var inventory_entry=game.content.find_children("*","Button",true,false).filter(func(button):return button.text=="インベントリ")
+		check(inventory_entry.size()==1,"UX01 camp offers inventory access")
+		if inventory_entry.size()==1:
+			inventory_entry[0].pressed.emit();await settle()
+			check(game.page=="character" and game.pages.party_view.workspace.tab=="inventory" and await snapshot()==camp_before,"UX01 camp entry preserves resources")
+			node("Header_character").pressed.emit();await settle()
+			check(game.page=="hub" and node("CampActions")!=null and await snapshot()==camp_before,"UX01 closing inventory restores camp")
+		for context in ["camp","town","four"]:
+			await restore(context,"items")
+			var before=await snapshot()
+			var selected=before.state.selected
+			var party=node("CampParty" if context=="camp" else "ItemParty")
+			var roster=node("PartyRoster")
+			check(roster.find_children("RosterMember_*","Button",true,false).size()==selected.size(),"UX01 shared roster contains the selected party "+context)
+			check(party.find_children("FullBodyPortrait","TextureRect",true,false).size()==selected.size(),"UX01 owner portraits match the party "+context)
+			var owner=node("ItemMember_guard")
+			check(text(owner).contains("HP %d/" % before.state.characters.guard.hp) and text(owner).contains("MP %d/" % before.state.characters.guard.mp),"UX01 guard card shows current resources "+context)
+			if before.state.characters.mage.hp==0:check(text(node("ItemMember_mage")).contains("戦闘不能"),"UX01 defeated owner remains identifiable")
+			check(root.get_visible_rect().encloses(node("RosterMember_guard").get_global_rect()),"UX01 roster entry visible "+context)
 			node("InventoryOwner_guard").pressed.emit();await settle()
-			check(game.pages.party_view.detail_uid=="guard" and game.pages.party_view.detail_tab==3 and await snapshot()==before,"UX01 owner card opens correct inventory without using an item")
-			game.dialog.close();await settle()
-			check(game.page==context[1] and node("InventoryOwner_guard")!=null and await snapshot()==before,"UX01 close returns to owner cards without consumption")
+			check(game.page=="character" and game.pages.party_uid=="guard" and game.pages.party_view.workspace.tab=="inventory" and await snapshot()==before,"UX01 owner opens inventory without consuming")
+			node("Header_character").pressed.emit();await settle()
+			check(game.page=="items" and node("InventoryOwner_guard")!=null and await snapshot()==before,"UX01 return to owner cards preserves save")
 	root.size=Vector2i(1920,1080)
 	for context in ["town","road","north_travel"]:
-		await restore(context);check(text(node("PartyFaceBar")).contains("HP") and text(node("PartyFaceBar")).contains("MP"),"UX01 resource overview remains on "+context)
-	await restore("four","items");check(node("PartyFaceBar").get_child_count()==4 and node("ItemParty").get_child_count()==4,"UX01 four-person party keeps entry and owner cards")
+		await restore(context,"hub")
+		var member=node("RosterMember_guard")
+		check(text(member).contains("HP") and text(member).contains("MP"),"UX01 resource overview remains on "+context)
 func result_cases():
 	for id in ["north_delivery","north_travel","east_travel","west_travel","south_travel","astaris_travel"]:
-		await restore(id);var before=await snapshot();var shortcut=node("ResultShop")
-		if id=="astaris_travel":check(shortcut==null and text(game.content).contains("アスタリスの宿屋へ"),"UX02 city keeps inn shortcut");continue
-		check(shortcut!=null and not shortcut.disabled,"UX02 result uses facility metadata: "+id)
-		if id.begins_with("north"):
-			check(shortcut.text=="ノースの装飾品店へ","UX02 North identifies accessory shop")
-			record("Q02-"+id+"-result",game.content)
-		var old_uid=game.shop_uid;var old_slot=game.shop_slot
-		shortcut.pressed.emit();shortcut.pressed.emit();await settle()
+		await restore(id)
+		var before=await snapshot()
+		var destination=str(before.state.location)
+		var service="inn" if destination=="astaris" else "shop"
+		var shortcut
+		if id=="north_delivery":
+			shortcut=node("ResultShop")
+			check(shortcut!=null and shortcut.text=="ノースの装飾品店へ","UX02 North delivery offers the accessory shop")
+			record("Q02-"+id+"-result",game.results_view.shade)
+		else:
+			check(game.page=="hub" and game.campaign().phase=="town","UX02 travel arrives at the town hub "+id)
+			var facility={"north":"accessory","east":"weapon","west":"armor","south":"items","astaris":"inn"}[destination]
+			shortcut=node("HubFacility_"+facility)
+		check(shortcut!=null and not shortcut.disabled,"UX02 destination facility available "+id)
+		if shortcut==null:continue
+		shortcut.pressed.emit()
+		if id=="north_delivery":shortcut.pressed.emit()
+		await settle()
 		var after=await snapshot()
-		check(game.campaign().phase=="town" and game.page=="shop" and after.state.location==before.state.location and after.state.result==null,"UX02 shortcut acknowledges and opens destination shop: "+id)
-		check(after.state.gold==before.state.gold and after.state.characters==before.state.characters and after.state.completed==before.state.completed and after.state.hours==before.state.hours and after.state.boardRound==before.state.boardRound,"UX02 repeated click acknowledges once without duplicate rewards: "+id)
+		check(game.campaign().phase=="town" and game.page==service and after.state.location==destination and after.state.result==null,"UX02 destination service opens "+id)
+		check(after.state.gold==before.state.gold and after.state.characters==before.state.characters and after.state.completed==before.state.completed and after.state.hours==before.state.hours and after.state.boardRound==before.state.boardRound,"UX02 opening facility does not regrant rewards "+id)
 		await game.update({"op":"campaign_load","data":after});await settle()
-		check(await snapshot()==after,"UX02 shop transition round-trips through save/load: "+id)
-		if id.begins_with("north"):
-			check(game.pages.shop_view.slots()==["accessory1","accessory2"] and game.pages.offered().all(func(g):return g.slot==game.shop_slot) and game.shop_uid==old_uid,"UX02 North retains person and uses accessory slot")
+		check(await snapshot()==after,"UX02 transition round-trips through save/load "+id)
+		if destination=="north":
+			game.pages.facility_entry.choose("buy");await settle()
+			check(game.pages.shop_view.slots()==["accessory1","accessory2"] and node("ShopSlotFilter")!=null and game.shop_uid==game.pages.party_uid,"UX02 accessory shop opens for selected member")
 			record("Q02-"+id+"-shop",game.content)
 func icon_case(id: String,ids: Array):
 	await settle();record(id,game.content)
@@ -76,9 +103,9 @@ func icon_case(id: String,ids: Array):
 func icon_cases():
 	await restore("town","inn");await icon_case("Q04-inn",["inn"])
 	await restore("town","shop","south");await icon_case("Q04-consumable-shop",["potion","ether"])
-	await restore("town","board","east");check(game.campaign().board.size()==3,"Q04 village has three destination offers");record("Q04-village-board",game.content)
-	await restore("town","shop","north");await game.pages.shop_view.select_slot("accessory2");await settle();check(game.pages.offered().all(func(g):return g.slot=="accessory2"),"Q04 accessory2 excludes opposite slot products");record("Q04-accessory2",game.content)
-	await restore("town","shop","east");await game.pages.shop_view.select_slot("rightHand");await settle();record("Q04-weapon-shop",game.content)
+	await restore("town","board","east");check(node("QuestList").find_children("QuestChoice_*","Button",true,false).size()==game.campaign().board.size(),"Q04 village displays its current offers");record("Q04-village-board",game.content)
+	await restore("town","shop","north");await game.pages.shop_view.select_slot("accessory1");await settle();check(not game.pages.offered().is_empty() and game.pages.offered().all(func(g):return g.get("shopProductId",g.id)==g.id and g.get("allowedSlots",[g.slot]).has("accessory1")),"Q04 accessory filter lists canonical products");record("Q04-accessory",game.content)
+	await restore("town","shop","east");await game.pages.shop_view.select_slot("sword");await settle();record("Q04-weapon-shop",game.content)
 	await restore("heal_left");var before=await snapshot();await game.choose_command("skill");await game.on_cell(24);await icon_case("Q03-healing",["hp","mp","healing"]);check(await snapshot()==before,"EV01 heal prediction does not consume")
 	await restore("guard");before=await snapshot();await game.choose_command("guard");await icon_case("Q03-defense",["defense_up"]);check(await snapshot()==before,"EV01 defense prediction does not consume")
 	await restore("porter");before=await snapshot();await game.choose_command("skill");await icon_case("Q03-formation",["skill","attack_up","defense_up"]);check(await snapshot()==before,"EV01 boost prediction does not consume")

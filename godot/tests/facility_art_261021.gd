@@ -36,6 +36,7 @@ func run():
 			check(image.get_global_rect()==Rect2(Vector2.ZERO,Vector2(root.size)),"background covers complete viewport")
 			for i in range(3):game.render();await settle()
 			check(art.rng.state==state and art.artwork==artwork,"repeated UI renders do not reroll")
+			if spec[1] in ["shop","party"]:await enter_facility(spec[1])
 			if spec[1]=="shop" and node("ShopSlotFilter")!=null:
 				var filter=node("ShopSlotFilter");filter.item_selected.emit(0);await settle()
 				check(art.rng.state==state and art.artwork==artwork,"shop filter keeps visit artwork")
@@ -51,12 +52,9 @@ func run():
 				map.buttons[destination].pressed.emit();await settle()
 				check(node("TownMap").selected==destination and art.rng.state==state,"destination selection works without reroll")
 			if spec[1]=="party":
-				game.pages.party_view.open_detail("guard");await settle()
-				for tab in range(3):
-					await click("StatusTab_"+str(tab))
-					check(art.rng.state==state and art.artwork==artwork,"guild status tab keeps visit artwork "+str(tab))
-				game.dialog.close();await settle()
-				check(art.rng.state==state and art.artwork==artwork,"closing guild details keeps visit artwork")
+				for tab in [1,2,0]:
+					await click("GuildTab_"+str(tab))
+					check(game.pages.guild_view.detail_tab==tab and art.rng.state==state and art.artwork==artwork,"guild comparison tab keeps visit artwork "+str(tab))
 			game.navigate("hub");await settle();check(art.visit_key.is_empty() and art.texture==null,"leaving facility clears visit")
 			var town_image=game.pages.hub_view.artwork.duplicate()
 			game.navigate(spec[1]);await settle();check(art.rng.state!=state,"returning facility makes new random draw (same style allowed)")

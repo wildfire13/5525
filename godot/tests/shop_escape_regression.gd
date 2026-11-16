@@ -19,20 +19,26 @@ func run():
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.audio.fast_mode=true;game.checks_fast=true
-	var seed=(await game.engine.request({"op":"campaign_save"})).data;seed.state.location="east";seed.state.characters.archer.inventory={"twin-bow":3}
-	await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle()
+	var seed=(await game.engine.request({"op":"campaign_save"})).data
+	seed.state.location="east";seed.state.gold=500
+	var owner=str(seed.state.selected[0])
+	seed.state.characters[owner].inventory={"twin-bow":3}
+	await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle();await tap("FacilityChoice_buy")
+	await tap("RosterMember_"+owner)
 	var before=(await game.engine.request({"op":"campaign_save"})).data
-	game.pages.party_view.open_inventory("archer");await settle();await tap("InventorySell_twin-bow")
-	var inv=game.pages.party_view.inventory_view;inv.amount=2;await tap("InventoryPrepareSale");await escape_twice()
-	check(game.modal_open() and inv.stage=="targets" and inv.amount==2 and inv.quote.is_empty(),"one real key through both routes only returns sale to quantity once")
-	check((await game.engine.request({"op":"campaign_save"})).data==before,"duplicate sale Escape leaves complete save unchanged")
-	await tap("InventoryPrepareSale");await tap("StatusBack")
-	check(inv.stage=="targets" and inv.amount==2,"Back still retains quantity after Escape handling")
-	game.dialog.close();await settle()
-	await tap("ProductBuy_undertow-sword");await escape_twice()
-	check(not game.modal_open() and game.pages.shop_view.stage=="S0","purchase consent Escape still cancels normally")
-	game.pages.party_view.open_inventory("archer");await settle();await tap("InventoryItem_twin-bow");await tap("InventoryDiscard");await tap("InventoryPrepareDiscard");await escape_twice()
-	check(not game.modal_open(),"non-sale Escape preserves status-close behavior")
+	await tap("SaleItem_twin-bow")
+	var sale=game.pages.shop_view.sale
+	game.find_child("FacilitySaleQuantity",true,false).value=2;await settle()
+	await tap("FacilitySalePrepare")
+	var escape=InputEventKey.new();escape.keycode=KEY_ESCAPE;escape.pressed=true
+	sale.confirmation.push_input(escape,true);await settle()
+	check(not game.modal_open() and sale.stage=="selected" and sale.amount==2 and sale.quote.get("count")==2,"sale receipt Escape retains selection and quantity")
+	check((await game.engine.request({"op":"campaign_save"})).data==before,"sale Escape preserves complete save")
+	var list_button=game.find_child("ShopTransactionFooter",true,false).find_children("*","Button",true,false).filter(func(b):return b.text=="商品一覧へ")[0]
+	list_button.pressed.emit();await settle()
+	await tap("Product_undertow-sword");await tap("ShopComparisonBuy");await escape_twice()
+	check(not game.modal_open() and game.page=="shop" and game.pages.shop_view.stage=="S0","one purchase Escape delivered through both routes closes only consent")
+	check((await game.engine.request({"op":"campaign_save"})).data==before,"purchase Escape preserves complete save")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame
 	var f=FileAccess.open(OS.get_environment("INVENTORY_QA_ROOT").path_join("escape-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
