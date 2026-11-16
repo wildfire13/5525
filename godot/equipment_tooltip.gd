@@ -166,16 +166,19 @@ func _make_custom_tooltip(_for_text: String) -> Object:
 	box.custom_minimum_size.x=width;box.size.x=width
 	var font=get_theme_font("font")
 	var hint=Label.new();hint.name="EquipmentTooltipHint";hint.text="ホイールでスクロールして全文を確認"
+	hint.add_theme_color_override("font_color",Color.WHITE)
 	hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;hint.custom_minimum_size.x=width;hint.size.x=width
 	hint.add_theme_font_override("font",font);hint.add_theme_font_size_override("font_size",detail_size);hint.mouse_filter=Control.MOUSE_FILTER_IGNORE;hint.hide();box.add_child(hint)
 	var scroll=ScrollContainer.new();scroll.name="EquipmentTooltipScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	scroll.custom_minimum_size.x=width;box.add_child(scroll)
 	var content=VBoxContainer.new();content.name="EquipmentTooltipContent";content.add_theme_constant_override("separation",4);content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content.custom_minimum_size.x=width;content.size.x=width;scroll.add_child(content)
 	var title=Label.new();title.name="EquipmentTooltipName";title.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_color_override("font_color",Color.WHITE)
 	title.custom_minimum_size.x=width;title.size.x=width
 	title.add_theme_font_override("font",font);title.add_theme_font_size_override("font_size",title_size)
 	title.text=heading;title.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.add_child(title)
 	var body=RichTextLabel.new();body.name="EquipmentTooltipDetails";body.bbcode_enabled=true;body.fit_content=true;body.scroll_active=false
+	body.add_theme_color_override("default_color",Color.WHITE)
 	body.custom_minimum_size.x=width;body.size.x=width
 	body.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.add_theme_font_size_override("normal_font_size",detail_size);body.add_theme_font_override("normal_font",font)
 	body.text="\n".join(details);body.mouse_filter=Control.MOUSE_FILTER_PASS;content.add_child(body)

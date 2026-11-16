@@ -239,7 +239,7 @@ func display_payment(money: Label,buy: Button,cost: Dictionary):
 	buy.tooltip_text="購入品はインベントリへ入ります。" if not buy.disabled else str(cost.get("reason","購入できません"))
 	for state in ["normal","hover","pressed","disabled"]:
 		var style=StyleBoxFlat.new();style.bg_color=Color("#33594b") if not buy.disabled else Color("#e8e9e3");style.set_corner_radius_all(5);style.set_content_margin_all(8);buy.add_theme_stylebox_override(state,style)
-	buy.add_theme_color_override("font_disabled_color",Color("#8b928a"))
+	buy.add_theme_color_override("font_disabled_color",ui.mock_shell.MUTED_INK)
 	for key in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:buy.add_theme_color_override(key,Color.WHITE)
 func consumable_payment(item: Dictionary,uid: String) -> Dictionary:
 	var bag: Dictionary=c().characters[uid].inventory

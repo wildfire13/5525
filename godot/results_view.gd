@@ -16,7 +16,7 @@ var _replaying := false
 var _compact := false
 var _layout_queued := false
 const GOLD=Color("#315b4b")
-const MUTED=Color("#747d75")
+const MUTED=preload("res://mock_shell.gd").MUTED_INK
 func _init(frontend=null):ui=frontend
 func _ready():
  layer=1500;name="ResultsView"

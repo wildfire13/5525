@@ -32,7 +32,9 @@ func rebuild():
 	var panel=get_child(0)
 	if is_instance_valid(content):panel.remove_child(content);content.queue_free()
 	theme=source.theme if source.theme!=null else source.get_window().theme
-	panel.add_theme_stylebox_override("panel",source.get_theme_stylebox("panel","TooltipPanel"))
+	var surface=source.get_theme_stylebox("panel","TooltipPanel").duplicate() as StyleBoxFlat
+	surface.bg_color=Color("#20242b")
+	panel.add_theme_stylebox_override("panel",surface)
 	content=source._make_custom_tooltip(source.tooltip_text);content.set_meta("hover_owner",weakref(self));panel.add_child(content);ignore_pointer(content)
 	layout_bounds=get_tree().root.size
 	var margins=panel.get_theme_stylebox("panel").get_minimum_size()

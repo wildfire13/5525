@@ -3,6 +3,7 @@ extends RefCounted
 var ui
 const INK=Color("#29332f")
 const PAPER=Color("#faf9f5")
+const MUTED_INK=Color("#606960")
 const GREEN=Color("#345c4e")
 const ROSTER_WIDTH=280
 const SURFACE_ALPHA=0.90
@@ -22,11 +23,13 @@ func apply_theme():
 	ui.theme.default_font_size=20
 	for kind in ["Label","Button","OptionButton","CheckButton","RichTextLabel","TabBar","LineEdit","SpinBox"]:
 		for key in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:ui.theme.set_color(key,kind,INK)
-		ui.theme.set_color("font_disabled_color",kind,Color("#929b93"))
+		ui.theme.set_color("font_disabled_color",kind,MUTED_INK)
 	for kind in ["Button","OptionButton"]:
 		for state in ["normal","hover","pressed","disabled"]:ui.theme.set_stylebox(state,kind,style(Color("#e0e8dd") if state in ["hover","pressed"] else PAPER))
 	ui.theme.set_stylebox("panel","PanelContainer",surface_style())
 	ui.theme.set_stylebox("panel","AcceptDialog",style())
+	ui.theme.set_stylebox("read_only","TextEdit",style())
+	ui.theme.set_color("font_readonly_color","TextEdit",INK)
 	for key in ["normal","focus","read_only"]:ui.theme.set_stylebox(key,"LineEdit",style())
 	for key in ["embedded_border","embedded_unfocused_border"]:
 		var frame=surface_style(GREEN);frame.expand_margin_top=32

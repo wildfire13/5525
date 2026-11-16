@@ -390,15 +390,20 @@ func draw_overlay():
 			if u.id==state.get("actor"):actor=u
 		if not actor.is_empty():arrow(project_cell(actor.pos),project_cell(preview.destination),Color("#88ffd2"),3)
 		overlay.draw_string(ThemeDB.fallback_font,project_cell(int(preview.destination))+Vector2(-8,-16),"仮",HORIZONTAL_ALIGNMENT_LEFT,-1,18,Color("#88ffd2"))
-	var font=ThemeDB.fallback_font
-	for x in range(10):overlay.draw_string(font,project(point(40+x)+Vector3(0,.02,.72)),str(x),HORIZONTAL_ALIGNMENT_CENTER,-1,18,Color("#83e9db") if x<5 else Color("#ffa4b5"))
-	for y in range(5):overlay.draw_string(font,project(point(y*10)+Vector3(-.85,.02,0)),str(4-y),HORIZONTAL_ALIGNMENT_CENTER,-1,14,Color.WHITE)
+	for x in range(10):
+		draw_coordinate(project(point(40+x)+Vector3(0,.02,.72)),str(x),Color("#83e9db") if x<5 else Color("#ffa4b5"))
+	for y in range(5):
+		draw_coordinate(project(point(y*10)+Vector3(-.85,.02,0)),str(4-y),Color.WHITE)
 	if state.get("sluice") is Dictionary:
 		draw_sluice(state)
 	draw_unit_labels(state)
 	if has_focus():
 		cell_outline(keyboard_cell,Color("#78edce"),3.0)
 		overlay.draw_string(ThemeDB.fallback_font,Vector2(8,size.y-10),("射程参考 / Escで同じ仮置きに戻る" if reference_mode else "フォーカス X%d,Y%d / Enterは候補選択" % [keyboard_cell%10,4-int(keyboard_cell/10)]),HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color.WHITE)
+func draw_coordinate(at: Vector2, value: String, color: Color):
+	var font=ThemeDB.fallback_font
+	overlay.draw_string_outline(font,at,value,HORIZONTAL_ALIGNMENT_LEFT,-1,18,4,Color("#20242b"))
+	overlay.draw_string(font,at,value,HORIZONTAL_ALIGNMENT_LEFT,-1,18,color)
 func sync_sluice_works(gate) -> void:
 	if not gate is Dictionary:
 		world.set_riverside("")
