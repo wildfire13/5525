@@ -16,15 +16,17 @@ const campaign=(action,args)=>request({op:'campaign',action,args});
     let view=await request({op:'campaign_start'});assert(view.ok);assert.equal(view.campaign.version,3);
     // Current start has 24 new IDs and empty inventories. Seed this inventory
     // transaction fixture explicitly; do not assume old default gifts.
-    assert((await request({op:'campaign_load',data:JSON.parse(require('./campaign.js').serialize(require('./test-current-fixture.cjs')()))})).ok);
+    const fixture=require('./test-current-fixture.cjs')();
+    fixture.characters['recruit-guard-human-female'].inventory={potion:3,ether:1};
+    assert((await request({op:'campaign_load',data:JSON.parse(require('./campaign.js').serialize(fixture))})).ok);
     const initial=(await request({op:'campaign_save'})).data;
-    const q=(await campaign('inventoryQuote',['guard','potion','transfer','mage',2,null])).inventoryQuote;
+    const q=(await campaign('inventoryQuote',['recruit-guard-human-female','potion','transfer','recruit-mage-elf-female',2,null])).inventoryQuote;
     assert(q.ok);assert.deepEqual((await request({op:'campaign_save'})).data,initial,'readonly confirmation/cancel leaves saved state exact');
-    const args=['guard','potion','transfer','mage',2,null,q.token];
-    view=await campaign('inventoryAction',args);assert(view.ok);assert.equal(view.campaign.characters.guard.inventory.potion,1);assert.equal(view.campaign.characters.mage.inventory.potion,2);
+    const args=['recruit-guard-human-female','potion','transfer','recruit-mage-elf-female',2,null,q.token];
+    view=await campaign('inventoryAction',args);assert(view.ok);assert.equal(view.campaign.characters["recruit-guard-human-female"].inventory.potion,1);assert.equal(view.campaign.characters["recruit-mage-elf-female"].inventory.potion,2);
     const after=(await request({op:'campaign_save'})).data;
     view=await campaign('inventoryAction',args);assert.equal(view.ok,false);assert.deepEqual((await request({op:'campaign_save'})).data,after,'duplicate request cannot transfer twice');
-    const broken=structuredClone(after);delete broken.state.characters.guard.inventory;
+    const broken=structuredClone(after);delete broken.state.characters["recruit-guard-human-female"].inventory;
     assert.equal((await request({op:'campaign_load',data:broken})).ok,false);
     assert.deepEqual((await request({op:'campaign_save'})).data,after,'failed load preserves running state');
     assert.equal((await request({op:'campaign_load',data:after})).ok,true);

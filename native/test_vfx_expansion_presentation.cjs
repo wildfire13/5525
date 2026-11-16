@@ -4,7 +4,7 @@ const B=require('./campaign-battle.js'),P=require('./battle-presentation.cjs');
 const clone=x=>JSON.parse(JSON.stringify(x));
 let checks=0;
 function fixture(skill){
- const s=B.create({ally:['guard','mage','porter'],enemy:['guard','archer'],deployment:true});
+ const s=B.create({ally:["recruit-guard-human-female","recruit-mage-elf-female","recruit-porter-human-female"],enemy:['guard','archer'],deployment:true});
  const [a,b,p,e,f]=s.units;
  a.pos=24;b.pos=23;p.pos=13;e.pos=25;f.pos=15;
  for(const u of s.units)u.next=1e6;

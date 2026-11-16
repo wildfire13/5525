@@ -10,16 +10,17 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var seed=await saved()
-	seed.state.characters.archer.inventory={}
-	seed.state.characters.guard.inventory={"potion":1}
+	var empty_owner="recruit-scout-human-female"
+	var stocked_owner="recruit-guard-human-female"
+	seed.state.characters[empty_owner].inventory={}
+	seed.state.characters[stocked_owner].inventory={"potion":1}
 	await game.update({"op":"campaign_load","data":seed});await settle()
 	var before=await saved()
 	game.navigate("map");await settle()
-	await click("RosterMember_archer")
-	check(game.page=="character" and game.pages.party_uid=="archer" and not game.modal_open(),"roster opens the selected character workspace")
+	await click("RosterMember_"+empty_owner)
+	check(game.page=="character" and game.pages.party_uid==empty_owner and not game.modal_open(),"roster opens the selected character workspace")
 	await click("CharacterTab_inventory")
 	check(empty_message_fits(),"empty inventory message spans the inventory column")
 	var filter=node("CharacterInventoryFilter")
@@ -29,10 +30,10 @@ func run():
 	await settle()
 	check(node("CharacterInventoryFilter").get_item_metadata(node("CharacterInventoryFilter").selected)=="rightHand" and empty_message_fits(),"filtered empty inventory message fits the column")
 	filter=node("CharacterInventoryFilter");filter.select(0);filter.item_selected.emit(0);await settle()
-	await click("RosterMember_guard")
+	await click("RosterMember_"+stocked_owner)
 	var overlay=node("CharacterInventoryFilter").get_parent()
-	check(overlay.find_children("*","Button",true,false).any(func(b):return b.tooltip_text==game.campaign().inventoryByCharacter.guard.get("entries")[0].name),"nonempty owner shows the potion")
-	await click("RosterMember_archer")
-	check(game.pages.party_uid=="archer" and empty_message_fits() and node("CharacterInventoryFilter").get_parent().find_children("*","ScrollContainer",true,false)[0].find_children("*","Button",true,false).is_empty(),"empty owner inherits no item buttons")
+	check(overlay.find_children("*","Button",true,false).any(func(b):return b.tooltip_text==game.campaign().inventoryByCharacter[stocked_owner].get("entries")[0].name),"nonempty owner shows the potion")
+	await click("RosterMember_"+empty_owner)
+	check(game.pages.party_uid==empty_owner and empty_message_fits() and node("CharacterInventoryFilter").get_parent().find_children("*","ScrollContainer",true,false)[0].find_children("*","Button",true,false).is_empty(),"empty owner inherits no item buttons")
 	check(await saved()==before,"roster, inventory filters and owner changes preserve the complete save")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

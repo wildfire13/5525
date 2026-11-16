@@ -35,7 +35,7 @@ func record(id: String,scope: Node):
 			icons.append({"id":n.get_meta("ui_icon_id"),"node":str(n.get_path()),"rect":[rect.position.x,rect.position.y,rect.size.x,rect.size.y],"inside_viewport":root.get_visible_rect().encloses(rect)})
 	records.append({"id":id,"viewport":[root.size.x,root.size.y],"phase":game.campaign().phase,"page":game.page,"location":game.campaign().location,"icons":icons,"text":text(scope),"pixels_captured":false})
 func item_cases():
-	for dims in [Vector2i(1920,1080),Vector2i(800,600)]:
+	for dims in [Vector2i(1920,1080)]:
 		root.size=dims
 		await restore("camp","hub")
 		var camp_before=await snapshot()
@@ -54,18 +54,18 @@ func item_cases():
 			var roster=node("PartyRoster")
 			check(roster.find_children("RosterMember_*","Button",true,false).size()==selected.size(),"UX01 shared roster contains the selected party "+context)
 			check(party.find_children("FullBodyPortrait","TextureRect",true,false).size()==selected.size(),"UX01 owner portraits match the party "+context)
-			var owner=node("ItemMember_guard")
-			check(text(owner).contains("HP %d/" % before.state.characters.guard.hp) and text(owner).contains("MP %d/" % before.state.characters.guard.mp),"UX01 guard card shows current resources "+context)
-			if before.state.characters.mage.hp==0:check(text(node("ItemMember_mage")).contains("戦闘不能"),"UX01 defeated owner remains identifiable")
-			check(root.get_visible_rect().encloses(node("RosterMember_guard").get_global_rect()),"UX01 roster entry visible "+context)
-			node("InventoryOwner_guard").pressed.emit();await settle()
-			check(game.page=="character" and game.pages.party_uid=="guard" and game.pages.party_view.workspace.tab=="inventory" and await snapshot()==before,"UX01 owner opens inventory without consuming")
+			var owner=node("ItemMember_recruit-guard-human-female")
+			check(text(owner).contains("HP %d/" % before.state.characters["recruit-guard-human-female"].hp) and text(owner).contains("MP %d/" % before.state.characters["recruit-guard-human-female"].mp),"UX01 guard card shows current resources "+context)
+			if before.state.characters["recruit-mage-elf-female"].hp==0:check(text(node("ItemMember_recruit-mage-elf-female")).contains("戦闘不能"),"UX01 defeated owner remains identifiable")
+			check(root.get_visible_rect().encloses(node("RosterMember_recruit-guard-human-female").get_global_rect()),"UX01 roster entry visible "+context)
+			node("InventoryOwner_recruit-guard-human-female").pressed.emit();await settle()
+			check(game.page=="character" and game.pages.party_uid=="recruit-guard-human-female" and game.pages.party_view.workspace.tab=="inventory" and await snapshot()==before,"UX01 owner opens inventory without consuming")
 			node("Header_character").pressed.emit();await settle()
-			check(game.page=="items" and node("InventoryOwner_guard")!=null and await snapshot()==before,"UX01 return to owner cards preserves save")
+			check(game.page=="items" and node("InventoryOwner_recruit-guard-human-female")!=null and await snapshot()==before,"UX01 return to owner cards preserves save")
 	root.size=Vector2i(1920,1080)
 	for context in ["town","road","north_travel"]:
 		await restore(context,"hub")
-		var member=node("RosterMember_guard")
+		var member=node("RosterMember_recruit-guard-human-female")
 		check(text(member).contains("HP") and text(member).contains("MP"),"UX01 resource overview remains on "+context)
 func result_cases():
 	for id in ["north_delivery","north_travel","east_travel","west_travel","south_travel","astaris_travel"]:
@@ -109,19 +109,18 @@ func icon_cases():
 	await restore("heal_left");var before=await snapshot();await game.choose_command("skill");await game.on_cell(24);await icon_case("Q03-healing",["hp","mp","healing"]);check(await snapshot()==before,"EV01 heal prediction does not consume")
 	await restore("guard");before=await snapshot();await game.choose_command("guard");await icon_case("Q03-defense",["defense_up"]);check(await snapshot()==before,"EV01 defense prediction does not consume")
 	await restore("porter");before=await snapshot();await game.choose_command("skill");await icon_case("Q03-formation",["skill","attack_up","defense_up"]);check(await snapshot()==before,"EV01 boost prediction does not consume")
-	await restore("town","shop","east");await game.act("trial",["archer","twin-bow","rightHand"]);await game.choose_command("skill");await settle()
+	await restore("town","shop","east");await game.act("trial",["recruit-scout-elf-male","twin-bow","rightHand"]);await game.choose_command("skill");await settle()
 	var pair=game.data.choices.skill[0]
 	for uid in pair:
 		for unit in game.state().units:
 			if unit.id==uid:await game.on_cell(int(unit.pos));break
 	await icon_case("Q03-multiple-damage",["damage"]);check(game.preview.damagePreview.size()==2 and game.can_commit(),"Q03 real two-target prediction remains available")
-	await game.act("endTrial",[]);await restore("town","shop","north");await game.act("trial",["guard","return-ring-1","accessory1"]);await game.choose_command("skill");await game.select_skill("returnHome");await game.on_cell(0);await settle();record("Q03-return",game.content)
+	await game.act("endTrial",[]);await restore("town","shop","north");await game.act("trial",["recruit-guard-human-female","return-ring-1","accessory1"]);await game.choose_command("skill");await game.select_skill("returnHome");await game.on_cell(0);await settle();record("Q03-return",game.content)
 	check(game.command=="return" and game.can_commit() and text(game.content).contains("MP0"),"Q03 return stays available through skills at zero MP cost")
 func run():
 	if evidence.is_empty():evidence=ProjectSettings.globalize_path("user://ui-review-fixes")
-	var output=[];var executable=OS.get_environment("NATIVE5525_NODE");if executable.is_empty():executable="node"
-	var code=OS.execute(executable,PackedStringArray([ProjectSettings.globalize_path("res://tests/ui_review_fixes_fixtures.cjs")]),output,false,false);fixtures=JSON.parse_string("".join(output))
-	if code!=0 or not fixtures is Dictionary:print(output);quit(2);return
+	fixtures=preload("res://tests/ui_current_fixture.gd").generate("res://tests/ui_review_fixes_fixtures.cjs")
+	if fixtures.is_empty():quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()

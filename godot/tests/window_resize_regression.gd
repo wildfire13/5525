@@ -6,7 +6,6 @@ func run():
  create_timer(150).timeout.connect(func():print("FAIL window resize watchdog");quit(2))
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
  game.navigate("character");game.pages.party_view.workspace.set_tab("skills");await settle()
  var skills=game.find_children("CharacterSkill_active_*","Button",true,false)

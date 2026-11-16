@@ -25,3 +25,19 @@ native/5525-save-*.json
 native/5525-campaign-log-*.json
 native/user-data/
 native/qa-portraits-tk-report.json
+
+# Retired party portraits and character-specific battle poses
+/native/assets/knight.png
+/native/assets/archer.png
+/native/assets/healer.png
+/native/assets/scout.png
+/native/assets/porter.png
+/native/assets/warrior.png
+/godot/assets/vfx_production/pose_crouch.png
+/godot/assets/vfx_production/pose_crouch.png.import
+/godot/assets/vfx_production/pose_sweep.png
+/godot/assets/vfx_production/pose_sweep.png.import
+/godot/assets/vfx_production/pose_stamp_lift.png
+/godot/assets/vfx_production/pose_stamp_lift.png.import
+/godot/assets/vfx_production/pose_stamp_slam.png
+/godot/assets/vfx_production/pose_stamp_slam.png.import

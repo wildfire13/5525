@@ -86,7 +86,7 @@ assert(master.gear.some(x=>x.def>0)&&master.gear.some(x=>x.defFire>0)&&master.ge
 
 // Fire > Earth > Water > Fire. DEF is subtracted before the 25% matchup factor.
 {
- const battle=B.create({ally:['mage'],enemy:['guard'],deployment:true}),enemy=battle.units.find(u=>u.side==='enemy');
+ const battle=B.create({ally:["recruit-mage-elf-female"],enemy:['guard'],deployment:true}),enemy=battle.units.find(u=>u.side==='enemy');
  enemy.element='earth';enemy.hp=100;enemy.max=100;enemy.defFire=5;
  B.receive(battle,enemy,{physical:0,fire:20,water:0,earth:0},false);assert.equal(enemy.hp,81); // round((20-5)*1.25) = 19
  enemy.element='water';enemy.hp=100;enemy.defFire=5;
@@ -97,7 +97,7 @@ assert(master.gear.some(x=>x.def>0)&&master.gear.some(x=>x.defFire>0)&&master.ge
 
 // DEF can reduce damage to zero; it never creates a heal or a forced 1 point hit.
 {
- const b=B.create({ally:['guard'],enemy:['guard'],deployment:true}),enemy=b.units.find(u=>u.side==='enemy');enemy.hp=50;enemy.def=10;
+ const b=B.create({ally:["recruit-guard-human-female"],enemy:['guard'],deployment:true}),enemy=b.units.find(u=>u.side==='enemy');enemy.hp=50;enemy.def=10;
  B.receive(b,enemy,1,false);assert.equal(enemy.hp,50);
  B.receive(b,enemy,{physical:0,fire:0,water:0,earth:0},false);assert.equal(enemy.hp,50);
 }

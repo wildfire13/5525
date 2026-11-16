@@ -18,25 +18,24 @@ class AudioAssetTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), entry['sha256'], relative)
 
     def test_voice_cues(self):
-        cues = set()
-        for character in self.manifest('voices')['characters']:
-            for cue, clip in character['prepared'].items():
-                cues.add((character['id'], cue))
-                self.check_file('voices', clip['path'], clip)
-        expected = set()
-        for uid in ('guard', 'guard-2', 'archer', 'archer-2', 'mage', 'mage-2', 'scout', 'scout-2'):
-            expected.update((uid, cue) for cue in ['attack', 'hurt', 'skill:guard', 'skill:archer',
-                                                 'skill:mage', 'skill:scout', 'skill:stamp'])
-        expected.update(('warrior', cue) for cue in ['attack', 'hurt', 'skill:archer', 'skill:mage', 'skill:stamp'])
-        for uid in ('porter', 'porter-2'):
-            expected.update((uid, cue) for cue in ['hurt', 'skill:porter'])
-        new = ['retreatSlash', 'knockback', 'splitShot', 'pincer', 'healingCross',
-               'defenseLine', 'manaGift', 'returnHome']
-        for uid in ('guard', 'guard-2', 'archer', 'archer-2', 'mage', 'mage-2', 'scout', 'scout-2'):
-            expected.update((uid, 'skill:' + skill) for skill in new)
-        expected.update(('warrior', 'skill:' + skill) for skill in new if skill not in ('retreatSlash', 'pincer'))
-        expected.update((uid, 'skill:returnHome') for uid in ('porter', 'porter-2'))
-        self.assertEqual(cues, expected)
+        characters = self.manifest('event-voices')['characters']
+        expected = {
+            f'recruit-{job}-{race}-{sex}'
+            for job in ('guard', 'scout', 'mage', 'porter')
+            for race in ('human', 'elf', 'dwarf')
+            for sex in ('male', 'female')
+        }
+        self.assertEqual(set(characters), expected)
+        for uid, clips in characters.items():
+            self.assertEqual(set(clips), {
+                'attack', 'battle_win', 'damage', 'incapacitated', 'quest_clear',
+            })
+            _, job, race, sex = uid.split('-')
+            for clip in clips.values():
+                self.assertEqual(clip['source_character'],
+                                 f'{race}-{sex}-{"warrior" if job == "guard" else job}')
+                self.assertEqual(Path(clip['file']).name, clip['file'])
+                self.check_file('event-voices', clip['file'], clip)
 
     def test_music_routes(self):
         manifest = self.manifest('music')

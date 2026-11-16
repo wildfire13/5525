@@ -22,15 +22,15 @@ func run():
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true
- await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
+ await game.new_game();await settle()
  var save=(await game.engine.request({"op":"campaign_save"})).data
  save.state.location="east";save.state.gold=9999
  await game.update({"op":"campaign_load","data":save})
- await game.update({"op":"campaign","action":"buyGear","args":["mage","staff-silver-1","leftHand"]})
+ check((await game.update({"op":"campaign","action":"buyGear","args":["recruit-mage-elf-female","staff-silver-1","leftHand"]})).get("ok",false),"live mage equips second heal source")
  var dual=(await game.engine.request({"op":"campaign_save"})).data
  for dims in [Vector2i(1920,1080)]:
   await game.update({"op":"campaign_load","data":dual})
-  await game.update({"op":"campaign","action":"trial","args":["mage","staff-wood","rightHand"]});await settle()
+  check((await game.update({"op":"campaign","action":"trial","args":["recruit-mage-elf-female","staff-wood","rightHand"]})).get("ok",false),"live mage enters trial");await settle()
   root.size=dims;game.hud.back_to_commands();await settle()
   check(game.hud.buttons.attack.text=="攻撃" and unselected_button(game.hud.buttons.attack),"command label has no battle-only dot "+str(dims))
   check(game.hud.buttons.attack.get_theme_stylebox("normal").bg_color.is_equal_approx(game.theme.get_stylebox("normal","Button").bg_color) and game.hud.buttons.attack.get_theme_color("font_color").is_equal_approx(game.theme.get_color("font_color","Button")),"enabled command keeps battle theme colors "+str(dims))
@@ -55,7 +55,7 @@ func run():
   # Two staves leave no fist: use the original one-staff owner for item selection.
   await game.act("endTrial",[])
   await game.update({"op":"campaign_load","data":save})
-  await game.act("trial",["mage","staff-wood","rightHand"]);await settle()
+  await game.act("trial",["recruit-mage-elf-female","staff-wood","rightHand"]);await settle()
   game.hud.buttons.items.pressed.emit();await settle()
   check(selected_button(game.hud.buttons.items) and unselected_button(game.hud.buttons.skill) and unselected_button(game.hud.buttons.attack),"item parent uses shared selection and clears others "+str(dims))
   await game.choose_command("item");await settle()

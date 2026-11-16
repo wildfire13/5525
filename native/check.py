@@ -10,7 +10,7 @@ BASE=Path(__file__).resolve().parent
 steps=[
  ('Python syntax',[sys.executable,'-m','compileall','-q','debug_store.py','godot_files.py','master_data.py','portraits.py']),
  ('Python rules/adapter/preview tests',[sys.executable,'-m','unittest','-v']),
- ('SQLite grant/save compatibility',['node','test_sqlite_grant_save.cjs']),
+  ('SQLite grant/save state',['node','test_sqlite_grant_save.cjs']),
  ('Per-source active cooldowns',['node','test_skill_cooldowns.cjs']),
  ('Additive passive grants',['node','test_sqlite_passive_grants.cjs']),
  ('Secondary grant combat',['node','test_sqlite_grant_combat.cjs']),
@@ -42,6 +42,11 @@ steps=[
  ('Quest decisions, all-town expiry and aftermath',['node','test_quest_decisions.cjs']),
  ('Standalone 30-action parity',['node','test_parity.cjs']),
 ]
+# Keep named suites readable, but never silently omit a newly added native test.
+listed={command[1] for _,command in steps if command[0]=='node'}
+steps.extend((path.stem,['node',path.name])
+             for path in sorted(BASE.glob('test_*.cjs'))
+             if path.name not in listed)
 report={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'guiIncluded':False,'steps':[]}
 for name,command in steps:
     try:

@@ -46,7 +46,7 @@ func run():
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.audio.fast_mode=true;game.checks_fast=true;actual=game.engine
 	var data=await saved();data.state.location="east";data.state.gold=1000
 	await game.update({"op":"campaign_load","data":data});game.navigate("shop");game.pages.facility_entry.choose("buy");await settle()
@@ -86,12 +86,13 @@ func run():
 	await frames();gate.release=true;await settle()
 	check(not game.modal_open() and shop.stage=="S0","closing a newer file picker does not revive old purchase")
 	check((await saved())==before,"all abandoned quotes and modal changes preserve full save")
-	game.find_child("RosterMember_mage",true,false).pressed.emit();await settle()
+	var owner="recruit-mage-elf-female"
+	game.find_child("RosterMember_"+owner,true,false).pressed.emit();await settle()
 	game.find_child("Product_javelin-wood",true,false).pressed.emit();await settle()
 	game.find_child("ShopComparisonBuy",true,false).pressed.emit();await settle()
 	check(game.dialog.window.title=="購入の確認" and shop.consent.get("gearId")=="javelin-wood","fresh payment confirmation remains functional")
 	game.find_child("PurchaseAgree",true,false).pressed.emit();await settle()
-	check(shop.stage=="S0" and not game.modal_open() and game.campaign().gold==900 and game.campaign().characters.mage.inventory.get("javelin-wood",0)==1,"normal atomic purchase delivers to the preselected recipient after cancellation")
+	check(shop.stage=="S0" and not game.modal_open() and game.campaign().gold==900 and game.campaign().characters[owner].inventory.get("javelin-wood",0)==1,"normal atomic purchase delivers to the preselected recipient after cancellation")
 	game.engine=actual;gate.queue_free();game.closing=true;await game.audio.finish_audio();actual.close_engine();game.queue_free();await frames()
 	var file=FileAccess.open(OS.get_environment("INVENTORY_QA_ROOT").path_join("lifecycle-checks.json"),FileAccess.WRITE);file.store_string(JSON.stringify(checks,"\t"));file.close()
 	quit(0 if checks.all(func(row):return row.passed) else 1)

@@ -5,7 +5,7 @@ func settle():
  for i in range(6):await process_frame
  while game.locked or game.presenting or game.engine.busy or game.pages.quote_pending:await process_frame
 func run():
- root.size=Vector2i(1280,800)
+ root.size=Vector2i(1920,1080)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true

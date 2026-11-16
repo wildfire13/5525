@@ -1,4 +1,7 @@
 extends "res://tests/facility_gui_261022.gd"
+const GUARD="recruit-guard-human-female"
+const PORTER="recruit-porter-human-female"
+const OTHER_PORTER="recruit-porter-human-male"
 func choose(control):
  if DisplayServer.get_name()=="headless":control.pressed.emit();await settle()
  else:await os_click(control)
@@ -23,9 +26,8 @@ func run():
  root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1920,1080)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- await preload("res://tests/current_historical_fixture.gd").install(game)
  game.audio.fast_mode=true;game.checks_fast=true;await settle()
- await game.act("select",[["guard","porter","porter-2"]]);game.navigate("board");await settle()
+ await game.act("select",[[GUARD,PORTER,OTHER_PORTER]]);game.navigate("board");await settle()
  var seed=await saved()
  for dims in [Vector2i(1920,1080)]:
   root.size=dims;await settle()
@@ -64,24 +66,24 @@ func run():
   if scroll is ScrollContainer:scroll.ensure_control_visible(node("QuestAccept"));await frames(12)
   await choose(node("QuestAccept"))
   check(node("QuestCargoConfirm").disabled,"confirmation disabled until owner selected")
-  await choose(node("QuestCargoOwner_porter-2"))
+  await choose(node("QuestCargoOwner_"+OTHER_PORTER))
   check(not node("QuestCargoConfirm").disabled and await saved()==seed,"portrait selection does not accept or issue cargo")
   if DisplayServer.get_name()!="headless":await snapshot("porter-picker-"+str(dims.x))
   await choose(node("QuestCargoCancel"));check(await saved()==seed,"selected owner cancel preserves complete state")
- root.size=Vector2i(1920,1080);await settle();await choose(node("QuestAccept"));await choose(node("QuestCargoOwner_porter-2"))
+ root.size=Vector2i(1920,1080);await settle();await choose(node("QuestAccept"));await choose(node("QuestCargoOwner_"+OTHER_PORTER))
  var board=game.pages.quest_board;var token=game.campaign().inventoryToken;var epoch=game.pages.epoch;var connection=game.engine.connection_generation;var generation=board.picker_generation;var id=board.selected_id
  await choose(node("QuestCargoConfirm"))
  var after=await saved();var quest=game.campaign().activeQuest
- check(quest is Dictionary and quest.cargoOwnerId=="porter-2" and game.campaign().characters["porter-2"].inventory.get(quest.cargoItemId)==1,"final confirmation issues once to selected porter")
+ check(quest is Dictionary and quest.cargoOwnerId==OTHER_PORTER and game.campaign().characters[OTHER_PORTER].inventory.get(quest.cargoItemId)==1,"final confirmation issues once to selected porter")
  check(game.page=="board" and game.campaign().phase=="town","accept remains at board; departure via plaza")
  await board.commit(id,token,epoch,connection,generation);check(await saved()==after,"duplicate stale confirm preserves complete accepted state")
  await choose(node("Header_board"));check(game.page=="hub","common header return to local map retained")
  var reply=await game.update({"op":"campaign_load","data":after});await settle();game.navigate("board");await settle()
- check(reply.ok and game.campaign().activeQuest.cargoOwnerId=="porter-2","save reload retains confirmed cargo owner")
- await game.update({"op":"campaign_load","data":seed});await settle();game.navigate("board");await settle();await choose(node("QuestAccept"));await choose(node("QuestCargoOwner_porter"))
+ check(reply.ok and game.campaign().activeQuest.cargoOwnerId==OTHER_PORTER,"save reload retains confirmed cargo owner")
+ await game.update({"op":"campaign_load","data":seed});await settle();game.navigate("board");await settle();await choose(node("QuestAccept"));await choose(node("QuestCargoOwner_"+PORTER))
  token=game.campaign().inventoryToken;epoch=game.pages.epoch;connection=game.engine.connection_generation;generation=board.picker_generation;id=board.selected_id
  await choose(node("QuestCargoCancel"));await board.commit(id,token,epoch,connection,generation);check(await saved()==seed,"callback from canceled picker cannot accept")
- await game.act("select",[["guard"]]);game.navigate("board");await settle();check(node("QuestAccept").disabled,"zero porter still cannot accept")
+ await game.act("select",[[GUARD]]);game.navigate("board");await settle();check(node("QuestAccept").disabled,"zero porter still cannot accept")
  check(game.audio.muted.values().all(func(v):return v),"BGM voice SE all OFF")
  var f=FileAccess.open(evidence.path_join("checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames(24);quit(0 if checks.all(func(c):return c.passed) else 1)

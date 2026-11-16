@@ -60,7 +60,7 @@ func delayed(fault,new_battle):
 		check(label+"-old-node-exited",not process_running(old_pid));await game.reconnect_engine();await settle()
 		if not probe.handles.is_empty():owned.append(int(probe.handles.pid))
 		check(label+"-new-connection",probe.connection_generation>connection and not probe.disconnected and not probe.handles.is_empty(),probe.last_error)
-	else:await game.new_game();await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
+	else:await game.new_game();await settle()
 	probe.timeout_ms=15000
 	check(label+"-old-board-freed",not is_instance_valid(old))
 	if new_battle:await prepare();game.board.set_hover("guard");await settle()
@@ -80,7 +80,7 @@ func null_and_foreign():
 	check("null-board-no-inspection-mutation",game.hud.inspected_uid==shown)
 	game.board=old;var foreign=Node.new();root.add_child(foreign);game.hud.inspect_hover("mage",foreign);check("foreign-board-rejected",game.hud.inspected_uid==shown);foreign.free()
 	game.hud.inspect_hover("mage",foreign);check("freed-board-callback-rejected",game.hud.inspected_uid==shown)
-	await game.new_game();await preload("res://tests/current_historical_fixture.gd").install(game);await settle();check("teardown-town",game.board==null and game.campaign().phase=="town")
+	await game.new_game();await settle();check("teardown-town",game.board==null and game.campaign().phase=="town")
 func current_response(fault):
 	if not await prepare():return
 	var before=await saved();mode(fault);check("current-"+fault+"-held",await trigger())
@@ -98,7 +98,7 @@ func busy_teardown():
 	check("busy-wait-old-board-freed",not is_instance_valid(old))
 	check("busy-wait-no-dispatch",probe.calls.size()==calls)
 	check("busy-wait-no-inspection-mutation",game.hud.inspected_uid==inspected)
-	await game.new_game();await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
+	await game.new_game();await settle()
 func run():
 	create_timer(160).timeout.connect(func():print("WATCHDOG TIMEOUT");quit(2))
 	if evidence.is_empty():evidence=ProjectSettings.globalize_path("user://hover-lifetime")
@@ -110,9 +110,9 @@ func run():
 	mode("");root.size=Vector2i(1920,1080)
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle();game.engine.close_engine();game.engine.queue_free()
-	probe=load("res://tests/hover_lifetime_probe.gd").new();game.add_child(probe);game.engine=probe;probe.node_script=ProjectSettings.globalize_path("res://tests/hover_lifetime_fault.cjs");probe.start_engine();owned.append(int(probe.handles.pid));await game.new_game();await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
+	probe=load("res://tests/hover_lifetime_probe.gd").new();game.add_child(probe);game.engine=probe;probe.node_script=ProjectSettings.globalize_path("res://tests/hover_lifetime_fault.cjs");probe.start_engine();owned.append(int(probe.handles.pid));await game.new_game();await settle()
 	for fault in ["","error","eof","timeout"]:
 		for new_battle in [false,true]:await delayed(fault,new_battle)
 	await current_response("");await current_response("error");await busy_teardown();await null_and_foreign();game.closing=true;game.invalidate_preview();await game.audio.finish_audio();probe.close_engine();game.queue_free();await frames()

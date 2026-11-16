@@ -1,43 +1,44 @@
 'use strict';
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS '+name);};
+function fixture(){const s=require('./test-current-fixture.cjs')();assert(C.select(s,[...s.selected,'recruit-scout-human-male']));return s;}
 test('two slots occupied by one item, one ATK contribution, save roundtrip',()=>{
- const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=500;assert.ok(C.buyGear(s,'mage','greatsword-wood','rightHand'));
- const st=C.stats(s.characters.mage);assert.equal(st.attackWeapons.length,1);assert.equal(st.attackWeapons[0].atk,50);assert.equal(C.view(s).roster.find(u=>u.id==='mage').equipmentSlots.find(x=>x.slot==='leftHand').occupiedBy,'rightHand');
- const old=clone(s);assert.equal(C.buyGear(s,'mage','staff-wood','leftHand'),false);assert.deepEqual(s,old);assert.deepEqual(C.deserialize(C.serialize(s)),s);
- assert.ok(C.buyGear(s,'mage','staff-wood','rightHand'));assert.ok(C.buyGear(s,'mage','sword-wood','leftHand'));assert.equal(C.stats(s.characters.mage).attackWeapons.length,2);
+ const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=500;assert.ok(C.buyGear(s,"recruit-mage-elf-female",'greatsword-wood','rightHand'));
+ const st=C.stats(s.characters["recruit-mage-elf-female"]);assert.equal(st.attackWeapons.length,1);assert.equal(st.attackWeapons[0].atk,50);assert.equal(C.view(s).roster.find(u=>u.id==="recruit-mage-elf-female").equipmentSlots.find(x=>x.slot==='leftHand').occupiedBy,'rightHand');
+ const old=clone(s);assert.equal(C.buyGear(s,"recruit-mage-elf-female",'staff-wood','leftHand'),false);assert.deepEqual(s,old);assert.deepEqual(C.deserialize(C.serialize(s)),s);
+ assert.ok(C.buyGear(s,"recruit-mage-elf-female",'staff-wood','rightHand'));assert.ok(C.buyGear(s,"recruit-mage-elf-female",'sword-wood','leftHand'));assert.equal(C.stats(s.characters["recruit-mage-elf-female"]).attackWeapons.length,2);
 });
 test('occupied offhand blocks purchase/trial atomically; no hidden trade-in or loss',()=>{
- const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=500;const old=clone(s);assert.equal(C.buyGear(s,'guard','greatsword-wood','rightHand'),false);assert.equal(C.trial(s,'guard','greatsword-wood','rightHand'),null);assert.deepEqual(s,old);
- assert.ok(C.buyGear(s,'guard','empty-leftHand','leftHand'));assert.ok(C.buyGear(s,'guard','greatsword-wood','rightHand'));
- const bad=clone(s);bad.characters.guard.leftHand='staff-wood';assert.equal(C.validate(bad).ok,false);
+ const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=500;const old=clone(s);assert.equal(C.buyGear(s,"recruit-guard-human-female",'greatsword-wood','rightHand'),false);assert.equal(C.trial(s,"recruit-guard-human-female",'greatsword-wood','rightHand'),null);assert.deepEqual(s,old);
+ assert.ok(C.buyGear(s,"recruit-guard-human-female",'empty-leftHand','leftHand'));assert.ok(C.buyGear(s,"recruit-guard-human-female",'greatsword-wood','rightHand'));
+ const bad=clone(s);bad.characters["recruit-guard-human-female"].leftHand='staff-wood';assert.equal(C.validate(bad).ok,false);
 });
 test('dwarf sword restriction extends to greatsword; spear is not a sword',()=>{
- const s=require('./test-current-fixture.cjs')();assert.equal(C.eligibility(s,'warrior','greatsword-wood').ok,false);
+ const s=require('./test-current-fixture.cjs')();assert.equal(C.eligibility(s,"recruit-guard-dwarf-male",'greatsword-wood').ok,false);
 });
 test('all bows occupy both hands; blocked combinations are atomic; removal and replacement free the left hand',()=>{
  for(const bow of C.gear.filter(g=>g.type==='bow')) {
   assert.equal(bow.hands,2);
-  const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=9999;
+   const s=fixture();s.location='east';s.gold=9999;
   // Exercise every catalog variant without shop/location/progression constraints.
-  s.characters.archer.weapon=bow.id;
-  const st=C.stats(s.characters.archer);assert.equal(st.attackWeapons.length,1);assert.equal(st.attackWeapons[0].atk,bow.atk);
-  assert.equal(C.view(s).roster.find(u=>u.id==='archer').equipmentSlots.find(x=>x.slot==='leftHand').occupiedBy,'rightHand');
-  const before=clone(s);assert.equal(C.buyGear(s,'archer','staff-wood','leftHand'),false);assert.equal(C.trial(s,'archer','staff-wood','leftHand'),null);assert.deepEqual(s,before);
+  s.characters["recruit-scout-human-male"].weapon=bow.id;
+  const st=C.stats(s.characters["recruit-scout-human-male"]);assert.equal(st.attackWeapons.length,1);assert.equal(st.attackWeapons[0].atk,bow.atk);
+  assert.equal(C.view(s).roster.find(u=>u.id==="recruit-scout-human-male").equipmentSlots.find(x=>x.slot==='leftHand').occupiedBy,'rightHand');
+  const before=clone(s);assert.equal(C.buyGear(s,"recruit-scout-human-male",'staff-wood','leftHand'),false);assert.equal(C.trial(s,"recruit-scout-human-male",'staff-wood','leftHand'),null);assert.deepEqual(s,before);
  }
- const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=9999;
- assert.ok(C.buyGear(s,'archer','empty-rightHand','rightHand'));assert.ok(C.buyGear(s,'archer','staff-wood','leftHand'));
- const before=clone(s);assert.equal(C.buyGear(s,'archer','bow-wood','rightHand'),false);assert.equal(C.trial(s,'archer','bow-wood','rightHand'),null);assert.deepEqual(s,before);
- assert.ok(C.buyGear(s,'archer','empty-leftHand','leftHand'));assert.ok(C.buyGear(s,'archer','bow-wood','rightHand'));
- assert.ok(C.buyGear(s,'archer','staff-wood','rightHand'));assert.ok(C.buyGear(s,'archer','sword-wood','leftHand'));
+  const s=fixture();s.location='east';s.gold=9999;
+ assert.ok(C.buyGear(s,"recruit-scout-human-male",'empty-rightHand','rightHand'));assert.ok(C.buyGear(s,"recruit-scout-human-male",'staff-wood','leftHand'));
+ const before=clone(s);assert.equal(C.buyGear(s,"recruit-scout-human-male",'bow-wood','rightHand'),false);assert.equal(C.trial(s,"recruit-scout-human-male",'bow-wood','rightHand'),null);assert.deepEqual(s,before);
+ assert.ok(C.buyGear(s,"recruit-scout-human-male",'empty-leftHand','leftHand'));assert.ok(C.buyGear(s,"recruit-scout-human-male",'bow-wood','rightHand'));
+ assert.ok(C.buyGear(s,"recruit-scout-human-male",'staff-wood','rightHand'));assert.ok(C.buyGear(s,"recruit-scout-human-male",'sword-wood','leftHand'));
 });
 test('left-hand bow in a current save is rejected without mutation',()=>{
- const bad=JSON.parse(C.serialize(require('./test-current-fixture.cjs')()));bad.state.characters.mage.leftHand='bow-wood';const snapshot=clone(bad);
+ const bad=JSON.parse(C.serialize(require('./test-current-fixture.cjs')()));bad.state.characters["recruit-mage-elf-female"].leftHand='bow-wood';const snapshot=clone(bad);
  assert.throws(()=>C.deserialize(bad),/弓.*右手/);assert.deepEqual(bad,snapshot);
 });
 test('single bow Snipe retains normal range plus one and one weapon contribution',()=>{
- const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=9999;const t=C.trial(s,'archer','bow-wood','rightHand');assert.ok(t);
- const b=t.battle,a=b.units.find(u=>u.id==='archer');assert.equal(B.attackReach(a,'attack'),3);assert.equal(B.attackReach(a,'skill'),4);assert.equal(a.attackWeapons.length,1);
+  const s=fixture();s.location='east';s.gold=9999;const t=C.trial(s,"recruit-scout-human-male",'bow-wood','rightHand');assert.ok(t);
+ const b=t.battle,a=b.units.find(u=>u.id==="recruit-scout-human-male");assert.equal(B.attackReach(a,'attack'),3);assert.equal(B.attackReach(a,'skill'),4);assert.equal(a.attackWeapons.length,1);
  const e=b.units.find(u=>u.side==='enemy');a.pos=24;e.pos=28;e.hp=e.max=999;b.actor=a.id;b.deploying=false;for(const u of b.units)u.next=u===a?1:100000;
  assert.equal(B.legal(b,'attack',e.id),false);assert.equal(B.legal(b,'skill',e.id),true);const preview=B.damagePreview(b,a,'skill',e.id);assert.equal(preview[0].weapons.length,1);assert.equal(preview[0].base,25);
  const hp=e.hp,mp=a.mp;assert.ok(B.act(b,'skill',e.id));assert.equal(hp-e.hp,preview[0].hpLoss);assert.equal(a.mp,mp-1);

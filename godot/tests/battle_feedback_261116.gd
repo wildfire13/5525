@@ -18,16 +18,19 @@ func run():
 	var fixture=ProjectSettings.globalize_path("res://tests/inventory_battle_fixtures.cjs")
 	var status=OS.execute(OS.get_environment("NATIVE5525_NODE"),[fixture],generated)
 	if status!=0:quit(2);return
-	var save=JSON.parse_string("".join(generated)).guard
+	var cases=JSON.parse_string("".join(generated))
+	var save=cases.archer
+	var owner_id=cases.guard.state.battle.actor
+	var porter_id=cases.porter.state.battle.actor
 	var battle=save.state.battle
-	battle.actor="scout"
 	for fighter in battle.units:
 		fighter.next=4
 		if fighter.side=="enemy":fighter.next=2
-		if fighter.id=="guard":fighter.next=3
-		if fighter.id=="scout":fighter.next=1
-		if fighter.id=="scout":fighter.pos=24;fighter.mp=0
-		if fighter.id=="archer":fighter.pos=4
+		if fighter.id==owner_id:fighter.next=3
+		if fighter.id==battle.actor:
+			fighter.next=1
+			fighter.mp=0
+			fighter.selectedSkill="scout"
 	root.size=Vector2i(1920,1080)
 	game=load("res://main.tscn").instantiate()
 	root.add_child(game)
@@ -50,7 +53,7 @@ func run():
 	await settle()
 	var chosen=await game.engine.request({"op":"hover_preview","kind":"skill","uid":foe.id})
 	check(chosen.hover.status=="insufficient_mp","in-range ambush identifies missing MP")
-	var invalid=await game.engine.request({"op":"hover_preview","kind":"skill","uid":"porter"})
+	var invalid=await game.engine.request({"op":"hover_preview","kind":"skill","uid":porter_id})
 	check(invalid.hover.status=="unavailable","wrong side stays unavailable")
 	await game.on_cell(25)
 	await settle()
@@ -88,7 +91,7 @@ func run():
 			var inventory_text=bag.get_child(0).text
 			check(inventory_text==("ポーション ×%d" % potions if potions>0 else "なし"),"enemy carried quantity")
 			await shot("battle-equipment")
-		if id=="guard":check(bag.get_child(0).text=="ポーション ×3","ally carried quantity")
+		if id==owner_id:check(bag.get_child(0).text=="ポーション ×3","ally carried quantity")
 		game.dialog.close()
 		await settle()
 	check(sides.has("ally") and sides.has("enemy"),"both factions inspected")

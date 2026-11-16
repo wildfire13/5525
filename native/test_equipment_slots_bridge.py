@@ -11,10 +11,10 @@ class EquipmentSlotsBridgeTests(unittest.TestCase):
         self.assertTrue(self.bridge.call(op='campaign_load',data=saved)['ok'])
 
     def test_slot_quote_purchase_and_skill_selection(self):
-        preview=self.bridge.call(op='campaign',action='previewGear',args=['mage','breaker-hammer','leftHand'])['previewGear']
+        preview=self.bridge.call(op='campaign',action='previewGear',args=['recruit-mage-elf-female','breaker-hammer','leftHand'])['previewGear']
         self.assertEqual(preview['slot'],'leftHand');self.assertEqual(preview['oldGearId'],'empty-leftHand')
-        self.assertTrue(self.bridge.call(op='campaign',action='buyGear',args=['mage','breaker-hammer','leftHand'])['ok'])
-        data=self.bridge.call(op='campaign',action='trial',args=['mage','rest-staff','rightHand'])
+        self.assertTrue(self.bridge.call(op='campaign',action='buyGear',args=['recruit-mage-elf-female','breaker-hammer','leftHand'])['ok'])
+        data=self.bridge.call(op='campaign',action='trial',args=['recruit-mage-elf-female','rest-staff','rightHand'])
         self.assertEqual([x['id'] for x in data['skillset']],['healingCross','knockback'])
         before=data['state']
         selection=self.bridge.call(op='select_skill',skillId='knockback')
@@ -32,9 +32,9 @@ class EquipmentSlotsBridgeTests(unittest.TestCase):
 
     def test_dual_attack_preview_matches_real_damage_and_range_union(self):
         for gear,slot in [('sword-wood','rightHand'),('staff-wood','leftHand')]:
-            self.assertTrue(self.bridge.call(op='campaign',action='buyGear',args=['mage',gear,slot])['ok'])
+            self.assertTrue(self.bridge.call(op='campaign',action='buyGear',args=['recruit-mage-elf-female',gear,slot])['ok'])
         for target in ('enemy-guard','enemy-archer'):
-            data=self.bridge.call(op='campaign',action='trial',args=['mage','sword-wood','rightHand'])
+            data=self.bridge.call(op='campaign',action='trial',args=['recruit-mage-elf-female','sword-wood','rightHand'])
             self.assertEqual(data['normalAttackReach'],2)
             before=copy.deepcopy(data['state'])
             response=self.bridge.call(op='preview',kind='attack',target=target)
@@ -57,7 +57,7 @@ class EquipmentSlotsBridgeTests(unittest.TestCase):
         ]
         for gear,damage,reach,hands,skills in cases:
             snapshot=self.bridge.call(op='campaign_save')['data']
-            data=self.bridge.call(op='campaign',action='trial',args=['mage',gear,'rightHand'])
+            data=self.bridge.call(op='campaign',action='trial',args=['recruit-mage-elf-female',gear,'rightHand'])
             self.assertTrue(data['ok'],gear);self.assertEqual(data['normalAttackReach'],reach)
             self.assertEqual([skill['id'] for skill in data['skillset']],[skill[0] for skill in skills],gear)
             self.assertEqual([(skill['id'],source['slot'],source['itemId'],source['level'])
@@ -67,9 +67,9 @@ class EquipmentSlotsBridgeTests(unittest.TestCase):
             self.assertTrue(self.bridge.call(op='act',kind='attack',target='enemy-guard')['ok'])
             self.bridge.call(op='campaign',action='endTrial',args=[])
             self.assertEqual(self.bridge.call(op='campaign_save')['data'],snapshot)
-            result=self.bridge.call(op='campaign',action='buyGear',args=['mage',gear,'rightHand'])
+            result=self.bridge.call(op='campaign',action='buyGear',args=['recruit-mage-elf-female',gear,'rightHand'])
             self.assertTrue(result['ok'],gear)
-            actor=next(c for c in result['campaign']['roster'] if c['id']=='mage')
+            actor=next(c for c in result['campaign']['roster'] if c['id']=='recruit-mage-elf-female')
             left=next(e for e in actor['equipmentSlots'] if e['slot']=='leftHand')
             self.assertEqual(left['occupiedBy'],'rightHand' if hands==2 else None)
             saved=self.bridge.call(op='campaign_save')['data']
@@ -77,11 +77,11 @@ class EquipmentSlotsBridgeTests(unittest.TestCase):
 
     def test_separate_copy_can_be_bought_into_other_hand(self):
         before=self.bridge.call(op='campaign_save')['data']
-        result=self.bridge.call(op='campaign',action='buyGear',args=['guard','sword-wood','leftHand'])
+        result=self.bridge.call(op='campaign',action='buyGear',args=['recruit-guard-human-female','sword-wood','leftHand'])
         self.assertTrue(result['ok'])
         after=self.bridge.call(op='campaign_save')['data']
-        self.assertEqual(after['state']['characters']['guard']['leftHand'],'sword-wood')
-        self.assertEqual(after['state']['characters']['guard']['weapon'],'sword-wood')
+        self.assertEqual(after['state']['characters']['recruit-guard-human-female']['leftHand'],'sword-wood')
+        self.assertEqual(after['state']['characters']['recruit-guard-human-female']['weapon'],'sword-wood')
         self.assertLess(after['state']['gold'],before['state']['gold'])
 
 if __name__=='__main__':unittest.main()

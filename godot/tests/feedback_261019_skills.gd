@@ -1,7 +1,6 @@
 extends "res://tests/ui_feedback2_20261016.gd"
 func source_cases():
-	var output=[];OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/feedback_261019_fixtures.cjs")]),output,true,false)
-	return JSON.parse_string("".join(output))
+	return preload("res://tests/ui_current_fixture.gd").generate("res://tests/feedback_261019_fixtures.cjs")
 func run():
 	create_timer(100).timeout.connect(func():print("FAIL new skills watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
@@ -11,7 +10,7 @@ func run():
 	for id in ["sweep50","sweep100"]:
 		await game.update({"op":"campaign_load","data":cases[id]});await settle()
 		await game.select_skill("legSweep");await settle()
-		check(game.pending=="guard" and game.preview_ready and game.preview.cells.size()==8,"self-target sweep selects eight surrounding cells "+id)
+		check(game.pending=="recruit-guard-human-female" and game.preview_ready and game.preview.cells.size()==8,"self-target sweep selects eight surrounding cells "+id)
 		var predictions=game.preview.effectPreview.filter(func(e):return e.has("skipChance"))
 		check(predictions.size()==3 and predictions.all(func(e):return e.skipChance==(.5 if id=="sweep50" else 1.0)),"independent per-enemy success probabilities "+id)
 		var before=await saved();game.cancel();await settle();check(await saved()==before,"cancel sweep preserves all resources "+id)
@@ -26,14 +25,14 @@ func run():
 				check(is_instance_valid(flying) and flying.position.x>start,"skipped card flies toward screen right at normal speed")
 			await settle();game.checks_fast=true
 			check(game.hud.animation_trace.filter(func(e):return e.stage=="skip_fly_right").size()==3,"each affected enemy skips exactly one visible turn")
-			check(game.state().actions==1 and game.state().units.filter(func(u):return u.id=="guard")[0].mp==5,"sweep action consumes MP1 and only one action")
+			check(game.state().actions==1 and game.state().units.filter(func(u):return u.id=="recruit-guard-human-female")[0].mp==before.state.battle.units.filter(func(u):return u.id=="recruit-guard-human-female")[0].mp-1,"sweep action consumes MP1 and only one action")
 	await game.update({"op":"campaign_load","data":cases.vault});await settle();await game.select_skill("poleVault");await settle()
 	check(game.data.skill=="ポールヴォールト" and game.data.choices.skill.map(func(n):return int(n)).has(24) and not game.data.choices.skill.map(func(n):return int(n)).has(23),"vault label and orthogonal two-cell destinations")
 	await game.on_cell(24);await settle();var before=await saved()
 	check(game.preview_ready and game.preview.destination==24 and game.board.ghost.visible,"vault target produces movement ghost without moving actor")
-	game.cancel();await settle();check(await saved()==before and game.state().units.filter(func(u):return u.id=="guard")[0].pos==22,"cancel vault preserves original position and MP")
+	game.cancel();await settle();check(await saved()==before and game.state().units.filter(func(u):return u.id=="recruit-guard-human-female")[0].pos==22,"cancel vault preserves original position and MP")
 	await game.on_cell(24);await settle();await game.commit();await settle()
-	check(game.state().units.filter(func(u):return u.id=="guard")[0].pos==24 and game.state().actions==1,"vault commits across occupied intermediate cell once")
+	check(game.state().units.filter(func(u):return u.id=="recruit-guard-human-female")[0].pos==24 and game.state().actions==1,"vault commits across occupied intermediate cell once")
 	for id in ["grapple","grapple-blocked"]:
 		await game.update({"op":"campaign_load","data":cases[id]});await settle();await game.select_skill("grapple");await game.on_cell(24);await settle()
 		var enemy=game.state().units.filter(func(u):return u.side=="enemy" and u.pos==24)[0]
@@ -46,7 +45,7 @@ func run():
 		await game.choose_command("item");await settle()
 		check(game.hud.item_list and node("BattleItemList")!=null,"passive fist permits item command "+id)
 		check(node("BattleItem_potion").tooltip_text.contains("射程無限" if id=="item3" else "自分のみ"),"item tooltip uses equipped level "+id)
-		await click("BattleItem_potion");var target=game.hud.acting() if id!="item3" else game.state().units.filter(func(u):return u.id=="mage")[0]
+		await click("BattleItem_potion");var target=game.hud.acting() if id!="item3" else game.state().units.filter(func(u):return u.id=="recruit-mage-elf-female")[0]
 		await game.on_cell(int(target.pos));await settle();before=await saved()
 		check(game.can_commit() and game.preview.effectPreview.any(func(e):return e.get("hp",0)>0),"level permits selected healing target "+id)
 		game.cancel();await settle();check(await saved()==before,"cancel item use keeps owner stock and actions "+id)

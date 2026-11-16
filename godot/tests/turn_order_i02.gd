@@ -19,7 +19,7 @@ func run():
 		check(node("BattleOrderDetails").global_position.is_equal_approx(reference),"sixth-slot button fixed for queue size %d" % count)
 		check(shown.all(func(c):return viewport.encloses(c.get_global_rect())) and viewport.end.x<reference.x,"long names cannot enlarge or spill cards")
 		var history=node("BattleHistory")
-		check(history.global_position.x==viewport.position.x and history.global_position.y>=viewport.end.y and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(history.get_global_rect()),"history below first slot and within FHD")
+		check(history.global_position.x>=viewport.end.x and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(history.get_global_rect()),"history beside turn order and within FHD")
 		await click("BattleOrderDetails")
 		check(game.dialog.window.find_children("OrderDetail_*","Label",true,false).size()==count,"details preserve every predicted occurrence including sixth onward")
 		game.dialog.close();await settle()

@@ -5,8 +5,8 @@ func run():
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true
-	var output=[];OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/inventory_battle_fixtures.cjs")]),output,true,false)
-	var fixtures=JSON.parse_string("".join(output));await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
+	var fixtures=preload("res://tests/ui_current_fixture.gd").generate("res://tests/inventory_battle_fixtures.cjs")
+	await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
 	var hud=game.hud
 	check(not hud.tools.get_global_rect().intersects(hud.left_panel.find_child("DragHandle",true,false).get_global_rect()),"R1 toolbar never overlaps default actor heading")
 	# A saved panel can now occupy the top of the viewport.

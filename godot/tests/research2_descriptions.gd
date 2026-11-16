@@ -1,7 +1,7 @@
 extends "res://tests/inventory_header_261020.gd"
 const Copy=preload("res://skill_text.gd")
 func fixtures2():
- var output=[];OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/feedback_261019_fixtures.cjs")]),output,true,false)
+ var output=[];OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/research_current_fixtures.cjs")]),output,true,false)
  return JSON.parse_string("".join(output))
 func text_checks():
  var c=game.campaign();var before=JSON.stringify(c)
@@ -30,15 +30,15 @@ func run():
  if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true;await settle();text_checks()
  var original=await saved();var cases=fixtures2()
+ var owner_name=str(game.campaign().roster.filter(func(c):return c.id==INVENTORY_OWNER)[0].name)
  for dims in [Vector2i(1920,1080)]:
   root.size=dims;await game.update({"op":"campaign_load","data":cases.sweep50});await settle();game.hud.open_skills();await settle()
   var before=await saved();await click("BattleSkillDetails_legSweep")
   var detail=node("SkillDetailsWindow")
   check(detail!=null and detail.visible and detail.exclusive,"read-only skill details opens without selecting a skill "+str(dims.x))
-  check(node("SkillDetailsSummary").text.contains("周囲8マス") and node("SkillDetailsContext").text.contains("ガロ"),"detail retains actor target and area")
+  check(node("SkillDetailsSummary").text.contains("周囲8マス") and node("SkillDetailsContext").text.contains(owner_name),"detail retains actor target and area")
   check(await saved()==before and game.hud.skill_list,"opening details changes no campaign or skill selection")
   detail.size=Vector2i(420,300);await frames()
   check(detail.size.x>=560 and detail.size.y>=560 and Rect2(Vector2.ZERO,Vector2(detail.size)).encloses(node("SkillDetailsActions").get_global_rect()),"detail minimum size keeps fixed summary and back visible")
@@ -49,7 +49,7 @@ func run():
   check(game.pending==pending and game.preview==preview and await saved()==before and game.can_commit(),"details preserve selected target prediction and readiness")
   game.cancel();await settle();check(await saved()==before,"target cancellation still consumes nothing")
   var long_doc=Copy.document("pincer","長いスキル名".repeat(12),1,game.campaign());long_doc.conditions=[];long_doc.limits=[];long_doc.effect=["長い説明を確認するための文字列。".repeat(180)+"最終行の確認"]
-  detail=load("res://skill_details.gd").new();game.add_child(detail);detail.configure(game,long_doc,"ガロ / 相棒の短剣","原文メモをそのまま表示");await settle()
+  detail=load("res://skill_details.gd").new();game.add_child(detail);detail.configure(game,long_doc,owner_name+" / 足払い","原文メモをそのまま表示");await settle()
   var summary=node("SkillDetailsSummary");var back=node("SkillDetailsBack");var body=node("SkillDetailsBody");var scroll=body.get_parent();var summary_at=summary.get_global_rect();var back_at=back.get_global_rect()
   scroll.scroll_vertical=100000;await frames()
   check(scroll.get_v_scroll_bar().max_value>scroll.size.y and scroll.scroll_vertical>0,"long effect text has real overflow and reaches its end "+str(dims.x))
@@ -57,12 +57,12 @@ func run():
   check(body.text.ends_with("最終行の確認") and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(detail.position),Vector2(detail.size))),"last line retained and detail window remains inside screen")
   node("SkillDetailsTabs").current_tab=node("SkillDetailsNote").get_parent().get_index();await frames();check(node("SkillDetailsNote").text=="原文メモをそのまま表示","equipment note remains verbatim and separate")
   await click("SkillDetailsBack")
-  var town=original.duplicate(true);town.state.location="east";town.state.characters.guard.inventory={"kungfu-pants":1}
-  await game.update({"op":"campaign_load","data":town});await enter_facility("shop");game.pages.party_view.open_inventory("guard");await settle()
-  character_item("guard","kungfu-pants").pressed.emit();await settle()
+  var town=original.duplicate(true);town.state.location="east";town.state.characters[INVENTORY_OWNER].inventory={"kungfu-pants":1}
+  await game.update({"op":"campaign_load","data":town});await enter_facility("shop");game.pages.party_view.open_inventory(INVENTORY_OWNER);await settle()
+  character_item(INVENTORY_OWNER,"kungfu-pants").pressed.emit();await settle()
   before=await saved();node("CharacterItemDetails").grab_focus();await click("CharacterItemDetails")
   check(node("SkillDetailsBody").text.contains("周囲8マス") and not node("SkillDetailsSummary").text.contains("スキル射程：1\n"),"pants retain full square area")
-  check(node("SkillDetailsBody").text.contains("50%") and node("SkillDetailsBody").text.contains("装備の基礎能力") and node("SkillDetailsContext").text.contains("ガロ"),"unequipped item has a full read-only effect and base-stat explanation")
+  check(node("SkillDetailsBody").text.contains("50%") and node("SkillDetailsBody").text.contains("装備の基礎能力") and node("SkillDetailsContext").text.contains(owner_name),"unequipped item has a full read-only effect and base-stat explanation")
   var entry=game.pages.party_view.workspace.picked
   node("SkillDetailsTabs").current_tab=node("SkillDetailsNote").get_parent().get_index();await frames()
   check(node("SkillDetailsNote").text==entry.definition.note,"unequipped item note is preserved verbatim in separate scroll tab")
@@ -71,7 +71,7 @@ func run():
   game.pages.party_view.workspace.set_tab("skills");await settle();before=await saved()
   var skill=game.find_child("CharacterSkill_*_guard_*",true,false)
   skill.grab_focus();skill.pressed.emit();await settle()
-  check(node("SkillDetailsWindow")!=null and game.pages.party_uid=="guard","skill opens for selected member")
+  check(node("SkillDetailsWindow")!=null and game.pages.party_uid==INVENTORY_OWNER,"skill opens for selected member")
   await click("SkillDetailsBack");check(skill.has_focus() and await saved()==before,"close restores selected skill and exact state")
   game.locked=true;game.show_skill_details("guard","かばう",1);await frames();check(node("SkillDetailsWindow")==null,"pending state update cannot open stale character explanation");game.locked=false
   game.show_skill_details("guard","かばう",1);await settle();var old_token=game.campaign().inventoryToken;game.data.campaign.inventoryToken="changed-presentation-context";await frames()

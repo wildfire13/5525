@@ -1,6 +1,8 @@
 extends SceneTree
 var game
 var checks=[]
+const GUARD="recruit-guard-human-female"
+const SCOUT="recruit-scout-elf-male"
 func _initialize():call_deferred("run")
 func check(ok,label):checks.append({"passed":bool(ok),"label":label});print(("PASS " if ok else "FAIL ")+label)
 func settle():
@@ -29,13 +31,13 @@ func run():
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.audio.fast_mode=true;game.checks_fast=true
-	var seed=await saved();seed.state.location="east";seed.state.gold=500;seed.state.characters.archer.inventory={"twin-bow":2}
+	var seed=await saved();seed.state.location="east";seed.state.gold=500;seed.state.characters[SCOUT].inventory={"twin-bow":2}
 	await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle();await tap("FacilityChoice_buy")
 	var shop=game.pages.shop_view;var y=row_y()
 	check(node("ShopNotice")==null and shop.transaction.is_empty(),"shop starts without a transaction notice")
-	await tap("RosterMember_guard")
+	await tap("RosterMember_"+GUARD)
 	for spec in [["undertow-sword","retreatSlash","退き斬り"],["twin-bow","splitShot","分け撃ち"],["dagger-wood","scout","奇襲"]]:
 		await tap("Product_"+spec[0])
 		var skills=node("ShopComparisonSkills").find_children("ComparisonSkill_追加_"+spec[1]+"_*","Button",true,false)
@@ -46,14 +48,14 @@ func run():
 	var before=await saved()
 	await tap("Product_undertow-sword");await tap("ShopComparisonBuy");await tap("PurchaseDecline")
 	check(await saved()==before and shop.transaction.is_empty(),"payment decline leaves the save and latest transaction unchanged")
-	await buy("undertow-sword","guard")
-	check(game.campaign().gold==400 and shop.transaction.ownerId=="guard" and game.save_notice.caption.text=="ガロへ 引き波の剣×1 / 支払100G","purchase notice names the recipient, item and cost")
-	check(node("SaleItem_undertow-sword")!=null and game.campaign().characters.guard.weapon==seed.state.characters.guard.weapon and row_y()==y,"purchase appears in the recipient inventory without equipping or shifting the catalog")
+	await buy("undertow-sword",GUARD)
+	check(game.campaign().gold==400 and shop.transaction.ownerId==GUARD and game.save_notice.caption.text==game.member_name(GUARD)+"へ 引き波の剣×1 / 支払100G","purchase notice names the recipient, item and cost")
+	check(node("SaleItem_undertow-sword")!=null and game.campaign().characters[GUARD].weapon==seed.state.characters[GUARD].weapon and row_y()==y,"purchase appears in the recipient inventory without equipping or shifting the catalog")
 	await tap("SaleItem_undertow-sword")
 	check_weapon_values(26,1)
 	return_to_catalog();await settle()
-	await buy("twin-bow","archer")
-	check(game.campaign().gold==300 and shop.transaction.ownerId=="archer" and node("SaleItem_twin-bow")!=null and row_y()==y,"second purchase updates the recipient without shifting the catalog")
+	await buy("twin-bow",SCOUT)
+	check(game.campaign().gold==300 and shop.transaction.ownerId==SCOUT and node("SaleItem_twin-bow")!=null and row_y()==y,"second purchase updates the recipient without shifting the catalog")
 	await tap("SaleItem_twin-bow")
 	check_weapon_values(25,3)
 	var sale=shop.sale
@@ -61,24 +63,24 @@ func run():
 	before=await saved();await tap("FacilitySalePrepare")
 	check(sale.stage=="confirm" and sale.quote.get("count")==2 and sale.quote.get("proceeds")==200,"sale receipt uses selected quantity and proceeds")
 	sale.confirmation.canceled.emit();await settle()
-	check(sale.stage=="selected" and sale.amount==2 and sale.item_id=="twin-bow" and sale.owner_id=="archer" and await saved()==before,"sale cancellation preserves owner, item, quantity and full save")
+	check(sale.stage=="selected" and sale.amount==2 and sale.item_id=="twin-bow" and sale.owner_id==SCOUT and await saved()==before,"sale cancellation preserves owner, item, quantity and full save")
 	await tap("FacilitySalePrepare")
 	check(sale.stage=="confirm" and sale.quote.get("proceeds")==200,"reopened receipt retains the two-unit proceeds")
 	sale.confirmation.canceled.emit();await settle()
 	node("FacilitySaleQuantity").value=1;await settle()
 	await tap("FacilitySalePrepare");sale.confirmation.confirmed.emit();await settle()
-	check(sale.stage=="list" and game.campaign().gold==400 and game.campaign().characters.archer.inventory.get("twin-bow")==2,"single sale updates actual inventory and gold")
-	check(shop.transaction.kind=="sell" and game.save_notice.caption.text=="リノの双射の弓×1を売却 / 受取100G","latest sale replaces the purchase notice with the actual proceeds")
+	check(sale.stage=="list" and game.campaign().gold==400 and game.campaign().characters[SCOUT].inventory.get("twin-bow")==2,"single sale updates actual inventory and gold")
+	check(shop.transaction.kind=="sell" and game.save_notice.caption.text==game.member_name(SCOUT)+"の双射の弓×1を売却 / 受取100G","latest sale replaces the purchase notice with the actual proceeds")
 	var sale_notice=shop.transaction.duplicate(true);before=await saved()
 	return_to_catalog();await settle()
 	check(row_y()==y,"returning from the sale preserves catalog position")
 	await tap("Product_undertow-sword");await tap("ProductTrial_undertow-sword");await tap("TrialRecipientCancel")
 	check(shop.transaction==sale_notice and await saved()==before,"trial recipient cancel preserves the last transaction and campaign")
-	await tap("ProductTrial_undertow-sword");await tap("TrialRecipient_guard");await game.act("endTrial",[]);await settle()
+	await tap("ProductTrial_undertow-sword");await tap("TrialRecipient_"+GUARD);await game.act("endTrial",[]);await settle()
 	check(shop.transaction==sale_notice and await saved()==before and row_y()==y,"trial roundtrip preserves sale notice, campaign and catalog position")
 	shop.message="結果不明の検査警告";shop.unknown=true;game.render();await settle()
 	check(node("ShopNotice").text==shop.message and node("ShopComparisonBuy").disabled,"unresolved transaction shows warning and prevents purchase")
-	seed.state.location="west";await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle();await tap("FacilityChoice_buy");await tap("RosterMember_guard")
+	seed.state.location="west";await game.update({"op":"campaign_load","data":seed});game.navigate("shop");await settle();await tap("FacilityChoice_buy");await tap("RosterMember_"+GUARD)
 	await tap("Product_armor-iron-2")
 	var stats=node("ShopComparisonStats").get_parsed_text()
 	check(stats.contains("(+55)") and stats.contains("(-1)"),"armor comparison preserves positive HP and negative speed changes")

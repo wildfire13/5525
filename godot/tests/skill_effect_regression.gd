@@ -149,7 +149,7 @@ func run():
 	check(generated.meta.count==22 and generated.cases.size()==22,"all 22 canonical fixture cases present")
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true
 	check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"BGM voice and SE all OFF")
 	var saved=(await game.engine.request({"op":"campaign_save"})).data

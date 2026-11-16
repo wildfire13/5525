@@ -70,7 +70,7 @@ func presentation_case():
 	for which in ["self","other","finish"]:
 		await restore(which);process_frame.connect(observe)
 		game.choose_command("attack" if which=="finish" else "skill")
-		var target="mage" if which=="self" else "guard" if which=="other" else game.data.choices.attack[0]
+		var target="recruit-mage-elf-female" if which=="self" else "recruit-guard-human-female" if which=="other" else game.data.choices.attack[0]
 		await game.on_cell(int(game.hud.unit(target).pos));await settle();await game.commit();await settle();process_frame.disconnect(observe)
 		if which=="finish":check("JY-02",game.state().get("result")!=null,"also observed the final action through victory and settlement")
 	game.checks_fast=true
@@ -78,7 +78,7 @@ func presentation_case():
 	check("JY-02",phases.all(func(p):return p.head_matches and p.header_matches),"header and primary queue portrait match the same presentation actor on every phase")
 	check("JY-02",phases.all(func(p):return p.labels.contains("開始時") and not p.labels.contains("現在")),"historical queue is explicitly labelled and no old head is called current")
 	check("JY-02",phases.any(func(p):return p.phase=="heal" and p.unit!=p.actor),"healed recipient is distinguishable from action owner")
-	check("JY-05",phases.all(func(p):return p.recipient_matches) and phases.any(func(p):return p.phase=="heal" and p.actor=="mage" and p.unit=="mage"),"actual result names only the received unit, including single-target self heal with other available candidates")
+	check("JY-05",phases.all(func(p):return p.recipient_matches) and phases.any(func(p):return p.phase=="heal" and p.actor=="recruit-mage-elf-female" and p.unit=="recruit-mage-elf-female"),"actual result names only the received unit, including single-target self heal with other available candidates")
 func movement_cases():
 	for dims in [Vector2i(1178,814),Vector2i(800,600)]:
 		root.size=dims;await restore()
@@ -105,7 +105,7 @@ func movement_cases():
 			measurements.append({"window":str(dims),"mode":mode,"select":recorded(first),"ghost":recorded(placed),"long_text":recorded(long_text),"reference":recorded(open),"cancel":recorded(geometry()),"stable":stable(first,placed) and stable(first,open)})
 func target_details():
 	await restore();var before=await snapshot()
-	for id in ["mage","guard"]:
+	for id in ["recruit-mage-elf-female","recruit-guard-human-female"]:
 		game.choose_command("skill");await game.on_cell(int(game.hud.unit(id).pos));await settle();game.hud.open_action_details();await settle();var detail=text(game.dialog.body)
 		check("JY-05",detail.contains("指定対象: "+str(game.hud.unit(id).name)) and not detail.contains("指定対象: "+id),"selected heal target uses the person's name")
 		check("JY-05",detail.contains("候補") and detail.contains("実受領者") and not detail.contains("影響候補:"),"candidate list is clearly distinguished from actual recipients")

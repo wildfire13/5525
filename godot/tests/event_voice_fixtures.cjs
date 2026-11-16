@@ -9,4 +9,4 @@ for(let i=0;i<2;i++){
  assert(C.finishBattle(s));if(i===0)assert(C.onward(s));
 }
 assert(C.arrive(s));assert(C.validate(s).ok,C.validate(s).error);
-process.stdout.write(C.serialize(s));
+require('node:fs').writeFileSync(process.argv[2],C.serialize(s),'utf8');

@@ -131,7 +131,7 @@ func inventory_cases():
  await reveal("SaleItem_bow-silver-2","ShopInventoryScroll");await capture("owned-wood-iron-silver")
  await inventory_category("upperBody")
  await reveal("SaleItem_armor-cloth","ShopInventoryScroll");await capture("owned-cloth-leather-metal")
- game.pages.party_view.open_inventory("guard");await settle();await os_click(node("CharacterTab_equipment"))
+ game.pages.party_view.open_inventory("recruit-guard-human-female");await settle();await os_click(node("CharacterTab_equipment"))
  var equipped=node("CharacterSlot_rightHand");await os_mouse(screen_rect(equipped).get_center());await create_timer(.85).timeout
  check(equipped.icon!=null and not equipped.tooltip_text.is_empty(),"equipped weapon has art and hover label");await capture("pincer-equipped")
  await skill_tab();var skill=game.find_child("CharacterSkill_*_pincer_*",true,false);await reveal_control(skill);await capture("person-skills")
@@ -154,15 +154,15 @@ func shop_cases():
  check(await saved()==before,"ordinary purchase cancellation consumes no money or inventory")
  await os_click(node("ShopComparisonBuy"));await os_click(node("PurchaseAgree"))
  var bought=await saved();var price=game.campaign().shop.filter(func(g):return g.id=="spear-wood")[0].price
- check(int(bought.state.gold)==int(before.state.gold)-int(price) and int(bought.state.characters.guard.inventory["spear-wood"])==int(before.state.characters.guard.inventory["spear-wood"])+1,"actual ordinary purchase matches displayed canonical price and owner quantity")
+ check(int(bought.state.gold)==int(before.state.gold)-int(price) and int(bought.state.characters["recruit-guard-human-female"].inventory["spear-wood"])==int(before.state.characters["recruit-guard-human-female"].inventory["spear-wood"])+1,"actual ordinary purchase matches displayed canonical price and owner quantity")
  await os_click(node("ShopInventoryTab_inventory"));await reveal("SaleItem_spear-wood","ShopInventoryScroll");await os_click(node("SaleItem_spear-wood"))
  var quantity=node("FacilitySaleQuantity");await reveal_control(quantity);await os_click(quantity.get_line_edit());await os_key("Home");await os_key("Delete");await os_key("2");await os_key("Return")
  check(int(node("FacilitySaleQuantity").value)==2,"actual OS sale quantity is two")
- var quote=(await game.engine.request({"op":"campaign","action":"saleQuote","args":["guard","spear-wood",2]})).saleQuote
+ var quote=(await game.engine.request({"op":"campaign","action":"saleQuote","args":["recruit-guard-human-female","spear-wood",2]})).saleQuote
  await capture("sale-quantity");await os_click(node("FacilitySalePrepare"));await os_click(node("FacilitySaleCancel"))
  check(await saved()==bought,"actual sale NO preserves all inventory and money")
  await os_click(node("FacilitySalePrepare"));await os_click(node("FacilitySaleConfirm"));var sold=await saved()
- check(int(sold.state.gold)==int(quote.afterGold) and int(sold.state.characters.guard.inventory["spear-wood"])==int(bought.state.characters.guard.inventory["spear-wood"])-2,"actual sale matches canonical total and exact owner quantity")
+ check(int(sold.state.gold)==int(quote.afterGold) and int(sold.state.characters["recruit-guard-human-female"].inventory["spear-wood"])==int(bought.state.characters["recruit-guard-human-female"].inventory["spear-wood"])-2,"actual sale matches canonical total and exact owner quantity")
  await os_key("Escape")
 func battle_cases():
  for key in ["sweep1","sweep2","sweep3","pincer","item1","item3"]:
@@ -190,7 +190,7 @@ func run():
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
  DirAccess.make_dir_recursive_absolute(evidence.path_join("rendered"));ui_cases=fixtures_icons()
- await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
+ await game.new_game();await settle()
  await normal_route();await inventory_cases();await shop_cases();await battle_cases()
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"all individual icon UI checks keep BGM voice SE OFF")
  for spec in [["checks.json",checks],["icon-ui-observations.json",icon_records],["fixture-boundaries.json",boundaries]]:

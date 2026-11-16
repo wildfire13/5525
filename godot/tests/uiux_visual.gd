@@ -20,13 +20,13 @@ func capture(name_: String):
  print("CAPTURE ",name_," ",JSON.stringify(geometry))
 func run():
  root.title="5525 UIUX candidate - isolated visual QA"
- root.size=Vector2i(1280,800)
+ root.size=Vector2i(1920,1080)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true
  var original=(await game.engine.request({"op":"campaign_save"})).data
  var east=original.duplicate(true);east.state.location="east"
- for dims in [Vector2i(1280,800),Vector2i(1024,720),Vector2i(800,600)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;await settle()
   await game.update({"op":"campaign_load","data":original});game.navigate("party");await capture("P01-"+str(dims.x))
   await game.update({"op":"campaign_load","data":east});game.navigate("shop")

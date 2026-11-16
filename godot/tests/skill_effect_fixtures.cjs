@@ -9,32 +9,36 @@ const C=require('../../native/campaign.js');
 const B=require('../../native/campaign-battle.js');
 const {Presentation}=require('../../native/battle-presentation.cjs');
 const clone=value=>JSON.parse(JSON.stringify(value));
+const ids={guard:'recruit-guard-human-female',archer:'recruit-scout-elf-male',mage:'recruit-mage-elf-female',scout:'recruit-scout-human-female',porter:'recruit-porter-human-female'};
 const validate=(state,label)=>assert(C.validate(state).ok,`${label}: ${C.validate(state).error}`);
 
 function campaign(kind){
-  const s=require('../../native/test-current-fixture.cjs')(),guard=s.characters.guard;
+  const s=C.create(),guard=s.characters[ids.guard];
+  s.selected=Object.values(ids);
+  s.characters[ids.archer].weapon='bow-wood';
+  s.characters[ids.archer].leftHand='empty-leftHand';
   if(kind.startsWith('sweep'))guard.lowerBody=kind==='sweep100'?'kungfu-pants-3':'kungfu-pants';
-  if(kind.startsWith('stamp'))guard.weapon='hammer-wood';
+  if(kind.startsWith('stamp')){guard.weapon='hammer-wood';guard.leftHand='empty-leftHand';}
   assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>0));assert(C.begin(s));
   const b=s.battle;
-  const positions={guard:24,archer:12,mage:13,scout:4,porter:32};
+  const positions=Object.fromEntries(Object.entries({guard:24,archer:12,mage:13,scout:4,porter:32}).map(([role,pos])=>[ids[role],pos]));
   for(const u of b.units){
     u.hp=u.max;u.mp=u.maxMp;u.next=10000;u.guard=false;u.cover=null;u.boost=false;
     if(u.side==='ally')u.pos=positions[u.id];
   }
   const enemies=b.units.filter(u=>u.side==='enemy');
   enemies.forEach((u,i)=>{u.pos=[25,15,35][i];});
-  const actor=b.units.find(u=>u.id===(kind.startsWith('heal')?'mage':kind==='attackRanged'?'archer':kind==='porterBreakthrough'?'porter':'guard'));
+  const actor=b.units.find(u=>u.id===ids[kind.startsWith('heal')?'mage':kind==='attackRanged'?'archer':kind==='porterBreakthrough'?'porter':'guard']);
   if(kind==='porterBreakthrough')actor.pos=48;
   actor.next=1;b.actor=actor.id;
   if(kind.startsWith('sweep')||kind.startsWith('stamp')||kind.startsWith('heal'))actor.selectedSkill=kind.startsWith('sweep')?'legSweep':kind.startsWith('stamp')?'stamp':'mage';
-  let target=kind==='porterBreakthrough'?49:kind.startsWith('sweep')?actor.id:kind.startsWith('stamp')?25:kind.startsWith('attack')?enemies[0].id:'guard';
+  let target=kind==='porterBreakthrough'?49:kind.startsWith('sweep')?actor.id:kind.startsWith('stamp')?25:kind.startsWith('attack')?enemies[0].id:ids.guard;
   let actionKind=kind==='porterBreakthrough'?'move':kind.startsWith('attack')?'attack':kind==='guard'?'guard':'skill';
   if(kind==='attackRanged')actor.pos=23;
   if(kind==='attackGuarded')enemies[0].guard=true;
-  if(kind==='guard'){target=null;b.units.find(u=>u.id==='archer').next=2;}
+  if(kind==='guard'){target=null;b.units.find(u=>u.id===ids.archer).next=2;}
   if(kind==='attackSequence'){
-    enemies[0].next=2;enemies[1].next=3;b.units.find(u=>u.id==='archer').next=4;
+    enemies[0].next=2;enemies[1].next=3;b.units.find(u=>u.id===ids.archer).next=4;
   }
   if(kind==='sweepEmpty')enemies.forEach((u,i)=>{u.pos=[29,19,39][i];});
   if(kind==='sweepEdge')actor.pos=0;
@@ -47,9 +51,9 @@ function campaign(kind){
     if(kind.startsWith('attack'))target=enemies[1].id;
     if(kind==='attackCoverGuarded')enemies[0].guard=true;
   }
-  if(kind==='stampNextActor')b.units.find(u=>u.id==='archer').next=2;
+  if(kind==='stampNextActor')b.units.find(u=>u.id===ids.archer).next=2;
   if(kind.startsWith('heal')){
-    const friend=b.units.find(u=>u.id==='guard');friend.hp=friend.max-(kind==='healCapped'?8:kind==='healFull'?0:80);
+    const friend=b.units.find(u=>u.id===ids.guard);friend.hp=friend.max-(kind==='healCapped'?8:kind==='healFull'?0:80);
     if(kind==='healSelf'){actor.hp=actor.max-12;target=actor.id;}
   }
   // Enemy actions are selected when executed from the current positions.
@@ -125,9 +129,9 @@ function observe(name){
   if(name==='sweepAlreadySet')assert.deepEqual(newSkips,[]);
   if(name==='sweepEdge')assert.deepEqual(expected.cells,[1,10,11]);
   if(name.startsWith('sweep'))assert.equal(impacts.length,0,`${name} no fabricated damage or healing`);
-  if(name==='heal')assert.deepEqual(impacts.map(x=>[x.phase,x.unit_id,x.delta]),[['heal','guard',60]]);
-  if(name==='healCapped')assert.deepEqual(impacts.map(x=>[x.phase,x.unit_id,x.delta]),[['heal','guard',8]]);
-  if(name==='healSelf')assert.deepEqual(impacts.map(x=>[x.phase,x.unit_id,x.delta]),[['heal','mage',12]]);
+  if(name==='heal')assert.deepEqual(impacts.map(x=>[x.phase,x.unit_id,x.delta]),[['heal',ids.guard,60]]);
+  if(name==='healCapped')assert.deepEqual(impacts.map(x=>[x.phase,x.unit_id,x.delta]),[['heal',ids.guard,8]]);
+  if(name==='healSelf')assert.deepEqual(impacts.map(x=>[x.phase,x.unit_id,x.delta]),[['heal',ids.mage,12]]);
   if(name==='healFull')assert.equal(accepted,false);
   if(name==='stamp')assert.equal(impacts.length,3);
   if(name==='stampMiss')assert.equal(impacts.length,0);
@@ -138,7 +142,7 @@ function observe(name){
   }
   if(name==='stampEdge')assert.deepEqual(expected.cells,[1,11]);
   if(name==='stampNextActor'){
-    assert.equal(expected.final_actor,'archer');assert.deepEqual(geometry(observed.battle).stampAreas,{});
+    assert.equal(expected.final_actor,ids.archer);assert.deepEqual(geometry(observed.battle).stampAreas,{});
     assert.equal(impacts.length,0);assert(observed.battle.units.find(u=>u.id===initial.actor).pendingStamp);
   }
   const actions=frames.filter(f=>f.presentation.phase==='action');
@@ -147,7 +151,7 @@ function observe(name){
   if(name==='attackMelee')assert.deepEqual(impacts.map(hit=>hit.delta),[-Math.min(initial.units.find(u=>u.id===request.target).hp,B.attackPreview(initial,initial.units.find(u=>u.id===initial.actor),initial.units.find(u=>u.id===request.target)).damage)]);
   if(name==='attackRanged')assert.deepEqual(impacts.map(hit=>hit.delta),[-Math.min(initial.units.find(u=>u.id===request.target).hp,B.attackPreview(initial,initial.units.find(u=>u.id===initial.actor),initial.units.find(u=>u.id===request.target)).damage)]);
   if(name==='attackGuarded')assert.deepEqual(impacts.map(hit=>[hit.delta,hit.guarding]),[[-Math.min(initial.units.find(u=>u.id===request.target).hp,B.attackPreview(initial,initial.units.find(u=>u.id===initial.actor),initial.units.find(u=>u.id===request.target)).damage),true]]);
-  if(name==='guard'){assert.equal(impacts.length,0);assert.equal(observed.battle.units.find(u=>u.id==='guard').guard,true);}
+  if(name==='guard'){assert.equal(impacts.length,0);assert.equal(observed.battle.units.find(u=>u.id===ids.guard).guard,true);}
   if(name.startsWith('attackCover')){assert.equal(impacts.length,1);assert(impacts[0].redirected);assert.notEqual(request.target,impacts[0].unit_id);}
   if(name==='attackCoverGuarded')assert(impacts[0].guarding);
   if(name==='attackSequence'){assert(expected.actions.length>=3);assert(impacts.length>=3);assert(new Set(impacts.map(hit=>hit.action_id)).size>=3);}

@@ -22,8 +22,8 @@ func run():
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true
-	var output=[];OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/inventory_battle_fixtures.cjs")]),output,true,false)
-	var fixtures=JSON.parse_string("".join(output));await game.update({"op":"campaign_load","data":fixtures.guard});await frames()
+	var fixtures=preload("res://tests/ui_current_fixture.gd").generate("res://tests/inventory_battle_fixtures.cjs")
+	await game.update({"op":"campaign_load","data":fixtures.guard});await frames()
 	var left=game.hud.left_panel;var right=game.hud.right_panel
 	await send(Vector2(960,500));await send(Vector2(960,500),MOUSE_BUTTON_RIGHT,true);await send(Vector2(990,500),0,false,Vector2(30,0));await send(Vector2(990,500),MOUSE_BUTTON_RIGHT,false)
 	check(left.size.x<=400 and right.size.x<=440,"FHD side panels keep central playfield open")

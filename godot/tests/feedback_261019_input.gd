@@ -1,4 +1,6 @@
 extends "res://tests/feedback_261019_skills.gd"
+func source_cases():
+	return preload("res://tests/ui_current_fixture.gd").generate("res://tests/feedback_261019_input_fixtures.cjs")
 var mask=0
 func send(point: Vector2,button:=0,pressed:=false,delta:=Vector2.ZERO):
 	var event
@@ -22,13 +24,13 @@ func run():
 	while game.data.is_empty():await process_frame
 	game.audio.fast_mode=true;game.checks_fast=false
 	var cases=source_cases()
-	for id in ["town","sweep100"]:
+	for id in ["town","battle"]:
 		var f=FileAccess.open(evidence.path_join(id+".json"),FileAccess.WRITE);f.store_string(JSON.stringify(cases[id]));f.close()
 	for resolution in [Vector2i(1920,1080)]:
 		root.size=resolution;await settle()
 		for cycle in range(2):
 			await game.load_game(evidence.path_join("town.json"));await settle()
-			await game.load_game(evidence.path_join("sweep100.json"));await settle();await create_timer(.4).timeout
+			await game.load_game(evidence.path_join("battle.json"));await settle();await create_timer(.4).timeout
 			var before=await saved();var camera=game.preferences.camera().duplicate(true)
 			for panel in [game.hud.left_panel,game.hud.right_panel]:
 				if cycle==1:check(panel.global_position.y==0,"top position survives town and reload "+str(resolution)+str(panel.name))

@@ -26,8 +26,8 @@ func run():
  root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1180,812)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- game.checks_fast=true;game.audio.fast_mode=true;await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
- game.pages.party_view.open_inventory("guard");await settle();await skill_tab()
+ game.checks_fast=true;game.audio.fast_mode=true;await game.new_game();await settle()
+ game.pages.party_view.open_inventory("recruit-guard-human-female");await settle();await skill_tab()
  var skill=game.find_child("CharacterSkill_*_guard_*",true,false);await reveal_control(skill);await os_click(skill)
  var before=await saved();await snapshot("F1-open-1180")
  await os_resize(Vector2i(960,540));observe("F1-shrink",[node("SkillDetailsBack"),node("SkillDetailsSummary")]);await snapshot("F1-shrink-960")

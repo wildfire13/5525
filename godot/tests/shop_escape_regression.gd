@@ -31,9 +31,16 @@ func run():
 	game.find_child("FacilitySaleQuantity",true,false).value=2;await settle()
 	await tap("FacilitySalePrepare")
 	var escape=InputEventKey.new();escape.keycode=KEY_ESCAPE;escape.pressed=true
-	sale.confirmation.push_input(escape,true);await settle()
-	check(not game.modal_open() and sale.stage=="selected" and sale.amount==2 and sale.quote.get("count")==2,"sale receipt Escape retains selection and quantity")
-	check((await game.engine.request({"op":"campaign_save"})).data==before,"sale Escape preserves complete save")
+	var headless=DisplayServer.get_name()=="headless"
+	if headless:
+		# Native ConfirmationDialog keyboard dispatch needs a windowing backend.
+		# Exercise its cancellation callback without claiming an OS Escape test.
+		sale.confirmation.canceled.emit()
+	else:
+		sale.confirmation.push_input(escape,true)
+	await settle()
+	check(not game.modal_open() and sale.stage=="selected" and sale.amount==2 and sale.quote.get("count")==2,("headless sale cancellation" if headless else "sale receipt Escape")+" retains selection and quantity")
+	check((await game.engine.request({"op":"campaign_save"})).data==before,("headless sale cancellation" if headless else "sale Escape")+" preserves complete save")
 	var list_button=game.find_child("ShopTransactionFooter",true,false).find_children("*","Button",true,false).filter(func(b):return b.text=="商品一覧へ")[0]
 	list_button.pressed.emit();await settle()
 	await tap("Product_undertow-sword");await tap("ShopComparisonBuy");await escape_twice()

@@ -2,7 +2,7 @@
 // Synthetic review states only: victories are forced to reach result UI, not a combat proof.
 const C=require('../../native/campaign.js'),assert=require('node:assert/strict');
 function acceptWithPorter(s,id){return C.accept(s,id,s.selected.find(uid=>C.view(s).roster.find(u=>u.id===uid)?.job==='porter'));}
-const followup=require('./followup_ui_fixtures.cjs');
+const {fixtures:followup,ids,fresh}=require('./ui_current_fixtures.cjs');
 function save(s){assert(C.validate(s).ok,C.validate(s).error);return JSON.parse(C.serialize(s));}
 function result(destination,accepted=false){
  const s=require('../../native/test-current-fixture.cjs')();s.location=['east','west'].includes(destination)?'north':'east';
@@ -16,8 +16,8 @@ function result(destination,accepted=false){
  }
  assert(C.arrive(s));if(accepted)assert(C.completeQuest(s));return save(s);
 }
-const town=require('../../native/test-current-fixture.cjs')();town.characters.guard.hp=60;town.characters.guard.mp=0;town.characters.mage.hp=0;
-const four=require('../../native/test-current-fixture.cjs')();assert(C.select(four,['guard','mage','scout','porter']));
+const town=fresh();town.characters[ids.guard].hp=60;town.characters[ids.guard].mp=0;town.characters[ids.mage].hp=0;
+const four=fresh();assert(C.select(four,[ids.guard,ids.mage,ids.scout,ids.porter]));
 const road=require('../../native/test-current-fixture.cjs')();assert(C.depart(road,'east'));
 const results=Object.fromEntries(['north','east','west','south','astaris'].map(id=>[id+'_travel',result(id)]));
 const fixtures={...followup,...results,north_delivery:result('north',true),town:save(town),four:save(four),road:save(road)};

@@ -155,74 +155,6 @@
       "usage": "runtime"
     },
     {
-      "name": "pose_crouch",
-      "file": "pose_crouch.png",
-      "size": [
-        1254,
-        1254
-      ],
-      "alpha_bbox": [
-        78,
-        167,
-        1176,
-        1165
-      ],
-      "sha256": "b2300e4e93858ed1246c94a40ea814351a40147e505f160cfd08976179b8c8e6",
-      "generation": "original_imagegen",
-      "usage": "runtime"
-    },
-    {
-      "name": "pose_stamp_lift",
-      "file": "pose_stamp_lift.png",
-      "size": [
-        1254,
-        1254
-      ],
-      "alpha_bbox": [
-        127,
-        134,
-        1128,
-        1165
-      ],
-      "sha256": "50fecc027b83f0363e04d1ff27f17bbae2ba0cd70fcff9469573b09499a7df05",
-      "generation": "original_imagegen",
-      "usage": "runtime"
-    },
-    {
-      "name": "pose_stamp_slam",
-      "file": "pose_stamp_slam.png",
-      "size": [
-        1254,
-        1254
-      ],
-      "alpha_bbox": [
-        77,
-        54,
-        1177,
-        1165
-      ],
-      "sha256": "8abeca481dad561e8bb609670df8179cf3a66ab369f20c60e8586121fd6fa237",
-      "generation": "original_imagegen",
-      "usage": "runtime"
-    },
-    {
-      "name": "pose_sweep",
-      "file": "pose_sweep.png",
-      "size": [
-        1254,
-        1254
-      ],
-      "alpha_bbox": [
-        45,
-        194,
-        1209,
-        1165
-      ],
-      "sha256": "69d0962518076c442be88839fdbd64d5a42b92e1c48222dd0a21ff4fa3b8f759",
-      "generation": "original_imagegen",
-      "usage": "runtime"
-    },
-    {
       "name": "stamp_fall",
       "file": "stamp_fall.png",
       "size": [
@@ -324,7 +256,5 @@
       "generation": "original_imagegen",
       "usage": "runtime"
     }
-  ],
-  "pose_base_sha256": "c8e248f42d9fa7d4b4f97ee5caaef2c4b9164899215ad0a30c9820a2bb7b70b0",
-  "pose_scope": "default ally knight.png only; never replaces custom portraits or other characters"
+  ]
 }

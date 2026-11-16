@@ -28,15 +28,15 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.audio.fast_mode=true;game.checks_fast=true
 	var baseline=await saved()
-	baseline.state.characters.guard.inventory={"potion":2,"spear-wood":2,"swift-boots":1}
+	baseline.state.characters["recruit-guard-human-female"].inventory={"potion":2,"spear-wood":2,"swift-boots":1}
 	await game.update({"op":"campaign_load","data":baseline});await settle()
-	game.mock_shell.activate("guard");await settle()
+	game.mock_shell.activate("recruit-guard-human-female");await settle()
 	var workspace=game.pages.party_view.workspace
 	workspace.set_tab("inventory");await settle()
-	var spear=game.campaign().inventoryByCharacter.guard.entries.filter(func(e):return e.id=="spear-wood")[0]
+	var spear=game.campaign().inventoryByCharacter["recruit-guard-human-female"].entries.filter(func(e):return e.id=="spear-wood")[0]
 	var row=game.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text==spear.name)[0]
 	check(row.alignment==HORIZONTAL_ALIGNMENT_LEFT and row.icon!=null,"S4 owned equipment shows a left-aligned name and icon")
 	row.pressed.emit();await settle()
@@ -44,16 +44,16 @@ func run():
 	await click("CharacterItemDetails")
 	check(node("SkillDetailsBody").text.contains("通常攻撃射程"),"S5 owned spear details include attack reach")
 	await click("SkillDetailsBack");await click("CharacterEquip")
-	check((await saved()).state.characters.guard.inventory["spear-wood"]==1,"S10 equipping consumes exactly one spear")
+	check((await saved()).state.characters["recruit-guard-human-female"].inventory["spear-wood"]==1,"S10 equipping consumes exactly one spear")
 	workspace.set_tab("equipment");await settle();await click("CharacterSlot_rightHand")
 	var remove=game.find_children("*","Button",true,false).filter(func(b):return b.text=="装備を外す")[0]
 	remove.pressed.emit();await settle()
-	check((await saved()).state.characters.guard.inventory["spear-wood"]==2,"S11 unequipping returns exactly one spear")
+	check((await saved()).state.characters["recruit-guard-human-female"].inventory["spear-wood"]==2,"S11 unequipping returns exactly one spear")
 	var tip=preload("res://equipment_tooltip.gd").new();tip.configure("armor",{"type":"armor","hp":5,"effect":"archer"},{"definitions":{"archer":{"reach":3}},"descriptions":{"archer":"射程+1"}})
 	check(not tip.tooltip_text.contains("通常攻撃射程") and "\n".join(tip.details).contains("#c7a5ff"),"S6 armor excludes attack reach while skill effect is purple");tip.free()
-	var output=[];var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/inventory_battle_fixtures.cjs")]),output,true,false)
-	check(code==0,"battle fixture generator")
-	var fixtures=JSON.parse_string("".join(output));await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
+	var fixtures=preload("res://tests/ui_current_fixture.gd").generate("res://tests/inventory_battle_fixtures.cjs")
+	check(not fixtures.is_empty(),"battle fixture generator")
+	await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
 	var field=game.board.get_global_rect();var viewport=Rect2(Vector2.ZERO,Vector2(root.size))
 	check(viewport.encloses(field) and not field.intersects(game.hud.left_panel.get_global_rect()) and not field.intersects(game.hud.right_panel.get_global_rect()),"S1 B board fits FHD between separate information columns")
 	check(range(50).all(func(cell):return field.has_point(game.board.global_position+game.board.project_cell(cell))),"S1 all fifty board cell centers remain visible")

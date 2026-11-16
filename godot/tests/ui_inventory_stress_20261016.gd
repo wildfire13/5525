@@ -10,11 +10,11 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await preload("res://tests/ui_current_fixture.gd").install(game)
 	var before=(await game.engine.request({"op":"campaign_save"})).data
-	game.pages.party_view.open_inventory("guard");await frames()
+	game.pages.party_view.open_inventory("recruit-guard-human-female");await frames()
 	# Use view-only copies of a real entry so the normal inventory renderer supplies the rows.
-	var inventory=game.campaign().inventoryByCharacter.guard
+	var inventory=game.campaign().inventoryByCharacter["recruit-guard-human-female"]
 	var original=inventory.entries[0]
 	var items=[]
 	for i in range(80):

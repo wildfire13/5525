@@ -1,8 +1,8 @@
 'use strict';
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
-const s=C.createLegacy();s.location='east';
-const trial=C.trial(s,'scout','dagger-wood','rightHand');assert(trial);
-const b=trial.battle,a=b.units.find(u=>u.id==='scout'),target=b.units.find(u=>u.side==='enemy');
+const s=C.create();s.location='east';
+const trial=C.trial(s,"recruit-scout-human-female",'dagger-wood','rightHand');assert(trial);
+const b=trial.battle,a=b.units.find(u=>u.id==="recruit-scout-human-female"),target=b.units.find(u=>u.side==='enemy');
 a.pos=23;target.pos=26;
 let extra=0;for(const u of b.units.filter(u=>u!==a&&u!==target))u.pos=[0,1,8,9][extra++];
 const prediction=B.damagePreview(b,a,'skill',target.id);
@@ -12,11 +12,12 @@ reference.pos=B.ambush(copy,reference,copy.units.find(u=>u.id===target.id)).dest
 const attack=B.attackPreview(copy,reference,copy.units.find(u=>u.id===target.id));
 assert.equal(prediction[0].damage,attack.damage);assert.equal(prediction[0].base,attack.base);
 const hp=target.hp;assert(C.trialAct(trial,'skill',target.id));assert.equal(hp-target.hp,attack.damage);
-assert.equal(target.def,0);assert.equal(C.stats(s.characters.scout).def,0);
-console.log(JSON.stringify({test:'ambush equals ordinary attack from landing',weaponContribution:attack.base,ordinaryDamage:attack.damage,ambushDamage:hp-target.hp,DEF:0}));
-const dual=C.createLegacy();dual.location='east';dual.gold=2000;
-assert(C.buyGear(dual,'mage','sword-wood','rightHand'));assert(C.buyGear(dual,'mage','staff-wood','leftHand'));
-const t=C.trial(dual,'mage','dagger-wood','rightHand'),actor=t.battle.units.find(u=>u.id==='mage'),victim=t.battle.units.find(u=>u.side==='enemy');
+assert.equal(target.def,2,'current enemy keeps its wooden shield');
+assert.equal(a.def,C.stats(s.characters[a.id]).def,'trial uses the current recruit equipment');
+console.log(JSON.stringify({test:'ambush equals ordinary attack from landing',weaponContribution:attack.base,ordinaryDamage:attack.damage,ambushDamage:hp-target.hp,DEF:target.def}));
+const dual=C.create();dual.location='east';dual.gold=2000;
+assert(C.buyGear(dual,"recruit-mage-elf-female",'sword-wood','rightHand'));assert(C.buyGear(dual,"recruit-mage-elf-female",'staff-wood','leftHand'));
+const t=C.trial(dual,"recruit-mage-elf-female",'dagger-wood','rightHand'),actor=t.battle.units.find(u=>u.id==="recruit-mage-elf-female"),victim=t.battle.units.find(u=>u.side==='enemy');
 actor.pos=21;victim.pos=24;extra=0;
 for(const u of t.battle.units.filter(u=>u!==actor&&u!==victim))u.pos=[0,1,8,9][extra++];
 assert.deepEqual(actor.attackWeapons.map(w=>w.reach),[1,2]);
@@ -24,7 +25,7 @@ assert.equal(B.reachFilteredPower(actor,victim).base,0,'original distance does n
 const preview=B.damagePreview(t.battle,actor,'skill',victim.id)[0];
 assert.equal(preview.base,23+14);assert.equal(preview.weapons.length,2);
 const priorHp=victim.hp;assert(C.trialAct(t,'skill',victim.id));
-assert.equal(priorHp-victim.hp,37);
+assert.equal(victim.def,2);assert.equal(priorHp-victim.hp,35);
 console.log(JSON.stringify({test:'mixed reach 1+2 at original distance 3',weaponContribution:preview.base,ambushDamage:priorHp-victim.hp,weapons:preview.weapons.map(w=>w.itemId)}));
 // A completed personal opportunity releases the used grant before the next cast.
 assert.equal(B.legal(t.battle,'skill',victim.id),false);

@@ -4,7 +4,7 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var tooltip=preload("res://equipment_tooltip.gd").new()
 	var ether={"resource":"mp","amount":3,"battleRole":"porter","name":"エーテル"};var unchanged=ether.duplicate(true)
@@ -34,8 +34,8 @@ func run():
 	var selected={}
 	for i in range(40):hub.reset();hub.select_art("astaris");selected[hub.artwork.style]=true
 	check(selected.size()==3,"art catalog supports additional variants without code changes")
-	var q=game.campaign().board[0];await game.act("accept",[q.id,"porter"]);await settle()
-	game.pages.party_view.open_inventory("porter");await settle()
+	var q=game.campaign().board[0];await game.act("accept",[q.id,"recruit-porter-human-female"]);await settle()
+	game.pages.party_view.open_inventory("recruit-porter-human-female");await settle()
 	var cargo=game.campaign().activeQuest.cargoItemId
 	var rows=game.find_children("*","Button",true,false).filter(func(button):return button.tooltip_text=="荷物")
 	check(rows.size()==1,"porter inventory contains accepted cargo")

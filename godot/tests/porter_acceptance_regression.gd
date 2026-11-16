@@ -1,4 +1,7 @@
 extends SceneTree
+const GUARD="recruit-guard-human-female"
+const PORTER="recruit-porter-human-female"
+const OTHER_PORTER="recruit-porter-human-male"
 var game
 var checks=[]
 func _initialize():call_deferred("run")
@@ -15,11 +18,10 @@ func run():
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.audio.fast_mode=true;game.checks_fast=true
 	game.navigate("party");await settle()
 	if game.find_child("FacilityChoice_guild",true,false)!=null:await tap("FacilityChoice_guild")
-	game.pages.guild_view.current_id="porter";game.render();await settle()
+	game.pages.guild_view.current_id=PORTER;game.render();await settle()
 	check(not game.find_child("GuildRemove",true,false).disabled,"last porter removal available")
 	await tap("GuildRemove")
 	check(not game.campaign().hasPorter and game.campaign().selected.size()==4,"UI removes last porter without a fixed-member constraint")
@@ -32,11 +34,11 @@ func run():
 	var qid=game.campaign().board[0].id
 	reply=await game.engine.request({"op":"campaign","action":"accept","args":[qid]})
 	check(not reply.get("ok",true) and str(reply.get("error","")).contains("最低1人"),"zero porter acceptance explains required count")
-	await game.act("select",[["guard","porter-2"]]);await settle()
-	reply=await game.update({"op":"campaign","action":"accept","args":[qid,"porter-2"]});await settle()
+	await game.act("select",[[GUARD,OTHER_PORTER]]);await settle()
+	reply=await game.update({"op":"campaign","action":"accept","args":[qid,OTHER_PORTER]});await settle()
 	check(reply.get("ok",false) and game.campaign().activeQuest is Dictionary,"one porter acceptance succeeds")
 	check(game.campaign().phase=="town","accept does not depart")
-	await game.act("select",[["guard"]]);await settle()
+	await game.act("select",[[GUARD]]);await settle()
 	check(not game.campaign().hasPorter,"accepted quest can retain zero porter composition")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame

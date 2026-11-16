@@ -4,13 +4,13 @@ func run():
  if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- await preload("res://tests/current_historical_fixture.gd").install(game)
+ await game.new_game();
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
  var seed=await saved()
  for dims in [Vector2i(1920,1080)]:
   root.size=dims;await game.update({"op":"campaign_load","data":seed});await enter_facility("inn");await settle()
   check(not labels().any(func(s):return s.begins_with("パーティ全員で")) and labels().has("全員が全回復しています。料金はかかりません。"),"full party hides charge but retains free status "+str(dims))
-  var injured=seed.duplicate(true);injured.state.characters.guard.hp=1
+  var injured=seed.duplicate(true);injured.state.characters["recruit-guard-human-female"].hp=1
   await game.update({"op":"campaign_load","data":injured});await enter_facility("inn");await settle()
   check(labels().has("パーティ全員で%dG" % game.campaign().inn.price) and not labels().any(func(s):return s.contains("仮料金")),"injured party retains exact price "+str(dims))
   game.page="map";game.render();await settle()

@@ -34,13 +34,14 @@ func run():
 	root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1920,1080)
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
+	await game.new_game()
 	game.audio.fast_mode=true;game.checks_fast=true;await settle()
 	var seed=await saved();var art=game.pages.facility_art;var production=art.catalog.duplicate(true)
 	var cases=[["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"],["astaris","map","departure_map"]]
 	for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
 		root.size=dims;root.position=Vector2i.ZERO;await settle()
 		for spec in cases:
-			var scenario=seed.duplicate(true);scenario.state.location=spec[0];scenario.state.characters.guard.hp=1
+			var scenario=seed.duplicate(true);scenario.state.location=spec[0];scenario.state.characters["recruit-guard-human-female"].hp=1
 			await game.update({"op":"campaign_load","data":scenario});await enter_facility(spec[1]);await settle()
 			var before=await saved()
 			for variant in production[spec[2]]:
@@ -54,7 +55,7 @@ func run():
 			art.catalog=production.duplicate(true)
 			if spec[0]=="east":
 				var state=art.rng.state
-				var product=node("Product_spear-wood");var receiver=node("PartyFace_guard")
+				var product=node("Product_spear-wood");var receiver=node("PartyFace_recruit-guard-human-female")
 				await os_mouse(product.get_global_rect().get_center(),"drag",receiver.get_global_rect().get_center())
 				check(node("PurchaseDecline")!=null,"OS product drag opens purchase consent")
 				if node("PurchaseDecline")!=null:await os_click(node("PurchaseDecline"))
@@ -66,7 +67,7 @@ func run():
 				var map=node("TownMap");var dest=map.buttons.keys().filter(func(id):return id!=map.current and id!=map.selected)[0]
 				await os_click(map.buttons[dest]);check(node("TownMap").selected==dest,"OS map destination works over background")
 			if spec[1]=="party":
-				await os_click(node("GuildMember_guard"));check(game.pages.guild_view.chosen_id=="guard","OS guild member selects over background")
+				await os_click(node("GuildMember_recruit-guard-human-female"));check(game.pages.guild_view.chosen_id=="recruit-guard-human-female","OS guild member selects over background")
 			if spec[1]=="inn":
 				await os_click(node("InnStay"))
 				var confirmations=game.find_children("*","ConfirmationDialog",true,false)

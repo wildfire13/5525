@@ -1,11 +1,13 @@
 extends SceneTree
 # Visible, local QA only. No OS-wide mouse/keyboard or desktop captures.
 var game
-var directory=ProjectSettings.globalize_path("res://qa/visual")
+var directory=OS.get_environment("VISUAL_QA_ROOT")
 var last_id=""
 var running=false
 func _initialize():call_deferred("run")
 func run():
+	if directory.is_empty() or not OS.get_user_data_dir().begins_with(directory+"/"):
+		push_error("Set VISUAL_QA_ROOT and isolate APPDATA beneath it");quit(2);return
 	DirAccess.make_dir_recursive_absolute(directory)
 	root.title="5525 Godot Prototype - Visual QA"
 	game=load("res://main.tscn").instantiate();root.add_child(game)

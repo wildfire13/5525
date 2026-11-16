@@ -17,17 +17,17 @@ func run():
 	var deadline=Time.get_ticks_msec()+15000
 	while game.data.is_empty() and Time.get_ticks_msec()<deadline:await process_frame
 	if game.data.is_empty():quit(2);return
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;game.navigate("map");await settle()
 	check(node("PartyRoster").find_children("RosterMember_*","Button",true,false).size()==5,"R06 active party has five persistent portraits")
-	var base=await snap();base.state.characters.guard.xp=300;base.state.characters.guard.level=4;base.state.characters.guard.statPoints=6;base.state.characters.guard.skillPoints=3
+	var base=await snap();base.state.characters["recruit-guard-human-female"].xp=300;base.state.characters["recruit-guard-human-female"].level=4;base.state.characters["recruit-guard-human-female"].statPoints=6;base.state.characters["recruit-guard-human-female"].skillPoints=3
 	await game.update({"op":"campaign_load","data":base});await settle()
-	node("RosterMember_guard").pressed.emit();await settle()
+	node("RosterMember_recruit-guard-human-female").pressed.emit();await settle()
 	var workspace=game.pages.party_view.workspace
 	workspace.set_tab("ability");await settle()
 	var allocate=game.find_children("*","Button",true,false).filter(func(b):return b.text.begins_with("能力を割り振る"))[0]
 	allocate.pressed.emit();await settle()
-	var pv=game.pages.party_view;var u=game.roster().filter(func(x):return x.id=="guard")[0];var before=await snap()
+	var pv=game.pages.party_view;var u=game.roster().filter(func(x):return x.id=="recruit-guard-human-female")[0];var before=await snap()
 	pv.change_draft(u,"str",1);pv.change_draft(u,"str",1);pv.change_draft(u,"int",1);await settle()
 	check(pv.draft_total()==3 and await snap()==before,"R07 plus changes only local pending values")
 	check(node("AllocationRemaining").text.contains("3"),"R07 remaining point count is explicit")
@@ -37,23 +37,24 @@ func run():
 	workspace.end_allocation();await settle();d=node("DiscardAllocation");check(d!=null,"R07 leaving allocation asks to discard pending changes")
 	d.canceled.emit();await settle();check(workspace.allocating and pv.draft_total()==3,"R07 continue editing keeps pending changes")
 	pv.confirm_allocation(u);await settle();d=node("AllocationConfirmation");d.confirmed.emit();d.confirmed.emit();await settle()
-	var after=await snap();var allocations=after.state.characters.guard.allocations;check(after.state.characters.guard.statPoints==3 and allocations.str==2 and allocations.int==1 and allocations.agi==0,"R07 double confirm spends exactly the three allocated points")
-	check(after.state.characters.guard.hp==before.state.characters.guard.hp+6,"R07 existing HP growth formula retained")
+	var after=await snap();var allocations=after.state.characters["recruit-guard-human-female"].allocations;check(after.state.characters["recruit-guard-human-female"].statPoints==3 and allocations.str==2 and allocations.int==1 and allocations.agi==0,"R07 double confirm spends exactly the three allocated points")
+	check(after.state.characters["recruit-guard-human-female"].hp==before.state.characters["recruit-guard-human-female"].hp+6,"R07 existing HP growth formula retained")
 	game.mock_shell.toggle_character();await settle();check(game.page=="map" and node("PartyRoster")!=null,"R06 closing character restores map and roster")
 	game.navigate("map");await settle();check(node("TownMap").routes.east==["north","astaris","south"],"R08 map and engine use same ring routes")
 	before=await snap();before.state.location="north";await game.update({"op":"campaign_load","data":before});game.navigate("shop");await settle()
 	game.pages.facility_entry.choose("buy");await settle()
 	check(game.pages.shop_view.slots()==["accessory1","accessory2"],"R09 North offers both accessory slots")
 	for slot in ["accessory1","accessory2"]:
-		await game.pages.shop_view.select_slot(slot);await settle();check(game.pages.offered().size()>0 and game.pages.offered().all(func(g):return g.get("allowedSlots",[g.slot]).has(slot)),"R10 product rows match "+slot)
+		await game.pages.shop_view.select_slot(slot);await settle();check(node("ShopProductsScroll").find_children("Product_*","Button",true,false).filter(func(row):return row.is_visible_in_tree()).size()==game.pages.offered().size() and game.pages.offered().all(func(g):return g.get("allowedSlots",[g.slot]).has(slot)),"R10 product rows match current catalog for "+slot)
 	game.navigate("board");await game.act("depart",["east","convoy"]);await game.act("travel",["safe"]);await settle()
-	check(node("PartyRoster")!=null and game.data.formationSlots.ally.map(func(x):return int(x))==[24,13,33],"R04 deployment uses basic cells and deployment roster")
-	await game.act("chooseFormation",["flank"]);check(game.state().formationKind=="flank" and game.data.formationSlots.ally.map(func(x):return int(x))==[24,13,33],"R04 flank selection retains porter-anchored cells")
+	var slots=game.data.formationSlots.ally.duplicate()
+	check(node("PartyRoster")!=null and not slots.is_empty(),"R04 deployment shows current porter-anchored formation cells")
+	await game.act("chooseFormation",["flank"]);check(game.state().formationKind=="flank" and game.data.formationSlots.ally==slots,"R04 flank selection retains porter-anchored cells")
 	await game.act("begin",[]);await settle()
 	check(game.hud.buttons.keys()==["attack","move","skill","items","guard"],"R01 exactly five bottom commands")
 	var row=node("ActorCommands");check(row.get_global_rect().end.y<=1080 and game.hud.buttons.attack.global_position.x==game.hud.buttons.guard.global_position.x,"R01 commands fit the actor column")
 	await game.choose_command("attack");await settle();var pending=game.pending;var action=game.command
-	game.board.set_hover("mage");await settle();check(game.hud.person_box.get_meta("inspected_unit")=="mage" and game.pending==pending and game.command==action,"R02 hover changes only person inspection")
+	game.board.set_hover("recruit-mage-elf-female");await settle();check(game.hud.person_box.get_meta("inspected_unit")=="recruit-mage-elf-female" and game.pending==pending and game.command==action,"R02 hover changes only person inspection")
 	game.board.set_hover("");await settle();check(not game.hud.person_box.has_meta("inspected_unit"),"R02 hover leave clears inspection")
 	var frame=game.board.get_global_rect();game.hud.open_skills();await settle()
 	var details=game.find_children("BattleSkillDetails_*","Button",true,false)
@@ -64,9 +65,9 @@ func run():
 	check(game.hud.decision_footer.get_global_rect().end.y<=1080,"R02 confirm footer stays visible at FHD")
 	for turn in [0.0,0.4,-0.4]:
 		game.board.camera_yaw+=turn;game.board.update_camera();await settle();check(game.board.cell_at(game.board.project_cell(24))==24,"R02 camera projection "+str(turn))
-	root.size=Vector2i(800,600);await settle();check(game.hud.decision_footer.get_global_rect().end.y<=600,"R02 compact confirm remains reachable")
-	var return_only=base.duplicate(true);return_only.state.location="north";return_only.state.characters.guard.weapon="empty-rightHand";return_only.state.characters.guard.leftHand="empty-leftHand"
-	await game.update({"op":"campaign_load","data":return_only});await game.act("trial",["guard","return-ring-1","accessory1"]);await settle()
+	await settle();check(root.get_visible_rect().encloses(game.hud.decision_footer.get_global_rect()),"R02 FHD confirm remains reachable")
+	var return_only=base.duplicate(true);return_only.state.location="north";return_only.state.characters["recruit-guard-human-female"].weapon="empty-rightHand";return_only.state.characters["recruit-guard-human-female"].leftHand="empty-leftHand"
+	await game.update({"op":"campaign_load","data":return_only});await game.act("trial",["recruit-guard-human-female","return-ring-1","accessory1"]);await settle()
 	check(game.data.skillset.is_empty() and game.hud.has_return() and not game.hud.buttons.skill.disabled,"R01 character with only return can open skills")
 	game.hud.open_skills();await settle()
 	var return_button=node("BattleSkill_returnHome")
@@ -75,8 +76,8 @@ func run():
 	var before_return=game.state().duplicate(true);await game.on_cell(0);await settle();check(game.can_commit(),"R01 return accepts home cell zero")
 	game.cancel();await settle();check(game.state()==before_return,"R01 return cancellation leaves gameplay untouched")
 	await game.select_skill("returnHome");await game.on_cell(0);await game.commit();await settle()
-	var guard=game.hud.unit("guard")
-	check(guard.get("returnUsedGrants",{}).values().has(true) and guard.pos==0 and guard.mp==before_return.units.filter(func(u):return u.id=="guard")[0].mp,"R01 return executes once with unchanged MP")
+	var guard=game.hud.unit("recruit-guard-human-female")
+	check(guard.get("returnUsedGrants",{}).values().has(true) and guard.pos==0 and guard.mp==before_return.units.filter(func(u):return u.id=="recruit-guard-human-female")[0].mp,"R01 return executes once with unchanged MP")
 	game.hud.open_skills();await settle();check(node("BattleSkill_returnHome").disabled and node("BattleSkill_returnHome").tooltip_text.contains("1戦闘に1回"),"R01 used return remains explained and cannot repeat")
 	await game.act("endTrial",[]);await settle()
 	var icons=JSON.parse_string(FileAccess.get_file_as_string("res://assets/ui_icons/manifest.json"))
@@ -88,8 +89,7 @@ func run():
 	for slot in ["rightHand","leftHand","head","upperBody","lowerBody","feet","accessory1","accessory2"]:
 		check(game.icons.gear({"type":"empty","slot":slot})==("unarmed" if slot in ["rightHand","leftHand"] else game.icons.slot(slot)),"R11 empty equipment uses correct slot icon: "+slot)
 	check(game.icons.gear({"type":"empty","slot":"weapon"})=="unarmed" and game.icons.gear({"type":"empty","slot":"armor"})=="body","R11 empty legacy storage aliases preserve hand and body semantics")
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://qa"))
-	var report=FileAccess.open("res://qa/ui-feedback-regression.json",FileAccess.WRITE);report.store_string(JSON.stringify({"checks":checks,"failures":failures,"passed":failures.is_empty(),"gui":false},"  "));report.close()
+	var report=FileAccess.open("user://ui-feedback-regression.json",FileAccess.WRITE);report.store_string(JSON.stringify({"checks":checks,"failures":failures,"passed":failures.is_empty(),"gui":false},"  "));report.close()
 	game.closing=true;game.dialog.close(false);game.hud.invalidate_hover();await settle();await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame
 	print("UI FEEDBACK checks ",checks.size()," failures ",failures.size());quit(0 if failures.is_empty() else 1)

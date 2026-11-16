@@ -1,4 +1,5 @@
 extends SceneTree
+const OWNER="recruit-guard-human-female"
 var game
 var checks=[]
 var geometry=[]
@@ -19,9 +20,9 @@ func enter_shop():
 	node("FacilityChoice_buy").pressed.emit();await settle()
 func empty_slots(seed):
 	var fixture=seed.duplicate(true);fixture.state.location="north";fixture.state.gold=1000
-	fixture.state.characters.guard.inventory={}
-	fixture.state.characters.guard.accessory1="empty-accessory1"
-	var inspection=fixture.duplicate(true);inspection.state.characters.guard.accessory2="empty-accessory2"
+	fixture.state.characters[OWNER].inventory={}
+	fixture.state.characters[OWNER].accessory1="empty-accessory1"
+	var inspection=fixture.duplicate(true);inspection.state.characters[OWNER].accessory2="empty-accessory2"
 	await game.update({"op":"campaign_load","data":inspection});game.navigate("character");await settle()
 	var workspace=game.pages.party_view.workspace
 	for slot in ["accessory1","accessory2"]:
@@ -36,23 +37,23 @@ func empty_slots(seed):
 	var quote=(await game.engine.request({"op":"campaign","action":"previewGear","args":[comparison.owner_id,comparison.item_id,comparison.slot]})).get("previewGear",{})
 	check("EMPTY-quote",quote.has("retained") and not quote.retained,"selected shop comparison retains no empty accessory")
 	node("ShopComparisonBuy").pressed.emit();await settle();node("PurchaseAgree").pressed.emit();await settle()
-	check("EMPTY-purchase",game.campaign().characters.guard.inventory.get("lone-ring-1")==1 and game.campaign().gold==930 and clean(),"single purchase places only the real ring in inventory")
-	game.pages.party_view.open_inventory("guard");await settle()
-	var entry=game.campaign().inventoryByCharacter.guard.entries.filter(func(e):return e.id=="lone-ring-1")[0]
+	check("EMPTY-purchase",game.campaign().characters[OWNER].inventory.get("lone-ring-1")==1 and game.campaign().gold==930 and clean(),"single purchase places only the real ring in inventory")
+	game.pages.party_view.open_inventory(OWNER);await settle()
+	var entry=game.campaign().inventoryByCharacter[OWNER].entries.filter(func(e):return e.id=="lone-ring-1")[0]
 	for attempt in range(2):
 		var row=game.find_children("*","Button",true,false).filter(func(button):return button.tooltip_text==entry.name)[0]
 		row.pressed.emit();await settle();node("CharacterEquip").pressed.emit();await settle()
-		check("EMPTY-equip-"+str(attempt),game.campaign().characters.guard.accessory1==entry.id and not game.campaign().characters.guard.inventory.has(entry.id) and clean() and game.campaign().gold==930,"equipping consumes exactly one real accessory")
+		check("EMPTY-equip-"+str(attempt),game.campaign().characters[OWNER].accessory1==entry.id and not game.campaign().characters[OWNER].inventory.has(entry.id) and clean() and game.campaign().gold==930,"equipping consumes exactly one real accessory")
 		if attempt==0:
 			node("CharacterTab_equipment").pressed.emit();await settle();node("CharacterSlot_accessory1").pressed.emit();await settle()
 			var remove=game.find_children("*","Button",true,false).filter(func(button):return button.text=="装備を外す")[0]
 			remove.pressed.emit();await settle()
-			check("EMPTY-unequip",game.campaign().characters.guard.inventory.get(entry.id)==1 and clean(),"removal returns exactly one real accessory")
+			check("EMPTY-unequip",game.campaign().characters[OWNER].inventory.get(entry.id)==1 and clean(),"removal returns exactly one real accessory")
 			node("CharacterTab_inventory").pressed.emit();await settle()
 	var before=await saved()
 	await game.update({"op":"campaign_load","data":before});await settle()
 	check("EMPTY-roundtrip",await saved()==before and clean(),"saved and reloaded legitimate inventory stays exact")
-	var invalid=before.duplicate(true);invalid.state.characters.guard.inventory["empty-accessory1"]=3
+	var invalid=before.duplicate(true);invalid.state.characters[OWNER].inventory["empty-accessory1"]=3
 	var path=evidence.path_join("contaminated-candidate.json");var f=FileAccess.open(path,FileAccess.WRITE);f.store_string(JSON.stringify(invalid));f.close();var bytes=FileAccess.get_file_as_bytes(path)
 	await game.load_game(path);await settle()
 	check("EMPTY-invalid-preserved",await saved()==before and FileAccess.get_file_as_bytes(path)==bytes and game.notice.contains("空の装備枠"),"contaminated candidate save is explained and rejected without modifying file or current progress")
@@ -78,7 +79,6 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(evidence.to_lower()+"/"):push_error("User data must be isolated");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
 	game.checks_fast=true;game.audio.fast_mode=true;var seed=await saved();await empty_slots(seed);await prices(seed)
 	game.closing=true;game.dialog.close(false);game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame

@@ -16,8 +16,8 @@ class SkillGrantBridgeTests(unittest.TestCase):
         current_campaign(bridge)
         save=bridge.call(op='campaign_save')['data'];save['state'].update(location='east',gold=9999)
         self.assertTrue(bridge.call(op='campaign_load',data=save)['ok'])
-        self.assertTrue(bridge.call(op='campaign',action='buyGear',args=['mage','staff-silver-1','leftHand'])['ok'])
-        data=bridge.call(op='campaign',action='trial',args=['mage','staff-wood','rightHand'])
+        self.assertTrue(bridge.call(op='campaign',action='buyGear',args=['recruit-mage-elf-female','staff-silver-1','leftHand'])['ok'])
+        data=bridge.call(op='campaign',action='trial',args=['recruit-mage-elf-female','staff-wood','rightHand'])
         options=[o for o in data['skillset'] if o['id']=='mage']
         self.assertEqual(len(options),2)
         self.assertEqual(len({o['key'] for o in options}),2)
@@ -27,19 +27,19 @@ class SkillGrantBridgeTests(unittest.TestCase):
             selected=bridge.call(op='select_skill',skillId=option['key'])
             self.assertTrue(selected['ok']);self.assertEqual([o['key'] for o in selected['skillset'] if o['selected']],[option['key']])
         used=options[-1];other=options[0]
-        before=next(u['mp'] for u in selected['state']['units'] if u['id']=='mage')
-        result=bridge.call(op='act',kind='skill',target='guard')
+        before=next(u['mp'] for u in selected['state']['units'] if u['id']=='recruit-mage-elf-female')
+        result=bridge.call(op='act',kind='skill',target='recruit-guard-human-female')
         self.assertTrue(result['ok'])
-        self.assertEqual(next(u['mp'] for u in result['state']['units'] if u['id']=='mage'),before-1)
+        self.assertEqual(next(u['mp'] for u in result['state']['units'] if u['id']=='recruit-mage-elf-female'),before-1)
         by_key={o['key']:o for o in result['skillset']}
         self.assertGreater(by_key[used['key']]['cooldown'],0)
         self.assertEqual(by_key[other['key']]['cooldown'],0)
         unchanged=bridge.call(op='view')['state']
-        self.assertFalse(bridge.call(op='act',kind='skill',target='archer')['ok'])
+        self.assertFalse(bridge.call(op='act',kind='skill',target='recruit-scout-human-female')['ok'])
         self.assertEqual(bridge.call(op='view')['state'],unchanged)
         available=bridge.call(op='select_skill',skillId=other['key'])
         self.assertTrue(available['ok'])
-        self.assertTrue(bridge.call(op='act',kind='skill',target='archer')['ok'])
+        self.assertTrue(bridge.call(op='act',kind='skill',target='recruit-scout-human-female')['ok'])
 
     def test_return_buttons_remain_independent_once_per_battle(self):
         bridge=Session();self.addCleanup(bridge.close)
@@ -47,8 +47,8 @@ class SkillGrantBridgeTests(unittest.TestCase):
         save=bridge.call(op='campaign_save')['data'];save['state'].update(location='north',gold=9999)
         self.assertTrue(bridge.call(op='campaign_load',data=save)['ok'])
         for gear,slot in [('return-ring-1','accessory1'),('return-ring-2','accessory2')]:
-            self.assertTrue(bridge.call(op='campaign',action='buyGear',args=['mage',gear,slot])['ok'])
-        data=bridge.call(op='campaign',action='trial',args=['mage','return-ring-1','accessory1'])
+            self.assertTrue(bridge.call(op='campaign',action='buyGear',args=['recruit-mage-elf-female',gear,slot])['ok'])
+        data=bridge.call(op='campaign',action='trial',args=['recruit-mage-elf-female','return-ring-1','accessory1'])
         options=data['returnSkillset'];self.assertEqual(len(options),2)
         self.assertEqual(len({o['key'] for o in options}),2)
         selected=bridge.call(op='select_return_skill',skillId=options[0]['key'])

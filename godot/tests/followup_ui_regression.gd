@@ -5,6 +5,10 @@ var checks=[]
 var failures=[]
 var evidence=OS.get_environment("UIUX_REVIEW_EVIDENCE")
 var boost_phases=[]
+const HERO="recruit-guard-human-female"
+const ARCHER="recruit-scout-elf-male"
+const MAGE="recruit-mage-elf-female"
+const PORTER="recruit-porter-human-female"
 func _initialize():call_deferred("run")
 func check(ok: bool,detail: String):
 	checks.append({"passed":ok,"detail":detail});print(("PASS " if ok else "FAIL ")+detail)
@@ -43,19 +47,19 @@ func camp_cases():
 			rows.append(face.global_position.y)
 			check(face.texture!=null and face.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED,"camp full-body image remains uncropped")
 		check(faces.size()==5 and rows.all(func(y):return absf(y-rows[0])<1),"full body portraits are side by side")
-		check(text(party).contains("HP %d/" % before.state.characters.guard.hp) and text(party).contains("MP %d/" % before.state.characters.guard.mp) and text(party).contains("戦闘不能"),"camp preserves live resources and KO status")
-		node("InventoryOwner_guard").pressed.emit();await settle()
+		check(text(party).contains("HP %d/" % before.state.characters[HERO].hp) and text(party).contains("MP %d/" % before.state.characters[HERO].mp) and text(party).contains("戦闘不能"),"camp preserves live resources and KO status")
+		node("InventoryOwner_"+HERO).pressed.emit();await settle()
 		var workspace=game.pages.party_view.workspace
-		check(game.page=="character" and workspace.tab=="inventory" and workspace.owner=="guard","camp opens the chosen owner's inventory")
-		await choose_item("guard","potion")
-		check(not button(game.member_name("guard")+"に使う").disabled and button(game.member_name("archer")+"に使う").disabled and button(game.member_name("mage")+"に使う").disabled,"potion excludes full HP and fallen recipients")
+		check(game.page=="character" and workspace.tab=="inventory" and workspace.owner==HERO,"camp opens the chosen owner's inventory")
+		await choose_item(HERO,"potion")
+		check(not button(game.member_name(HERO)+"に使う").disabled and button(game.member_name(ARCHER)+"に使う").disabled and button(game.member_name(MAGE)+"に使う").disabled,"potion excludes full HP and fallen recipients")
 		node("Header_character").pressed.emit();await settle()
 		check(game.page=="items" and await snapshot()==before,"leaving item selection preserves exact save")
-		node("InventoryOwner_guard").pressed.emit();await settle();await choose_item("guard","potion");await press(game.member_name("guard")+"に使う")
-		var used=await snapshot();check(used.state.characters.guard.hp==before.state.characters.guard.hp+55 and used.state.characters.guard.inventory.potion==2 and used.state.characters.guard.mp==before.state.characters.guard.mp,"camp potion restores HP, consumes one owned item and preserves MP")
-		node("RosterMember_porter").pressed.emit();await settle()
-		await choose_item("porter","ether");await press(game.member_name("guard")+"に使う");used=await snapshot()
-		check(used.state.characters.guard.mp==mini(before.state.characters.guard.mp+3,6) and used.state.characters.porter.inventory.ether==3,"camp ether distinguishes owner and target and preserves MP+3")
+		node("InventoryOwner_"+HERO).pressed.emit();await settle();await choose_item(HERO,"potion");await press(game.member_name(HERO)+"に使う")
+		var used=await snapshot();check(used.state.characters[HERO].hp==mini(before.state.characters[HERO].hp+55,game.roster().filter(func(u):return u.id==HERO)[0].max) and used.state.characters[HERO].inventory.potion==2 and used.state.characters[HERO].mp==before.state.characters[HERO].mp,"camp potion restores HP, consumes one owned item and preserves MP")
+		node("RosterMember_"+PORTER).pressed.emit();await settle()
+		await choose_item(PORTER,"ether");await press(game.member_name(HERO)+"に使う");used=await snapshot()
+		check(used.state.characters[HERO].mp==mini(before.state.characters[HERO].mp+3,game.roster().filter(func(u):return u.id==HERO)[0].maxMp) and used.state.characters[PORTER].inventory.ether==3,"camp ether distinguishes owner and target and preserves MP+3")
 		node("Header_character").pressed.emit();await settle()
 	await restore("guard");check(node("CharacterInventoryFilter")==null,"loading battle leaves character inventory")
 func battle_cases():
@@ -65,7 +69,7 @@ func battle_cases():
 		await press("アイテム");check(game.hud.item_list and node("BattleItem_ether").disabled and node("BattleItem_ether").tooltip_text.contains("ポーター専用"),"non-porter sees explicit ether restriction")
 		await game.on_cell(24);check(game.pending==null and not game.can_commit(),"item list cannot commit or select board targets")
 		node("BattleItem_potion").pressed.emit();await settle();await game.on_cell(24);await settle()
-		check(game.command=="item" and game.pending=="guard" and game.can_commit(),"potion item list reaches ordinary engine preview")
+		check(game.command=="item" and game.pending==HERO and game.can_commit(),"potion item list reaches ordinary engine preview")
 		await press("キャンセル");await press("アイテム");check(await snapshot()==before and game.board.get_global_rect()==rect,"battle item back clears target and preserves save and board geometry")
 		await press("スキル");node("BattleSkillDetails_guard").pressed.emit();await settle()
 		var detail=node("SkillDetailsWindow")
@@ -79,31 +83,29 @@ func battle_cases():
 	await restore("porter");var before=await snapshot();await press("アイテム")
 	check(not node("BattleItem_ether").disabled,"porter can choose ether from the same item list")
 	node("BattleItem_ether").pressed.emit();await settle();await game.on_cell(24);await settle();await game.commit();await settle()
-	var after=await snapshot();check(game.hud.unit("guard").mp==3 and after.state.battle.ethers==before.state.battle.ethers-1 and after.state.battle.actions==before.state.battle.actions+1,"battle ether preserves MP+3, one item and one action")
+	var after=await snapshot();check(game.hud.unit(HERO).mp==3 and after.state.battle.ethers==before.state.battle.ethers-1 and after.state.battle.actions==before.state.battle.actions+1,"battle ether preserves MP+3, one item and one action")
 	await restore("porter");before=await snapshot();await press("スキル");node("BattleSkill_porter").pressed.emit();await settle()
 	var effect=node("BattleSkill_porter").tooltip_text
-	check(game.pending=="porter" and game.can_commit() and not game.modal_open(),"formation boost prepares canonical self token without a modal")
+	check(game.pending==PORTER and game.can_commit() and not game.modal_open(),"formation boost prepares canonical self token without a modal")
 	for phrase in ["味方全員","3マス外","成立している間だけ","×1.5","×0.75","×1.75","×0.65","置き換え","使用者の次の番まで","陣形が崩れている間","加算されません"]:check(effect.contains(phrase),"formation effect explains "+phrase)
 	await press("スキル");check(await snapshot()==before,"formation content inspection and back never execute")
 	await press("スキル");node("BattleSkill_porter").pressed.emit();await settle();process_frame.connect(observe);await press(game.hud.command_name()+"を実行");process_frame.disconnect(observe);after=await snapshot()
-	check(game.hud.unit("porter").boost and game.hud.unit("porter").mp==2 and after.state.battle.actions==before.state.battle.actions+1,"formation execute retains canonical boost, MP1 and one action")
+	check(game.hud.unit(PORTER).boost and game.hud.unit(PORTER).mp==2 and after.state.battle.actions==before.state.battle.actions+1,"formation execute retains canonical boost, MP1 and one action")
 	check(not boost_phases.is_empty() and boost_phases.any(func(value):return value.contains("効果対象: 味方全員")),"formation presentation does not mislabel the porter as the only beneficiary")
 	await restore("broken");await press("スキル");node("BattleSkill_porter").pressed.emit();await settle();check(not game.can_commit() and text(game.hud.target_box).contains("護送陣が未成立"),"broken formation explains inability to execute")
 func support_cases():
 	for which in ["heal_left","heal_right"]:
 		await restore(which);var before=await snapshot();await press("スキル");node("BattleSkill_mage").pressed.emit();await settle()
-		check(game.data.skillReach==2 and game.data.normalAttackReach==2 and game.data.choices.skill.has("guard"),which+" bridge exposes heal reach2 with normal reach unchanged")
+		check(game.data.skillReach==2 and game.data.normalAttackReach==2 and game.data.choices.skill.has(HERO),which+" bridge exposes heal reach2 with normal reach unchanged")
 		await game.on_cell(24);await settle();check(game.can_commit(),which+" Godot previews heal at distance2")
-		await press(game.hud.command_name()+"を実行");check(game.hud.unit("guard").hp==70 and game.hud.unit("mage").mp==before.state.battle.units.filter(func(u):return u.id=="mage")[0].mp-1,which+" executed heal restores60 and costs1MP")
+		await press(game.hud.command_name()+"を実行");check(game.hud.unit(HERO).hp==70 and game.hud.unit(MAGE).mp==before.state.battle.units.filter(func(u):return u.id==MAGE)[0].mp-1,which+" executed heal restores60 and costs1MP")
 	await restore("cover_staff");await press("スキル");node("BattleSkill_guard").pressed.emit();await settle()
-	check(game.data.skillReach==1 and game.data.normalAttackReach==2 and not game.data.choices.skill.has("guard"),"staff cover has fixed1 while normal staff reach stays2")
+	check(game.data.skillReach==1 and game.data.normalAttackReach==2 and not game.data.choices.skill.has(HERO),"staff cover has fixed1 while normal staff reach stays2")
 	await game.on_cell(24);await settle();check(not game.can_commit(),"staff cover rejects distance2 in Godot controls")
 	await game.on_cell(21);await settle();check(game.can_commit(),"staff cover allows adjacent living ally")
-	await press(game.hud.command_name()+"を実行");check(game.hud.unit("mage").cover=="porter","staff cover executes for an adjacent ally")
+	await press(game.hud.command_name()+"を実行");check(game.hud.unit(MAGE).cover==PORTER,"staff cover executes for an adjacent ally")
 func run():
-	var output=[];var executable=OS.get_environment("NATIVE5525_NODE");if executable.is_empty():executable="node"
-	var code=OS.execute(executable,PackedStringArray([ProjectSettings.globalize_path("res://tests/followup_ui_fixtures.cjs")]),output,false,false);fixtures=JSON.parse_string("".join(output))
-	if code!=0 or not fixtures is Dictionary:print(output);quit(2);return
+	fixtures=preload("res://tests/ui_current_fixture.gd").generate("res://tests/followup_ui_fixtures.cjs")
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()

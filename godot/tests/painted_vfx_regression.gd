@@ -13,7 +13,7 @@ func run():
  for i in range(5):await process_frame
  var fx=board.skill_effects;fx.set_process(false)
  var manifest=JSON.parse_string(FileAccess.get_file_as_string("res://assets/vfx_production/manifest.json"))
- check(manifest.images.size()==19 and fx.textures.size()==38,"19 original separated artwork layers loaded")
+ check(manifest.images.size()==15 and fx.textures.size()==34,"15 original and 19 expanded artwork layers loaded")
  for entry in manifest.images:
   var path="res://assets/vfx_production/"+entry.file
   var im=Image.new();im.load_png_from_buffer(FileAccess.get_file_as_bytes(path))
@@ -57,15 +57,15 @@ func run():
    for i in range(3):await process_frame
    check(fx.emitters.is_empty() and fx.captions.is_empty() and fx.reactions.is_empty() and fx.stage.get_child_count()==0,key+" repeat "+str(repeat)+" clears every effect node")
   check((await game.engine.request({"op":"campaign_save"})).data==native_before,key+" render-only replay has exact native save parity")
- # Pose ownership: only the supplied default knight and wood hammer receive wood art.
+ # Stamp keeps the current attacker artwork throughout the animation.
  var c=cases.stamp;var stamp_frame=c.frames.filter(func(f):return f.presentation.phase=="action" and f.presentation.kind=="skill")[0]
  await game.update({"op":"campaign_load","data":c.save});load_frame(c,stamp_frame,0)
  var actor=str(stamp_frame.presentation.actor_id);var original=board.actors[actor].sprite.texture
  board.animate(stamp_frame.presentation);fx.set_process(false);fx._process(.2)
- check(board.actors[actor].sprite.texture==fx.textures.pose_stamp_lift,"default wood hammer has genuine raised pose")
+ check(original!=null and board.actors[actor].sprite.texture==original,"stamp preserves the current hammer wielder artwork")
  fx.clear();check(board.actors[actor].sprite.texture==original,"pose returns exact source texture")
  board.portraits.overrides[actor]="qa-custom-placeholder";board.last_animated_phase="";board.animate(stamp_frame.presentation);fx.set_process(false);fx._process(.2)
- check(board.actors[actor].sprite.texture==original,"custom portrait is never replaced by generated knight")
+ check(board.actors[actor].sprite.texture==original,"stamp preserves custom artwork")
  fx.clear();board.portraits.overrides.erase(actor)
  # Restore must use the current camera geometry, never stale start projection.
  board.last_animated_phase="";board.animate(stamp_frame.presentation);fx.set_process(false);fx._process(.2)

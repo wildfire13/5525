@@ -1,4 +1,6 @@
 extends "res://tests/inventory_header_261020.gd"
+const BUYER="recruit-guard-human-female"
+const OTHER="recruit-scout-human-female"
 ## Synthetic, isolated NPC lifecycle/layout checks. Real rendering is separate QA.
 # Two layout passes on each side of settle are sufficient for this node-geometry
 # suite; settle still waits for engine requests, locks and presentation to finish.
@@ -33,7 +35,7 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	# Keep verified portraits resident while exercising 600 visit draws. Godot's
 	# weak resource cache would otherwise decode PNGs on every reset; that tests
@@ -46,7 +48,7 @@ func run():
 		var image=Image.new();var decoded=image.load_png_from_buffer(bytes)
 		check(FileAccess.get_sha256(path)==entry.sha256 and decoded==OK and image.get_size()==Vector2i(entry.width,entry.height) and image.get_format()==Image.FORMAT_RGBA8,"NPC original SHA256 dimensions and RGBA "+path.get_file())
 	check(total==18834299,"NPC six existing and three guild portrait PNG files retain exact byte count")
-	var art=game.pages.facility_art;var seed=await saved();seed.state.gold=500;seed.state.characters.guard.inventory={"spear-wood":3,"potion":2}
+	var art=game.pages.facility_art;var seed=await saved();seed.state.gold=500;seed.state.characters[BUYER].inventory={"spear-wood":3,"potion":2}
 	var isolated=preload("res://facility_npc.gd").new();var expected=RandomNumberGenerator.new();isolated.rng.seed=5525;expected.seed=5525;var observed={};var exact=true
 	var background_state=art.rng.state;var campaign_before=await saved()
 	for i in range(32):
@@ -87,9 +89,9 @@ func run():
 			for i in range(3):game.render();await settle()
 			check(art.npc.selected_path==path and art.npc.rng.state==state,"NPC repeated renders retain same visit "+str(spec)+str(dims.x))
 			if spec[1] in ["party","shop"]:
-				await click("RosterMember_guard");await click("RosterMember_archer")
+				await click("RosterMember_"+BUYER);await click("RosterMember_"+OTHER)
 				var owner=game.pages.guild_view.current_id if spec[1]=="party" else game.pages.shop_view.selected_owner()
-				check(owner=="archer" and art.npc.selected_path==path and art.npc.rng.state==state and (await saved())==before,"NPC roster switching preserves NPC and exact save "+str(spec)+str(dims.x))
+				check(owner==OTHER and art.npc.selected_path==path and art.npc.rng.state==state and (await saved())==before,"NPC roster switching preserves NPC and exact save "+str(spec)+str(dims.x))
 			game.navigate("hub");await settle()
 			check(art.npc.selected_path.is_empty() and art.npc.texture==null and art.npc.visit_key.is_empty(),"NPC leaves with facility "+str(spec)+str(dims.x))
 			await enter_facility(spec[1])
@@ -101,19 +103,19 @@ func run():
 		var east=seed.duplicate(true);east.state.location="east"
 		await game.update({"op":"campaign_load","data":east});await enter_facility("shop")
 		var path=art.npc.selected_path;var state=art.npc.rng.state;var before=await saved()
-		await game.pages.shop_view.confirm_purchase("spear-wood","guard");await settle();await click("PurchaseDecline")
+		await game.pages.shop_view.confirm_purchase("spear-wood",BUYER);await settle();await click("PurchaseDecline")
 		check((await saved())==before and art.npc.selected_path==path and art.npc.rng.state==state,"NPC purchase cancellation keeps original visit "+str(dims.x))
-		await game.pages.shop_view.confirm_purchase("spear-wood","guard");await settle()
+		await game.pages.shop_view.confirm_purchase("spear-wood",BUYER);await settle()
 		var agree=node("PurchaseAgree");agree.pressed.emit();agree.pressed.emit();await settle()
-		check(int(game.campaign().gold)==410 and int(game.campaign().characters.guard.inventory["spear-wood"])==4 and art.npc.selected_path==path and art.npc.rng.state==state,"NPC actual purchase retains current keeper "+str(dims.x))
+		check(int(game.campaign().gold)==410 and int(game.campaign().characters[BUYER].inventory["spear-wood"])==4 and art.npc.selected_path==path and art.npc.rng.state==state,"NPC actual purchase retains current keeper "+str(dims.x))
 		var purchase_save=await saved()
 		var sale=game.pages.shop_view.sale
-		await click("RosterMember_guard");await click("SaleItem_spear-wood");await click("FacilitySalePrepare")
+		await click("RosterMember_"+BUYER);await click("SaleItem_spear-wood");await click("FacilitySalePrepare")
 		sale.confirmation.canceled.emit();sale.confirmation.hide();await settle()
 		check((await saved())==purchase_save and art.npc.selected_path==path and art.npc.rng.state==state,"NPC sale cancellation retains keeper "+str(dims.x))
 		var quote=sale.quote.duplicate(true)
 		await click("FacilitySalePrepare");await click("FacilitySaleConfirm")
-		check(int(game.campaign().gold)==int(quote.afterGold) and int(game.campaign().characters.guard.inventory["spear-wood"])==3 and art.npc.selected_path==path and art.npc.rng.state==state,"NPC actual sale retains keeper and canonical result "+str(dims.x))
+		check(int(game.campaign().gold)==int(quote.afterGold) and int(game.campaign().characters[BUYER].inventory["spear-wood"])==3 and art.npc.selected_path==path and art.npc.rng.state==state,"NPC actual sale retains keeper and canonical result "+str(dims.x))
 		game.dialog.close();await settle()
 	await game.update({"op":"campaign_load","data":seed});game.navigate("map");await settle()
 	check(node("FacilityNpc")==null and node("FacilityNpcStage")==null and art.npc.texture==null,"NPC does not reserve empty space on departure map")

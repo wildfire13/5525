@@ -75,10 +75,9 @@ func run():
 	game.checks_fast=true;game.audio.fast_mode=true
 	game.engine.close_engine();game.engine.node_script=ProjectSettings.globalize_path("res://tests/fault_rules.cjs")
 	OS.set_environment("AUDIT_RULE_MODE","preview");game.engine.start_engine();await game.new_game()
-	await preload("res://tests/current_historical_fixture.gd").install(game)
 	var initial=await snapshot(game.engine);initial.state.location="west"
 	await game.update({"op":"campaign_load","data":initial})
-	await game.act("trial",["guard","swift-boots","feet"])
+	await game.act("trial",["recruit-guard-human-female","swift-boots","feet"])
 	var before=JSON.stringify(game.state(),"",true,true)
 	game.choose_command("move")
 	game.call_deferred("on_cell",int(game.data.choices.move[0]));await until_busy()
@@ -96,7 +95,7 @@ func run():
 	initial=await snapshot(game.engine);initial.state.location="north";await game.update({"op":"campaign_load","data":initial})
 	game.audio.ui_sound_started.connect(func(id):if id in ["victory","failure"]:sounds.append(id))
 	for trial in range(2):
-		await game.act("trial",["guard","victory-earring-1","accessory1"])
+		await game.act("trial",["recruit-guard-human-female","victory-earring-1","accessory1"])
 		check(game.data.get("trial")!=null,"real victory-breath trial starts")
 		for turn in range(30):
 			if game.state().get("result")!=null:break

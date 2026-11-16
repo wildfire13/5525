@@ -1,5 +1,5 @@
 extends "res://tests/guild_regression.gd"
-## Canonical 6..12-member operations on the migrated 35-person roster.
+## Canonical 6..12-member operations on the live 24-person roster.
 ## Separate view-only capacity overrides never write back to the engine.
 var geometry=[]
 func check_layout(tag: String):
@@ -16,8 +16,6 @@ func check_layout(tag: String):
  geometry.append({"tag":tag,"window":str(root.size),"reserve":str(r),"comparison":str(m),"current":str(c),"footer":str(node("GuildActions").get_global_rect()),"limit":game.pages.guild_view.party_limit(),"selected":game.campaign().selected.size()})
 func pure_ui_boundaries():
  var guild=game.pages.guild_view;var original=game.data.campaign.duplicate(true);var roster=original.roster.duplicate(true)
- for index in range(3):
-  var member=roster[0].duplicate(true);member.id="qa-guild-extra-"+str(index);member.name="検査専用の長い人物名・境界"+str(index);roster.append(member)
  var all_ids=roster.map(func(member):return str(member.id))
  for count in range(6,13):
   game.data.campaign=original.duplicate(true);game.data.campaign.roster=roster.duplicate(true);game.data.campaign.partyLimit=12;game.data.campaign.selected=all_ids.slice(0,count);guild.reset();game.render();await settle()
@@ -42,7 +40,7 @@ func run():
  while game.data.is_empty():
   if game.engine!=null and game.engine.disconnected:check(false,"test startup: "+game.engine.last_error);quit(2);return
   await process_frame
- await preload("res://tests/current_historical_fixture.gd").install(game)
+ await game.new_game();
  game.audio.fast_mode=true;game.checks_fast=true;actual=game.engine;await settle();var seed=await saved()
  game.navigate("party");await settle();var guild=game.pages.guild_view
  if node("FacilityChoice_guild")!=null:await tap("FacilityChoice_guild")
@@ -63,7 +61,7 @@ func run():
    await tap("GuildMember_"+id);check(not node("GuildAdd").disabled,"canonical reserve add stays available above five")
    await tap("GuildAdd");wanted.append(id);added+=1
    check(game.campaign().selected==wanted,"canonical membership count "+str(wanted.size())+" commits ordered personal IDs")
-  check(roster_ids.size()==35 and wanted.size()==12 and added==7,"twelve real people join while other migrated candidates remain in reserve")
+  check(roster_ids.size()==24 and wanted.size()==12 and added==7,"twelve live people join while twelve candidates remain in reserve")
   var full=await saved();check(full.state.characters==seed.state.characters and full.state.gold==seed.state.gold,"joining seven additional people preserves equipment inventories growth and money")
   var extra=roster_ids.filter(func(id):return not wanted.has(id))[0];guild.choose(extra);await settle()
   check(node("GuildAdd").disabled and guild.candidate("add","",extra).is_empty() and (await saved())==full,"canonical full party rejects a thirteenth member without mutation")
@@ -77,15 +75,17 @@ func run():
   await tap("GuildMember_"+removed);await tap("GuildAdd");wanted.append(removed)
   check(game.campaign().selected==wanted,"central add returns named reserve to the end")
   check((await saved()).state.characters==seed.state.characters,"reorder/remove/re-add leave personal ownership unchanged")
-  await game.update({"op":"campaign","action":"select","args":[["guard"]]});await settle();guild.choose("guard");await settle();var one=await saved()
-  check(node("GuildRemove").disabled and guild.candidate("remove","guard","").is_empty() and labels(node("PartyRoster")).contains("1 / 12"),"minimum one member enforced without a porter condition")
+  var sole="recruit-guard-human-female"
+  await game.update({"op":"campaign","action":"select","args":[[sole]]});await settle();guild.choose(sole);await settle();var one=await saved()
+  check(node("GuildRemove").disabled and guild.candidate("remove",sole,"").is_empty() and labels(node("PartyRoster")).contains("1 / 12"),"minimum one member enforced without a porter condition")
   guild.cancel_selection();await settle();check((await saved())==one,"selection cancellation never removes last member")
   await game.update({"op":"campaign_load","data":seed});game.navigate("party");await settle()
   if node("FacilityChoice_guild")!=null:await tap("FacilityChoice_guild")
-  await game.act("accept",[game.campaign().board[0].id,"porter"]);await settle();var cargo=await saved();guild.choose("porter");await settle();await tap("GuildRemove")
+  var porter="recruit-porter-human-female"
+  await game.act("accept",[game.campaign().board[0].id,porter]);await settle();var cargo=await saved();guild.choose(porter);await settle();await tap("GuildRemove")
   check(guild.stage=="confirm" and node("GuildConfirmCancel")!=null,"cargo owner removal retains existing confirmation contract")
   await tap("GuildConfirmCancel");check((await saved())==cargo and guild.stage=="idle","cargo removal cancellation preserves save")
-  await tap("GuildRemove");await tap("GuildConfirm");check(not game.campaign().selected.has("porter") and game.campaign().activeQuest.cargoOwnerId=="porter","accepted quest does not create a new guild porter-membership restriction")
+  await tap("GuildRemove");await tap("GuildConfirm");check(not game.campaign().selected.has(porter) and game.campaign().activeQuest.cargoOwnerId==porter,"accepted quest does not create a new guild porter-membership restriction")
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"guild tests BGM voice SE OFF")
  for spec in [["feedback2-guild-checks.json",checks],["feedback2-guild-geometry.json",geometry]]:
   var f=FileAccess.open(root_evidence.path_join(spec[0]),FileAccess.WRITE);f.store_string(JSON.stringify(spec[1],"\t"));f.close()

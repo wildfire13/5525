@@ -20,10 +20,9 @@ func run():
 	check(game.campaign().location=="astaris","single-window campaign initial state")
 	game.navigate("party");await process_frame
 	check(game.roster().size()==24,"24 new guild candidates")
-	var named_guard=game.roster().filter(func(member):return member.id=="recruit-guard-human-male")
-	check(named_guard.size()==1 and named_guard[0].name=="ガレス" and named_guard[0].image=="characters/guard-human-male-01.png" and game.member_name("recruit-guard-human-male")=="ガレス","proposal name follows the existing male human guard ID and portrait")
+	var portrait_donor=game.roster().filter(func(member):return member.id=="recruit-guard-human-male")
+	check(portrait_donor.size()==1 and portrait_donor[0].name=="ガレス" and portrait_donor[0].image=="characters/guard-human-male-01.png" and game.member_name("recruit-guard-human-male")=="ガレス","proposal name follows the existing male human warrior ID and portrait")
 	game.navigate("items");await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
 	await game.act("depart",["east"]);await game.act("travel",["safe"]);await game.act("begin",[])
 	check(game.state().units.filter(func(u):return u.side=="ally").all(func(u):return u.has("attackWeapons")),"allied battle units carry their equipped weapons")
 	check(game.board!=null,"battle uses same root window")
@@ -67,7 +66,7 @@ func run():
 	DirAccess.remove_absolute(battle_file)
 	await game.act("retreat",[])
 	await game.act("acknowledge",[])
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	var copy=await game.engine.request({"op":"campaign_save"})
 	copy.data.state.location="west"
 	await game.update({"op":"campaign_load","data":copy.data})
@@ -75,7 +74,8 @@ func run():
 	var shop_quote=await game.engine.request({"op":"campaign","action":"purchaseQuote","args":["swift-boots"]})
 	check(shop_quote.get("purchaseQuote",{}).get("ok",false),"current shop purchase quote")
 	var before=await game.engine.request({"op":"campaign_save"})
-	await game.act("trial",["guard","swift-boots","feet"])
+	var owner_id=game.campaign().selected[0]
+	await game.act("trial",[owner_id,"swift-boots","feet"])
 	check(game.data.get("trial")!=null,"trial uses same root window: "+game.notice)
 	var before_move=JSON.stringify(game.state())
 	game.choose_command("move")
@@ -90,7 +90,8 @@ func run():
 	check(before.data==after.data,"trial does not mutate campaign")
 	var east=after.data.duplicate(true);east.state.location="east"
 	await game.update({"op":"campaign_load","data":east})
-	await game.act("trial",["archer","twin-bow","rightHand"])
+	var bow_user=game.roster().filter(func(member):return member.job=="scout" and game.campaign().selected.has(member.id))[0]
+	await game.act("trial",[bow_user.id,"twin-bow","rightHand"])
 	game.choose_command("attack")
 	var single=game.data.choices.attack[0]
 	for unit in game.state().units:
@@ -111,8 +112,8 @@ func run():
 	await game.act("endTrial",[])
 	check(game.audio.voices.size()==137 and game.audio.sounds.size()==8,"all existing voice and SE cues mapped")
 	check(not game.audio.valid_metadata({"version":1,"journey_key":"x","quest_id":"untrusted"}),"invalid saved music rejected without mutation")
-	await game.import_portrait(ProjectSettings.globalize_path("res://../native/assets/knight.png"),"guard")
-	check(game.portraits.metadata.characters.has("guard"),"custom portrait uses existing normalization")
+	await game.import_portrait(ProjectSettings.globalize_path("res://../native/assets/"+portrait_donor[0].image),owner_id)
+	check(game.portraits.metadata.characters.has(owner_id),"custom portrait uses existing normalization")
 	while game.engine.busy or game.pages.shop_view.quote_worker:await process_frame
 	var saved=await game.engine.request({"op":"campaign_save"})
 	saved.data.nativePortraits=game.portraits.metadata;saved.data.godotFrontend=game.audio.frontend_save()
@@ -120,7 +121,7 @@ func run():
 	var written=await game.engine.request({"op":"godot_io","action":"write","path":file,"data":saved.data})
 	check(written.get("ok",false),"isolated save file written")
 	await game.new_game();await game.load_game(file)
-	check(game.portraits.metadata.characters.has("guard"),"portrait restored from embedded save")
+	check(game.portraits.metadata.characters.has(owner_id),"portrait restored from embedded save")
 	DirAccess.remove_absolute(file)
 	game.closing=true;game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine()
 	await create_timer(.15).timeout

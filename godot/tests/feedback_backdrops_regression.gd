@@ -10,7 +10,7 @@ func visual_contract(label: String):
 	var menu=header.find_children("*","Button",true,false).filter(func(item):return item.text=="メニュー")
 	check(money.size()==1 and menu.size()==1 and money[0].get_global_rect().end.x<=menu[0].get_global_rect().position.x,"current money precedes common menu "+label)
 	check(not game.top.visible and not game.location_bar.visible and node("TownFacilityHeading")==null,"old top and lower location band are replaced by B navigation "+label)
-	var before=await saved();var face=node("RosterMember_guard")
+	var before=await saved();var face=node("RosterMember_"+str(game.campaign().selected[0]))
 	if face!=null:
 		face.grab_focus();await frames()
 		var hp=face.find_children("*","Label",true,false).filter(func(item):return item.text.begins_with("HP "))
@@ -25,7 +25,7 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle();var seed=await saved()
 	for dims in [Vector2i(1920,1080)]:
 		root.size=dims

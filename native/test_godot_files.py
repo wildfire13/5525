@@ -14,20 +14,20 @@ class GodotFilesTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):write_new(path,{'overwrite':True})
             self.assertEqual(path.read_bytes(),original); self.assertEqual(len(list(path.parent.iterdir())),1)
     def test_custom_portrait_embedded_and_hash_validation(self):
-        source=Path(__file__).parent/'assets/knight.png'
+        source=Path(__file__).parent/'assets/characters/guard-human-female-01.png'
         result=run({'action':'portrait','path':str(source)})
-        meta={'version':1,'characters':{'guard':result}}
-        self.assertEqual(prepare_portraits(meta,['guard']),meta)
-        with self.assertRaises(ValueError):prepare_portraits(meta,['porter'])
+        meta={'version':1,'characters':{'recruit-guard-human-female':result}}
+        self.assertEqual(prepare_portraits(meta,['recruit-guard-human-female']),meta)
+        with self.assertRaises(ValueError):prepare_portraits(meta,['recruit-porter-human-female'])
         result['sha256']='0'*64
-        with self.assertRaises(ValueError):prepare_portraits(meta,['guard'])
+        with self.assertRaises(ValueError):prepare_portraits(meta,['recruit-guard-human-female'])
     def test_portrait_read_uses_incoming_save_members_not_current_roster(self):
-        portrait=run({'action':'portrait','path':str(Path(__file__).parent/'assets/knight.png')})
+        portrait=run({'action':'portrait','path':str(Path(__file__).parent/'assets/characters/guard-human-female-01.png')})
         with tempfile.TemporaryDirectory() as folder:
-            path=Path(folder)/'legacy.json'
-            data={'format':'5525-native-campaign','state':{'characters':{'guard':{}}},'nativePortraits':{'version':1,'characters':{'guard':portrait}}}
+            path=Path(folder)/'campaign.json'
+            data={'format':'5525-native-campaign','state':{'characters':{'recruit-guard-human-female':{}}},'nativePortraits':{'version':1,'characters':{'recruit-guard-human-female':portrait}}}
             path.write_text(json.dumps(data))
-            self.assertEqual(run({'action':'read','path':str(path),'allowed':['recruit-new']})['nativePortraits'],data['nativePortraits'])
+            self.assertEqual(run({'action':'read','path':str(path),'allowed':['recruit-mage-elf-female']})['nativePortraits'],data['nativePortraits'])
             data['nativePortraits']['characters']={'not-in-save':portrait}
             path.write_text(json.dumps(data))
             with self.assertRaises(ValueError):run({'action':'read','path':str(path),'allowed':['not-in-save']})

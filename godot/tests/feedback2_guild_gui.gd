@@ -10,16 +10,16 @@ func run():
  root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1920,1080)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- await preload("res://tests/current_historical_fixture.gd").install(game)
+ await game.new_game();
  game.audio.fast_mode=true;game.checks_fast=true;await settle();var guild=game.pages.guild_view
  game.navigate("party");await settle();await os_click(node("FacilityChoice_guild"))
- await os_member("guard-2");check(guild.chosen_id=="guard-2","OS reserve selects named identity")
- await os_click(node("GuildAdd"));check(game.campaign().selected.has("guard-2"),"OS central add joins named member above five")
- await os_member("guard-2");check(guild.current_id=="guard-2","OS shared roster selects added member for removal")
- await os_click(node("GuildRemove"));check(not game.campaign().selected.has("guard-2"),"OS central remove affects only chosen member")
+ await os_member("recruit-guard-human-male");check(guild.chosen_id=="recruit-guard-human-male","OS reserve selects named identity")
+ await os_click(node("GuildAdd"));check(game.campaign().selected.has("recruit-guard-human-male"),"OS central add joins named member above five")
+ await os_member("recruit-guard-human-male");check(guild.current_id=="recruit-guard-human-male","OS shared roster selects added member for removal")
+ await os_click(node("GuildRemove"));check(not game.campaign().selected.has("recruit-guard-human-male"),"OS central remove affects only chosen member")
  for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
   root.size=dims;await settle();node("GuildReserveScroll").scroll_vertical=0;node("PartyRosterScroll").scroll_vertical=0;await frames(16);await snapshot("guild-"+str(dims.x))
-  await os_member("guard");check(guild.current_id=="guard","OS member and operations reachable "+str(dims))
+  await os_member("recruit-guard-human-female");check(guild.current_id=="recruit-guard-human-female","OS member and operations reachable "+str(dims))
   guild.cancel_selection();await settle()
   var scroll=node("GuildReserveScroll");var before=scroll.scroll_vertical
   await os_mouse(scroll.get_global_rect().get_center(),"wheel_down");check(node("GuildReserveScroll").scroll_vertical>before,"OS wheel scrolls reserve list "+str(dims))

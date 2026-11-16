@@ -11,7 +11,6 @@ func run():
  if not generated is Dictionary:quit(2);return
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true
  while game.locked or game.engine.busy or game.presenting or game.loading_screen.active:await process_frame
  board=load("res://battle_board.gd").new();board.portraits=game.portraits;board.size=Vector2(1920,1080);root.add_child(board)
@@ -29,7 +28,13 @@ func run():
    check(image.get_format()==Image.FORMAT_RGBA8 and image.get_size()==Vector2i(entry.size[0],entry.size[1]),"RGBA dimensions "+key)
    check(image.get_pixel(0,0).a==0 and image.get_pixel(image.get_width()-1,image.get_height()-1).a==0,"transparent texture border "+key)
    asset_count+=1
- check(asset_count==19 and fx.textures.size()==38,"19 new layers plus 19 original layers")
+ var original=JSON.parse_string(FileAccess.get_file_as_string("res://assets/vfx_production/manifest.json"))
+ var original_names=[]
+ for entry in original.images:
+  original_names.append(entry.name)
+  check(fx.textures.has(entry.name),"active original art loaded "+entry.name)
+ check(original_names.size()==15,"15 active original images; retired knight poses excluded")
+ check(asset_count==19 and fx.textures.size()==34,"19 expansion layers separate from 15 original layers")
  for name_ in generated.cases:
   var c=generated.cases[name_]
   var loaded=await game.update({"op":"campaign_load","data":c.save})
@@ -53,7 +58,7 @@ func run():
     if name_=="scout" and p.phase=="hurt":check(int(e.get("origin",-1))==int(unit(frame.state,p.actor_id).pos),name_+" contact originates at actual post-ambush landing")
     if name_=="healingCross" and p.phase=="action":
      check(e.get("cells",[]).all(func(cell):return frame.state.units.any(func(u):return u.side=="ally" and u.pos==cell and u.hp<u.max)),name_+" cast artwork targets actual healing allies, not enemy or full center")
-    if name_=="healingCross" and p.phase=="heal":check(p.unit_id!="guard",name_+" full HP center never gets recovery result")
+    if name_=="healingCross" and p.phase=="heal":check(p.unit_id!=c.expected.actor_id,name_+" full HP center never gets recovery result")
     if name_=="splitShot_cover" and p.phase=="hurt":check(e.get("recipient_id")==p.unit_id,name_+" redirected actual hit preserves protector")
     if name_=="manaGift_cap" and p.phase=="resource":check(int(e.get("amount",0))==1,name_+" capped transfer shows one MP")
     var elapsed=fx.snapshot();check(board.animate(p)==0 and fx.snapshot()==elapsed,name_+" duplicate packet does not replay "+str(index))

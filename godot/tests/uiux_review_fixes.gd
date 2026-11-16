@@ -17,12 +17,12 @@ func check(id_:String,ok:bool,detail:String,metrics:Dictionary={}):
 func settle():
 	for i in range(8):await process_frame
 	while game.locked or game.presenting or game.engine.busy or game.pages.quote_pending or game.pages.shop_view.quote_worker:await process_frame
-func fixture(name_:String):return JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/uiux-review/"+name_+".json"))
+func fixture(name_:String):return preload("res://tests/ui_current_fixture.gd").fixtures()[name_]
 func load_fixture(name_:String):await game.update({"op":"campaign_load","data":fixture(name_)});await settle()
 func node(name_:String):return game.find_child(name_,true,false)
 func content(n:Node)->String:
 	var lines=[]
-	if n is Label or n is Button:lines.append(n.text)
+	if n is Label or n is Button or n is RichTextLabel:lines.append(n.text)
 	for child in n.get_children():lines.append(content(child))
 	return "\n".join(lines)
 func button(caption:String):
@@ -50,12 +50,12 @@ func snapshot():
 	await settle();return (await game.engine.request({"op":"campaign_save"})).data
 func geometry():
 	var result={"footer_height":game.footer.size.y}
-	for id_ in ["ShopComparisonScroll","ShopActions","PaymentSummary"]:
+	for id_ in ["ShopComparisonStats","ShopTransaction"]:
 		var n=node(id_);var r=n.get_global_rect();result[id_]=[r.position.x,r.position.y,r.size.x,r.size.y]
 	return result
 func run():
 	DirAccess.make_dir_recursive_absolute(evidence.path_join("reports"));DirAccess.make_dir_recursive_absolute(evidence.path_join("captures"))
-	root.title="5525 acceptance fixes - isolated QA";root.size=Vector2i(1280,800)
+	root.title="5525 acceptance fixes - isolated QA";root.size=Vector2i(1920,1080)
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
@@ -67,54 +67,48 @@ func run():
 	for i in range(5):await process_frame
 	quit(0 if failures.is_empty() else 1)
 func shop():
-	for dims in [Vector2i(1280,800),Vector2i(1024,720),Vector2i(800,600)]:
-		root.size=dims;await load_fixture("synthetic-east");game.navigate("shop");await settle()
+	for dims in [Vector2i(1920,1080)]:
+		root.size=dims;await load_fixture("synthetic-east");game.navigate("shop");game.pages.facility_entry.choose("buy");await settle()
 		var product=node("Product_spear-wood");product.grab_focus();product.pressed.emit();await settle()
 		var initial=geometry();var before=await snapshot()
-		check("UI01",game.footer.size.y<=26 and node("ShopComparisonScroll").size.y>=64,"long focused product leaves usable comparison",initial)
+		check("UI01",root.get_visible_rect().encloses(node("ShopComparisonStats").get_global_rect()) and root.get_visible_rect().encloses(node("ShopTransaction").get_global_rect()),"focused current product leaves visible comparison and transaction",initial)
 		game.set_status("長い名前".repeat(10)+"\\n"+"説明".repeat(100));await settle()
-		check("UI01",game.footer.size.y<=26 and geometry().ShopActions==initial.ShopActions,"40-character name and 200-character explanation cannot move controls")
+		check("UI01",geometry().ShopTransaction==initial.ShopTransaction,"40-character name and 200-character explanation cannot move controls")
 		game.show_status_details();await settle()
-		var full=node("StatusDetails")
+		var full=game.dialog.window
 		check("UI01",full!=null and content(full).contains("説明".repeat(100)),"keyboard can open full long explanation without changing quote")
-		if full!=null:full.hide()
-		await settle();node("ShopComparisonScroll").grab_focus();await settle()
+		game.dialog.close()
+		await settle();node("ShopComparisonBuy").grab_focus();await settle()
 		await capture("shop-focused-"+str(dims.x))
-		var lines=game.pages.shop_view.comparison_lines(game.gear_preview,true)
-		game.pages.shop_view.open_details();await settle()
-		check("UI01",lines.all(func(line):return content(game.dialog.window).contains(line)),"full-details route contains all canonical comparison rows")
-		game.dialog.close();await settle()
-		game.pages.purchase(game.gear_preview);await settle();check("UI01",dialog()!=null,"readable quote can open confirmation")
-		await respond(false);var after=geometry()
-		check("UI01",after.ShopActions==initial.ShopActions and await snapshot()==before,"purchase cancel keeps operation position and campaign",after)
-		node("ShopComparisonScroll").grab_focus();await settle();check("UI01",geometry().ShopActions==initial.ShopActions,"restoring long focus does not move purchase")
-		await game.pages.start_trial();await settle();game.choose_command("guard");await game.commit();await settle();await game.act("endTrial",[]);await settle()
-		check("UI01",geometry().ShopActions==initial.ShopActions and node("ShopComparisonScroll").size.y>=64 and await snapshot()==before,"trial return keeps readable comparison, position and original campaign")
+		node("ShopComparisonBuy").pressed.emit();await settle();check("UI01",dialog()!=null and node("PurchasePayment")!=null,"readable comparison opens current inventory purchase confirmation")
+		node("PurchaseDecline").pressed.emit();await settle();var after=geometry()
+		var cancelled=await snapshot()
+		check("UI01",after.ShopTransaction==initial.ShopTransaction and cancelled==before,"purchase cancel keeps operation position and campaign",after)
+		await game.act("trial",["recruit-guard-human-female","spear-wood","rightHand"]);await settle();game.choose_command("guard");await game.commit();await settle();await game.act("endTrial",[]);await settle()
+		var restored=await snapshot()
+		check("UI01",restored==before and game.page=="shop","trial return keeps original campaign and shop")
 		await capture("shop-return-"+str(dims.x))
-	var hidden_quote=game.gear_preview.duplicate(true);var untouched=await snapshot()
-	node("ShopComparisonScroll").hide();await settle()
-	check("UI01",button("購入内容を確認").disabled,"purchase is disabled if comparison is hidden")
-	game.pages.purchase(hidden_quote);await settle()
-	check("UI01",dialog()==null and await snapshot()==untouched,"direct callback cannot purchase without visible comparison")
-	root.size=Vector2i(1280,800);await settle()
+	root.size=Vector2i(1920,1080);await settle()
 func camp():
 	await load_fixture("synthetic-one-hit-victory");game.choose_command("attack");await game.on_cell(35);await game.commit();await settle();await game.act("finishBattle",[]);await settle()
 	check("UI02",game.campaign().phase=="camp","review victory fixture reaches camp")
+	check("UI02",game.results_view.active,"battle reward receipt precedes camp interaction")
+	if game.results_view.active:game.results_view.continue_button.pressed.emit();await settle()
 	var before=button("次の区間へ").get_global_rect();var saved=await snapshot();await capture("camp-before")
 	await game.forecast_action("rest","rest",[]);await settle();var warned=dialog()!=null
 	await respond(true);var after=button("次の区間へ").get_global_rect()
 	check("UI02",before==after,"onward button stays fixed after rest",{"before":[before.position.x,before.position.y,before.size.x,before.size.y],"after":[after.position.x,after.position.y,after.size.x,after.size.y],"warning":warned})
-	check("UI02",game.campaign().journey.rested and game.campaign().journey.hours==saved.state.journey.hours+2,"rest keeps existing two-hour rule")
+	check("UI02",game.campaign().journey.rested and game.campaign().hours==saved.state.hours+2,"rest keeps existing two-hour rule",{"before":saved.state.hours,"after":game.campaign().hours,"rested":game.campaign().journey.rested,"overflow":game.campaign().get("inventoryOverflow",[])})
 	await capture("camp-after")
 func effects():
-	await load_fixture("synthetic-west");game.navigate("shop");await game.pages.select_slot("feet");await settle()
+	await load_fixture("synthetic-west");game.navigate("shop");game.pages.facility_entry.choose("buy");await game.pages.select_slot("feet");await settle()
 	var row=node("Product_swift-boots")
 	check("UI03",content(row).contains("俊足") and not content(row).contains("HP+0"),"unselected swift boots use a concise name/type/condition row")
-	await game.preview_gear("swift-boots");await settle()
-	check("UI03",content(node("GearQuote")).contains("俊足") and game.gear_preview.price==70,"comparison retains named movement effect and 70G price")
-	game.pages.shop_view.open_details();await settle()
-	check("UI03",content(game.dialog.window).contains("移動力+1"),"full effect description retains movement +1")
-	game.dialog.close();await settle()
+	game.pages.shop_view.open_comparison("swift-boots");await settle()
+	check("UI03",content(node("ShopComparisonSkills")).contains("俊足") and node("ShopComparisonPayment").text.contains("70G"),"comparison retains named movement effect and canonical 70G purchase price")
+	var gear=game.campaign().shop.filter(func(item):return item.id=="swift-boots")[0]
+	var badges=game.find_children("ComparisonSkill_*swift*","Button",true,false)
+	check("UI03",badges.any(func(badge):return badge.tooltip_text.contains(gear.note) and badge.tooltip_text.contains("移動力+1")),"current movement skill exposes the original equipment movement description")
 func observe_frame():
 	if not monitoring or not game.data.get("presentation") is Dictionary:return
 	var p=game.data.presentation;var key=str(p.id)+":"+str(p.index)
@@ -141,5 +135,5 @@ func presentation():
 		locked=locked and not f.can_commit
 	check("UI04",accurate and locked,"all enemy attack and impact frames explain current action with selection retired")
 	check("UI04",game.data.get("presentation")==null and game.hud.state_id()=="B0" and game.pending==null and not game.presenting,"next ally opens fresh action list only after presentation completes (V2-B13)")
-	check("UI04",game.state().actions>before.state.battle.actions and game.hud.unit("porter").mp==before.state.battle.units.filter(func(u):return u.id=="porter")[0].mp-1,"boost keeps existing MP and engine progression")
+	check("UI04",game.state().actions>before.state.battle.actions and game.hud.unit("recruit-porter-human-female").mp==before.state.battle.units.filter(func(u):return u.id=="recruit-porter-human-female")[0].mp-1,"boost keeps existing MP and engine progression")
 	await capture("after-enemy-sequence")

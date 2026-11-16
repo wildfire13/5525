@@ -18,6 +18,7 @@ func run():
  # Isolated fixture: explicitly seed inventory; production new recruits are empty.
  var save=(await game.engine.request({"op":"campaign_save"})).data
  save.state.characters[save.state.selected[0]].inventory={"potion":3}
+ save.state.characters[save.state.selected[0]].weapon="sword-wood"
  await game.update({"op":"campaign_load","data":save});await settle()
  var dims=Vector2i(1920,1080)
  root.size=dims;game.navigate("party");await settle()

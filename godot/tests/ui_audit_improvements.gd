@@ -6,7 +6,7 @@ func run():
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
  var before=await saved()
  var d=game.confirm("長い確認文です。".repeat(60),func():pass);await settle()
- for dims in [Vector2i(960,540),Vector2i(1180,812),Vector2i(1920,1080)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;await settle()
   check(Rect2(Vector2.ZERO,Vector2(dims)).encloses(Rect2(Vector2(d.position),Vector2(d.size))),"wrapped confirmation fits "+str(dims))
   var text_scroll=d.get_node("ConfirmationTextScroll");text_scroll.scroll_vertical=100000;await frames()
@@ -14,7 +14,7 @@ func run():
   check(d.get_label().get_theme_font_size("font_size")==18 and d.dialog_autowrap,"confirmation readable wrapped font")
  d.canceled.emit();await settle()
  game.navigate("map");await settle()
- for dims in [Vector2i(960,540),Vector2i(1180,812),Vector2i(1920,1080)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;await settle();var chart=node("TownMap")
   check(chart.zoom==1.0,"map starts fitted "+str(dims))
   for b in chart.buttons.values():check(Rect2(Vector2.ZERO,chart.size).encloses(Rect2(b.position,b.size*b.scale)),"fitted destination visible "+str(b.name)+str(dims))

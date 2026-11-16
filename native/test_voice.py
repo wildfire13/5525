@@ -1,6 +1,8 @@
 import unittest
 
-from test_current_fixture import current_campaign
+from bridge_current_campaign import (
+    GUARD, PORTER, SCOUT, HUMAN_MAGE, fresh_campaign, trial,
+)
 from bridge_test_session import Session
 
 
@@ -8,28 +10,29 @@ class VoiceBridgeTests(unittest.TestCase):
     def test_real_bridge_response_events_are_not_replayed_by_view(self):
         bridge = Session()
         self.addCleanup(bridge.close)
-        bridge.call(op='reset', scenario='victory')
-        response = bridge.call(op='act', kind='attack', target='enemy-archer')
+        trial(bridge, SCOUT, 'victory-earring-1', 'north')
+        response = bridge.call(op='act', kind='attack', target='enemy-guard')
         self.assertTrue(response['ok'])
-        self.assertEqual(response['voiceEvents'], [{'character_id': 'archer', 'cue': 'attack'}])
+        self.assertEqual(response['voiceEvents'], [{'character_id': SCOUT, 'cue': 'attack'}])
         self.assertNotIn('voiceEvents', bridge.call(op='view'))
 
     def test_campaign_opening_enemy_hit_only_after_begin(self):
         bridge = Session(5525)
         self.addCleanup(bridge.close)
-        current_campaign(bridge)
-        for action, args in [('select', [['guard', 'porter']]), ('depart', ['east']),
-                             ('travel', ['safe']), ('deploy', ['guard', 4])]:
+        fresh_campaign(bridge)
+        for action, args in [('select', [[GUARD, PORTER]]), ('depart', ['east']),
+                             ('travel', ['safe']), ('deploy', [GUARD, 4])]:
             response = bridge.call(op='campaign', action=action, args=args)
             self.assertTrue(response['ok'])
             self.assertNotIn('voiceEvents', response)
         before = bridge.call(op='view')
         bridge.call(op='record', type='battle.preview.cancelled')
         self.assertEqual(bridge.call(op='view'), before)
+        initial_hp = next(u['hp'] for u in before['state']['units'] if u['id'] == GUARD)
         response = bridge.call(op='campaign', action='begin', args=[])
         self.assertTrue(response['ok'])
-        self.assertEqual(response['voiceEvents'], [{'character_id': 'guard', 'cue': 'hurt'}])
-        self.assertLess(next(u['hp'] for u in response['state']['units'] if u['id'] == 'guard'), 180)
+        self.assertEqual(response['voiceEvents'], [{'character_id': GUARD, 'cue': 'hurt'}])
+        self.assertLess(next(u['hp'] for u in response['state']['units'] if u['id'] == GUARD), initial_hp)
         self.assertNotIn('voiceEvents', bridge.call(op='view'))
         retry = bridge.call(op='campaign', action='begin', args=[])
         self.assertFalse(retry['ok'])
@@ -38,18 +41,13 @@ class VoiceBridgeTests(unittest.TestCase):
     def test_eight_new_active_skills_emit_one_matching_voice_per_action(self):
         bridge = Session(5525)
         self.addCleanup(bridge.close)
-        cases = [('guard', 'undertow-sword', 'retreatSlash'), ('mage', 'breaker-hammer', 'knockback'),
-                 ('archer', 'twin-bow', 'splitShot'), ('scout', 'partner-dagger', 'pincer'),
-                 ('mage', 'rest-staff', 'healingCross'), ('mage', 'battleline-shield', 'defenseLine'),
-                 ('mage', 'sharing-tome', 'manaGift'), ('porter', 'return-ring-1', 'returnHome')]
+        cases = [(HUMAN_MAGE, 'undertow-sword', 'retreatSlash'), (HUMAN_MAGE, 'breaker-hammer', 'knockback'),
+                 (SCOUT, 'twin-bow', 'splitShot'), (SCOUT, 'partner-dagger', 'pincer'),
+                 (HUMAN_MAGE, 'rest-staff', 'healingCross'), (HUMAN_MAGE, 'battleline-shield', 'defenseLine'),
+                 (HUMAN_MAGE, 'sharing-tome', 'manaGift'), (PORTER, 'return-ring-1', 'returnHome')]
         for uid, gear, skill in cases:
             with self.subTest(skill=skill):
-                current_campaign(bridge)
-                saved = bridge.call(op='campaign_save')['data']
-                saved['state']['location'] = 'north' if skill == 'returnHome' else 'east'
-                self.assertTrue(bridge.call(op='campaign_load', data=saved)['ok'])
-                data = bridge.call(op='campaign', action='trial', args=[uid, gear])
-                self.assertTrue(data['ok'], data.get('error'))
+                data = trial(bridge, uid, gear, 'north' if skill == 'returnHome' else 'east')
                 mode = 'return' if skill == 'returnHome' else 'skill'
                 target = data['choices'][mode][0]
                 before = bridge.call(op='view')
@@ -73,12 +71,7 @@ class VoiceBridgeTests(unittest.TestCase):
         for gear, skill, action in [('victory-earring-1', 'victoryBreath', 'attack'),
                                     ('lone-ring-1', 'loneWolf', 'attack'),
                                     ('pioneer-gloves-1', 'firstStride', 'move')]:
-            current_campaign(bridge)
-            saved = bridge.call(op='campaign_save')['data']
-            saved['state']['location'] = 'north'
-            self.assertTrue(bridge.call(op='campaign_load', data=saved)['ok'])
-            data = bridge.call(op='campaign', action='trial', args=['mage', gear])
-            self.assertTrue(data['ok'])
+            data = trial(bridge, HUMAN_MAGE, gear, 'north')
             result = bridge.call(op='act', kind=action, target=data['choices'][action][0])
             self.assertTrue(result['ok'])
             self.assertTrue(any(e['skillId'] == skill for e in result['skillEvents']))

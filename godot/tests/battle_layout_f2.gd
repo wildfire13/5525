@@ -2,10 +2,11 @@ extends "res://tests/inventory_header_261020.gd"
 ## Pure UI checks; real OS input and screenshots are recorded separately.
 var pointer_mask := 0
 func fixtures_f2() -> Dictionary:
-	var output=[]
-	var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/feedback_261019_fixtures.cjs")]),output,true,false)
+	var output=[];var path=ProjectSettings.globalize_path("user://battle-layout-f2-fixture.json")
+	var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/battle_layout_f2_fixtures.cjs"),path]),output,true,false)
 	check(code==0,"F2 current sweep fixtures generated")
-	return JSON.parse_string("".join(output))
+	var cases=JSON.parse_string(FileAccess.get_file_as_string(path));DirAccess.remove_absolute(path)
+	return cases
 func protected_controls(label: String):
 	var view=Rect2(Vector2.ZERO,Vector2(root.size))
 	for id in ["BattleHistory","BattleOrderDetails"]:

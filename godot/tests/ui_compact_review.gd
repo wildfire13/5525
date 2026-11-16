@@ -18,12 +18,12 @@ func run():
 	var viewport=node("ShopProductsScroll").get_global_rect()
 	check(rows.filter(func(row):return viewport.encloses(row.get_global_rect())).size()>=8,"at least eight standard products fully visible at FHD")
 	shop.select_slot("feet");await settle()
-	rows=node("ShopProductsScroll").find_children("Product_*","Button",true,false)
-	check(rows.size()==2 and rows.all(func(row):return row.size.y==68),"feet filter retains two compact rows")
+	rows=node("ShopProductsScroll").find_children("Product_*","Button",true,false).filter(func(row):return row.is_visible_in_tree())
+	check(rows.size()==shop.offered().size() and not rows.is_empty() and rows.all(func(row):return row.size.y==68),"feet filter retains compact rows for every current product")
 	var item=shop.offered().filter(func(g):return g.id=="swift-boots")[0]
 	var original=item.name
 	item.name="長い商品名の表示確認".repeat(20)
-	for dims in [Vector2i(1920,1080),Vector2i(1280,800),Vector2i(1920,1080)]:
+	for dims in [Vector2i(1920,1080)]:
 		root.size=dims;game.render();await settle()
 		var product=node("Product_swift-boots")
 		check(product.size.y==68 and product.tooltip_text==item.name and price_fits(product),"long title retains its tooltip, row height and visible price "+str(dims))

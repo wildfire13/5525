@@ -2,9 +2,9 @@
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 let checks=0;const test=(name,fn)=>{fn();checks++;console.log('PASS '+name);};
 function setup(right,left,skill){
- const s=B.create({ally:['guard','mage','archer','porter'],enemy:['guard'],deployment:true});
- const a=s.units.find(u=>u.id==='guard'),t=s.units.find(u=>u.id==='mage'),p=s.units.find(u=>u.id==='porter');
- const char=C.createLegacy().characters.guard;char.weapon=right;char.leftHand=left;
+ const s=B.create({ally:["recruit-guard-human-female","recruit-mage-elf-female","recruit-scout-human-male","recruit-porter-human-female"],enemy:['guard'],deployment:true});
+ const a=s.units.find(u=>u.id==="recruit-guard-human-female"),t=s.units.find(u=>u.id==="recruit-mage-elf-female"),p=s.units.find(u=>u.id==="recruit-porter-human-female");
+ const char=C.create().characters["recruit-guard-human-female"];char.weapon=right;char.leftHand=left;
  // These are canonical equipment-stat calculations, not a purchase/requirements bypass test.
  const stats=C.stats(char);Object.assign(a,{attackWeapons:stats.attackWeapons,attackBonus:stats.attackBonus,activeSkills:stats.activeSkills,reach:stats.reach});
  a.selectedSkill=skill;a.pos=22;a.mp=3;a.next=0;t.pos=23;t.hp=20;t.mp=0;t.next=1;p.pos=0;p.next=2;

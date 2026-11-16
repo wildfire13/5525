@@ -67,10 +67,10 @@ func run():
 	var game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true
-	var output=[]
-	var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),[ProjectSettings.globalize_path("res://tests/event_voice_fixtures.cjs")],output,true,false)
+	var output=[];var fixture_path=ProjectSettings.globalize_path("user://event-voice-fixture.json")
+	var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),[ProjectSettings.globalize_path("res://tests/event_voice_fixtures.cjs"),fixture_path],output,true,false)
 	check(code==0,"new-roster quest boundary fixture validates")
-	var fixture=JSON.parse_string("".join(output))
+	var fixture=JSON.parse_string(FileAccess.get_file_as_string(fixture_path));DirAccess.remove_absolute(fixture_path)
 	await game.update({"op":"campaign_load","data":fixture})
 	game.audio.muted.voice=false;game.audio.volumes.voice=100;game.audio.apply_levels()
 	heard.clear();game.audio.phase_voice_started.connect(func(id,cue):heard.append([id,cue]))

@@ -21,7 +21,7 @@ func _ready():
  mouse_filter=Control.MOUSE_FILTER_IGNORE;focus_mode=Control.FOCUS_NONE
  legacy=preload("res://legacy_skill_effect_layer.gd").new();legacy.board_ref=board_ref;add_child(legacy);legacy.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  stage=Node3D.new();stage.name="PaintedSkillVfx";board_ref.get_ref().world.add_child(stage)
- for key in ["sweep_arc","sweep_dust","sweep_shard","heal_veil","heal_shard","heal_core","guard_plate","guard_reflection","guard_shard","pose_crouch","pose_sweep","impact_contact","attack_blade","attack_projectile","stamp_fall","stamp_impact","stamp_rubble","pose_stamp_lift","pose_stamp_slam"]:
+ for key in ["sweep_arc","sweep_dust","sweep_shard","heal_veil","heal_shard","heal_core","guard_plate","guard_reflection","guard_shard","impact_contact","attack_blade","attack_projectile","stamp_fall","stamp_impact","stamp_rubble"]:
   var path=ART+key+".png"
   if ResourceLoader.exists(path):textures[key]=load(path)
  physical=preload("res://expanded_physical_vfx.gd").new(self)
@@ -187,7 +187,7 @@ func _impact(event: Dictionary):
  if amount<0:_caption(cell,str(amount),Color("#ffebd7"),0,.34)
 func _stamp_cast(event: Dictionary):
  var center=int(event.get("recipient",-1))
- _react(str(event.get("actor_id","")),"stamp_pose",0,.58,(board().point(center)-board().point(int(event.origin))).normalized() if _valid_cell(center) else Vector3.ZERO)
+ _react(str(event.get("actor_id","")),"stamp_pose",0,.58)
  if not _valid_cell(center):return
  var fall=_quad("stamp_fall",center,Vector3(0,.72,0),Vector2(.72,1.38),.19,.12,false,"stamp_fall")
  if not fall.is_empty():fall.pivot=Vector2(.5,.882);fall.travel=Vector3(0,-.58,0);fall.opacity=.9;fall.depth_bias=.42
@@ -251,29 +251,11 @@ func _update_reaction(row: Dictionary):
  if row.kind=="stumble":sprite.position+=row.direction*(.07*sin(PI*t));return
  if row.kind=="strike":sprite.position+=row.direction*(.10*sin(PI*t))*smoothstep(0,.25,t);return
  if row.kind=="stamp_pose":
-  if _default_pose_allowed(row.id) and _wood_hammer(row.id):
-   sprite.texture=textures.pose_stamp_lift if t<.48 else textures.pose_stamp_slam
-   sprite.pixel_size=b.texture_pixel_size(sprite.texture);sprite.position=b.sprite_origin(sprite)
-   sprite.flip_h=(b.project(b.point(24)+row.direction)-b.project_cell(24)).x<0 if row.direction.length_squared()>0 else row.flip_h
-  else:sprite.position+=Vector3(0,.05*sin(TAU*t),0)
+  sprite.position+=Vector3(0,.05*sin(TAU*t),0)
   return
  if row.kind=="brace":sprite.position+=Vector3(0,-.035*pulse,0);sprite.modulate=Color(1,1,1);return
  if row.kind=="sweep_pose":
-  if _default_pose_allowed(row.id):
-   sprite.texture=textures.pose_crouch if t<.20 or t>.75 else textures.pose_sweep
-   sprite.pixel_size=b.texture_pixel_size(sprite.texture)
-   sprite.position=b.sprite_origin(sprite)
   sprite.position+=Vector3(0,-.06*pulse,0)+b.world.camera.global_basis.x*(.07*sin(TAU*t)*pulse)
-func _default_pose_allowed(id: String) -> bool:
- for unit in board().data.get("state",{}).get("units",[]):
-  if unit.id==id:return unit.get("side")=="ally" and unit.get("image")=="knight.png" and not board().portraits.overrides.has(id)
- return false
-func _wood_hammer(id: String) -> bool:
- for member in board().data.get("campaign",{}).get("roster",[]):
-  if member.id!=id:continue
-  for detail in member.get("equipmentDetails",{}).values():
-   if detail is Dictionary and str(detail.get("id","")).begins_with("hammer-wood"):return true
- return false
 func _process(delta: float):
  var b=board()
  if b==null or not is_instance_valid(b):clear();return

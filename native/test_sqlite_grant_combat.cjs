@@ -9,15 +9,15 @@ try{
  for(const stampSlot of [2,3]){
   hammer.skill='mage';
   master.grantsByEquipment[hammer.id]=[
-   {slotNo:1,id:'mage',level:1,sourceField:'skill',explicitLevel:false},
-   ...(stampSlot===3?[{slotNo:2,id:'guard',level:1,sourceField:'skill',explicitLevel:false}]:[]),
+    {slotNo:1,id:'mage',level:1,sourceField:'skill',explicitLevel:false},
+    ...(stampSlot===3?[{slotNo:2,id:'guard',level:1,sourceField:'skill',explicitLevel:false}]:[]),
    {slotNo:stampSlot,id:'stamp',level:1,sourceField:'skill',explicitLevel:false}];
-  const state=C.createLegacy();state.location='east';state.characters.guard.weapon=hammer.id;
-  assert.equal(C.stats(state.characters.guard).skillSources.find(g=>g.id==='stamp').grantSlot,stampSlot);
-  const displayed=C.view(state).roster.find(u=>u.id==='guard').equipmentDetails.rightHand;
+  const state=C.create();state.location='east';state.characters["recruit-guard-human-female"].weapon=hammer.id;
+  assert.equal(C.stats(state.characters["recruit-guard-human-female"]).skillSources.find(g=>g.id==='stamp').grantSlot,stampSlot);
+  const displayed=C.view(state).roster.find(u=>u.id==="recruit-guard-human-female").equipmentDetails.rightHand;
   assert.equal(displayed.skillGrants.find(g=>g.id==='stamp').slotNo,stampSlot);
-  const trial=C.trial(state,'guard',hammer.id,'rightHand');assert.ok(trial);
-  const battle=trial.battle,actor=battle.units.find(u=>u.id==='guard');
+  const trial=C.trial(state,"recruit-guard-human-female",hammer.id,'rightHand');assert.ok(trial);
+  const battle=trial.battle,actor=battle.units.find(u=>u.id==="recruit-guard-human-female");
   actor.pos=24;actor.next=1;actor.mp=actor.maxMp=10;battle.actor=actor.id;
   let allyIndex=0,enemyIndex=0;
   for(const u of battle.units.filter(u=>u!==actor)){

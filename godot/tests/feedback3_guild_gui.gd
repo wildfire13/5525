@@ -8,15 +8,16 @@ func run():
  root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1920,1080)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
+ await game.new_game()
  game.audio.fast_mode=true;game.checks_fast=true;await settle();var guild=game.pages.guild_view
  game.navigate("party");await settle();await os_click(node("FacilityChoice_guild"))
  for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
   root.size=dims;await settle();var before=game.campaign().selected.duplicate()
-  var source=await visible_member("guard-2");var target=await visible_member("guard")
+  var source=await visible_member("recruit-guard-human-male");var target=await visible_member("recruit-guard-human-female")
   await os_mouse(source,"drag",target)
-  var expected=before.duplicate();expected[expected.find("guard")]="guard-2"
+  var expected=before.duplicate();expected[expected.find("recruit-guard-human-female")]="recruit-guard-human-male"
   check(game.campaign().selected==expected,"OS reserve to current card swaps "+str(dims))
-  source=await visible_member("guard");var face=node("PartyFace_guard-2")
+  source=await visible_member("recruit-guard-human-female");var face=node("PartyFace_recruit-guard-human-male")
   await os_mouse(source,"drag",face.get_global_rect().get_center())
   check(game.campaign().selected==before,"OS reserve to lower party face swaps "+str(dims))
   var first=node("PartyFace_"+str(before[0]));var second=node("PartyFace_"+str(before[1]))
@@ -24,10 +25,10 @@ func run():
   expected=before.duplicate();expected[0]=before[1];expected[1]=before[0]
   check(game.campaign().selected==expected,"OS horizontal lower bar drag exchanges "+str(dims))
   await snapshot("guild-drag-"+str(dims.x))
-  source=await visible_member("guard-2");var append=node("GuildPartyAppend");node("PartyFacesScroll").ensure_control_visible(append);await frames(16)
-  await os_mouse(source,"drag",append.get_global_rect().get_center());expected.append("guard-2")
+  source=await visible_member("recruit-guard-human-male");var append=node("GuildPartyAppend");node("PartyFacesScroll").ensure_control_visible(append);await frames(16)
+  await os_mouse(source,"drag",append.get_global_rect().get_center());expected.append("recruit-guard-human-male")
   check(game.campaign().selected==expected,"OS reserve to empty lower bar slot appends "+str(dims))
-  guild.choose("guard-2");await settle();await os_click(node("GuildRemove"));guild.cancel_selection();await settle()
+  guild.choose("recruit-guard-human-male");await settle();await os_click(node("GuildRemove"));guild.cancel_selection();await settle()
  check(game.audio.muted.values().all(func(v):return v),"guild GUI sound3 OFF")
  var f=FileAccess.open(evidence.path_join("checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

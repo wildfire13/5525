@@ -5,17 +5,17 @@ let groups=0;
 const test=(name,run)=>{run();groups++;console.log('PASS '+name);};
 const clone=structuredClone;
 function battle(skill='grapple',level=1){
- const s=B.create({ally:['guard','mage','porter'],enemy:['guard','archer'],deployment:true,enemyPotions:0});
- s.deploying=false;s.actor='guard';s.ethers=1;s.potions.ally=2;
- s.itemInventories={guard:{potion:1,ether:0},mage:{potion:1,ether:0},porter:{potion:0,ether:1}};
+ const s=B.create({ally:["recruit-guard-human-female","recruit-mage-elf-female","recruit-porter-human-female"],enemy:['guard','archer'],deployment:true,enemyPotions:0});
+ s.deploying=false;s.actor='recruit-guard-human-female';s.ethers=1;s.potions.ally=2;
+ s.itemInventories={'recruit-guard-human-female':{potion:1,ether:0},'recruit-mage-elf-female':{potion:1,ether:0},'recruit-porter-human-female':{potion:0,ether:1}};
  for(const [i,u] of s.units.entries()){u.next=100000+i;u.pos=[21,32,40,23,49][i];u.activeSkills=[skill];u.skillSources=[{id:skill,level}];if(u.side==='enemy')u.intent={kind:'guard',target:null,name:'防御',reason:'test',cells:[]};}
  s.units[0].next=1;return s;
 }
 function inventory(s,uid,id,action,slot){const q=C.inventoryQuote(s,uid,id,action,null,1,slot);assert(q.ok,q.reason);assert(C.inventoryAction(s,uid,id,action,null,1,slot,q.token));assert(!C.inventoryAction(s,uid,id,action,null,1,slot,q.token),'duplicate token must reject');}
 test('equipment values and independently selected level sources',()=>{
  for(const [id,hp,level] of [['kungfu-pants',5,1],['kungfu-pants-1',25,1],['kungfu-pants-2',25,2],['kungfu-pants-3',25,3]]){
-  const s=require('./test-current-fixture.cjs')(),c=s.characters.guard,base=C.stats(c).max;c.inventory[id]=1;
-  inventory(s,'guard',id,'equip','lowerBody');const st=C.stats(s.characters.guard);
+  const s=require('./test-current-fixture.cjs')(),c=s.characters["recruit-guard-human-female"],base=C.stats(c).max;c.inventory[id]=1;
+  inventory(s,"recruit-guard-human-female",id,'equip','lowerBody');const st=C.stats(s.characters["recruit-guard-human-female"]);
   assert.equal(st.max,base+hp);assert.equal(st.skillSources.find(x=>x.id==='legSweep').level,level);assert(C.validate(s).ok);
  }
  const actor={side:'ally',activeSkills:[],skillSources:[{id:'itemUse',level:1,classification:'passive'},{id:'itemUse',level:2,classification:'passive'}]};
@@ -24,19 +24,19 @@ test('equipment values and independently selected level sources',()=>{
 
 });
 test('virtual fists appear on empty hands, cannot generate stock; two handed weapons suppress both',()=>{
- const s=require('./test-current-fixture.cjs')();inventory(s,'guard','guard-shield-wood','unequip','leftHand');
- assert(C.stats(s.characters.guard).effects.includes('itemUse'));
- assert.equal(C.view(s).roster.find(u=>u.id==='guard').equipmentDetails.leftHand.name,'拳');
- assert(!C.inventoryQuote(s,'guard','empty-leftHand','unequip',null,1,'leftHand').ok);
- for(let i=0;i<3;i++){inventory(s,'guard','guard-shield-wood','equip','leftHand');inventory(s,'guard','guard-shield-wood','unequip','leftHand');}
- assert.equal(s.characters.guard.inventory['guard-shield-wood'],1);assert.equal(s.characters.guard.inventory.fist,undefined);
- s.characters.guard.inventory['longspear-wood']=1;inventory(s,'guard','longspear-wood','equip','rightHand');
- assert(!C.stats(s.characters.guard).effects.includes('itemUse'));assert(C.stats(s.characters.guard).activeSkills.includes('poleVault'));
- assert.equal(C.stats(s.characters.guard).attackWeapons.length,1);assert.equal(C.stats(s.characters.guard).attackWeapons[0].atk,34);
- inventory(s,'guard','longspear-wood','unequip','rightHand');assert(C.stats(s.characters.guard).effects.includes('itemUse'));
- assert.equal(B.itemUseLevel(C.stats(s.characters.porter)),3);
+ const s=require('./test-current-fixture.cjs')();inventory(s,"recruit-guard-human-female",'guard-shield-wood','unequip','leftHand');
+ assert(C.stats(s.characters["recruit-guard-human-female"]).effects.includes('itemUse'));
+ assert.equal(C.view(s).roster.find(u=>u.id==="recruit-guard-human-female").equipmentDetails.leftHand.name,'拳');
+ assert(!C.inventoryQuote(s,"recruit-guard-human-female",'empty-leftHand','unequip',null,1,'leftHand').ok);
+ for(let i=0;i<3;i++){inventory(s,"recruit-guard-human-female",'guard-shield-wood','equip','leftHand');inventory(s,"recruit-guard-human-female",'guard-shield-wood','unequip','leftHand');}
+ assert.equal(s.characters["recruit-guard-human-female"].inventory['guard-shield-wood'],1);assert.equal(s.characters["recruit-guard-human-female"].inventory.fist,undefined);
+ s.characters["recruit-guard-human-female"].inventory['longspear-wood']=1;inventory(s,"recruit-guard-human-female",'longspear-wood','equip','rightHand');
+ assert(!C.stats(s.characters["recruit-guard-human-female"]).effects.includes('itemUse'));assert(C.stats(s.characters["recruit-guard-human-female"]).activeSkills.includes('poleVault'));
+ assert.equal(C.stats(s.characters["recruit-guard-human-female"]).attackWeapons.length,1);assert.equal(C.stats(s.characters["recruit-guard-human-female"]).attackWeapons[0].atk,34);
+ inventory(s,"recruit-guard-human-female",'longspear-wood','unequip','rightHand');assert(C.stats(s.characters["recruit-guard-human-female"]).effects.includes('itemUse'));
+ assert.equal(B.itemUseLevel(C.stats(s.characters["recruit-porter-human-female"])),3);
  assert.deepEqual(C.deserialize(C.serialize(s)),JSON.parse(JSON.stringify(s)));
- for(const id of ['fist','fist-2']){const bad=clone(s);bad.characters.guard.inventory[id]=1;assert(!C.validate(bad).ok);assert(!C.eligibility(s,'guard',id).ok);}
+ for(const id of ['fist','fist-2']){const bad=clone(s);bad.characters["recruit-guard-human-female"].inventory[id]=1;assert(!C.validate(bad).ok);assert(!C.eligibility(s,"recruit-guard-human-female",id).ok);}
 });
 test('item levels restrict self / orthogonal adjacent / unlimited and no skill means no items',()=>{
  const s=battle('itemUse'),a=s.units[0],b=s.units[1];a.hp-=20;b.hp-=30;
@@ -45,12 +45,12 @@ test('item levels restrict self / orthogonal adjacent / unlimited and no skill m
   for(const pos of [22,31,32,49]){b.pos=pos;assert.equal(B.legalFor(s,a,'item',b.id),level===3||level===2&&[22,31].includes(pos));}
  }
  const grants=a.skillSources;a.skillSources=[];a.effects=[];assert(!B.legalFor(s,a,'item',a.id));
- a.skillSources=grants;a.skillSources[0].level=3;s.itemInventories.guard.potion=0;assert(!B.legalFor(s,a,'item',b.id));
+ a.skillSources=grants;a.skillSources[0].level=3;s.itemInventories["recruit-guard-human-female"].potion=0;assert(!B.legalFor(s,a,'item',b.id));
 });
 test('item preview/cancel is pure and consumes only owner stock with MP0',()=>{
  const s=battle('itemUse',2),a=s.units[0],b=s.units[1];b.pos=22;b.hp-=40;
  const before=clone(s),effects=B.effectPreview(s,a,'item',b.id);assert.equal(effects.find(x=>x.id===b.id).hp,40);assert.deepEqual(s,before);
- assert(B.act(s,'item',b.id));assert.equal(s.itemInventories.guard.potion,0);assert.equal(s.itemInventories.mage.potion,1);assert.equal(a.mp,before.units[0].mp);assert.equal(s.actions,1);
+ assert(B.act(s,'item',b.id));assert.equal(s.itemInventories["recruit-guard-human-female"].potion,0);assert.equal(s.itemInventories["recruit-mage-elf-female"].potion,1);assert.equal(a.mp,before.units[0].mp);assert.equal(s.actions,1);
  assert(!B.act(s,'item',b.id));assert.equal(s.actions,1);
 });
 test('grapple targets exactly right two cells, either side, alive only, no row wrapping',()=>{
@@ -105,7 +105,7 @@ test('skips produce causal presentation once and repeated ACK cannot replay or s
  const frames=[];while(p.pending){const f=p.info();frames.push(f);assert(p.next(f.id,f.index));assert(!p.next(f.id,f.index));}
  assert.equal(frames.filter(f=>f.kind==='skip').length,1);assert.equal(frames.find(f=>f.kind==='skip').actor_id,e.id);assert.deepEqual(frames.find(f=>f.kind==='skip').voiceEvents,[]);assert.equal(s.actions,1);assert.equal(s.units.find(u=>u.id===a.id).mp,a.maxMp-1);
 });
-test('pole vault ignores intermediate enemy, ally or empty; rejects diagonal, wrapping, occupied, out of board and invasion',()=>{
+test('pole vault ignores intermediate enemy, ally or empty; crosses midpoint but rejects diagonal, wrapping, occupied and out of board',()=>{
  for(const middle of [null,'ally','enemy']){
   const s=battle('poleVault'),a=s.units[0];a.pos=22;s.units[1].pos=40;s.units[3].pos=49;
   if(middle)s.units[middle==='ally'?1:3].pos=23;
@@ -115,16 +115,17 @@ test('pole vault ignores intermediate enemy, ally or empty; rejects diagonal, wr
   assert(B.act(s,'skill',24));assert.equal(a.pos,24);assert.equal(a.mp,before.units[0].mp-1);assert.equal(s.actions,1);assert.deepEqual(s.units.slice(1).map(u=>u.hp),before.units.slice(1).map(u=>u.hp));
  }
  const s=battle('poleVault'),a=s.units[0];a.pos=24;s.units[3].pos=49;
- assert(!B.legalFor(s,a,'skill',26));a.canInvade=true;assert(B.legalFor(s,a,'skill',26));s.units[3].pos=26;assert(!B.legalFor(s,a,'skill',26));
+ // Current movement allows crossing the board midpoint without an invasion grant.
+ assert(B.legalFor(s,a,'skill',26));assert(B.skillTargets(s,a).includes(26));s.units[3].pos=26;assert(!B.legalFor(s,a,'skill',26));
  a.pos=29;assert(!B.legalFor(s,a,'skill',31));a.pos=0;assert(!B.legalFor(s,a,'skill',-2));a.mp=0;assert(!B.act(s,'skill',2));
 });
 test('new battle skills and pending skips survive save/reload; invalid stacked counters reject',()=>{
- const s=require('./test-current-fixture.cjs')();s.characters.guard.lowerBody='kungfu-pants-3';s.characters.guard.weapon='longspear-wood';s.characters.guard.leftHand='empty-leftHand';
+ const s=require('./test-current-fixture.cjs')();s.characters["recruit-guard-human-female"].lowerBody='kungfu-pants-3';s.characters["recruit-guard-human-female"].weapon='longspear-wood';s.characters["recruit-guard-human-female"].leftHand='empty-leftHand';
  assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));
- const a=s.battle.units.find(u=>u.id==='guard'),e=s.battle.units.find(u=>u.side==='enemy');e.skipNextTurn=true;
+ const a=s.battle.units.find(u=>u.id==="recruit-guard-human-female"),e=s.battle.units.find(u=>u.side==='enemy');e.skipNextTurn=true;
  assert(a.activeSkills.includes('poleVault')&&a.activeSkills.includes('legSweep'));assert.equal(C.validate(s).ok,true,C.validate(s).error);
  assert.deepEqual(C.deserialize(C.serialize(s)),JSON.parse(JSON.stringify(s)));
  for(const val of [1,2,-1,'true']){const bad=clone(s);bad.battle.units.find(u=>u.id===e.id).skipNextTurn=val;assert(!C.validate(bad).ok);}
- assert(C.retreat(s));assert(!s.battle);assert.equal(s.characters.guard.lowerBody,'kungfu-pants-3');
+ assert(C.retreat(s));assert(!s.battle);assert.equal(s.characters["recruit-guard-human-female"].lowerBody,'kungfu-pants-3');
 });
 console.log(`PASS ${groups} feedback 261019 groups`);

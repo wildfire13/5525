@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),C=require('./campaign.js');
 const legacy='繰り返しの受注・移動・買い替えを確かめる仮の配達依頼です。急ぎは納期6時間・報酬180G、通常は10時間・150G。';
 const s=require('./test-current-fixture.cjs')(),q=C.board(s)[0];
 assert.equal(q.text,`${q.cargo}を${C.locations.find(x=>x.id===q.to).name}まで届けてください。`);
-assert.ok(C.accept(s,q.id,'porter'));
+assert.ok(C.accept(s,q.id,"recruit-porter-human-female"));
 s.activeQuest.text=legacy;
 const before=C.serialize(s),view=C.view(s);
 assert.equal(view.activeQuest.text,q.text);

@@ -18,18 +18,20 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var before=await saved();await enter_facility("party");await settle()
 	return_layout("GuildReturn")
-	await click("RosterMember_guard")
-	check(not game.modal_open() and game.pages.guild_view.current_id=="guard","first guild click selects without opening or changing state")
-	await click("RosterMember_guard")
-	check(not game.modal_open() and game.pages.guild_view.current_id=="guard" and await saved()==before,"repeat current-member selection preserves full campaign")
+	var member=str(game.campaign().selected[0]);var mage="recruit-mage-elf-female";var porter="recruit-porter-human-female"
+	var reserve=str(game.roster().filter(func(u):return not game.campaign().selected.has(u.id))[0].id)
+	await click("RosterMember_"+member)
+	check(not game.modal_open() and game.pages.guild_view.current_id==member,"first guild click selects without opening or changing state")
+	await click("RosterMember_"+member)
+	check(not game.modal_open() and game.pages.guild_view.current_id==member and await saved()==before,"repeat current-member selection preserves full campaign")
 	await click("GuildTab_1");check(game.pages.guild_view.detail_tab==1 and not game.modal_open(),"guild equipment detail tab opens inline")
 	game.pages.guild_view.cancel_selection();await settle()
-	await click("GuildMember_warrior");await click("GuildMember_warrior")
-	check(not game.modal_open() and game.pages.guild_view.chosen_id=="warrior" and not game.active_member("warrior"),"reserve repeat selection stays inline without changing composition")
+	await click("GuildMember_"+reserve);await click("GuildMember_"+reserve)
+	check(not game.modal_open() and game.pages.guild_view.chosen_id==reserve and not game.active_member(reserve),"reserve repeat selection stays inline without changing composition")
 	check(await saved()==before,"reserve and inline tab selection preserve the full campaign")
 	await pointer_click(node("GuildReturn"))
 	check(game.page=="party" and node("FacilityChoice_guild")!=null,"guild return accepts viewport pointer click and restores service entry")
@@ -43,17 +45,17 @@ func run():
 		check(node("InnPortrait_"+id).texture!=null and node("InnHP_"+id).text.contains("HP ") and node("InnMP_"+id).text.contains("MP "),"portrait HP MP card "+id)
 	await pointer_click(node("InnReturn"));check(game.page=="inn" and node("FacilityChoice_inn")!=null,"inn return accepts viewport pointer click and restores service entry")
 	# Valid injured-party save; lodging rules remain the existing API's responsibility.
-	var injured=before.duplicate(true);injured.state.characters.guard.hp=0;injured.state.characters.mage.mp=0
+	var injured=before.duplicate(true);injured.state.characters[member].hp=0;injured.state.characters[mage].mp=0
 	await game.update({"op":"campaign_load","data":injured});await enter_facility("inn");await settle()
-	check(not node("InnStay").disabled and node("InnHP_guard").text.begins_with("HP 0 →"),"injured/KO party enables lodging")
+	check(not node("InnStay").disabled and node("InnHP_"+member).text.begins_with("HP 0 →"),"injured/KO party enables lodging")
 	var unchanged=await saved();await click("InnStay")
 	var d=game.find_children("*","ConfirmationDialog",true,false).filter(func(w):return w.visible)[0];d.canceled.emit();await settle()
 	check(await saved()==unchanged,"lodging cancel preserves all state")
 	await click("InnStay");d=game.find_children("*","ConfirmationDialog",true,false).filter(func(w):return w.visible)[0];d.confirmed.emit();d.confirmed.emit();await settle()
-	var after=await saved();check(after.state.gold==unchanged.state.gold-30 and after.state.characters.guard.hp==game.roster().filter(func(u):return u.id=="guard")[0].max and after.state.characters.mage.mp==game.roster().filter(func(u):return u.id=="mage")[0].maxMp,"lodging charges once and heals existing HP/MP")
-	check(after.state.hours==unchanged.state.hours and after.state.characters["guard-2"]==unchanged.state.characters["guard-2"],"lodging leaves time and reserves unchanged")
+	var after=await saved();check(after.state.gold==unchanged.state.gold-30 and after.state.characters[member].hp==game.roster().filter(func(u):return u.id==member)[0].max and after.state.characters[mage].mp==game.roster().filter(func(u):return u.id==mage)[0].maxMp,"lodging charges once and heals existing HP/MP")
+	check(after.state.hours==unchanged.state.hours and after.state.characters[reserve]==unchanged.state.characters[reserve],"lodging leaves time and reserves unchanged")
 	# Valid smaller party; long names and a larger presentation projection need scrolling, not overflow.
-	var small=before.duplicate(true);small.state.selected=["guard","porter"]
+	var small=before.duplicate(true);small.state.selected=[member,porter]
 	await game.update({"op":"campaign_load","data":small});await enter_facility("inn");await settle()
 	check(node("InnParty").get_child_count()==2,"inn supports smaller party")
 	game.data.campaign.selected=game.roster().map(func(u):return u.id)

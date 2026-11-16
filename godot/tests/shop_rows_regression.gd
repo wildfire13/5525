@@ -2,6 +2,9 @@ extends SceneTree
 var game
 var checks=[]
 var seed={}
+const MAGE="recruit-mage-elf-female"
+const GUARD="recruit-guard-human-female"
+const SCOUT="recruit-scout-elf-male"
 func _initialize():call_deferred("run")
 func check(ok,label):
 	checks.append({"passed":bool(ok),"label":label});print(("PASS " if ok else "FAIL ")+label)
@@ -23,7 +26,7 @@ func saved():return (await game.engine.request({"op":"campaign_save"})).data
 func load_at(place: String,gold:=1000,inventory: Dictionary={}):
 	game.dialog.close(false)
 	var data=seed.duplicate(true);data.state.location=place;data.state.gold=gold
-	data.state.characters.mage.inventory=inventory.duplicate(true)
+	data.state.characters[MAGE].inventory=inventory.duplicate(true)
 	await game.update({"op":"campaign_load","data":data})
 	if place!="astaris":await enter_facility("shop")
 	await settle()
@@ -32,7 +35,7 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(evidence.to_lower()+"/"):push_error("Isolated profile required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.audio.fast_mode=true;game.checks_fast=true;seed=await saved()
 	await load_at("east")
 	var shop=game.pages.shop_view
@@ -55,33 +58,33 @@ func run():
 	shop.select_slot("all");await settle()
 	check(is_instance_valid(greatsword) and greatsword==button("Product_greatsword-wood") and greatsword.is_visible_in_tree(),"clearing filter restores the same greatsword row")
 	var before=await saved()
-	await tap("RosterMember_mage");await tap("Product_javelin-wood")
-	check(shop.selected_owner()=="mage" and shop.comparison_view.owner_id=="mage" and await saved()==before,"roster selection chooses purchase owner without changing campaign save")
+	await tap("RosterMember_"+MAGE);await tap("Product_javelin-wood")
+	check(shop.selected_owner()==MAGE and shop.comparison_view.owner_id==MAGE and await saved()==before,"roster selection chooses purchase owner without changing campaign save")
 	await tap("ShopComparisonBuy")
-	check(game.dialog.window.title=="購入の確認" and exists("PurchasePayment") and not exists("PurchaseRecipient_mage") and game.dialog.body.find_children("*","Label",true,false).any(func(label):return label.text.contains(game.member_name("mage")) and label.text.contains("インベントリへ購入")),"payment consent identifies the already selected recipient")
+	check(game.dialog.window.title=="購入の確認" and exists("PurchasePayment") and not exists("PurchaseRecipient_"+MAGE) and game.dialog.body.find_children("*","Label",true,false).any(func(label):return label.text.contains(game.member_name(MAGE)) and label.text.contains("インベントリへ購入")),"payment consent identifies the already selected recipient")
 	check((await saved())==before,"opening payment consent is pure")
 	await tap("PurchaseDecline")
 	check((await saved())==before and shop.stage=="S0","declining consent leaves money/inventory unchanged")
 	await tap("ShopComparisonBuy");game.dialog.close();await settle()
-	check((await saved())==before and shop.stage=="S0" and shop.selected_owner()=="mage","closing consent preserves full save and selected recipient")
+	check((await saved())==before and shop.stage=="S0" and shop.selected_owner()==MAGE,"closing consent preserves full save and selected recipient")
 	await tap("ShopComparisonBuy")
 	var agree=button("PurchaseAgree");agree.pressed.emit();agree.pressed.emit();await settle()
 	var after=await saved()
-	check(after.state.gold==900 and after.state.characters.mage.inventory.get("javelin-wood",0)==1,"double click commits exactly one unit to mage")
-	check(after.state.characters.mage.weapon==before.state.characters.mage.weapon and after.state.characters.guard==before.state.characters.guard,"no automatic equipment or other owner's inventory mutation")
+	check(after.state.gold==900 and after.state.characters[MAGE].inventory.get("javelin-wood",0)==1,"double click commits exactly one unit to current mage")
+	check(after.state.characters[MAGE].weapon==before.state.characters[MAGE].weapon and after.state.characters[GUARD]==before.state.characters[GUARD],"no automatic equipment or other owner's inventory mutation")
 	check(shop.stage=="S0" and not game.modal_open(),"successful receipt returns safely to trading workspace")
-	check(exists("SaleItem_javelin-wood") and shop.sale.owner_id=="mage","shop inventory exposes purchased item for selected owner's sale")
+	check(exists("SaleItem_javelin-wood") and shop.sale.owner_id==MAGE,"shop inventory exposes purchased item for selected owner's sale")
 	await tap("SaleItem_javelin-wood");await tap("FacilitySalePrepare")
 	var inv=shop.sale
-	check(inv.quote.get("ownerId")=="mage" and inv.quote.get("itemId")=="javelin-wood" and inv.quote.get("count")==1 and inv.quote.get("afterGold")==1000 and inv.stage=="confirm","sale confirmation shows quantity and payment from actual owner")
+	check(inv.quote.get("ownerId")==MAGE and inv.quote.get("itemId")=="javelin-wood" and inv.quote.get("count")==1 and inv.quote.get("afterGold")==1000 and inv.stage=="confirm","sale confirmation shows quantity and payment from actual owner")
 	inv.confirmation.canceled.emit();await settle()
 	check((await saved())==after,"canceling sale leaves purchased item and funds")
-	check(inv.stage=="selected" and inv.owner_id=="mage" and inv.item_id=="javelin-wood" and inv.amount==1 and inv.quote.get("ok",false),"cancel preserves sale target and quantity with valid quote, ready to confirm without reselecting")
+	check(inv.stage=="selected" and inv.owner_id==MAGE and inv.item_id=="javelin-wood" and inv.amount==1 and inv.quote.get("ok",false),"cancel preserves sale target and quantity with valid quote, ready to confirm without reselecting")
 	await tap("FacilitySalePrepare")
 	var sale_dialog=inv.confirmation;sale_dialog.confirmed.emit();sale_dialog.confirmed.emit();await settle()
-	check(game.campaign().gold==1000 and not game.campaign().characters.mage.inventory.has("javelin-wood"),"repeated sale confirmation commits once and removes actual owner's unit")
+	check(game.campaign().gold==1000 and not game.campaign().characters[MAGE].inventory.has("javelin-wood"),"repeated sale confirmation commits once and removes actual owner's unit")
 	game.dialog.close();await settle()
-	await load_at("astaris",1000,{"javelin-wood":1});game.navigate("map");await settle();await tap("RosterMember_mage");await tap("CharacterTab_inventory")
+	await load_at("astaris",1000,{"javelin-wood":1});game.navigate("map");await settle();await tap("RosterMember_"+MAGE);await tap("CharacterTab_inventory")
 	var inventory=node("CharacterInventoryFilter").get_parent()
 	var owned=inventory.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text==source_javelin.name)
 	check(owned.size()==1 and not exists("FacilitySalePrepare"),"character inventory shows the owned weapon outside the shop")
@@ -93,17 +96,17 @@ func run():
 	before=await saved();await shop.confirm_purchase("javelin-wood");await settle()
 	check((await saved())==before and shop.stage=="S0" and not game.modal_open(),"programmatic insufficient purchase also leaves state unchanged")
 	await tap("ProductTrial_javelin-wood")
-	check(game.dialog.window.title=="木人で試す人物" and exists("TrialRecipient_guard"),"trial first asks who after product action")
+	check(game.dialog.window.title=="木人で試す人物" and exists("TrialRecipient_"+GUARD),"trial first asks who after product action")
 	await tap("TrialRecipientCancel")
 	check((await saved())==before and shop.stage=="S0","cancel trial selection is pure")
 	await tap("Product_greatsword-wood");await tap("ProductTrial_greatsword-wood")
-	check(button("TrialRecipient_archer").disabled and button("TrialRecipient_guard").disabled and not button("TrialRecipient_mage").disabled,"trial preserves required STR and occupied left-hand conditions")
+	check(button("TrialRecipient_"+SCOUT).disabled and button("TrialRecipient_"+GUARD).disabled and not button("TrialRecipient_"+MAGE).disabled,"trial preserves required STR and occupied left-hand conditions")
 	await tap("TrialRecipientCancel")
 	await tap("Product_sword-iron-1");await tap("ProductTrial_sword-iron-1")
-	check(button("TrialRecipient_mage").disabled and not button("TrialRecipient_guard").disabled,"trial preserves existing racial metal restrictions")
+	check(button("TrialRecipient_"+MAGE).disabled and not button("TrialRecipient_"+GUARD).disabled,"trial preserves existing racial metal restrictions")
 	await tap("TrialRecipientCancel")
-	await tap("Product_javelin-wood");await tap("ProductTrial_javelin-wood");await tap("TrialRecipient_guard")
-	check(game.data.get("trial") is Dictionary and game.data.trial.characterId=="guard" and game.data.trial.gearId=="javelin-wood","selected character and product enter isolated trial")
+	await tap("Product_javelin-wood");await tap("ProductTrial_javelin-wood");await tap("TrialRecipient_"+GUARD)
+	check(game.data.get("trial") is Dictionary and game.data.trial.characterId==GUARD and game.data.trial.gearId=="javelin-wood","selected character and product enter isolated trial")
 	await game.act("endTrial",[]);await settle()
 	check(game.page=="shop" and shop.stage=="S0" and (await saved())==before and shop.filter_slot=="all","trial returns to same shop/filter and original complete campaign save")
 	await load_at("west");shop.select_slot("feet");await settle()

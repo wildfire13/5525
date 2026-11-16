@@ -33,7 +33,7 @@ class CampaignBridgeTests(unittest.TestCase):
             r=subprocess.run(['node','-e',POLICY],cwd=BASE,input=json.dumps(self.data['state']),text=True,capture_output=True,check=True)
             self.data=self.bridge.call(op='act',**json.loads(r.stdout));self.assertTrue(self.data['ok'],self.data.get('error'))
         self.assertTrue(self.data['state']['result']);self.action('finishBattle')
-    def journey(self,destination,quest=True,owner='porter'):
+    def journey(self,destination,quest=True,owner='recruit-porter-human-female'):
         if quest:
             self.action('accept',next(q['id'] for q in self.data['campaign']['board'] if q['to']==destination),owner)
             accepted=self.save()['state']['activeQuest']
@@ -60,14 +60,14 @@ class CampaignBridgeTests(unittest.TestCase):
         r=copy.deepcopy(self.data['campaign']['result']);self.action('acknowledge');return r
     def test_accept_requires_explicit_selected_porter(self):
         qid=self.data['campaign']['board'][0]['id'];before=self.save()
-        for args in [(qid,),(qid,'guard'),(qid,'porter-2')]:
+        for args in [(qid,),(qid,'recruit-guard-human-female'),(qid,'recruit-porter-human-male')]:
             self.action('accept',*args,ok=False);self.assertEqual(self.save(),before)
-        self.action('select',['guard','porter','porter-2'])
-        self.action('accept',qid,'porter-2')
+        self.action('select',['recruit-guard-human-female','recruit-porter-human-female','recruit-porter-human-male'])
+        self.action('accept',qid,'recruit-porter-human-male')
         quest=self.data['campaign']['activeQuest']
-        self.assertEqual(quest['cargoOwnerId'],'porter-2')
-        self.assertEqual(self.data['campaign']['characters']['porter-2']['inventory'][quest['cargoItemId']],1)
-        self.assertNotIn(quest['cargoItemId'],self.data['campaign']['characters']['porter']['inventory'])
+        self.assertEqual(quest['cargoOwnerId'],'recruit-porter-human-male')
+        self.assertEqual(self.data['campaign']['characters']['recruit-porter-human-male']['inventory'][quest['cargoItemId']],1)
+        self.assertNotIn(quest['cargoItemId'],self.data['campaign']['characters']['recruit-porter-human-female']['inventory'])
         self.assertEqual(self.data['campaign']['phase'],'town')
     def test_reject_and_roundtrip_atomic(self):
         saved=self.save();self.action('buyItem','potion',1,ok=False);self.action('depart','nowhere',ok=False)
@@ -78,19 +78,19 @@ class CampaignBridgeTests(unittest.TestCase):
         log=self.bridge.call(op='export')['data'];self.assertEqual(log['mode'],'campaign');self.assertEqual(log['campaign']['location'],'astaris')
     def test_repeat_trial_inventory_purchase_and_questless(self):
         first=self.journey('east');self.assertGreater(first['gold'],0);snapshot=self.save()
-        self.action('trial','mage','hammer-wood');self.assertIsNotNone(self.data['trial']);self.assertEqual(self.data['state']['actor'],'mage')
+        self.action('trial','recruit-mage-elf-female','hammer-wood');self.assertIsNotNone(self.data['trial']);self.assertEqual(self.data['state']['actor'],'recruit-mage-elf-female')
         self.data=self.bridge.call(op='act',kind='skill',target=25);self.assertTrue(self.data['ok']);self.assertEqual(self.data['state']['units'][0]['equippedSkill'],'stamp')
         self.action('accept','invalid',ok=False);self.action('endTrial');self.assertEqual(self.save(),snapshot)
-        self.action('buyGear','mage','hammer-iron-1',ok=False);self.assertEqual(self.save(),snapshot)
-        self.action('buyGear','mage','hammer-wood');self.assertEqual(self.data['campaign']['characters']['mage']['weapon'],'hammer-wood')
-        self.assertEqual(self.data['campaign']['characters']['mage']['inventory']['staff-wood'],1)
-        bought=self.save();self.action('buyGear','mage','hammer-wood',ok=False);self.assertEqual(self.save(),bought)
-        self.action('inventoryQuote','mage','staff-wood','equip',None,1,'rightHand')
+        self.action('buyGear','recruit-mage-elf-female','hammer-iron-1',ok=False);self.assertEqual(self.save(),snapshot)
+        self.action('buyGear','recruit-mage-elf-female','hammer-wood');self.assertEqual(self.data['campaign']['characters']['recruit-mage-elf-female']['weapon'],'hammer-wood')
+        self.assertEqual(self.data['campaign']['characters']['recruit-mage-elf-female']['inventory']['staff-wood'],1)
+        bought=self.save();self.action('buyGear','recruit-mage-elf-female','hammer-wood',ok=False);self.assertEqual(self.save(),bought)
+        self.action('inventoryQuote','recruit-mage-elf-female','staff-wood','equip',None,1,'rightHand')
         quote=self.data['inventoryQuote'];self.assertTrue(quote['ok'])
         gold=self.data['campaign']['gold']
-        self.action('inventoryAction','mage','staff-wood','equip',None,1,'rightHand',quote['token'])
+        self.action('inventoryAction','recruit-mage-elf-female','staff-wood','equip',None,1,'rightHand',quote['token'])
         self.assertEqual(self.data['campaign']['gold'],gold)
-        self.assertEqual(self.data['campaign']['characters']['mage']['inventory']['hammer-wood'],1)
+        self.assertEqual(self.data['campaign']['characters']['recruit-mage-elf-female']['inventory']['hammer-wood'],1)
         second=self.journey('astaris');self.assertGreater(second['gold'],0)
         self.assertEqual(self.data['campaign']['completed'],2)
         # Recover after the round trip before measuring the questless journey's rewards.

@@ -55,7 +55,7 @@ func run():
 		check(effects.size()==before_effect+1,"same action impact group remains deduplicated")
 		await game.engine.request({"op":"presentation_finish","id":p.id})
 	check(keys[0]==keys[1] and generations[1]>generations[0],"same Node serial/action IDs are scoped to different connection generations")
-	check(voices==["guard/attack","guard/attack"] and effects==["attack","attack"],"two connections play exactly two real voices and attack effects")
+	check(voices==[str(fixtures.start.state.battle.actor)+"/attack",str(fixtures.start.state.battle.actor)+"/attack"] and effects==["attack","attack"],"two connections play exactly two real voices and attack effects")
 	await game.new_game();results.clear()
 	await game.load_game(folder.path_join("finished.json"))
 	check(game.state().get("result")!=null and results==["victory"],"completed battle file load emits victory exactly once")

@@ -27,17 +27,18 @@ function battle(weapon='javelin-wood'){
 }
 console.log('PASS spear exact reach, fist conversion, single use, save/load, recovery; passive fist no CT');
 {
- const s=require('./test-current-fixture.cjs')({extraCapacity:false});s.selected=['warrior','porter'];s.characters.warrior.inventory={};
+ const s=require('./test-current-fixture.cjs')({extraCapacity:false});s.selected=["recruit-guard-dwarf-male","recruit-porter-human-female"];s.characters["recruit-guard-dwarf-male"].inventory={};
+ s.characters['recruit-guard-dwarf-male'].weapon='hammer-wood';s.characters['recruit-guard-dwarf-male'].leftHand='empty-leftHand';
  assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
- const b=s.battle,a=b.units.find(u=>u.id==='warrior'),p=b.units.find(u=>u.id==='porter');
+ const b=s.battle,a=b.units.find(u=>u.id==="recruit-guard-dwarf-male"),p=b.units.find(u=>u.id==="recruit-porter-human-female");
  b.units.forEach((u,i)=>{u.pos=i;u.next=100});a.pos=22;a.next=1;p.next=2;b.actor=a.id;
  assert(B.selectSkill(b,'stamp'));assert.deepEqual(B.stampCells(a,23),[13,23,33]);assert.deepEqual(B.stampCells(a,21),[]);
  const mp=a.mp,health=b.units.map(u=>u.hp),frames=require('./battle-presentation.cjs').capture(b,B,()=>B.act(b,'skill',23)).frames;
  assert.equal(a.mp,mp-1);assert.deepEqual(b.units.map(u=>u.hp),health);assert(a.pendingStamp);
  assert(!frames.some(frame=>frame.phase==='hurt'));assert.equal(frames[0].kind,'cast');
- const loaded=C.deserialize(C.serialize(s));assert.deepEqual(loaded.battle.units.find(u=>u.id==='warrior').pendingStamp,a.pendingStamp);
+ const loaded=C.deserialize(C.serialize(s));assert.deepEqual(loaded.battle.units.find(u=>u.id==="recruit-guard-dwarf-male").pendingStamp,a.pendingStamp);
  // The target cells stay empty: an empty cast still resolves without paying MP again.
- for(let i=0;i<5&&a.pendingStamp;i++)assert(B.act(b,'guard',null));
+ for(let i=0;i<80&&a.pendingStamp;i++)assert(B.act(b,'guard',null));
  assert.equal(a.pendingStamp,undefined);assert.equal(a.mp,mp-1);assert(C.validate(s).ok,C.validate(s).error);
  assert(b.log.some(text=>text.includes('空振り')));
 }
@@ -45,7 +46,7 @@ console.log('PASS stamp right three cells, reservation, no early hit, save/load,
 
 {
  for(const grants of [0,1,2])for(const roll of [.05,.15,.95]){
-  const b=B.create({ally:['guard','porter'],enemy:['guard'],deployment:true,enemyPotions:0});
+  const b=B.create({ally:["recruit-guard-human-female","recruit-porter-human-female"],enemy:['guard'],deployment:true,enemyPotions:0});
   const [a,p,e]=b.units;a.pos=24;p.pos=32;e.pos=25;b.deploying=false;b.actor=a.id;
   for(const u of b.units)u.next=u===a?1:100000;
   e.skillSources=Array.from({length:grants},(_,i)=>({id:'evasion',slot:'accessory'+(i+1),itemId:'test-evasion',grantSlot:1,level:1,classification:'passive'}));
@@ -57,7 +58,9 @@ console.log('PASS stamp right three cells, reservation, no early hit, save/load,
  console.log('PASS evasion additive grants, actual hits/misses, no roll without evasion, preview read-only');
 }
 {
- const b=B.create({ally:['warrior','porter'],enemy:['guard','mage'],deployment:true,enemyPotions:0});
+ const b=B.create({ally:["recruit-guard-dwarf-male","recruit-porter-human-female"],enemy:['guard','mage'],deployment:true,enemyPotions:0});
+ const hammer=C.gear.find(g=>g.id==='hammer-wood');
+ Object.assign(b.units[0],{equippedSkill:'stamp',activeSkills:['stamp'],skillSources:[{id:'stamp',slot:'rightHand',itemId:hammer.id,level:1,classification:'active'}]});
  const [a,p,e,f]=b.units;a.pos=22;p.pos=2;e.pos=23;f.pos=33;
  a.next=1;p.next=2;e.next=f.next=100;b.actor=a.id;b.deploying=false;
  const mp=a.mp;assert(B.act(b,'skill',23));assert(a.pendingStamp);assert.equal(a.mp,mp-1);
@@ -71,27 +74,32 @@ console.log('PASS stamp right three cells, reservation, no early hit, save/load,
  console.log('PASS fixed stamp cells after target/caster movement, authoritative VFX cells, board edges');
 }
 {
- const s=require('./test-current-fixture.cjs')({extraCapacity:false});s.selected=['warrior','porter'];s.characters.warrior.inventory={};
- assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));const b=s.battle,a=b.units.find(u=>u.id==='warrior'),p=b.units.find(u=>u.id==='porter');
+ const s=require('./test-current-fixture.cjs')({extraCapacity:false});s.selected=["recruit-guard-dwarf-male","recruit-porter-human-female"];s.characters["recruit-guard-dwarf-male"].inventory={};
+ s.characters['recruit-guard-dwarf-male'].weapon='hammer-wood';s.characters['recruit-guard-dwarf-male'].leftHand='empty-leftHand';
+ assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));const b=s.battle,a=b.units.find(u=>u.id==="recruit-guard-dwarf-male"),p=b.units.find(u=>u.id==="recruit-porter-human-female");
  b.units.forEach((u,i)=>{u.pos=i;u.next=100});a.pos=22;a.next=1;p.next=2;b.actor=a.id;
  const mp=a.mp;assert(B.act(b,'skill',23));assert(a.pendingStamp);a.skipNextTurn=true;
- for(let i=0;i<5&&a.skipNextTurn;i++)assert(B.act(b,'guard'));
+ for(let i=0;i<80&&a.skipNextTurn;i++)assert(B.act(b,'guard'));
  assert.equal(a.pendingStamp,undefined);assert.equal(a.mp,mp-1);assert.equal(B.activeSkillOptions(a).find(o=>o.id==='stamp').cooldown,0);
  assert(C.validate(s).ok,C.validate(s).error);const loaded=C.deserialize(C.serialize(s));assert.equal(loaded.battle.units.find(u=>u.id===a.id).pendingStamp,undefined);
  assert(b.log.some(line=>line.includes('構えは足払いで中断')));
  console.log('PASS leg sweep cancels queued stamp without refund/activation CT; save reload does not resurrect it');
 }
 {
- const s=require('./test-current-fixture.cjs')({extraCapacity:false});s.selected=['warrior','porter'];s.characters.warrior.inventory={};
+ const s=require('./test-current-fixture.cjs')({extraCapacity:false});s.selected=["recruit-guard-dwarf-male","recruit-porter-human-female"];s.characters["recruit-guard-dwarf-male"].inventory={};
+ s.characters['recruit-guard-dwarf-male'].weapon='hammer-wood';s.characters['recruit-guard-dwarf-male'].leftHand='empty-leftHand';
  assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
- const b=s.battle,a=b.units.find(u=>u.id==='warrior'),p=b.units.find(u=>u.id==='porter');
+ const b=s.battle,a=b.units.find(u=>u.id==="recruit-guard-dwarf-male"),p=b.units.find(u=>u.id==="recruit-porter-human-female");
  b.units.forEach((u,i)=>{u.pos=i;u.next=100});a.pos=22;a.next=1;p.next=2;b.actor=a.id;
  a.mp=0;const before=structuredClone(b);assert.equal(B.act(b,'skill',23),false);assert.deepEqual(b,before);
  a.mp=1;assert(B.selectSkill(b,'stamp'));B.damagePreview(b,a,'skill',23);assert.equal(a.mp,1);assert.equal(a.pendingStamp,undefined,'selection/preview never commits cast');
  assert(B.act(b,'skill',23));assert.equal(a.mp,0);assert(a.pendingStamp);
  let loaded=C.deserialize(C.serialize(s));loaded=C.deserialize(C.serialize(loaded));
  const hero=loaded.battle.units.find(u=>u.id===a.id);assert.equal(hero.mp,0);assert(hero.pendingStamp);
- for(let i=0;i<5&&hero.pendingStamp;i++)assert(B.act(loaded.battle,'guard'));
+  // The current dwarf's starter ornament reduces SPD to 1. Allow the faster
+  // units their intervening opportunities instead of assuming five guards.
+  const opportunities=loaded.battle.units.reduce((n,u)=>n+Math.ceil(u.agi/hero.agi),0)+2;
+  for(let i=0;i<opportunities&&hero.pendingStamp;i++)assert(B.act(loaded.battle,'guard'));
  assert.equal(hero.pendingStamp,undefined);assert.equal(hero.mp,0);assert(loaded.battle.log.some(t=>t.includes('スタンプ →')));
  assert.equal(C.deserialize(C.serialize(loaded)).battle.units.find(u=>u.id===a.id).mp,0);
  console.log('PASS stamp MP shortage atomicity, selection/preview free, prepaid zero-MP resolution, repeated save/load no recharge/refund');

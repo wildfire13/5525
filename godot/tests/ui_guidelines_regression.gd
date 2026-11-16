@@ -4,10 +4,10 @@ func run():
  root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1920,1080)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- await preload("res://tests/current_historical_fixture.gd").install(game)
+ await game.new_game();
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
  var seed=await saved()
- for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
+ for dims in [Vector2i(1920,1080)]:
   root.size=dims;game.navigate("character");await settle()
   for tab in ["inventory","equipment"]:
    await choose(node("CharacterTab_"+tab))

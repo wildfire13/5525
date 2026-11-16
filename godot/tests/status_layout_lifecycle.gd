@@ -4,14 +4,15 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var before=await saved()
-	game.navigate("map");await settle();await click("RosterMember_guard")
+	var owner="recruit-guard-human-female"
+	game.navigate("map");await settle();await click("RosterMember_"+owner)
 	game.pages.party_view.workspace.set_tab("ability");await settle()
 	var badge=node("ElementIcon_earth")
 	check(badge!=null and badge.texture!=null and badge.tooltip_text.contains("地属性"),"character ability presents the guard's elemental identity and explanation")
-	var stats=game.roster().filter(func(member):return member.id=="guard")[0].stats
+	var stats=game.roster().filter(func(member):return member.id==owner)[0].stats
 	var labels=node("CharacterAttackProfile").get_parent().find_children("*","Label",true,false)
 	check(labels.any(func(label):return label.text=="属性ATK  火%d / 水%d / 地%d" % [stats.atkFire,stats.atkWater,stats.atkEarth]) and labels.any(func(label):return label.text==game.pages.defense_profile(stats)),"ability displays all three elemental attack and defense values")
 	check(await saved()==before,"reading abilities preserves the campaign")

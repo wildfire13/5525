@@ -15,14 +15,15 @@ func run():
  if OS.get_environment("NATIVE5525_AUDIO_OFF")!="1":push_error("Audio OFF required");quit(2);return
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- await preload("res://tests/current_historical_fixture.gd").install(game)
+ await game.new_game();
  game.checks_fast=true;game.audio.fast_mode=true
- await preload("res://tests/current_historical_fixture.gd").install(game);await settle()
+ await settle()
+ var owner="recruit-mage-elf-female"
  var save=(await game.engine.request({"op":"campaign_save"})).data
  save.state.location="east";save.state.gold=9999
  await game.update({"op":"campaign_load","data":save})
- await game.update({"op":"campaign","action":"buyGear","args":["mage","staff-silver-1","leftHand"]})
- await game.update({"op":"campaign","action":"trial","args":["mage","staff-wood","rightHand"]});await settle()
+ check((await game.update({"op":"campaign","action":"buyGear","args":[owner,"staff-silver-1","leftHand"]})).get("ok",false),"current mage equips the real second heal source")
+ check((await game.update({"op":"campaign","action":"trial","args":[owner,"staff-wood","rightHand"]})).get("ok",false),"current mage enters real equipment trial");await settle()
  for size in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
   root.size=size;game.render();await settle();game.hud.open_skills();await settle()
   var buttons=skill_buttons()
@@ -34,7 +35,7 @@ func run():
  var choices=game.data.skillset.filter(func(o):return o.id=="mage")
  await game.select_skill(choices[1].key);await settle()
  check(game.hud.acting().selectedSkillKey==choices[1].key,"second source selected through UI")
- await game.update({"op":"act","kind":"skill","target":"guard"});await settle()
+ check((await game.update({"op":"act","kind":"skill","target":"recruit-guard-human-female"})).get("ok",false),"heal reaches the current guard recruit");await settle()
  game.hud.open_skills();await settle()
  var buttons=skill_buttons()
  check(buttons.size()==2 and buttons.filter(func(b):return b.disabled).size()==1,"only used source disabled")

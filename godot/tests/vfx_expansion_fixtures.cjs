@@ -6,6 +6,7 @@ const {spawnSync}=require('node:child_process');
 const C=require('../../native/campaign.js'), B=require('../../native/campaign-battle.js');
 const {Presentation}=require('../../native/battle-presentation.cjs');
 const clone=x=>JSON.parse(JSON.stringify(x));
+const ids={guard:'recruit-guard-human-female',archer:'recruit-scout-elf-male',mage:'recruit-mage-elf-female',scout:'recruit-scout-human-female',porter:'recruit-porter-human-female'};
 const equipment={defenseLine:'battleline-shield',healingCross:'rest-staff',manaGift:'sharing-tome',poleVault:'longspear-wood',grapple:'grappling-rope',retreatSlash:'undertow-sword',knockback:'breaker-hammer',splitShot:'twin-bow',pincer:'partner-dagger'};
 const specs=[];
 function add(id,skill,variant='normal',actor='guard',kind='skill'){if(skill==='pincer')actor='scout';specs.push({id,skill,variant,actor,kind});}
@@ -19,22 +20,28 @@ for(const variant of ['normal','adjacent'])add('loneWolf_'+variant,'loneWolf',va
 for(const variant of ['normal','used','short'])add('firstStride_'+variant,'firstStride',variant,'guard','move');
 for(const variant of ['normal','cap','full','dead'])add('victoryBreath_'+variant,'victoryBreath',variant,'guard','attack');
 function build(spec){
- const {skill,variant,actor:actorId,kind}=spec,s=require('../../native/test-current-fixture.cjs')();
+ const {skill,variant,actor:role,kind}=spec,s=C.create(),actorId=ids[role];
+ s.selected=Object.values(ids);
+ s.characters[ids.archer].weapon='bow-wood';
+ s.characters[ids.archer].leftHand='empty-leftHand';
+ s.characters[ids.scout].weapon='dagger-wood';
  if(equipment[skill])s.characters[actorId].weapon=equipment[skill];
  if(['poleVault','splitShot'].includes(skill))s.characters[actorId].leftHand='empty-leftHand';
  if(['returnHome','loneWolf','firstStride'].includes(skill))s.characters[actorId].accessory1={returnHome:'return-ring-1',loneWolf:'lone-ring-1',firstStride:'pioneer-gloves-1'}[skill];
- if(skill==='victoryBreath')s.characters.mage.accessory1='victory-earring-1';
- if(skill==='itemUse'){if(actorId!=='porter')s.characters[actorId].weapon='empty-rightHand';s.characters[actorId].inventory={potion:2,ether:2};}
+ if(skill==='victoryBreath')s.characters[ids.mage].accessory1='victory-earring-1';
+ if(skill==='itemUse'){if(role!=='porter')s.characters[actorId].weapon='empty-rightHand';s.characters[actorId].accessory2='pouch-belt-3';s.characters[actorId].inventory={potion:2,ether:2};}
  assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>0));assert(C.begin(s),spec.id+" begin");
- const b=s.battle, find=id=>b.units.find(u=>u.id===id),a=find(actorId),enemies=b.units.filter(u=>u.side==='enemy'),e=enemies[0];
- const positions={guard:24,archer:14,mage:23,scout:34,porter:32};
+ const b=s.battle, find=id=>b.units.find(u=>u.id===(ids[id]||id)),a=find(actorId),enemies=b.units.filter(u=>u.side==='enemy'),e=enemies[0];
+ assert.deepEqual(b.units.filter(u=>u.side==='ally').map(u=>u.id),s.selected,spec.id+' current recruits only');
+ assert.deepEqual(enemies.map(u=>u.id),['enemy-guard-2','enemy-archer','enemy-archer-2'],spec.id+' current enemies retained');
+ const positions=Object.fromEntries(Object.entries({guard:24,archer:14,mage:23,scout:34,porter:32}).map(([role,pos])=>[ids[role],pos]));
  b.units.forEach(u=>{u.hp=u.max;u.mp=u.maxMp;u.next=10000;u.guard=false;u.cover=null;u.boost=false;if(u.side==='ally')u.pos=positions[u.id];});
- if(spec.id==='victoryBreath_dead')B.receive(b,b.units.find(u=>u.id==='mage'),10000,false);
- enemies.forEach((u,i)=>u.pos=[25,15,35][i]);if(skill==='pincer'){find('guard').pos=22;a.pos=24;}a.next=1;find(actorId==='archer'?'mage':'archer').next=2;b.actor=a.id;
+ if(spec.id==='victoryBreath_dead')B.receive(b,find('mage'),10000,false);
+ enemies.forEach((u,i)=>u.pos=[25,15,35][i]);if(skill==='pincer'){find('guard').pos=22;a.pos=24;}a.next=1;find(role==='archer'?'mage':'archer').next=2;b.actor=a.id;
  if(kind==='skill')assert(B.selectSkill(b,skill),spec.id+' equipped skill selection');
  let target=e.id;
- if(skill==='guard'){target='mage';if(variant==='self')target=a.id;if(variant==='repeat')a.cover=target;}
- if(skill==='defenseLine'){target=variant==='one'?['mage']:variant==='duplicate'?['mage','mage']:['archer','mage'];if(variant==='repeat')a.covers=[...target];}
+ if(skill==='guard'){target=ids.mage;if(variant==='self')target=a.id;if(variant==='repeat')a.cover=target;}
+ if(skill==='defenseLine'){target=variant==='one'?[ids.mage]:variant==='duplicate'?[ids.mage,ids.mage]:[ids.archer,ids.mage];if(variant==='repeat')a.covers=[...target];}
  if(skill==='healingCross'){target=a.id;find('mage').hp-=45;find('archer').hp-=7;find('scout').hp-=30;if(variant==='full')b.units.filter(u=>u.side==='ally').forEach(u=>u.hp=u.max);if(variant==='edge'){a.pos=0;find('mage').pos=1;find('archer').pos=10;}}
  if(skill==='manaGift'){target='mage';find('mage').mp-=variant==='cap'?1:3;if(variant==='one')a.mp=1;if(variant==='full')find('mage').mp=find('mage').maxMp;}
  if(skill==='poleVault')target=22;
@@ -52,6 +59,8 @@ function build(spec){
  if(skill==='firstStride'){target=variant==='swap'?24:variant==='short'?22:variant==='used'?21:20;a.pos=23;find('mage').pos=12;if(variant==='used')a.firstMoveUsed=true;}
  if(skill==='victoryBreath'){enemies.slice(1).forEach(u=>u.hp=0);e.hp=1;const m=find('mage');m.mp=variant==='full'?m.maxMp:variant==='cap'?m.maxMp-1:m.maxMp-3;}
  if(variant==='mp0')a.mp=0;
+ if(typeof target==='string')target=ids[target]||target;
+ if(Array.isArray(target))target=target.map(id=>ids[id]||id);
  // The engine selects enemy actions from current positions at execution time.
  assert(C.validate(s).ok,spec.id+': '+C.validate(s).error);
  return {state:s,request:{op:'act',kind,target,presentation:true}};

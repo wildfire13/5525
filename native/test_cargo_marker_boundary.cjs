@@ -15,13 +15,13 @@ for(const outer of values)for(const inner of values){
  console.log('PASS outer='+String(outer)+' state='+String(inner)+' '+(accepted?'roundtrip':'rejected unchanged'));
 }
 for(const revision of [absent,0,2,null,'1']){
- const s=C.createLegacy();assert(C.accept(s,C.board(s)[0].id,'porter'));const e=JSON.parse(C.serialize(s));
+ const s=C.create();assert(C.accept(s,C.board(s)[0].id,"recruit-porter-human-female"));const e=JSON.parse(C.serialize(s));
  if(revision===absent)delete e.state.rollback.cargoRevision;else e.state.rollback.cargoRevision=revision;
  const original=JSON.stringify(e);assert.throws(()=>C.deserialize(e));assert.equal(JSON.stringify(e),original);invalid.push(e);checks++;
  console.log('PASS mismatched rollback marker '+String(revision));
 }
 const requests=[{op:'campaign_start'},{op:'campaign_save'},...invalid.flatMap(data=>[{op:'campaign_load',data},{op:'campaign_save'}])];
-const process=spawnSync(global.process.execPath,['native/bridge.cjs'],{input:requests.map(r=>JSON.stringify(r)).join('\n')+'\n',encoding:'utf8',timeout:20000,maxBuffer:8*1024*1024});
+const process=spawnSync(global.process.execPath,[require('node:path').join(__dirname,'bridge.cjs')],{input:requests.map(r=>JSON.stringify(r)).join('\n')+'\n',encoding:'utf8',timeout:20000,maxBuffer:8*1024*1024});
 assert.equal(process.status,0,process.stderr);const replies=process.stdout.trim().split(/\r?\n/).map(line=>JSON.parse(line));
 assert.equal(replies.length,requests.length);const before=replies[1].data;
 for(let i=2;i<replies.length;i+=2){assert.equal(replies[i].ok,false);assert.deepEqual(replies[i+1].data,before);checks++;}

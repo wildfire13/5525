@@ -3,10 +3,10 @@ const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require(
 const master=require('./master-data.cjs').getMaster();
 let count=0;function test(name,fn){fn();count++;console.log('PASS '+name);}
 function trial(accessory2){
- const s=C.createLegacy();s.location='east';s.characters.guard.accessory1='lone-ring-1';
- if(accessory2)s.characters.guard.accessory2=accessory2;
- const t=C.trial(s,'guard','sword-wood','rightHand');assert.ok(t);
- const b=t.battle,a=b.units.find(u=>u.id==='guard'),enemy=b.units.find(u=>u.side==='enemy');
+ const s=C.create();s.location='east';s.characters["recruit-guard-human-female"].accessory1='lone-ring-1';
+ if(accessory2)s.characters["recruit-guard-human-female"].accessory2=accessory2;
+ const t=C.trial(s,"recruit-guard-human-female",'sword-wood','rightHand');assert.ok(t);
+ const b=t.battle,a=b.units.find(u=>u.id==="recruit-guard-human-female"),enemy=b.units.find(u=>u.side==='enemy');
  a.pos=24;enemy.pos=25;
  for(const [i,u] of b.units.filter(u=>u!==a&&u!==enemy).entries())u.pos=[0,10,19,39][i];
  return {t,b,a,enemy};

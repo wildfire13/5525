@@ -1,9 +1,12 @@
 extends SceneTree
-## Eleven-to-twelve card boundaries use real migrated candidates; view-only
+## Eleven-to-twelve card boundaries use real live candidates; view-only
 ## changes are checked separately from canonical save state.
 var game
 var checks=[]
 var evidence=OS.get_environment("INVENTORY_QA_ROOT")
+const OWNER="recruit-guard-human-female"
+const OTHER="recruit-scout-human-female"
+const RESERVE="recruit-guard-human-male"
 func _initialize():call_deferred("run")
 func check(ok,label):checks.append({"passed":bool(ok),"label":label});print(("PASS " if ok else "FAIL ")+label)
 func frames(n:=5):
@@ -33,10 +36,14 @@ func run():
 	create_timer(120).timeout.connect(func():print("FAIL strip watchdog");quit(2))
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
-	var roster_ids=game.roster().map(func(m):return str(m.id));check(roster_ids.size()==35,"eleven historical people and twenty-four new candidates")
-	var ids=roster_ids.slice(0,11)
+	var roster_ids=game.roster().map(func(m):return str(m.id));check(roster_ids.size()==24,"twenty-four live characters from a fresh campaign")
+	var ids=game.campaign().selected.duplicate();ids.append(RESERVE)
+	for id in roster_ids:
+		if ids.size()==11:break
+		# The sixth member is a selected living warrior outside the deployed five.
+		if not ids.has(id):ids.append(id)
 	await game.act("select",[ids]);await settle()
 	var before=await saved();await mount_strip()
 	for dims in [Vector2i(1920,1080)]:
@@ -53,7 +60,7 @@ func run():
 		check(await saved()==before,"scroll and layout preserve exact save "+str(dims))
 	# Simulated touch positions are local to a card that moves while scrolling.
 	root.size=Vector2i(1920,1080);await frames();var touch_scroll=node("PartyFacesScroll");touch_scroll.scroll_horizontal=0;await frames()
-	var touch_card=node("PartyFace_guard");var origin=touch_scroll.get_global_rect().get_center()
+	var touch_card=node("PartyFace_"+OWNER);var origin=touch_scroll.get_global_rect().get_center()
 	var touch=InputEventScreenTouch.new();touch.pressed=true;touch.position=touch_card.get_global_transform_with_canvas().affine_inverse()*origin;touch_card._gui_input(touch)
 	var motion=InputEventScreenDrag.new();motion.position=touch_card.get_global_transform_with_canvas().affine_inverse()*(origin-Vector2(100,0));touch_card._gui_input(motion);await frames()
 	check(touch_scroll.scroll_horizontal==100,"first simulated touch step follows global pointer")
@@ -61,42 +68,42 @@ func run():
 	check(touch_scroll.scroll_horizontal==150,"second touch step stays monotonic after card itself moves")
 	touch.pressed=false;touch_card._gui_input(touch)
 	check(game.page!="character" and not game.modal_open() and await saved()==before,"simulated touch swipe does not activate person or mutate save")
-	root.size=Vector2i(1920,1080);await frames();var twelfth=roster_ids[11]
+	root.size=Vector2i(1920,1080);await frames();var twelfth=roster_ids.filter(func(id):return not ids.has(id))[0]
 	game.data.campaign.selected.append(twelfth);game.render();await mount_strip();await settle()
 	check(node("PartyFaces").get_child_count()==12,"real twelfth candidate renders at UI capacity boundary")
 	node("PartyFace_"+twelfth).grab_focus();await frames();check(node("PartyFacesScroll").get_global_rect().intersects(node("PartyFace_"+twelfth).get_global_rect()),"real twelfth card reachable")
 	check(await saved()==before,"view-only twelfth card never alters backend")
-	var east=before.duplicate(true);east.state.location="east";east.state.characters.guard.inventory["spear-wood"]=3
+	var east=before.duplicate(true);east.state.location="east";east.state.characters[OWNER].inventory["spear-wood"]=3
 	game.save_notice.display("前のプロフィールの取引")
 	await game.update({"op":"campaign_load","data":east});check(not game.save_notice.visible and game.save_notice.caption.text.is_empty(),"load clears previous campaign toast");game.navigate("shop");await settle()
 	check(node("FacilityEntry")!=null,"ordinary facility entry precedes sale")
 	node("FacilityChoice_buy").pressed.emit();await settle()
-	var sale_before=await saved();node("RosterMember_guard").pressed.emit();await settle()
-	check(game.pages.shop_view.selected_owner()=="guard" and game.page!="character" and not game.modal_open(),"first click selects sale owner in place")
-	check(game.shop_uid=="guard" and game.pages.shop_view.sale.owner_id=="guard","shared roster and sale owner identities agree")
-	node("RosterMember_guard").pressed.emit();await settle();check(game.page!="character" and not game.modal_open() and game.pages.shop_view.selected_owner()=="guard","repeated shared roster selection stays in sale workspace")
+	var sale_before=await saved();node("RosterMember_"+OWNER).pressed.emit();await settle()
+	check(game.pages.shop_view.selected_owner()==OWNER and game.page!="character" and not game.modal_open(),"first click selects sale owner in place")
+	check(game.shop_uid==OWNER and game.pages.shop_view.sale.owner_id==OWNER,"shared roster and sale owner identities agree")
+	node("RosterMember_"+OWNER).pressed.emit();await settle();check(game.page!="character" and not game.modal_open() and game.pages.shop_view.selected_owner()==OWNER,"repeated shared roster selection stays in sale workspace")
 	game.pages.shop_view.sale.select_item("spear-wood");await settle()
 	check(game.pages.shop_view.sale.item_id=="spear-wood" and not game.pages.shop_view.sale.quote.is_empty(),"sale component has a real old-owner quote before roster switch")
-	node("RosterMember_archer").pressed.emit();await settle()
-	check(game.shop_uid=="archer" and game.pages.shop_view.sale.owner_id=="archer" and not game.modal_open(),"roster click switches the sale owner in place")
+	node("RosterMember_"+OTHER).pressed.emit();await settle()
+	check(game.shop_uid==OTHER and game.pages.shop_view.sale.owner_id==OTHER and not game.modal_open(),"roster click switches the sale owner in place")
 	check(game.pages.shop_view.sale.item_id.is_empty() and game.pages.shop_view.sale.quote.is_empty(),"owner change clears the previous sale item and quote")
-	node("RosterMember_guard").pressed.emit();await settle();check(game.pages.shop_view.selected_owner()=="guard" and game.page!="character" and not game.modal_open(),"different first click changes sale owner without opening window")
+	node("RosterMember_"+OWNER).pressed.emit();await settle();check(game.pages.shop_view.selected_owner()==OWNER and game.page!="character" and not game.modal_open(),"different first click changes sale owner without opening window")
 	check(await saved()==sale_before,"owner and detail operations do not consume or sell")
 	game.pages.facility_entry.back();await settle();check(node("FacilityEntry")!=null,"sale returns to cushion page")
 	game.pages.facility_entry.back();await settle();check(game.page=="hub","entry returns to plaza")
 	# Old saves can deploy an incapacitated warrior: there must be a visible way
 	# to free that occupied slot without resurrecting or changing that character.
 	var component=node("PartyFaceBar");game.remove_child(component);component.queue_free();await frames()
-	var wounded=before.duplicate(true);wounded.state.characters.guard.hp=0
+	var wounded=before.duplicate(true);wounded.state.characters[OWNER].hp=0
 	await game.update({"op":"campaign_load","data":wounded});await game.act("depart",["east"]);await game.act("travel",["safe"]);await settle()
-	var removal=node("DeploymentRemoveInactive_guard")
+	var removal=node("DeploymentRemoveInactive_"+OWNER)
 	check(removal!=null and not removal.disabled,"incapacitated deployed warrior has a removal affordance")
 	var pre_remove=await saved();removal.pressed.emit();await settle();var post_remove=await saved()
-	check(not game.campaign().deploymentRoster.deployed.has("guard"),"inactive removal frees one deployment slot")
+	check(not game.campaign().deploymentRoster.deployed.has(OWNER),"inactive removal frees one deployment slot")
 	check(post_remove.state.characters==pre_remove.state.characters,"inactive removal changes no HP equipment inventory or progression")
-	check(preload("res://deployment_drag.gd").make_payload(game,"guard","party")==null,"dead reserve cannot be dragged into battle")
-	await game.deployment_assigned("guard-2",24);await settle()
-	check(game.campaign().deploymentRoster.deployed.has("guard-2") and game.campaign().deploymentRoster.canBegin,"living reserve can use the freed slot and begin")
+	check(preload("res://deployment_drag.gd").make_payload(game,OWNER,"party")==null,"dead reserve cannot be dragged into battle")
+	await game.deployment_assigned(RESERVE,24);await settle()
+	check(game.campaign().deploymentRoster.deployed.has(RESERVE) and game.campaign().deploymentRoster.canBegin,"living reserve can use the freed slot and begin")
 	check(game.audio.muted.values().all(func(v):return v),"audio off")
 	var f=FileAccess.open(evidence.path_join("party-strip-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames()

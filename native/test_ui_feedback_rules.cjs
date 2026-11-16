@@ -19,25 +19,25 @@ check('R08 villages have center plus exactly two adjacent villages; unchanged of
 check('R09 shops and retained unequipped gear; R10 two slots remain',()=>{
   const s=require('./test-current-fixture.cjs')();s.location='west';assert(!C.shop(s).some(g=>g.type==='accessory'));
   s.location='north';assert(C.shop(s).length>0);assert(C.shop(s).every(g=>['accessory1','accessory2'].includes(g.slot)));
-  assert(C.buyGear(s,'guard','return-ring-1','accessory1'));assert(C.buyGear(s,'guard','lone-ring-2','accessory2'));
-  const gold=s.gold;assert.equal(C.quote(s,'guard','empty-accessory1','accessory1').cost,0);assert(C.buyGear(s,'guard','empty-accessory1','accessory1'));assert.equal(s.gold,gold);assert.equal(s.characters.guard.inventory['return-ring-1'],1);
-  assert.equal(C.equipment(s.characters.guard).accessory2,'lone-ring-2');valid(s);
+  assert(C.buyGear(s,"recruit-guard-human-female",'return-ring-1','accessory1'));assert(C.buyGear(s,"recruit-guard-human-female",'lone-ring-2','accessory2'));
+  const gold=s.gold;assert.equal(C.quote(s,"recruit-guard-human-female",'empty-accessory1','accessory1').cost,0);assert(C.buyGear(s,"recruit-guard-human-female",'empty-accessory1','accessory1'));assert.equal(s.gold,gold);assert.equal(s.characters["recruit-guard-human-female"].inventory['return-ring-1'],1);
+  assert.equal(C.equipment(s.characters["recruit-guard-human-female"]).accessory2,'lone-ring-2');valid(s);
 });
 check('R07 one atomic partial allocation, clamp/replay/stale-load rejection',()=>{
-  const s=require('./test-current-fixture.cjs')(),c=s.characters.guard;c.xp=300;c.level=4;c.statPoints=6;c.skillPoints=3;valid(s);
-  const token=C.allocationToken(s,'guard'),old=copy(c);assert(C.allocateBatch(s,'guard',{str:2,int:1,agi:0},token));
-  assert.equal(s.characters.guard.statPoints,3);assert.deepEqual(s.characters.guard.allocations,{str:2,int:1,agi:0});assert.equal(s.characters.guard.hp,old.hp+6);
-  const after=JSON.stringify(s);assert(!C.allocateBatch(s,'guard',{str:2,int:1,agi:0},token));assert.equal(JSON.stringify(s),after);
+  const s=require('./test-current-fixture.cjs')(),c=s.characters["recruit-guard-human-female"];c.xp=300;c.level=4;c.statPoints=6;c.skillPoints=3;valid(s);
+  const token=C.allocationToken(s,"recruit-guard-human-female"),old=copy(c);assert(C.allocateBatch(s,"recruit-guard-human-female",{str:2,int:1,agi:0},token));
+  assert.equal(s.characters["recruit-guard-human-female"].statPoints,3);assert.deepEqual(s.characters["recruit-guard-human-female"].allocations,{str:2,int:1,agi:0});assert.equal(s.characters["recruit-guard-human-female"].hp,old.hp+6);
+  const after=JSON.stringify(s);assert(!C.allocateBatch(s,"recruit-guard-human-female",{str:2,int:1,agi:0},token));assert.equal(JSON.stringify(s),after);
   for(const delta of [{str:-1,int:1,agi:0},{str:0,int:0,agi:0},{str:4,int:0,agi:0},{str:0.5,int:0,agi:0},{str:1,int:0,agi:0,extra:1}]){
-    assert(!C.allocateBatch(s,'guard',delta,C.allocationToken(s,'guard')));assert.equal(JSON.stringify(s),after);}
-  const loadToken=C.allocationToken(s,'guard'),loaded=C.deserialize(C.serialize(s));assert(!C.allocateBatch(loaded,'guard',{str:1,int:0,agi:0},loadToken));valid(loaded);
+    assert(!C.allocateBatch(s,"recruit-guard-human-female",delta,C.allocationToken(s,"recruit-guard-human-female")));assert.equal(JSON.stringify(s),after);}
+  const loadToken=C.allocationToken(s,"recruit-guard-human-female"),loaded=C.deserialize(C.serialize(s));assert(!C.allocateBatch(loaded,"recruit-guard-human-female",{str:1,int:0,agi:0},loadToken));valid(loaded);
 });
 check('R04 condition cells, independent positions, preset/reset, phase restrictions',()=>{
   const s=require('./test-current-fixture.cjs')();assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>0));valid(s);
   assert.deepEqual(B.formationSlots(s.battle),{ally:[24,13,33],enemy:[]});
-  assert.equal(s.battle.units.find(u=>u.id==='porter').pos,22);const positions=copy(s.battle.units.map(u=>u.pos));B.formation(s.battle);assert.deepEqual(s.battle.units.map(u=>u.pos),positions);
-  assert(C.chooseFormation(s,'flank'));assert.equal(s.journey.formation,'flank');assert.deepEqual(B.formationSlots(s.battle).ally,[24,13,33]);assert.deepEqual(s.battle.units.map(u=>u.pos),positions);assert(C.deployment_reset(s));assert.equal(s.battle.units.find(u=>u.id==='scout').pos,4);
-  assert(C.deploy(s,'guard',2));assert(C.deployment_reset(s));assert.equal(s.battle.units.find(u=>u.id==='porter').pos,22);
+  assert.equal(s.battle.units.find(u=>u.id==="recruit-porter-human-female").pos,22);const positions=copy(s.battle.units.map(u=>u.pos));B.formation(s.battle);assert.deepEqual(s.battle.units.map(u=>u.pos),positions);
+  assert(C.chooseFormation(s,'flank'));assert.equal(s.journey.formation,'flank');assert.deepEqual(B.formationSlots(s.battle).ally,[24,13,33]);assert.deepEqual(s.battle.units.map(u=>u.pos),positions);assert(C.deployment_reset(s));assert.equal(s.battle.units.find(u=>u.id==="recruit-scout-human-female").pos,13);assert.equal(s.battle.units.find(u=>u.id==="recruit-scout-elf-male").pos,4);
+  assert(C.deploy(s,"recruit-guard-human-female",2));assert(C.deployment_reset(s));assert.equal(s.battle.units.find(u=>u.id==="recruit-porter-human-female").pos,22);
   assert(C.begin(s));assert(!C.chooseFormation(s,'convoy'));valid(s);
 });
 check('R04 all new battles save Porter-relative conditions',()=>{
@@ -109,8 +109,13 @@ check('R08 all eight directed ring journeys finish two real battles, reload, del
   }
 });
 check('R02 exact effect prediction does not consume inventory, MP, actions or history',()=>{
-  const s=require('./test-current-fixture.cjs')();s.characters.archer.weapon='fist-1';assert(C.inventoryAction(s,'guard','potion','transfer','archer',1,null,C.inventoryToken(s)));C.depart(s,'east');C.travel(s,'safe',()=>0);C.begin(s);
+  const s=require('./test-current-fixture.cjs')();s.location='south';
+  assert(C.buyItem(s,'potion',1,"recruit-guard-human-female",C.inventoryToken(s)));
+  assert(C.inventoryAction(s,"recruit-guard-human-female",'potion','transfer',"recruit-mage-elf-female",1,null,C.inventoryToken(s)));
+  assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));
+  for(let n=0;n<30&&s.battle.actor!=="recruit-mage-elf-female";n++)assert(C.act(s,'guard'));
   const a=s.battle.units.find(u=>u.id===s.battle.actor),friend=a;friend.hp-=10;
+  assert.equal(a.id,"recruit-mage-elf-female");assert(B.legal(s.battle,'item',friend.id));
   const before=JSON.stringify(s);const effect=B.effectPreview(s.battle,a,'item',friend.id);assert.equal(effect.find(e=>e.id===friend.id).hp,10);assert.equal(JSON.stringify(s),before);
 });
 console.log(`UI feedback shared rules: ${checks} groups passed`);

@@ -8,12 +8,13 @@ func run():
  if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- await preload("res://tests/current_historical_fixture.gd").install(game)
+ await game.new_game();
  game.audio.fast_mode=true;game.checks_fast=true
- var seed=await saved();seed.state.location="east";seed.state.gold=1000;seed.state.characters.guard.inventory={"sword-wood":3};seed.state.characters.guard.xp=100;seed.state.characters.guard.level=2;seed.state.characters.guard.allocations.agi=1;seed.state.characters.guard.statPoints=1;seed.state.characters.guard.skillPoints=1;seed.state.characters.guard.weapon="hammer-wood";seed.state.characters.guard.leftHand="empty-leftHand"
+ var owner="recruit-guard-human-female"
+ var seed=await saved();seed.state.location="east";seed.state.gold=1000;seed.state.characters[owner].inventory={"sword-wood":3};seed.state.characters[owner].xp=100;seed.state.characters[owner].level=2;seed.state.characters[owner].allocations.agi=1;seed.state.characters[owner].statPoints=1;seed.state.characters[owner].skillPoints=1;seed.state.characters[owner].weapon="hammer-wood";seed.state.characters[owner].leftHand="empty-leftHand"
  await game.update({"op":"campaign_load","data":seed});await enter_facility("shop")
  var shop=game.pages.shop_view
- game.shop_uid="guard";shop.open_comparison("dagger-steel");var comparison=shop.comparison_view;await wait_quote()
+ game.shop_uid=owner;shop.open_comparison("dagger-steel");var comparison=shop.comparison_view;await wait_quote()
  check(not node("ShopComparisonStats").text.contains("対象：") and node("ShopComparisonEffects")==null,"comparison removes duplicate target and base-stat lines")
  check(node("ShopComparisonConditions").text.contains("スカウト専用") and not node("ShopComparisonConditions").text.contains("ポーター専用"),"steel dagger reports its actual scout condition")
  var compared_gear=comparison.item()
@@ -31,16 +32,16 @@ func run():
  var before=await saved();await click("ShopComparisonBuy");await click("PurchaseDecline")
  check(await saved()==before,"purchase cancellation changes no stock/money/equipment")
  shop.open_comparison("dagger-steel");await wait_quote();await click("ShopComparisonBuy");await click("PurchaseAgree");await settle()
- var after=await saved();check(after.state.gold==600 and after.state.characters.guard.inventory.get("dagger-steel")==1 and after.state.characters.guard.weapon==before.state.characters.guard.weapon,"purchase debits once without auto-equipping")
+ var after=await saved();check(after.state.gold==600 and after.state.characters[owner].inventory.get("dagger-steel")==1 and after.state.characters[owner].weapon==before.state.characters[owner].weapon,"purchase debits once without auto-equipping")
  await create_timer(0.6).timeout;check(node("CampaignHeader").find_children("*","Label",true,false).any(func(label):return label.text=="600 G"),"visible campaign balance matches the completed purchase")
- shop.owner_pressed("guard");await settle()
+ shop.owner_pressed(owner);await settle()
  check(node("ShopExit")!=null and node("ShopExit").is_visible_in_tree(),"combined trading workspace has a visible transaction exit")
  check(node("ShopTransaction").get_theme_stylebox("panel").bg_color==Color("#faf9f5"),"combined trading workspace uses the approved neutral paper surface")
  shop.sale.select_item("sword-wood");await wait_quote();node("FacilitySaleQuantity").value=2;await wait_quote();var quote=shop.sale.quote.duplicate(true);before=await saved()
  await click("FacilitySalePrepare");node("FacilitySaleConfirmation").canceled.emit();node("FacilitySaleConfirmation").hide();await settle()
  check(await saved()==before,"sale NO preserves quantity and gold")
  await click("FacilitySalePrepare");await click("FacilitySaleConfirm");await wait_quote();after=await saved()
- check(after.state.gold==quote.afterGold and after.state.characters.guard.inventory["sword-wood"]==1,"sale panel commits exact count and money")
+ check(after.state.gold==quote.afterGold and after.state.characters[owner].inventory["sword-wood"]==1,"sale panel commits exact count and money")
  var once=await saved();shop.sale.commit(quote,shop.sale.generation,game.pages.epoch,game.engine.connection_generation);await settle();check(await saved()==once,"repeated sale callback cannot apply twice")
  await click("ShopExit");check(game.pages.facility_entry.at_top(),"transaction exit returns to facility entry")
  await click("FacilityChoice_buy");await click("ShopExit");check(game.pages.facility_entry.at_top(),"repeated trading entry and exit returns safely")

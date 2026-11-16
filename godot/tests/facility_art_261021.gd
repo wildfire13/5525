@@ -3,7 +3,7 @@ func run():
 	create_timer(120).timeout.connect(func():print("FAIL facility artwork watchdog");quit(2))
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var art=game.pages.facility_art;var seed=await saved()
 	var production=art.catalog.duplicate(true)
@@ -41,10 +41,10 @@ func run():
 				var filter=node("ShopSlotFilter");filter.item_selected.emit(0);await settle()
 				check(art.rng.state==state and art.artwork==artwork,"shop filter keeps visit artwork")
 			if spec[0]=="east" and dims==Vector2i(1920,1080):
-				await game.pages.shop_view.confirm_purchase("spear-wood","mage");await settle();await click("PurchaseDecline")
+				await game.pages.shop_view.confirm_purchase("spear-wood","recruit-mage-elf-female");await settle();await click("PurchaseDecline")
 				check(await saved()==before and art.rng.state==state,"purchase cancellation preserves campaign and artwork")
-				await game.pages.shop_view.confirm_purchase("spear-wood","mage");await settle();await click("PurchaseAgree")
-				check(game.campaign().characters.mage.inventory.get("spear-wood",0)==int(before.state.characters.mage.inventory.get("spear-wood",0))+1 and art.rng.state==state,"confirmed purchase works over fixed background")
+				await game.pages.shop_view.confirm_purchase("spear-wood","recruit-mage-elf-female");await settle();await click("PurchaseAgree")
+				check(game.campaign().characters["recruit-mage-elf-female"].inventory.get("spear-wood",0)==int(before.state.characters["recruit-mage-elf-female"].inventory.get("spear-wood",0))+1 and art.rng.state==state,"confirmed purchase works over fixed background")
 				before=await saved()
 			if spec[1]=="map":
 				check(node("TownMap")!=null and node("DepartButton")!=null,"map controls remain available over background")

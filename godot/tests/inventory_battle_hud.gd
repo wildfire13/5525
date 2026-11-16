@@ -41,8 +41,8 @@ func run():
 	check("HUD-cost",node("ActionCost").text.contains("3"),"consumption summary uses actor stock")
 	var before=await saved();game.hud.open_items();await settle();check("HUD-cancel",await saved()==before,"return from target confirmation is nonconsuming")
 	await restore("porter");await game.choose_command("items");await settle();var porter_ether=node("BattleItem_ether");check("HUD-ether",porter_ether!=null and not porter_ether.disabled and porter_ether.text.contains("1個"),"porter sees only owned ether")
-	await game.choose_command("ether");await game.on_cell(int(game.hud.unit("guard").pos));await settle()
-	check("HUD-ether-preview",game.preview.effectPreview.any(func(e):return e.id=="guard" and e.get("mp")==3),"ether preview retains canonical MP+3")
+	await game.choose_command("ether");await game.on_cell(int(game.hud.unit("recruit-guard-human-female").pos));await settle()
+	check("HUD-ether-preview",game.preview.effectPreview.any(func(e):return e.id=="recruit-guard-human-female" and e.get("mp")==3),"ether preview retains canonical MP+3")
 	var f=FileAccess.open(evidence.path_join("inventory-battle-hud.json"),FileAccess.WRITE);f.store_string(JSON.stringify({"checks":checks},"\t"));f.close()
 	game.closing=true;game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame

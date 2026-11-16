@@ -19,7 +19,7 @@ for(const side of ['ally','enemy'])for(const def of [0,7,100]){
  B.receive(s,b,23);check(100-b.hp===prediction.damage,'DEF execution matches '+side+'/'+def);
 }
 {
- const s=B.create({ally:['scout','porter'],enemy:['scout'],deployment:true}),a=s.units.find(u=>u.side==='enemy'),target=s.units.find(u=>u.id==='scout'),porter=s.units.find(u=>u.job==='porter');
+ const s=B.create({ally:["recruit-scout-human-female","recruit-porter-human-female"],enemy:['scout'],deployment:true}),a=s.units.find(u=>u.side==='enemy'),target=s.units.find(u=>u.id==="recruit-scout-human-female"),porter=s.units.find(u=>u.job==='porter');
  a.pos=22;a.next=0;a.skillSources=[{id:'scout',level:3}];target.pos=2;target.hp=100;target.def=7;target.next=1;porter.pos=0;porter.next=1;
  s.deploying=false;s.actor=a.id;
  const action=B.chooseAction(s,a);check(action.kind==='skill'&&action.target===target.id,'enemy selects equipment-Lv3 vertical ambush from current state');
@@ -37,22 +37,22 @@ const master=require('./master-data.cjs').getMaster();
 const dagger=C.gear.find(g=>g.id==='dagger-wood'),originalLevel=dagger.skillLevel,daggerGrants=structuredClone(master.grantsByEquipment[dagger.id]);
 {
  const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=1000;
- check(C.buyGear(s,'scout','sword-wood','rightHand'),'actual weapon change succeeds');
- check(!C.stats(s.characters.scout).activeSkills.includes('scout'),'removing ambush weapon removes its skill');
- check(C.inventoryAction(s,'scout','dagger-wood','equip',null,1,'rightHand',C.inventoryToken(s)),'owned dagger can be re-equipped');
- check(C.stats(s.characters.scout).skillSources.some(source=>source.id==='scout'&&source.level===1),'re-equipping restores equipment-derived level');
+ check(C.buyGear(s,"recruit-scout-human-female",'sword-wood','rightHand'),'actual weapon change succeeds');
+ check(!C.stats(s.characters["recruit-scout-human-female"]).activeSkills.includes('scout'),'removing ambush weapon removes its skill');
+ check(C.inventoryAction(s,"recruit-scout-human-female",'dagger-wood','equip',null,1,'rightHand',C.inventoryToken(s)),'owned dagger can be re-equipped');
+ check(C.stats(s.characters["recruit-scout-human-female"]).skillSources.some(source=>source.id==='scout'&&source.level===1),'re-equipping restores equipment-derived level');
 }
 try{
  for(const level of [1,2,3]){
   dagger.skillLevel=level;master.grantsByEquipment[dagger.id][0].level=level;
-  const s=require('./test-current-fixture.cjs')();s.xp=9900;s.level=100;s.characters.scout.xp=200;s.characters.scout.level=3;s.characters.scout.statPoints=4;s.characters.scout.skillPoints=2;
+  const s=require('./test-current-fixture.cjs')();s.xp=9900;s.level=100;s.characters["recruit-scout-human-female"].xp=200;s.characters["recruit-scout-human-female"].level=3;s.characters["recruit-scout-human-female"].statPoints=4;s.characters["recruit-scout-human-female"].skillPoints=2;
   C.depart(s,'east');C.travel(s,'safe',()=>.3);
-  const actor=s.battle.units.find(u=>u.id==='scout');
+  const actor=s.battle.units.find(u=>u.id==="recruit-scout-human-female");
   check(B.skillLevel(actor)===level,'normal battle uses gear level independent of team/personal levels');
   const scouts=s.battle.units.filter(u=>u.job==='scout'&&u.side==='enemy');check(scouts.length>0,'fixture actually contains enemy scout');
   for(const enemy of scouts)check(B.skillLevel(enemy)===level,'enemy uses same gear definition');
   s.location='east';s.phase='town';s.journey=null;s.battle=null;s.rollback=null;
-  const t=C.trial(s,'scout','dagger-wood');check(B.skillLevel(t.battle.units.find(u=>u.id==='scout'))===level,'trial uses same gear level');
+  const t=C.trial(s,"recruit-scout-human-female",'dagger-wood');check(B.skillLevel(t.battle.units.find(u=>u.id==="recruit-scout-human-female"))===level,'trial uses same gear level');
  }
 }finally{dagger.skillLevel=originalLevel;master.grantsByEquipment[dagger.id]=structuredClone(daggerGrants);}
 {
@@ -64,16 +64,16 @@ try{
    master.grantsByEquipment[dagger.id][0].level=right;
    master.grantsByEquipment[staff.id]=[{slotNo:1,id:'scout',level:left,sourceField:'skill',explicitLevel:true}];
    const s=require('./test-current-fixture.cjs')();s.location='east';s.gold=2000;
-   check(C.buyGear(s,'mage','dagger-wood','rightHand')&&C.buyGear(s,'mage','staff-wood','leftHand'),'two distinct equipped skill sources');
+   check(C.buyGear(s,"recruit-mage-elf-female",'dagger-wood','rightHand')&&C.buyGear(s,"recruit-mage-elf-female",'staff-wood','leftHand'),'two distinct equipped skill sources');
    C.depart(s,'astaris');C.travel(s,'safe',()=>.3);
-   const actor=s.battle.units.find(u=>u.id==='mage');
+   const actor=s.battle.units.find(u=>u.id==="recruit-mage-elf-female");
    check(B.activeSkillOptions(actor).filter(o=>o.id==='scout').length===2,'normal battle retains both grants');
    for(const [index,expected] of [right,left].entries()){
     const option=B.activeSkillOptions(actor).filter(o=>o.id==='scout')[index];actor.selectedSkill='scout';actor.selectedSkillKey=option.key;
     check(B.skillLevel(actor)===expected&&B.skillInfo(actor).level===expected,'normal battle/description use selected grant level');
    }
-   const copy=require('./test-current-fixture.cjs')();copy.location='east';copy.characters.mage.weapon='dagger-wood';copy.characters.mage.leftHand='staff-wood';
-   const trial=C.trial(copy,'mage','dagger-wood','rightHand'),hero=trial.battle.units.find(u=>u.id==='mage');
+   const copy=require('./test-current-fixture.cjs')();copy.location='east';copy.characters["recruit-mage-elf-female"].weapon='dagger-wood';copy.characters["recruit-mage-elf-female"].leftHand='staff-wood';
+   const trial=C.trial(copy,"recruit-mage-elf-female",'dagger-wood','rightHand'),hero=trial.battle.units.find(u=>u.id==="recruit-mage-elf-female");
    for(const [index,expected] of [right,left].entries()){
     const option=B.activeSkillOptions(hero).filter(o=>o.id==='scout')[index];hero.selectedSkill='scout';hero.selectedSkillKey=option.key;
     check(B.skillLevel(hero)===expected&&B.skillInfo(hero).level===expected,'trial/description use selected grant level');
@@ -99,12 +99,12 @@ try{
 }
 {
  const s=require('./test-current-fixture.cjs')();check(Object.values(s.characters).every(c=>c.def===0),'all new character DEF zero');
- s.characters.guard.def=5;C.depart(s,'east');C.travel(s,'safe',()=>.0);
+ s.characters["recruit-guard-human-female"].def=5;C.depart(s,'east');C.travel(s,'safe',()=>.0);
  const enemies=s.battle.units.filter(u=>u.side==='enemy');check(enemies.every(u=>Number.isFinite(u.def)&&u.def>=0&&u.equipment&&u.attackWeapons?.length),'enemy gear supplies combat DEF');check(enemies.some(u=>u.def>0),'equipped enemies receive provisional DEF');
- const expectedGuardDef=C.stats(s.characters.guard).def;check(s.battle.units.find(u=>u.id==='guard').def===expectedGuardDef&&expectedGuardDef>5,'character and equipped DEF combine in combat');
- const loaded=C.deserialize(C.serialize(s));check(loaded.characters.guard.def===5&&loaded.battle.units.find(u=>u.id==='guard').def===expectedGuardDef,'positive and equipment DEF roundtrip');
+ const expectedGuardDef=C.stats(s.characters["recruit-guard-human-female"]).def;check(s.battle.units.find(u=>u.id==="recruit-guard-human-female").def===expectedGuardDef&&expectedGuardDef>5,'character and equipped DEF combine in combat');
+ const loaded=C.deserialize(C.serialize(s));check(loaded.characters["recruit-guard-human-female"].def===5&&loaded.battle.units.find(u=>u.id==="recruit-guard-human-female").def===expectedGuardDef,'positive and equipment DEF roundtrip');
 }
 {
- for(const value of [-1,.5,'4']){const bad=require('./test-current-fixture.cjs')();bad.characters.guard.def=value;check(!C.validate(bad).ok,'invalid DEF rejected');}
+ for(const value of [-1,.5,'4']){const bad=require('./test-current-fixture.cjs')();bad.characters["recruit-guard-human-female"].def=value;check(!C.validate(bad).ok,'invalid DEF rejected');}
 }
 console.log('PASS '+checks+' scoped equipment-level/DEF checks (Lv2/3 definitions changed in-memory only; no new priced items)');

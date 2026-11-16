@@ -6,7 +6,7 @@ function transferInventory(s,from,to){
  for(const [id,amount] of Object.entries(s.characters[from].inventory))assert(C.inventoryAction(s,from,id,'transfer',to,amount,null,C.inventoryToken(s)),id);
 }
 function scene(skill='retreatSlash'){
- const s=B.create({ally:['guard','archer','mage','porter'],enemy:['guard','archer'],enemyPotions:0,deployment:true,skillStage:1});
+ const s=B.create({ally:["recruit-guard-human-female","recruit-scout-human-male","recruit-mage-elf-female","recruit-porter-human-female"],enemy:['guard','archer'],enemyPotions:0,deployment:true,skillStage:1});
  const [a,f,g,p,e,e2]=s.units;a.pos=24;f.pos=14;g.pos=34;p.pos=2;e.pos=25;e2.pos=15;
  a.equippedSkill=skill;a.atk=40;a.mp=a.maxMp=8;a.reach=3;
  for(const u of s.units)u.next=1e6;a.next=10;s.deploying=false;s.actor=a.id;
@@ -60,8 +60,9 @@ test('return: exact home cell, occupancy, 1/battle, zero MP, second slot invasio
  const {s,a,f}=scene();a.effects=['returnHome'];a.mp=0;a.pos=27;
  for(const p of [27,25,f.pos,-1,50,'3'])assert.equal(B.legal(s,'return',p),false);
  once(s,a,'return',3);assert.equal(a.pos,3);assert.equal(a.mp,0);assert.equal(a.returnUsed,true);assert.equal(B.legal(s,'return',4),false);
- const c=C.createLegacy();c.location='north';assert.equal(C.buyGear(c,'scout','return-ring-2'),true);assert.deepEqual(C.stats(c.characters.scout).effects,['itemUse','invasion','returnHome']);
- assert.equal(C.buyGear(c,'scout','empty-accessory1'),true);assert.deepEqual(C.stats(c.characters.scout).effects,['itemUse','returnHome']);
+ const c=require('./test-current-fixture.cjs')();c.gold=5000;c.location='north';c.characters['recruit-scout-human-female'].accessory1='invasion-charm-1';
+ assert.equal(C.buyGear(c,"recruit-scout-human-female",'return-ring-2','accessory2'),true);assert(C.stats(c.characters["recruit-scout-human-female"]).effects.includes('invasion'));assert(C.stats(c.characters["recruit-scout-human-female"]).effects.includes('returnHome'));
+ assert.equal(C.buyGear(c,"recruit-scout-human-female",'empty-accessory1','accessory1'),true);assert(!C.stats(c.characters["recruit-scout-human-female"]).effects.includes('invasion'));assert(C.stats(c.characters["recruit-scout-human-female"]).effects.includes('returnHome'));
 });
 test('lone wolf: living orthogonal friend suppresses; duplicate effect no stacking',()=>{
  for(const [pos,hp,damage] of [[14,100,40],[13,100,40],[13,0,40]]){
@@ -81,13 +82,13 @@ test('victory breath: once, capped, living only; defeat and retreat have no rewa
  const t=scene();t.a.effects=['victoryBreath'];t.a.mp=1;t.p.hp=0;once(t.s,t.a,'guard');assert.equal(t.s.failure,'porter');assert.equal(t.a.mp,1);
 });
 test('passive trial works for melee/ranged and porter keeps attack ban',()=>{
- for(const id of ['guard','warrior','mage','porter']){
-  const s=C.createLegacy();s.location='north';s.selected=[id,...['porter','guard'].filter(x=>x!==id)];
+ for(const id of ['recruit-guard-human-female','recruit-guard-dwarf-male','recruit-mage-elf-female','recruit-porter-human-female']){
+  const s=C.create();s.location='north';s.selected=[id,...["recruit-porter-human-female","recruit-guard-human-female"].filter(x=>x!==id)];
   const before=C.serialize(s),t=C.trial(s,id,'victory-earring-1');assert.ok(t,id);
   const hero=t.battle.units.find(u=>u.id===id),dummy=t.battle.units.find(u=>u.side==='enemy');
   assert.equal(t.battle.units.filter(u=>u.side==='enemy').length,1);
   const mp=hero.mp;
-  if(id==='porter'){
+  if(hero.job==='porter'){
    assert.equal(B.legal(t.battle,'attack',dummy.id),false);
    assert.equal(C.trialAct(t,'guard'),true);
   }else assert.equal(C.trialAct(t,'attack',dummy.id),true);
@@ -96,7 +97,7 @@ test('passive trial works for melee/ranged and porter keeps attack ban',()=>{
   assert.equal(C.serialize(s),before);
   const lone=C.trial(s,id,'lone-ring-1');assert.ok(lone,id);
   const a=lone.battle.units.find(u=>u.id===id),target=lone.battle.units.find(u=>u.side==='enemy');
-  if(id==='porter'){
+  if(a.job==='porter'){
    assert.equal(B.legal(lone.battle,'attack',target.id),false);
    assert.equal(C.trialAct(lone,'guard'),true);
    assert.equal((lone.battle.skillEvents||[]).some(e=>e.skillId==='loneWolf'),false);
@@ -114,8 +115,8 @@ test('purchase and trial all eleven; actual actions isolated from campaign',()=>
  assert.equal(rows.length,11);
  for(const gear of rows){
   // The shared fixture supplies inventory capacity for the commerce roundtrip.
-  const s=require('./test-current-fixture.cjs')();s.location=gear.slot==='weapon'?'east':'north';s.gold=500;
-  const id=gear.skill==='splitShot'||gear.skill==='pincer'?'archer':'mage';
+  const s=require('./test-current-fixture.cjs')();assert(C.select(s,[...s.selected,'recruit-scout-human-male']));s.characters['recruit-scout-human-male'].weapon='bow-wood';s.location=gear.slot==='weapon'?'east':'north';s.gold=5000;
+  const id=gear.skill==='splitShot'||gear.skill==='pincer'?'recruit-scout-human-male':'recruit-mage-elf-female';
   const before=C.serialize(s),t=C.trial(s,id,gear.id);assert.ok(t,gear.id);assert.equal(C.serialize(s),before);
   const a=t.battle.units.find(u=>u.id===id),sid=B.activeSkill(a);
   if(gear.skill){const targets=B.skillTargets(t.battle,a);assert.ok(targets.length,gear.id);assert.equal(C.trialAct(t,'skill',targets[0]),true);}
@@ -130,38 +131,50 @@ test('purchase and trial all eleven; actual actions isolated from campaign',()=>
  }
 });
 test('save/load battle flags, effects and covers; malformed extension rejected',()=>{
- const s=require('./test-current-fixture.cjs')();s.characters.guard.lowerBody='cloth-lowerBody';s.gold=1000;s.location='east';assert(C.buyGear(s,'guard','battleline-shield'));s.location='north';assert(C.buyGear(s,'guard','return-ring-1'));assert(C.buyGear(s,'guard','pioneer-gloves-2'));
+  const s=require('./test-current-fixture.cjs')();s.gold=1000;s.location='east';assert(C.buyGear(s,"recruit-guard-human-female",'battleline-shield'));s.location='north';assert(C.buyGear(s,"recruit-guard-human-female",'return-ring-1'));assert(C.buyGear(s,"recruit-guard-human-female",'pioneer-gloves-2'));
  // Both accessories are under test, so the replaced capacity pouch and other
  // carried supplies move to the porter before departure.
- transferInventory(s,'guard','porter');assert(C.depart(s,'astaris'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
- const a=s.battle.units.find(u=>u.id==='guard');a.returnUsed=true;a.firstMoveUsed=true;a.covers=['archer','mage'];
+ transferInventory(s,"recruit-guard-human-female","recruit-porter-human-female");assert(C.depart(s,'astaris'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
+  const a=s.battle.units.find(u=>u.id==="recruit-guard-human-female");a.returnUsed=true;a.firstMoveUsed=true;a.covers=["recruit-scout-human-female","recruit-mage-elf-female"];
  const saved=C.serialize(s),loaded=C.deserialize(saved),expected=clone(s);
- expected.battle.units.find(u=>u.id==='guard').returnUsedGrants=Object.fromEntries(B.returnSkillOptions(a).map(o=>[o.key,true]));
- assert.deepEqual(loaded,expected);assert.equal(B.legalFor(loaded.battle,loaded.battle.units.find(u=>u.id==='guard'),'return',0),false);
- for(const change of [u=>u.returnUsed='no',u=>u.firstMoveUsed=1,u=>u.effects=['loneWolf'],u=>u.covers=['missing'],u=>u.covers=['mage','mage']]){const bad=JSON.parse(saved);change(bad.state.battle.units.find(u=>u.id==='guard'));assert.throws(()=>C.deserialize(bad));}
+ expected.battle.units.find(u=>u.id==="recruit-guard-human-female").returnUsedGrants=Object.fromEntries(B.returnSkillOptions(a).map(o=>[o.key,true]));
+ assert.deepEqual(loaded,expected);assert.equal(B.legalFor(loaded.battle,loaded.battle.units.find(u=>u.id==="recruit-guard-human-female"),'return',0),false);
+ for(const change of [u=>u.returnUsed='no',u=>u.firstMoveUsed=1,u=>u.effects=['loneWolf'],u=>u.covers=['missing'],u=>u.covers=["recruit-mage-elf-female","recruit-mage-elf-female"]]){const bad=JSON.parse(saved);change(bad.state.battle.units.find(u=>u.id==="recruit-guard-human-female"));assert.throws(()=>C.deserialize(bad));}
  assert.equal(C.retreat(loaded),true);assert.equal(loaded.result.outcome,'failed');assert.equal(loaded.battle,null);
 });
 test('porter never attacks or gains offensive weapon skill; separate return remains usable',()=>{
- const s=C.createLegacy();s.location='east';s.gold=500;C.buyGear(s,'porter','breaker-hammer');s.location='north';C.buyGear(s,'porter','return-ring-1');C.buyGear(s,'porter','invasion-charm-2');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
- const p=s.battle.units.find(u=>u.id==='porter');assert.equal(B.activeSkill(p),'porter');assert.equal(p.atk,0);assert.equal(p.canDeployEnemySide,true);assert.equal(B.legalFor(s.battle,p,'attack','enemy-guard'),false);assert.equal(B.legalFor(s.battle,p,'return',0),true);
+  const s=C.create();s.location='east';s.gold=500;assert(C.buyGear(s,"recruit-porter-human-female",'breaker-hammer','leftHand'));
+  s.location='north';assert(C.buyGear(s,"recruit-porter-human-female",'return-ring-1','accessory1'));
+  transferInventory(s,"recruit-porter-human-female","recruit-guard-human-female");
+  const before=C.serialize(s);
+  assert.equal(C.buyGear(s,"recruit-porter-human-female",'invasion-charm-2','accessory2'),false);
+  assert.equal(C.serialize(s),before);assert.equal(s.characters["recruit-porter-human-female"].accessory2,'porter-bag');
+  assert(C.depart(s,'astaris'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
+  const p=s.battle.units.find(u=>u.id==="recruit-porter-human-female");assert.equal(B.activeSkill(p),'porter');assert.equal(p.atk,0);assert.equal(p.canDeployEnemySide,false);assert.equal(B.legalFor(s.battle,p,'attack','enemy-guard'),false);assert.equal(B.legalFor(s.battle,p,'return',0),true);
+  assert(C.retreat(s));assert(C.acknowledge(s));
+  assert(C.buyGear(s,"recruit-porter-human-female",'invasion-charm-1','accessory1'));
+  assert(C.depart(s,'astaris'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
+  const invader=s.battle.units.find(u=>u.id==="recruit-porter-human-female");
+  assert.equal(invader.canDeployEnemySide,true);assert.equal(B.activeSkill(invader),'porter');assert.equal(invader.atk,0);
+  assert.equal(B.legalFor(s.battle,invader,'attack','enemy-guard'),false);assert.equal(B.legalFor(s.battle,invader,'return',0),false);
 });
 test('public battle actions save real once-per-battle flags and retreat resets next encounter',()=>{
- const s=require('./test-current-fixture.cjs')();s.characters.guard.lowerBody='cloth-lowerBody';s.location='north';C.buyGear(s,'guard','return-ring-1');C.buyGear(s,'guard','pioneer-gloves-2');
- transferInventory(s,'guard','porter');assert(C.depart(s,'astaris'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
- function guardTurn(){for(let i=0;i<30&&s.battle.actor!=='guard'&&!s.battle.result;i++)assert.equal(C.act(s,'guard'),true);assert.equal(s.battle.actor,'guard');}
+  const s=require('./test-current-fixture.cjs')();s.location='north';C.buyGear(s,"recruit-guard-human-female",'return-ring-1');C.buyGear(s,"recruit-guard-human-female",'pioneer-gloves-2');
+ transferInventory(s,"recruit-guard-human-female","recruit-porter-human-female");assert(C.depart(s,'astaris'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
+ function guardTurn(){for(let i=0;i<30&&s.battle.actor!=="recruit-guard-human-female"&&!s.battle.result;i++)assert.equal(C.act(s,'guard'),true);assert.equal(s.battle.actor,"recruit-guard-human-female");}
  guardTurn();assert.equal(C.act(s,'return',0),true);guardTurn();assert.equal(C.act(s,'move',1),true);
- const loaded=C.deserialize(C.serialize(s)),hero=loaded.battle.units.find(u=>u.id==='guard');assert.ok(B.returnSkillOptions(hero).every(o=>o.used));assert.equal(Object.keys(hero.returnUsedGrants).length,1);assert.equal(hero.firstMoveUsed,true);
+ const loaded=C.deserialize(C.serialize(s)),hero=loaded.battle.units.find(u=>u.id==="recruit-guard-human-female");assert.ok(B.returnSkillOptions(hero).every(o=>o.used));assert.equal(Object.keys(hero.returnUsedGrants).length,1);assert.equal(hero.firstMoveUsed,true);
  assert.deepEqual(loaded.battle.skillEvents.map(e=>e.skillId),['returnHome','firstStride']);
  assert.equal(C.retreat(s),true);C.acknowledge(s);C.depart(s,'astaris');C.travel(s,'safe',()=>.2);
- const fresh=s.battle.units.find(u=>u.id==='guard');assert.equal(fresh.returnUsed,undefined);assert.equal(fresh.returnUsedGrants,undefined);assert.equal(fresh.firstMoveUsed,undefined);assert.equal(B.moveReach(fresh),3);
+ const fresh=s.battle.units.find(u=>u.id==="recruit-guard-human-female");assert.equal(fresh.returnUsed,undefined);assert.equal(fresh.returnUsedGrants,undefined);assert.equal(fresh.firstMoveUsed,undefined);assert.equal(B.moveReach(fresh),3);
 });
 test('victory reward passes into campaign party once and survives reload',()=>{
- const s=require('./test-current-fixture.cjs')();s.location='north';C.buyGear(s,'guard','victory-earring-1');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
+ const s=require('./test-current-fixture.cjs')();s.location='north';C.buyGear(s,"recruit-guard-human-female",'victory-earring-1');C.depart(s,'astaris');C.travel(s,'safe',()=>.2);C.begin(s);
  for(let i=0;i<250&&!s.battle.result;i++){const copy=clone(s.battle),a=copy.units.find(u=>u.id===copy.actor);const action=B.chooseAction(copy,a);assert.equal(C.act(s,action.kind,action.target),true);}
  assert.ok(s.battle.result);assert.equal(s.battle.failure,undefined);
- const hero=s.battle.units.find(u=>u.id==='guard');assert.ok(hero.hp>0);const mp=hero.mp;
+ const hero=s.battle.units.find(u=>u.id==="recruit-guard-human-female");assert.ok(hero.hp>0);const mp=hero.mp;
  assert.equal(s.battle.skillEvents.filter(e=>e.skillId==='victoryBreath').length,1);
- const loaded=C.deserialize(C.serialize(s));assert.equal(C.finishBattle(loaded),true);assert.equal(loaded.characters.guard.mp,mp);assert.equal(loaded.journey.party.find(u=>u.id==='guard').mp,mp);assert.equal(C.finishBattle(loaded),false);
- assert.equal(C.deserialize(C.serialize(loaded)).characters.guard.mp,mp);
+ const loaded=C.deserialize(C.serialize(s));assert.equal(C.finishBattle(loaded),true);assert.equal(loaded.characters["recruit-guard-human-female"].mp,mp);assert.equal(loaded.journey.party.find(u=>u.id==="recruit-guard-human-female").mp,mp);assert.equal(C.finishBattle(loaded),false);
+ assert.equal(C.deserialize(C.serialize(loaded)).characters["recruit-guard-human-female"].mp,mp);
 });
 console.log(`PASS ${count} equipment-skill groups`);

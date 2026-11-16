@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),B=require('./campaign-battle.js');
 let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS '+name);};
 const clone=x=>JSON.parse(JSON.stringify(x));
 function scene(ids=['mage','mage']){
- const s=B.create({ally:['guard','mage'],enemy:['guard'],enemyPotions:0,deployment:true});
+ const s=B.create({ally:["recruit-guard-human-female","recruit-mage-elf-female"],enemy:['guard'],enemyPotions:0,deployment:true});
  const [a,b,e]=s.units;a.pos=24;b.pos=23;e.pos=25;a.mp=a.maxMp=30;a.hp=a.max-100;b.hp=b.max-90;
  a.activeSkills=[...new Set(ids)];a.skillSources=ids.map((id,i)=>({id,slot:i?'leftHand':'rightHand',itemId:'same-item',grantSlot:1,level:1,classification:'active'}));
  for(const u of s.units)u.next=1e6;a.next=1;s.skillCooldownVersion=1;s.deploying=false;s.actor=a.id;
@@ -81,7 +81,7 @@ test('stamp in a secondary grant keeps its weapon contribution on side cells',()
  const hp=e.hp;assert.ok(B.act(s,'skill',25));assert.equal(hp-e.hp,29);
 });
 test('enemy scout selects an immediate skill using current target positions',()=>{
- const s=B.create({ally:['guard','mage'],enemy:['scout'],deployment:true,enemyPotions:0});
+ const s=B.create({ally:["recruit-guard-human-female","recruit-mage-elf-female"],enemy:['scout'],deployment:true,enemyPotions:0});
  const [target,other,scout]=s.units;target.pos=24;other.pos=0;scout.pos=27;target.next=2;other.next=100;scout.next=1;
  s.deploying=false;s.skillCooldownVersion=1;s.actor=scout.id;
  assert.equal(B.chooseAction(s,scout).target,target.id);assert.equal(Object.hasOwn(scout,'intent'),false);

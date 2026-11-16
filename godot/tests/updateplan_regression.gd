@@ -1,12 +1,10 @@
 extends "res://tests/skill_grant_hud.gd"
-func warrior():return game.state().units.filter(func(u):return u.id=="warrior")[0]
+func warrior():return game.state().units.filter(func(u):return u.id=="recruit-guard-human-female")[0]
 func run():
  create_timer(100).timeout.connect(func():print("FAIL watchdog");quit(2))
  if OS.get_environment("NATIVE5525_AUDIO_OFF")!="1":quit(2);return
- var output=[]
- var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray([ProjectSettings.globalize_path("res://tests/updateplan_fixtures.cjs")]),output,true,false)
- check(code==0,"fixture creation")
- var fixtures=JSON.parse_string("".join(output))
+ var fixtures=preload("res://tests/ui_current_fixture.gd").generate("res://tests/updateplan_fixtures.cjs")
+ check(not fixtures.is_empty(),"fixture creation")
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true

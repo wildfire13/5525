@@ -10,13 +10,13 @@ func run():
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var menu_button=node("CommonMenuButton");var rect=menu_button.get_global_rect()
 	check(rect.position.x>1700 and rect.position.y>1000 and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(rect),"menu fixed in FHD bottom right: "+str(rect))
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	var stock=await saved()
-	stock.state.characters.guard.inventory={"potion":3,"kungfu-pants":1,"javelin-wood":1}
+	stock.state.characters["recruit-guard-human-female"].inventory={"potion":3,"kungfu-pants":1,"javelin-wood":1}
 	await game.update({"op":"campaign_load","data":stock});await settle()
 	var before_preview=await saved()
-	game.pages.party_view.open_inventory("guard");await settle()
-	var entries=game.campaign().inventoryByCharacter.guard.entries
+	game.pages.party_view.open_inventory("recruit-guard-human-female");await settle()
+	var entries=game.campaign().inventoryByCharacter["recruit-guard-human-female"].entries
 	var names={}
 	for item in entries:names[item.id]=item.name
 	var rows=game.find_children("*","Button",true,false)
@@ -38,8 +38,7 @@ func run():
 	# Both free travel and quest arrival normalize before the first visible render.
 	for quest in [false,true]:
 		await game.new_game();await settle()
-		await preload("res://tests/current_historical_fixture.gd").install(game)
-		if quest:await game.act("accept",[game.campaign().board[0].id,"porter"])
+		if quest:await game.act("accept",[game.campaign().board[0].id,"recruit-porter-human-female"])
 		var cash=game.campaign().gold;await game.act("depart",["east"])
 		var arrival=await saved();arrival.state.phase="arrival";arrival.state.journey.phase="delivery";arrival.state.journey.stage=2;arrival.state.journey.hours=4
 		arrival.state.journey.party=game.roster().filter(func(u):return game.campaign().selected.has(u.id)).duplicate(true)

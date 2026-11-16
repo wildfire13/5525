@@ -6,14 +6,15 @@ func run():
 	if evidence.is_empty():quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await preload("res://tests/current_historical_fixture.gd").install(game)
+	await game.new_game();
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
-	var seed=await saved();seed.state.location="east";seed.state.gold=1000;seed.state.characters.guard.inventory={"spear-wood":1,"greatsword-wood":1,"lone-ring-1":1}
+	var guard="recruit-guard-human-female";var mage="recruit-mage-elf-female"
+	var seed=await saved();seed.state.location="east";seed.state.gold=1000;seed.state.characters[guard].inventory={"spear-wood":1,"greatsword-wood":1,"lone-ring-1":1}
 	await game.update({"op":"campaign_load","data":seed});await settle()
-	game.pages.party_view.open_inventory("guard");await settle()
+	game.pages.party_view.open_inventory(guard);await settle()
 	var before=await saved()
 	for spec in [["spear-wood","feet",false],["greatsword-wood","leftHand",false],["lone-ring-1","accessory2",true],["spear-wood","leftHand",true]]:
-		var entry=game.campaign().inventoryByCharacter.guard.entries.filter(func(e):return e.id==spec[0])[0]
+		var entry=game.campaign().inventoryByCharacter[guard].entries.filter(func(e):return e.id==spec[0])[0]
 		var row=game.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text==entry.name)[0]
 		row.pressed.emit();await settle()
 		var selector=node("CharacterEquipSlot");var index=-1
@@ -24,31 +25,31 @@ func run():
 		check((index>=0 and not node("CharacterEquip").disabled)==spec[2],"equip slot eligibility "+str(spec))
 	var workspace=game.pages.party_view.workspace
 	var stale=workspace.payload(workspace.picked,"transfer",null);stale.token="stale"
-	workspace.drop(stale,"mage");await settle()
+	workspace.drop(stale,mage);await settle()
 	check(await saved()==before,"slot previews and stale transfer preserve full save")
 	await click("CharacterEquip")
-	check(game.campaign().characters.guard.leftHand=="spear-wood","equip applies to specified hand")
+	check(game.campaign().characters[guard].leftHand=="spear-wood","equip applies to specified hand")
 	await enter_facility("shop");await settle()
 	var shop=game.pages.shop_view
 	check(node("ShopSlotFilter").get_parent()!=node("ShopProductsScroll").get_child(0),"shop filter is outside scrolling list")
 	var data=payload("shop_product","spear-wood")
-	check(shop.can_drop_product(data,"mage"),"shop drop accepts selected recipient")
-	before=await saved();await shop.confirm_purchase("spear-wood","mage");await settle()
+	check(shop.can_drop_product(data,mage),"shop drop accepts selected recipient")
+	before=await saved();await shop.confirm_purchase("spear-wood",mage);await settle()
 	check(await saved()==before and node("PurchaseAgree")!=null,"purchase drop awaits consent without mutation")
 	await click("PurchaseDecline");check(await saved()==before,"purchase drop cancel preserves state")
-	await shop.confirm_purchase("spear-wood","mage");await settle();await click("PurchaseAgree")
-	check(game.campaign().characters.mage.inventory.get("spear-wood",0)==1 and game.campaign().characters.mage.weapon==before.state.characters.mage.weapon,"confirmed purchase enters recipient inventory without equipping")
-	var after=await saved();await shop.buy(shop.receipt,"mage",shop.generation);check(await saved()==after,"duplicate purchase confirmation has no effect")
+	await shop.confirm_purchase("spear-wood",mage);await settle();await click("PurchaseAgree")
+	check(game.campaign().characters[mage].inventory.get("spear-wood",0)==1 and game.campaign().characters[mage].weapon==before.state.characters[mage].weapon,"confirmed purchase enters recipient inventory without equipping")
+	var after=await saved();await shop.buy(shop.receipt,mage,shop.generation);check(await saved()==after,"duplicate purchase confirmation has no effect")
 	var south=seed.duplicate(true);south.state.location="south"
 	await game.update({"op":"campaign_load","data":south});await enter_facility("shop");await settle()
-	before=await saved();await shop.confirm_purchase("potion","mage");await settle();await click("PurchaseDecline")
+	before=await saved();await shop.confirm_purchase("potion",mage);await settle();await click("PurchaseDecline")
 	check(await saved()==before,"consumable drop decline is pure")
-	await shop.confirm_purchase("potion","mage");await settle();await click("PurchaseAgree")
-	check(game.campaign().characters.mage.inventory.get("potion",0)==int(before.state.characters.mage.inventory.get("potion",0))+1,"consumable drop buys for exact recipient")
-	var fixture=battle_fixture();var heal=fixture.guard.duplicate(true);heal.state.battle.actor="mage"
+	await shop.confirm_purchase("potion",mage);await settle();await click("PurchaseAgree")
+	check(game.campaign().characters[mage].inventory.get("potion",0)==int(before.state.characters[mage].inventory.get("potion",0))+1,"consumable drop buys for exact recipient")
+	var fixture=battle_fixture();var heal=fixture.guard.duplicate(true);heal.state.battle.actor=mage
 	for u in heal.state.battle.units:
 		u.next=1000
-		if u.id=="mage":u.next=1;u.hp=20
+		if u.id==mage:u.next=1;u.hp=20
 	await game.update({"op":"campaign_load","data":heal});await settle()
 	game.hud.open_skills();await settle();await click("BattleSkill_mage")
 	check(node("BattleSkill_mage").get_meta("selected",false) and game.hud.buttons.skill.get_meta("selected",false) and not node("BattleSkill_mage").text.begins_with("● "),"selected skill and its parent category share selection metadata without a text mark")

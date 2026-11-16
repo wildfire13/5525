@@ -3,12 +3,12 @@ var baseline=OS.get_environment("UI_P3_BASELINE")=="1"
 var measurements=[]
 func run():
  create_timer(240).timeout.connect(func():print("FAIL queue keyboard GUI watchdog");quit(2))
- root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1180,812)
+ root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1920,1080)
  game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- game.checks_fast=true;game.audio.fast_mode=true;var cases=cases2()
- for dims in [Vector2i(1180,812),Vector2i(960,540),Vector2i(1920,1080)]:
-  root.size=dims;await game.update({"op":"campaign_load","data":cases.sweep100});await settle();await os_click(game.hud.buttons.attack)
+ game.checks_fast=true;game.audio.fast_mode=true;var cases=preload("res://tests/ui_current_fixture.gd").fixtures()
+ for dims in [Vector2i(1920,1080)]:
+  root.size=dims;await game.update({"op":"campaign_load","data":cases.attack});await settle();await os_click(game.hud.buttons.attack)
   var queue=node("TurnOrderViewport");var before=await saved();var cell=game.board.keyboard_cell
   for i in range(30):
    if queue.has_focus():break

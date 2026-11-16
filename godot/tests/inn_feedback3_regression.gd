@@ -1,4 +1,6 @@
 extends "res://tests/ui_feedback_20261016.gd"
+const INJURED="recruit-guard-human-female"
+const TIRED="recruit-scout-elf-male"
 func consent():
  for d in game.find_children("*","ConfirmationDialog",true,false):
   if d.visible:return d
@@ -14,9 +16,9 @@ func run():
  check(code==0 and twelve is Dictionary and twelve.get("passed",false) and twelve.members==12,"twelve-member production canonical inn heals all once and survives reload")
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
- await preload("res://tests/current_historical_fixture.gd").install(game)
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
- var seed=await saved();seed.state.gold=500;seed.state.characters.guard.hp=1;seed.state.characters.archer.mp=0
+ var maximum=int(game.roster().filter(func(u):return u.id==INJURED)[0].max)
+ var seed=await saved();seed.state.gold=500;seed.state.characters[INJURED].hp=1;seed.state.characters[TIRED].mp=0
  await reload_inn(seed);var inn=game.pages.inn_view;var before=await saved()
  inn.stay();await settle();check(consent()!=null,"injured party requests confirmation")
  consent().canceled.emit();await settle();check(await saved()==before,"cancel leaves exact save untouched")
@@ -27,14 +29,14 @@ func run():
   var u=game.roster().filter(func(m):return m.id==id)[0]
   check(int(u.hp)==int(u.max) and int(u.mp)==int(u.maxMp),"canonical recovery already complete "+str(id))
  check(node("InnRecoveryStatus").text.begins_with("宿泊完了") and not node("InnRecoveryStatus").text.contains("料金はかかりません"),"paid recovery message does not imply free lodging")
- check(inn.recovered.has("guard") and inn.recovered.has("archer") and not inn.recovered.has("mage"),"only previously deficient members participate in recovery")
+ check(inn.recovered.has(INJURED) and inn.recovered.has(TIRED) and inn.recovered.size()==2,"only previously deficient members participate in recovery")
  check(game.find_children("InnHeal_*","Control",true,false).size()==game.campaign().selected.size(),"real lodging starts healing graphics for every companion simultaneously")
  var starts=[]
  for effect in game.find_children("InnHeal_*","Control",true,false):starts.append(effect.started)
  check(starts.all(func(t):return t==inn.recovery_started),"all portrait healing graphics share one commit timestamp")
- check(inn.progress()<1.0 and node("InnHP_guard").get_meta("recovering",false),"committed HP count-up is independent of stats")
- check(not node("InnMP_guard").get_meta("recovering",false),"already full MP has no recovery animation")
- await create_timer(1.4).timeout;await frames();check(node("InnHP_guard").text=="HP 180 → 180","HP count-up ends exactly at canonical maximum")
+ check(inn.progress()<1.0 and node("InnHP_"+INJURED).get_meta("recovering",false),"committed HP count-up is independent of stats")
+ check(not node("InnMP_"+INJURED).get_meta("recovering",false),"already full MP has no recovery animation")
+ await create_timer(1.4).timeout;await frames();check(node("InnHP_"+INJURED).text=="HP %d → %d"%[maximum,maximum],"HP count-up ends exactly at canonical maximum")
  check(game.find_children("InnHeal_*","Control",true,false).is_empty(),"healing graphics clean up after count-up")
  check(node("InnStay").disabled,"fully recovered party cannot activate a paid stay from the UI")
  # Retained programmatic no-op remains safe even when the live button is disabled.
@@ -65,7 +67,7 @@ func run():
  await reload_inn(seed);inn.stay();await settle();var token=game.campaign().inventoryToken;var epoch=game.pages.epoch;var connection=game.engine.connection_generation;var sequence=inn.sequence
  consent().canceled.emit();game.navigate("hub");await settle();before=await saved();await inn.commit(token,epoch,connection,sequence);check(await saved()==before,"stale confirmation after departure cannot charge")
  await reload_inn(seed);token=game.campaign().inventoryToken;epoch=game.pages.epoch;connection=game.engine.connection_generation;sequence=inn.sequence
- inn.commit(token,epoch,connection,sequence);game.navigate("hub");await settle();after=await saved();check(after.state.gold==470 and int(after.state.characters.guard.hp)==180,"departure during committed request retains exactly one charge and complete recovery")
+ inn.commit(token,epoch,connection,sequence);game.navigate("hub");await settle();after=await saved();check(after.state.gold==470 and int(after.state.characters[INJURED].hp)==maximum,"departure during committed request retains exactly one charge and complete recovery")
  await game.update({"op":"campaign_load","data":after});await settle();check(await saved()==after and inn.recovered.is_empty(),"save reload retains healing and clears transient presentation")
  var poor=seed.duplicate(true);poor.state.gold=0;await reload_inn(poor);before=await saved();inn.stay();await settle();check(node("InnStay").disabled and consent()==null and await saved()==before,"insufficient funds has no transaction")
  check(game.audio.muted.values().all(func(v):return v),"audio BGM voice SE OFF")

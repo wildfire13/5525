@@ -47,15 +47,17 @@ func causal_after(expected: Dictionary,label: String):
  check(not rows.is_empty() and rows[-1].request_id==observed[-1].request_id,"final state links to originating action: "+label)
 func source_case() -> Dictionary:
  var script="""const C=require(process.argv[1]),B=require(process.argv[2]),assert=require('node:assert/strict');
-const s=require(require('node:path').join(require('node:path').dirname(process.argv[1]),'test-current-fixture.cjs'))();Object.assign(s.characters.mage,{leftHand:'staff-wood',accessory1:'return-ring-1',accessory2:'return-ring-2'});
+const s=C.create();Object.assign(s.characters['recruit-mage-elf-female'],{leftHand:'staff-wood',accessory1:'return-ring-1',accessory2:'return-ring-2'});
 assert(C.validate(s).ok);assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>0));assert(C.begin(s));
-const a=s.battle.units.find(u=>u.id==='mage'),b=s.battle.units.find(u=>u.id==='guard');a.pos=23;b.pos=24;b.hp-=80;
+const a=s.battle.units.find(u=>u.id==='recruit-mage-elf-female'),b=s.battle.units.find(u=>u.id==='recruit-guard-human-female');a.pos=23;b.pos=24;assert(b.hp>80);b.hp-=80;
 for(const u of s.battle.units)u.next=100000;a.next=1;s.battle.actor=a.id;assert(C.validate(s).ok);
 const skills=B.activeSkillOptions(a),returns=B.returnSkillOptions(a);assert.equal(skills.filter(x=>x.id==='mage').length,2);assert.equal(returns.length,2);
-console.log(JSON.stringify({save:JSON.parse(C.serialize(s)),actor:a.id,target:b.id,skills,returns}));"""
- var output=[];var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),["-e",script,ProjectSettings.globalize_path("res://../native/campaign.js"),ProjectSettings.globalize_path("res://../native/campaign-battle.js")],output,true,false)
+ require('node:fs').writeFileSync(process.argv[3],JSON.stringify({save:JSON.parse(C.serialize(s)),actor:a.id,target:b.id,skills,returns}),'utf8');"""
+ var path=ProjectSettings.globalize_path("user://debug-store-fixture.json")
+ var output=[];var code=OS.execute(OS.get_environment("NATIVE5525_NODE"),["-e",script,ProjectSettings.globalize_path("res://../native/campaign.js"),ProjectSettings.globalize_path("res://../native/campaign-battle.js"),path],output,true,false)
  check(code==0,"synthetic source/CT/return boundary passes canonical validator")
- return JSON.parse_string("".join(output)) if code==0 else {}
+ var fixture=JSON.parse_string(FileAccess.get_file_as_string(path)) if code==0 else {};DirAccess.remove_absolute(path)
+ return fixture
 func run():
  create_timer(180).timeout.connect(func():print("FAIL persistent debug integration watchdog");quit(2))
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
@@ -68,7 +70,7 @@ func run():
  await drain();read_db();check(readback.sessions.any(func(s):return s.session==store.session and s.clean_closed==0),"active session stored as not cleanly closed")
  var seed=(await request({"op":"campaign_save"},"campaign_save")).data
  await request({"op":"PRIVATE_SENTINEL","data":"PRIVATE_SENTINEL","name":"PRIVATE_SENTINEL"},"other",false)
- var path=evidence.path_join("PRIVATE_SENTINEL-save.json")
+ var path=evidence.path_join("PRIVATE_SENTINEL-save-%d-%d.json" % [OS.get_process_id(),Time.get_ticks_usec()])
  await request({"op":"godot_io","action":"write","path":path,"data":seed},"godot_io.write")
  await request({"op":"godot_io","action":"read","path":path,"allowed":[]},"godot_io.read")
  await request({"op":"godot_io","action":"read","path":evidence.path_join("PRIVATE_SENTINEL-missing.json"),"allowed":[]},"godot_io.read",false)

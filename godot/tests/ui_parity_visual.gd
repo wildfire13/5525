@@ -1,7 +1,7 @@
 extends SceneTree
 var game
 var captures=[]
-var directory=ProjectSettings.globalize_path("res://qa/visual")
+var directory=OS.get_user_data_dir().path_join("visual")
 func _initialize():call_deferred("run")
 func settle():
 	await process_frame;await process_frame
@@ -24,7 +24,7 @@ func click(button: Button):
 	await settle()
 func run():
 	DirAccess.make_dir_recursive_absolute(directory)
-	root.title="5525 Godot Prototype - UI parity QA";root.size=Vector2i(1280,800)
+	root.title="5525 Godot Prototype - UI parity QA";root.size=Vector2i(1920,1080)
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true
@@ -48,14 +48,14 @@ func run():
 	await capture("07-swift")
 	await game.update({"op":"campaign_load","data":original});game.navigate("board")
 	await game.pages.accept(game.campaign().board[0].id)
-	game.find_child("QuestCargoOwner_porter",true,false).pressed.emit()
-	game.find_child("QuestCargoConfirm",true,false).pressed.emit()
+	game.find_child("QuestCargoOwner_recruit-porter-human-female",true,false).pressed.emit()
+	game.find_child("QuestCargoConfirm",true,false).pressed.emit();await settle()
 	await game.act("depart",[game.campaign().activeQuest.to,"convoy"]);await capture("08-road")
 	await game.act("travel",["safe"]);await capture("09-deployment")
 	await game.act("begin",[]);game.choose_command("guard");await capture("10-battle-commands")
-	game.side.get_parent().scroll_vertical=1000;await capture("11-battle-details")
+	game.hud.open_action_details();await capture("11-battle-details");game.dialog.close()
 	await game.act("retreat",[]);game.navigate("board");await capture("12-failure-result")
-	var file=FileAccess.open("res://qa/ui-parity-visual-report.json",FileAccess.WRITE)
+	var file=FileAccess.open("user://ui-parity-visual-report.json",FileAccess.WRITE)
 	file.store_string(JSON.stringify({"captures":captures,"map_mouse_selection":map_selected,"visible_driver":DisplayServer.get_name(),"window_size":[root.size.x,root.size.y],"audio_driver":"Dummy","subjective_listening":false},"  "));file.close()
 	game.audio.close_audio();game.engine.close_engine();await create_timer(.2).timeout
 	game.queue_free();await process_frame;quit()

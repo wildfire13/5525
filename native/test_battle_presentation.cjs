@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const B=require('./campaign-battle.js'),{Presentation,capture}=require('./battle-presentation.cjs');
 const clone=x=>JSON.parse(JSON.stringify(x));
 function fixture(){
-  const s=B.create({ally:['guard','porter'],enemy:['guard'],enemyPotions:0,deployment:true});
+  const s=B.create({ally:["recruit-guard-human-female","recruit-porter-human-female"],enemy:['guard'],enemyPotions:0,deployment:true});
   const [a,p,e]=s.units;a.pos=24;p.pos=23;e.pos=25;a.next=0;p.next=100;e.next=1;
   s.deploying=false;s.actor=a.id;
   return s;
@@ -20,10 +20,10 @@ function drain(p){const frames=[];while(p.pending){frames.push({...p.info(),stat
  assert.equal(s.units[0].hp,180);assert.equal(s.units[2].hp,154);
  const frames=drain(p);
  assert.deepEqual(frames.map(f=>[f.phase,f.actor_id,f.unit_id]),[
- ['hurt','guard','enemy-guard'],['settled','guard','guard'],['action','enemy-guard','enemy-guard'],
- ['hurt','enemy-guard','guard'],['settled','enemy-guard','enemy-guard']]);
+ ['hurt','recruit-guard-human-female','enemy-guard'],['settled','recruit-guard-human-female','recruit-guard-human-female'],['action','enemy-guard','enemy-guard'],
+ ['hurt','enemy-guard','recruit-guard-human-female'],['settled','enemy-guard','enemy-guard']]);
  assert.equal(frames[2].state.units[0].hp,180);
- assert.deepEqual(frames[3].voiceEvents,[{character_id:'guard',cue:'hurt'}]);
+ assert.deepEqual(frames[3].voiceEvents,[{character_id:'recruit-guard-human-female',cue:'hurt'}]);
  assert.deepEqual(clone(s),clone(expected));assert.equal(completed,1);assert(!p.finish(token.id));
 }
 {
@@ -36,14 +36,14 @@ function drain(p){const frames=[];while(p.pending){frames.push({...p.info(),stat
  p.start(s,B,()=>B.act(s,'attack','enemy-guard'));assert(p.finish(p.info().id));assert.deepEqual(clone(s),clone(expected));
 }
 {
- const s=fixture();s.units[0].cover='porter';
+ const s=fixture();s.units[0].cover='recruit-porter-human-female';
  const result=capture(s,B,()=>{B.receive(s,s.units[1],20,false);B.receive(s,s.units[1],10,false);s.units[0].hp+=5;return true;});
- assert.deepEqual(result.frames.map(f=>[f.phase,f.unit_id]),[['hurt','guard'],['hurt','guard'],['heal','guard'],['settled',null]]);
+ assert.deepEqual(result.frames.map(f=>[f.phase,f.unit_id]),[['hurt','recruit-guard-human-female'],['hurt','recruit-guard-human-female'],['heal','recruit-guard-human-female'],['settled',null]]);
  assert.deepEqual(result.frames.slice(0,3).map(f=>f.state.units[0].hp),[160,150,155]);
  assert.equal(result.frames[2].voiceEvents.length,0);
 }
 for(const skill of ['stamp','splitShot','healingCross','retreatSlash','knockback','scout']){
- const s=B.create({ally:[skill==='scout'?'scout':'guard','mage'],enemy:['guard','archer'],deployment:true});
+ const s=B.create({ally:[skill==='scout'?'recruit-scout-human-female':'recruit-guard-human-female',"recruit-mage-elf-female"],enemy:['guard','archer'],deployment:true});
  const [a,b,e,f]=s.units;a.equippedSkill=skill;a.pos=24;a.reach=3;b.pos=13;b.hp-=50;
  e.pos=skill==='scout'?27:25;f.pos=15;e.next=f.next=1e9;b.next=1e9;a.next=0;s.actor=a.id;s.deploying=false;
  const target=skill==='stamp'?25:skill==='splitShot'?[e.id,f.id]:skill==='healingCross'?b.id:e.id;
@@ -63,7 +63,7 @@ for(const skill of ['stamp','splitShot','healingCross','retreatSlash','knockback
  assert(!frames.some(f=>f.phase==='hurt'&&f.actor_id==='enemy-guard'));
 }
 for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14]],['splitShot',[25,27],[31,15]],['stamp',[25,15],[55,29]]]){
- const s=B.create({ally:['guard','porter'],enemy:['guard','archer'],deployment:true});
+ const s=B.create({ally:["recruit-guard-human-female","recruit-porter-human-female"],enemy:['guard','archer'],deployment:true});
  const [a,p,e,f]=s.units;a.pos=24;p.pos=10;e.pos=positions[0];f.pos=positions[1]||35;
  a.activeSkills=[skill];a.mp=8;a.attackBonus=0;
  a.attackWeapons=skill==='splitShot'?[{slot:'rightHand',atk:25,reach:3,skill},{slot:'leftHand',atk:26,reach:1}]:
@@ -77,11 +77,11 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  assert.deepEqual(hits.map(x=>x.from-x.to),expected,skill);
  if(skill==='stamp')assert.deepEqual(preview,[],'cast reservation does not preview immediate damage');
  else assert.deepEqual(hits.map(x=>x.from-x.to),preview.map(x=>x.hpLoss));
- assert(hits.every(x=>x.actor_id==='guard'));
+ assert(hits.every(x=>x.actor_id==='recruit-guard-human-female'));
  assert.equal(new Set(hits.map(x=>x.action_id)).size,1);
- assert.equal(frames[0].skill_id,skill);assert.deepEqual(frames[0].voiceEvents,skill==='stamp'?[]:[{character_id:'guard',cue:'skill:'+skill}]);
+ assert.equal(frames[0].skill_id,skill);assert.deepEqual(frames[0].voiceEvents,skill==='stamp'?[]:[{character_id:'recruit-guard-human-female',cue:'skill:'+skill}]);
  if(skill==='stamp')assert.deepEqual(frames.find(f=>f.phase==='action'&&f.kind==='skill').resolved.cells,[15,25,35]);
- assert.equal(s.units.find(u=>u.id==='guard').mp,7);assert.equal(s.actions,skill==='stamp'?2:1);
+ assert.equal(s.units.find(u=>u.id==="recruit-guard-human-female").mp,7);assert.equal(s.actions,skill==='stamp'?2:1);
 }
 
 // Resolved status metadata is presentation-only. The native success assignment
@@ -90,14 +90,15 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  const C=require('./campaign.js');
  const {mark}=require('./battle-presentation.cjs');
  function sweep(level=1,already=false,consume=false){
-  const campaign=require('./test-current-fixture.cjs')({extraCapacity:false});for(const c of Object.values(campaign.characters))c.inventory={};campaign.characters.guard.lowerBody=level===1?'kungfu-pants':`kungfu-pants-${level}`;
+  const campaign=require('./test-current-fixture.cjs')({extraCapacity:false});for(const c of Object.values(campaign.characters))c.inventory={};campaign.characters["recruit-guard-human-female"].lowerBody=level===1?'kungfu-pants':`kungfu-pants-${level}`;
   assert(C.depart(campaign,'east'));assert(C.travel(campaign,'short',()=>0));assert(C.begin(campaign));
-  const b=campaign.battle,positions={guard:24,archer:12,mage:13,scout:4,porter:32};
+  const b=campaign.battle,positions={'recruit-guard-human-female':24,'recruit-scout-human-female':12,'recruit-mage-elf-female':13,'recruit-scout-elf-male':4,'recruit-porter-human-female':32};
   for(const u of b.units){u.next=10000;if(u.side==='ally')u.pos=positions[u.id];}
-  const actor=b.units.find(u=>u.id==='guard');actor.next=1;actor.selectedSkill='legSweep';b.actor=actor.id;
+   const actor=b.units.find(u=>u.id==="recruit-guard-human-female");actor.next=1;b.actor=actor.id;
+   assert(B.selectSkill(b,'legSweep'));
   const enemies=b.units.filter(u=>u.side==='enemy');enemies.forEach((u,i)=>{u.pos=[25,15,35][i];});
   if(already)enemies[0].skipNextTurn=true;
-  if(consume){enemies[0].next=2;b.units.find(u=>u.id==='archer').next=3;}
+  if(consume){enemies[0].next=2;b.units.find(u=>u.id==="recruit-scout-human-female").next=3;}
   assert(C.validate(campaign).ok,C.validate(campaign).error);
   return campaign;
  }
@@ -119,10 +120,10 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  ];
  for(const item of cases){
   const source=sweep(item.level,item.already,item.consume),expected=C.deserialize(C.serialize(source)),observed=C.deserialize(C.serialize(source));
-  const candidates=B.sweepTargets(source.battle,source.battle.units.find(u=>u.id==='guard'));
+  const candidates=B.sweepTargets(source.battle,source.battle.units.find(u=>u.id==="recruit-guard-human-female"));
   const directCalls={count:0},observedCalls={count:0};
-  assert(B.act(expected.battle,'skill','guard',rng(item.values,directCalls)),item.name);
-  const p=new Presentation();assert(p.start(observed.battle,B,()=>B.act(observed.battle,'skill','guard',rng(item.values,observedCalls))),item.name);
+   assert(B.act(expected.battle,'skill','recruit-guard-human-female',rng(item.values,directCalls)),item.name);
+   const p=new Presentation();assert(p.start(observed.battle,B,()=>B.act(observed.battle,'skill','recruit-guard-human-female',rng(item.values,observedCalls))),item.name);
   const first=p.info();assert.equal(first.phase,'action');
   assert.deepEqual(first.resolved_status,candidates.map((unit,i)=>({unit_id:unit.id,cell:unit.pos,status:'skipNextTurn',success:item.success[i],already_active:i===0&&item.already})),item.name);
   const results=clone(first.resolved_status);const frames=drain(p);
@@ -141,17 +142,17 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  const empty=sweep(),emptyDirect=structuredClone(empty);
  for(const candidate of [empty,emptyDirect])candidate.battle.units.filter(u=>u.side==='enemy').forEach((u,i)=>{u.pos=[29,19,39][i];});
  const emptyP=new Presentation();let emptyCalls=0;
- assert(B.act(emptyDirect.battle,'skill','guard',()=>{emptyCalls++;throw Error('empty sweep must not roll');}));
- assert(emptyP.start(empty.battle,B,()=>B.act(empty.battle,'skill','guard',()=>{emptyCalls++;throw Error('empty sweep must not roll');})));
+  assert(B.act(emptyDirect.battle,'skill','recruit-guard-human-female',()=>{emptyCalls++;throw Error('empty sweep must not roll');}));
+  assert(emptyP.start(empty.battle,B,()=>B.act(empty.battle,'skill','recruit-guard-human-female',()=>{emptyCalls++;throw Error('empty sweep must not roll');})));
  assert.deepEqual(emptyP.info().resolved_status,[]);assert(emptyP.finish(emptyP.info().id));
  assert.equal(emptyCalls,0);assert.equal(C.serialize(empty),C.serialize(emptyDirect));
 
  // Reuse the same Presentation, then save/reload it, without leaking old results.
  const campaign=sweep(),direct=C.deserialize(C.serialize(campaign)),p=new Presentation();let earlier;
  for(const values of [[.1,.1,.1],[.99,.99,.99]]){
-  if(earlier){assert(!B.legal(direct.battle,'skill','guard'));assert(B.act(direct.battle,'guard'));assert(B.act(campaign.battle,'guard'));}
-  const a={count:0},b={count:0};assert(B.act(direct.battle,'skill','guard',rng(values,a)));
-  assert(p.start(campaign.battle,B,()=>B.act(campaign.battle,'skill','guard',rng(values,b))));
+   if(earlier){assert(!B.legal(direct.battle,'skill','recruit-guard-human-female'));assert(B.act(direct.battle,'guard'));assert(B.act(campaign.battle,'guard'));}
+   const a={count:0},b={count:0};assert(B.act(direct.battle,'skill','recruit-guard-human-female',rng(values,a)));
+   assert(p.start(campaign.battle,B,()=>B.act(campaign.battle,'skill','recruit-guard-human-female',rng(values,b))));
   const info=p.info();
   if(earlier){assert.equal(info.id,earlier.id+1);assert(info.resolved_status.every(x=>!x.success&&x.already_active));assert(earlier.results.every(x=>x.success&&!x.already_active));}
   earlier={id:info.id,results:clone(info.resolved_status)};
@@ -160,16 +161,16 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  }
  const loaded=C.deserialize(C.serialize(campaign)),loadedDirect=C.deserialize(C.serialize(campaign));
  assert.deepEqual(loaded,campaign,'save/load restores ordinary status fields, not observation metadata');
- assert(!B.legal(loaded.battle,'skill','guard'));assert(B.act(loaded.battle,'guard'));assert(B.act(loadedDirect.battle,'guard'));
- const loadedP=new Presentation(),a={count:0},b={count:0};assert(B.act(loadedDirect.battle,'skill','guard',rng([.1,.1,.1],a)));
- assert(loadedP.start(loaded.battle,B,()=>B.act(loaded.battle,'skill','guard',rng([.1,.1,.1],b))));
+  assert(!B.legal(loaded.battle,'skill','recruit-guard-human-female'));assert(B.act(loaded.battle,'guard'));assert(B.act(loadedDirect.battle,'guard'));
+  const loadedP=new Presentation(),a={count:0},b={count:0};assert(B.act(loadedDirect.battle,'skill','recruit-guard-human-female',rng([.1,.1,.1],a)));
+  assert(loadedP.start(loaded.battle,B,()=>B.act(loaded.battle,'skill','recruit-guard-human-female',rng([.1,.1,.1],b))));
  assert(loadedP.info().resolved_status.every(x=>x.success&&x.already_active));assert(loadedP.finish(loadedP.info().id));
  assert.equal(C.serialize(loaded),C.serialize(loadedDirect));assert.equal(a.count,b.count);
  // Rejected and throwing actions clean up even absent status properties.
  const rejected=sweep(),before=C.serialize(rejected),rejectP=new Presentation();
  assert(!rejectP.start(rejected.battle,B,()=>B.act(rejected.battle,'skill','missing')));assert.equal(C.serialize(rejected),before);noAccessors(rejected.battle);
  assert.throws(()=>rejectP.start(rejected.battle,B,()=>{
-  const actor=rejected.battle.units.find(u=>u.id==='guard');mark(rejected.battle,actor,'skill','guard',B);
+   const actor=rejected.battle.units.find(u=>u.id==="recruit-guard-human-female");mark(rejected.battle,actor,'skill',actor.id,B);
   B.sweepTargets(rejected.battle,actor)[0].skipNextTurn=true;throw Error('status observation rollback');
  }),/status observation rollback/);
  assert.equal(C.serialize(rejected),before);assert.equal(rejectP.pending,null);noAccessors(rejected.battle);
@@ -184,10 +185,12 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
 // forecast: reserved enemy cells can be empty, and cover may receive the hit.
 {
  const C=require('./campaign.js');
- function attackCampaign({mixed=false,actor='guard',targetCell=25,covered=false}={}){
-  const s=require('./test-current-fixture.cjs')({extraCapacity:false});for(const c of Object.values(s.characters))c.inventory={};if(mixed)s.characters.guard.leftHand='staff-wood';
+ function attackCampaign({mixed=false,actor='recruit-guard-human-female',targetCell=25,covered=false}={}){
+  const s=require('./test-current-fixture.cjs')({extraCapacity:false});for(const c of Object.values(s.characters))c.inventory={};if(mixed)s.characters["recruit-guard-human-female"].leftHand='staff-wood';
+  assert(C.select(s,['recruit-guard-human-female','recruit-scout-human-male','recruit-mage-elf-female','recruit-scout-human-female','recruit-porter-human-female']));s.characters['recruit-scout-human-male'].weapon='bow-wood';
   assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>0));assert(C.begin(s));
-  const positions={guard:actor==='archer'?22:24,archer:actor==='archer'?24:12,mage:13,scout:4,porter:32};
+  const ranged=actor==='recruit-scout-human-male';
+  const positions={'recruit-guard-human-female':ranged?22:24,'recruit-scout-human-male':ranged?24:12,'recruit-mage-elf-female':13,'recruit-scout-human-female':4,'recruit-porter-human-female':32};
   const b=s.battle;for(const u of b.units){u.next=10000;if(u.side==='ally')u.pos=positions[u.id];}
   const enemies=b.units.filter(u=>u.side==='enemy');enemies.forEach((u,i)=>{u.pos=[targetCell,15,35][i];});
   const source=b.units.find(u=>u.id===actor);source.next=1;b.actor=source.id;
@@ -198,7 +201,7 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
   {name:'single melee sword',options:{},items:['sword-wood']},
   {name:'mixed hands near both contribute',options:{mixed:true},items:['sword-wood','staff-wood']},
   {name:'mixed hands far only staff contributes',options:{mixed:true,targetCell:26},items:['staff-wood']},
-  {name:'two-handed ranged bow counted once',options:{actor:'archer',targetCell:27},items:['bow-wood']},
+  {name:'two-handed ranged bow counted once',options:{actor:"recruit-scout-human-male",targetCell:27},items:['bow-wood']},
   {name:'cover does not retarget trajectory',options:{covered:true},items:['sword-wood']},
  ];
  for(const item of cases){
@@ -218,7 +221,7 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  }
  // Enemy attack presentation follows the living target on the current board.
  for(const occupied of [true,false]){
-  const s=attackCampaign(),b=s.battle,enemy=b.units.find(u=>u.side==='enemy'),guard=b.units.find(u=>u.id==='guard'),archer=b.units.find(u=>u.id==='archer');
+  const s=attackCampaign(),b=s.battle,enemy=b.units.find(u=>u.side==='enemy'),guard=b.units.find(u=>u.id==="recruit-guard-human-female"),archer=b.units.find(u=>u.id==="recruit-scout-human-male");
   guard.pos=23;if(occupied)archer.pos=24;else archer.pos=12;
   guard.next=1;enemy.next=2;archer.next=3;b.actor=guard.id;
   assert(C.validate(s).ok,C.validate(s).error);
@@ -227,11 +230,11 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
   const p=new Presentation();assert(p.start(observed.battle,B,()=>B.act(observed.battle,'move',22)));
   const frames=drain(p),attack=frames.find(f=>f.phase==='action'&&f.kind==='attack'&&f.actor_id===enemy.id);
   if(occupied){assert(attack,'enemy attacks the unit currently occupying range');const visual=clone(attack.attack_visual);
-   assert.equal(visual.source_cell,25);assert.equal(visual.target_cell,24);assert.equal(visual.target_unit_id,'archer');assert.equal(visual.targeting,'unit');
+   assert.equal(visual.source_cell,25);assert.equal(visual.target_cell,24);assert.equal(visual.target_unit_id,'recruit-scout-human-male');assert.equal(visual.targeting,'unit');
    assert.equal(visual.abstract,false,'enemy now has a real equipment loadout');assert.equal(visual.weapons[0].itemId,'sword-wood');
   }else assert(!attack,'enemy chooses from current positions and does not attack an empty telegraphed cell');
   const hits=frames.filter(f=>f.phase==='hurt');
-  if(occupied)assert.equal(hits[0].unit_id,'archer');
+  if(occupied)assert.equal(hits[0].unit_id,'recruit-scout-human-male');
   assert.equal(C.serialize(observed),C.serialize(direct),'live-target exact save parity');assert(C.validate(observed).ok,C.validate(observed).error);
  }
 
@@ -253,7 +256,7 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  const isolated=attackCampaign({mixed:true}),q=new Presentation(),target=isolated.battle.units.find(u=>u.side==='enemy');
  assert(q.start(isolated.battle,B,()=>B.act(isolated.battle,'attack',target.id)));
  q.info().attack_visual.weapons[0].atk=99999;
- assert.notEqual(isolated.battle.units.find(u=>u.id==='guard').attackWeapons[0].atk,99999);assert(q.finish(q.info().id));
+ assert.notEqual(isolated.battle.units.find(u=>u.id==="recruit-guard-human-female").attackWeapons[0].atk,99999);assert(q.finish(q.info().id));
  console.log('PASS canonical attack trajectory metadata: mixed reach/two-hand bow, live target, cover, rejection and exact save/RNG parity');
 }
 
