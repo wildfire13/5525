@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),C=require('./campaign.js');
 let passed=0;const clone=structuredClone;
 function test(name,fn){fn();passed++;console.log('PASS '+name);}
-function fixture(){const s=C.deserialize(C.serialize(C.createLegacy()));s.characters.guard.accessory1='pouch-belt-3';s.characters.mage.accessory1='pouch-belt-3';return s;}
+function fixture(){const s=require('./test-current-fixture.cjs')({extraCapacity:false});s.characters.guard.accessory1='pouch-belt-3';s.characters.mage.accessory1='pouch-belt-3';return s;}
 const move=(s,id,direction,n=1,owner='guard',token=C.inventoryToken(s))=>C.warehouseAction(s,owner,id,direction,n,token);
 test('quote is pure; deposit and withdrawal preserve quantities and resources',()=>{
  const s=fixture(),before=clone(s),q=C.warehouseQuote(s,'guard','potion','deposit',2);
@@ -20,11 +20,6 @@ test('save/reload retains warehouse and invalidates prior session token',()=>{
  assert.deepEqual(loaded,s);assert.equal(move(loaded,'potion','withdraw',1,'guard',token),false);
  assert(move(loaded,'potion','withdraw',3));assert.deepEqual(loaded.warehouse,{});
  assert.deepEqual(C.deserialize(C.serialize(loaded)),loaded);
-});
-test('old save without warehouse remains readable, reading does not inject storage',()=>{
- const s=C.createLegacy(),data=C.serialize(s);assert.equal(s.warehouse,undefined);
- assert.deepEqual(C.view(s).warehouseView.entries,[]);assert.equal(s.warehouse,undefined);
- assert.deepEqual(C.deserialize(data).warehouse,{});
 });
 test('non-Astaris and non-town operations reject without mutation',()=>{
  for(const patch of [{location:'east'},{phase:'camp'},{phase:'battle'},{phase:'deployment'}]){

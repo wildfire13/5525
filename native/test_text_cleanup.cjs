@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js');
 const legacy='繰り返しの受注・移動・買い替えを確かめる仮の配達依頼です。急ぎは納期6時間・報酬180G、通常は10時間・150G。';
 const s=require('./test-current-fixture.cjs')(),q=C.board(s)[0];

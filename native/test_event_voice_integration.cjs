@@ -6,7 +6,7 @@ assert.equal(roster.length,24);assert.deepEqual(Object.keys(map.characters).sort
 for(const c of roster){
  const clips=map.characters[c.id];assert.deepEqual(Object.keys(clips).sort(),['attack','battle_win','damage','incapacitated','quest_clear'].sort());
  for(const v of Object.values(clips)){
-  assert.equal(v.source_character,`${c.race}-${c.sex}-${c.job==='guard'?'warrior':c.job}`);
+  assert.equal(v.source_character,`${c.race}-${c.sex}-${c.job}`);
   assert(!v.source_character.endsWith('-02'));assert.equal(path.basename(v.file),v.file);
   assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname,'assets/event-voices',v.file))).digest('hex'),v.sha256);
  }

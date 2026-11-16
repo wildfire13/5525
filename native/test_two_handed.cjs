@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS '+name);};
 test('two slots occupied by one item, one ATK contribution, save roundtrip',()=>{
@@ -33,14 +31,7 @@ test('all bows occupy both hands; blocked combinations are atomic; removal and r
  assert.ok(C.buyGear(s,'archer','empty-leftHand','leftHand'));assert.ok(C.buyGear(s,'archer','bow-wood','rightHand'));
  assert.ok(C.buyGear(s,'archer','staff-wood','rightHand'));assert.ok(C.buyGear(s,'archer','sword-wood','leftHand'));
 });
-test('old single bow saves migrate losslessly; conflicting left hands are rejected without mutation',()=>{
- const fs=require('node:fs');const old=JSON.parse(fs.readFileSync(__dirname+'/test_fixtures/campaign-a51a773-battle.json','utf8'));
- const original=JSON.stringify(old),loaded=C.deserialize(old);assert.equal(JSON.stringify(old),original);
- assert.equal(C.stats(loaded.characters.archer).attackWeapons.length,1);assert.deepEqual(C.deserialize(C.serialize(loaded)),loaded);
- for(const where of ['current','rollback']) {
-  const bad=clone(old),state=where==='rollback'?bad.state.rollback:bad.state;state.characters.archer.leftHand='staff-wood';const snapshot=clone(bad);
-  assert.throws(()=>C.deserialize(bad),/弓.*両手|両手.*弓/);assert.deepEqual(bad,snapshot);
- }
+test('left-hand bow in a current save is rejected without mutation',()=>{
  const bad=JSON.parse(C.serialize(require('./test-current-fixture.cjs')()));bad.state.characters.mage.leftHand='bow-wood';const snapshot=clone(bad);
  assert.throws(()=>C.deserialize(bad),/弓.*右手/);assert.deepEqual(bad,snapshot);
 });

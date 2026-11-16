@@ -54,7 +54,7 @@
     {
       "id": "guard",
       "name": "ガロ",
-      "job": "guard",
+      "job": "warrior",
       "default_skill": "guard",
       "voice_profile": "guard",
       "prepared": {
@@ -247,7 +247,7 @@
     {
       "id": "guard-2",
       "name": "バルト",
-      "job": "guard",
+      "job": "warrior",
       "default_skill": "guard",
       "voice_profile": "guard-2",
       "prepared": {

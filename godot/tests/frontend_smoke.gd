@@ -23,13 +23,9 @@ func run():
 	var named_guard=game.roster().filter(func(member):return member.id=="recruit-guard-human-male")
 	check(named_guard.size()==1 and named_guard[0].name=="ガレス" and named_guard[0].image=="characters/guard-human-male-01.png" and game.member_name("recruit-guard-human-male")=="ガレス","proposal name follows the existing male human guard ID and portrait")
 	game.navigate("items");await process_frame
-	var source=ProjectSettings.globalize_path("res://../native/test_fixtures/campaign-a51a773-battle.json")
-	await game.load_game(source)
-	check(game.campaign().phase=="town" and game.roster().size()==35,"legacy battle migrates once to town and preserves old actors")
-	# Migrated inventories may exceed new capacity; use the capacity-equipped historical scenario for battle UI checks.
 	await preload("res://tests/current_historical_fixture.gd").install(game)
 	await game.act("depart",["east"]);await game.act("travel",["safe"]);await game.act("begin",[])
-	check(game.state().units.filter(func(u):return u.side=="ally").all(func(u):return u.has("attackWeapons")),"legacy equipment migration")
+	check(game.state().units.filter(func(u):return u.side=="ally").all(func(u):return u.has("attackWeapons")),"allied battle units carry their equipped weapons")
 	check(game.board!=null,"battle uses same root window")
 	await process_frame;await process_frame
 	for turn in [0.0,0.4,-0.4]:

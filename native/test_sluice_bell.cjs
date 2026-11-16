@@ -47,6 +47,31 @@ function escortAction(battle) {
   return fallback;
 }
 
+// The same legal move onto the far edge must use the victory rule for this battlefield.
+for (const gateState of ['closed', 'open', 'ordinary']) {
+  const s = gateState === 'ordinary' ? C.create() : acceptContract();
+  if (gateState === 'ordinary') assert(C.depart(s, 'east'));
+  assert(C.travel(s, 'short', () => 0));
+  assert(C.begin(s));
+  const b = s.battle;
+  const porter = b.units.find(u => u.side === 'ally' && u.job === 'porter');
+  porter.pos = 48;
+  b.actor = porter.id;
+  for (const u of b.units) u.next = u === porter ? 1 : 10000;
+  if (gateState === 'open') {
+    const operator = b.units.find(u => u.side === 'ally' && u.job !== 'porter');
+    operator.pos = b.sluice.lever;
+    b.sluice.open = true;
+  }
+  assert(C.act(s, 'move', 49));
+  assert.equal(porter.pos, 49);
+  if (gateState === 'ordinary') assert.equal(b.resultKind, 'breakthrough');
+  else {
+    assert.equal(b.sluice.open, gateState === 'open');
+    assert.equal(b.result, null);
+  }
+}
+
 for (const firstRoute of ['short', 'safe']) {
   const s = acceptContract();
   for (let stage = 0; stage < 2; stage++) {

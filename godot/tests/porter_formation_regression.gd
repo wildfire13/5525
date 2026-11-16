@@ -7,13 +7,11 @@ func run():
 	while game.data.is_empty() and Time.get_ticks_msec()<startup_deadline:await process_frame
 	if game.data.is_empty():print("BLOCKED game bridge did not become ready");quit(2);return
 	game.checks_fast=true;game.audio.fast_mode=true
-	var fixture_path=ProjectSettings.globalize_path("res://../native/test_fixtures/porter-formation-two-porters.json")
-	var file=FileAccess.open(fixture_path,FileAccess.READ)
-	check(file!=null,"checked-in two-Porter deployment fixture exists")
-	if file==null:quit(1);return
-	var fixture=JSON.parse_string(file.get_as_text());file.close()
-	var loaded=await game.update({"op":"campaign_load","data":fixture});await settle()
-	check(loaded.get("ok",false),"two-Porter deployment fixture loads through the game bridge")
+	var ids=["recruit-porter-human-male","recruit-porter-human-female","recruit-guard-human-female","recruit-scout-human-female","recruit-mage-elf-female"]
+	for step in [["select",[ids]],["accept",["sluice-bell",ids[0]]],["depart",["east"]],["travel",["short"]]]:
+		var result=await game.update({"op":"campaign","action":step[0],"args":step[1]})
+		check(result.get("ok",false),"fresh campaign: "+step[0])
+		await settle()
 	check(game.data.formed.ally==false,"second Porter leaves the formation incomplete")
 	game.hud.toggle_details();await settle()
 	var labels=game.dialog.window.find_children("*","Label",true,false).map(func(n):return n.text)
@@ -21,8 +19,8 @@ func run():
 	check(labels.has("味方陣形 未発動 / 攻撃×1・被ダメージ×1"),"formation detail factor matches engine result")
 	check(labels.any(func(t):return t.contains("ポーター以外")),"formation criteria text explains Porter exclusion")
 	game.dialog.close();await settle()
-	check((await game.update({"op":"campaign","action":"deploy","args":["porter-2",14]})).get("ok",false),"move second Porter out of the guard slots")
-	check((await game.update({"op":"campaign","action":"deploy","args":["mage",24]})).get("ok",false),"fill the last slot with a non-Porter")
+	check((await game.update({"op":"campaign","action":"deploy","args":[ids[1],14]})).get("ok",false),"move second Porter out of the guard slots")
+	check((await game.update({"op":"campaign","action":"deploy","args":[ids[4],24]})).get("ok",false),"fill the last slot with a non-Porter")
 	check(game.data.formed.ally==true,"three living non-Porters establish the formation")
 	game.hud.toggle_details();await settle()
 	labels=game.dialog.window.find_children("*","Label",true,false).map(func(n):return n.text)

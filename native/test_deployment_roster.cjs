@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 let passed=0;
@@ -8,7 +6,7 @@ function test(name,fn){fn();console.log('PASS '+name);passed++;}
 function okay(s){assert.equal(C.validate(s).ok,true,C.validate(s).error);assert.deepEqual(C.deserialize(C.serialize(s)),clone(s));}
 function prep(){const s=require('./test-current-fixture.cjs')();assert(C.select(s,C.view(s).roster.map(u=>u.id).slice(0,12)));assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>.2));okay(s);return s;}
 function reject(s,id,pos){const old=structuredClone(s);assert.equal(C.deployment_assign(s,id,pos),false);assert.deepEqual(s,old);}
-test('twelve real travellers, twelve cap, five combat slots and strict legacy saves',()=>{
+test('twelve real travellers, twelve cap, five combat slots and invalid deployment detection',()=>{
  const s=prep(),v=C.view(s);assert.equal(s.selected.length,12);assert.equal(v.partyLimit,12);assert.equal(v.battleLimit,5);assert.equal(v.deploymentRoster.remaining,0);assert.equal(v.deploymentRoster.reserves.length,7);
  const legacy=require('./test-current-fixture.cjs')();assert(!Object.hasOwn(legacy,'battleSelected'));okay(legacy);C.depart(legacy,'east');C.travel(legacy,'safe',()=>.2);legacy.battle.units=legacy.battle.units.filter(u=>u.id!=='guard');assert.equal(C.validate(legacy).ok,false);
  const before=structuredClone(s);assert.equal(C.select(s,[]),false);assert.deepEqual(s,before);
@@ -79,8 +77,8 @@ test('same-job member tie uses canonical nonzero index after replace/remove/re-a
  function ties(){const expected=B.create({ally:s.battleSelected,enemy:[],deployment:true}).units;assert.deepEqual(s.battle.units.filter(u=>u.side==='ally').map(u=>[u.id,u.tie]),expected.map(u=>[u.id,u.tie]));}
  const guard=s.battle.units.find(u=>u.id==='guard');assert(C.deployment_assign(s,'guard-2',guard.pos));ties();
  assert(C.deployment_assign(s,'porter',null));assert(C.deployment_assign(s,'guard',0));ties();
- const guards=s.battle.units.filter(u=>u.job==='guard'&&u.side==='ally');assert.equal(guards.length,2);assert(guards.every(u=>s.battleSelected.indexOf(u.id)>0));assert(guards[0].tie<guards[1].tie,'existing same-job earlier member remains earlier');
- const ids=[...s.battleSelected],before=guards.map(u=>[u.id,u.tie]);assert(C.deployment_assign(s,'mage',1));assert.deepEqual(s.battleSelected,ids);assert.deepEqual(s.battle.units.filter(u=>u.job==='guard'&&u.side==='ally').map(u=>[u.id,u.tie]),before);
+ const guards=s.battle.units.filter(u=>u.job==='warrior'&&u.side==='ally');assert.equal(guards.length,2);assert(guards.every(u=>s.battleSelected.indexOf(u.id)>0));assert(guards[0].tie<guards[1].tie,'existing same-job earlier member remains earlier');
+ const ids=[...s.battleSelected],before=guards.map(u=>[u.id,u.tie]);assert(C.deployment_assign(s,'mage',1));assert.deepEqual(s.battleSelected,ids);assert.deepEqual(s.battle.units.filter(u=>u.job==='warrior'&&u.side==='ally').map(u=>[u.id,u.tie]),before);
  assert(C.deployment_assign(s,'guard-2',null));ties();assert(C.deployment_assign(s,'guard-2',2));ties();s=C.deserialize(C.serialize(s));ties();okay(s);
  assert(C.chooseFormation(s,'flank'));assert(C.deployment_reset(s));ties();assert(C.begin(s));okay(s);
 });

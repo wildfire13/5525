@@ -394,7 +394,7 @@ func draw_overlay():
 	for x in range(10):overlay.draw_string(font,project(point(40+x)+Vector3(0,.02,.72)),str(x),HORIZONTAL_ALIGNMENT_CENTER,-1,18,Color("#83e9db") if x<5 else Color("#ffa4b5"))
 	for y in range(5):overlay.draw_string(font,project(point(y*10)+Vector3(-.85,.02,0)),str(4-y),HORIZONTAL_ALIGNMENT_CENTER,-1,14,Color.WHITE)
 	if state.get("sluice") is Dictionary:
-		draw_sluice(state.sluice)
+		draw_sluice(state)
 	draw_unit_labels(state)
 	if has_focus():
 		cell_outline(keyboard_cell,Color("#78edce"),3.0)
@@ -426,7 +426,8 @@ func sync_sluice_works(gate) -> void:
 		grille_motion = grille.create_tween()
 		grille_motion.tween_property(grille, "position:y", height, 0.22)
 
-func draw_sluice(gate: Dictionary) -> void:
+func draw_sluice(state: Dictionary) -> void:
+	var gate: Dictionary = state.sluice
 	var opened := bool(gate.open)
 	var exit_color := Color("a4efcb") if opened else Color("ffb59c")
 	var font := get_theme_default_font()
@@ -456,7 +457,13 @@ func draw_sluice(gate: Dictionary) -> void:
 			overlay.draw_line(center + Vector2(0, 10), tag.get_center(), ink, 2, true)
 		overlay.draw_rect(tag, Color("22332ef0"))
 		overlay.draw_string(font, tag.position + Vector2(5, 17), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, ink)
-	var tip := "守護者が通常移動で巻上機へ：開門　離脱・撃破：閉門"
+	if state.get("result") != null:
+		return
+	var tip := "守護者を巻上機に移動させよう"
+	if state.get("deploying", false) and state.get("campaignStage") == 0:
+		tip = "この戦場で突破できるのは、水門の出口だけ"
+	elif opened:
+		tip = "巻上機を押さえたまま、ポーターを出口へ"
 	var width := font.get_string_size(tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 16
 	overlay.draw_rect(Rect2(8, 8, width, 26), Color("22332ef0"))
 	overlay.draw_string(font, Vector2(16, 27), tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)

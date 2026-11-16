@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),B=require('./campaign-battle.js');
 let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS '+name);};
 const clone=x=>JSON.parse(JSON.stringify(x));

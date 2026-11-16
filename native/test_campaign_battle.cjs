@@ -1,6 +1,13 @@
 'use strict';
 const assert=require('node:assert/strict');
 const B=require('./campaign-battle.js');
+{
+ const battle=B.create({ally:['guard','warrior'],enemy:['guard','warrior'],deployment:true});
+ for(const unit of battle.units){
+  assert.equal(unit.job,'warrior');
+  assert.equal(B.activeSkill(unit),unit.weapon==='hammer'?'stamp':'guard');
+ }
+}
 function scenario(job,skill){
  const s=B.create({ally:[job],enemy:['guard','archer'],enemyPotions:0,deployment:true});
  const a=s.units[0];a.equippedSkill=skill;a.pos=24;a.reach=skill==='archer'?3:2;a.atk=26;a.mp=6;
@@ -12,7 +19,7 @@ function scenario(job,skill){
  assert.equal(B.act(s,'skill',25),true);assert.equal(a.mp,5);assert.ok(s.units[1].hp<180);assert.ok(s.units[2].hp<100);assert.equal(a.job,'mage');
 }
 {
- const {s,a}=scenario('guard','mage');a.hp=100;assert.equal(B.legal(s,'skill',a.id),true);assert.equal(B.act(s,'skill',a.id),true);assert.ok(a.hp>100);assert.equal(a.job,'guard');
+ const {s,a}=scenario('guard','mage');a.hp=100;assert.equal(B.legal(s,'skill',a.id),true);assert.equal(B.act(s,'skill',a.id),true);assert.ok(a.hp>100);assert.equal(a.job,'warrior');
 }
 {
  const {s,a}=scenario('mage','archer');s.units[1].pos=28;

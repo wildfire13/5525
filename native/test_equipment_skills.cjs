@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),B=require('./campaign-battle.js'),C=require('./campaign.js'),E=require('./equipment-skills.js');
 let count=0;const test=(name,fn)=>{fn();count++;console.log('PASS '+name);};
 const clone=x=>JSON.parse(JSON.stringify(x));
@@ -115,8 +113,7 @@ test('purchase and trial all eleven; actual actions isolated from campaign',()=>
  const rows=E.gear.filter(g=>g.slot==='weapon'||g.slot==='accessory1'&&g.effect&&g.effect!=='invasion');
  assert.equal(rows.length,11);
  for(const gear of rows){
-  // Commerce roundtrips exercise current saves; initial migration has its own
-  // assertions below. The shared fixture supplies real inventory capacity.
+  // The shared fixture supplies inventory capacity for the commerce roundtrip.
   const s=require('./test-current-fixture.cjs')();s.location=gear.slot==='weapon'?'east':'north';s.gold=500;
   const id=gear.skill==='splitShot'||gear.skill==='pincer'?'archer':'mage';
   const before=C.serialize(s),t=C.trial(s,id,gear.id);assert.ok(t,gear.id);assert.equal(C.serialize(s),before);
@@ -132,7 +129,7 @@ test('purchase and trial all eleven; actual actions isolated from campaign',()=>
   assert.equal(C.serialize(s),before);assert.equal(C.buyGear(s,id,gear.id),true);assert.equal(s.characters[id][gear.slot],gear.id);assert.deepEqual(C.deserialize(C.serialize(s)),s);
  }
 });
-test('save/load battle flags, effects and covers; old saves; malformed extension rejected',()=>{
+test('save/load battle flags, effects and covers; malformed extension rejected',()=>{
  const s=require('./test-current-fixture.cjs')();s.characters.guard.lowerBody='cloth-lowerBody';s.gold=1000;s.location='east';assert(C.buyGear(s,'guard','battleline-shield'));s.location='north';assert(C.buyGear(s,'guard','return-ring-1'));assert(C.buyGear(s,'guard','pioneer-gloves-2'));
  // Both accessories are under test, so the replaced capacity pouch and other
  // carried supplies move to the porter before departure.
@@ -142,7 +139,6 @@ test('save/load battle flags, effects and covers; old saves; malformed extension
  expected.battle.units.find(u=>u.id==='guard').returnUsedGrants=Object.fromEntries(B.returnSkillOptions(a).map(o=>[o.key,true]));
  assert.deepEqual(loaded,expected);assert.equal(B.legalFor(loaded.battle,loaded.battle.units.find(u=>u.id==='guard'),'return',0),false);
  for(const change of [u=>u.returnUsed='no',u=>u.firstMoveUsed=1,u=>u.effects=['loneWolf'],u=>u.covers=['missing'],u=>u.covers=['mage','mage']]){const bad=JSON.parse(saved);change(bad.state.battle.units.find(u=>u.id==='guard'));assert.throws(()=>C.deserialize(bad));}
- const old=C.createLegacy(),migrated=C.deserialize(C.serialize(old));assert.equal(Object.keys(migrated.characters).length,35);assert.equal(migrated.phase,'town');assert.deepEqual(C.deserialize(C.serialize(migrated)),migrated);
  assert.equal(C.retreat(loaded),true);assert.equal(loaded.result.outcome,'failed');assert.equal(loaded.battle,null);
 });
 test('porter never attacks or gains offensive weapon skill; separate return remains usable',()=>{

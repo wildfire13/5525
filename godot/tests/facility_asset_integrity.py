@@ -6,7 +6,7 @@ from pathlib import Path
 from PIL import Image
 
 repo = Path(__file__).resolve().parents[2]
-docs = repo/'docs/facility-backgrounds'
+docs = Path(__file__).resolve().parent/'fixtures/facility-backgrounds'
 source = json.loads((docs/'manifest.json').read_text())
 assets = {a['target_path']:a for a in source['assets']}
 with (docs/'facility_style_map.csv').open(encoding='utf-8-sig',newline='') as f:

@@ -29,7 +29,7 @@ func verify_row(caption: String, kind: String, amount: int, rp: int, context: St
 	check(labels == expected,context + " / " + caption + " amounts " + str(expected))
 	var icons = row.find_children("*","TextureRect",true,false)
 	check(icons.size() == 1 and icons[0].get_meta("ui_icon_id","") == kind,context + " / " + caption + " " + kind + " icon")
-func verify_rewards(q: Dictionary, base: int, bonus: int, base_rp: int, bonus_rp: int, legacy: bool, context: String):
+func verify_rewards(q: Dictionary, base: int, bonus: int, base_rp: int, bonus_rp: int, context: String):
 	var before = await saved()
 	game.navigate("board");await settle()
 	var choice = game.find_child("QuestChoice_" + str(q.id),true,false)
@@ -38,8 +38,7 @@ func verify_rewards(q: Dictionary, base: int, bonus: int, base_rp: int, bonus_rp
 	var kind = "experience" if q.get("rewardType", "money") == "experience" else "money"
 	verify_row("基本報酬",kind,base,base_rp,context)
 	verify_row("希望条件達成報酬",kind,bonus,bonus_rp,context)
-	if legacy:verify_row("キャラクター報酬","experience",int(q.xp),0,context)
-	else:check(reward_row("キャラクター報酬") == null,context + " RP is not character EXP")
+	check(reward_row("キャラクター報酬") == null,context + " RP is not character EXP")
 	check(await saved() == before,context + " rendering preserves saved state")
 func run():
 	create_timer(150).timeout.connect(func():print("FAIL reward display watchdog");quit(2))
@@ -62,17 +61,11 @@ func run():
 		check(offers.size() == 1,str(sample[1]) + " real API offer available")
 		if offers.size() != 1:continue
 		var q = offers[0]
-		await verify_rewards(q,sample[2],sample[3],sample[4],sample[5],false,str(q.id) + " offered")
+		await verify_rewards(q,sample[2],sample[3],sample[4],sample[5],str(q.id) + " offered")
 		var carrier = game.campaign().selected.filter(func(id):return game.campaign().roster.any(func(c):return c.id == id and c.job == "porter"))[0]
 		await game.act("accept",[q.id,carrier]);await settle()
 		check(game.campaign().activeQuest is Dictionary,str(q.id) + " accepted")
-		await verify_rewards(game.campaign().activeQuest,sample[2],sample[3],sample[4],sample[5],false,str(q.id) + " accepted")
-		# Revisionless saves predate rewardType and retain gold plus character EXP.
-		var legacy = (await saved()).duplicate(true)
-		legacy.state.activeQuest.erase("rewardRevision")
-		legacy.state.activeQuest.erase("rewardType")
-		await game.update({"op":"campaign_load","data":legacy});await settle()
-		await verify_rewards(game.campaign().activeQuest,sample[2],sample[3],0,0,true,str(q.id) + " legacy accepted")
+		await verify_rewards(game.campaign().activeQuest,sample[2],sample[3],sample[4],sample[5],str(q.id) + " accepted")
 	print("quest reward display regression: %d checks, %d failures" % [checks,failures.size()])
 	game.closing = true;game.dialog.close(false);await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(6):await process_frame

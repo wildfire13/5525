@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict');
 const B=require('./campaign-battle.js'),{Presentation,capture}=require('./battle-presentation.cjs');
 const clone=x=>JSON.parse(JSON.stringify(x));
@@ -92,7 +90,7 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
  const C=require('./campaign.js');
  const {mark}=require('./battle-presentation.cjs');
  function sweep(level=1,already=false,consume=false){
-  const campaign=C.deserialize(C.serialize(C.createLegacy()));for(const c of Object.values(campaign.characters))c.inventory={};campaign.characters.guard.lowerBody=level===1?'kungfu-pants':`kungfu-pants-${level}`;
+  const campaign=require('./test-current-fixture.cjs')({extraCapacity:false});for(const c of Object.values(campaign.characters))c.inventory={};campaign.characters.guard.lowerBody=level===1?'kungfu-pants':`kungfu-pants-${level}`;
   assert(C.depart(campaign,'east'));assert(C.travel(campaign,'short',()=>0));assert(C.begin(campaign));
   const b=campaign.battle,positions={guard:24,archer:12,mage:13,scout:4,porter:32};
   for(const u of b.units){u.next=10000;if(u.side==='ally')u.pos=positions[u.id];}
@@ -187,7 +185,7 @@ for(const [skill,positions,expected] of [['archer',[26],[40]],['archer',[27],[14
 {
  const C=require('./campaign.js');
  function attackCampaign({mixed=false,actor='guard',targetCell=25,covered=false}={}){
-  const s=C.deserialize(C.serialize(C.createLegacy()));for(const c of Object.values(s.characters))c.inventory={};if(mixed)s.characters.guard.leftHand='staff-wood';
+  const s=require('./test-current-fixture.cjs')({extraCapacity:false});for(const c of Object.values(s.characters))c.inventory={};if(mixed)s.characters.guard.leftHand='staff-wood';
   assert(C.depart(s,'east'));assert(C.travel(s,'short',()=>0));assert(C.begin(s));
   const positions={guard:actor==='archer'?22:24,archer:actor==='archer'?24:12,mage:13,scout:4,porter:32};
   const b=s.battle;for(const u of b.units){u.next=10000;if(u.side==='ally')u.pos=positions[u.id];}

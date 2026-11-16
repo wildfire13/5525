@@ -1,7 +1,5 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
-const assert=require('node:assert/strict'),fs=require('node:fs'),C=require('./campaign.js');
+const assert=require('node:assert/strict'),C=require('./campaign.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 const s=require('./test-current-fixture.cjs')();s.xp=730;s.level=999;
 for(const c of Object.values(s.characters))c.xp=80;
@@ -18,11 +16,4 @@ for(const [id,c] of Object.entries(loaded.characters)){
 }
 const after=C.serialize(loaded);assert.equal(C.finishBattle(loaded),false);assert.equal(C.serialize(loaded),after);
 assert.deepEqual(C.deserialize(after).characters,loaded.characters,'save/load never re-awards growth');
-const legacy=JSON.parse(fs.readFileSync(require.resolve('./test_fixtures/campaign-a51a773-battle.json'),'utf8'));
-const original=clone(legacy);const a=C.deserialize(legacy),b=C.deserialize(C.serialize(a));
-assert.deepEqual(legacy,original,'legacy save input is untouched');
-for(const id of Object.keys(legacy.state.characters)){
- for(const key of ['xp','level','statPoints','skillPoints','allocations'])assert.deepEqual(a.characters[id][key],legacy.state.characters[id][key]);
-}
-assert.deepEqual(a.characters,b.characters);
-console.log('PASS team EXP inert; personal growth once; reserves preserved; v1/v2 load without re-award');
+console.log('PASS personal growth and current save roundtrip');

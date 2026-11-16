@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js');
 let checks=0;function check(ok,label){assert.ok(ok,label);checks++;console.log('PASS '+label);}
 const snapshot=s=>C.serialize(s),make=()=>{const s=C.createLegacy();s.location='east';s.gold=500;return s;};

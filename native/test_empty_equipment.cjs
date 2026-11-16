@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),S=require('./equipment-slots.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 let passed=0;const test=(name,fn)=>{fn();passed++;console.log('PASS '+name);};
@@ -48,7 +46,7 @@ test('contaminated candidate saves are rejected without silently deleting stock 
   for(const slot of Object.keys(S.slots))for(const rollback of [false,true]){
     const s=require('./test-current-fixture.cjs')();if(rollback)s.rollback=clone(s);const target=rollback?s.rollback:s;
     target.characters.guard.inventory['empty-'+slot]=3;
-    const input={format:'5525-native-campaign',version:2,state:s},before=clone(input);
+    const input={format:'5525-native-campaign',version:C.VERSION,cargoRevision:1,state:s},before=clone(input);
     assert.equal(C.validate(s).ok,false);assert.throws(()=>C.deserialize(input),/空の装備枠/);assert.deepEqual(input,before);
   }
 });

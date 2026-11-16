@@ -61,13 +61,6 @@ for(const epoch of [0,42])for(const age of [24,25,36,37,48])for(const town of to
   assert.equal(entries.some(x=>x.id==='wheel-aftermath'),age>36&&town==='south');assert.equal(C.serialize(loaded),before);
   assert.equal(loaded.activeQuest,null);assert.equal(loaded.result,null);assert.equal(loaded.gold,s.gold);
 }
-// Calendarless v2 saves seed at their saved world hour. Old clocks are not interpreted as event age.
-{
-  const old=C.create();old.version=2;old.hours=42;delete old.worldTime;delete old.standaloneEvents;
-  let s=C.deserialize(JSON.stringify({format:'5525-native-campaign',version:2,cargoRevision:1,state:old}));assert.equal(s.standaloneEvents.epoch,42);
-  at(s,36,'south');assert(!C.scenarioAftermath(s).some(x=>x.id==='wheel-aftermath'));
-  s=C.deserialize(C.serialize(s));at(s,37,'south');assert(C.scenarioAftermath(s).some(x=>x.id==='wheel-aftermath'));
-}
 // The kiln's successful aftermath stays in East at 23h and explicitly explains the apprentice's visit.
 for(const epoch of [0,42]){
   let s=at(start('kiln',epoch),20,'east');assert(C.completeQuest(s));assert(C.acknowledge(s));s=C.deserialize(C.serialize(s));
@@ -77,4 +70,4 @@ for(const epoch of [0,42]){
     assert.equal(C.serialize(s),before);
   }
 }
-console.log(`Quest decisions: ${settlements} all-town settlements, ${boundaries} delivery boundaries, plus stale actions, aftermath, epoch, legacy saves and forecast groups passed`);
+console.log(`Quest decisions: ${settlements} all-town settlements, ${boundaries} delivery boundaries, plus stale actions, aftermath, epoch and forecast groups passed`);

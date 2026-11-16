@@ -13,12 +13,6 @@ class GodotFilesTests(unittest.TestCase):
             original=path.read_bytes()
             with self.assertRaises(FileExistsError):write_new(path,{'overwrite':True})
             self.assertEqual(path.read_bytes(),original); self.assertEqual(len(list(path.parent.iterdir())),1)
-    def test_fixture_read_never_changes_source_and_old_image_default(self):
-        source=Path(__file__).parent/'test_fixtures/campaign-a51a773-battle.json'; original=source.read_bytes()
-        result=run({'action':'read','path':str(source),'allowed':[]})
-        self.assertEqual(result['format'],'5525-native-campaign')
-        self.assertEqual(result['nativePortraits'],{'version':1,'characters':{}})
-        self.assertEqual(source.read_bytes(),original)
     def test_custom_portrait_embedded_and_hash_validation(self):
         source=Path(__file__).parent/'assets/knight.png'
         result=run({'action':'portrait','path':str(source)})

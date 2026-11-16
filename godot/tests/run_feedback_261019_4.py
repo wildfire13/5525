@@ -41,7 +41,7 @@ def run(name, command, cwd, env=None):
     print(json.dumps(result, ensure_ascii=False), flush=True)
 
 
-for test in ['feedback_261019_4','equipment_slots','equipment_migration','shop_transactions']:
+for test in ['feedback_261019_4','equipment_slots','shop_transactions']:
     run('native_'+test, [node, 'test_'+test+'.cjs'], repo / 'native')
 run('native_preview', [sys.executable, '-m', 'unittest', '-v', 'test_preview_bridge'], repo / 'native')
 run('native_dual_skills', [node, 'test_dual_skills.cjs'], repo / 'native')

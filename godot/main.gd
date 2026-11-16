@@ -118,6 +118,7 @@ func _ready():
 
 	town_back=button(top,"拠点へ",navigate.bind("hub"));town_back.visible=false
 	var menu_button=local_button(self,"メニュー",open_menu);menu_button.name="CommonMenuButton"
+	memory.key(menu_button,"game_menu")
 	menu_button.z_index=61
 	menu_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);menu_button.offset_left=-136;menu_button.offset_top=-64;menu_button.offset_right=-12;menu_button.offset_bottom=-8
 	retry_button=button(top,"再接続",func():confirm("ゲーム接続を再開します。失われた未保存の進行は復元できません。\n再接続後、保存済みファイルを読み込んでください。",reconnect_engine));retry_button.visible=false
@@ -244,7 +245,9 @@ func show_status_details():
 		label_(body,message if not message.is_empty() else "現在の通知はありません。")
 		local_button(actions,"閉じる",dialog.close),func():
 		if not closing and pages.epoch==epoch and engine.connection_generation==generation and notice==saved_notice:
-			focus_hint=saved_hint;status_override=message;set_status(message);footer.grab_focus())
+			focus_hint=saved_hint;status_override=message;set_status(message)
+			dialog.origin="status_footer" if footer.is_visible_in_tree() and footer.focus_mode!=Control.FOCUS_NONE else "game_menu")
+
 # Local interactions can refresh one panel without detaching the surrounding page.
 func refresh_panel(draw: Callable):
 	memory.capture()

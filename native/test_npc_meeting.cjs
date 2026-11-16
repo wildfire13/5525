@@ -47,14 +47,6 @@ for(const phase of ['road','camp','battle','arrival','result']){
   assert.equal(C.recipientMeeting(s).cargoAboard,false);assert(C.waitForEvent(s));assert.equal(C.recipientMeeting(s).reason,'cargo_missing');assert.equal(C.completeQuest(s),false);
   at(s,9,'east');assert(C.depart(s,'south'));const f=C.forecast(s,'short');assert.equal(f.afterWait.handoffAvailable,false);assert.equal(f.afterWait.reward,0);
 }
-// Read old calendarless v2 state without modifying source and retain the nonzero epoch.
-{
-  const old=C.create();old.version=2;old.hours=42;delete old.worldTime;delete old.standaloneEvents;const raw=JSON.stringify(old);
-  const s=C.deserialize(JSON.stringify({format:'5525-native-campaign',version:2,cargoRevision:1,state:old}));assert.equal(JSON.stringify(old),raw);
-  s.location='east';const offer=C.board(s).find(q=>q.eventId==='wheel');assert.equal(offer.meeting.reason,'not_accepted');assert.equal(C.waitForEvent(s),false);
-  assert(C.accept(s,offer.id,C.view(s).roster.find(c=>s.selected.includes(c.id)&&c.job==='porter').id));
-  at(s,15,'south');assert.equal(C.recipientMeeting(s).waitUntilWorldTime,60);assert(C.waitForEvent(s));assert.equal(s.worldTime,60);
-}
 // Forecast evaluates actual arrival, with an independent post-wait result and unchanged contract.
 for(const epoch of [0,42])for(const [age,to,predicted,wait] of [[3,'astaris',9,1],[3,'south',9,9],[9,'south',15,3],[12,'astaris',18,0],[18,'south',24,0],[19,'south',25,0],[30,'south',36,0],[31,'south',37,0]]){
   const s=at(setup('wheel',epoch),age,'east');assert(C.depart(s,to));const before=JSON.stringify(s),f=C.forecast(s,'short');assert.equal(JSON.stringify(s),before);

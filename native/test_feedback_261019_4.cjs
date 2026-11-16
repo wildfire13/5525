@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js');
 const action=(s,id,kind,slot,token=C.inventoryToken(s))=>C.inventoryAction(s,'guard',id,kind,null,1,slot,token);
 const count=(s,id)=>(s.characters.guard.inventory[id]||0)+Object.values(C.equipment(s.characters.guard)).filter(x=>x===id).length;

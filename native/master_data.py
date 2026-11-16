@@ -56,7 +56,7 @@ def validate_equipment(g):
     for key in ('material','note','flavor','shopProductId'):
         if key in g and not isinstance(g[key],str): raise ValueError('invalid equipment text')
     if 'material' in g and g['material'] not in ('cloth','iron','leather','silver','wood','glass','steel'): raise ValueError('invalid material')
-    if 'jobOnly' in g and g['jobOnly'] not in ('porter','guard','scout','mage','archer'): raise ValueError('invalid equipment job')
+    if 'jobOnly' in g and g['jobOnly'] not in ('porter','warrior','scout','mage','archer'): raise ValueError('invalid equipment job')
 
 def integer(v, minimum=0):
     return type(v) is int and minimum <= v <= 9007199254740991

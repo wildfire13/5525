@@ -1,7 +1,5 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
-const assert=require('node:assert/strict'),fs=require('node:fs'),C=require('./campaign.js'),B=require('./campaign-battle.js');
+const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 let checks=0;
 function check(ok,message){assert(ok,message);checks++;}
 function unit(id,side,pos){return {id,side,pos,job:'scout',hp:100,max:100,mp:9,maxMp:9,atk:23,reach:1,agi:10,def:0,guard:false,cover:null};}
@@ -107,10 +105,6 @@ try{
  const loaded=C.deserialize(C.serialize(s));check(loaded.characters.guard.def===5&&loaded.battle.units.find(u=>u.id==='guard').def===expectedGuardDef,'positive and equipment DEF roundtrip');
 }
 {
- const old=JSON.parse(fs.readFileSync(require.resolve('./test_fixtures/campaign-a51a773-battle.json'),'utf8')),bytes=JSON.stringify(old),s=C.deserialize(old);
- check(JSON.stringify(old)===bytes,'old save source untouched');
- check(Object.values(s.characters).every(c=>c.def===0)&&s.battle===null,'old missing DEF defaults zero; old battle is cleared by update migration');
- check(C.deserialize(C.serialize(s)).characters.guard.def===0,'normalized old save reloads');
  for(const value of [-1,.5,'4']){const bad=require('./test-current-fixture.cjs')();bad.characters.guard.def=value;check(!C.validate(bad).ok,'invalid DEF rejected');}
 }
 console.log('PASS '+checks+' scoped equipment-level/DEF checks (Lv2/3 definitions changed in-memory only; no new priced items)');

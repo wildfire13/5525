@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const master=require('./master-data.cjs').getMaster();
 const hammer=C.gear.find(g=>g.id==='hammer-wood'),originalSkill=hammer.skill,originalGrants=master.grantsByEquipment[hammer.id];

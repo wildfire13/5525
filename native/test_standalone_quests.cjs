@@ -73,23 +73,15 @@ function stateAt(s,worldTime,location){s.worldTime=worldTime;s.hours=worldTime;s
   assert(C.travel(moving,'short',()=>.5));assert.equal(moving.worldTime,18);assert.equal(moving.activeQuest.to,'south');assert.equal(moving.activeQuest.text,'替えの車輪をサウスまで届けてください。');
   const s=C.create();s.location='north';const offer=C.board(s).find(q=>!q.scenario&&q.to==='astaris');assert(offer);assert(C.accept(s,offer.id,s.selected.find(id=>C.view(s).roster.find(c=>c.id===id).job==='porter')));assert(C.depart(s,'astaris'));const normal=C.forecast(s,'safe');assert.equal(normal.reward,117);assert.equal(normal.scenario,undefined);
 }
-// A pre-feature v2 save is read without mutation and gets a fresh calendar at its saved time.
+// Current save with a nonzero calendar epoch.
 {
-  const old=C.create();old.hours=42;delete old.worldTime;delete old.standaloneEvents;const untouchedOld=JSON.stringify(old);
-  const loaded=C.deserialize(JSON.stringify({format:'5525-native-campaign',version:C.VERSION,cargoRevision:1,state:old}));
-  assert.equal(JSON.stringify(old),untouchedOld,'migration does not mutate the supplied old-save object');
-  assert.equal(loaded.worldTime,42);assert.equal(loaded.standaloneEvents.epoch,42);assert.equal(C.validate(loaded).ok,true,C.validate(loaded).error);
+  const loaded=C.create(); loaded.worldTime=42; loaded.hours=42; loaded.standaloneEvents.epoch=42;
   loaded.location='east';const offer=C.board(loaded).find(q=>q.eventId==='wheel');assert(offer);const porter=loaded.selected.find(id=>C.view(loaded).roster.find(c=>c.id===id).job==='porter');assert(C.accept(loaded,offer.id,porter));
   loaded.worldTime=64;loaded.hours=64;const storedQuest=JSON.stringify(loaded.activeQuest),dynamic=C.view(loaded).activeQuest;assert.equal(dynamic.to,'south');assert(dynamic.text.includes('サウス'));assert.equal(JSON.stringify(loaded.activeQuest),storedQuest,'derived presentation does not rewrite stored active quest');
   const round=C.deserialize(C.serialize(loaded));assert.equal(round.standaloneEvents.epoch,42);assert.equal(C.view(round).activeQuest.to,'south');assert(C.view(round).activeQuest.text.includes('サウス'));
 }
-// Deadline failures explain their cause and retain read-only compatibility with old result saves.
+// Deadline failures explain their cause.
 {
-  const road=C.create();assert(C.depart(road,'east'));delete road.result;
-  assert.equal(C.validate(road).ok,true);
-  const roadReloaded=C.deserialize(C.serialize(road)),roadSnapshot=C.serialize(roadReloaded);
-  assert.equal(Object.hasOwn(C.view(roadReloaded),'result'),false,'valid legacy road save can omit result');
-  assert.equal(C.serialize(roadReloaded),roadSnapshot);
   for(const [event,from,to,deadline] of [['turnip','north','astaris',19],['kiln','astaris','east',21],['wheel','east','south',37]]){
     const s=setup(event,from),before=structuredClone(s.rollback);stateAt(s,deadline,to);assert(C.completeQuest(s));
     assert.match(s.result.reason,/納品期限を過ぎました/);assert.match(s.result.reason,/世界の時刻は巻き戻りません/);
@@ -98,10 +90,6 @@ function stateAt(s,worldTime,location){s.worldTime=worldTime;s.hours=worldTime;s
     assert.equal(s.result.gold,0);assert.equal(s.result.xp,0);assert.equal(s.result.rp||0,0);
     assert.equal(C.completeQuest(s),false);assert.equal(C.validate(s).ok,true);
     const round=C.deserialize(C.serialize(s));assert.equal(round.result.reason,s.result.reason);assert.equal(C.completeQuest(round),false);
-    delete round.result.reason;const legacy=C.deserialize(C.serialize(round)),snapshot=C.serialize(legacy);
-    assert.equal(C.view(legacy).result.reason,s.result.reason);assert.equal(C.serialize(legacy),snapshot,'legacy result projection is read-only');
-    legacy.result.reason='既存の失敗理由';assert.equal(C.view(legacy).result.reason,'既存の失敗理由');
-    delete legacy.result.scenario;delete legacy.result.reason;assert.equal(C.view(legacy).result.reason,undefined,'non-scenario failure fallback is unchanged');
     assert(C.acknowledge(round));assert(!C.board(round).some(q=>q.eventId===event));
   }
 }

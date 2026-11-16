@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 // R04/R07/R08/R09: behavior checks, including rejection without partial writes.
 const assert=require('node:assert/strict');
 const C=require('./campaign.js'),B=require('./campaign-battle.js');

@@ -27,7 +27,7 @@ function battle(weapon='javelin-wood'){
 }
 console.log('PASS spear exact reach, fist conversion, single use, save/load, recovery; passive fist no CT');
 {
- const s=C.deserialize(C.serialize(C.createLegacy()));s.selected=['warrior','porter'];s.characters.warrior.inventory={};
+ const s=require('./test-current-fixture.cjs')({extraCapacity:false});s.selected=['warrior','porter'];s.characters.warrior.inventory={};
  assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
  const b=s.battle,a=b.units.find(u=>u.id==='warrior'),p=b.units.find(u=>u.id==='porter');
  b.units.forEach((u,i)=>{u.pos=i;u.next=100});a.pos=22;a.next=1;p.next=2;b.actor=a.id;
@@ -42,14 +42,7 @@ console.log('PASS spear exact reach, fist conversion, single use, save/load, rec
  assert(b.log.some(text=>text.includes('空振り')));
 }
 console.log('PASS stamp right three cells, reservation, no early hit, save/load, empty resolution');
-{
- const fs=require('node:fs'),path=require('node:path');
- const original=fs.readFileSync(path.join(__dirname,'test_fixtures/campaign-4633264-javelin.json'),'utf8');
- const migrated=C.deserialize(original);assert.equal(migrated.phase,'town');assert.equal(migrated.characters.guard.weapon,'javelin-wood');
- assert.equal(Object.keys(migrated.characters).length,35);assert.deepEqual(C.deserialize(C.serialize(migrated)),migrated);
- const invalid=JSON.parse(original);invalid.state.battle.units.find(u=>u.id==='guard').atk+=999;assert.throws(()=>C.deserialize(invalid));
- console.log('PASS frozen pre-update javelin battle migration, unchanged equipment, idempotence, corrupt stat rejected');
-}
+
 {
  for(const grants of [0,1,2])for(const roll of [.05,.15,.95]){
   const b=B.create({ally:['guard','porter'],enemy:['guard'],deployment:true,enemyPotions:0});
@@ -78,7 +71,7 @@ console.log('PASS stamp right three cells, reservation, no early hit, save/load,
  console.log('PASS fixed stamp cells after target/caster movement, authoritative VFX cells, board edges');
 }
 {
- const s=C.deserialize(C.serialize(C.createLegacy()));s.selected=['warrior','porter'];s.characters.warrior.inventory={};
+ const s=require('./test-current-fixture.cjs')({extraCapacity:false});s.selected=['warrior','porter'];s.characters.warrior.inventory={};
  assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));const b=s.battle,a=b.units.find(u=>u.id==='warrior'),p=b.units.find(u=>u.id==='porter');
  b.units.forEach((u,i)=>{u.pos=i;u.next=100});a.pos=22;a.next=1;p.next=2;b.actor=a.id;
  const mp=a.mp;assert(B.act(b,'skill',23));assert(a.pendingStamp);a.skipNextTurn=true;
@@ -89,7 +82,7 @@ console.log('PASS stamp right three cells, reservation, no early hit, save/load,
  console.log('PASS leg sweep cancels queued stamp without refund/activation CT; save reload does not resurrect it');
 }
 {
- const s=C.deserialize(C.serialize(C.createLegacy()));s.selected=['warrior','porter'];s.characters.warrior.inventory={};
+ const s=require('./test-current-fixture.cjs')({extraCapacity:false});s.selected=['warrior','porter'];s.characters.warrior.inventory={};
  assert(C.depart(s,'east'));assert(C.travel(s,'safe',()=>.2));assert(C.begin(s));
  const b=s.battle,a=b.units.find(u=>u.id==='warrior'),p=b.units.find(u=>u.id==='porter');
  b.units.forEach((u,i)=>{u.pos=i;u.next=100});a.pos=22;a.next=1;p.next=2;b.actor=a.id;

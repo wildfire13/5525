@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 const expected=[['greatsword-wood',2,50,1,14,140],['spear-wood',1,23,2,10,90],['longspear-wood',2,34,2,14,140],['javelin-wood',1,21,1,10,100]];

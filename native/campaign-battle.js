@@ -104,7 +104,7 @@ const Battle = (() => {
   // positions. In a two-Porter party, only non-Porters can complete the line.
   const formation = (s,side="ally") => {const cells=formationSlots(s,side);return cells.length===3&&cells.every(p=>p>=0&&p<50&&alive(s).some(u=>u.side===side&&u.job!=='porter'&&u.pos===p));};
   // 仮接続：槌装備でスタンプを試せる。完成版の習得・使用条件は未決定。
-  const activeSkills = a => a.activeSkills||[a.job==='porter'?'porter':(a.equippedSkill || (a.weapon==='hammer'?'stamp':a.job))];
+  const activeSkills = a => a.activeSkills||[a.job==='porter'?'porter':(a.equippedSkill || (a.weapon==='hammer'?'stamp':a.job==='warrior'?'guard':a.job))];
   // A grant has an identity independent of the shared effect definition.
   // The slot ordinal also distinguishes repeated grants within one item.
   function grantOptions(a,ids) {
@@ -215,17 +215,17 @@ const Battle = (() => {
   }
   const boosted=(s,side='ally')=>formation(s,side)&&alive(s).some(u=>u.side===side&&u.boost);
   const templates = [
-    {job:"guard",name:"ガロ",role:"盾役",icon:"盾",pos:24,max:180,atk:26,agi:10,reach:1,mp:6,image:"knight.png"},
-    {job:"archer",name:"リノ",role:"弓手",icon:"弓",pos:13,max:100,atk:25,agi:14,reach:3,mp:4,image:"archer.png"},
-    {job:"mage",name:"ミオ",role:"魔法使い",icon:"癒",pos:33,max:100,atk:14,agi:11,reach:2,mp:8,image:"healer.png"},
-    {job:"scout",name:"ニカ",role:"スカウト",icon:"斥",pos:4,max:105,atk:23,agi:13,reach:1,mp:5,image:"scout.png"},
-    {job:"porter",name:"トワ",role:"ポーター",icon:"運",pos:22,max:110,atk:0,agi:12,reach:0,mp:6,image:"porter.png"},
-    {job:"warrior",name:"槌戦士（仮）",role:"槌戦士",icon:"槌",weapon:"hammer",pos:24,max:180,atk:26,agi:10,reach:1,mp:6,image:"warrior.png"}
+    {id:"guard",job:"warrior",name:"ガロ",role:"盾役",icon:"盾",pos:24,max:180,atk:26,agi:10,reach:1,mp:6,image:"knight.png"},
+    {id:"archer",job:"archer",name:"リノ",role:"弓手",icon:"弓",pos:13,max:100,atk:25,agi:14,reach:3,mp:4,image:"archer.png"},
+    {id:"mage",job:"mage",name:"ミオ",role:"魔法使い",icon:"癒",pos:33,max:100,atk:14,agi:11,reach:2,mp:8,image:"healer.png"},
+    {id:"scout",job:"scout",name:"ニカ",role:"スカウト",icon:"斥",pos:4,max:105,atk:23,agi:13,reach:1,mp:5,image:"scout.png"},
+    {id:"porter",job:"porter",name:"トワ",role:"ポーター",icon:"運",pos:22,max:110,atk:0,agi:12,reach:0,mp:6,image:"porter.png"},
+    {id:"warrior",job:"warrior",name:"槌戦士（仮）",role:"槌戦士",icon:"槌",weapon:"hammer",pos:24,max:180,atk:26,agi:10,reach:1,mp:6,image:"warrior.png"}
   ];
-  const legacyRoster=templates.flatMap((t,i)=>t.job==='warrior'?[{...t,id:t.job}]:[{...t,id:t.job},{...t,id:t.job+'-2',name:['バルト','セナ','ユイ','ルカ','ハル'][i]}]);
+  const legacyRoster=templates.flatMap((t,i)=>t.id==='warrior'?[t]:[t,{...t,id:t.id+'-2',name:['バルト','セナ','ユイ','ルカ','ハル'][i]}]);
   const recruitRoster=require('./recruit-roster.js')(templates);
   const roster=[...legacyRoster,...recruitRoster];
-  const defaultJobs=['guard','archer','mage','scout'];
+  const defaultIds=['guard','archer','mage','scout'];
   function swapTarget(s,a,p){
     if(a.job!=='porter'||!canEnter(a,p)||p===a.pos)return null;
     const b=alive(s).find(u=>u.side===a.side&&u.id!==a.id&&u.pos===p);
@@ -486,7 +486,7 @@ const Battle = (() => {
     const porter=s.units.find(u=>u.side==='ally'&&u.job==='porter');
     if(porter&&porter.hp<=0){s.failure='porter';s.resultKind='defeat';s.result=`クエスト失敗。${porter.name}が倒れ、荷物を運べなくなった。`;}
     else if(s.sluice?.open && alive(s).some(u=>u.side==='ally' && u.job==='porter' && u.pos===s.sluice.exit)){s.resultKind='breakthrough';s.result='突破成功！ 水門を抜けて荷物を運び出した。';}
-    else if(porter&&x(porter.pos)===9){s.resultKind='breakthrough';s.result='突破成功！ ポーターが敵陣最奥へ到達。';}
+    else if(!s.sluice&&porter&&x(porter.pos)===9){s.resultKind='breakthrough';s.result='突破成功！ ポーターが敵陣最奥へ到達。';}
     else if(!alive(s).some(u=>u.side==='enemy')){s.resultKind='annihilation';s.result='勝利！ ミラーマッチを制した。';}
     else if(!alive(s).some(u=>u.side==='ally')){s.resultKind='defeat';s.result='敗北。配置と連携を変えて再挑戦しよう。';}
     if(s.result){
@@ -524,13 +524,13 @@ const Battle = (() => {
   function create(options={}){
     const units=[];
     for(const side of ['ally','enemy']){
-      const ids=options[side]||defaultJobs,used=new Set();
+      const ids=options[side]||defaultIds,used=new Set();
       const members=ids.map(id=>({...roster.find(t=>t.id===id)}));
       for(const t of members){if(!used.has(t.pos)){used.add(t.pos);}else t.pos=null;}
       for(const t of members){if(t.pos===null){t.pos=(t.job==='porter'?[32,12,2,42]:[24,13,33,4,14,34]).find(p=>!used.has(p));used.add(t.pos);}}
       if(side==='ally'&&options.formation==='flank'){const scout=members.find(t=>t.job==='scout');if(scout)scout.pos=14;}
       members.forEach((t,index)=>{
-        const roleIndex=templates.findIndex(p=>p.job===t.job),old=side==='ally'?options.previous?.find(p=>p.id===t.id):null;
+        const roleIndex=templates.findIndex(p=>t.id==='warrior'?p.id===t.id:p.job===t.job),old=side==='ally'?options.previous?.find(p=>p.id===t.id):null;
         const maxMp=old?.maxMp??t.mp+(side==='ally'?(options.bonusMp||0):0);
         units.push({...t,id:side==='ally'?t.id:'enemy-'+t.id,side,name:side==='ally'?t.name:'敵'+t.role+(options.enemy?' '+(index+1):''),pos:side==='ally'?t.pos:y(t.pos)*10+9-x(t.pos),hp:old?.hp??t.max,mp:old?.mp??maxMp,maxMp,def:0,...(options.skillStage!==undefined?{skillStage:options.skillStage}:{}),next:100/t.agi,guard:false,cover:null,tie:roleIndex*4+(side===(roleIndex%2?'ally':'enemy')?0:1)+index*.01});
       });

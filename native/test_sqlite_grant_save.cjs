@@ -1,6 +1,4 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
 const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 let count=0;function test(name,fn){fn();count++;console.log('PASS '+name);}
@@ -25,7 +23,7 @@ test('duplicate non-hand slot remains rejected',()=>{
 });
 test('retired fists cannot be duplicated to manufacture a second migration refund',()=>{
  const s=town();s.characters.archer.weapon='fist-1';s.characters.archer.leftHand='fist-1';assert.equal(C.validate(s).ok,false);
- assert.throws(()=>C.deserialize({format:'5525-native-campaign',version:2,cargoRevision:1,state:s}));
+ assert.throws(()=>C.deserialize({format:'5525-native-campaign',version:C.VERSION,cargoRevision:1,state:s}));
 });
 test('selected grant and cooldown survive save reload and cannot be forged',()=>{
  const s=town();assert.ok(C.buyGear(s,'mage','staff-wood','leftHand'));const b=battle(s),a=b.units.find(u=>u.id==='mage');
@@ -36,14 +34,6 @@ test('selected grant and cooldown survive save reload and cannot be forged',()=>
  for(const mutate of [u=>u.selectedSkillKey='fake',u=>u.skillCooldowns={fake:1},u=>u.skillCooldowns={[options[1].key]:2},u=>u.skillCooldowns={[options[1].key]:-1},u=>u.skillSources[0].grantSlot=2,u=>u.skillSources[0].itemId='staff-silver-1']){
    const bad=clone(s);mutate(bad.battle.units.find(u=>u.id==='mage'));assert.equal(C.validate(bad).ok,false);
  }
-});
-test('old saves without grant slots load deterministically without changing source input',()=>{
- const s=town();battle(s);const envelope=JSON.parse(C.serialize(s));delete envelope.state.battle.skillCooldownVersion;
- for(const snapshot of [envelope.state,envelope.state.rollback].filter(Boolean))if(snapshot.battle)for(const u of snapshot.battle.units)for(const source of u.skillSources||[])delete source.grantSlot;
- const before=clone(envelope),loaded=C.deserialize(envelope);assert.deepEqual(envelope,before);assert.equal(loaded.battle.skillCooldownVersion,1);
- for(const u of loaded.battle.units)for(const source of u.skillSources||[])assert.equal(source.grantSlot,1);
- roundtrip(loaded);
- const bad=clone(envelope),a=bad.state.battle.units.find(u=>u.side==='ally');a.skillSources[0].slot='head';assert.throws(()=>C.deserialize(bad));
 });
 test('product trials opt in and retreat/new battle does not carry cooldown',()=>{
  const s=town(),trial=C.trial(s,'mage','staff-wood','leftHand');assert.equal(trial.battle.skillCooldownVersion,1);

@@ -47,12 +47,12 @@ const Campaign = (() => {
   const template = id => B.roster.find(c=>c.id===id);
   const rosterFor=s=>B.roster.filter(t=>Object.hasOwn(s.characters||{},t.id));
   const bases = {
-    guard:{race:'human',str:16,int:8,agi:10,weapon:'sword-wood'},
+    warrior:{race:'human',str:16,int:8,agi:10,weapon:'sword-wood'},
     archer:{race:'human',str:12,int:8,agi:14,weapon:'bow-wood'},
     mage:{race:'elf',str:14,int:16,agi:11,weapon:'staff-wood'},
     scout:{race:'elf',str:10,int:9,agi:13,weapon:'dagger-wood'},
     porter:{race:'human',str:14,int:10,agi:12,weapon:'porter-kit'},
-    warrior:{race:'dwarf',str:18,int:8,agi:10,weapon:'hammer-iron-1'},
+    legacyHammer:{race:'dwarf',str:18,int:8,agi:10,weapon:'hammer-iron-1'},
   };
   // Standalone story calendars are a playtest schedule. New games start at
   // world hour 0; an older save receives the calendar at its current hour.
@@ -117,8 +117,10 @@ const Campaign = (() => {
     shown.merchantDeparted=m.state==='departed';
     return shown;
   }
-  const elements={guard:'earth',archer:'water',mage:'fire',scout:'earth',porter:'none',warrior:'earth'};
-  const enemyLoadout={guard:{weapon:'sword-wood',shield:'guard-shield-wood',inventory:{potion:99}},archer:{weapon:'bow-wood',inventory:{potion:99}},mage:{weapon:'staff-wood',inventory:{potion:99}},scout:{weapon:'dagger-wood',inventory:{potion:99}},porter:{weapon:'porter-kit',inventory:{potion:99}},warrior:{weapon:'hammer-iron-1',inventory:{potion:99}}};
+  const elements={archer:'water',mage:'fire',scout:'earth',porter:'none',warrior:'earth'};
+  // The prototype hammer fighter keeps its original stats and loadout.
+  const buildKey=u=>u.id==='warrior'||u.id==='enemy-warrior'?'legacyHammer':u.job;
+  const enemyLoadout={warrior:{weapon:'sword-wood',shield:'guard-shield-wood',inventory:{potion:99}},archer:{weapon:'bow-wood',inventory:{potion:99}},mage:{weapon:'staff-wood',inventory:{potion:99}},scout:{weapon:'dagger-wood',inventory:{potion:99}},porter:{weapon:'porter-kit',inventory:{potion:99}},legacyHammer:{weapon:'hammer-iron-1',inventory:{potion:99}}};
   function equipment(c,replacement) {
     const out=Object.fromEntries(Object.keys(S.slots).map(slot=>[slot,c[S.storage(slot)]||(slot.startsWith('accessory')?defaultAccessory(c,slot):`empty-${slot}`)]));
     if(replacement){out[S.canonical(replacement.targetSlot||replacement.slot)]=replacement.id;if(replacement.hands===2)out.leftHand='empty-leftHand';}
@@ -141,7 +143,7 @@ const Campaign = (() => {
     return {...clone(g),skillGrants:gearGrants(g).map(({id,level,slotNo})=>({id,level,slotNo}))};
   }
   function stats(c,replacement) {
-    const t=template(c.id),base=bases[t.job],eq=equipment(c,replacement),entries=Object.entries(eq).map(([slot,id])=>({slot,gear:c.equipmentRevision===2?effectiveGear(c,slot,id,eq):{...getGear(id),skill:id==='longspear-wood'?undefined:getGear(id)?.legacySkill||getGear(id)?.skill}}));
+    const t=template(c.id),base=bases[buildKey(t)],eq=equipment(c,replacement),entries=Object.entries(eq).map(([slot,id])=>({slot,gear:c.equipmentRevision===2?effectiveGear(c,slot,id,eq):{...getGear(id),skill:id==='longspear-wood'?undefined:getGear(id)?.legacySkill||getGear(id)?.skill}}));
     const w=entries.find(e=>['rightHand','leftHand'].includes(e.slot)&&e.gear.type!=='empty'&&(e.gear.atk||0)>0)?.gear||getGear('empty-rightHand');
     const skillSources=entries.flatMap(({slot,gear:g})=>{
       // Effective virtual fists and old save revisions retain their legacy contract.
@@ -178,12 +180,12 @@ const Campaign = (() => {
   }
   const defaultAccessory=(c,slot)=>slot==='accessory1'&&template(c.id).job==='scout'?'invasion-charm-1':`empty-${slot}`;
   function character(id) {
-    const t=template(id),base=bases[t.job];
-    const c={id,equipmentRevision:2,combatRevision:1,inventory:{},element:elements[t.job]||'none',...(t.job==='guard'?{leftHand:'guard-shield-wood'}:{}),race:t.race??base.race,weapon:base.weapon,armor:'armor-cloth',hp:t.max,mp:t.mp,def:0,xp:0,level:1,statPoints:0,skillPoints:0,allocations:{str:0,int:0,agi:0}};
+    const t=template(id),base=bases[buildKey(t)];
+    const c={id,equipmentRevision:2,combatRevision:1,inventory:{},element:elements[t.job]||'none',...(buildKey(t)==='warrior'?{leftHand:'guard-shield-wood'}:{}),race:t.race??base.race,weapon:base.weapon,armor:'armor-cloth',hp:t.max,mp:t.mp,def:0,xp:0,level:1,statPoints:0,skillPoints:0,allocations:{str:0,int:0,agi:0}};
     if(t.recruitRevision===1){
       c.sex=t.sex;
-      c.weapon=t.job==='porter'?'porter-whistle':t.race==='dwarf'&&['guard','scout'].includes(t.job)?'onehand-hammer-wood':base.weapon;
-      c.leftHand=t.job==='guard'?'guard-shield-wood':'empty-leftHand';
+      c.weapon=t.job==='porter'?'porter-whistle':t.race==='dwarf'&&['warrior','scout'].includes(t.job)?'onehand-hammer-wood':base.weapon;
+      c.leftHand=t.job==='warrior'?'guard-shield-wood':'empty-leftHand';
       c.head=t.race==='human'?'empty-head':t.race+'-hair-ornament';
       c.lowerBody=t.sex==='male'?'cloth-lowerBody':'cloth-skirt';c.feet='cloth-feet';
       c.accessory1='pouch-belt';c.accessory2=t.job==='porter'?'porter-bag':t.job==='scout'?'stealth-cloak':'empty-accessory2';
@@ -359,7 +361,7 @@ const Campaign = (() => {
     return I.equipmentWeight(u.equipment,getGear)+bag.total;
   }
   function setEnemyWeight(u,deployment){
-    u.str=bases[u.job].str;
+    u.str=bases[buildKey(u)].str;
     u.weightLimit=u.str;
     u.baseAgi=template(u.id.slice('enemy-'.length)).agi;
     B.setCarriedWeight(u,enemyWeight(u));
@@ -369,7 +371,7 @@ const Campaign = (() => {
     let enemyPotions=Number.isSafeInteger(b.potions?.enemy)?b.potions.enemy:0;
     const enemies=b.units.filter(u=>u.side==='enemy');
     for(const u of enemies){
-      const loadout=enemyLoadout[u.job],inventory=Object.fromEntries(Object.keys(loadout.inventory).map(id=>[id,0]));
+      const loadout=enemyLoadout[buildKey(u)],inventory=Object.fromEntries(Object.keys(loadout.inventory).map(id=>[id,0]));
       if(Object.hasOwn(inventory,'potion')&&enemyPotions>0){inventory.potion=Math.min(1,enemyPotions);enemyPotions-=inventory.potion;}
       applyEnemyEquipment(u,inventory);
     }
@@ -399,7 +401,7 @@ const Campaign = (() => {
     }
   }
   function applyEnemyEquipment(u,inventory=null){
-    const loadout=enemyLoadout[u.job],weapon=getGear(loadout.weapon);
+    const loadout=enemyLoadout[buildKey(u)],weapon=getGear(loadout.weapon);
     const shield=loadout.shield?getGear(loadout.shield):null,gearList=[weapon,...(shield?[shield]:[])];
     u.equipment={rightHand:weapon.id,...(shield?{leftHand:shield.id}:{})};u.inventory=inventory||clone(loadout.inventory);u.element=elements[u.job]||'none';
     u.weapon=weapon.type;u.atk=weapon.atk||0;u.atkFire=weapon.atkFire||0;u.atkWater=weapon.atkWater||0;u.atkEarth=weapon.atkEarth||0;
@@ -697,9 +699,9 @@ const Campaign = (() => {
     const sex=c.sex??t.sex;
     if(g.sexOnly&&sex!==undefined&&g.sexOnly!==sex)return {ok:false,reason:'性別の装備条件を満たしていません'};
     for(const key of ['str','int','agi'])if(st[key]<g[key])return {ok:false,reason:`必要${key.toUpperCase()} ${g[key]}／現在${st[key]}`};
-    if(g.jobOnly&&g.jobOnly!==t.job)return {ok:false,reason:`${{porter:'ポーター',guard:'戦士',scout:'スカウト',archer:'スカウト',mage:'魔法使い'}[g.jobOnly]||g.jobOnly}専用です`};
+    if(g.jobOnly&&g.jobOnly!==t.job)return {ok:false,reason:`${{porter:'ポーター',warrior:'戦士',scout:'スカウト',archer:'スカウト',mage:'魔法使い'}[g.jobOnly]||g.jobOnly}専用です`};
     if(g.virtualDefault)return {ok:false,reason:'装備なし時の既定性能です。所持品として装備できません'};
-    if(g.starterOnly&&g.id!==bases[template(charId).job].weapon)return {ok:false,reason:'この職の初期装備ではありません'};
+    if(g.starterOnly&&g.id!==bases[buildKey(template(charId))].weapon)return {ok:false,reason:'この職の初期装備ではありません'};
     return {ok:true,reason:t.job==='porter'?'C01保留：手道具交換後も攻撃・攻撃スキルは使えません':null};
   }
   function shop(s) {
@@ -1048,7 +1050,7 @@ const Campaign = (() => {
     demand(record(s.characters)&&Object.keys(s.characters).length===expected.length&&expected.every(t=>Object.hasOwn(s.characters,t.id)),'キャラ一覧');
     demand(s.selected.every(id=>Object.hasOwn(s.characters,id)),'編成の人物');
     for(const t of expected) {
-      const c=s.characters[t.id];demand(record(c)&&c.id===t.id&&c.race===(t.race??bases[t.job].race)&&((c.element===undefined)||['fire','water','earth','none'].includes(c.element))&&(t.sex===undefined?c.sex===undefined:c.sex===t.sex)&&Object.keys(c).every(k=>['id','equipmentRevision','combatRevision','element','race','sex','weapon','armor','accessory1','accessory2','leftHand','head','lowerBody','feet','hp','mp','def','xp','level','statPoints','skillPoints','allocations',...(version>=2?['inventory']:[])].includes(k)),'キャラ情報');
+      const c=s.characters[t.id];demand(record(c)&&c.id===t.id&&c.race===(t.race??bases[buildKey(t)].race)&&((c.element===undefined)||['fire','water','earth','none'].includes(c.element))&&(t.sex===undefined?c.sex===undefined:c.sex===t.sex)&&Object.keys(c).every(k=>['id','equipmentRevision','combatRevision','element','race','sex','weapon','armor','accessory1','accessory2','leftHand','head','lowerBody','feet','hp','mp','def','xp','level','statPoints','skillPoints','allocations',...(version>=2?['inventory']:[])].includes(k)),'キャラ情報');
       demand(c.def===undefined||integer(c.def),'キャラDEF');
       if(version>=2){
         demand(record(c.inventory),'個人の所持品');
@@ -1202,11 +1204,11 @@ const Campaign = (() => {
         demand(version<3||u.intent===undefined,'旧敵行動予告');
         if(u.hp>0)alivePositions.push(u.pos);
         if(u.side==='enemy'){
-          if(b.enemyEquipmentRevision>=1){const loadout=enemyLoadout[u.job],weapon=getGear(loadout.weapon),shield=loadout.shield?getGear(loadout.shield):null,gearList=[weapon,...(shield?[shield]:[])],expectedEquipment={rightHand:weapon.id,...(shield?{leftHand:shield.id}:{})},expectedInventory=Object.fromEntries(Object.entries(loadout.inventory).map(([id,count])=>[id,integer(u.inventory?.[id],0,count)]));
+          if(b.enemyEquipmentRevision>=1){const loadout=enemyLoadout[buildKey(u)],weapon=getGear(loadout.weapon),shield=loadout.shield?getGear(loadout.shield):null,gearList=[weapon,...(shield?[shield]:[])],expectedEquipment={rightHand:weapon.id,...(shield?{leftHand:shield.id}:{})},expectedInventory=Object.fromEntries(Object.entries(loadout.inventory).map(([id,count])=>[id,integer(u.inventory?.[id],0,count)]));
             const gearSum=key=>gearList.reduce((n,g)=>n+(g[key]||0),0),weaponRecord=u.attackWeapons?.[0];
             let speed=base.agi;
             if(b.enemyEquipmentRevision===2){
-              const wt=enemyWeight(u),limit=bases[u.job].str,over=wt>limit;
+              const wt=enemyWeight(u),limit=bases[buildKey(u)].str,over=wt>limit;
               demand(u.carriedWeight===wt&&u.weightLimit===limit&&u.str===limit&&u.baseAgi===speed&&u.overburdened===over,'敵の装備重量');
               if(over)speed*=0.5;
             }
@@ -1350,6 +1352,16 @@ const Campaign = (() => {
     safeTree(envelope);
     if(envelope.cargoRevision!==undefined)demand(envelope.cargoRevision===1&&envelope.state?.cargoRevision===1,'荷物移行マーカー');
     demand(record(envelope)&&envelope.format==='5525-native-campaign'&&[1,2,VERSION].includes(envelope.version),'保存形式');
+    // Version 3 stores the job on journey and battle units, including rollback snapshots.
+    for(let snapshot=envelope.state;record(snapshot);snapshot=snapshot.rollback){
+      for(const units of [snapshot.journey?.party,snapshot.battle?.units]){
+        if(Array.isArray(units))for(const unit of units){
+          if(unit?.job!=='guard'||typeof unit.id!=='string')continue;
+          const id=unit.id.replace(/^enemy-/, '');
+          if(id!=='warrior'&&template(id)?.job==='warrior')unit.job='warrior';
+        }
+      }
+    }
     validateState(envelope.state,0,envelope.version);
     // Only normalize an already-valid older save; never truncate before validation.
     const loaded=clone(envelope.state);

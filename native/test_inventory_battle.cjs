@@ -1,7 +1,5 @@
 'use strict';
-// Historical-ID fixtures retain the old roster; new-game/one-time migration
-// behavior is tested separately in test_updateplan_roster.cjs.
-const assert=require('node:assert/strict'),fs=require('node:fs'),C=require('./campaign.js'),B=require('./campaign-battle.js'),{Presentation}=require('./battle-presentation.cjs');
+const assert=require('node:assert/strict'),C=require('./campaign.js'),B=require('./campaign-battle.js'),{Presentation}=require('./battle-presentation.cjs');
 const clone=x=>JSON.parse(JSON.stringify(x));let passed=0;const test=(name,fn)=>{fn();passed++;console.log('PASS '+name);};
 const transfer=(s,id,target,n=1)=>C.inventoryAction(s,'guard',id,'transfer',target,n,null,C.inventoryToken(s));
 function battle(){
@@ -45,15 +43,9 @@ test('presentation frames conserve owner counts and cannot accept a duplicate pe
   while(presentation.pending){assert.equal(b.itemInventories.guard.potion,2);assert.equal(b.potions.ally,Object.values(b.itemInventories).reduce((n,bag)=>n+bag.potion,0));const step=presentation.info();presentation.next(step.id,step.index);}
   assert.equal(b.itemInventories.archer.potion,0);okay(s);
 });
-test('v1 active battle preserves spent amounts and original source; v2 reload never redistributes',()=>{
-  const original=JSON.parse(fs.readFileSync(require.resolve('./test_fixtures/campaign-a51a773-battle.json'),'utf8'));original.state.inventory.potion=3;original.state.battle.potions.ally=1;
-  const before=JSON.stringify(original),s=C.deserialize(original),first=s.selected[0];assert.equal(JSON.stringify(original),before);
-  assert.equal(s.characters[first].inventory.potion,1,'one-time trip reset retains only unspent stock');
-  assert.equal(s.battle,null);assert.equal(s.phase,'town');assert.equal(s.location,'astaris');okay(s);
-});
 test('forged ownership, totals and missing battle inventory reject without changing running state',()=>{
   const original=battle();for(const edit of [s=>delete s.battle.itemInventories,s=>s.battle.itemInventories.mage.potion=1,s=>s.battle.potions.ally++,s=>s.battle.itemInventories.archer.potion=-1,s=>delete s.battle.itemInventories.archer]){
-    const bad=clone(original);edit(bad);assert.equal(C.validate(bad).ok,false);assert.throws(()=>C.deserialize({format:'5525-native-campaign',version:2,state:bad}));
+    const bad=clone(original);edit(bad);assert.equal(C.validate(bad).ok,false);assert.throws(()=>C.deserialize({format:'5525-native-campaign',version:C.VERSION,cargoRevision:1,state:bad}));
   }okay(original);
 });
 console.log(`PASS ${passed} inventory-battle groups`);

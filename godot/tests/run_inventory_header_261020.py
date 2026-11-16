@@ -26,7 +26,7 @@ if not node or not godot:
     p.error('Set NATIVE5525_NODE and GODOT_BIN or put Node and Godot on PATH')
 out.mkdir(parents=True, exist_ok=True)
 results = []
-# Rationale / removals: docs/linux-fhd-tests-20261031.md.
+# The checks below exercise the inventory header at FHD.
 # Main-window FHD is independent from child-dialog and texture dimensions.
 
 

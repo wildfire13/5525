@@ -92,13 +92,6 @@ func recovery_cases(seed):
 	check("DISCARD-other",plan().plans.is_empty() and plan().held.is_empty(),"another campaign with similar state never receives held plans")
 	await add_plans();await cut_connection();await reconnect();await game.new_game();await settle()
 	check("DISCARD-new",plan().plans.is_empty() and plan().held.is_empty(),"explicit new game still discards held intentions")
-func legacy_cases(seed):
-	var path=write_fixture("legacy-no-identity",seed)
-	await game.load_game(path);await settle();await add_plans();var intended=plan().plans.duplicate(true);var before=FileAccess.get_file_as_bytes(path)
-	await cut_connection();await reconnect();await game.load_game(path);await settle()
-	check("LEGACY-same-source",plan().plans==intended and FileAccess.get_file_as_bytes(path)==before,"unchanged legacy source is recognized in this UI session without rewriting it")
-	await cut_connection();await reconnect();await game.load_game(write_fixture("other-legacy-source",seed));await settle()
-	check("LEGACY-distinct-source",plan().plans.is_empty() and plan().held.is_empty(),"different unidentified file is not assumed to be the same campaign")
 func stale_update_case(seed):
 	await game.update({"op":"campaign_load","data":seed});await settle();await add_plans()
 	var intended=plan().plans.duplicate(true);var path=await save_via_ui("delayed-response-campaign")
@@ -165,7 +158,7 @@ func run():
 	game.checks_fast=true;game.audio.fast_mode=true;game.engine.close_engine();game.engine.queue_free();await process_frame
 	probe=load("res://tests/plan_reconnect_probe.gd").new();game.add_child(probe);game.engine=probe;probe.start_engine();owned.append(int(probe.handles.pid));await game.new_game();await settle()
 	var seed=await saved();seed.state.location="east";seed.state.gold=120;seed.state.characters.mage.inventory["hammer-wood"]=1
-	await recovery_cases(seed);await legacy_cases(seed);await stale_update_case(seed);await sale_cases(seed);await quote_fault_cases(seed)
+	await recovery_cases(seed);await stale_update_case(seed);await sale_cases(seed);await quote_fault_cases(seed)
 	game.closing=true;game.dialog.close(false);game.invalidate_preview();await game.audio.finish_audio();probe.close_engine();game.queue_free()
 	for i in range(8):await process_frame
 	check("OWNED-cleanup",owned.all(func(pid):return not OS.is_process_running(pid)),"all reconnect test Node processes exited")
