@@ -1501,10 +1501,10 @@ const Campaign = (() => {
     const checked=validate(loaded);if(!checked.ok)throw new Error(checked.error);
     if(loaded.battle)B.trimLog(loaded.battle);return loaded;
   }
-  const {purchaseQuote,buyInventory,purchasePlan,buyPlan,saleQuote,sellInventory,saleAvailable}=require('./shop-transactions.js')({I,S,clone,record,integer,getGear,template,shop,equipment,eligibility,stats,syncCharacter,validate,inventoryToken,inventoryCapacity,commitInventory,note,createHash});
+  const {purchaseQuote,buyInventory,saleQuote,sellInventory,saleAvailable}=require('./shop-transactions.js')({I,clone,integer,getGear,template,shop,inventoryToken,inventoryCapacity,commitInventory,note,createHash});
   const {warehouseQuote,warehouseAction,warehouseView}=require('./warehouse.js')({I,getGear,items,template,inventoryToken,commitInventory,inventoryCapacity,note});
   return {equipmentSheet,warehouseQuote,warehouseAction,inventoryCapacity,VERSION,MAX_SAVE_BYTES,equipment,slots:S.slots,locations,gear,items,materials,provisional,create,createLegacy,view,board,scenarioAftermath,scenarioStages,destinations,hasPorter,stats,
     recipientMeeting,questRewards,canTurnBack,turnBack,select,accept,depart,travel,deploy,deployment_assign,chooseFormation,deployment_reset,begin,act,retreat,finishBattle,rest,waitForEvent,onward,forecast,arrive,acknowledge,
-    completeQuest,eligibility,shop,quote,buyGear,buyItem,inn,useItem,inventoryTotals,inventoryToken,inventoryQuote,inventoryAction,inventoryView,purchaseQuote,buyInventory,purchasePlan,buyPlan,saleQuote,sellInventory,saleAvailable,allocate,allocateBatch,allocationToken,previewGear,trial,trialAct,validate,serialize,deserialize};
+    completeQuest,eligibility,shop,quote,buyGear,buyItem,inn,useItem,inventoryTotals,inventoryToken,inventoryQuote,inventoryAction,inventoryView,purchaseQuote,buyInventory,saleQuote,sellInventory,saleAvailable,allocate,allocateBatch,allocationToken,previewGear,trial,trialAct,validate,serialize,deserialize};
 })();
 module.exports = Campaign;

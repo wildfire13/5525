@@ -31,7 +31,7 @@ func c() -> Dictionary:return pages.c()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
 func busy() -> bool:return stage!="S0" or unknown or ui.locked or ui.presenting or ui.closing or ui.engine.disconnected or sale.busy() or pages.party_view.workspace.busy
-func reset(_plan_mode: String="discard",_campaign_id: String=""):
+func reset():
 	if comparison_view!=null:comparison_view.invalidate()
 	stage="S0";unknown=false;consent={};receipt={};transaction={};message="";generation+=1;sale.reset()
 	filter_slot="all";filter_location="";background.clear();return_from_party=false;from_party=false;inventory_tab="inventory";selection_kind="";selected_equipment={}

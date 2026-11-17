@@ -81,7 +81,7 @@ if args.suite != 'godot':
 if args.suite != 'native':
     base = [str(args.godot), '--headless', '--audio-driver', 'Dummy', '--path', str(repo / 'godot')]
     run('parse', base + ['--log-file', str(out / 'parse-engine.log'), '--check-only', '--script', 'res://main.gd'], repo)
-    for name in ['inventory_regression', 'shop_plan_regression', 'inventory_battle_hud', 'hover_lifetime_regression',
+    for name in ['inventory_regression', 'shop_rows_regression', 'inventory_battle_hud', 'hover_lifetime_regression',
                  'followup_ui_regression', 'ui_review_fixes', 'uiux_inventory_review',
                  'audio_regression',
                  'independent_review_regression', 'reserve_policy_regression']:

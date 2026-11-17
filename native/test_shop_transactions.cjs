@@ -1,8 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),C=require('./campaign.js'),clone=x=>JSON.parse(JSON.stringify(x));
-const row=(characterId,gearId,slot='rightHand')=>({characterId,gearId,slot});
 let passed=0;const test=(name,fn)=>{fn();passed++;console.log('PASS '+name);};
-function town(){const s=require('./test-current-fixture.cjs')();assert(C.select(s,['character_mirei','character_kyle','character_merina','character_rio','character_yuno']));const scout=s.characters['character_kyle'];scout.weapon='bow-wood';Object.assign(scout,{xp:100,level:2,statPoints:2,skillPoints:1});assert(C.allocate(s,scout.id,'str'));s.characters['character_mirei'].inventory={potion:3};s.location='east';return s;}
+function town(){const s=require('./test-current-fixture.cjs')();s.characters['character_mirei'].inventory={potion:3};s.location='east';return s;}
 function okay(s){assert.equal(C.validate(s).ok,true,C.validate(s).error);assert.deepEqual(C.deserialize(C.serialize(s)),s);}
 test('inventory sale display uses the same quote and price as the transaction',()=>{
   const s=town();s.characters["character_mirei"].inventory={'sword-wood':2,potion:3};
@@ -12,39 +11,6 @@ test('inventory sale display uses the same quote and price as the transaction',(
   assert.equal(entries.find(e=>e.id==='potion').sale.ok,false);
   assert.deepEqual(s,before,'display quote must not mutate inventory or money');
   s.location='astaris';assert(C.view(s).inventoryByCharacter["character_mirei"].entries.every(e=>!e.sale.ok));
-});
-test('multiple-member plan retains real stock until one atomic checkout',()=>{
-  const s=town();s.gold=400;const entries=[row("character_mirei",'staff-wood'),row("character_kyle",'bow-wood-1')],before=clone(s),q=C.purchasePlan(s,entries);
-  assert(q.ok);assert.equal(q.cost,210);assert.equal(q.afterGold,190);assert.deepEqual(s,before);
-  assert(C.buyPlan(s,entries,q.token));assert.equal(s.gold,190);assert.equal(s.characters["character_mirei"].weapon,'staff-wood');assert.equal(s.characters["character_kyle"].weapon,'bow-wood-1');
-  assert.equal(s.characters["character_mirei"].inventory['sword-wood'],1);assert.equal(s.characters["character_kyle"].inventory['bow-wood'],1);
-  const paid=clone(s);assert.equal(C.buyPlan(s,entries,q.token),false);assert.deepEqual(s,paid);okay(s);
-});
-test('independent sale funds same plan; canceled plan does not undo completed sale',()=>{
-  const s=town();s.gold=120;s.characters["character_merina"].inventory['hammer-wood']=1;
-  const entries=[row("character_mirei",'staff-wood'),row("character_kyle",'bow-wood-1')];assert.equal(C.purchasePlan(s,entries).shortfall,90);
-  const sale=C.saleQuote(s,"character_merina",'hammer-wood');assert(sale.ok);assert.equal(sale.proceeds,100);
-  assert(C.sellInventory(s,"character_merina",'hammer-wood',1,sale.token));assert.equal(s.gold,220);assert.equal(s.characters["character_merina"].inventory['hammer-wood'],undefined);
-  const afterSale=clone(s),q=C.purchasePlan(s,entries);assert(q.ok);assert.deepEqual(s,afterSale,'review/cancel does not change sale');
-  assert(C.buyPlan(s,entries,q.token));assert.equal(s.gold,10);okay(s);
-});
-test('planned left-hand removal permits two-hand purchase independent of row order',()=>{
-  for(const entries of [[row("character_mirei",'bow-wood'),row("character_mirei",'empty-leftHand','leftHand')],[row("character_mirei",'empty-leftHand','leftHand'),row("character_mirei",'bow-wood')]]){
-    const s=town(),q=C.purchasePlan(s,entries);assert(q.ok,q.reason);assert(C.buyPlan(s,entries,q.token));assert.equal(s.characters["character_mirei"].weapon,'bow-wood');assert.equal(s.characters["character_mirei"].leftHand,'empty-leftHand');
-    assert.equal(s.characters["character_mirei"].inventory['guard-shield-wood'],1);assert.equal(s.characters["character_mirei"].inventory['sword-wood'],1);assert(!Object.keys(s.characters["character_mirei"].inventory).some(id=>id.startsWith('empty-')));okay(s);
-  }
-});
-test('one invalid row, missing money, duplicate slot or final hand collision rejects all',()=>{
-  for(const entries of [[row("character_mirei",'staff-wood'),row("character_merina",'sword-iron-1')],[row("character_kyle",'bow-wood-1'),row("character_mirei",'staff-silver-1')],[row("character_mirei",'staff-wood'),row("character_mirei",'bow-wood')],[row("character_mirei",'bow-wood')]]){
-    const s=town(),before=clone(s),q=C.purchasePlan(s,entries);assert.equal(q.ok,false);assert.equal(C.buyPlan(s,entries,q.token),false);assert.deepEqual(s,before);
-  }
-});
-test('state change invalidates checkout; only affected character row signature changes',()=>{
-  const s=town();s.gold=400;const entries=[row("character_mirei",'staff-wood'),row("character_kyle",'bow-wood-1')],q=C.purchasePlan(s,entries);
-  s.characters["character_merina"].hp=1;const refreshed=C.purchasePlan(s,entries);assert.notEqual(refreshed.token,q.token);assert.deepEqual(refreshed.rows.map(r=>r.signature),q.rows.map(r=>r.signature));
-  const before=clone(s);assert.equal(C.buyPlan(s,entries,q.token),false);assert.deepEqual(s,before);
-  assert(C.inventoryAction(s,"character_mirei",'guard-shield-wood','unequip',null,1,'leftHand',C.inventoryToken(s)));
-  const changed=C.purchasePlan(s,entries);assert.notEqual(changed.rows[0].signature,refreshed.rows[0].signature);assert.equal(changed.rows[1].signature,refreshed.rows[1].signature);
 });
 test('sell confirms owner and quantity; cancel, invalid stock and duplicate submit are unchanged',()=>{
   const s=town();s.characters["character_mirei"].inventory['sword-wood']=2;const before=clone(s),q=C.saleQuote(s,"character_mirei",'sword-wood',1);
@@ -61,7 +27,10 @@ test('actual serialized size and currency bounds reject before any partial mutat
     assert.equal(Buffer.byteLength(C.serialize(s),'utf8'),C.MAX_SAVE_BYTES-1);
     const before=clone(s),token=C.inventoryToken(s);
     if(kind==='transfer')assert.equal(C.inventoryAction(s,"character_mirei",'potion','transfer',"character_merina",1,null,token),false);
-    if(kind==='buy'){const entries=[row("character_mirei",'staff-wood')],q=C.purchasePlan(s,entries);assert(q.ok);assert.equal(C.buyPlan(s,entries,q.token),false);}
+    if(kind==='buy'){
+      const q=C.purchaseQuote(s,'staff-wood',"character_mirei");assert(q.ok,q.reason);
+      assert.equal(C.buyInventory(s,"character_mirei",'staff-wood',q.token),false);
+    }
     if(kind==='sale')assert.equal(C.sellInventory(s,"character_merina",'hammer-wood',1,token),false);
     assert.deepEqual(s,before);assert.equal(C.inventoryToken(s),token);C.serialize(s);
   }

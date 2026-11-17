@@ -438,7 +438,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 			if not closing:render()
 		return {"ok":false,"obsolete_connection":true,"error":"古い接続の応答です"}
 	locked=false
-	if request.get("op")=="campaign" and request.get("action") not in ["begin","finishBattle","endTrial","trial","forecast","previewGear","inventoryQuote","purchaseQuote","purchasePlan","saleQuote"] and reply.get("presentation")==null:
+	if request.get("op")=="campaign" and request.get("action") not in ["begin","finishBattle","endTrial","trial","forecast","previewGear","inventoryQuote","purchaseQuote","saleQuote"] and reply.get("presentation")==null:
 		audio.ui("confirm" if reply.get("ok",false) else "cancel")
 	if reply.get("ok",false):
 		if reply.has("campaign"):
@@ -451,7 +451,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 				portraits.activate(frontend.images)
 			if frontend.has("music"):audio.restore(frontend.music)
 			if request.get("op")=="campaign_load":
-				save_notice.dismiss();results_view.reset();campaign_identity.accept_load(incoming);pages.reset_context("load",campaign_identity.current_id);memory.reset();skip_capture_once=true
+				save_notice.dismiss();results_view.reset();campaign_identity.accept_load(incoming);pages.reset_context();memory.reset();skip_capture_once=true
 			elif request.get("op")=="campaign_start":
 				save_notice.dismiss();results_view.reset()
 				campaign_identity.new_campaign();pages.reset_context()
@@ -467,7 +467,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		notice=""
 	else:
 		notice=str(reply.get("error","操作できません"))
-		if reply.get("connection_lost",false):invalidate_preview();pages.reset_context("disconnect",campaign_identity.current_id)
+		if reply.get("connection_lost",false):invalidate_preview();pages.reset_context()
 	if closing:loading_screen.finish(loading_token);return reply
 	if request.get("op")=="campaign" and request.get("action")=="inn":
 		pages.inn_view.finish_rest(result_before,reply.get("ok",false))
@@ -527,7 +527,7 @@ func invalidate_preview():
 func handle_connection_loss(reply: Dictionary,connection: int) -> bool:
 	# Loss belongs to the connection, not to the preview that happened to detect it.
 	if closing or connection!=engine.connection_generation or not reply.get("connection_lost",false):return false
-	invalidate_preview();pages.reset_context("disconnect",campaign_identity.current_id);status_override=""
+	invalidate_preview();pages.reset_context();status_override=""
 	notice=str(reply.get("error","ゲーム処理が停止しました。ゲームを起動し直してください。"))
 	render();return true
 func new_game():

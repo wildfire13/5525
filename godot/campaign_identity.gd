@@ -1,5 +1,5 @@
 extends RefCounted
-## UI session identity only; purchase plans never enter the campaign save.
+## UI session identity for new and loaded campaigns.
 var current_id := ""
 var legacy_ids: Dictionary={}
 func new_campaign():current_id=Crypto.new().generate_random_bytes(16).hex_encode()

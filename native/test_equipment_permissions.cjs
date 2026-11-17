@@ -13,7 +13,6 @@ test('nonpurchasable equipment cannot be bought through any purchase route',()=>
   assert(!C.shop(s).some(g=>g.id==='sword-wood'));
   assert.equal(C.purchaseQuote(s,'sword-wood').ok,false);
   assert.equal(C.buyGear(s,"character_rio",'sword-wood','rightHand'),false);
-  assert.equal(C.purchasePlan(s,[{characterId:"character_mirei",gearId:'sword-wood',slot:'leftHand'}]).ok,false);
   assert.equal(JSON.stringify(s),before);
 }));
 test('sale price is independent, explicit zero is retained, legacy price fallback unchanged',()=>{
@@ -32,12 +31,11 @@ test('nontransferable item cannot move to another character',()=>withGear('sword
   assert.equal(C.inventoryAction(s,"character_mirei",'sword-wood','transfer',"character_merina",1,null,C.inventoryToken(s)),false);
   assert.equal(JSON.stringify(s),before);
 }));
-test('locked equipment refuses unequip, equip replacement and purchase-plan replacement',()=>withGear('sword-wood',{removable:false},()=>{
+test('locked equipment refuses unequip and equip replacement',()=>withGear('sword-wood',{removable:false},()=>{
   const s=C.create();s.location='east';s.characters["character_mirei"].inventory['sword-iron-1']=1;const before=JSON.stringify(s);
   assert.equal(C.inventoryQuote(s,"character_mirei",'sword-wood','unequip',null,1,'rightHand').ok,false);
   assert.equal(C.inventoryQuote(s,"character_mirei",'sword-iron-1','equip',null,1,'rightHand').ok,false);
   assert.equal(C.buyGear(s,"character_mirei",'sword-iron-1','rightHand'),false);
-  assert.equal(C.purchasePlan(s,[{characterId:"character_mirei",gearId:'sword-iron-1',slot:'rightHand'}]).ok,false);
   assert.equal(JSON.stringify(s),before);
 }));
 test('explicit race/sex conditions use real recruits without mutating their identity',()=>{

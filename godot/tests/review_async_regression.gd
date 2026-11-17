@@ -107,7 +107,7 @@ func quote_cases():
 	check("D01",await snapshot()==before,"current failed comparison preserves complete campaign")
 	press("Product_staff-wood");await settle()
 	check("D01",not control("ShopComparisonBuy").disabled,"fresh selection recovers after ordinary comparison failure")
-	check("D01",probe.calls.all(func(call):return call.get("action","") not in ["buyInventory","buyItem","buyGear","buyPlan","inventoryAction","sellInventory","useItem"]),"quote failure and cancellation never submit an economic mutation")
+	check("D01",probe.calls.all(func(call):return call.get("action","") not in ["buyInventory","buyItem","buyGear","inventoryAction","sellInventory","useItem"]),"quote failure and cancellation never submit an economic mutation")
 func reference_case(which: String,exit_mode: String,fail:=false):
 	await fixture();await game.act("depart",["astaris","convoy"]);await game.act("travel",["safe"]);await game.act("begin",[]);await settle()
 	game.choose_command("action_move");await game.on_cell(int(game.data.choices.action_move[0]));await settle()

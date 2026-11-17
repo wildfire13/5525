@@ -32,14 +32,12 @@ for(const place of ['astaris','east','west','north','south'])test('reserve inven
     unchanged(s,()=>C.useItem(s,'potion',"character_mirei","character_grant",C.inventoryToken(s)));
   }
 });
-test('reserve cannot purchase, receive a plan, sell, grow, or start a trial',()=>{
+test('reserve cannot purchase, sell, grow, or start a trial',()=>{
   const s=fixture();
   for(const place of ['astaris','east','west','north','south']){
     s.location=place;
     unchanged(s,()=>C.buyItem(s,'potion',1,"character_grant",C.inventoryToken(s)));
     unchanged(s,()=>C.buyGear(s,"character_grant",'sword-wood','rightHand'));
-    const rows=[{characterId:"character_grant",gearId:'sword-wood',slot:'rightHand'}],q=C.purchasePlan(s,rows);
-    assert.equal(q.ok,false);unchanged(s,()=>C.buyPlan(s,rows,q.token));
     assert.equal(C.saleQuote(s,"character_grant",'sword-wood',1).ok,false);
     unchanged(s,()=>C.sellInventory(s,"character_grant",'sword-wood',1,C.inventoryToken(s)));
     unchanged(s,()=>C.allocate(s,"character_grant",'str',1));

@@ -317,13 +317,13 @@ func quote_valid() -> bool:
 func invalidate_quote(clear_id:=false):
 	quote_generation+=1;quote_pending=false;quote_stamp="";ui.gear_preview={}
 	if clear_id:gear_id=""
-func reset_context(plan_mode: String="discard",campaign_id: String=""):
+func reset_context():
 	warehouse_view.reset()
 	quest_board.reset();inn_view.reset()
 	hub_view.reset()
 	facility_art.reset()
 	if ui.hud!=null:ui.hud.reset_context()
-	reset_items();facility_entry.reset();shop_view.reset(plan_mode,campaign_id);guild_view.reset();party_view.reset()
+	reset_items();facility_entry.reset();shop_view.reset();guild_view.reset();party_view.reset()
 	epoch+=1;invalidate_quote(true);trial_return={};cached_quotes={}
 func request_quote(id: String):await shop_view.select_product(id)
 func select_member(uid: String):await shop_view.select_member(uid)
