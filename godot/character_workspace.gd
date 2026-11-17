@@ -63,14 +63,14 @@ func render(parent):
 		else:inventory(column.inventory_overlay(),member)
 		var detail=ui.scroller(card)
 		if picked.is_empty():return
-		if picked.get("kind")=="equipment" or picked.has("equipped_slot"):
-			ui.pages.describe_gear(detail,picked.get("definition",picked),true)
-		else:
-			ui.icons.line(ui,detail,str(picked.id) if picked.get("kind")!="quest" else "items",str(picked.get("name","")),true)
-			ui.label_(detail,"所持 %d個" % int(picked.get("count",1)))
 		if picked.has("equipped_slot"):
-			unequip_button(detail,owner,picked,busy)
+			equipped_detail(detail,owner,picked,busy)
 		else:
+			if picked.get("kind")=="equipment":
+				ui.pages.describe_gear(detail,picked.get("definition",picked),true)
+			else:
+				ui.icons.line(ui,detail,str(picked.id) if picked.get("kind")!="quest" else "items",str(picked.get("name","")),true)
+				ui.label_(detail,"所持 %d個" % int(picked.get("count",1)))
 			var explanation=ui.button(detail,"詳しい説明",ui.show_equipment_details.bind(picked.duplicate(true)));explanation.name="CharacterItemDetails";explanation.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 			if picked.get("kind")=="equipment":
 				var options=picked.get("equipSlots",[])
@@ -90,7 +90,8 @@ func render(parent):
 			var discard=picked.get("discard",{})
 			var remove=ui.button(detail,"捨てる",confirm_discard.bind(owner,picked.duplicate(true)),busy or not discard.get("ok",false));remove.name="CharacterDiscard";remove.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;remove.tooltip_text=str(discard.get("reason",""))
 
-func unequip_button(parent,uid,item,disabled):
+func equipped_detail(parent,uid,item,disabled):
+	ui.pages.describe_gear(parent,item.get("definition",item),true)
 	if item.get("type")!="empty" and not item.get("occupied",false):
 		ui.button(parent,"装備を外す",perform.bind(uid,str(item.id),"unequip",null,1,item.equipped_slot),disabled).name="UnequipItem"
 

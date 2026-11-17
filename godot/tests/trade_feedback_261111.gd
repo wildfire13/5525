@@ -59,5 +59,14 @@ func run():
  shop.open_comparison("guard-shield-wood");await quote_ready()
  check(node("ShopComparisonPayment").text=="所持金 1000G − 購入 0G = 残金 1000G","zero-cost equipment retains explicit equation")
  await capture("trade-zero-cost")
+ var owner=str(game.shop_uid)
+ var worn=game.roster().filter(func(person):return person.id==owner)[0].equipmentDetails.rightHand.id
+ var held=int(game.campaign().characters[owner].inventory.get(worn,0))
+ await click("ShopInventoryTab_equipment");await click("ShopEquipped_rightHand")
+ var remove=node("UnequipItem")
+ check(remove!=null and node("ShopTransactionScroll").is_ancestor_of(remove),"unequip is in the selected gear details")
+ if remove!=null:
+  await click("UnequipItem")
+  check(int(game.campaign().characters[owner].inventory.get(worn,0))==held+1 and node("UnequipItem")==null and game.campaign().gold==1000,"unequip returns gear to its owner without a transaction")
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames()
  var failed=checks.filter(func(c):return not c.passed);print("TRADE_FEEDBACK_261111 "+str(checks.size()-failed.size())+"/"+str(checks.size()));quit(1 if failed.size() else 0)

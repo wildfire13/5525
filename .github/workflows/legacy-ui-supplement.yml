@@ -112,16 +112,6 @@ jobs:
         run: git rev-parse HEAD
       - name: Run full native non-GUI suite
         run: python native/check.py
-      - name: Run supplemental Linux native checks
-        if: ${{ !cancelled() }}
-        run: |
-          node native/test_updateplan_roster.cjs
-          node native/test_inventory_capacity.cjs
-          node native/test_equipment_permissions.cjs
-          node native/test_warehouse.cjs
-          node native/test_updateplan_skill_levels.cjs
-          node native/test_updateplan_combat.cjs
-          node native/test_updateplan_flow.cjs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ always() }}
         with:

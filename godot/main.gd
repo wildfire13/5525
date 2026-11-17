@@ -1013,8 +1013,6 @@ func _process(_delta):
 func fit_battle_layout():
 	if closing or view_kind!="battle" or not is_instance_valid(hud.middle):return
 	hud.resize()
-func prefetch_shop_rows():
-	if pages!=null:pages.shop_view.prefetch_visible()
 func _input(event):
 	if results_view.active:return
 	if loading_screen.active:get_viewport().set_input_as_handled();return

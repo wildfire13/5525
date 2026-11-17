@@ -68,9 +68,6 @@ func render_detail(parent,footer):
  button.tooltip_text=str(item.get("sale",{}).get("reason",""))
  if not quote.is_empty():show_quote(totals)
  elif not busy() and not previewing:request_quote()
-func render(parent):
- # Compatibility entry point. The shop now presents both sides together.
- shop.render(parent)
 func show_quote(label: Label):
  label.text="売却 %dG\n所持金 %d → %d G" % [quote.proceeds,quote.goldBefore,quote.afterGold] if quote.get("ok",false) else "売却不可："+str(quote.get("reason","金額を取得できません。"))
 func valid(ticket: int,epoch: int,connection: int,owner: String,item: String,count: int,token) -> bool:

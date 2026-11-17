@@ -130,8 +130,7 @@ func render_transaction(middle,stock):
 		b(footer,"商品一覧へ",func():selection_kind="";ui.render(),busy())
 	elif selection_kind=="equipment":
 		if not selected_equipment.is_empty():
-			pages.describe_gear(detail,selected_equipment,true)
-			pages.party_view.workspace.unequip_button(detail,ui.shop_uid,selected_equipment,busy())
+			pages.party_view.workspace.equipped_detail(detail,ui.shop_uid,selected_equipment,busy())
 	elif selection_kind=="buy" and not pages.gear_id.is_empty():
 		if c().get("location")=="south":render_consumable_selection(detail,footer)
 		else:
@@ -458,7 +457,6 @@ func select_member(id: String):
 	if not busy():ui.shop_uid=id
 func select_product(id: String):
 	pages.gear_id=id;back_list()
-func prefetch_visible():pass
 func escape() -> bool:
 	if ui.page!="shop":return false
 	if stage in ["S1","S5"] or unknown:return true
