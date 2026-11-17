@@ -69,7 +69,7 @@ func render(parent):
 			ui.icons.line(ui,detail,str(picked.id) if picked.get("kind")!="quest" else "items",str(picked.get("name","")),true)
 			ui.label_(detail,"所持 %d個" % int(picked.get("count",1)))
 		if picked.has("equipped_slot"):
-			if picked.get("type")!="empty" and not picked.get("occupied",false):ui.button(detail,"装備を外す",perform.bind(owner,str(picked.id),"unequip",null,1,picked.equipped_slot),busy)
+			unequip_button(detail,owner,picked,busy)
 		else:
 			var explanation=ui.button(detail,"詳しい説明",ui.show_equipment_details.bind(picked.duplicate(true)));explanation.name="CharacterItemDetails";explanation.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 			if picked.get("kind")=="equipment":
@@ -90,6 +90,10 @@ func render(parent):
 			var discard=picked.get("discard",{})
 			var remove=ui.button(detail,"捨てる",confirm_discard.bind(owner,picked.duplicate(true)),busy or not discard.get("ok",false));remove.name="CharacterDiscard";remove.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;remove.tooltip_text=str(discard.get("reason",""))
 
+func unequip_button(parent,uid,item,disabled):
+	if item.get("type")!="empty" and not item.get("occupied",false):
+		ui.button(parent,"装備を外す",perform.bind(uid,str(item.id),"unequip",null,1,item.equipped_slot),disabled).name="UnequipItem"
+
 func select_equipped(item: Dictionary):
 	picked=item
 	refresh()
@@ -106,14 +110,14 @@ func inventory(parent,member):
 		Drag.source(button,func():return payload(entry,"transfer",null),str(entry.name),button.icon)
 	if list.get_child_count()==0:ui.label_(list,"アイテムはありません")
 
-func payload(item,action,slot) -> Dictionary:
+func payload(item,action,slot,source_owner=owner) -> Dictionary:
 	var allowed=[]
 	for uid in ui.campaign().get("selected",[]):
-		if str(uid)==owner:continue
+		if str(uid)==source_owner:continue
 		var inventory=ui.campaign().get("inventoryByCharacter",{}).get(uid,{})
 		var capacity=inventory.get("capacity",{})
 		if capacity.get("limit")==null or int(capacity.get("used",0))<int(capacity.get("limit",0)) or inventory.get("entries",[]).any(func(e):return e.id==item.id):allowed.append(str(uid))
-	return {"allowed":allowed,"kind":"character_transfer","owner":owner,"item":str(item.id),"action":action,"slot":slot,"count":int(item.get("count",1)),"token":ui.campaign().get("inventoryToken"),"epoch":ui.pages.epoch}
+	return {"allowed":allowed,"kind":"character_transfer","owner":source_owner,"item":str(item.id),"action":action,"slot":slot,"count":int(item.get("count",1)),"token":ui.campaign().get("inventoryToken"),"epoch":ui.pages.epoch}
 func drop(data,target):
 	if busy or data.get("token")!=ui.campaign().get("inventoryToken") or data.get("epoch")!=ui.pages.epoch:return
 	if int(data.count)>1:

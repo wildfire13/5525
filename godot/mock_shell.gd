@@ -165,7 +165,9 @@ func activate(id: String):
 	if ui.page=="character":ui.pages.party_view.workspace.refresh()
 	else:toggle_character()
 func can_drop(payload,id: String) -> bool:
-	if payload is Dictionary and payload.get("kind")=="character_transfer":return payload.get("owner")!=id
+	if payload is Dictionary and payload.get("kind")=="character_transfer":
+		if ui.page=="shop" and (ui.pages.shop_view.busy() or ui.modal_open() or payload.get("owner")!=ui.shop_uid):return false
+		return payload.get("owner")!=id
 	if ui.page=="shop":return ui.pages.shop_view.can_drop_product(payload,id)
 	if ui.pages.guild_view.available():return not ui.pages.guild_view.drop_operation(payload,id,false).is_empty()
 	return false

@@ -30,7 +30,7 @@ func _init(owner):owner_ref=weakref(owner);ui=owner.ui;sale=preload("res://facil
 func c() -> Dictionary:return pages.c()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
 func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
-func busy() -> bool:return stage!="S0" or unknown or ui.locked or ui.presenting or ui.closing or ui.engine.disconnected or sale.busy()
+func busy() -> bool:return stage!="S0" or unknown or ui.locked or ui.presenting or ui.closing or ui.engine.disconnected or sale.busy() or pages.party_view.workspace.busy
 func reset(_plan_mode: String="discard",_campaign_id: String=""):
 	if comparison_view!=null:comparison_view.invalidate()
 	stage="S0";unknown=false;consent={};receipt={};transaction={};message="";generation+=1;sale.reset()
@@ -105,9 +105,11 @@ func render_inventory_column(column):
 	column.build(ui,person,inventory_tab,set_inventory_tab,"ShopInventoryTab_",busy())
 	column.panel.name="ShopInventory"
 	column.portrait.name="ShopCustomerArt"
+	var slot=selected_equipment.get("equipped_slot","") if selection_kind=="equipment" else ""
+	if selection_kind=="equipment" and not person.get("equipmentSlots",[]).any(func(s):return s.slot==slot and s.id==selected_equipment.id):
+		selected_equipment={};selection_kind="";slot=""
 	if inventory_tab=="equipment":
-		var slot=selected_equipment.get("equipped_slot","") if selection_kind=="equipment" else ""
-		column.equipment(ui,person,slot,"ShopEquipped_",select_equipment,Callable(),busy())
+		column.equipment(ui,person,slot,"ShopEquipped_",select_equipment,pages.party_view.workspace.payload.bind(ui.shop_uid),busy())
 	else:
 		var overlay=column.inventory_overlay()
 		var filter=preload("res://member_inventory.gd").add_filter(ui,overlay,person,sale.inventory_filter,sale.change_filter)
@@ -129,6 +131,7 @@ func render_transaction(middle,stock):
 	elif selection_kind=="equipment":
 		if not selected_equipment.is_empty():
 			pages.describe_gear(detail,selected_equipment)
+			pages.party_view.workspace.unequip_button(footer,ui.shop_uid,selected_equipment,busy())
 	elif selection_kind=="buy" and not pages.gear_id.is_empty():
 		if c().get("location")=="south":render_consumable_selection(detail,footer)
 		else:
