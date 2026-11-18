@@ -28,7 +28,7 @@ static func range_text(id: String,gear: Dictionary,definition: Dictionary,passiv
  if passive:return "該当なし（パッシブ）"
  if id=="skill_leg_sweep":return "周囲8マス（斜めを含む）"
  if id=="skill_item_use":return ["自分のみ","自分と縦横隣接の味方","距離制限なしの味方"][clampi(level-1,0,2)]
- if id=="skill_ambush":return "距離制限なし（装備Lvの方向・経路条件あり）"
+ if id=="skill_ambush":return ["前方（味方は右、敵は左）・距離制限なし","同じ横列の左右・距離制限なし","上下左右の直線・距離制限なし"][clampi(level-1,0,2)]
  if id=="skill_return_home":return "距離制限なし（自陣の空きマス）"
  if id=="skill_formation_boost":return "成立中の陣形・味方全員"
  if definition.get("reach")!=null:return str(definition.reach)
@@ -36,7 +36,7 @@ static func range_text(id: String,gear: Dictionary,definition: Dictionary,passiv
  return {"skill_cover":"1","skill_heal":"2","skill_stamp":"右側3マス"}.get(id,"")
 static func target_text(id: String,definition: Dictionary,level: int) -> String:
  if id=="skill_item_use":return range_text(id,{},definition,false,level)
- return {"skill_cover":"隣接する自分以外の味方1人","skill_snipe":"射程内の敵1人","skill_heal":"傷ついた生存味方1人（自身を含む）","skill_ambush":"方向・経路条件を満たす敵1人","skill_stamp":"右隣と、その上下の計3マスにいる敵（空マスでも指定可）","skill_formation_boost":"使用者自身を指定・陣形中の味方全員","skill_return_home":"自陣の空きマス","skill_retreat_slash":"射程内の敵1人","skill_knockback":"射程内の敵1人","skill_pincer":"射程内の敵1人","skill_healing_cross":"生存味方を中心に十字範囲の生存味方","skill_mana_gift":"別の生存味方1人","skill_grapple":"右2マス先の敵または味方","skill_leg_sweep":"使用者自身（中心指定） / 効果対象は周囲8マスの敵"}.get(id,{"pair":"異なる敵2人","upToTwo":"縦横隣接の味方1～2人","cell":"指定マス","self":"自身","unit":"射程・条件を満たす人物"}.get(definition.get("target"),""))
+ return {"skill_cover":"隣接する自分以外の味方1人","skill_snipe":"射程内の敵1人","skill_heal":"傷ついた生存味方1人（自身を含む）","skill_ambush":"敵1人","skill_stamp":"右隣と、その上下の計3マスにいる敵（空マスでも指定可）","skill_formation_boost":"使用者自身を指定・陣形中の味方全員","skill_return_home":"自陣の空きマス","skill_retreat_slash":"射程内の敵1人","skill_knockback":"射程内の敵1人","skill_pincer":"射程内の敵1人","skill_healing_cross":"生存味方を中心に十字範囲の生存味方","skill_mana_gift":"別の生存味方1人","skill_grapple":"右2マス先の敵または味方","skill_leg_sweep":"使用者自身（中心指定） / 効果対象は周囲8マスの敵"}.get(id,{"pair":"異なる敵2人","upToTwo":"縦横隣接の味方1～2人","cell":"指定マス","self":"自身","unit":"射程・条件を満たす人物"}.get(definition.get("target"),""))
 static func document(id: String,title: String,level: int,campaign: Dictionary,gear: Dictionary={},source: String="") -> Dictionary:
  var definition=campaign.get("skillDefinitions",{}).get(id,{})
  var kind=classification(id,definition);var original=description(id,level,campaign) if source.is_empty() else source
@@ -58,19 +58,22 @@ static func document(id: String,title: String,level: int,campaign: Dictionary,ge
   elif ["次の","1戦1回","重複","上限","最初","1行動"].any(func(word):return sentence.contains(word)):limits.append(sentence)
   elif ["場合","なら","いれば","のみ","不可","条件","成立","占有","遮る","塞が","盤外"].any(func(word):return sentence.contains(word)):conditions.append(sentence)
   else:effect.append(sentence)
+ if id=="skill_ambush":
+  effect=["敵の手前のマスへ移動し、距離1の通常攻撃を行う。"]
+  conditions=["敵との間に他のキャラクターがいない場合に使用できる。"]
  return {"title":title+("Lv%d" % level if LEVELLED.has(id) and not title.contains("Lv") else ""),"classification":kind,"cost":cost,"target":target_text(id,definition,level),"range":range_text(id,gear,definition,kind=="passive",level),"effect":effect,"conditions":conditions,"limits":limits,"original":original}
 static func summary(doc: Dictionary) -> String:
  var lines=[]
  if not doc.classification.is_empty():lines.append("種別: "+("パッシブ" if doc.classification=="passive" else "アクティブ"))
  if doc.cost!=null and doc.classification!="passive":lines.append("消費MP: %d" % doc.cost)
- if not doc.target.is_empty():lines.append("対象: "+doc.target)
- if not doc.range.is_empty():lines.append("射程・範囲: "+doc.range)
  return "\n".join(lines)
 static func body(doc: Dictionary) -> String:
  var blocks=["スキル効果:\n"+("\n".join(doc.effect) if not doc.effect.is_empty() else "説明は登録されていません。")]
+ var scope=[]
+ if not doc.target.is_empty():scope.append("対象: "+doc.target)
+ if not doc.range.is_empty():scope.append("射程・範囲: "+doc.range)
+ if not scope.is_empty():blocks.push_front("\n".join(scope))
  if not doc.conditions.is_empty():blocks.append("条件・付随効果:\n"+"\n".join(doc.conditions))
  if not doc.limits.is_empty():blocks.append("持続・回数・上限:\n"+"\n".join(doc.limits))
  return "\n\n".join(blocks)
 static func plain(doc: Dictionary) -> String:return "["+doc.title+"]\n"+summary(doc)+"\n"+body(doc)
-static func glossary() -> String:
- return "対象と効果範囲\n対象は指定する人物や中心マスです。実際に効果を受ける範囲は、各スキルの説明と盤面の予告を確認してください。\n\n次の本人の番まで\nかばう・防衛線・陣形強化は、使用者の次の手番が来た時点で解除されます。足払いでその手番をスキップする場合も解除されます。\n\n消費MPと移譲\n魔力譲渡の消費MPは0ですが、渡したMPは使用者の残量から減ります。渡す量は相手の空き分までで、総量は増えません。\n\n拳とアイテム\n拳は空いた手にある仮想装備です。片手でも拳ならバトル中にもアイテムを使用できます。バトル外では両手が塞がっていても使用でき、本人の所持品を1個使います。"

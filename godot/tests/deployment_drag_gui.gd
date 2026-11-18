@@ -106,7 +106,7 @@ func run():
 	check(ally(SCOUT).pos==0 and drops.size()==count+1,"OS formerly covered ally edge cell accepts drop after panel drag")
 	await shot("deployment-panel-moved-edge-cell")
 	await request({"action":"click","x":screen(node("DeploymentBegin")).x,"y":screen(node("DeploymentBegin")).y})
-	check(game.campaign().phase=="battle" and node("BattleDetails")!=null and node("BattleDetails").is_visible_in_tree(),"central OS start works without porter and battle details remain available")
+	check(game.campaign().phase=="battle" and node("BattleDetails")==null,"central OS start works without porter and obsolete battle details stay removed")
 	await shot("battle-details-returned")
 	check(game.audio.muted.values().all(func(v):return v),"BGM voice SE OFF")
 	for spec in [["checks.json",checks],["layout.json",layouts],["dispatch.json",drops]]:

@@ -32,8 +32,6 @@ func run():
 	game.render();await settle();await click("BattleHistory")
 	var labels=game.dialog.window.find_children("*","Label",true,false).map(func(n):return n.text)
 	check(game.dialog.window.title=="戦闘履歴" and labels.has("history-test-20") and labels.has("history-test-59") and not labels.has("history-test-19"),"history displays former detail log last forty entries")
-	game.dialog.close();game.hud.toggle_details();await settle()
-	check(not game.dialog.window.find_children("*","Label",true,false).any(func(n):return n.text.begins_with("history-test-")),"battle details no longer duplicate history")
 	game.dialog.close();game.data=original;game.render();await settle()
 	check(await saved()==before,"reading order and history never mutates engine state")
 	# Real action at normal speed: fixed controls must remain outside the slide.

@@ -60,10 +60,6 @@ func run():
 	await create_timer(.4).timeout;game.checks_fast=true
 	check(game.hud.left_panel.visible and node("CommandOpeningFlight")==null,"command panel opening settles and frees visual")
 	check(node("Retreat")==null,"retreat button removed")
-	game.hud.toggle_details();await settle()
-	var labels=game.dialog.window.find_children("*","Label",true,false).map(func(n):return n.text)
-	check(not labels.any(func(t):return t.contains("全行動順") or t.begins_with("所持:")) and labels.any(func(t):return t.contains("条件マス")),"battle details retain unique formation and intent reasoning only")
-	game.dialog.close();await settle()
 	for panel in [game.hud.left_panel,game.hud.right_panel]:
 		panel.position=Vector2(-500,-500);panel.constrain();await frames()
 		check(panel.global_position.y==0 and panel.global_position.x==0 and panel.z_index>=10,"floating panel reaches screen top while remaining visible")

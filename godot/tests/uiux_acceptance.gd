@@ -82,7 +82,7 @@ func layouts():
 		check("AC-S01",node("ShopComparisonStats")!=null and node("ShopComparisonBuy")!=null,"current inline comparison and purchase are available "+str(dims))
 		await load_fixture(fixtures.attack);game.choose_command("action_move");await game.on_cell(int(game.data.choices.action_move[0]));await settle()
 		var pending=game.pending;var preview=JSON.stringify(game.preview);var rect=node("BattleConfirm").get_global_rect()
-		var regions=[game.hud.left_panel,game.hud.right_panel,node("BattleConfirm"),node("DecisionTitle")]
+		var regions=[game.hud.left_panel,game.hud.right_panel,node("BattleConfirm")]
 		check("AC-G02,AC-G03,AC-G04,AC-B01",regions.all(visible),"actor/commands/target/confirm all visible "+str(dims)+" "+str(regions.map(func(region):return {"name":region.name,"visible":region.is_visible_in_tree(),"rect":region.get_global_rect()})))
 		for mode in range(3):
 			game.board.camera_mode=mode;game.board.update_camera();await settle()
@@ -148,7 +148,7 @@ func battle_checks():
 	var old_kind=game.command;await game.commit();await settle()
 	check("AC-B02",game.command==old_kind and game.pending==null and game.preview.is_empty(),"next hand inherits mode but removes previous target and preview")
 	await load_fixture(fixtures.attack);game.choose_command("action_move");var before=await snapshot();var dest=int(game.data.choices.action_move[0]);await game.on_cell(dest);await settle()
-	check("AC-B08",text(game).contains("この移動で手番終了") and text(game).contains("移動後の陣形:"),"movement summary explains turn end and formation")
+	check("AC-B08",game.board.kind=="action_move" and int(game.board.preview.get("destination",-1))==dest and game.board.preview.get("formationAfter") is bool and not text(game).contains("この移動で手番終了") and not text(game).contains("移動後の陣形:"),"movement previews destination and formation on the board instead of summary text")
 	await game.inspect_movement("action_skill");await settle()
 	check("AC-B10",await snapshot()==before,"hypothetical range consumes nothing")
 	game.cancel();await settle();check("AC-B08",game.pending==null and await snapshot()==before,"movement cancellation preserves position, MP and action count")
@@ -156,14 +156,10 @@ func battle_checks():
 	await game.on_cell(dest);await game.commit();await settle()
 	print("MOVE_DONE ",JSON.stringify({"before":before.state.battle.actions,"after":game.state().actions,"old_actor":before.state.battle.actor,"actor":game.state().actor,"dest":dest,"guard_pos":game.hud.unit("character_mirei").pos}))
 	check("AC-G01,AC-B09",await snapshot()==moved and game.state().actions>before.state.battle.actions and game.hud.unit(before.state.battle.actor).pos==dest and game.pending==null,"moving advances engine hand count and position, then clears pending input; same actor may recur")
-	await load_fixture(fixtures.low);game.hud.detail_tab=1;game.render();await settle()
+	await load_fixture(fixtures.low);game.render();await settle()
 	check("AC-B15",game.board.actors["character_mirei"].label.font==game.board.low_hp_font and game.board.actors["character_shion"].label.font!=game.board.low_hp_font,"below-quarter and above-quarter fonts retain HP boundary")
 	var queue_=game.data.queue.duplicate(true);var repeated=queue_.map(func(q):return q.id)
 	check("AC-B13",game.hud.queue_at_start==queue_ and node("TurnOrder").get_children().filter(func(c):return c is PanelContainer).size()==mini(5,queue_.size()),"queue retains full engine order while displaying only its first five cards")
-	game.hud.detail_tab=0;game.hud.details_open=true;game.render();await settle()
-	for enemy in game.state().units:
-		if enemy.side=="enemy":game.hud.inspect_enemy(enemy.id);break
-	await settle();check("AC-B11,AC-B12",text(game).contains("陣形条件") and not text(game).contains("固定マス") and game.hud.selected_enemy!="","enemy details use the current board without fixed-cell intent text")
 	await load_fixture(fixtures.heal);await game.select_skill("skill_heal")
 	if not game.data.choices.action_skill.is_empty():await game.on_cell(int(game.hud.unit(game.data.choices.action_skill[0]).pos))
 	await settle();executable=game.can_commit();game.hud.open_action_details();await settle()
