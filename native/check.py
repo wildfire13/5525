@@ -1,12 +1,15 @@
 """Run the native prototype's non-GUI verification suite."""
 import datetime
 import json
-import os
 from pathlib import Path
 import subprocess
 import sys
 
 BASE=Path(__file__).resolve().parent
+sys.path.insert(0, str(BASE.parent / "godot"))
+from launcher_config import runtime_environment
+env = runtime_environment(BASE.parent)
+env.update(PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
 steps=[
  ('Python syntax',[sys.executable,'-m','compileall','-q','debug_store.py','godot_files.py','master_data.py','portraits.py']),
  ('Python rules/adapter/preview tests',[sys.executable,'-m','unittest','-v']),
@@ -51,7 +54,8 @@ report={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'guiInclud
 for name,command in steps:
     try:
         timeout=300 if name=='Python rules/adapter/preview tests' else 120
-        r=subprocess.run(command,cwd=BASE,text=True,encoding='utf-8',capture_output=True,timeout=timeout,env={**os.environ,"PYTHONIOENCODING":"utf-8","PYTHONUTF8":"1"})
+        program = env["NATIVE5525_NODE"] if command[0] == "node" else env["NATIVE5525_PYTHON"]
+        r=subprocess.run([program, *command[1:]],cwd=BASE,text=True,encoding='utf-8',capture_output=True,timeout=timeout,env=env)
         report['steps'].append({'name':name,'passed':r.returncode==0,'exitCode':r.returncode,'stdout':r.stdout,'stderr':r.stderr})
     except subprocess.TimeoutExpired:
         report['steps'].append({'name':name,'passed':False,'error':f'timeout after {timeout} seconds'})

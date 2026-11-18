@@ -1,6 +1,7 @@
 """Real Node-process campaign boundaries. These are not GUI tests."""
 from test_current_fixture import current_campaign
 import copy
+import os
 import json
 import subprocess
 import unittest
@@ -30,7 +31,7 @@ class CampaignBridgeTests(unittest.TestCase):
         self.action('begin')
         for _ in range(250):
             if self.data['state']['result']:break
-            r=subprocess.run(['node','-e',POLICY],cwd=BASE,input=json.dumps(self.data['state']),text=True,capture_output=True,check=True)
+            r=subprocess.run([os.environ.get('NATIVE5525_NODE', 'node'),'-e',POLICY],cwd=BASE,input=json.dumps(self.data['state']),text=True,capture_output=True,check=True)
             self.data=self.bridge.call(op='act',**json.loads(r.stdout));self.assertTrue(self.data['ok'],self.data.get('error'))
         self.assertTrue(self.data['state']['result']);self.action('finishBattle')
     def journey(self,destination,quest=True,owner='character_yuno'):
@@ -110,7 +111,7 @@ const rng=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
 for(let i=0;i<100;i++){const s=C.create();C.depart(s,'north');C.travel(s,'short',rng);C.begin(s);
 if(s.battle.units.some(u=>u.side==='enemy'&&u.job==='job_scout')){console.log(C.serialize(s));break;}}
 """
-        result=subprocess.run(['node','-e',generator],cwd=BASE,text=True,capture_output=True,check=True)
+        result=subprocess.run([os.environ.get('NATIVE5525_NODE', 'node'),'-e',generator],cwd=BASE,text=True,capture_output=True,check=True)
         valid=json.loads(result.stdout); live=self.save()
         for field in ('pos','hp'):
             bad=copy.deepcopy(valid)

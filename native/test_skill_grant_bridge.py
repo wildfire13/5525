@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import os
 from pathlib import Path
 from bridge_test_session import Session
 
@@ -75,7 +76,7 @@ class SkillGrantBridgeTests(unittest.TestCase):
                 (root/'data').mkdir()
                 if mode=='corrupt':(root/'data/master.sqlite').write_bytes(b'not sqlite')
                 requests=''.join(json.dumps({'op':op})+'\n' for op in ['campaign_start','campaign_load','campaign_save'])
-                result=subprocess.run(['node',str(root/'bridge.cjs')],input=requests,text=True,capture_output=True,timeout=20)
+                result=subprocess.run([os.environ.get('NATIVE5525_NODE', 'node'),str(root/'bridge.cjs')],input=requests,text=True,capture_output=True,timeout=20)
                 self.assertEqual(result.returncode,0,result.stderr)
                 replies=[json.loads(line) for line in result.stdout.splitlines()]
                 self.assertEqual(len(replies),3)

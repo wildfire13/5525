@@ -23,6 +23,10 @@ var io_script:=""
 var owned_io_pids: Array[int]=[]
 func start_engine() -> bool:
 	if busy or disconnected:return false
+	last_error=preload("res://runtime_paths.gd").apply(ProjectSettings.globalize_path("res://..").simplify_path())
+	if not last_error.is_empty():
+		disconnected=true
+		return false
 	native_dir=ProjectSettings.globalize_path("res://../native")
 	if OS.is_debug_build() and debug_store==null:
 		debug_store=preload("res://debug_store.gd").new();add_child(debug_store);debug_store.start(native_dir,python_program)

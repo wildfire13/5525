@@ -20,11 +20,12 @@ def run(name,entry,args,environment,expected=0,project=ROOT):
 with tempfile.TemporaryDirectory(prefix='5525 launcher discovery ') as temporary:
     project=Path(temporary)
     for relative in ['Start-5525.cmd','Start-5525-Godot.cmd','godot/launch.ps1',
-                     'godot/project.godot','native/bridge.cjs','native/godot_files.py',
+                     'godot/project.godot','godot/windows-shared-env.txt','native/bridge.cjs','native/godot_files.py',
                      'native/master-data.cjs','native/master_data.py','native/data/master.sqlite',
                      'native/assets/music/manifest.json','godot/assets/quest_music.json']:
         target=project/relative;target.parent.mkdir(parents=True,exist_ok=True)
         shutil.copy2(ROOT/relative,target)
+    env['AKI_SHARED_ENV_FILE']=str(project/'shared.env')
     runtime=project/'runtime/godot';runtime.mkdir(parents=True)
     executable=Path(sys.argv[1]).resolve()
     shutil.copy2(executable,runtime/executable.name)
@@ -72,13 +73,55 @@ with tempfile.TemporaryDirectory(prefix='5525 launcher discovery ') as temporary
     local_config.write_text(json.dumps({'godot_bin':str(project/'missing Godot.exe')}),encoding='utf-8')
     invalid_config=run('Reject invalid local Godot config without auto fallback','Start-5525.cmd',['-Check'],auto,1,project)
     invalid_config['passed'] &= 'configured Godot path from godot/launcher.local.json' in invalid_config['stderr']
+    # Exercise mixed sources with real executables and an unrelated working directory.
+    shared=Path(env['AKI_SHARED_ENV_FILE'])
+    project_config=project/'.env'
+    shared.write_text('GODOT_BIN="local runtime with spaces/' + executable.name + '"', encoding='utf-8-sig')
+    project_config.write_text('GODOT_BIN=missing-lower-value\nNATIVE5525_NODE="'+str(node.resolve())+'"',encoding='utf-8')
+    mixed={**env,'GODOT_BIN':'missing-process','NATIVE5525_NODE':'missing-process','NATIVE5525_PYTHON':sys.executable}
+    checked=run('Shared Godot, project Node, process Python','Start-5525.cmd',['-Check'],mixed,project=project)
+    if checked['passed']:
+        report=json.loads(checked['stdout'])
+        checked['passed'] &= all(Path(report[key]['path']).samefile(path) for key,path in
+                                 [('godot',configured_runtime),('node',node),('python',sys.executable)])
+    for invalid in ('""','missing-executable','"unterminated','valid\nGODOT_BIN=duplicate'):
+        shared.write_text('GODOT_BIN='+invalid,encoding='utf-8')
+        failed=run('Reject invalid shared GODOT_BIN: '+repr(invalid),'Start-5525.cmd',['-Check'],mixed,1,project)
+        failed['passed'] &= 'GODOT_BIN' in failed['stderr']
+    # Direct editor runs use the Godot resolver. Give it an isolated game root.
+    probe=project/'resolve_children.gd'
+    probe.write_text("""extends SceneTree
+func _initialize():
+	var args = OS.get_cmdline_user_args()
+	var error = preload("res://runtime_paths.gd").apply(args[0])
+	var valid = error.contains(args[1]) if args[1] != "ok" else (
+		error.is_empty() and OS.get_environment("NATIVE5525_NODE") == args[2]
+		and OS.get_environment("NATIVE5525_PYTHON") == args[3])
+	quit(0 if valid else 1)
+""",encoding='utf-8')
+    def direct(name, expected):
+        command=[str(executable),'--headless','--path',str(ROOT/'godot'),'--script',str(probe),'--',
+                 str(project),expected,node.resolve().as_posix(),Path(sys.executable).resolve().as_posix()]
+        result=subprocess.run(command,env=mixed,capture_output=True,timeout=20)
+        entries.append(dict(name=name,passed=result.returncode==0))
+    project_config.write_text('NATIVE5525_NODE=missing-lower-value',encoding='utf-8')
+    shared.write_text('NATIVE5525_NODE="'+str(node.resolve())+'"',encoding='utf-8-sig')
+    direct('Direct Godot uses shared Node and process Python', 'ok')
+    shared.write_text('NATIVE5525_PYTHON="'+sys.executable+'"',encoding='utf-8')
+    project_config.write_text('NATIVE5525_NODE="'+str(node.resolve())+'"',encoding='utf-8')
+    direct('Direct Godot uses project Node and shared Python', 'ok')
+    shared.write_text('NATIVE5525_NODE=""',encoding='utf-8')
+    direct('Direct Godot rejects empty shared Node', 'NATIVE5525_NODE')
+    shared.unlink()
+    project_config.unlink()
+    local_config.unlink()
+    for key in ['GODOT_BIN','NATIVE5525_NODE','NATIVE5525_PYTHON']:
+        item=run('Reject missing explicit '+key,'Start-5525-Godot.cmd',['-Check'],{**env,key:str(project/'nonexistent-runtime.exe')},1,project)
+        item['passed'] &= key in item['stderr'] and 'was not found' in item['stderr']
 explicit=run('Godot entry accepts explicit runtime','Start-5525-Godot.cmd',['-Check'],env)
 if explicit['passed']:
     data=json.loads(explicit['stdout']);explicit['resolved']=data
     explicit['passed'] &= bool(data['python'].get('sqlite')) and bool(data['python'].get('pillow'))
-for key in ['GODOT_BIN','NATIVE5525_NODE','NATIVE5525_PYTHON']:
-    item=run('Reject missing explicit '+key,'Start-5525-Godot.cmd',['-Check'],{**env,key:str(ROOT/'nonexistent-runtime.exe')},1)
-    item['passed'] &= 'was not found' in item['stderr']
 item=run('Default entry starts and closes actual app','Start-5525.cmd',['-SmokeTest'],env)
 if item['passed']:
     lines=[s for s in item['stdout'].splitlines() if s.startswith('{')]

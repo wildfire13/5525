@@ -9,7 +9,7 @@ import ctypes.util
 import json
 import os
 from pathlib import Path
-import shutil
+from qa_runtime import qa_environment
 import subprocess
 import sys
 import time
@@ -55,7 +55,7 @@ def button(pressed, number=1):
     xt.XTestFakeButtonEvent(display, number, int(pressed), 0)
     x.XFlush(display)
 
-env = dict(os.environ, NATIVE5525_NODE=shutil.which('node'), NATIVE5525_PYTHON=sys.executable, NATIVE5525_AUDIO_OFF='1',
+env = dict(qa_environment(), NATIVE5525_AUDIO_OFF='1',
            INVENTORY_QA_ROOT=str(out), UIUX_REVIEW_EVIDENCE=str(out), LIBGL_ALWAYS_SOFTWARE='1')
 for key, child in [('XDG_DATA_HOME','data'),('XDG_CONFIG_HOME','config'),('XDG_CACHE_HOME','cache')]:
     path = out/child
@@ -63,7 +63,7 @@ for key, child in [('XDG_DATA_HOME','data'),('XDG_CONFIG_HOME','config'),('XDG_C
     env[key] = str(path)
 requests = []
 with (out/'gui.log').open('w') as log:
-    proc = subprocess.Popen([shutil.which('godot'), '--display-driver','x11','--rendering-method','gl_compatibility',
+    proc = subprocess.Popen([env['GODOT_BIN'], '--display-driver','x11','--rendering-method','gl_compatibility',
         '--audio-driver','Dummy','--path',str(repo/'godot'),'--script','res://tests/'+a.script+'.gd'],
         cwd=repo, env=env, stdout=log, stderr=subprocess.STDOUT)
     deadline = time.monotonic()+630

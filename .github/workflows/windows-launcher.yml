@@ -10,6 +10,7 @@ on:
       - '!godot/tests/**'
       - '!godot/**/*.md'
       - 'godot/tests/launcher_checks.py'
+      - 'godot/tests/launcher_config_tests.py'
       - 'godot/tests/launcher_smoke.gd'
       - 'native/**'
       - '!native/**/*.md'
@@ -25,6 +26,7 @@ on:
       - '!godot/tests/**'
       - '!godot/**/*.md'
       - 'godot/tests/launcher_checks.py'
+      - 'godot/tests/launcher_config_tests.py'
       - 'godot/tests/launcher_smoke.gd'
       - 'native/**'
       - '!native/**/*.md'
@@ -90,6 +92,8 @@ jobs:
           New-Item -ItemType Directory -Force $env:APPDATA, $env:LOCALAPPDATA | Out-Null
           $env:NATIVE5525_NODE = (Get-Command node).Source
           $env:NATIVE5525_PYTHON = (Get-Command python).Source
+          python godot/tests/launcher_config_tests.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python godot/tests/launcher_checks.py $env:GODOT_BIN
           $checkExit = $LASTEXITCODE
           if ($checkExit -ne 0 -and (Test-Path godot/qa/launcher-report.json)) {

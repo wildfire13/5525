@@ -7,29 +7,26 @@ import argparse
 import json
 import os
 from pathlib import Path
-import shutil
+from qa_runtime import qa_environment
 import subprocess
-import sys
 import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--evidence', type=Path, required=True)
 parser.add_argument('--godot', type=Path)
-parser.add_argument('--node', default=shutil.which('node'))
+parser.add_argument('--node')
 parser.add_argument('--suite', choices=['all', 'native', 'godot'], default='all')
 args = parser.parse_args()
 repo = Path(__file__).resolve().parents[2]
 out = args.evidence.resolve()
 if out == repo or out.is_relative_to(repo):
     parser.error('Use a separate evidence directory outside the source checkout')
-if args.suite != 'native' and (not args.godot or not args.godot.is_file()):
-    parser.error('--godot must name an existing executable')
-if not args.node:
-    parser.error('Node.js executable was not found')
+env = qa_environment(godot=args.godot, needs_godot=args.suite != 'native')
+args.godot = env.get('GODOT_BIN')
+args.node = args.node or env['NATIVE5525_NODE']
 out.mkdir(parents=True, exist_ok=True)
-env = dict(os.environ)
 env.update(INVENTORY_QA_ROOT=str(out), UIUX_REVIEW_EVIDENCE=str(out),
-           NATIVE5525_NODE=str(args.node), NATIVE5525_PYTHON=sys.executable,
+           NATIVE5525_NODE=str(args.node),
            PYTHONDONTWRITEBYTECODE='1')
 env['PATH'] = str(Path(args.node).parent) + os.pathsep + env.get('PATH', '')
 for var, name in [('APPDATA', 'appdata'), ('LOCALAPPDATA', 'localappdata'),
@@ -77,7 +74,7 @@ if args.suite != 'godot':
     for name in ['test_godot_files', 'test_campaign_bridge',
                  'test_equipment_slots_bridge', 'test_equipment_skill_bridge',
                  'test_presentation_bridge', 'test_preview_bridge']:
-        run(name, [sys.executable, '-X', 'utf8', '-B', '-m', 'unittest', name], repo / 'native')
+        run(name, [env['NATIVE5525_PYTHON'], '-X', 'utf8', '-B', '-m', 'unittest', name], repo / 'native')
 if args.suite != 'native':
     base = [str(args.godot), '--headless', '--audio-driver', 'Dummy', '--path', str(repo / 'godot')]
     run('parse', base + ['--log-file', str(out / 'parse-engine.log'), '--check-only', '--script', 'res://main.gd'], repo)

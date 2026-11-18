@@ -4,10 +4,8 @@ import datetime
 import json
 import os
 from pathlib import Path
-import sys
-import shutil
 import subprocess
-from launcher_config import resolve_godot
+from launcher_config import resolve_godot, runtime_environment
 import time
 import tempfile
 
@@ -26,12 +24,14 @@ def is_godot_46(path: Path) -> bool:
     return result.returncode == 0 and result.stdout.strip().startswith("4.6.")
 
 try:
+    env = runtime_environment(ROOT)
     godot_path, godot_source = resolve_godot(ROOT, explicit=args.godot, validate=is_godot_46)
 except (FileNotFoundError, ValueError) as error:
     parser.error(f"{error} Install/use Godot 4.6.x, set GODOT_BIN, or create godot/launcher.local.json from the example.")
 args.godot = str(godot_path)
-node = os.environ.get("NATIVE5525_NODE") or shutil.which("node") or "node"
-env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "NATIVE5525_PYTHON": sys.executable}
+node = env["NATIVE5525_NODE"]
+python = env["NATIVE5525_PYTHON"]
+env.update(PYTHONUTF8="1", PYTHONIOENCODING="utf-8")
 evidence = Path(tempfile.mkdtemp(prefix="5525-headless-"))
 env.update(GODOT_BIN=args.godot, NATIVE5525_NODE=node, NATIVE5525_AUDIO_OFF="1",
            INVENTORY_QA_ROOT=evidence.as_posix(), UIUX_REVIEW_EVIDENCE=evidence.as_posix())
@@ -40,10 +40,10 @@ profile.mkdir()
 env["APPDATA" if os.name == "nt" else "XDG_DATA_HOME"] = str(profile)
 common = [args.godot, "--headless", "--resolution", "1920x1080", "--audio-driver", "Dummy", "--path", str(BASE)]
 steps = [
-    ("Godot path configuration", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/launcher_config_tests.py")], BASE),
+    ("Godot path configuration", [python, "-X", "utf8", "-B", str(BASE / "tests/launcher_config_tests.py")], BASE),
     ("Godot import/parse", common + ["--editor", "--import", "--quit"], BASE),
     ("Godot candidate rules", [node, "test_godot_rules.cjs"], ROOT / "native"),
-    ("Atomic save and portrait adapter", [sys.executable, "-X", "utf8", "-B", "-m", "unittest", "-v", "test_godot_files"], ROOT / "native"),
+    ("Atomic save and portrait adapter", [python, "-X", "utf8", "-B", "-m", "unittest", "-v", "test_godot_files"], ROOT / "native"),
 ]
 # Keep bridge, fault and lifecycle coverage alongside the current CI UI suite.
 for name, script in [
@@ -57,13 +57,13 @@ for name, script in [
     ("Approved equipment flavor and detail presentation", "equipment_flavor_regression.gd"),
 ]:
     steps.append((name, common + ["--script", "res://tests/" + script], BASE))
-steps.append(("Fault handling and shutdown", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/audit_checks.py"), args.godot], BASE))
+steps.append(("Fault handling and shutdown", [python, "-X", "utf8", "-B", str(BASE / "tests/audit_checks.py"), args.godot], BASE))
 if os.name == "nt":
-    steps.append(("Candidate launcher", [sys.executable, "-X", "utf8", "-B", str(BASE / "tests/launcher_checks.py"), args.godot], BASE))
+    steps.append(("Candidate launcher", [python, "-X", "utf8", "-B", str(BASE / "tests/launcher_checks.py"), args.godot], BASE))
 ui_runner = str(BASE / "tests/run_mock_ui_regression.py")
-steps.append(("Current FHD UI regression", [sys.executable, "-X", "utf8", "-B", ui_runner, "--evidence", str(evidence)], BASE))
+steps.append(("Current FHD UI regression", [python, "-X", "utf8", "-B", ui_runner, "--evidence", str(evidence)], BASE))
 if args.full:
-    steps.append(("Full native regression", [sys.executable, "-X", "utf8", "-B", "check.py"], ROOT / "native"))
+    steps.append(("Full native regression", [python, "-X", "utf8", "-B", "check.py"], ROOT / "native"))
 report = {
     "at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     "guiIncluded": False,

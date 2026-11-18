@@ -3,21 +3,64 @@ import json
 import os
 from pathlib import Path
 import shutil
+import sys
 
 
 def load_paths(root, keys, environ):
-    config = root / '.env'
-    if not config.is_file():
-        return
-    for line in config.read_text(encoding='utf-8-sig').splitlines():
-        name, sep, value = line.partition('=')
-        name, value = name.strip(), value.strip()
-        if not sep or name not in keys or environ.get(name) or not value:
+    root = Path(root).resolve()
+    override = environ.get("AKI_SHARED_ENV_FILE")
+    if override is not None and not Path(override).is_absolute():
+        raise ValueError("Set AKI_SHARED_ENV_FILE to an absolute filename")
+    files = []
+    if override is not None:
+        files.append(Path(override))
+    elif os.name == "nt":
+        files.append(Path(Path(__file__).with_name("windows-shared-env.txt").read_text().strip()))
+    files.append(root / ".env")
+    remaining = set(keys)
+    for file in files:
+        if not remaining:
+            break
+        try:
+            lines = file.read_text(encoding="utf-8-sig").splitlines()
+        except FileNotFoundError:
             continue
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
-            value = value[1:-1]
-        if value:
-            environ[name] = str((root / value).resolve())
+        entries = {}
+        for line in lines:
+            key, sep, value = line.partition("=")
+            key = key.strip()
+            if not sep or key not in remaining:
+                continue
+            if key in entries:
+                raise ValueError(f"Duplicate .env setting: {key}")
+            value = value.strip()
+            if value.startswith(('"', "'")):
+                if len(value) < 2 or value[-1] != value[0]:
+                    raise ValueError(f"Invalid .env quotes: {key}")
+                value = value[1:-1]
+            entries[key] = value
+        for key, value in entries.items():
+            environ[key] = executable_path(key, value, file.parent)
+        remaining.difference_update(entries)
+    for key in remaining.intersection(environ):
+        environ[key] = executable_path(key, environ[key], root)
+
+
+def executable_path(key, value, base):
+    if not value.strip():
+        raise ValueError(f"Set {key} to an executable path")
+    path = base / value
+    if not path.is_file():
+        raise FileNotFoundError(f"Executable for {key} was not found. Check the configured path.")
+    return str(path.resolve())
+
+
+def runtime_environment(root):
+    env = os.environ.copy()
+    load_paths(root, {"NATIVE5525_NODE", "NATIVE5525_PYTHON"}, env)
+    env.setdefault("NATIVE5525_NODE", shutil.which("node") or "node")
+    env.setdefault("NATIVE5525_PYTHON", sys.executable)
+    return env
 
 
 def _automatic_candidates(root: Path):
@@ -48,7 +91,8 @@ def resolve_godot(root: Path, explicit: str | None = None, environ=None, validat
     root = Path(root).resolve()
     environ = os.environ if environ is None else environ
     environ = dict(environ)
-    load_paths(root, {"GODOT_BIN"}, environ)
+    if not explicit:
+        load_paths(root, {"GODOT_BIN"}, environ)
     local_config = root / "godot" / "launcher.local.json"
     configured = explicit if explicit else environ.get("GODOT_BIN")
     source = "--godot" if explicit else "GODOT_BIN" if configured else ""
@@ -68,7 +112,7 @@ def resolve_godot(root: Path, explicit: str | None = None, environ=None, validat
         if source == "godot/launcher.local.json" and not path.is_absolute():
             path = root / path
         if not path.is_file() or validate is not None and not validate(path):
-            raise FileNotFoundError(f"Godot executable from {source} is missing or is not a usable Godot 4.6.x executable: {configured}")
+            raise FileNotFoundError(f"Godot executable from {source} is missing or is not a usable Godot 4.6.x executable.")
         return path.resolve(), source
 
     for path in _automatic_candidates(root):

@@ -2,17 +2,53 @@
 param([switch]$Check,[switch]$SmokeTest)
 $ErrorActionPreference = 'Stop'
 $projectRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$configFile = Join-Path $projectRoot '.env'
-if (Test-Path -LiteralPath $configFile -PathType Leaf) {
-    foreach ($line in Get-Content -LiteralPath $configFile -Encoding UTF8) {
-        if ($line -match '^\s*(GODOT_BIN|NATIVE5525_NODE|NATIVE5525_PYTHON)\s*=(.*)$') {
-            $key = $Matches[1]
-            $value = $Matches[2].Trim().Trim('"').Trim("'")
-            if ($value -and ![Environment]::GetEnvironmentVariable($key)) {
-                $value = [IO.Path]::GetFullPath([IO.Path]::Combine($projectRoot, $value))
-                [Environment]::SetEnvironmentVariable($key, $value)
-            }
+function Read-RuntimePaths {
+    $shared = [Environment]::GetEnvironmentVariable('AKI_SHARED_ENV_FILE')
+    if ($null -ne $shared) {
+        $absolute = [IO.Path]::IsPathRooted($shared)
+        if ([Environment]::OSVersion.Platform -eq 'Win32NT') {
+            $absolute = $shared -match '^(?:[A-Za-z]:[\\/]|[\\/]{2})'
         }
+        if (!$absolute) {
+            throw 'Set AKI_SHARED_ENV_FILE to an absolute filename.'
+        }
+    } elseif ([Environment]::OSVersion.Platform -eq 'Win32NT') {
+        $shared = (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'windows-shared-env.txt') -Raw).Trim()
+    }
+    $keys = @('GODOT_BIN','NATIVE5525_NODE','NATIVE5525_PYTHON')
+    $selected = @{}
+    foreach ($file in @($shared, (Join-Path $projectRoot '.env'))) {
+        if (!$file -or $selected.Count -eq $keys.Count) { continue }
+        if ([IO.Directory]::Exists($file)) { throw 'Set the dotenv path to a file.' }
+        if (![IO.File]::Exists($file)) { continue }
+        $entries = @{}
+        foreach ($line in [IO.File]::ReadLines($file)) {
+            $parts = $line -split '=', 2
+            $key = $parts[0].Trim()
+            if ($parts.Count -lt 2 -or $key -cnotin $keys -or $selected.ContainsKey($key)) { continue }
+            if ($entries.ContainsKey($key)) { throw "Duplicate .env setting: $key" }
+            $value = $parts[1].Trim()
+            if ($value.StartsWith('"') -or $value.StartsWith("'")) {
+                if ($value.Length -lt 2 -or $value[-1] -ne $value[0]) { throw "Invalid .env quotes: $key" }
+                $value = $value.Substring(1, $value.Length - 2)
+            }
+            $entries[$key] = $value
+        }
+        foreach ($key in $entries.Keys) {
+            $selected[$key] = @($entries[$key], [IO.Path]::GetDirectoryName($file))
+        }
+    }
+    foreach ($key in $keys) {
+        if ($selected.ContainsKey($key)) { $value, $base = $selected[$key] }
+        else {
+            $value = [Environment]::GetEnvironmentVariable($key)
+            if ($null -eq $value) { continue }
+            $base = $projectRoot
+        }
+        if ([string]::IsNullOrWhiteSpace($value)) { throw "Set $key to an executable path." }
+        $path = [IO.Path]::GetFullPath([IO.Path]::Combine($base, $value))
+        if (![IO.File]::Exists($path)) { throw "Executable for $key was not found. Check the configured path." }
+        [Environment]::SetEnvironmentVariable($key, $path)
     }
 }
 function Probe([string]$Program,[string[]]$Arguments) {
@@ -32,6 +68,7 @@ function Existing-Path([string]$Path) {
     return ''
 }
 try {
+    Read-RuntimePaths
     foreach ($relative in @('godot/project.godot','native/bridge.cjs','native/godot_files.py','native/master-data.cjs','native/master_data.py','native/data/master.sqlite','native/assets/music/manifest.json','godot/assets/quest_music.json')) {
         if (-not (Test-Path -LiteralPath (Join-Path $projectRoot $relative) -PathType Leaf)) {
             throw "Missing project file: $relative. Keep the godot and native folders together."
@@ -124,7 +161,7 @@ try {
             if ($version -match '^4\.6\.') { $godotPath=$resolved; $godotVersion=$version; break }
         } catch { }
     }
-    if (-not $godotPath -and $godotSource) { throw "The configured Godot path from $godotSource was not found or is not Godot 4.6.x: $godotConfiguredValue" }
+    if (-not $godotPath -and $godotSource) { throw "The configured Godot path from $godotSource was not found or is not Godot 4.6.x." }
     if (-not $godotPath) { throw 'Godot 4.6.x was not found. Set GODOT_BIN or configure godot/launcher.local.json. Nothing was downloaded.' }
     $report = [ordered]@{
         project=$projectRoot

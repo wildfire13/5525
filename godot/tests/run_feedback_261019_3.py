@@ -1,9 +1,8 @@
 """Focused feedback3 checks using fresh, isolated profiles; no desktop GUI claim."""
 import argparse
 import json
-import os
 from pathlib import Path
-import shutil
+from qa_runtime import qa_environment
 import subprocess
 import sys
 import tempfile
@@ -15,16 +14,15 @@ repo = Path(__file__).resolve().parents[2]
 out = a.evidence.resolve()
 if out == repo or repo in out.parents:
     p.error('Evidence must be outside the checkout')
-node, godot = shutil.which('node'), shutil.which('godot')
-if not node or not godot:
-    p.error('Node and Godot must be on PATH')
+settings = qa_environment()
+node, godot = settings['NATIVE5525_NODE'], settings['GODOT_BIN']
 out.mkdir(parents=True, exist_ok=True)
 results = []
 
 
 def run(name, command, cwd, env=None):
     try:
-        r = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=150)
+        r = subprocess.run(command, cwd=cwd, env=env or settings, capture_output=True, text=True, timeout=150)
         text, code = r.stdout + r.stderr, r.returncode
     except subprocess.TimeoutExpired as e:
         def decode(value):
@@ -38,12 +36,12 @@ def run(name, command, cwd, env=None):
     print(json.dumps(result, ensure_ascii=False), flush=True)
 
 
-run('native_preview', [sys.executable, '-m', 'unittest', '-v', 'test_preview_bridge'], repo / 'native')
+run('native_preview', [settings['NATIVE5525_PYTHON'], '-m', 'unittest', '-v', 'test_preview_bridge'], repo / 'native')
 run('native_dual_skills', [node, 'test_dual_skills.cjs'], repo / 'native')
 run('native_log', [node, 'test_campaign_log.cjs'], repo / 'native')
 for name in ['status_layout_lifecycle', 'status_empty_inventory', 'feedback_261019_3', 'feedback_261019_input', 'feedback_261019_skills', 'hover_lifetime_regression', 'feedback_261019_2', 'guild_regression', 'guild_vacancy_regression', 'inventory_regression', 'status_portrait_hover', 'ui_feedback2_20261017', 'shop_rows_regression', 'owned_equipment_regression', 'frontend_smoke', 'feedback_261019', 'ui_preferences_restart']:
     scope = Path(tempfile.mkdtemp(prefix=name + '-', dir=out))
-    env = dict(os.environ, NATIVE5525_NODE=node, NATIVE5525_PYTHON=sys.executable, INVENTORY_QA_ROOT=str(scope), UIUX_REVIEW_EVIDENCE=str(scope))
+    env = dict(settings, INVENTORY_QA_ROOT=str(scope), UIUX_REVIEW_EVIDENCE=str(scope))
     for key, child in [('XDG_DATA_HOME', 'data'), ('XDG_CONFIG_HOME', 'config'), ('XDG_CACHE_HOME', 'cache')]:
         path = scope / child
         path.mkdir()

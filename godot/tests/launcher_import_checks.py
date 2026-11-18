@@ -33,7 +33,8 @@ with tarfile.open(archive) as source:
     source.extractall(project, filter='data')
 archive.unlink()
 # Include the candidate launcher even when the test is run before committing.
-shutil.copy2(ROOT / 'godot/launch.ps1', project / 'godot/launch.ps1')
+for filename in ('launch.ps1', 'windows-shared-env.txt', 'engine_bridge.gd', 'runtime_paths.gd'):
+    shutil.copy2(ROOT / 'godot' / filename, project / 'godot' / filename)
 # Only the disposable game's normal entry gains a graceful auto-close timer.
 main = project / 'godot/main.gd'
 main_text = main.read_text(encoding='utf-8')
@@ -77,7 +78,8 @@ else:
     import shlex
     executable.write_text('#!/bin/sh\nexec ' + shlex.quote(sys.executable) + ' ' + shlex.quote(str(proxy)) + ' "$@"\n')
     executable.chmod(0o755)
-env = dict(os.environ, GODOT_BIN=str(executable), NATIVE5525_NODE=shutil.which('node') or '',
+shared = out / 'shared.env'
+env = dict(os.environ, AKI_SHARED_ENV_FILE=str(shared), GODOT_BIN=str(executable), NATIVE5525_NODE=shutil.which('node') or '',
            NATIVE5525_PYTHON=sys.executable, IMPORT_TEST_GODOT=str(Path(args.godot).resolve()),
            XDG_DATA_HOME=str(out/'user/data'), XDG_CONFIG_HOME=str(out/'user/config'),
            XDG_CACHE_HOME=str(out/'user/cache'), APPDATA=str(out/'user/roaming'),
@@ -142,10 +144,13 @@ try:
         assert p.returncode != 0, key
         results.append(dict(name='missing-' + key, passed=True))
     write_config(configuration)
-    env['GODOT_BIN'] = configuration['GODOT_BIN']
-    write_config({**configuration, 'GODOT_BIN': str(project / 'missing executable')})
-    run('environment-overrides-dotenv', check=True)
+    env['GODOT_BIN'] = str(project / 'missing process executable')
+    run('project-dotenv-overrides-process', check=True)
+    shared.write_text('GODOT_BIN="' + executable.name + '"', encoding='utf-8-sig')
+    write_config({**configuration, 'GODOT_BIN': str(project / 'missing project executable')})
+    run('shared-dotenv-overrides-project-and-process', check=True)
     env.pop('GODOT_BIN')
+    shared.unlink()
     write_config(configuration)
     run('check-does-not-import', check=True)
     assert not (project/'godot/.godot').exists()

@@ -1,15 +1,16 @@
 """261019 focused rules/UI regression. Headless checks do not replace GUI acceptance."""
-import argparse,json,os,shutil,subprocess,sys,tempfile
+import argparse, json, subprocess, sys, tempfile
 from pathlib import Path
+from qa_runtime import qa_environment
 p=argparse.ArgumentParser();p.add_argument('--evidence',type=Path,required=True);a=p.parse_args()
 repo=Path(__file__).resolve().parents[2];out=a.evidence.resolve()
 if out==repo or repo in out.parents:p.error('Use an evidence directory outside the checkout')
-node=shutil.which('node');godot=shutil.which('godot')
-if not node or not godot:p.error('Node and Godot must be installed')
+settings = qa_environment()
+node, godot = settings['NATIVE5525_NODE'], settings['GODOT_BIN']
 out.mkdir(parents=True,exist_ok=True);results=[]
 def run(name,cmd,env=None):
  try:
-  r=subprocess.run(cmd,cwd=repo,env=env,capture_output=True,text=True,timeout=110);text=r.stdout+r.stderr;code=r.returncode
+  r=subprocess.run(cmd,cwd=repo,env=env or settings,capture_output=True,text=True,timeout=110);text=r.stdout+r.stderr;code=r.returncode
  except subprocess.TimeoutExpired as e:text=(e.stdout or b'').decode(errors='replace') if isinstance(e.stdout,bytes) else str(e.stdout);code=124
  (out/(name+'.log')).write_text(text,encoding='utf-8')
  errors=[line for line in text.splitlines() if 'ERROR:' in line or line.startswith('FAIL ') or 'leaked' in line.lower()]
@@ -21,7 +22,7 @@ for name in ['feedback_261019','feedback_261019_skills','feedback_261019_input',
  scope=Path(tempfile.mkdtemp(prefix=name+'-',dir=out))
  phases=['write','read'] if name=='ui_preferences_restart' else ['']
  for phase in phases:
-  env=dict(os.environ,NATIVE5525_NODE=node,NATIVE5525_PYTHON=sys.executable,INVENTORY_QA_ROOT=str(scope),UI_PREFERENCES_PHASE=phase)
+  env=dict(settings,INVENTORY_QA_ROOT=str(scope),UI_PREFERENCES_PHASE=phase)
   for key,child in [('XDG_DATA_HOME','data'),('XDG_CONFIG_HOME','config'),('XDG_CACHE_HOME','cache')]:
    path=scope/child;path.mkdir(exist_ok=True);env[key]=str(path)
   run('godot_'+name+('_'+phase if phase else ''),[godot,'--headless','--audio-driver','Dummy','--path',str(repo/'godot'),'--script','res://tests/'+name+'.gd'],env)
