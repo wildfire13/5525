@@ -1,5 +1,6 @@
 extends "res://tests/inventory_header_261020.gd"
 var clicked=[]
+var last_clicked_unit := ""
 func probe_point(at: Vector2,label: String):
 	var board=game.board
 	var cell=board.cell_at(at)
@@ -7,13 +8,16 @@ func probe_point(at: Vector2,label: String):
 	var motion=InputEventMouseMotion.new();motion.position=at;board.input_event(motion)
 	await settle()
 	check(board.hover_uid==expected,label+" hover uses floor occupant")
-	check(game.hud.person_box.get_meta("inspected_unit","")==expected,label+" right abilities use same occupant")
+	var inspector_uid = last_clicked_unit if expected.is_empty() else expected
+	check(game.hud.person_box.get_meta("inspected_unit","")==inspector_uid,label+" inspector shows hovered occupant or last focused unit")
 	if expected.is_empty():check(board.hover_caption.is_empty(),label+" empty cell clears effect prediction")
 	clicked.clear()
 	for pressed in [true,false]:
 		var event=InputEventMouseButton.new();event.button_index=MOUSE_BUTTON_LEFT;event.pressed=pressed;event.position=at;board.input_event(event)
 	check(clicked==([cell] if cell>=0 else []),label+" click uses same floor cell or ignores outside")
-	if cell>=0:check(board.hover_uid==expected,label+" click focus preserves matching hover")
+	if cell>=0:
+		last_clicked_unit=expected
+		check(board.hover_uid==expected,label+" click focus preserves matching hover")
 func run():
 	create_timer(120).timeout.connect(func():print("FAIL floor hover watchdog");quit(2))
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
