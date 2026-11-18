@@ -16,12 +16,15 @@ import sys
 import tarfile
 import tempfile
 
+from qa_runtime import qa_environment
+
 ROOT = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser()
 parser.add_argument('--powershell', required=True)
 parser.add_argument('--godot', required=True)
 parser.add_argument('--output', required=True)
 args = parser.parse_args()
+settings = qa_environment(needs_godot=False)
 out = Path(args.output).resolve()
 out.mkdir(parents=True, exist_ok=False)
 project = out / '日本語 project with spaces'
@@ -72,15 +75,14 @@ sys.exit(subprocess.call([os.environ["IMPORT_TEST_GODOT"],*a]))
 ''', encoding='utf-8')
 if os.name == 'nt':
     executable = out / 'godot proxy.cmd'
-    executable.write_text('@echo off\n"' + sys.executable + '" "' + str(proxy) + '" %*\nexit /b %errorlevel%\n')
+    executable.write_text('@echo off\n"%IMPORT_TEST_PYTHON%" "%~dp0godot proxy.py" %*\nexit /b %errorlevel%\n', encoding='ascii')
 else:
     executable = out / 'godot proxy'
     import shlex
     executable.write_text('#!/bin/sh\nexec ' + shlex.quote(sys.executable) + ' ' + shlex.quote(str(proxy)) + ' "$@"\n')
     executable.chmod(0o755)
 shared = out / 'shared.env'
-env = dict(os.environ, AKI_SHARED_ENV_FILE=str(shared), GODOT_BIN=str(executable), NATIVE5525_NODE=shutil.which('node') or '',
-           NATIVE5525_PYTHON=sys.executable, IMPORT_TEST_GODOT=str(Path(args.godot).resolve()),
+env = dict(settings, AKI_SHARED_ENV_FILE=str(shared), GODOT_BIN=str(executable), IMPORT_TEST_GODOT=str(Path(args.godot).resolve()), IMPORT_TEST_PYTHON=settings["NATIVE5525_PYTHON"],
            XDG_DATA_HOME=str(out/'user/data'), XDG_CONFIG_HOME=str(out/'user/config'),
            XDG_CACHE_HOME=str(out/'user/cache'), APPDATA=str(out/'user/roaming'),
            LOCALAPPDATA=str(out/'user/local'), PYTHONDONTWRITEBYTECODE='1')
@@ -114,9 +116,9 @@ def run(name, mode='', smoke=False, check=False, expected=0):
     p = subprocess.run(command, env=local, capture_output=True, text=True, errors='replace', timeout=150)
     log = p.stdout + p.stderr
     (out/(name+'.log')).write_text(log, encoding='utf-8')
+    assert p.returncode == expected, (name, p.returncode, log)
     phases = [json.loads(line)['phase'] for line in events.read_text().splitlines()]
     wanted = ['version'] if check else ['version','import'] + ([] if mode in ('fail','error_zero') else ['game'])
-    assert p.returncode == expected, (name, p.returncode, log)
     assert phases == wanted, (name, phases)
     if mode in ('fail','error_zero'):
         assert 'Asset import failed. Log:' in log and 'injected import failure' in log, log

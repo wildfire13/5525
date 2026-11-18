@@ -111,11 +111,11 @@ jobs:
       - name: Record tested source
         run: git rev-parse HEAD
       - name: Run full native non-GUI suite
-        run: python native/check.py
+        run: python native/check.py --evidence "$RUNNER_TEMP/5525-reports"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ always() }}
         with:
           name: supplemental-native-summary
-          path: native/qa-check-report.json
+          path: ${{ runner.temp }}/5525-reports/qa-check-report.json
           retention-days: 5
           if-no-files-found: error

@@ -1,4 +1,5 @@
 """Run the native prototype's non-GUI verification suite."""
+import argparse
 import datetime
 import json
 from pathlib import Path
@@ -7,7 +8,11 @@ import sys
 
 BASE=Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE.parent / "godot"))
+from qa_reports import evidence_directory, runtime_details
 from launcher_config import runtime_environment
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--evidence", type=Path)
+target = evidence_directory("native", parser.parse_args().evidence) / "qa-check-report.json"
 env = runtime_environment(BASE.parent)
 env.update(PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
 steps=[
@@ -51,15 +56,18 @@ steps.extend((path.stem,['node',path.name])
              for path in sorted(BASE.glob('test_*.cjs'))
              if path.name not in listed)
 report={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'guiIncluded':False,'steps':[]}
+report["runtimes"] = runtime_details(node=env["NATIVE5525_NODE"], python=env["NATIVE5525_PYTHON"])
 for name,command in steps:
     try:
         timeout=300 if name=='Python rules/adapter/preview tests' else 120
         program = env["NATIVE5525_NODE"] if command[0] == "node" else env["NATIVE5525_PYTHON"]
         r=subprocess.run([program, *command[1:]],cwd=BASE,text=True,encoding='utf-8',capture_output=True,timeout=timeout,env=env)
-        report['steps'].append({'name':name,'passed':r.returncode==0,'exitCode':r.returncode,'stdout':r.stdout,'stderr':r.stderr})
+        report['steps'].append({'name':name,'passed':r.returncode==0,'exitCode':r.returncode})
+        if r.returncode:
+            print(r.stdout + r.stderr, flush=True)
     except subprocess.TimeoutExpired:
         report['steps'].append({'name':name,'passed':False,'error':f'timeout after {timeout} seconds'})
     print(('PASS' if report['steps'][-1]['passed'] else 'FAIL')+': '+name)
 report['passed']=all(s['passed'] for s in report['steps'])
-(BASE/'qa-check-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+target.write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
 raise SystemExit(0 if report['passed'] else 1)

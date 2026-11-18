@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+from qa_reports import evidence_directory, runtime_details
 from launcher_config import resolve_godot, runtime_environment
 import time
 import tempfile
@@ -14,7 +15,9 @@ ROOT = BASE.parent
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--godot", help="Godot 4.6 console executable (overrides GODOT_BIN and launcher.local.json)")
 parser.add_argument("--full", action="store_true", help="Also rerun the complete native regression suite")
+parser.add_argument("--evidence", type=Path)
 args = parser.parse_args()
+reports = evidence_directory("headless", args.evidence)
 def is_godot_46(path: Path) -> bool:
     try:
         result = subprocess.run([str(path), "--version"], capture_output=True, text=True,
@@ -32,7 +35,11 @@ args.godot = str(godot_path)
 node = env["NATIVE5525_NODE"]
 python = env["NATIVE5525_PYTHON"]
 env.update(PYTHONUTF8="1", PYTHONIOENCODING="utf-8")
-evidence = Path(tempfile.mkdtemp(prefix="5525-headless-"))
+run_parent = None if args.evidence else reports.parents[2] / "runs"
+if run_parent:
+    run_parent.mkdir(parents=True, exist_ok=True)
+scratch = tempfile.TemporaryDirectory(prefix="5525-headless-", dir=run_parent)
+evidence = Path(scratch.name)
 env.update(GODOT_BIN=args.godot, NATIVE5525_NODE=node, NATIVE5525_AUDIO_OFF="1",
            INVENTORY_QA_ROOT=evidence.as_posix(), UIUX_REVIEW_EVIDENCE=evidence.as_posix())
 profile = evidence / "profile"
@@ -57,24 +64,23 @@ for name, script in [
     ("Approved equipment flavor and detail presentation", "equipment_flavor_regression.gd"),
 ]:
     steps.append((name, common + ["--script", "res://tests/" + script], BASE))
-steps.append(("Fault handling and shutdown", [python, "-X", "utf8", "-B", str(BASE / "tests/audit_checks.py"), args.godot], BASE))
+steps.append(("Fault handling and shutdown", [python, "-X", "utf8", "-B", str(BASE / "tests/audit_checks.py"), args.godot, "--evidence", str(reports)], BASE))
 if os.name == "nt":
-    steps.append(("Candidate launcher", [python, "-X", "utf8", "-B", str(BASE / "tests/launcher_checks.py"), args.godot], BASE))
+    steps.append(("Candidate launcher", [python, "-X", "utf8", "-B", str(BASE / "tests/launcher_checks.py"), args.godot, "--evidence", str(reports)], BASE))
 ui_runner = str(BASE / "tests/run_mock_ui_regression.py")
 steps.append(("Current FHD UI regression", [python, "-X", "utf8", "-B", ui_runner, "--evidence", str(evidence)], BASE))
 if args.full:
-    steps.append(("Full native regression", [python, "-X", "utf8", "-B", "check.py"], ROOT / "native"))
+    steps.append(("Full native regression", [python, "-X", "utf8", "-B", "check.py", "--evidence", str(reports)], ROOT / "native"))
 report = {
     "at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     "guiIncluded": False,
     "audioDriver": "Dummy",
     "newQuestWavsIncluded": True,
     "subjectiveListening": False,
-    "uiEvidence": str(evidence),
+    "runtimes": runtime_details(godot=args.godot, python=python, node=node),
     "steps": [],
 }
-target = BASE / "qa" / "headless-report.json"
-target.parent.mkdir(exist_ok=True)
+target = reports / "headless-report.json"
 for name, command, cwd in steps:
     start = time.monotonic()
     try:
@@ -87,13 +93,15 @@ for name, command, cwd in steps:
         combined = result.stdout + result.stderr
         markers = ["SCRIPT ERROR:", "ERROR:", "FAIL ", "ObjectDB instances leaked", "resources still in use"]
         bad_markers = [marker for marker in markers if marker in combined]
-        entry = dict(name=name, command=command, passed=result.returncode == 0 and not bad_markers,
-                     exitCode=result.returncode, markers=bad_markers, stdout=result.stdout, stderr=result.stderr)
-    except subprocess.TimeoutExpired as exc:
-        def decoded(value):
-            return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else (value or "")
-        entry = dict(name=name, command=command, passed=False, error="timeout after 180 seconds",
-                     stdout=decoded(exc.stdout), stderr=decoded(exc.stderr))
+        entry = dict(name=name, passed=result.returncode == 0 and not bad_markers,
+                     exitCode=result.returncode, markers=bad_markers)
+        if not entry["passed"]:
+            print(combined, flush=True)
+    except subprocess.TimeoutExpired as error:
+        for stream in (error.stdout, error.stderr):
+            if stream:
+                print(stream.decode("utf-8", errors="replace") if isinstance(stream, bytes) else stream, flush=True)
+        entry = dict(name=name, passed=False, error="timeout after 180 seconds")
     entry["seconds"] = round(time.monotonic() - start, 3)
     report["steps"].append(entry)
     report["passed"] = False
@@ -102,8 +110,7 @@ for name, command, cwd in steps:
     print(("PASS " if entry["passed"] else "FAIL ") + name, flush=True)
 report["passed"] = all(step["passed"] for step in report["steps"])
 report["complete"] = True
-target = BASE / "qa" / "headless-report.json"
-target.parent.mkdir(exist_ok=True)
 target.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-print(target, flush=True)
+scratch.cleanup()
+print(target.name, flush=True)
 raise SystemExit(0 if report["passed"] else 1)

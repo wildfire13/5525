@@ -8,7 +8,7 @@ Godotが子プロセスとして `bridge.cjs` を起動し、キャンペーン�
 python check.py
 ```
 
-`python3 check.py` は実行可能なルール・アダプター検証をまとめて走らせ、`qa-check-report.json` に結果を記録します。戦闘UIのルール検証とセーブ移行は専用テストでも確認します。実GUI・Windows検証は別途必要です。
+`python3 check.py` は実行可能なルール・アダプター検証をまとめて走らせ、ワークスペースの `QA/現行版用/results` 以下に `qa-check-report.json` を記録します。戦闘UIのルール検証とセーブ移行は専用テストでも確認します。実GUI・Windows検証は別途必要です。
 
 ## 主な構成
 

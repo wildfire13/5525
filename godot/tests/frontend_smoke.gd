@@ -66,8 +66,9 @@ func run():
 	await game.new_game();await game.load_game(battle_file)
 	var reloaded=await game.engine.request({"op":"campaign_save"})
 	check(reloaded.get("ok",false) and reloaded.data==save.data,"mid-battle file reload preserves exact equipment and resources: "+game.notice)
-	if reloaded.get("data")!=save.data:
-		var debug_file=FileAccess.open("res://qa/save-reload-debug.json",FileAccess.WRITE);debug_file.store_string(JSON.stringify({"before":save.data,"after":reloaded.get("data"),"notice":game.notice},"  ",true,true));debug_file.close()
+	if reloaded.get("data")!=save.data and OS.has_environment("UIUX_REVIEW_EVIDENCE"):
+		var debug_file=FileAccess.open(OS.get_environment("UIUX_REVIEW_EVIDENCE").path_join("save-reload-debug.json"),FileAccess.WRITE)
+		if debug_file:debug_file.store_string(JSON.stringify({"before":save.data,"after":reloaded.get("data"),"notice":game.notice},"  ",true,true));debug_file.close()
 	check(game.audio.frontend_save()==music and (game.audio.quest.stream_paused or not game.audio.quest.playing),"mid-battle reload preserves song selection without road playback")
 	DirAccess.remove_absolute(battle_file)
 	await game.act("retreat",[])

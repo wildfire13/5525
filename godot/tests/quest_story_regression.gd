@@ -77,14 +77,14 @@ func run():
 	var depart_reply=await game.engine.request({"op":"campaign","action":"depart","args":["astaris","convoy"]})
 	if depart_reply.get("campaign") is Dictionary:game.data=depart_reply;game.render();await process_frame
 	game.find_child("RouteChoice_short",true,false).pressed.emit();await process_frame
-	while game.locked or game.engine.busy:await process_frame
+	while game.locked or game.engine.busy or game.loading_screen.active:await process_frame
 	check(not game.modal_open() and game.campaign().phase=="deployment","route selection proceeds directly (merchant already in South)")
 	var before_fixture=accepted_save.data.duplicate(true);before_fixture.state.location="east";before_fixture.state.worldTime=3;before_fixture.state.hours=3
 	await game.update({"op":"campaign_load","data":before_fixture});game.navigate("map");await process_frame;await process_frame
 	var before_depart=await game.engine.request({"op":"campaign","action":"depart","args":["astaris","convoy"]})
 	if before_depart.get("campaign") is Dictionary:game.data=before_depart;game.render();await process_frame
 	game.find_child("RouteChoice_short",true,false).pressed.emit();await process_frame
-	while game.locked or game.engine.busy:await process_frame
+	while game.locked or game.engine.busy or game.loading_screen.active:await process_frame
 	check(not game.modal_open() and game.campaign().phase=="deployment","route selection proceeds directly (merchant still travelling)")
 	var south_stop_fixture=accepted_save.data.duplicate(true);south_stop_fixture.state.location="astaris";south_stop_fixture.state.worldTime=22;south_stop_fixture.state.hours=22
 	await game.update({"op":"campaign_load","data":south_stop_fixture});game.navigate("board");await process_frame;await process_frame
@@ -95,7 +95,7 @@ func run():
 	var departed_reply=await game.engine.request({"op":"campaign","action":"depart","args":["south","convoy"]})
 	if departed_reply.get("campaign") is Dictionary:game.data=departed_reply;game.render();await process_frame
 	game.find_child("RouteChoice_short",true,false).pressed.emit();await process_frame
-	while game.locked or game.engine.busy:await process_frame
+	while game.locked or game.engine.busy or game.loading_screen.active:await process_frame
 	check(not game.modal_open() and game.campaign().phase=="deployment","route selection proceeds directly (receipt deadline approaching)")
 	if not failures.is_empty():print("FAILURES: "+"; ".join(failures))
 	else:print("quest story regression: "+str(checks)+" checks passed; FHD geometry verified without a GUI framebuffer")

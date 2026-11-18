@@ -1,11 +1,18 @@
 """Exercise the candidate CMD/PowerShell entry without visible windows."""
+import argparse
 import ctypes,datetime,json,os
 from pathlib import Path
 import subprocess,sys,shutil,tempfile
 ROOT=Path(__file__).resolve().parents[2]
-Q=ROOT/'godot/qa'
-Q.mkdir(parents=True,exist_ok=True)
-env={**os.environ,'GODOT_BIN':sys.argv[1],'PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8','NATIVE5525_AUDIO_OFF':'1'}
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from qa_reports import evidence_directory, runtime_details
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("godot")
+parser.add_argument("--evidence", type=Path)
+args = parser.parse_args()
+Q = evidence_directory("launcher_checks", args.evidence)
+from launcher_config import runtime_environment
+env={**runtime_environment(ROOT),'GODOT_BIN':args.godot,'PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8','NATIVE5525_AUDIO_OFF':'1'}
 MARKERS=['SCRIPT ERROR:','ERROR:','FAIL ','ObjectDB instances leaked','resources still in use']
 entries=[]
 def run(name,entry,args,environment,expected=0,project=ROOT):
@@ -13,6 +20,8 @@ def run(name,entry,args,environment,expected=0,project=ROOT):
     p=subprocess.run(command,env=environment,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=45)
     combined=p.stdout+p.stderr
     item=dict(name=name,command=command,exitCode=p.returncode,stdout=p.stdout,stderr=p.stderr,passed=p.returncode==expected and not any(m in combined for m in MARKERS))
+    if not item['passed']:
+        print(combined, flush=True)
     entries.append(item)
     return item
 # Exercise real discovery in its documented portable layout. Only existing
@@ -27,7 +36,7 @@ with tempfile.TemporaryDirectory(prefix='5525 launcher discovery ') as temporary
         shutil.copy2(ROOT/relative,target)
     env['AKI_SHARED_ENV_FILE']=str(project/'shared.env')
     runtime=project/'runtime/godot';runtime.mkdir(parents=True)
-    executable=Path(sys.argv[1]).resolve()
+    executable=Path(args.godot).resolve()
     shutil.copy2(executable,runtime/executable.name)
     companion=executable.with_name(executable.name.replace('_console.exe','.exe'))
     if companion!=executable and companion.is_file():shutil.copy2(companion,runtime/companion.name)
@@ -139,7 +148,10 @@ if item['passed']:
             try:alive=bool(kernel.GetExitCodeProcess(handle,ctypes.byref(code))) and code.value==259
             finally:kernel.CloseHandle(handle)
         item['node_remaining']=alive;item['passed'] &= not alive
-report=dict(at=datetime.datetime.now(datetime.timezone.utc).isoformat(),gui=False,subjective_listening=False,steps=entries,passed=all(e['passed'] for e in entries))
+# Raw command lines, probe paths and subprocess output stay out of shared results.
+summary = [{key: e[key] for key in ('name','passed','exitCode','node_remaining') if key in e} for e in entries]
+runtimes = runtime_details(godot=args.godot, node=env['NATIVE5525_NODE'], python=env['NATIVE5525_PYTHON'])
+report=dict(at=datetime.datetime.now(datetime.timezone.utc).isoformat(),gui=False,subjective_listening=False,steps=summary,runtimes=runtimes,passed=all(e['passed'] for e in entries))
 (Q/'launcher-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 for e in entries:print(('PASS ' if e['passed'] else 'FAIL ')+e['name'])
 raise SystemExit(0 if report['passed'] else 1)

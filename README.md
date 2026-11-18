@@ -9,7 +9,7 @@ Windowsでは **[Start-5525.cmd](Start-5525.cmd)** からGodot版を起動しま
 ## 旧Web比較版の履歴
 旧Web比較版の `prototype/` は現行ツリーから整理しました。コード・画像・QA記録・同梱ライブラリとライセンスは、[削除前の固定コミット b723b4c](https://github.com/wildfire13/5525/tree/b723b4cdfb84f1b20fe895502d459092d412effb/prototype)から参照できます。当時の起動方法・仮仕様・Web検証手順は[固定版README](https://github.com/wildfire13/5525/blob/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/README.md)に残しています。
 
-現行の回帰検証は `python3 native/check.py`（Windowsは `python native/check.py`）です。旧原本の固定ハッシュ・検証コピーの由来と、現行キャンペーンの意味的検証を分けて実行します。歴史原本との追加照合手順は [native/source_tests/README.md](native/source_tests/README.md) を参照してください。
+現行のゲームルールとデータ処理の回帰検証は、リポジトリ直下で `python native/check.py`（Linuxは `python3 native/check.py`）を実行します。Godot側もまとめて確認するときは `python godot/check.py --full` を使います。結果はワークスペースの `QA/現行版用/results` 以下に保存されます。単独のチェックアウトでは `--evidence` に本体の外の出力先を指定してください。
 
 
 ## フォルダ構成

@@ -6,7 +6,7 @@ var phases=[]
 var captures=[]
 var visual=false
 var folder=OS.get_temp_dir().path_join("5525-parity-"+str(Time.get_ticks_usec()))
-var output=ProjectSettings.globalize_path("res://qa/visual/parity-fix")
+var output=OS.get_environment("UIUX_REVIEW_EVIDENCE")
 func _initialize():call_deferred("run")
 func check(ok: bool,label: String):
 	checks.append({"name":label,"passed":ok})
@@ -19,7 +19,7 @@ func capture(name: String):
 	if not visual:return
 	await RenderingServer.frame_post_draw
 	var path=output.path_join(name+".png")
-	check(root.get_texture().get_image().save_png(path)==OK,"capture "+name);captures.append(path)
+	check(root.get_texture().get_image().save_png(path)==OK,"capture "+name);captures.append(path.get_file())
 func snapshot():return (await game.engine.request({"op":"campaign_save"})).data
 func restore(save: Dictionary):
 	await game.update({"op":"campaign_load","data":save});await settle()
@@ -78,7 +78,9 @@ func observe(label: String,kind: String,target):
 	game.checks_fast=true
 func run():
 	visual=OS.get_cmdline_user_args().has("--visual")
-	DirAccess.make_dir_recursive_absolute(folder);DirAccess.make_dir_recursive_absolute(output)
+	if not output.is_absolute_path() or DirAccess.make_dir_recursive_absolute(output) != OK:
+		push_error("Set UIUX_REVIEW_EVIDENCE to an external evidence directory");quit(1);return
+	DirAccess.make_dir_recursive_absolute(folder)
 	root.size=Vector2i(1920,1080);root.title="5525 parity repair QA (isolated)"
 	var result=[];var node=OS.get_environment("NATIVE5525_NODE")
 	if node.is_empty():node="node"
@@ -155,7 +157,7 @@ func run():
 	check(game.engine.owned_io_pids.all(func(pid):return not OS.is_process_running(pid)),"overwrite helpers are reaped")
 	game.engine.io_script="";await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(5):await process_frame
-	var report={"passed":failures.is_empty(),"checks":checks,"failures":failures,"phases":phases,"captures":captures,"test_files":folder,"visual":visual,"input":"Godot callbacks and viewport rendering; no personal saves"}
+	var report={"passed":failures.is_empty(),"checks":checks,"failures":failures,"phases":phases,"captures":captures,"visual":visual,"input":"Godot callbacks and viewport rendering; no personal saves"}
 	var f=FileAccess.open(output.path_join("visual-report.json" if visual else "headless-report.json"),FileAccess.WRITE);f.store_string(JSON.stringify(report,"  "));f.close()
 	print("PARITY FIX CHECKS "+str(checks.size())+" FAILURES "+str(failures.size()))
 	quit(0 if failures.is_empty() else 1)

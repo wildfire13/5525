@@ -1,9 +1,17 @@
 """Headless fault regression, including app-close process ownership checks."""
+import argparse
 import ctypes, datetime, json, os
 from pathlib import Path
 import subprocess, sys, tempfile
 BASE=Path(__file__).resolve().parents[1]
-EXE=sys.argv[1]
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from qa_reports import evidence_directory, runtime_details
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("godot")
+parser.add_argument("--evidence", type=Path)
+args = parser.parse_args()
+Q = evidence_directory("audit_checks", args.evidence)
+EXE=args.godot
 COMMON=[EXE,'--headless','--resolution','1920x1080','--audio-driver','Dummy','--path',str(BASE)]
 MARKERS=['SCRIPT ERROR:','ERROR:','FAIL ','ObjectDB instances leaked','resources still in use']
 def alive(pid):
@@ -23,11 +31,13 @@ def alive(pid):
 def run(name,command):
     result=subprocess.run(command,text=True,encoding='utf-8',errors='replace',capture_output=True,timeout=120)
     bad=[m for m in MARKERS if m in result.stdout+result.stderr]
-    return dict(name=name,command=command,exitCode=result.returncode,stdout=result.stdout,stderr=result.stderr,markers=bad,passed=result.returncode==0 and not bad)
+    if result.returncode or bad:
+        print(result.stdout + result.stderr, flush=True)
+    return dict(name=name,exitCode=result.returncode,markers=bad,passed=result.returncode==0 and not bad)
 report={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'gui':False,'steps':[]}
 entry=run('Fault handling',COMMON+['--script','res://tests/audit_faults.gd'])
 report['steps'].append(entry)
-print(entry['stdout'],end='')
+print(('PASS ' if entry['passed'] else 'FAIL ')+entry['name'])
 for mode in ['file','ack']:
     with tempfile.TemporaryDirectory(prefix='5525-close-') as directory:
         directory=Path(directory)
@@ -46,6 +56,7 @@ for mode in ['file','ack']:
         else:entry['passed']=False
         report['steps'].append(entry)
         print(('PASS ' if entry['passed'] else 'FAIL ')+entry['name'])
+report['runtimes']=runtime_details(godot=args.godot)
 report['passed']=all(s['passed'] for s in report['steps'])
-(BASE/'qa/audit-faults-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+(Q/'audit-faults-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
 raise SystemExit(0 if report['passed'] else 1)
