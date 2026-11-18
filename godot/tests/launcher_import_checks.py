@@ -4,6 +4,7 @@ Usage: python launcher_import_checks.py --powershell /path/to/pwsh --godot /path
 On Windows use powershell.exe; the proxy runs the real Godot, recording launch order.
 No existing project cache or user save is modified. Evidence stays in --output.
 """
+from contextlib import contextmanager
 import argparse
 import hashlib
 import json
@@ -94,7 +95,19 @@ sentinel.parent.mkdir(parents=True, exist_ok=True)
 sentinel.write_text('{"sentinel":"preserve"}')
 sentinel_hash = hashlib.sha256(sentinel.read_bytes()).hexdigest()
 results = []
-equipment_count = len(json.loads((project / 'godot/assets/equipment_icons_placeholder/mapping.json').read_text()))
+@contextmanager
+def case(name):
+    result = {"name": name, "passed": False}
+    results.append(result)
+    try:
+        yield result
+    except Exception as error:
+        result["error"] = type(error).__name__
+        raise
+    else:
+        result["passed"] = True
+        print("PASS", name, flush=True)
+
 configuration = {key: env.pop(key) for key in ('GODOT_BIN', 'NATIVE5525_NODE', 'NATIVE5525_PYTHON')}
 def write_config(values):
     def relative(value):
@@ -107,44 +120,53 @@ def write_config(values):
         encoding='utf-8-sig')
 write_config(configuration)
 
-def run(name, mode='', smoke=False, check=False, expected=0):
-    events = out / (name + '-events.jsonl')
-    local = dict(env, IMPORT_TEST_EVENTS=str(events), IMPORT_TEST_MODE=mode)
-    command = [args.powershell, '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(project/'godot/launch.ps1')]
-    if smoke: command.append('-SmokeTest')
-    if check: command.append('-Check')
-    p = subprocess.run(command, env=local, capture_output=True, text=True, errors='replace', timeout=150)
-    log = p.stdout + p.stderr
-    (out/(name+'.log')).write_text(log, encoding='utf-8')
-    assert p.returncode == expected, (name, p.returncode, log)
-    phases = [json.loads(line)['phase'] for line in events.read_text().splitlines()]
-    wanted = ['version'] if check else ['version','import'] + ([] if mode in ('fail','error_zero') else ['game'])
-    assert phases == wanted, (name, phases)
-    if mode in ('fail','error_zero'):
-        assert 'Asset import failed. Log:' in log and 'injected import failure' in log, log
-    elif expected == 0:
-        assert 'ERROR:' not in log, log
-    assert hashlib.sha256(sentinel.read_bytes()).hexdigest() == sentinel_hash
-    results.append(dict(name=name, passed=True, exit_code=p.returncode, phases=phases))
-    print('PASS', name, flush=True)
+def run(name, mode='', smoke=False, check=False, expected=0, verify_assets=False):
+    with case(name) as result:
+        events = out / (name + '-events.jsonl')
+        local = dict(env, IMPORT_TEST_EVENTS=str(events), IMPORT_TEST_MODE=mode)
+        command = [args.powershell, '-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(project/'godot/launch.ps1')]
+        if smoke: command.append('-SmokeTest')
+        if check: command.append('-Check')
+        p = subprocess.run(command, env=local, capture_output=True, text=True, errors='replace', timeout=150)
+        log = p.stdout + p.stderr
+        (out/(name+'.log')).write_text(log, encoding='utf-8')
+        assert p.returncode == expected, (name, p.returncode, log)
+        phases = [json.loads(line)['phase'] for line in events.read_text().splitlines()]
+        wanted = ['version'] if check else ['version','import'] + ([] if mode in ('fail','error_zero') else ['game'])
+        assert phases == wanted, (name, phases)
+        if mode in ('fail','error_zero'):
+            assert 'Asset import failed. Log:' in log and 'injected import failure' in log, log
+        elif expected == 0:
+            assert 'ERROR:' not in log, log
+        assert hashlib.sha256(sentinel.read_bytes()).hexdigest() == sentinel_hash
+        result.update(exit_code=p.returncode, phases=phases)
+        if name == 'check-does-not-import':
+            assert not (project/'godot/.godot').exists()
+        if verify_assets:
+            result['stage'] = 'assets'
+            result['assets'] = assets(name)
 
-def assets(name, equipment_count):
+def assets(name):
     p = subprocess.run([args.godot,'--headless','--path',str(project/'godot'),'--script','res://import_asset_probe.gd'],
                        env=env, capture_output=True, text=True, timeout=30)
     (out/(name+'-assets.log')).write_text(p.stdout+p.stderr, encoding='utf-8')
     assert p.returncode == 0 and 'ERROR:' not in p.stdout+p.stderr
     report = json.loads(next(line.removeprefix('ASSET_PROBE ') for line in p.stdout.splitlines() if line.startswith('ASSET_PROBE ')))
-    assert report['equipment'] == equipment_count and report['existing'] == 52 and not report['failed'], report
-    results[-1]['assets'] = report
+    equipment = json.loads((project/'godot/assets/equipment_icons_placeholder/mapping.json').read_text())
+    ui_icons = list((project/'godot/assets/ui_icons/icons64').glob('*.png'))
+    assert equipment and ui_icons and not report['failed'], report
+    assert (report['equipment'], report['existing']) == (len(equipment), len(ui_icons)), report
+    return report
 
 try:
     for key in configuration:
-        write_config({**configuration, key: str(project / 'missing executable')})
-        p = subprocess.run([args.powershell, '-NoProfile', '-ExecutionPolicy', 'Bypass',
-                            '-File', str(project/'godot/launch.ps1'), '-Check'],
-                           env=env, capture_output=True, timeout=60)
-        assert p.returncode != 0, key
-        results.append(dict(name='missing-' + key, passed=True))
+        with case('missing-' + key):
+            write_config({**configuration, key: str(project / 'missing executable')})
+            p = subprocess.run([args.powershell, '-NoProfile', '-ExecutionPolicy', 'Bypass',
+                                '-File', str(project/'godot/launch.ps1'), '-Check'],
+                               env=env, capture_output=True, timeout=60)
+            assert p.returncode != 0, key
+
     write_config(configuration)
     env['GODOT_BIN'] = str(project / 'missing process executable')
     run('project-dotenv-overrides-process', check=True)
@@ -155,24 +177,21 @@ try:
     shared.unlink()
     write_config(configuration)
     run('check-does-not-import', check=True)
-    assert not (project/'godot/.godot').exists()
-    run('cold-normal-launch')
-    assets('cold',equipment_count)
+    run('cold-normal-launch', verify_assets=True)
     for recipe in (project/'godot/assets/equipment_icons_placeholder/icons64').glob('*.png.import'):
         target = re.search(r'^path="([^"]+)"', recipe.read_text(), re.M).group(1)
         (project/'godot'/target.removeprefix('res://')).unlink()
-    run('missing-42-normal-launch')
-    assets('missing-42',equipment_count)
-    run('warm-smoke-launch',smoke=True)
-    assets('warm',equipment_count)
+    run('missing-cache-normal-launch', verify_assets=True)
+    run('warm-smoke-launch', smoke=True, verify_assets=True)
     # A future addition has no recipe or cache; do not hard-code the current set.
     folder=project/'godot/assets/equipment_icons_placeholder'
     shutil.copy2(folder/'icons64/armor-cloth.png',folder/'icons64/future-item.png')
     mapping=json.loads((folder/'mapping.json').read_text())
     mapping['future-item']='res://assets/equipment_icons_placeholder/icons64/future-item.png'
     (folder/'mapping.json').write_text(json.dumps(mapping))
-    run('future-png-normal-launch')
-    assets('future-png',equipment_count + 1)
+    icons = project/'godot/assets/ui_icons/icons64'
+    shutil.copy2(next(icons.glob('*.png')), icons/'future-ui-icon.png')
+    run('future-png-normal-launch', verify_assets=True)
     run('import-nonzero-blocks-game',mode='fail',expected=23)
     run('import-error-zero-blocks-game',mode='error_zero',expected=1)
     run('game-exit-code-preserved',mode='game_exit',expected=17)

@@ -70,8 +70,19 @@ for name in a.only or SUITES:
             process.wait()
             code = 124
     text = (out / (name + '.log')).read_text(encoding='utf-8', errors='replace')
-    errors = [line for line in text.splitlines()
-              if 'ERROR:' in line or line.startswith('FAIL ') or 'leaked' in line.lower()]
+    errors = []
+    if 'SCRIPT ERROR:' in text:
+        errors.append('script-error')
+    if 'ERROR:' in text.replace('SCRIPT ERROR:', ''):
+        errors.append('engine-error')
+    if any(line.startswith('FAIL ') for line in text.splitlines()):
+        errors.append('assertion')
+    if 'leaked' in text.lower() or 'resources still in use' in text:
+        errors.append('resource-leak')
+    if code == 124:
+        errors.append('timeout')
+    elif code and not errors:
+        errors.append('process-exit')
     source_sha256 = hashlib.sha256((repo / 'godot/tests' / (name + '.gd')).read_bytes()).hexdigest()
     result = dict(name=name, source_sha256=source_sha256, passed=code == 0 and not errors, exit=code,
                   errors=errors, seconds=round(time.monotonic() - started, 3))

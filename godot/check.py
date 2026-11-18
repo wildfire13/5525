@@ -85,7 +85,7 @@ for name, command, cwd in steps:
     start = time.monotonic()
     try:
         # The CI runner applies its own per-suite deadline and records each result.
-        timeout = None if ui_runner in command else 180
+        timeout = None if ui_runner in command or name == "Full native regression" else 180
         step_env = env
         if name in ("Audio reconnect and load regression", "Fault handling and shutdown"):
             step_env = {**env, "NATIVE5525_AUDIO_OFF": "0"}
@@ -102,6 +102,8 @@ for name, command, cwd in steps:
             if stream:
                 print(stream.decode("utf-8", errors="replace") if isinstance(stream, bytes) else stream, flush=True)
         entry = dict(name=name, passed=False, error="timeout after 180 seconds")
+    if ui_runner in command and (evidence / "results.json").is_file():
+        entry["suites"] = json.loads((evidence / "results.json").read_text(encoding="utf-8"))
     entry["seconds"] = round(time.monotonic() - start, 3)
     report["steps"].append(entry)
     report["passed"] = False
