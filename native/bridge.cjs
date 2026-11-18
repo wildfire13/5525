@@ -96,7 +96,7 @@ function preview(kind,target,previewKind='action_attack') {
   });
   const risks=[];
   return {ok:true,preview:{units:v.units,destination,path,swap,cells,ranges,targets,risks,effectPreview:B.effectPreview?B.effectPreview(state,a,kind,target):[],
-    damagePreview:['action_attack','action_skill'].includes(kind)&&B.damagePreview?B.damagePreview(state,a,kind,target):inspectKind==='action_attack'&&B.attackPreview?v.units.map(u=>B.attackPreview(v,va,u)).filter(Boolean):[],formationBefore:B.formation(state),formationAfter:B.formation(v),kind,target,previewKind}};
+    damagePreview:['action_attack','action_skill'].includes(kind)&&B.damagePreview?B.damagePreview(state,a,kind,target):inspectKind==='action_attack'&&B.attackPreview?v.units.map(u=>B.attackPreview(v,va,u)).filter(Boolean):[],formationBefore:B.formation(state),formationAfter:B.formation(v),...(kind==="action_move"?{formationSlots:B.formationSlots(v)}:{}),kind,target,previewKind}};
 }
 function trip(action,args=[]) {
   if(campaign||!journey)return false;

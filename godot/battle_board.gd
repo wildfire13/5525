@@ -1,10 +1,10 @@
 extends Control
 signal cell_clicked(pos: int)
-signal enemy_focused(uid: String)
 signal deploy_drag(uid: String, pos: int)
 signal deployment_assigned(uid: String, pos: Variant)
 const DeploymentDrag=preload("res://deployment_drag.gd")
 var deployment_ui
+var battle_play_width := 0.0
 var deployment_bottom_limit := 0.0
 var suppress_deployment_release := false
 signal unit_hovered(uid: String)
@@ -77,12 +77,12 @@ func _ready():
 	call_deferred("update_camera")
 	gui_input.connect(input_event)
 	mouse_exited.connect(func():set_hover(""))
-	focus_entered.connect(func():set_hover(str(unit_at(keyboard_cell).get("id",""))))
-	focus_exited.connect(func():set_hover(""))
+	focus_entered.connect(func():set_hover(str(unit_at(keyboard_cell).get("id","")),true))
+	focus_exited.connect(func():set_hover("",true))
 	visibility_changed.connect(func():
 		if not is_visible_in_tree():reset_animation();effect_action.clear();last_animated_phase="")
-func set_hover(uid: String):
-	if uid==hover_uid:return
+func set_hover(uid: String,focus_changed:=false):
+	if uid==hover_uid and not focus_changed:return
 	hover_uid=uid;tooltip_text="";hover_caption="";unit_hovered.emit(uid);overlay.queue_redraw()
 func cell_world(c: Vector2i) -> Vector3:
 	return Vector3((c.x-4.5)*CELL,.15,(c.y-2.0)*CELL)
@@ -148,7 +148,7 @@ func input_event(event):
 			KEY_DOWN:y=mini(4,y+1)
 			KEY_ENTER,KEY_KP_ENTER:cell_clicked.emit(keyboard_cell);accept_event();return
 			_:return
-		keyboard_cell=y*10+x;set_hover(str(unit_at(keyboard_cell).get("id","")));accept_event();overlay.queue_redraw();return
+		keyboard_cell=y*10+x;set_hover(str(unit_at(keyboard_cell).get("id","")),true);accept_event();overlay.queue_redraw();return
 	if event is InputEventMouseButton:
 		if event.button_index in [MOUSE_BUTTON_RIGHT,MOUSE_BUTTON_MIDDLE]:
 			camera_drag=event.button_index if event.pressed else 0
@@ -160,7 +160,9 @@ func input_event(event):
 			var pos=cell_at(event.position)
 			if event.pressed:
 				suppress_deployment_release=false
-				keyboard_cell=pos if pos>=0 else keyboard_cell;grab_focus()
+				keyboard_cell=pos if pos>=0 else keyboard_cell
+				if has_focus():set_hover(str(unit_at(keyboard_cell).get("id","")),true)
+				else:grab_focus()
 				press_cell=pos;press_uid=str(unit_at(pos).get("id",""))
 			elif suppress_deployment_release or get_viewport().gui_is_dragging():
 				# Native D&D alone owns release once a drag began, including cancel.
@@ -236,6 +238,8 @@ func update_camera():
 	var target=Vector3(0,.6,-1.1)
 	camera.projection=Camera3D.PROJECTION_ORTHOGONAL;camera.keep_aspect=Camera3D.KEEP_WIDTH
 	camera.size=world.zoom*maxf(1.0,size.x/maxf(1,size.y)/1.62)
+	if battle_play_width>0 and not bool(data.get("state",{}).get("deploying",false)):
+		camera.size=maxf(camera.size,world.zoom*(10*CELL/16.5)*size.x/battle_play_width)
 	camera.position=target+Vector3(sin(camera_yaw)*cos(camera_pitch),sin(camera_pitch),cos(camera_yaw)*cos(camera_pitch))*22
 	camera.look_at(target)
 	# Reserve the new preparation footer without changing stored pan/zoom or battle framing.
@@ -367,8 +371,10 @@ func draw_overlay():
 	for p in preview.get("cells",[]):cell_outline(int(p),Color("#fb923c"),3.0)
 	if preview.get("target") is float or preview.get("target") is int:cell_outline(int(preview.target),Color("#fff0ac"),3.0)
 	for side in ["ally","enemy"]:
-		var slots=data.get("formationSlots",{}).get(side,[24,13,33] if side=="ally" else [25,16,36])
+		var slots=preview.get("formationSlots",data.get("formationSlots",{})).get(side,[])
 		var active=data.get("formed",{}).get(side,false)
+		if side=="ally" and kind=="action_move" and preview.has("formationSlots"):
+			active=preview.formationAfter
 		var color=Color("#ffe197") if active else Color(.82,.8,.62,.6)
 		if resolving:color.a*=.25
 		var valid_slots=slots.filter(func(pos):return int(pos)>=0 and int(pos)<50)
@@ -399,7 +405,6 @@ func draw_overlay():
 	draw_unit_labels(state)
 	if has_focus():
 		cell_outline(keyboard_cell,Color("#78edce"),3.0)
-		overlay.draw_string(ThemeDB.fallback_font,Vector2(8,size.y-10),("射程参考 / Escで同じ仮置きに戻る" if reference_mode else "フォーカス X%d,Y%d / Enterは候補選択" % [keyboard_cell%10,4-int(keyboard_cell/10)]),HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color.WHITE)
 func draw_coordinate(at: Vector2, value: String, color: Color):
 	var font=ThemeDB.fallback_font
 	overlay.draw_string_outline(font,at,value,HORIZONTAL_ALIGNMENT_LEFT,-1,18,4,Color("#20242b"))

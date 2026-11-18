@@ -38,10 +38,10 @@ func run():
  var owner_name=game.campaign().roster.filter(func(c):return c.id==RESEARCH_OWNER)[0].name
  await game.update({"op":"campaign_load","data":cases.sweep50});await settle()
  await os_click(game.hud.buttons.action_skill);await os_click(node("BattleSkillDetails_skill_leg_sweep"))
- check(node("SkillDetailsWindow")!=null and node("SkillDetailsSummary").text.contains("使用者自身（中心指定）"),"OS opens full skill details with exact center and effect scope")
+ check(node("SkillDetailsWindow")!=null and node("SkillDetailsBody").text.contains("使用者自身（中心指定）") and node("SkillDetailsContext")==null,"OS opens skill scope in effect tab without actor line")
  await snapshot("skill-details-"+str(width));var before=await saved();await tab_click(1)
- check(node("SkillDetailsGlossary").is_visible_in_tree(),"OS terms tab separates timing and inventory vocabulary")
- await snapshot("skill-terms-"+str(width));await os_key("Tab");await os_key("Escape")
+ check(node("SkillDetailsTabs").is_tab_disabled(1) and node("SkillDetailsTabs").current_tab==0 and node("SkillDetailsGlossary").text.is_empty(),"OS click cannot open disabled empty terms tab")
+ await snapshot("skill-disabled-tab-"+str(width));await os_key("Tab");await os_key("Escape")
  check(node("SkillDetailsWindow")==null and game.hud.skill_list and (await saved())==before,"OS keyboard returns to unchanged skill selection")
  await os_click(node("BattleSkill_skill_leg_sweep"));check(game.can_commit() and game.preview.cells.size()==8,"OS skill selection still selects the canonical eight-cell preview")
  var pending=game.pending;var preview=game.preview.duplicate(true)
@@ -56,7 +56,7 @@ func run():
  var body=node("SkillDetailsBody");var scroll=body.get_parent();var summary_at=node("SkillDetailsSummary").get_global_rect();var back_at=node("SkillDetailsBack").get_global_rect()
  await os_mouse(scroll.get_global_rect().get_center()+Vector2(detail.position),"click")
  await os_wheel(scroll.get_global_rect().get_center()+Vector2(detail.position),100)
- check(scroll.scroll_vertical>0 and scroll.scroll_vertical+scroll.size.y>=scroll.get_v_scroll_bar().max_value-2 and body.text.ends_with("最終行の到達確認") and node("SkillDetailsSummary").get_global_rect()==summary_at and node("SkillDetailsBack").get_global_rect()==back_at,"OS wheel reaches last line while target/range/back stay fixed")
+ check(scroll.scroll_vertical>0 and scroll.scroll_vertical+scroll.size.y>=scroll.get_v_scroll_bar().max_value-2 and body.text.ends_with("最終行の到達確認") and node("SkillDetailsSummary").get_global_rect()==summary_at and node("SkillDetailsBack").get_global_rect()==back_at,"OS wheel reaches last line while classification cost and back stay fixed")
  await snapshot("long-description-"+str(width));await os_key("Escape")
  # Many real IDs; no invented stack or capacity rules.
  var output=[];OS.execute(OS.get_environment("NATIVE5525_NODE"),PackedStringArray(["-e","const C=require(process.argv[1]);process.stdout.write(JSON.stringify(C.gear.filter(g=>!g.virtualDefault&&g.type!=='empty'&&!g.id.startsWith('fist-')).map(g=>g.id)));",ProjectSettings.globalize_path("res://../native/campaign.js")]),output,true,false)

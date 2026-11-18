@@ -63,18 +63,7 @@ func run():
 	var scroll=game.hud.right_panel.body.get_parent();scroll.scroll_vertical=100000;await frames()
 	check(game.hud.right_panel.get_global_rect().encloses(node("BattleConfirm").get_global_rect()),"confirm and cancel remain pinned outside scroll")
 	game.cancel();await settle();check(await saved()==before,"cancel still consumes no item or action")
-	# JSON numbers are floats; Array.has(int) previously reported zero occupancy.
-	game.data.formationSlots=JSON.parse_string('{"ally":[24,13,33],"enemy":[25,16,36]}')
-	var template=enemy.duplicate(true)
-	game.data.state.units=game.data.state.units.filter(func(u):return u.side!="enemy")
-	for i in range(3):
-		var u=template.duplicate(true);u.id="formation-test-"+str(i);u.pos=[25,16,36][i];u.hp=10;game.data.state.units.append(u)
-	game.data.formed.enemy=true
-	game.hud.toggle_details();await settle()
-	check(game.dialog.window.find_children("*","Label",true,false).any(func(n):return n.text=="敵の条件マス 3/3"),"I04 JSON float slots count three living enemies")
-	game.dialog.close();game.data.state.units[-1].hp=0;game.data.formed.enemy=false;game.hud.toggle_details();await settle()
-	check(game.dialog.window.find_children("*","Label",true,false).any(func(n):return n.text=="敵の条件マス 2/3"),"I04 defeated occupant excluded")
-	game.dialog.close();await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
+	await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
 	await game.publish_snapshot(evidence.path_join("toast-save.json"),await saved(),"進行")
 	check(game.save_notice.visible and game.save_notice.mouse_filter==Control.MOUSE_FILTER_IGNORE and game.notice.is_empty(),"I05 successful save shows nonblocking notice without persistent footer")
 	var rect=game.save_notice.get_global_rect()

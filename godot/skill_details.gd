@@ -18,15 +18,17 @@ func configure(frontend,doc: Dictionary,context: String,note: String="",flavor: 
  for edge in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+edge,12)
  var column=VBoxContainer.new();column.add_theme_constant_override("separation",10);margin.add_child(column)
  var heading=ui.label_(column,doc.title,true);heading.name="SkillDetailsTitle";heading.max_lines_visible=2;heading.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;heading.tooltip_text=doc.title
- var who=ui.label_(column,context);who.name="SkillDetailsContext";who.max_lines_visible=1;who.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;who.tooltip_text=context
+ if doc.has("summary_text"):
+  var who=ui.label_(column,context);who.name="SkillDetailsContext";who.max_lines_visible=1;who.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;who.tooltip_text=context
  var summary=ui.label_(column,doc.get("summary_text",preload("res://skill_text.gd").summary(doc)));summary.name="SkillDetailsSummary"
  var tabs=TabContainer.new();tabs.name="SkillDetailsTabs";tabs.size_flags_vertical=Control.SIZE_EXPAND_FILL;column.add_child(tabs)
- var pages=[["効果",doc.get("body_text",preload("res://skill_text.gd").body(doc)),"SkillDetailsBody"],["用語",preload("res://skill_text.gd").glossary(),"SkillDetailsGlossary"]]
+ var pages=[["効果",doc.get("body_text",preload("res://skill_text.gd").body(doc)),"SkillDetailsBody"],["用語","","SkillDetailsGlossary"]]
  if not flavor.is_empty():pages.append(["説明",flavor,"SkillDetailsFlavor"])
  if not note.is_empty():pages.append(["装備メモ（原文）",note,"SkillDetailsNote"])
  for spec in pages:
   var scroll=ScrollContainer.new();scroll.name=spec[0];scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;tabs.add_child(scroll)
   var text=ui.label_(scroll,spec[1]);text.name=spec[2];text.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ tabs.set_tab_disabled(1,true)
  var actions=ui.row(column);actions.name="SkillDetailsActions"
  var back=ui.local_button(actions,"閉じる・元の選択へ",finish);back.name="SkillDetailsBack"
  close_requested.connect(finish)

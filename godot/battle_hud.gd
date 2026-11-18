@@ -8,6 +8,7 @@ var board_column: VBoxContainer
 var dock: Control
 var decision_footer: VBoxContainer
 var tools: HBoxContainer
+var camera_hint: Label
 var actor_box: VBoxContainer
 var command_box: VBoxContainer
 var target_box: VBoxContainer
@@ -24,8 +25,6 @@ var selection_size: Vector2
 var previous_menu := ""
 var last_actor := ""
 var last_action_count := -1
-var detail_tab := 0
-var details_open := false
 var breakdown_open := false
 var selected_enemy := ""
 var buttons: Dictionary={}
@@ -105,13 +104,20 @@ func mount():
 	middle=Control.new();middle.name="BattleOverlay";middle.mouse_filter=Control.MOUSE_FILTER_IGNORE;middle.size_flags_vertical=Control.SIZE_EXPAND_FILL;ui.content.add_child(middle);middle.size=Vector2(ui.size.x-48,ui.size.y-130);ui.battle_row=middle
 	if not is_instance_valid(ui.board):
 		ui.board=preload("res://battle_board.gd").new();ui.board.preferences=ui.preferences;ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";ui.board.deployment_ui=ui;ui.add_child(ui.board);ui.move_child(ui.board,0);ui.board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deployment_assigned.connect(ui.deployment_assigned);ui.board.enemy_focused.connect(inspect_enemy);ui.board.unit_hovered.connect(inspect_hover.bind(ui.board))
+		ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deployment_assigned.connect(ui.deployment_assigned);ui.board.unit_hovered.connect(inspect_hover.bind(ui.board))
 	left_panel=preload("res://floating_panel.gd").new();left_panel.viewport_bounds=true;middle.add_child(left_panel)
 	left_panel.configure(ui.preferences,"battle_actor_b","行動者 / コマンド",Rect2(0,64,360,760))
 	right_panel=preload("res://floating_panel.gd").new();right_panel.viewport_bounds=true;middle.add_child(right_panel)
 	right_panel.configure(ui.preferences,"battle_target_b","対象 / 効果",Rect2(maxf(0,ui.size.x-448),64,400,760))
 	dock=left_panel
 	tools=HBoxContainer.new();tools.name="BattleTools";middle.add_child(tools)
+	camera_hint=l(middle,"右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小")
+	camera_hint.name="BattleCameraHint";camera_hint.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	camera_hint.autowrap_mode=TextServer.AUTOWRAP_OFF
+	camera_hint.add_theme_font_size_override("font_size",18)
+	camera_hint.add_theme_color_override("font_color",Color.WHITE)
+	camera_hint.add_theme_color_override("font_shadow_color",Color.BLACK)
+	camera_hint.add_theme_constant_override("shadow_offset_x",1);camera_hint.add_theme_constant_override("shadow_offset_y",1)
 	ui.battle_header=VBoxContainer.new();middle.add_child(ui.battle_header)
 	ui.battle_header.size=Vector2(middle.size.x,64)
 	last_actor="";last_action_count=-1;action_menu=true;item_list=false;selected_cell=-1
@@ -127,15 +133,17 @@ func resize():
 	if deployment_layout:
 		deployment_workspace.layout();return
 	ui.board.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	ui.board.position=middle.global_position+Vector2(376,64)
-	ui.board.size=Vector2(maxf(400,middle.size.x-792),760)
+	ui.board.position=Vector2.ZERO
+	ui.board.size=ui.size
+	ui.board.battle_play_width=maxf(1,ui.size.x-left_panel.size.x-right_panel.size.x-64)
+	camera_hint.global_position=Vector2(24,ui.size.y-camera_hint.get_combined_minimum_size().y-8)
 	var queue_scroll=ui.battle_header.find_child("TurnOrderViewport",true,false)
 	if queue_scroll!=null:queue_scroll.custom_minimum_size.x=queue_viewport_width()
 	ui.battle_header.position.y=maxf(0,middle.size.y-maxf(108,ui.battle_header.get_combined_minimum_size().y));ui.battle_header.size.x=middle.size.x
 	# Both preparation controls end on the same baseline above the shared partybar.
 	var footer_end=middle.size.y-8
 	var common_menu=ui.find_child("CommonMenuButton",true,false)
-	if is_instance_valid(common_menu) and common_menu.is_visible_in_tree():footer_end=minf(footer_end,common_menu.global_position.y-middle.global_position.y-8)
+	if deployment_layout and is_instance_valid(common_menu) and common_menu.is_visible_in_tree():footer_end=minf(footer_end,common_menu.global_position.y-middle.global_position.y-8)
 	var action_height=maxf(1,deployment_actions.get_combined_minimum_size().y)
 	deployment_actions.size=Vector2(330,action_height);deployment_actions.position=Vector2(middle.size.x-330,footer_end-action_height)
 	var formation_height=maxf(action_height,deployment_bar.get_combined_minimum_size().y)
@@ -161,6 +169,7 @@ func render():
 		expanded_menu="";item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";inspected_uid="";inspection_pinned=false;range_reference=false;ui.invalidate_preview();last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0));ui.memory.request_focus("command_attack")
 	if s.get("result")!=null or phase is Dictionary or ui.presenting:clear_inspection()
 	var deploying=bool(s.get("deploying",false))
+	camera_hint.visible=not deploying
 	if deploying!=deployment_layout:
 		deployment_layout=deploying
 		if not deploying:deployment_workspace.restore()
@@ -207,9 +216,7 @@ func render():
 	elif s.get("deploying",false):render_deployment()
 	elif s.get("result")!=null:render_result()
 	elif range_reference:render_reference()
-	elif not action_menu and (item_list or skill_list):
-		l(target_box,"左の一覧から選択してください。")
-	elif not action_menu:presentation_action={};render_target()
+	elif not action_menu and not item_list and not skill_list:presentation_action={};render_target()
 	if deploying:
 		deployment_workspace.render()
 		update_board()
@@ -221,18 +228,15 @@ func build_panels(s,phase,a,deploying):
 	render_queue()
 	tools.visible=not deploying;tools.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	if not deploying:
-		local(tools,"戦闘の詳細",toggle_details).name="BattleDetails"
 		local(tools,"装備確認",open_equipment_sheet).name="BattleEquipment"
 	if ui.data.get("trial") is Dictionary:
 		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.name="EndTrial";end.custom_minimum_size=Vector2(160,52)
 
 	tools.tooltip_text="右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小"
-	var hint=l(right_panel.footer if deploying else tools,tools.tooltip_text)
-	hint.name="DeploymentCameraHint" if deploying else "BattleCameraHint";hint.add_theme_font_size_override("font_size",18)
-	if not deploying:
-		hint.add_theme_color_override("font_color",Color("#58675f"))
-	hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART if deploying else TextServer.AUTOWRAP_OFF
-	hint.clip_text=not deploying;hint.max_lines_visible=-1 if deploying else 1
+	if deploying:
+		var hint=l(right_panel.footer,tools.tooltip_text)
+		hint.name="DeploymentCameraHint";hint.add_theme_font_size_override("font_size",18)
+		hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	left_panel.visible=deploying or (a.get("side")=="ally" and not s.get("deploying",false) and s.get("result")==null) or ui.engine.disconnected
 	if phase is Dictionary and (is_instance_valid(action_visual) or str(phase.get("action_id",""))==shifted_action):left_panel.hide()
 	left_info=left_panel.body
@@ -266,9 +270,6 @@ func update_board():
 	ui.board.update_state(ui.data,reference_preview if range_reference else ui.preview,ui.command,ui.selected if ui.state().get("deploying",false) else "",ui.chosen)
 func render_actor(_a: Dictionary):
 	ui.header.text="配置" if ui.state().get("deploying",false) else "戦闘"
-	ui.header.add_theme_color_override("font_color",Color("#29332f"))
-	ui.header.add_theme_color_override("font_outline_color",Color("#29332f"))
-	ui.header.add_theme_constant_override("outline_size",0)
 	ui.header.tooltip_text="右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小"
 func queue_entries() -> Array:
 	var entries=[]
@@ -438,14 +439,13 @@ func skill_unavailable_reason() -> String:
 	return ""
 func render_target():
 	var stage=state_id();var heading=ui.row(target_box) if ui.ui_size_mode!="standard" and ui.command=="action_skill" else target_box
-	var title=l(heading,"移動先の確認・仮置き" if stage=="B2" else "移動先を選択" if stage=="B1" else command_name(),true)
-	title.name="DecisionTitle"
-	title.visible=ui.command!="action_skill"
+	if stage=="B1" or (stage!="B2" and ui.command!="action_skill"):
+		l(heading,"移動先を選択" if stage=="B1" else command_name(),true).name="DecisionTitle"
 	var split=VBoxContainer.new();split.add_theme_constant_override("separation",12);split.size_flags_vertical=Control.SIZE_EXPAND_FILL;target_box.add_child(split)
 	var main=VBoxContainer.new();main.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(main)
 	var facts=VBoxContainer.new();facts.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(facts)
 	facts.add_theme_constant_override("separation",6 if ui.ui_size_mode=="standard" else 4)
-	if ui.command=="action_move":render_move(main,facts)
+	if ui.command=="action_move":render_move(main)
 	else:render_prediction(main,facts)
 	var cost=l(main,cost_text());cost.name="ActionCost";cost.visible=ui.command!="action_skill"
 	var availability=l(main,"");availability.name="ActionAvailability"
@@ -454,7 +454,7 @@ func render_target():
 	elif not skill_unavailable_reason().is_empty():availability.text=skill_unavailable_reason()
 	elif not ui.notice.is_empty():availability.text=ui.notice
 	elif not action_menu and selected_cell>=0:availability.text="射程・条件を確認してください。"
-	availability.visible=ui.command!="action_skill" or (not availability.text.begins_with("MP不足") and not availability.text.is_empty())
+	availability.visible=ui.command!="action_move" and (ui.command!="action_skill" or (not availability.text.begins_with("MP不足") and not availability.text.is_empty()))
 	for fact in facts.get_children():
 		if fact is Label:fact.add_theme_color_override("font_color",Color("#58675f"))
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
@@ -464,29 +464,19 @@ func render_target():
 			ui.memory.key(b(ui.battle_actions,"キャンセル",ui.cancel),"battle_cancel")
 		else:ui.memory.key(b(ui.battle_actions,"キャンセル",open_skills if ui.command in ["action_skill","action_return"] else open_items),"battle_cancel")
 		return
-	ui.memory.key(b(ui.battle_actions,"アイテム一覧へ" if ui.command in ["action_item","action_ether"] else "仮置きを取消" if stage=="B2" else "対象選択を取消" if ui.pending!=null or not ui.chosen.is_empty() else "行動一覧へ",open_items if ui.command in ["action_item","action_ether"] else ui.cancel),"battle_cancel")
+	if ui.command!="action_move":
+		ui.memory.key(b(ui.battle_actions,"対象選択を取消" if ui.pending!=null or not ui.chosen.is_empty() else "行動一覧へ",ui.cancel),"battle_cancel")
 	if stage=="B2":ui.memory.key(b(ui.battle_actions,"仮位置の射程参考",open_range_reference),"range_reference")
-	else:local(ui.battle_actions,"内訳・全対象",open_action_details)
+	elif ui.command!="action_move":local(ui.battle_actions,"内訳・全対象",open_action_details)
 	if stage in ["B2","B4"]:
 		ui.memory.key(ui.green_button(b(decision_footer if ui.ui_size_mode=="standard" else ui.battle_actions,"移動して手番終了" if ui.command=="action_move" else command_name()+"を実行",ui.commit,not ui.can_commit())),"battle_commit")
-func render_move(main,facts):
-	if selected_cell>=0:l(main,"選択: "+coord(selected_cell)+" / "+str(ui.board.unit_at(selected_cell).get("name","空きマス")))
-	if ui.pending==null:l(main,"合法な着地点を選ぶと半透明の仮置きを表示します。");return
-	l(main,"出発 "+coord(acting().get("pos",0))+" → 着地 "+coord(ui.pending))
-	l(main,"この移動で手番終了",true)
-	if ui.preview_ready:
-		if ui.preview.get("swap")!=null:l(facts,"交換: "+ui.member_name(str(ui.preview.swap))+" → "+coord(acting().get("pos",0)))
-		l(facts,"着地点の固定予告: "+(" / ".join(ui.preview.get("risks",[])) if not ui.preview.get("risks",[]).is_empty() else "なし（取得済み）"))
-		var formation_after := "移動後の陣形: " + ("成立" if ui.preview.get("formationAfter",false) else "未成立")
-		var gate_effect := sluice_move_effect(ui.state(), acting(), ui.preview)
-		if gate_effect.is_empty():
-			l(facts, formation_after)
-		else:
-			var note = l(main, gate_effect + "　／　" + formation_after)
-			note.name = "SluiceMoveEffect"
-			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			main.move_child(note, 0)
-	else:l(facts,"予告・陣形を確認中…")
+func render_move(main):
+	if not ui.preview_ready or ui.pending==null:return
+	var gate_effect := sluice_move_effect(ui.state(), acting(), ui.preview)
+	if gate_effect.is_empty():return
+	var note = l(main, gate_effect)
+	note.name = "SluiceMoveEffect"
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 func sluice_move_effect(state: Dictionary, mover: Dictionary, preview: Dictionary) -> String:
 	var gate = state.get("sluice")
 	if not gate is Dictionary or preview.get("kind") != "action_move" or mover.get("side") != "ally":
@@ -786,29 +776,10 @@ func show_equipment_sheet(members: Array,member: Dictionary):
 		if inventory_list.get_child_count()==0:l(inventory_list,"なし")
 		local(actions,"閉じる",ui.dialog.close).name="CloseBattleEquipment")
 
-func toggle_details():
-	details_open=true
-	ui.dialog.open("戦闘の詳細",func(body,actions):
-		formations(body)
-		ui.local_button(actions,"戻る",ui.dialog.close),func():details_open=false)
-func inspect_enemy(id: String):
-	selected_enemy=id
-	if ui.state().get("deploying",false):deployment_workspace.render()
-	else:toggle_details()
 func close_detail() -> bool:
 	if range_reference:close_reference();return true
 	if is_instance_valid(ui.dialog.window):ui.dialog.close();return true
 	return false
-func render_details():toggle_details()
-func formations(parent):
-	for team in ["ally","enemy"]:
-		var active=ui.data.get("formed",{}).get(team,false);var boost=active and ui.data.get("boosted",{}).get(team,false)
-		var cells=ui.data.get("formationSlots",{}).get(team,[24,13,33] if team=="ally" else [25,16,36]).map(func(cell):return int(cell))
-		var occupied=ui.state().units.filter(func(u):return u.side==team and u.job!="job_porter" and u.hp>0 and cells.has(int(u.pos))).size()
-		l(parent,"%sの条件マス %d/3" % ["味方" if team=="ally" else "敵",occupied])
-		l(parent,"%s陣形 %s / 攻撃%s・被ダメージ%s" % ["味方" if team=="ally" else "敵","発動" if active else "未発動","×1.75" if boost else "×1.5" if active else "×1","×0.65" if boost else "×0.75" if active else "×1"])
-	l(parent,"陣形条件: 点線の3マスをポーター以外の同陣営生存者で埋める。陣営全体への補正。防御・かばう・丸めは別。")
-
 func live_board(source_id: int=0) -> bool:
 	return not ui.closing and is_instance_valid(ui.board) and ui.board.is_inside_tree() and not ui.board.is_queued_for_deletion() and (source_id==0 or source_id==ui.board.get_instance_id())
 func render_person(hover_only := false):
@@ -818,15 +789,19 @@ func render_person(hover_only := false):
 	person_box.remove_meta("inspected_unit")
 	if inspection_pinned and inspected_uid.is_empty():
 		l(person_box,"このマスに人物はいません。");return
-	if hover_only and inspected_uid.is_empty():
-		l(person_box,"人物にカーソルを合わせると情報を表示します。");return
+	var focused={}
+	if not inspection_pinned and not ui.state().get("deploying",false) and ui.board.has_focus():
+		focused=ui.board.unit_at(ui.board.keyboard_cell)
+	if hover_only and inspected_uid.is_empty() and focused.is_empty():
+		if ui.command!="action_move":l(person_box,"人物にカーソルを合わせると情報を表示します。")
+		return
 	if ui.state().get("deploying",false):
 		var enemy=unit(selected_enemy)
 		if enemy.get("side")=="enemy":
 			person_box.set_meta("inspected_unit",enemy.id);render_person_content(person_box,enemy,true)
 		else:l(person_box,"敵をクリックすると情報を表示します。")
 		return
-	var u=unit(inspected_uid)
+	var u=focused if not focused.is_empty() else unit(inspected_uid)
 	var reference=not u.is_empty()
 	if u.is_empty() and ui.pending is String:u=unit(str(ui.pending))
 	var phase=ui.data.get("presentation")
@@ -838,7 +813,9 @@ func render_person(hover_only := false):
 			for ally in ui.state().get("units",[]):
 				if ally.side=="ally" and ally.hp>0:u=ally;break
 
-	if u.is_empty():l(person_box,"人物にカーソルを合わせると情報を表示します。");return
+	if u.is_empty():
+		if ui.command!="action_move":l(person_box,"人物にカーソルを合わせると情報を表示します。")
+		return
 	person_box.set_meta("inspected_unit",u.id)
 	l(person_box,"参照" if reference else "能力").name="InspectedPersonHeading"
 	render_person_content(person_box,u,true)

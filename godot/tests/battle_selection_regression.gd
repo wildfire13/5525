@@ -48,6 +48,8 @@ func run():
   await game.on_cell(int(enemy.pos));await settle()
   game.hud.buttons.action_skill.pressed.emit();await settle()
   check(not game.hud.inspection_pinned and selected_button(game.hud.buttons.action_skill) and selected_palette_all(game.hud.buttons.action_skill) and game.hud.buttons.action_skill.get_theme_color("font_color").is_equal_approx(game.theme.get_color("font_color","Button")),"skill parent selected and click clears pin "+str(dims))
+  game.board.keyboard_cell=int(enemy.pos);game.board.grab_focus();game.board.set_hover(str(enemy.id));game.board.set_hover("");await settle()
+  check(game.hud.person_box.get_meta("inspected_unit","")==enemy.id,"focused enemy stays visible when pointer leaves during skill selection")
   var choices=game.data.skillset.filter(func(o):return o.id=="skill_heal")
   await game.select_skill(choices[1].key);await settle()
   var children=skill_buttons()
@@ -75,7 +77,7 @@ func run():
   var queue_labels=game.hud.middle.find_children("*","Label",true,false).filter(func(n):return n.text.begins_with("● "))
   check(not queue_labels.is_empty(),"actor queue marker preserved "+str(dims))
   game.hud.back_to_commands();await settle();await game.on_cell(int(enemy.pos));await settle()
-  game.find_child("BattleDetails",true,false).pressed.emit();await settle()
+  game.find_child("BattleEquipment",true,false).pressed.emit();await settle()
   check(not game.hud.inspection_pinned,"non-command button clears pin "+str(dims))
   game.dialog.close();await settle()
   # Keep the final trial active for action/reset inspection checks below.

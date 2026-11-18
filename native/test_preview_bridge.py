@@ -203,6 +203,8 @@ class PreviewBridgeTests(unittest.TestCase):
         self.assertTrue(p['formationBefore'])
         self.assertFalse(p['formationAfter'])
         self.assertEqual(unit({'units': p['units']}, PORTER)['pos'], 23)
+        self.assertEqual(p['formationSlots']['ally'], [25, 14, 34])
+        self.assertEqual(self.view()['formationSlots']['ally'], [24, 13, 33])
         self.assertEqual(unit(self.data['state'], PORTER)['pos'], 22)
         self.bridge.call(op='record', type='battle.preview.cancelled')
         self.assertTrue(self.view()['formed']['ally'])

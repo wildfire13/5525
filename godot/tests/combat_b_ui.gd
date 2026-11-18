@@ -41,8 +41,17 @@ func run():
  check(int(game.state().get("actions",0))>actions_before,"guard executes and advances actual turn")
  if game.find_child("QuitGame",true,false)!=null:
   var field=game.board.get_global_rect()
-  check(not field.intersects(game.hud.left_panel.get_global_rect()) and not field.intersects(game.hud.right_panel.get_global_rect()),"board separate from both information panels")
-  check(range(50).all(func(cell):return field.has_point(game.board.global_position+game.board.project_cell(cell))),"all fifty cell centers visible")
+  check(field.position.is_equal_approx(Vector2.ZERO) and field.size.is_equal_approx(Vector2(root.size)),"battle fills viewport behind information panels")
+  check(field.encloses(game.hud.left_panel.get_global_rect()) and field.encloses(game.hud.right_panel.get_global_rect()),"information panels overlay battle")
+  var menu_button=game.find_child("CommonMenuButton",true,false)
+  check(menu_button.global_position.y<80 and menu_button.global_position.x>root.size.x-160,"battle menu at upper right")
+  check(game.find_child("BattleDetails",true,false)==null,"obsolete battle details button removed")
+  var hint=game.find_child("BattleCameraHint",true,false)
+  check(hint.is_visible_in_tree() and hint.global_position.y>root.size.y-48 and field.encloses(hint.get_global_rect()),"camera guidance at bottom of battlefield")
+  var panels=[game.hud.left_panel.get_global_rect(),game.hud.right_panel.get_global_rect()]
+  for cell in range(50):
+   var center=game.board.global_position+game.board.project_cell(cell)
+   check(field.has_point(center) and not panels.any(func(panel):return panel.has_point(center)),"default camera exposes cell "+str(cell))
   check(game.theme.default_font_size==20,"B base font")
   check(game.hud.left_panel.get_theme_stylebox("panel").bg_color.is_equal_approx(Color(250.0/255,249.0/255,245.0/255,.90)),"B panel palette")
   check(abs(game.hud.left_panel.global_position.y-game.hud.right_panel.global_position.y)<2,"aligned information columns")

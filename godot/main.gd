@@ -588,7 +588,18 @@ func render():
 	resource_header.visible=not battle
 	location_bar.visible=false
 	top.visible=battle or engine.disconnected
-	top.get_node("BattleElapsedTime").text=mock_shell.elapsed_time_text()
+	var active_battle=battle and not s.get("deploying",false)
+	var battle_elapsed=top.get_node("BattleElapsedTime")
+	battle_elapsed.text=mock_shell.elapsed_time_text()
+	for caption in [battle_elapsed,header]:
+		if active_battle:
+			caption.add_theme_color_override("font_color",Color.WHITE)
+			caption.add_theme_color_override("font_outline_color",Color("#22332f"))
+			caption.add_theme_constant_override("outline_size",4)
+		else:
+			caption.remove_theme_color_override("font_color")
+			caption.remove_theme_color_override("font_outline_color")
+			caption.remove_theme_constant_override("outline_size")
 	pages.facility_art.render_background(backdrop_layer,self,battle)
 	actor_face.visible=false
 	var lower_return=phase=="result" or phase=="town" and page!="hub"
@@ -598,8 +609,10 @@ func render():
 	var common_menu=find_child("CommonMenuButton",true,false)
 	if common_menu!=null:
 		common_menu.visible=battle
-		common_menu.offset_top=-64 if battle else -56
-		common_menu.offset_bottom=-8
+		common_menu.anchor_top=0.0 if active_battle else 1.0
+		common_menu.anchor_bottom=common_menu.anchor_top
+		common_menu.offset_top=12 if active_battle else -64
+		common_menu.offset_bottom=68 if active_battle else -8
 	footer.visible=not battle and page not in ["shop","party"]
 	if battle:
 		if view_kind!="battle":
