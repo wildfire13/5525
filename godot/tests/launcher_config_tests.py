@@ -74,8 +74,9 @@ class LauncherConfigTests(unittest.TestCase):
         env = dict(AKI_SHARED_ENV_FILE=str(self.shared), GODOT_BIN="bad", NATIVE5525_NODE="bad",
                    NATIVE5525_PYTHON="python")
         load_paths(self.root, {"GODOT_BIN", "NATIVE5525_NODE", "NATIVE5525_PYTHON"}, env)
-        self.assertEqual([Path(env[k]) for k in ("GODOT_BIN", "NATIVE5525_NODE", "NATIVE5525_PYTHON")],
-                         [godot, node, python])
+        for key, expected in (("GODOT_BIN", godot), ("NATIVE5525_NODE", node), ("NATIVE5525_PYTHON", python)):
+            with self.subTest(key=key):
+                self.assertTrue(Path(env[key]).samefile(expected))
 
     def test_invalid_shared_stops_even_with_valid_lower_value(self):
         env = {"GODOT_BIN": str(self.executable("valid/godot"))}
