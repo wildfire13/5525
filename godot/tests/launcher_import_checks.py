@@ -15,7 +15,6 @@ import shutil
 import subprocess
 import sys
 import tarfile
-import tempfile
 
 from qa_runtime import qa_environment
 
@@ -25,6 +24,8 @@ parser.add_argument('--powershell', required=True)
 parser.add_argument('--godot', required=True)
 parser.add_argument('--output', required=True)
 args = parser.parse_args()
+if not __debug__:
+    parser.error("Run without Python optimization (-O) so all checks are active.")
 settings = qa_environment(needs_godot=False)
 out = Path(args.output).resolve()
 out.mkdir(parents=True, exist_ok=False)
@@ -130,6 +131,7 @@ def run(name, mode='', smoke=False, check=False, expected=0, verify_assets=False
         p = subprocess.run(command, env=local, capture_output=True, text=True, errors='replace', timeout=150)
         log = p.stdout + p.stderr
         (out/(name+'.log')).write_text(log, encoding='utf-8')
+        result['exit_code'] = p.returncode
         assert p.returncode == expected, (name, p.returncode, log)
         phases = [json.loads(line)['phase'] for line in events.read_text().splitlines()]
         wanted = ['version'] if check else ['version','import'] + ([] if mode in ('fail','error_zero') else ['game'])
@@ -139,16 +141,17 @@ def run(name, mode='', smoke=False, check=False, expected=0, verify_assets=False
         elif expected == 0:
             assert 'ERROR:' not in log, log
         assert hashlib.sha256(sentinel.read_bytes()).hexdigest() == sentinel_hash
-        result.update(exit_code=p.returncode, phases=phases)
+        result['phases'] = phases
         if name == 'check-does-not-import':
             assert not (project/'godot/.godot').exists()
         if verify_assets:
             result['stage'] = 'assets'
-            result['assets'] = assets(name)
+            result['assets'] = assets(name, result)
 
-def assets(name):
+def assets(name, result):
     p = subprocess.run([args.godot,'--headless','--path',str(project/'godot'),'--script','res://import_asset_probe.gd'],
                        env=env, capture_output=True, text=True, timeout=30)
+    result['asset_exit_code'] = p.returncode
     (out/(name+'-assets.log')).write_text(p.stdout+p.stderr, encoding='utf-8')
     assert p.returncode == 0 and 'ERROR:' not in p.stdout+p.stderr
     report = json.loads(next(line.removeprefix('ASSET_PROBE ') for line in p.stdout.splitlines() if line.startswith('ASSET_PROBE ')))
@@ -160,12 +163,13 @@ def assets(name):
 
 try:
     for key in configuration:
-        with case('missing-' + key):
+        with case('missing-' + key) as result:
             write_config({**configuration, key: str(project / 'missing executable')})
             p = subprocess.run([args.powershell, '-NoProfile', '-ExecutionPolicy', 'Bypass',
                                 '-File', str(project/'godot/launch.ps1'), '-Check'],
                                env=env, capture_output=True, timeout=60)
-            assert p.returncode != 0, key
+            result['exit_code'] = p.returncode
+            assert p.returncode != 0 and f'Executable for {key} was not found'.encode() in p.stderr, key
 
     write_config(configuration)
     env['GODOT_BIN'] = str(project / 'missing process executable')

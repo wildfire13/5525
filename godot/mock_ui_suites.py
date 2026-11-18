@@ -12,7 +12,7 @@ SUITES = [
     'npc_meeting_regression', 'town_meeting_layout_regression', 'quest_decisions_regression', 'quest_aftermath_access_regression',
 ]
 
-ERROR_KINDS = {"script-error", "engine-error", "assertion", "resource-leak", "timeout", "process-exit", "launch-error"}
+ERROR_KINDS = {"script-error", "engine-error", "assertion", "resource-leak", "timeout", "process-exit", "launch-error", "cleanup-error"}
 
 
 def read_results(path, expected):

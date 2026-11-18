@@ -62,11 +62,18 @@ for name in a.only or SUITES:
             try:
                 code = process.wait(timeout=180)
             except subprocess.TimeoutExpired:
-                if os.name == 'posix':
-                    os.killpg(process.pid, signal.SIGKILL)
+                if os.name == 'nt':
+                    killed = subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
+                                            capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                    if killed.returncode and process.poll() is None:
+                        errors.append('cleanup-error')
+                        process.kill()
                 else:
-                    process.kill()
-                process.wait()
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                process.wait(timeout=10)
                 code = 124
                 errors.append('timeout')
     text = (out / (name + '.log')).read_text(encoding='utf-8', errors='replace')
