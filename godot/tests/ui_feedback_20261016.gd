@@ -55,7 +55,7 @@ func run():
 	check(not fixtures.is_empty(),"battle fixture generator")
 	await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
 	var field=game.board.get_global_rect();var viewport=Rect2(Vector2.ZERO,Vector2(root.size))
-	check(viewport.encloses(field) and not field.intersects(game.hud.left_panel.get_global_rect()) and not field.intersects(game.hud.right_panel.get_global_rect()),"S1 B board fits FHD between separate information columns")
+	check(field==viewport and field.encloses(game.hud.left_panel.get_global_rect()) and field.encloses(game.hud.right_panel.get_global_rect()),"S1 full battle viewport contains both information panels")
 	check(range(50).all(func(cell):return field.has_point(game.board.global_position+game.board.project_cell(cell))),"S1 all fifty board cell centers remain visible")
 	check(node("BattleHistory")!=null and game.battle_header.global_position.y>root.size.y*.75 and viewport.encloses(node("BattleHistory").get_global_rect()) and node("BattleHistory").global_position.x>=node("TurnOrderViewport").get_global_rect().end.x,"S1 history remains visible beside bottom turn order")
 	check(game.hud.left_panel.visible and game.hud.buttons.size()==5 and not game.actor_face.visible and not game.header.text.contains("HP"),"S2 ally and commands left; no duplicate top actor")

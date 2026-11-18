@@ -79,6 +79,6 @@ func run():
  await game.act("deployment_reset",[]);await settle()
  check(not game.hud.deployment_changed(),"reset preserved")
  await game.act("begin",[]);await settle()
- check(not game.state().get("deploying",false) and not game.board.get_global_rect().intersects(game.hud.right_panel.get_global_rect()),"battle begins with field separate from inspector")
+ check(not game.state().get("deploying",false) and game.board.get_global_rect()==Rect2(Vector2.ZERO,Vector2(root.size)),"starting battle expands the deployment field to the full viewport")
  check(game.hud.left_panel.visible and game.hud.right_panel.find_child("DragHandle",true,false).visible,"battle inspector headers restored")
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await settle();quit(0 if failures.is_empty() else 1)
