@@ -10,16 +10,7 @@ import subprocess
 import tempfile
 import time
 
-SUITES = [
-    'mock_character_migration', 'character_ab_fixes', 'character_details_parity',
-    'mock_shop_migration', 'mock_facility_migration', 'mock_facility_presentation',
-    'facility_readability_polish', 'background_ui_polish', 'shop_entry_position',
-    'mock_travel_regression', 'mock_journey_integration', 'mock_service_regression',
-    'mock_deployment_regression', 'combat_b_ui', 'battle_feedback_261116', 'battle_selection_regression',
-    'menu_exit_regression', 'quest_reward_display_regression',
-    'standalone_quest_failure_regression', 'quest_modal_regression',
-    'npc_meeting_regression', 'town_meeting_layout_regression', 'quest_decisions_regression', 'quest_aftermath_access_regression',
-]
+from mock_ui_suites import SUITES
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--evidence', required=True, type=Path)
@@ -29,9 +20,11 @@ repo = Path(__file__).resolve().parents[2]
 out = a.evidence.resolve()
 if out == repo or repo in out.parents:
     p.error('Evidence must be outside the checkout')
+out.mkdir(parents=True, exist_ok=True)
+target = out / "results.json"
+target.write_text("[]\n", encoding="utf-8")
 settings = qa_environment()
 godot = settings['GODOT_BIN']
-out.mkdir(parents=True, exist_ok=True)
 results = []
 
 for name in a.only or SUITES:
@@ -58,19 +51,25 @@ for name in a.only or SUITES:
                'Dummy', '--path', str(repo / 'godot'), '--script', str(wrapper)]
     started = time.monotonic()
     with (out / (name + '.log')).open('w', encoding='utf-8') as log:
-        process = subprocess.Popen(command, cwd=repo, env=env, stdout=log,
-                                   stderr=subprocess.STDOUT, start_new_session=True)
+        errors = []
         try:
-            code = process.wait(timeout=180)
-        except subprocess.TimeoutExpired:
-            if os.name == 'posix':
-                os.killpg(process.pid, signal.SIGKILL)
-            else:
-                process.kill()
-            process.wait()
-            code = 124
+            process = subprocess.Popen(command, cwd=repo, env=env, stdout=log,
+                                       stderr=subprocess.STDOUT, start_new_session=True)
+        except OSError:
+            code = 1
+            errors.append('launch-error')
+        else:
+            try:
+                code = process.wait(timeout=180)
+            except subprocess.TimeoutExpired:
+                if os.name == 'posix':
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
+                process.wait()
+                code = 124
+                errors.append('timeout')
     text = (out / (name + '.log')).read_text(encoding='utf-8', errors='replace')
-    errors = []
     if 'SCRIPT ERROR:' in text:
         errors.append('script-error')
     if 'ERROR:' in text.replace('SCRIPT ERROR:', ''):
@@ -79,16 +78,13 @@ for name in a.only or SUITES:
         errors.append('assertion')
     if 'leaked' in text.lower() or 'resources still in use' in text:
         errors.append('resource-leak')
-    if code == 124:
-        errors.append('timeout')
-    elif code and not errors:
+    if code and not errors:
         errors.append('process-exit')
     source_sha256 = hashlib.sha256((repo / 'godot/tests' / (name + '.gd')).read_bytes()).hexdigest()
     result = dict(name=name, source_sha256=source_sha256, passed=code == 0 and not errors, exit=code,
                   errors=errors, seconds=round(time.monotonic() - started, 3))
     results.append(result)
-    (out / 'results.json').write_text(json.dumps(results, ensure_ascii=False, indent=2),
-                                      encoding='utf-8')
+    target.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(result, ensure_ascii=False), flush=True)
 
 raise SystemExit(0 if all(result['passed'] for result in results) else 1)

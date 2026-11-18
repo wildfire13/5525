@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+from mock_ui_suites import SUITES, read_results
 from qa_reports import evidence_directory, runtime_details
 from launcher_config import resolve_godot, runtime_environment
 import time
@@ -47,7 +48,7 @@ profile.mkdir()
 env["APPDATA" if os.name == "nt" else "XDG_DATA_HOME"] = str(profile)
 common = [args.godot, "--headless", "--resolution", "1920x1080", "--audio-driver", "Dummy", "--path", str(BASE)]
 steps = [
-    ("Godot path configuration", [python, "-X", "utf8", "-B", str(BASE / "tests/launcher_config_tests.py")], BASE),
+    ("QA configuration and reporting", [python, "-X", "utf8", "-B", "-m", "unittest", "discover", "-s", "tests", "-p", "*_tests.py"], BASE),
     ("Godot import/parse", common + ["--editor", "--import", "--quit"], BASE),
     ("Godot candidate rules", [node, "test_godot_rules.cjs"], ROOT / "native"),
     ("Atomic save and portrait adapter", [python, "-X", "utf8", "-B", "-m", "unittest", "-v", "test_godot_files"], ROOT / "native"),
@@ -102,8 +103,15 @@ for name, command, cwd in steps:
             if stream:
                 print(stream.decode("utf-8", errors="replace") if isinstance(stream, bytes) else stream, flush=True)
         entry = dict(name=name, passed=False, error="timeout after 180 seconds")
-    if ui_runner in command and (evidence / "results.json").is_file():
-        entry["suites"] = json.loads((evidence / "results.json").read_text(encoding="utf-8"))
+    if ui_runner in command:
+        suites, error = read_results(evidence / "results.json", SUITES)
+        entry["suites"] = suites
+        if error:
+            entry.update(passed=False, error=error)
+            if len(suites) < len(SUITES):
+                entry["firstUnconfirmed"] = SUITES[len(suites)]
+        elif any(not suite["passed"] for suite in suites):
+            entry["passed"] = False
     entry["seconds"] = round(time.monotonic() - start, 3)
     report["steps"].append(entry)
     report["passed"] = False
