@@ -46,19 +46,28 @@ function start(scenario='normal') {
     state.log.push('QA固定局面: '+scenario+'（標準戦闘とは別の境界テスト）');
   }
 }
+const boardCells = Array.from({length:50}, (_, pos) => pos);
+function rangeCells(battle, actor, kind) {
+  const support = kind === 'action_skill' && ['skill_heal','skill_cover','skill_formation_boost','skill_healing_cross','skill_defense_line','skill_mana_gift'].includes(B.activeSkill(actor));
+  const emptySide = support ? 'ally' : 'enemy';
+  return boardCells.filter(pos => {
+    const occupant = battle.units.find(unit => unit.hp > 0 && unit.pos === pos);
+    return B.inRange(actor, occupant?.side || emptySide, pos, kind, battle);
+  });
+}
 function view(ok=true, error=null) {
   if(!state)return {ok,error,state:null,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null}:{})};
   const a=state.units.find(u=>u.id===state.actor);
   const choices={};
   for(const k of ['action_move','action_attack','action_skill','action_item',...(campaign?['action_ether']:[])]) {
     if(k==='action_skill'&&a&&B.skillTargets){choices[k]=B.skillTargets(state,a);continue;}
-    const targets=k==='action_move'||(k==='action_skill'&&a&&B.activeSkill(a)==='skill_stamp')?Array.from({length:50},(_,i)=>i):state.units.map(u=>u.id);
+    const targets=k==='action_move'||(k==='action_skill'&&a&&B.activeSkill(a)==='skill_stamp')?boardCells:state.units.map(u=>u.id);
     choices[k]=targets.filter(t=>B.legal(state,k,t));
   }
   if(campaign)choices.action_return=a?B.skillTargets(state,a,'action_return'):[];
   const ranges={};
-  if(a)for(const kind of ['action_attack','action_skill',...(campaign?['action_return']:[])])ranges[kind]=Array.from({length:50},(_,p)=>p).filter(p=>{const u=state.units.find(u=>u.hp>0&&u.pos===p),support=kind==='action_skill'&&['skill_heal','skill_cover','skill_formation_boost','skill_healing_cross','skill_defense_line','skill_mana_gift'].includes(B.activeSkill(a));return B.inRange(a,u?.side||(support?'ally':'enemy'),p,kind,state);});
-  const deployment=state.deploying?Object.fromEntries(state.units.filter(u=>u.side==='ally'&&u.hp>0).map(u=>[u.id,{ranges:Array.from({length:50},(_,p)=>p).filter(p=>B.inRange(u,p%10<5?'ally':'enemy',p,'action_attack',state)),ambush:state.units.filter(t=>t.hp>0&&B.ambush(state,u,t)).map(t=>t.pos)}])):{};
+  if(a)for(const kind of ['action_attack','action_skill',...(campaign?['action_return']:[])])ranges[kind]=rangeCells(state,a,kind);
+  const deployment=state.deploying?Object.fromEntries(state.units.filter(u=>u.side==='ally'&&u.hp>0).map(u=>[u.id,{ranges:boardCells.filter(p=>B.inRange(u,p%10<5?'ally':'enemy',p,'action_attack',state)),ambush:state.units.filter(t=>t.hp>0&&B.ambush(state,u,t)).map(t=>t.pos)}])):{};
   const stampAreas=a&&B.activeSkill(a)==='skill_stamp'?Object.fromEntries(choices.action_skill.map(p=>[p,B.stampCells(a,p)])):{};
   return {ok,error,state,journey,qa,roster:B.roster,jobs:J.jobs,...(campaign?{campaign:campaignEngine().view(campaign),trial:trial?trial.metadata||{active:true}:null,skillReach:a?B.attackReach(a,'action_skill'):0,normalAttackReach:a?B.attackReach(a,'action_attack'):0,skillset:a?B.activeSkillOptions(a).map(option=>({...option,name:B.skillName({...a,selectedSkill:option.id,selectedSkillKey:option.key}),selected:B.selectedSkillOption(a)?.key===option.key,sources:option.itemId?[{id:option.id,slot:option.slot,itemId:option.itemId,grantSlot:option.grantSlot,level:option.level,itemName:option.id==='skill_item_use'&&option.itemId.startsWith('empty-')?(a.job==='job_porter'?'拳＋2':'拳'):campaignEngine().gear.find(g=>g.id===option.itemId)?.name||option.itemId}]:[]})):[],itemUseInfo:a?B.itemSkillOption(a):null,returnSkillset:a?B.returnSkillOptions(a).map(option=>({...option,name:'帰還',selected:B.returnSkillOption(a)?.key===option.key,sources:option.itemId?[{...option,itemName:campaignEngine().gear.find(g=>g.id===option.itemId)?.name||option.itemId}]:[]})):[],returnSkillInfo:a?B.returnSkillOption(a):null,skillInfo:a?B.skillInfo(a):null,moveReach:a?B.moveReach(a):2,skillEvents:state.skillEvents||[]}:{}),formationSlots:B.formationSlots?B.formationSlots(state):B.slots,enemyInfo:state.units.filter(u=>u.side==='enemy').map(u=>({id:u.id,equipmentNames:Object.values(u.equipment||{}).map(id=>campaignEngine().gear.find(g=>g.id===id)?.name).filter(Boolean),normalReach:B.attackReach(u,'action_attack'),skill:B.skillName(u),reason:'敵の手番で現在の盤面から行動を選択'})),choices,ranges,deployment,stampAreas,queue:B.queue(state),skill:a?B.skillName(a):'',formed:{ally:B.formation(state,'ally'),enemy:B.formation(state,'enemy')},boosted:{ally:B.boosted(state,'ally'),enemy:B.boosted(state,'enemy')}};
 }
@@ -86,14 +95,19 @@ function preview(kind,target,previewKind='action_attack') {
     if(id==='skill_grapple'){const p=B.grappleCell(a,selected[0]);if(!v.units.some(u=>u.hp>0&&u.pos===p))selected[0].pos=p;}
   }
   const inspectKind=kind==='action_move'?previewKind:kind==='action_skill'&&B.activeSkill(a)==='skill_ambush'?'action_attack':kind;
-  const multiTargets=B.skillTargets&&inspectKind==='action_skill'?new Set(B.skillTargets(v,va).flat()):null;
-  const supportSkill=['skill_healing_cross','skill_defense_line','skill_mana_gift','skill_grapple'].includes(B.activeSkill(va));
-  let targets=v.units.filter(u=>cells.length?u.hp>0&&(supportSkill?u.side===a.side:u.side!==a.side)&&cells.includes(u.pos):inspectKind==='action_skill'&&B.activeSkill(va)==='skill_stamp'?u.hp>0&&u.side!==a.side&&Array.from({length:50},(_,p)=>p).some(p=>B.legalFor(v,va,'action_skill',p)&&B.stampCells(va,p).includes(u.pos)):multiTargets?multiTargets.has(u.id):B.legalFor(v,va,inspectKind,u.id)).map(u=>u.name);
-  if(kind==='action_skill'&&B.activeSkill(a)==='skill_grapple')targets=[state.units.find(u=>u.id===target).name];
-  const ranges=Array.from({length:50},(_,p)=>p).filter(p=>{
-    const u=v.units.find(u=>u.hp>0&&u.pos===p),support=inspectKind==='action_skill'&&['skill_heal','skill_cover','skill_formation_boost','skill_healing_cross','skill_defense_line','skill_mana_gift'].includes(B.activeSkill(va));
-    return cells.length?cells.includes(p):B.inRange(va,u?.side||(support?'ally':'enemy'),p,inspectKind,v);
-  });
+  const skillTargets = inspectKind === 'action_skill' ? B.skillTargets(v,va).flat() : null;
+  const skill = B.activeSkill(va);
+  const supportSkill = ['skill_healing_cross','skill_defense_line','skill_mana_gift','skill_grapple'].includes(skill);
+  const stampArea = !cells.length && skillTargets && skill === 'skill_stamp'
+    ? new Set(skillTargets.flatMap(center => B.stampCells(va,center))) : null;
+  const targets = v.units.filter(unit => {
+    if (kind === 'action_skill' && skill === 'skill_grapple') return unit.id === target;
+    if (cells.length) return unit.hp > 0 && (supportSkill ? unit.side === a.side : unit.side !== a.side) && cells.includes(unit.pos);
+    if (stampArea) return unit.hp > 0 && unit.side !== a.side && stampArea.has(unit.pos);
+    if (skillTargets) return skillTargets.includes(unit.id);
+    return B.legalFor(v,va,inspectKind,unit.id);
+  }).map(unit => unit.name);
+  const ranges = cells.length ? boardCells.filter(pos => cells.includes(pos)) : rangeCells(v,va,inspectKind);
   const risks=[];
   return {ok:true,preview:{units:v.units,destination,path,swap,cells,ranges,targets,risks,effectPreview:B.effectPreview?B.effectPreview(state,a,kind,target):[],
     damagePreview:['action_attack','action_skill'].includes(kind)&&B.damagePreview?B.damagePreview(state,a,kind,target):inspectKind==='action_attack'&&B.attackPreview?v.units.map(u=>B.attackPreview(v,va,u)).filter(Boolean):[],formationBefore:B.formation(state),formationAfter:B.formation(v),...(kind==="action_move"?{formationSlots:B.formationSlots(v)}:{}),kind,target,previewKind}};
