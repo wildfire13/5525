@@ -35,7 +35,7 @@ func text_checks():
  # 指示14: 射程の概念がないため「射程・範囲」行を出さない。
  check(boost.range.is_empty() and not boost_body.contains("射程・範囲") and not boost_body.contains("成立中の陣形"),"formation boost has no fabricated range line")
  # 指示12/13: 対象は陣形の内外を問わず味方全員。
- check(boost.target.contains("味方全員") and not boost.target.contains("使用者自身を指定") and not boost.target.contains("陣形中"),"formation boost targets every ally, inside or outside the formation")
+ check(boost.target=="味方全員","formation boost targets every ally, inside or outside the formation")
  # 指示11: 味方全員・3マス外・倍率の置き換えという効果本文は維持。
  for phrase in ["味方全員","3マス外","×1.5","×0.75","×1.75","×0.65","置き換え","使用者の次の番まで","加算されません"]:check(boost_body.contains(phrase),"formation boost effect keeps "+phrase)
 func run():
