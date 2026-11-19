@@ -30,13 +30,14 @@ static func range_text(id: String,gear: Dictionary,definition: Dictionary,passiv
  if id=="skill_item_use":return ["自分のみ","自分と縦横隣接の味方","距離制限なしの味方"][clampi(level-1,0,2)]
  if id=="skill_ambush":return ["前方（味方は右、敵は左）・距離制限なし","同じ横列の左右・距離制限なし","上下左右の直線・距離制限なし"][clampi(level-1,0,2)]
  if id=="skill_return_home":return "距離制限なし（自陣の空きマス）"
- if id=="skill_formation_boost":return "成立中の陣形・味方全員"
+ # 射程の概念がないため偽の射程を表示しない（対象は陣形の内外を問わず味方全員）。
+ if id=="skill_formation_boost":return ""
  if definition.get("reach")!=null:return str(definition.reach)
  if id=="skill_snipe":return "各攻撃武器の通常射程+%s" % str([1,1.5,2][clampi(level-1,0,2)])
  return {"skill_cover":"1","skill_heal":"2","skill_stamp":"右側3マス"}.get(id,"")
 static func target_text(id: String,definition: Dictionary,level: int) -> String:
  if id=="skill_item_use":return range_text(id,{},definition,false,level)
- return {"skill_cover":"隣接する自分以外の味方1人","skill_snipe":"射程内の敵1人","skill_heal":"傷ついた生存味方1人（自身を含む）","skill_ambush":"敵1人","skill_stamp":"右隣と、その上下の計3マスにいる敵（空マスでも指定可）","skill_formation_boost":"使用者自身を指定・陣形中の味方全員","skill_return_home":"自陣の空きマス","skill_retreat_slash":"射程内の敵1人","skill_knockback":"射程内の敵1人","skill_pincer":"射程内の敵1人","skill_healing_cross":"生存味方を中心に十字範囲の生存味方","skill_mana_gift":"別の生存味方1人","skill_grapple":"右2マス先の敵または味方","skill_leg_sweep":"使用者自身（中心指定） / 効果対象は周囲8マスの敵"}.get(id,{"pair":"異なる敵2人","upToTwo":"縦横隣接の味方1～2人","cell":"指定マス","self":"自身","unit":"射程・条件を満たす人物"}.get(definition.get("target"),""))
+ return {"skill_cover":"隣接する自分以外の味方1人","skill_snipe":"射程内の敵1人","skill_heal":"傷ついた生存味方1人（自身を含む）","skill_ambush":"敵1人","skill_stamp":"右隣と、その上下の計3マスにいる敵（空マスでも指定可）","skill_formation_boost":"味方全員（陣形の内外を問わず）","skill_return_home":"自陣の空きマス","skill_retreat_slash":"射程内の敵1人","skill_knockback":"射程内の敵1人","skill_pincer":"射程内の敵1人","skill_healing_cross":"生存味方を中心に十字範囲の生存味方","skill_mana_gift":"別の生存味方1人","skill_grapple":"右2マス先の敵または味方","skill_leg_sweep":"使用者自身（中心指定） / 効果対象は周囲8マスの敵"}.get(id,{"pair":"異なる敵2人","upToTwo":"縦横隣接の味方1～2人","cell":"指定マス","self":"自身","unit":"射程・条件を満たす人物"}.get(definition.get("target"),""))
 static func document(id: String,title: String,level: int,campaign: Dictionary,gear: Dictionary={},source: String="") -> Dictionary:
  var definition=campaign.get("skillDefinitions",{}).get(id,{})
  var kind=classification(id,definition);var original=description(id,level,campaign) if source.is_empty() else source

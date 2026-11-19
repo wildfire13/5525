@@ -30,6 +30,14 @@ func text_checks():
  check(Copy.description("skill_invasion",1,c).contains("ポーターは対象外"),"existing invasion permission and porter exclusion are explicit")
  var item=Copy.document("skill_item_use","アイテム使用",2,c)
  check(item.classification=="passive" and item.target.contains("隣接") and item.range=="該当なし（パッシブ）" and item.original.contains("本人の所持品") and not item.original.contains("共有"),"item level and personal inventory semantics retained")
+ var boost=Copy.document("skill_formation_boost","陣形強化",1,c)
+ var boost_body=Copy.body(boost)
+ # 指示14: 射程の概念がないため「射程・範囲」行を出さない。
+ check(boost.range.is_empty() and not boost_body.contains("射程・範囲") and not boost_body.contains("成立中の陣形"),"formation boost has no fabricated range line")
+ # 指示12/13: 対象は陣形の内外を問わず味方全員。
+ check(boost.target.contains("味方全員") and not boost.target.contains("使用者自身を指定") and not boost.target.contains("陣形中"),"formation boost targets every ally, inside or outside the formation")
+ # 指示11: 味方全員・3マス外・倍率の置き換えという効果本文は維持。
+ for phrase in ["味方全員","3マス外","×1.5","×0.75","×1.75","×0.65","置き換え","使用者の次の番まで","加算されません"]:check(boost_body.contains(phrase),"formation boost effect keeps "+phrase)
 func run():
  create_timer(180).timeout.connect(func():print("FAIL descriptions watchdog");quit(2))
  if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
