@@ -43,9 +43,11 @@ func run():
   var shown=node("ShopComparisonStats").text
   check(shown.contains("26 → 23") and shown.contains("(+1)") and shown.contains("(-3)"),"canonical numeric changes include arrows and signed deltas")
   var columns=node("ShopComparisonSkills").get_children()
-  var before_stat="通常ATK 距離1　%d" % game.pages.normal_atk(canonical.before,1)
-  var after_stat="通常ATK 距離1　%d" % game.pages.normal_atk(canonical.after,1)
-  check(columns[0].find_children("*","Label",true,false).any(func(label):return label.is_visible_in_tree() and label.text==before_stat) and columns[1].find_children("*","Label",true,false).any(func(label):return label.is_visible_in_tree() and label.text==after_stat) and canonical.after.attackWeapons[0].atk==23,"visible current and candidate attack values match the canonical preview")
+  var current_atk=int(canonical.current.atk)
+  var spear_atk=int(canonical.gear.atk)
+  var before_stat="物理ATK：%d" % current_atk
+  var after_stat="物理ATK：%d（↓%d）" % [spear_atk,current_atk-spear_atk]
+  check(columns[0].find_children("*","Label",true,false).any(func(label):return label.is_visible_in_tree() and label.text==before_stat) and columns[1].find_children("*","Label",true,false).any(func(label):return label.is_visible_in_tree() and label.text==after_stat),"sword to spear shows each weapon's attack and the exact decrease")
   node("RosterMember_character_merina").grab_focus();await tap("RosterMember_character_merina")
   var mage_expected=await expected_comparison("character_merina")
   check(selected_owner_is("character_merina") and mage_expected!=guard_expected and node("ShopComparisonStats").text==mage_expected,"owner switch replaces guard result with canonical mage comparison")
