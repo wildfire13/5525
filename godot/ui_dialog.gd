@@ -13,7 +13,7 @@ var close_guard: Callable
 var escape_handler: Callable
 var escape_frame := -1
 func _init(frontend):ui=frontend
-func open(title: String, builder: Callable, closed: Callable=Callable()) -> Window:
+func open(title: String, builder: Callable, closed: Callable=Callable(),initial_rect:=Rect2()) -> Window:
 	ui.pages.shop_view.cancel_pending()
 	close(false)
 	close_guard=Callable()
@@ -22,10 +22,11 @@ func open(title: String, builder: Callable, closed: Callable=Callable()) -> Wind
 	epoch=ui.pages.epoch;connection=ui.engine.connection_generation;restore_callback=closed
 	window=Window.new();window.set_meta("managed_layout",true);window.name="StateDetails";window.title=title;window.exclusive=true;window.transient=true;window.unresizable=false;window.min_size=Vector2i(420,300)
 	ui.add_child(window)
+	if initial_rect.has_area():window.set_meta("initial_rect",initial_rect)
 	var margin=preload("res://modal_input.gd").new();margin.owner_ref=weakref(self);window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,12)
 	var box=VBoxContainer.new();box.add_theme_constant_override("separation",8);margin.add_child(box)
-	if title not in ["装備確認","行動ログ","商品と装備の比較","荷物を持つポーターを選択"]:ui.label_(box,title,true)
+	if not initial_rect.has_area() and title not in ["行動ログ","商品と装備の比較","荷物を持つポーターを選択"]:ui.label_(box,title,true)
 	body=ui.scroller(box);body.get_parent().name="ModalDetailScroll";body.get_parent().custom_minimum_size.y=80
 	actions=ui.row(box);actions.name="ModalActions"
 	builder.call(body,actions)
@@ -50,7 +51,7 @@ func resize():
 		keep_visible();return
 	var extent=Vector2(1280,680) if window.title=="商品と装備の比較" else Vector2(840,620)
 	if window.title=="荷物を持つポーターを選択":extent=Vector2(840,420)
-	var rect=ui.preferences.rect_for(layout_key(),Rect2((ui.size-extent)/2,extent),ui.size,Vector2(420,300))
+	var rect=ui.preferences.rect_for(layout_key(),window.get_meta("initial_rect",Rect2((ui.size-extent)/2,extent)),ui.size,Vector2(420,300))
 	if window.title=="商品と装備の比較" and not ui.preferences.config.get_value("migration","shop_feedback30",false):
 		rect.size.x=maxf(rect.size.x,minf(1280,ui.size.x-32));rect=ui.preferences.bounded(rect,ui.size,Vector2(420,300))
 		ui.preferences.config.set_value("migration","shop_feedback30",true);ui.preferences.store_rect(layout_key(),rect)

@@ -81,17 +81,19 @@ func run():
 		var id=card.get_meta("unit_id")
 		sides[hud.unit(id).side]=true
 		await mouse_click(card.find_child("InspectTurnMember",true,false))
-		var member=game.find_child("EquipmentMember_"+id,true,false)
-		check(member!=null and member.get_meta("selected",false),"turn card opens "+id)
+		check(game.modal_open() and game.dialog.window.title.ends_with(str(hud.unit(id).name)),"turn card opens "+id)
+		var tab=game.find_child("BattleLoadoutTab_inventory",true,false)
+		if tab==null:break
+		tab.pressed.emit();await settle()
 		var bag=game.find_child("BattleInventory",true,false)
 		check(bag!=null and bag.get_child_count()>0,"inventory for "+id)
 		if bag==null:break
 		if hud.unit(id).side=="enemy":
 			var potions=hud.unit(id).get("inventory",{}).get("potion",0)
 			var inventory_text=bag.get_child(0).text
-			check(inventory_text==("ポーション ×%d" % potions if potions>0 else "なし"),"enemy carried quantity")
+			check((inventory_text.contains("×%d" % potions) and inventory_text.contains("ポーション") if potions>0 else inventory_text=="所持品はありません。"),"enemy carried quantity")
 			await shot("battle-equipment")
-		if id==owner_id:check(bag.get_child(0).text=="ポーション ×3","ally carried quantity")
+		if id==owner_id:check(bag.get_child(0).text.contains("ポーション") and bag.get_child(0).text.contains("×3"),"ally carried quantity")
 		game.dialog.close()
 		await settle()
 	check(sides.has("ally") and sides.has("enemy"),"both factions inspected")

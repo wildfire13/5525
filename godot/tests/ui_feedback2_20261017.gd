@@ -89,7 +89,7 @@ func run():
 		person.pos=pair[1]
 	await game.update({"op":"campaign_load","data":porter});await settle();hud.open_skills();await settle()
 	before=await saved();await click("BattleSkill_skill_formation_boost")
-	check(game.pending=="character_yuno" and game.find_children("*","Button",true,false).any(func(b):return b.get_meta("ui_key","")=="battle_commit" and b.text.ends_with("を実行")) and game.can_commit(),"self-target porter skips target picking into execute/cancel")
+	check(game.pending=="character_yuno" and game.find_children("*","Button",true,false).any(func(b):return b.get_meta("ui_key","")=="battle_commit" and b.text=="実行") and game.can_commit(),"self-target porter skips target picking into execute/cancel")
 	check(node("BattleSkill_skill_formation_boost").tooltip_text.contains("×1.75") and node("BattleSkill_skill_formation_boost").tooltip_text.contains("×0.65"),"porter tooltip retains real multipliers instead of example 25 percent")
 	before=await saved();game.cancel();await settle();check(await saved()==before and not game.can_commit(),"self skill cancel preserves complete save")
 	await click("BattleSkill_skill_formation_boost");var actions=int(game.state().actions);game.checks_fast=false;game.commit();game.commit()

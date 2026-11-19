@@ -87,6 +87,7 @@ func run():
 	# Reopening the sheet rebuilds the equipped buttons.
 	for dims in [Vector2i(1920,1080)]:
 		var old=result.popup
+		game.dialog.close();await settle()
 		await game.hud.open_equipment_sheet("character_mirei");await settle()
 		check(not is_instance_valid(old) or not old.visible,"F4 rerender retires old hover with its rebuilt source "+str(dims))
 		source=equipped("rightHand");source.configure(definition.name,definition,{"names":game.campaign().skillNames,"definitions":game.campaign().skillDefinitions,"title_size":20,"detail_size":16})

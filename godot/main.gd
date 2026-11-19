@@ -708,7 +708,8 @@ func inspect_movement(which: String):
 	if command!="action_move" or pending==null:return
 	await request_preview(which)
 func render_battle():hud.render()
-func command_hint() -> String:
+func command_hint(kind: String="") -> String:
+	if kind.is_empty():kind=command
 	var a={}
 	for u in state().get("units",[]):
 		if u.id==state().get("actor"):a=u
@@ -720,12 +721,13 @@ func command_hint() -> String:
 		"action_move":"移動: 経路%d以内。キャラを通り抜け不可。味方・敵陣どちらへも移動できます。" % data.get("moveReach",2)+("味方を選ぶと位置交換。MP消費なし。" if a.get("job")=="job_porter" else ""),
 		"action_skill":skill.get("description","") if skill is Dictionary else legacy_skill_description(str(data.get("skill","")),1),
 		"action_return":"帰還: 装備中のみ、1戦1回。自陣の空きマスを指定。MP0・1行動。",
+		"items":"本人の所持品から使用する道具と対象を選びます。",
 		"action_item":item_hint("potion"),
 		"action_ether":item_hint("ether"),
 		"action_defend":"防御: 次の本人の番まで被ダメージ半減。MP消費なし。"}
-	var hint=str(hints.get(command,""))
-	if not hud.skill_unavailable_reason().is_empty():hint+="\n"+hud.skill_unavailable_reason()
-	elif command!="action_defend" and data.get("choices",{}).get(command,[]).is_empty():hint+="\n今は合法な対象なし。射程・HP/MP・陣形・進路を確認してください。"
+	var hint=str(hints.get(kind,""))
+	if kind==command and not hud.skill_unavailable_reason().is_empty():hint+="\n"+hud.skill_unavailable_reason()
+	elif kind not in ["action_defend","items","action_skill"] and data.get("choices",{}).get(kind,[]).is_empty():hint+="\n現在は対象を選べません。"
 	return hint
 func render_unit_details(parent: Node,s: Dictionary):
 	label_(parent,"全員の状態",true)

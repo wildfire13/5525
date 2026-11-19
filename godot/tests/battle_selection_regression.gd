@@ -77,7 +77,7 @@ func run():
   var queue_labels=game.hud.middle.find_children("*","Label",true,false).filter(func(n):return n.text.begins_with("● "))
   check(not queue_labels.is_empty(),"actor queue marker preserved "+str(dims))
   game.hud.back_to_commands();await settle();await game.on_cell(int(enemy.pos));await settle()
-  game.find_child("BattleEquipment",true,false).pressed.emit();await settle()
+  game.hud.person_box.find_child("BattleFace_"+str(enemy.id),true,false).pressed.emit();await settle()
   check(not game.hud.inspection_pinned,"non-command button clears pin "+str(dims))
   game.dialog.close();await settle()
   # Keep the final trial active for action/reset inspection checks below.

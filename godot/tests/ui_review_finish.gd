@@ -24,7 +24,7 @@ func run():
 	game.data.queue=original_queue;game.render();await settle()
 	await game.choose_command("action_item");await game.on_cell(int(hud.acting().pos));await settle()
 	var viewport=game.hud.right_panel.body.get_parent().get_global_rect()
-	check(node("PredictionSummary")!=null and viewport.encloses(node("PredictionSummary").get_global_rect()),"R3 self-potion HP prediction visible without scrolling")
+	check(node("Inspect_hp")!=null and node("Inspect_hp").projected>node("Inspect_hp").current and viewport.encloses(node("Inspect_hp").get_global_rect()),"R3 self-potion HP prediction visible without scrolling")
 	var confirm=game.find_children("*","Button",true,false).filter(func(b):return b.get_meta("ui_key","")=="battle_commit")[0]
 	check(game.hud.right_panel.get_global_rect().encloses(confirm.get_global_rect()) and not confirm.disabled,"R3 self-potion enabled confirm pinned inside initial panel")
 	check(not game.hud.right_panel.body.is_ancestor_of(confirm),"R3 confirm is outside scrolling details")

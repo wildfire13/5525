@@ -53,8 +53,8 @@ func run():
 	check(node("HubDeliverCargo")!=null and not node("HubDeliverCargo").disabled,"explicit delivery remains available at destination hub")
 	var fixtures=battle_fixture();await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
 	await game.choose_command("action_item");await game.on_cell(int(game.hud.acting().pos));await settle()
-	var prediction=node("PredictionSummary")
-	check(prediction.text.contains(game.hud.acting().name+" HP") and prediction.global_position.y<node("ActionCost").global_position.y and node("ActionCost").global_position.y<node("ActionAvailability").global_position.y,"I01 named target and predicted HP precede cost and availability")
+	var prediction=game.hud.left_info.find_child("Inspect_hp",true,false)
+	check(prediction.current==game.hud.acting().hp and prediction.projected>prediction.current,"I01 a healing preview changes the actor gauge")
 	var before=await saved();var pending=game.pending;var chosen=game.chosen.duplicate()
 	var enemy=game.state().units.filter(func(u):return u.side=="enemy")[0]
 	game.hud.inspect_hover(enemy.id,game.board);await settle()

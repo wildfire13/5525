@@ -26,15 +26,6 @@ func render(parent):
 	if pages.warehouse_view.available():pages.warehouse_view.render(parent);return
 	if pages.c().get("guildAvailable",false):pages.guild_view.render(parent);return
 	render_page(parent)
-func equipment(parent,u: Dictionary,inspect: Callable):
-	var grid=GridContainer.new();grid.name="EquipmentSlots";grid.columns=2;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;grid.add_theme_constant_override("h_separation",8);grid.add_theme_constant_override("v_separation",8);parent.add_child(grid)
-	for e in u.get("equipmentSlots",[]):
-		var title=str(e.label)+"\n"+("右手の両手武器で使用中" if e.get("occupiedBy")!=null else equipment_name(e))
-		var btn=b(grid,title,inspect.bind(e));btn.name="EquipmentSlot_"+str(e.slot);btn.custom_minimum_size.y=56;btn.size_flags_horizontal=Control.SIZE_EXPAND_FILL;btn.clip_text=true;ui.memory.key(btn,"equipment_"+str(e.slot))
-		btn.set_script(preload("res://equipment_tooltip.gd"))
-		var item: Dictionary=u.get("equipmentDetails",{}).get(e.slot,{})
-		btn.configure(equipment_name(e),item,{"names":pages.c().get("skillNames",{}),"definitions":pages.c().get("skillDefinitions",{}),"occupied":e.get("occupiedBy")!=null,"job":u.get("job"),"title_size":24 if ui.size.x>=1800 else 20,"detail_size":18 if ui.size.x>=1800 else 16})
-		ui.icons.apply(btn,"" if e.get("occupiedBy")!=null else ui.icons.equipment(item))
 func equipment_name(e: Dictionary) -> String:
 	return str(e.get("name","なし")).trim_prefix(str(e.label)+":").trim_prefix(str(e.label)+"：").strip_edges()
 func growth(parent,u: Dictionary):

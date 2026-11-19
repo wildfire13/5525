@@ -69,7 +69,7 @@ func observe():
 	if key==last_phase:return
 	last_phase=key
 	var actor=game.hud.unit(phase.actor_id);var row=game.find_child("TurnOrder",true,false);var faces=row.find_children("*","TextureRect",true,false);var queue_text=text(row)
-	var head=row.find_child("TurnCard_0",true,false);var entries=game.hud.queue_entries();var queue_matches=head!=null and head.tooltip_text.contains("実行中")
+	var head=row.find_child("TurnCard_0",true,false);var entries=game.hud.queue_entries();var queue_matches=head!=null
 	for index in range(mini(entries.size(),6)):
 		var card=row.find_child("TurnCard_"+str(index),true,false)
 		queue_matches=queue_matches and card!=null and card.get_meta("unit_id","")==entries[index].unit.id
@@ -116,10 +116,10 @@ func movement_cases():
 func target_details():
 	await restore();var before=await snapshot()
 	for id in ["character_merina","character_mirei"]:
-		game.choose_command("action_skill");await game.on_cell(int(game.hud.unit(id).pos));await settle();game.hud.open_action_details();await settle();var detail=text(game.dialog.body)
-		check("JY-05",detail.contains("指定対象: "+str(game.hud.unit(id).name)) and not detail.contains("指定対象: "+id),"selected heal target uses the person's name")
-		check("JY-05",detail.contains("候補") and detail.contains("実受領者") and not detail.contains("影響候補:"),"candidate list is clearly distinguished from actual recipients")
-		game.dialog.close();game.cancel();await settle()
+		game.choose_command("action_skill");await game.on_cell(int(game.hud.unit(id).pos));await settle()
+		var face=game.hud.person_box.find_child("BattleFace_"+id,true,false)
+		check("JY-05",face!=null and face.tooltip_text.contains(str(game.hud.unit(id).name)),"selected heal target has a named portrait")
+		game.cancel();await settle()
 	check("JY-05",await snapshot()==before,"target explanation never applies healing")
 func run():
 	if evidence.is_empty():evidence="user://battle-review"

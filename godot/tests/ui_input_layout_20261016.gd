@@ -27,6 +27,11 @@ func run():
 	var left=game.hud.left_panel;var right=game.hud.right_panel
 	await send(Vector2(960,500));await send(Vector2(960,500),MOUSE_BUTTON_RIGHT,true);await send(Vector2(990,500),0,false,Vector2(30,0));await send(Vector2(990,500),MOUSE_BUTTON_RIGHT,false)
 	check(left.size.x<=400 and right.size.x<=440,"FHD side panels keep central playfield open")
+	check(game.hud.buttons.action_move.tooltip_text.contains("経路") and game.hud.buttons.action_attack.tooltip_text.contains("武器"),"hover describes movement and attack before choosing a command")
+	var face=game.hud.left_info.find_child("BattleFace_"+str(game.state().actor),true,false)
+	await send(face.get_global_rect().get_center(),MOUSE_BUTTON_LEFT,true);await send(face.get_global_rect().get_center(),MOUSE_BUTTON_LEFT,false);await frames()
+	check(game.modal_open() and game.dialog.window.position.x<root.size.x/2 and game.dialog.window.find_child("BattleSlot_rightHand",true,false)!=null,"actor portrait opens shared equipment on left")
+	if game.modal_open():game.dialog.close();await frames()
 	var camera=game.preferences.camera().duplicate(true)
 	var header=left.find_child("DragHandle",true,false);var point=header.get_global_rect().get_center();var start=left.position
 	await send(point);await send(point,MOUSE_BUTTON_LEFT,true);await send(point+Vector2(35,20),0,false,Vector2(35,20));await send(point+Vector2(35,20),MOUSE_BUTTON_LEFT,false)
@@ -59,8 +64,9 @@ func run():
 		check(clicks==[cell],"short movement resolves one cell click")
 		clicks.clear()
 	var pitch=game.board.camera_pitch
-	await send(point,MOUSE_BUTTON_RIGHT,true);await send(point+Vector2(0,40),0,false,Vector2(0,40));await send(point+Vector2(0,40),MOUSE_BUTTON_RIGHT,false)
-	check(game.board.camera_pitch>pitch,"S3 viewport-dispatched right drag tilts camera")
+	var tilt=Vector2(0,-40 if pitch>0.8 else 40)
+	await send(point,MOUSE_BUTTON_RIGHT,true);await send(point+tilt,0,false,tilt);await send(point+tilt,MOUSE_BUTTON_RIGHT,false)
+	check(not is_equal_approx(game.board.camera_pitch,pitch),"S3 viewport-dispatched right drag tilts camera")
 	var zoom=game.board.world.zoom;await send(point,MOUSE_BUTTON_WHEEL_UP,true);await send(point,MOUSE_BUTTON_WHEEL_UP,false)
 	check(game.board.world.zoom<zoom,"S3 viewport-dispatched wheel zooms camera")
 	var edges_ok=true

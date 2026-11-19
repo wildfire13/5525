@@ -53,7 +53,7 @@ func run():
 	await game.act("depart",[game.campaign().activeQuest.to,"convoy"]);await capture("08-road")
 	await game.act("travel",["safe"]);await capture("09-deployment")
 	await game.act("begin",[]);game.choose_command("action_defend");await capture("10-battle-commands")
-	game.hud.open_action_details();await capture("11-battle-details");game.dialog.close()
+	await game.hud.open_equipment_sheet(str(game.state().actor));await capture("11-battle-equipment");game.dialog.close()
 	await game.act("retreat",[]);game.navigate("board");await capture("12-failure-result")
 	var file=FileAccess.open("user://ui-parity-visual-report.json",FileAccess.WRITE)
 	file.store_string(JSON.stringify({"captures":captures,"map_mouse_selection":map_selected,"visible_driver":DisplayServer.get_name(),"window_size":[root.size.x,root.size.y],"audio_driver":"Dummy","subjective_listening":false},"  "));file.close()

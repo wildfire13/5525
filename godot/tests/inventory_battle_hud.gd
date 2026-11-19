@@ -16,10 +16,10 @@ func confirm_prediction(id):
 	var before=await saved()
 	for effect in game.preview.effectPreview:
 		if effect.get("hp",0)==0:continue
-		var unit=game.hud.unit(effect.id);var expected="HP %d → %d" % [unit.hp,unit.hp+effect.hp]
-		check(id+"-canonical-"+str(effect.id),node("DecisionContent").find_children("PredictionSummary*","Label",true,false).any(func(label):return label.text.contains(expected)),"HP before/after comes from canonical effectPreview")
-	var prediction=node("PredictionSummary");var decision=node("DecisionContent");var person=node("BattlePersonInfo")
-	check(id+"-hierarchy",prediction!=null and prediction.get_theme_font_size("font_size")==30 and decision!=null and person!=null and decision.get_index()<person.get_index(),"prediction above person details with primary text size")
+		game.hud.inspect_hover(effect.id,game.board);await settle()
+		var gauge=game.hud.person_box.find_child("Inspect_hp",true,false)
+		var unit=game.hud.unit(effect.id)
+		check(id+"-canonical-"+str(effect.id),gauge!=null and gauge.current==unit.hp and gauge.projected==unit.hp+effect.hp,"target HP gauge uses the native preview")
 	check(id+"-pure",await saved()==before,"render and prediction do not consume")
 func run():
 	evidence=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/")
