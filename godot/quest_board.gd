@@ -88,7 +88,7 @@ func render_detail(parent,q: Dictionary,active: bool):
 	var cargo_line=pages.row(details);cargo_line.name="QuestCargoInformation"
 	var caption=pages.l(cargo_line,"荷物情報");caption.name="QuestCargoCaption";caption.custom_minimum_size.x=150;caption.size_flags_horizontal=Control.SIZE_FILL;caption.add_theme_font_size_override("font_size",18);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	var cargo_items=q.get("cargoItems",[{"name":q.get("cargo","荷物"),"quantity":1,"weight":q.get("weight",0)}])
-	var cargo_flow=HFlowContainer.new();cargo_flow.name="QuestCargoItems";cargo_flow.size_flags_horizontal=Control.SIZE_EXPAND_FILL;cargo_flow.add_theme_constant_override("h_separation",12);cargo_flow.add_theme_constant_override("v_separation",12);cargo_line.add_child(cargo_flow)
+	var cargo_flow=HFlowContainer.new();cargo_flow.name="QuestCargoItems";cargo_flow.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;cargo_flow.add_theme_constant_override("h_separation",12);cargo_flow.add_theme_constant_override("v_separation",12);cargo_line.add_child(cargo_flow)
 	var total_weight=0.0
 	for cargo in cargo_items:
 		var item=HBoxContainer.new();cargo_flow.add_child(item)

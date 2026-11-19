@@ -39,6 +39,7 @@ func run():
   check(filters.all(func(control):return control.disabled),"unimplemented quest filters absent or disabled, never actionable")
   check(node("Header_board")!=null and not node("Header_board").disabled,"common header provides enabled return to local map")
   check(node("QuestList").get_global_rect().end.x<=node("QuestDetail").get_global_rect().position.x,"list left of details "+str(dims))
+  check(is_equal_approx(node("QuestList").get_parent().global_position.x,24.0),"FHD board uses the same left edge as the battle roster")
   var q=game.campaign().board[1];await choose(node("QuestChoice_"+str(q.id)))
   check(game.pages.quest_board.selected_id==q.id and await saved()==seed,"selection changes presentation only")
   var requester=node("QuestRequesterPortrait")

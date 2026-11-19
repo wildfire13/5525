@@ -30,7 +30,7 @@ func run():
 	game.cancel();await settle();game.hud.left_panel.hide();game.hud.right_panel.hide()
 	var yaw=game.board.camera_yaw;var pitch=game.board.camera_pitch
 	await os_mouse(Vector2(600,400),"camera_drag",Vector2(650,425))
-	check(game.board.camera_yaw!=yaw and game.board.camera_pitch!=pitch,"OS middle drag rotates camera")
+	check(game.board.camera_yaw!=yaw and game.board.camera_pitch!=pitch,"OS right drag rotates camera")
 	await os_mouse(game.board.project_cell(target_cell))
 	check(game.board.hover_uid==target and game.hud.person_box.get_meta("inspected_unit","")==target,"OS hover after camera rotation uses projected floor")
 	game.hud.left_panel.show();game.hud.right_panel.show();await snapshot("real_camera_hover")

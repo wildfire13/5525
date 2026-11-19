@@ -39,6 +39,25 @@ func run():
 	var pan=game.board.camera_pan;point=Vector2(960,190)
 	await send(point);await send(point,MOUSE_BUTTON_LEFT,true);await send(point+Vector2(50,0),0,false,Vector2(50,0));await send(point+Vector2(50,0),MOUSE_BUTTON_LEFT,false)
 	check(game.board.camera_pan!=pan,"S3 viewport-dispatched background left drag pans camera")
+	var clicks=[]
+	game.board.cell_clicked.connect(func(cell):clicks.append(cell))
+	var board=game.board
+	for occupied in [false,true]:
+		var cell=-1
+		for i in range(50):
+			var center=board.global_position+board.project_cell(i)
+			if left.get_global_rect().has_point(center) or right.get_global_rect().has_point(center):continue
+			if (not board.unit_at(i).is_empty())==occupied and (occupied or board.sprite_unit_at(board.project_cell(i)).is_empty()):cell=i;break
+		check(cell>=0,"visible cell for drag test")
+		if cell<0:continue
+		var origin=board.global_position+board.project_cell(cell)
+		pan=board.camera_pan
+		await send(origin);await send(origin,MOUSE_BUTTON_LEFT,true);await send(origin+Vector2(28,0),0,false,Vector2(28,0));await send(origin+Vector2(28,0),MOUSE_BUTTON_LEFT,false)
+		check((pan==board.camera_pan)==occupied and clicks.is_empty(),"occupied cell drag suppresses click" if occupied else "empty cell drag pans without selecting")
+		origin=board.global_position+board.project_cell(cell)
+		await send(origin);await send(origin,MOUSE_BUTTON_LEFT,true);await send(origin+Vector2(2,0),0,false,Vector2(2,0));await send(origin+Vector2(2,0),MOUSE_BUTTON_LEFT,false)
+		check(clicks==[cell],"short movement resolves one cell click")
+		clicks.clear()
 	var pitch=game.board.camera_pitch
 	await send(point,MOUSE_BUTTON_RIGHT,true);await send(point+Vector2(0,40),0,false,Vector2(0,40));await send(point+Vector2(0,40),MOUSE_BUTTON_RIGHT,false)
 	check(game.board.camera_pitch>pitch,"S3 viewport-dispatched right drag tilts camera")

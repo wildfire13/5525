@@ -1,7 +1,7 @@
 extends "res://tests/ui_feedback_20261016.gd"
 func positions():return game.state().units.map(func(u):return [u.id,u.pos])
 func layout_check(label):
-	var panels=[game.hud.left_panel,game.hud.right_panel,game.hud.deployment_bar,game.hud.deployment_actions]
+	var panels=[game.deployment_party_strip,game.hud.right_panel,game.hud.deployment_bar,game.hud.deployment_actions]
 	var valid=true
 	for i in range(panels.size()):
 		valid=valid and root.get_visible_rect().encloses(panels[i].get_global_rect())
@@ -15,23 +15,24 @@ func run():
 	var baseline=await saved()
 	var prefs=game.preferences
 	prefs.store_camera({"pan":Vector2(1.5,-2),"yaw":.35,"pitch":.6,"zoom":14.0})
-	prefs.store_rect("battle_actor",Rect2(50,90,350,600));prefs.store_rect("battle_target",Rect2(1450,90,360,600))
+	prefs.store_rect("battle_actor_b",Rect2(50,90,350,600));prefs.store_rect("battle_target_b",Rect2(1450,90,360,600))
 	prefs.store_rect("deployment_ally",Rect2(800,800,900,900));prefs.store_rect("deployment_enemy",Rect2(0,0,1200,900))
-	var battle_left=prefs.config.get_value("windows","battle_actor");var battle_right=prefs.config.get_value("windows","battle_target")
+	var battle_left=prefs.config.get_value("windows","battle_actor_b");var battle_right=prefs.config.get_value("windows","battle_target_b")
 	game.navigate("map");await game.act("depart",["east","convoy"]);await game.act("travel",["safe"]);await settle()
 	var deployment=await saved();var initial=positions();var camera=prefs.camera().duplicate(true)
-	check(game.hud.left_panel.visible and game.hud.left_info.get_meta("inspected_unit")==game.selected,"selected deployment ally shown on left")
-	check(not game.hud.person_box.has_meta("inspected_unit"),"right initially asks to click an enemy")
+	check(game.deployment_party_strip.is_visible_in_tree() and node("PartyFace_"+str(game.selected))!=null,"deployment shows the current ally in the shared roster")
+	check(not game.hud.right_panel.body.find_children("DeploymentEnemy_*","Button",true,false).is_empty(),"right initially lists the opposing party")
 	layout_check("FHD deployment windows remain reachable with oversized misplaced saved layouts")
 	check(node("DeploymentFormation_convoy").size.x>=140 and node("DeploymentFormation_flank").size.x>=140,"formation choices retain readable widths")
 	var allies=game.state().units.filter(func(u):return u.side=="ally")
 	await game.on_cell(int(allies[1].pos));await settle()
-	check(game.selected==allies[1].id and positions()==initial and game.hud.left_info.get_meta("inspected_unit")==allies[1].id,"ally click selects without moving or swapping")
+	check(game.selected==allies[1].id and positions()==initial and node("PartyFace_"+str(allies[1].id)).get_meta("selected",false),"ally click selects without moving or swapping")
 	var enemy=game.state().units.filter(func(u):return u.side=="enemy")[0]
 	await game.on_cell(int(enemy.pos));await settle()
-	check(game.hud.person_box.get_meta("inspected_unit")==enemy.id and game.selected==allies[1].id and positions()==initial,"enemy click inspects right without deploying ally")
+	check(game.modal_open() and game.hud.selected_enemy==enemy.id and game.selected==allies[1].id and positions()==initial,"enemy click inspects right without deploying ally")
 	game.hud.inspect_hover(allies[0].id);await frames()
-	check(game.hud.person_box.get_meta("inspected_unit")==enemy.id,"hover does not replace clicked enemy with ally")
+	check(game.modal_open() and game.hud.selected_enemy==enemy.id,"hover does not replace clicked enemy with ally")
+	game.dialog.close();await settle()
 	var empty=-1
 	for pos in range(50):
 		if pos%10<5 and not game.state().units.any(func(u):return int(u.pos)==pos):empty=pos;break
@@ -56,9 +57,8 @@ func run():
 	for u in game.state().units:
 		u.name="長い人物名".repeat(15)
 	game.render();await settle();layout_check("long names remain inside viewport despite user-allowed overlap")
-	game.hud.left_panel.persist();game.hud.right_panel.persist()
-	var left_deploy=Rect2(game.hud.left_panel.position,game.hud.left_panel.size)
-	check(prefs.config.get_value("windows","battle_actor")==battle_left and prefs.config.get_value("windows","battle_target")==battle_right,"deployment persistence leaves battle layouts intact")
+	var left_deploy=game.deployment_party_strip.get_global_rect()
+	check(prefs.config.get_value("windows","battle_actor_b")==battle_left and prefs.config.get_value("windows","battle_target_b")==battle_right,"deployment persistence leaves battle layouts intact")
 	await game.update({"op":"campaign_load","data":before_begin});await settle()
 	var start=node("DeploymentBegin");start.pressed.emit();start.pressed.emit();await settle()
 	check(game.campaign().phase=="battle" and not game.state().get("deploying",false),"battle begins once under repeated button signal")
@@ -66,7 +66,7 @@ func run():
 	check(Rect2(game.hud.left_panel.position,game.hud.left_panel.size)==battle_left and Rect2(game.hud.right_panel.position,game.hud.right_panel.size)==battle_right,"battle restores its own saved windows")
 	await game.update({"op":"campaign_load","data":deployment});await settle()
 	check(game.hud.deployment_bar.visible and game.hud.deployment_actions.visible and not game.battle_header.visible,"reentry restores deployment-only controls")
-	check(Rect2(game.hud.left_panel.position,game.hud.left_panel.size)==left_deploy,"reentry restores deployment window geometry")
+	check(game.deployment_party_strip.get_global_rect()==left_deploy,"reentry restores deployment window geometry")
 	layout_check("reentry regions remain disjoint")
 	await game.update({"op":"campaign_load","data":baseline});await settle()
 	await game.update({"op":"campaign_load","data":deployment});await settle()

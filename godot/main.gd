@@ -574,7 +574,6 @@ func render():
 	var inspecting_deployment=phase=="deployment" and page=="character"
 	var battle=not inspecting_deployment and not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
-	base.offset_left=margin if battle else 48;base.offset_right=-base.offset_left
 	if not themes_ready:
 		mock_shell.apply_theme()
 		theme=battle_theme

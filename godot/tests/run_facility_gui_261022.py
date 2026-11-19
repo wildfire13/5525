@@ -110,7 +110,7 @@ with (out/'gui.log').open('w') as log:
                         button(False, number)
                         time.sleep(.02)
                 elif request['action'] in ('click','drag','camera_drag'):
-                    number = 2 if request['action']=='camera_drag' else 1
+                    number = 3 if request['action']=='camera_drag' else 1
                     button(True, number)
                     time.sleep(.08)
                     if request['action'] in ('drag','camera_drag'):
