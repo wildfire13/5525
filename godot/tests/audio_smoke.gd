@@ -25,14 +25,14 @@ func run():
 	audio.sync({"campaign":muted_campaign})
 	check(audio.frontend_save()==muted_selection and audio.quest.stream_paused,"repeated muted sync retains journey selection")
 	muted_campaign.phase="battle";audio.sync({"campaign":muted_campaign,"state":{"result":null}})
-	check(audio.current_bgm=="battle2" and audio.bgm.stream_paused and not audio.bgm.playing and audio.quest.stream_paused and audio.frontend_save()==muted_selection,"default battle sync keeps both music streams silent and selection intact")
+	check(audio.current_bgm=="road_battle" and audio.bgm.stream_paused and not audio.bgm.playing and audio.quest.stream_paused and audio.frontend_save()==muted_selection,"default battle sync keeps both music streams silent and selection intact")
 	check(not audio.voice.playing and audio.effects.all(func(p):return not p.playing) and not audio.ui_player.playing,"default sync leaves voice and effects silent")
 	# Playback tests explicitly opt into BGM while preserving other mute defaults.
 	audio.set_mute("bgm",false)
 	muted_campaign.phase="camp";audio.sync({"campaign":muted_campaign})
 	check(audio.quest.playing and not audio.quest.stream_paused and audio.frontend_save()==muted_selection and audio.muted.voice and audio.muted.se,"explicit BGM unmute starts retained selection only")
 	check(audio.quest_slots.size()==3,"three delivered quest tracks configured")
-	check(audio.bgm_catalog.size()==10,"six existing tracks plus three quest tracks and battle alias")
+	check(audio.bgm_catalog.has_all(["astaris","east","west","north","south","battle2"]),"base location and trial routes remain available")
 	var index=0
 	for track in audio.quest_slots:
 		index+=1
@@ -58,7 +58,7 @@ func run():
 		check(audio.quest.playing and audio.quest.get_playback_position()<.6,id+" playback wraps across actual loop boundary")
 		campaign.phase="battle";audio.sync({"campaign":campaign,"state":{"result":null}})
 		var position=audio.quest.get_playback_position()
-		check(audio.quest.stream_paused and audio.bgm.playing and audio.current_bgm=="battle2",id+" combat pauses quest and uses existing battle track")
+		check(audio.quest.stream_paused and audio.bgm.playing and audio.current_bgm=="road_battle",id+" combat pauses quest and uses existing battle track")
 		await create_timer(.1).timeout
 		check(absf(audio.quest.get_playback_position()-position)<.03,id+" position stays paused during combat")
 		campaign.phase="camp";audio.sync({"campaign":campaign})

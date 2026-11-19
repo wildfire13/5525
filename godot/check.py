@@ -58,6 +58,7 @@ for name, script in [
     ("Pipe bridge", "bridge_smoke.gd"),
     ("Frontend controls", "frontend_smoke.gd"),
     ("Music state machine", "audio_smoke.gd"),
+    ("Local map, facility and road battle music", "audio_trial_bgm_regression.gd"),
     ("Audio reconnect and load regression", "audio_regression.gd"),
     ("Portrait hover and HUD lifecycle", "hover_regression.gd"),
     ("Delayed hover responses after board destruction", "hover_lifetime_regression.gd"),

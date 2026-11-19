@@ -1,24 +1,51 @@
 extends SceneTree
-var checks=[]
+
+var failures: Array[String]=[]
+var game
+
 func check(ok: bool,label: String):
-	checks.append(ok);print(("PASS " if ok else "FAIL ")+label)
+	print(("PASS " if ok else "FAIL ")+label)
+	if not ok:failures.append(label)
+
+func expect_song(file: String):
+	var player=game.audio.bgm
+	var stream=player.stream as AudioStreamMP3
+	check(stream!=null and stream.resource_path.get_file()==file and stream.loop and player.playing and not game.audio.quest.playing,file+" plays alone and loops")
+
 func _initialize():call_deferred("run")
+
 func run():
 	root.size=Vector2i(1920,1080)
-	var audio=preload("res://audio.gd").new();root.add_child(audio)
-	var data={"campaign":{"phase":"town","location":"astaris","journey":null},"state":{}}
-	audio.sync(data)
-	check(audio.current_bgm=="astaris" and audio.bgm.stream is AudioStreamMP3,"Astaris uses the explicitly provisional city MP3")
-	var city=audio.bgm.stream as AudioStreamMP3
-	check(city.loop and is_equal_approx(city.loop_offset,0.0) and absf(city.get_length()-99.0)<0.2,"city candidate loops the full 99-second source")
-	check(is_equal_approx(audio.bgm.volume_db,-6.0) and not audio.bgm.stream_paused,"trial respects current music gain and enabled state")
-	city=null
-	data.campaign.phase="battle";data.state={"result":null};audio.sync(data)
-	check(audio.current_bgm=="battle2" and audio.bgm.stream is AudioStreamWAV,"battle transition restores the existing battle track")
-	data.campaign.phase="town";data.campaign.location="east";audio.sync(data)
-	check(audio.current_bgm=="east" and audio.bgm.stream is AudioStreamWAV,"leaving Astaris restores the existing location track")
-	audio.set_mute("bgm",true);data.campaign.location="astaris";audio.sync(data)
-	check(audio.bgm.stream is AudioStreamMP3 and audio.bgm.stream_paused,"trial follows the saved BGM mute state")
-	check(await audio.finish_audio(),"closing playback releases the experimental stream")
-	audio.queue_free();await process_frame;audio=null
-	quit(0 if checks.all(func(ok):return ok) else 1)
+	game=load("res://main.tscn").instantiate();root.add_child(game)
+	var deadline=Time.get_ticks_msec()+15000
+	while game.data.is_empty() and Time.get_ticks_msec()<deadline:await process_frame
+	if game.data.is_empty():quit(1);return
+	game.audio.test_silence=true
+	game.audio.set_sound_level("bgm",100)
+	game.navigate("hub");expect_song("5525_C01_都市_室内楽.mp3")
+	game.navigate("party");expect_song("guild_01.mp3")
+	game.navigate("inn");expect_song("inn_01.mp3")
+	for pair in [["east","lively"],["west","brush"],["south","cheerful"],["north","fishy"]]:
+		game.campaign().location=pair[0]
+		game.navigate("hub");expect_song(pair[0]+".mp3")
+		game.navigate("shop");expect_song(pair[1]+".mp3")
+		game.pages.facility_entry.choose("buy");expect_song(pair[1]+".mp3")
+		game.navigate("hub");expect_song(pair[0]+".mp3")
+	game.navigate("map")
+	check(game.audio.bgm.stream is AudioStreamWAV,"unassigned departure map keeps its original location music")
+	game.checks_fast=true;game.audio.fast_mode=true
+	await game.new_game()
+	await game.act("depart",["north","convoy"])
+	var selected=game.audio.quest_id
+	check(game.audio.quest.playing,"road plays the journey selection")
+	await game.act("travel",["safe"]);expect_song("decision.mp3")
+	await game.act("begin",[]);expect_song("battle_01.mp3")
+	var data=game.data.duplicate(true)
+	data.campaign.phase="camp";game.audio.sync(data)
+	check(game.audio.quest.playing and game.audio.quest_id==selected,"camp resumes the same journey music")
+	data.trial={};data.campaign.phase="town";game.audio.sync(data)
+	check(game.audio.bgm.stream is AudioStreamWAV and game.audio.current_bgm=="battle2","shop equipment trial keeps original battle music")
+	game.closing=true;game.invalidate_preview();game.engine.close_engine()
+	check(await game.audio.finish_audio(),"closing releases music streams")
+	game.queue_free();await process_frame
+	quit(0 if failures.is_empty() else 1)

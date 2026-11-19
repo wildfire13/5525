@@ -133,7 +133,7 @@ func restore(data: Dictionary) -> bool:
 	if data.is_empty(): journey_key="";quest_id="";quest.stop();quest_loaded="";return true
 	journey_key=data.get("journey_key","");quest_id=data.get("quest_id","");quest.stop();quest_loaded=""
 	return true
-func sync(d: Dictionary) -> void:
+func sync(d: Dictionary, town_route := "") -> void:
 	var c: Dictionary = d.get("campaign",{})
 	choose_journey(c)
 	var state: Dictionary = d.get("state") if d.get("state") is Dictionary else {}
@@ -141,8 +141,12 @@ func sync(d: Dictionary) -> void:
 		if not str(person.get("voiceKey","")).is_empty():voice_keys[str(person.id)]=str(person.voiceKey)
 	var phase = c.get("phase","town")
 	var battle = (phase=="battle" or d.get("trial") != null) and state.get("result")==null
-	var on_road = phase in ["road","deployment","battle","camp"] and not battle and d.get("trial")==null
+	var on_road = phase in ["road","battle","camp"] and not battle and d.get("trial")==null
 	var key = "battle2" if battle else str(c.get("location","astaris")) if not on_road else ""
+	if d.get("trial")==null:
+		if battle:key="road_battle"
+		elif phase=="deployment":key="deployment"
+		elif phase=="town" and bgm_catalog.has(town_route):key=town_route
 	if phase=="arrival": key=str(c.get("journey",{}).get("destination",key))
 	if key != current_bgm:
 		bgm.stop();current_bgm=key

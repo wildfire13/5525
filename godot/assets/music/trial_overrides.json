@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "status": "experimental_unheard",
-  "notes": "Only route a candidate to its clearly named context. Subjective listening is unavailable in this execution environment; this is not an adoption or quality claim.",
+  "notes": "Provisional scene tracks selected for the prototype.",
   "tracks": [
     {
       "id": "astaris",
@@ -14,6 +14,54 @@
       "channels": 2,
       "loop_entire_file": true,
       "route_reason": "The filename identifies this as a city chamber-music track; Astaris is the game's city hub."
+    },
+    {
+      "id": "astaris:guild",
+      "path": "res://assets/music/local_map/guild_01.mp3"
+    },
+    {
+      "id": "astaris:inn",
+      "path": "res://assets/music/local_map/inn_01.mp3"
+    },
+    {
+      "id": "local_east",
+      "path": "res://assets/music/local_map/east.mp3"
+    },
+    {
+      "id": "east:weapon",
+      "path": "res://assets/music/local_map/lively.mp3"
+    },
+    {
+      "id": "local_west",
+      "path": "res://assets/music/local_map/west.mp3"
+    },
+    {
+      "id": "west:armor",
+      "path": "res://assets/music/local_map/brush.mp3"
+    },
+    {
+      "id": "local_south",
+      "path": "res://assets/music/local_map/south.mp3"
+    },
+    {
+      "id": "south:item",
+      "path": "res://assets/music/local_map/cheerful.mp3"
+    },
+    {
+      "id": "local_north",
+      "path": "res://assets/music/local_map/north.mp3"
+    },
+    {
+      "id": "north:accessory",
+      "path": "res://assets/music/local_map/fishy.mp3"
+    },
+    {
+      "id": "road_battle",
+      "path": "res://assets/music/local_map/battle_01.mp3"
+    },
+    {
+      "id": "deployment",
+      "path": "res://assets/music/local_map/decision.mp3"
     }
   ]
 }

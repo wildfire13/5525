@@ -159,7 +159,7 @@ func _ready():
 			var level=audio.effective_volume(kind)
 			slider.set_value_no_signal(level);value_label.text="%d%%" % level+(" 無音" if level==0 else "")
 		refresh_audio.call();audio.settings_changed.connect(refresh_audio)
-		slider.value_changed.connect(func(value):audio.set_sound_level(kind,value);audio.sync(data))
+		slider.value_changed.connect(func(value):audio.set_sound_level(kind,value);sync_audio())
 	if debug_view.is_enabled():local_button(menu_body,"開発情報（別ウィンドウ）",func():menu.hide();debug_view.open()).name="OpenDeveloperWindow"
 	button(menu_body,"新しい旅",func():menu.hide();confirm("未保存の進行を終了し、新しい旅を始めます。保存済みファイルは変更しません。",new_game))
 	local_button(menu_body,"ゲームを終了する",func():menu.hide();close_game()).name="QuitGame"
@@ -547,6 +547,9 @@ func navigate(value: String):
 	record_debug_event("navigate","success")
 	pages.quest_board.meeting.reset()
 	invalidate_preview();pages.facility_entry.navigate(value);page=value;pages.reset_items();pages.invalidate_quote(false);memory.focus_key="";render()
+func sync_audio():
+	var route="local_"+str(campaign().get("location","")) if page=="hub" else pages.facility_art.visit_key
+	audio.sync(data,route)
 func render():
 	if engine!=null and engine.disconnected:
 		show_engine_stop.call_deferred()
@@ -555,7 +558,7 @@ func render():
 	rendering=true
 	if not skip_capture_once:memory.capture()
 	skip_capture_once=false
-	audio.follow_connection(engine.connection_generation);audio.sync(data)
+	audio.follow_connection(engine.connection_generation)
 	widgets=widgets.filter(func(b):return is_instance_valid(b) and (b.get_parent()==top or menu.is_ancestor_of(b) or (view_kind=="battle" and is_instance_valid(hud.middle) and hud.middle.is_ancestor_of(b))))
 	for b in widgets:
 		b.disabled=bool(b.get_meta("base_disabled",false)) or ((locked or presenting) and not b.get_meta("read_only",false))
@@ -574,6 +577,7 @@ func render():
 	var inspecting_deployment=phase=="deployment" and page=="character"
 	var battle=not inspecting_deployment and not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
+	sync_audio()
 	if not themes_ready:
 		mock_shell.apply_theme()
 		theme=battle_theme
