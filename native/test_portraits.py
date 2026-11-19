@@ -30,9 +30,14 @@ class PortraitTests(unittest.TestCase):
     def test_transparency_aspect_and_metadata(self):
         path = self.fixture(size=(640, 320))
         with Image.open(io.BytesIO(read_raster(path))) as image:
-            self.assertEqual(image.size, (256, 128))
+            self.assertEqual(image.size, (640, 320))
             self.assertEqual(image.getpixel((50, 50))[3], 90)
             self.assertFalse(image.info)
+    def test_large_portrait_is_bounded_and_survives_reload(self):
+        png = read_raster(self.fixture(size=(1600, 2400)))
+        with Image.open(io.BytesIO(png)) as image:
+            self.assertEqual(image.size, (683, 1024))
+        self.assertEqual(normalize_raster(png, stored=True), png)
     def test_corrupt_unsupported_and_oversize(self):
         for name, payload in [('bad.png', b'not an image'), ('script.py', b'print(1)'),
                               ('large.png', b'x' * (MAX_FILE_BYTES + 1))]:

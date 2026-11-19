@@ -165,7 +165,7 @@ const Campaign = (() => {
       def:(c.def??0)+sum('def'),defFire:sum('defFire'),defWater:sum('defWater'),defEarth:sum('defEarth'),reach:t.job==='job_porter'?0:w.reach||1,
       speed:Math.max(1,agi+sum('agiBonus')+speedBonus),skill:activeSkills[0]||null};
   }
-  function weightLookup(s,id){return Cargo.isKey(id)?(Cargo.definition(s,id)?{weight:s.activeQuest.weight}:null):getGear(id)||items.find(item=>item.id===id);}
+  function weightLookup(s,id){return Cargo.isKey(id)?Cargo.definition(s,id):getGear(id)||items.find(item=>item.id===id);}
   function carriedWeight(s,id){
     const c=s.characters[id],bag=I.weight(c.inventory,key=>weightLookup(s,key));
     const equipped=I.equipmentWeight(equipment(c),getGear);
@@ -720,8 +720,8 @@ const Campaign = (() => {
     return {characterId:charId,gearId,slot,oldGearId:old.id,price:g.price,tradeIn:0,cost,retained:old.type!=='empty',affordable:s.gold>=cost,
       eligible:eligible.ok,reason:eligible.reason,same:old.id===g.id,available:shop(s).some(item=>item.id===gearId)};
   }
-  function buyGear(s,charId,gearId,slot) {
-    if(s.phase!=='town'||!s.selected.includes(charId))return false;
+  function buyGear(s,charId,gearId,slot,token=inventoryToken(s)) {
+    if(token!==inventoryToken(s)||s.phase!=='town'||!s.selected.includes(charId))return false;
     const q=quote(s,charId,gearId,slot);if(!q||!q.available||!q.eligible||!q.affordable||q.same)return false;
     return commitInventory(s,draft=>{
       const c=draft.characters[charId],g=getGear(gearId);

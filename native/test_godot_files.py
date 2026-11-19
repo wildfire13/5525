@@ -6,6 +6,28 @@ from pathlib import Path
 from godot_files import write_new, run, prepare_portraits
 from portraits import read_raster
 class GodotFilesTests(unittest.TestCase):
+    def test_reject_import_over_combined_portrait_budget(self):
+        request={'action':'portrait','path':str(Path(__file__).parent/'assets/characters/scout-human-female-01.png')}
+        remaining=godot_files.MAX_PORTRAIT_BASE64-len(run(request)['png'])
+        self.assertIn('png',run(dict(request,retainedPortraitChars=remaining)))
+        with self.assertRaisesRegex(ValueError,'合計サイズ'):
+            run(dict(request,retainedPortraitChars=remaining+1))
+    def test_portrait_framing_roundtrip_and_invalid_values(self):
+        portrait=run({'action':'portrait','path':str(Path(__file__).parent/'assets/characters/scout-human-female-01.png')})
+        portrait['framing']={'zoom':2.0,'x':-0.5,'y':1.0}
+        data={'format':'5525-native-campaign','state':{'characters':{'character_rio':{}}},
+              'nativePortraits':{'version':1,'characters':{'character_rio':portrait}}}
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'調整画像.json'
+            write_new(path,data)
+            self.assertEqual(run({'action':'read','path':str(path)})['nativePortraits'],data['nativePortraits'])
+        for value in [None,{}, {'zoom':True,'x':0,'y':0},
+                      {'zoom':5,'x':0,'y':0}, {'zoom':1,'x':float('nan'),'y':0},
+                      {'zoom':1,'x':0,'y':2}, {'zoom':1,'x':0,'y':0,'extra':1}]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                portrait['framing']=value
+                prepare_portraits(data['nativePortraits'],['character_rio'])
+
     def test_portrait_aliases_follow_shared_catalog_and_reject_collisions(self):
         catalog=json.loads((Path(__file__).parent/'data/character-identities.json').read_text(encoding='utf-8'))
         aliases=godot_files.portrait_character_aliases()

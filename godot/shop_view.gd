@@ -96,7 +96,7 @@ func render(parent):
 	var stock=make_panel(layout,"ShopCatalog",440)
 	catalog_column=stock
 	backdrop(stock,pages.facility_art.npc.texture,"ShopKeeperArt")
-	render_transaction(middle,stock)
+	render_transaction(middle)
 	render_catalog(stock)
 func render_inventory_column(column):
 	var person={}
@@ -110,22 +110,32 @@ func render_inventory_column(column):
 		selected_equipment={};selection_kind="";slot=""
 	if inventory_tab=="equipment":
 		column.equipment(ui,person,slot,"ShopEquipped_",select_equipment,pages.party_view.workspace.payload.bind(ui.shop_uid),busy())
+		for entry in person.get("equipmentSlots",[]):
+			var button=column.find_child("ShopEquipped_"+str(entry.slot),true,false)
+			if button==null:continue
+			var item=column.slot_item(ui,person,entry)
+			var payload=func():
+				if busy() or item.get("type")=="empty" or item.occupied:return null
+				return pages.party_view.workspace.payload(item,"transferEquipped",entry.slot,ui.shop_uid)
+			preload("res://item_drag.gd").source(button,payload,str(item.name),button.icon,can_drop_product.bind(ui.shop_uid),drop_equipment.bind(str(entry.slot)))
 	else:
 		var overlay=column.inventory_overlay()
+		preload("res://item_drag.gd").target(overlay,can_drop_product.bind(ui.shop_uid),drop_inventory)
 		var filter=preload("res://member_inventory.gd").add_filter(ui,overlay,person,sale.inventory_filter,sale.change_filter)
 		filter.name="ShopInventoryFilter"
 		filter.disabled=busy()
 		var inventory=ui.scroller(overlay)
 		inventory.get_parent().name="ShopInventoryScroll"
+		preload("res://item_drag.gd").target(inventory,can_drop_product.bind(ui.shop_uid),drop_inventory)
+		preload("res://item_drag.gd").target(inventory.get_parent(),can_drop_product.bind(ui.shop_uid),drop_inventory)
 		ui.memory.watch(inventory.get_parent(),"shop_inventory_"+inventory_tab)
 		sale.render_inventory(inventory)
-func render_transaction(middle,stock):
+func render_transaction(middle):
 	l(middle,"購入" if selection_kind=="buy" else "売却" if selection_kind=="sell" else "取引を確認").name="ShopTransactionHeading"
 	var detail=ui.scroller(middle);detail.get_parent().name="ShopTransactionScroll"
 	render_notice(detail)
 	var footer=ui.row(middle);footer.name="ShopTransactionFooter";footer.alignment=BoxContainer.ALIGNMENT_END
 	if selection_kind=="sell":
-		stock.get_parent().hide()
 		sale.render_detail(detail,footer)
 		b(footer,"商品一覧へ",func():selection_kind="";ui.render(),busy())
 	elif selection_kind=="equipment":
@@ -139,8 +149,11 @@ func render_transaction(middle,stock):
 	else:l(detail,"商品またはインベントリのアイテムを選択")
 	var finish=b(footer,"取引終了",finish_trading,busy());finish.name="ShopExit";finish.custom_minimum_size.y=40;finish.size_flags_horizontal=Control.SIZE_SHRINK_END
 func render_catalog(stock):
+	preload("res://item_drag.gd").target(stock,can_drop_sale,drop_sale)
 	l(stock,"商品リスト").name="ShopCatalogHeading";product_filter(stock)
 	var products=ui.scroller(stock);products.get_parent().name="ShopProductsScroll";ui.memory.watch(products.get_parent(),"shop_products")
+	preload("res://item_drag.gd").target(products,can_drop_sale,drop_sale)
+	preload("res://item_drag.gd").target(products.get_parent(),can_drop_sale,drop_sale)
 	sync_product_rows(products)
 
 func sync_product_rows(products: Control):
@@ -213,7 +226,7 @@ func render_product(parent: Control,item: Dictionary):
 	list_surface(choose,selection_kind=="buy" and pages.gear_id==str(item.id));ui.memory.key(choose,"product_"+str(item.id))
 	preload("res://item_drag.gd").source(choose,func():
 		if busy():return null
-		return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":pages.epoch},str(item.name),ui.icons.texture(str(item.id) if c().location=="south" else ui.icons.equipment(item)))
+		return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":pages.epoch},str(item.name),ui.icons.texture(str(item.id) if c().location=="south" else ui.icons.equipment(item)),can_drop_sale,drop_sale)
 func select_equipment(gear: Dictionary):
 	if busy():return
 	selection_kind="equipment";selected_equipment=gear;sale.item_id="";ui.render()
@@ -300,7 +313,7 @@ func open_comparison(id: String):
 		ui.render();return
 	ui.refresh_panel(func():
 		ui.clear(transaction_column)
-		render_transaction(transaction_column,catalog_column)
+		render_transaction(transaction_column)
 		if previous_product!=id:
 			for product in [previous_product,id]:
 				var control=catalog_column.find_child("Product_"+str(product),true,false)
@@ -464,13 +477,66 @@ func escape() -> bool:
 	return false
 
 func can_drop_product(data: Dictionary,uid: String) -> bool:
-	return not busy() and not ui.modal_open() and ui.page=="shop" and c().get("selected",[]).has(uid) and data.get("kind")=="shop_product" and data.get("connection")==ui.engine.connection_generation and data.get("epoch")==pages.epoch and data.get("token")==c().get("inventoryToken") and offered().any(func(item):return item.id==data.get("item") and int(c().gold)>=int(item.price))
+	return not busy() and not ui.modal_open() and ui.page=="shop" and c().get("selected",[]).has(uid) and data.get("kind")=="shop_product" and data.get("connection")==ui.engine.connection_generation and data.get("epoch")==pages.epoch and data.get("token")==c().get("inventoryToken") and offered().any(func(item):return item.id==data.get("item"))
+
+func drop_inventory(data: Dictionary):
+	if not can_drop_product(data,ui.shop_uid):return
+	purchase_quantity=1
+	confirm_purchase(str(data.item),ui.shop_uid)
+
+func drop_equipment(data: Dictionary,slot: String):
+	if not can_drop_product(data,ui.shop_uid):return
+	var uid=ui.shop_uid;var id=str(data.item);var token=data.token
+	stage="S1";generation+=1;var ticket=generation;var epoch=pages.epoch;var connection=ui.engine.connection_generation;var place=str(c().get("location"))
+	var reply=await ui.engine.request({"op":"campaign","action":"previewGear","args":[uid,id,slot]})
+	if not valid_ticket(ticket,epoch,connection,place):return
+	if reply.get("connection_lost",false):
+		unknown=true;stage="S7";ui.handle_connection_loss(reply,connection);return
+	var q: Dictionary=reply.get("previewGear") if reply.get("previewGear") is Dictionary else {}
+	if token!=c().get("inventoryToken") or not reply.get("ok",false) or not q.get("eligible",false) or not q.get("available",false) or not q.get("affordable",false) or q.get("same",false):
+		stage="S0"
+		message="装備・所持品が変わりました。選び直してください。"
+		if q.is_empty():message="この部位には装備できません。"
+		elif not q.get("eligible",false):message=str(q.get("reason","装備条件を満たしていません。"))
+		elif not q.get("affordable",false):message="所持金が不足しています。"
+		elif q.get("same",false):message="同じ装備を使用中です。"
+		ui.render();return
+	stage="S4"
+	ui.dialog.open("購入して装備",func(body,actions):
+		l(body,"%s / %s / 支払%dG" % [ui.member_name(uid),q.gear.name,int(q.cost)],true)
+		l(body,"選んだ部位に装備します。交換前の装備はインベントリに残ります。")
+		b(actions,"キャンセル",ui.dialog.close).name="PurchaseDecline"
+		b(actions,"購入して装備",func():
+			if stage!="S4" or not valid_ticket(ticket,epoch,connection,place):return
+			stage="S5";ui.dialog.close(false)
+			var result=await ui.update({"op":"campaign","action":"buyGear","args":[uid,id,slot,token]})
+			if not valid_ticket(ticket,epoch,connection,place):return
+			unknown=result.get("connection_lost",false);stage="S7" if unknown else "S0"
+			message="" if result.get("ok",false) else "購入・装備を確定できませんでした。状態を確認して選び直してください。"
+			if result.get("ok",false):ui.save_notice.display("購入して装備しました")
+			ui.render()).name="PurchaseAgree",
+		cancel_purchase.bind(ticket))
+
+func can_drop_sale(data: Dictionary) -> bool:
+	return not busy() and not ui.modal_open() and sale_mode() and data.get("kind")=="character_transfer" and data.get("owner")==ui.shop_uid and data.get("epoch")==pages.epoch and data.get("token")==c().get("inventoryToken") and data.get("connection")==ui.engine.connection_generation
+
+func drop_sale(data: Dictionary):
+	if not can_drop_sale(data):return
+	if data.get("action")!="transfer":
+		message="装備中の品は先に外してください。";ui.render();return
+	sale.select_item(str(data.item))
+	var ticket=sale.generation
+	while sale.previewing:
+		await ui.get_tree().process_frame
+		if ticket!=sale.generation or not sale_mode():return
+	if ticket==sale.generation:sale.confirm_sale()
 
 func confirm_consumable(id: String,uid: String):
 	var products=offered().filter(func(item):return item.id==id)
 	if products.is_empty() or uid.is_empty() or not c().get("selected",[]).has(uid):return
 	var item=products[0];var token=c().get("inventoryToken");var count=purchase_quantity;var cost=int(item.price)*count
-	if not consumable_payment(item,uid).ok:return
+	var payment=consumable_payment(item,uid)
+	if not payment.ok:message=str(payment.get("reason","所持金・インベントリの空きを確認してください。"));ui.render();return
 	generation+=1;var ticket=generation;stage="S4"
 	ui.dialog.open("購入の確認",func(body,actions):
 		l(body,"%s ×%d / 支払%dG / %sのインベントリへ" % [item.name,count,cost,ui.member_name(uid)],true)

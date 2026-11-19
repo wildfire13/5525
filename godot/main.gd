@@ -935,19 +935,28 @@ func portrait_dialog():
 	var d=Window.new();d.name="PortraitChooser";d.exclusive=true;d.title="キャラ画像";d.size=Vector2i(mini(660,int(size.x)-32),mini(700,int(size.y)-72));add_child(d)
 	var body=scroller(d);body.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	label_(body,"各キャラの画像を変更します。能力・装備は変わりません。")
-	label_(body,"PNG / JPEG / WebP / BMP / GIF（先頭フレーム）、16MiBまで。透過・縦横比を保持し最大256pxに正規化。割当を残すには進行を保存してください。")
+	label_(body,"PNG / JPEG / WebP / BMP / GIF（先頭フレーム）、16MiBまで。透過・縦横比を保持し最大1024pxに正規化。割当を残すには進行を保存してください。")
 	d.window_input.connect(func(event):
 		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:d.queue_free())
 	for u in visible_roster():
 		var r=row(body);r.set_meta("member_id",u.id);portrait(r,u,false,55);label_(r,u.name)
-		button(r,"画像を選ぶ",func():d.queue_free();file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray(["*.png,*.jpg,*.jpeg,*.webp,*.bmp,*.gif ; キャラ画像"]),import_portrait.bind(u.id)),not active_member(str(u.id)))
+		button(r,"画像を選ぶ",func():
+			d.queue_free()
+			file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray(["*.png,*.jpg,*.jpeg,*.webp,*.bmp,*.gif ; キャラ画像"]),func(path):
+				await import_portrait(path,str(u.id))
+				if active_member(str(u.id)):pages.party_view.workspace.open_portrait(u)),not active_member(str(u.id)))
+		if portraits.metadata.get("characters",{}).has(u.id):
+			button(r,"位置・ズーム",func():d.queue_free();pages.party_view.workspace.open_portrait(u),not active_member(str(u.id)))
 		button(r,"元に戻す",func():reset_portrait(str(u.id));d.queue_free(),not active_member(str(u.id)) or not portraits.metadata.get("characters",{}).has(u.id))
 	if reserves_visible():label_(body,"控えの画像を変更するには、先に編成へ加えてください。")
 	button(body,"閉じる",d.queue_free)
 	d.close_requested.connect(d.queue_free);preferences.bind_window(d,"portrait",size,Vector2(660,700));d.popup()
 func import_portrait(path: String,uid: String):
 	if not active_member(uid):return
-	var r=await update({"op":"godot_io","action":"portrait","path":path})
+	var retained=0
+	for id in portraits.metadata.characters:
+		if id!=uid:retained+=portraits.metadata.characters[id].png.length()
+	var r=await update({"op":"godot_io","action":"portrait","path":path,"retainedPortraitChars":retained})
 	if r.get("ok",false) and active_member(uid):portraits.assign(uid,r.data);notice="画像を変更しました。割当を残すには進行を保存してください。";render()
 func reset_portrait(uid: String):
 	if not active_member(uid):return

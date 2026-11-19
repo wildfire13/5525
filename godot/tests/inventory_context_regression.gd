@@ -28,6 +28,7 @@ func run():
 	await enter_facility("shop");await tap("RosterMember_"+OWNER)
 	var before=await saved()
 	var sale=game.pages.shop_view.sale
+	check(node("SaleItem_potion").text.ends_with("×5　Wt 5"),"inventory row shows the weight of all five potions")
 	check(node("SaleItem_lone-ring-1")!=null and node("SaleItem_lone-ring-2")!=null,"same-name ring IDs have separate shop rows")
 	var scroll=node("ShopInventoryScroll")
 	check(scroll.find_children("SaleItem_*","Button",true,false).size()==gear.size()+2,"shop renders the full stocked inventory")

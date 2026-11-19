@@ -4,7 +4,7 @@ const key=token=>PREFIX+token;
 const isKey=id=>typeof id==='string'&&id.startsWith(PREFIX);
 function definition(s,id){
  const q=s.activeQuest;
- return q&&q.cargoItemId===id?{id,name:'荷物',description:q.cargo,questId:q.id,questToken:q.token}:null;
+ return q&&q.cargoItemId===id?{id,name:'荷物',description:q.cargo,weight:q.weight,questId:q.id,questToken:q.token}:null;
 }
 function carriers(s){
  const q=s.activeQuest;if(!q?.cargoItemId)return [];

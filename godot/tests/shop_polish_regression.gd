@@ -86,6 +86,11 @@ func run():
 	check(stats.contains("(+55)") and stats.contains("(-1)"),"armor comparison preserves positive HP and negative speed changes")
 	await tap("Product_armor-cloth")
 	check(node("ShopComparisonStats").get_parsed_text().contains("能力値の変化なし"),"plain armor comparison shows no invented bonus")
+	await tap("Product_cloth-head")
+	var panels=shop.comparison_view.panels
+	var current=panels[0].find_children("*","Label",true,false)
+	var candidate=panels[1].find_children("*","Label",true,false)
+	check(not current.any(func(label):return label.text.contains("DEF：")) and candidate.any(func(label):return label.text=="物理DEF：1（↑1）"),"empty head slot has no defense stat and cloth head shows its own defense and delta")
 	game.dialog.close(false);game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame
 	var f=FileAccess.open(OS.get_environment("INVENTORY_QA_ROOT").path_join("polish-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()

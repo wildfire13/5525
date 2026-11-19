@@ -19,13 +19,11 @@ func shop_cases():
 	for rule in [[10,9,"#ffb1a6"],[10,11,"#8ee6ab"],[10,10,"#d5dbe2"]]:
 		check("COLOR-"+str(rule[1]),comparison.change("▼ ▲ ＝",rule[0],rule[1]).contains("[color="+rule[2]+"]"),"comparison color follows numeric change")
 	var canonical=(await game.engine.request({"op":"campaign","action":"previewGear","args":["character_mirei","spear-wood","rightHand"]})).previewGear
-	var owner=game.roster().filter(func(member):return member.id=="character_mirei")[0]
-	var changes=comparison.stat_changes(owner,canonical)
-	check("COMPARE-present",not changes.is_empty() and comparison.panels.size()==2,"shop shows current and candidate equipment")
-	for stat in changes:
-		for side in range(2):
-			var labels=comparison.panels[side].find_children("*","Label",true,false)
-			check("COMPARE-"+str(stat[0])+str(side),labels.any(func(label):return label.is_visible_in_tree() and label.text=="%s　%d" % [stat[0],stat[side+1]]),"visible comparison shows the quoted value")
+	check("COMPARE-present",comparison.panels.size()==2,"shop shows current and candidate equipment")
+	for side in range(2):
+		var gear=canonical.current if side==0 else canonical.gear
+		var labels=comparison.panels[side].find_children("*","Label",true,false)
+		check("COMPARE-ATK"+str(side),labels.any(func(label):return label.is_visible_in_tree() and label.text.begins_with("物理ATK：%d" % int(gear.atk))),"visible attack comes from the item itself")
 	node("RosterMember_character_merina").pressed.emit();await settle()
 	node("SaleItem_hammer-wood").pressed.emit();await settle()
 	var sale=shop().sale

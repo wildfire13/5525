@@ -61,6 +61,9 @@ func texture(u: Dictionary, face := false) -> Texture2D:
 	if cache.has(key): return cache[key]
 	var img = image_for(u)
 	if img == null or img.is_empty(): return null
+	var entry: Dictionary=metadata.characters.get(str(u.get("id","")),{})
+	if u.get("side","ally")!="enemy" and entry.has("framing"):
+		img=framed_image(img,entry.framing)
 	if face and not overrides.has(u.get("id","")):
 		var used = img.get_used_rect()
 		var edge = maxi(1,mini(used.size.x,int(used.size.y * 0.56)))
@@ -69,3 +72,12 @@ func texture(u: Dictionary, face := false) -> Texture2D:
 	var tex = ImageTexture.create_from_image(img)
 	cache[key] = tex
 	return tex
+static func framed_image(image: Image, framing: Dictionary) -> Image:
+	return image.get_region(framing_rect(image,framing))
+static func framing_rect(image: Image, framing: Dictionary) -> Rect2i:
+	var zoom=clampf(float(framing.get("zoom",1.0)),1.0,4.0)
+	var extent=Vector2i(image.get_size()/zoom)
+	extent=extent.max(Vector2i.ONE)
+	var remaining=image.get_size()-extent
+	var position=Vector2i(Vector2(remaining)*Vector2((float(framing.get("x",0))+1)*0.5,(float(framing.get("y",0))+1)*0.5))
+	return Rect2i(position,extent)

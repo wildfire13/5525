@@ -6,8 +6,8 @@ import warnings
 MAX_FILE_BYTES = 16 * 1024 * 1024
 MAX_PIXELS = 16_000_000
 MAX_EDGE = 8192
-STORED_EDGE = 256
-MAX_PNG_BYTES = 300_000
+STORED_EDGE = 1024
+MAX_PNG_BYTES = 4 * 1024 * 1024
 EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif'}
 FORMATS = {'PNG', 'JPEG', 'WEBP', 'BMP', 'GIF'}
 

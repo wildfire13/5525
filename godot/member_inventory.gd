@@ -19,11 +19,14 @@ static func matches(entry: Dictionary, selected_filter: String) -> bool:
 	return entry.get("equipSlots",[]).any(func(option):return option.slot==selected_filter)
 
 static func add_row(ui, parent, entry: Dictionary, on_pressed: Callable, selected: bool, disabled: bool) -> Button:
-	var button=ui.button(parent,str(entry.name)+"  ×"+str(int(entry.count)),on_pressed,disabled)
+	var count=int(entry.count)
+	var weight=entry.get("definition",{}).get("weight",entry.get("weight"))
+	var total=str(snappedf(float(weight)*count,0.01)).trim_suffix(".0") if weight!=null else "不明"
+	var button=ui.button(parent,"%s  ×%d　Wt %s" % [entry.name,count,total],on_pressed,disabled)
 	button.alignment=HORIZONTAL_ALIGNMENT_LEFT
 	button.custom_minimum_size.y=60
 	button.clip_text=true
-	button.tooltip_text=str(entry.name)
+	button.tooltip_text=button.text
 	var icon=ui.icons.equipment(entry) if entry.kind=="equipment" else "items" if entry.kind=="quest" else str(entry.id)
 	button.icon=ui.icons.texture(icon)
 	button.expand_icon=true

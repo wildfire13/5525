@@ -136,9 +136,10 @@ func refresh(money,comparison,conditions,buy):
 				var child=panel.get_child(-1);panel.remove_child(child);child.queue_free()
 			var gear=q.get("current" if i==0 else "gear",{})
 			ui.icons.line(ui,panel,ui.icons.equipment(gear),str(gear.get("name","なし")),true)
-		for stat in stat_changes(person,q):
-			for i in range(2):
-				ui.label_(panels[i],"%s　%d" % [stat[0],stat[i+1]])
+		var rows=equipment_rows(q.current,q.gear)
+		for i in range(2):
+			for line in rows[i]:
+				ui.label_(panels[i],line)
 	render_skills(q)
 	conditions.text="" if q.get("eligible",false) else "装備不可："+str(q.get("reason","正規判定を確認できません"))
 	var payment=await ui.engine.request({"op":"campaign","action":"purchaseQuote","args":[item_id,owner_id,shop.purchase_quantity if not panels.is_empty() else 1]})
@@ -192,6 +193,23 @@ func skill_texture(id: String,level: int) -> Texture2D:
 	return ui.icons.texture(ui.icons.skill(id,level))
 
 func equipment_escape(value) -> String:return str(value).replace("[","[lb]")
+static func equipment_rows(current: Dictionary,candidate: Dictionary) -> Array:
+	var rows=[[],[]]
+	var fields={"atk":"物理ATK","reach":"武器射程","def":"物理DEF","atkFire":"火ATK","atkWater":"水ATK","atkEarth":"地ATK","defFire":"火DEF","defWater":"水DEF","defEarth":"地DEF","hp":"HP上限","mp":"MP上限","agiBonus":"行動速度補正"}
+	for field in fields:
+		var values=[]
+		for gear in [current,candidate]:
+			var value=int(gear.get(field,0))
+			if gear.get("type")=="empty" or (field=="reach" and gear.get("slot")!="weapon"):
+				value=0
+			values.append(value)
+		var delta=int(values[1])-int(values[0])
+		if values[0]!=0:
+			rows[0].append("%s：%d" % [fields[field],values[0]])
+		if values[1]!=0 or delta!=0:
+			var suffix="" if delta==0 else "（%s%d）" % ["↑" if delta>0 else "↓",absi(delta)]
+			rows[1].append("%s：%d%s" % [fields[field],values[1],suffix])
+	return rows
 func change(title: String,before,after) -> String:
 	var delta=int(after)-int(before);var color="#8ee6ab" if delta>0 else "#ffb1a6" if delta<0 else "#d5dbe2"
 	return "%s: %d → %d [color=%s](%+d)[/color]" % [title,before,after,color,delta]

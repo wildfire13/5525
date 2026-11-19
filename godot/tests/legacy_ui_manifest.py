@@ -26,6 +26,8 @@ GODOT_SUITES = (
     'ui_feedback_20261016',
     'shop_rows_regression',
     'shop_feedback30',
+    'shop_drag_261119',
+    'portrait_editor_gui',
     'trade_feedback_261111',
     'owned_equipment_regression',
     'frontend_smoke',

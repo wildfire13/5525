@@ -37,7 +37,8 @@ module.exports=function({I,getGear,items,template,inventoryToken,commitInventory
   function view(s){
     return {available:available(s),token:inventoryToken(s),entries:Object.entries(s.warehouse||{}).map(([id,count])=>{
       const gear=getGear(id);
-      return {id,count,name:definition(id)?.name||id,kind:gear?'equipment':'item',
+      const item=gear||definition(id);
+      return {id,count,name:item?.name||id,weight:item?.weight,kind:gear?'equipment':'item',
         equipSlots:gear?slots.allowed(gear).map(slot=>({slot})):[]};
     }),
       owners:Object.fromEntries(s.selected.map(ownerId=>[ownerId,{limit:inventoryCapacity(s,ownerId),

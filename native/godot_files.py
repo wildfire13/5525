@@ -1,8 +1,10 @@
 """Godot-only file adapter: atomic creation or explicitly confirmed replacement."""
-import base64, hashlib, json, os, re, sys, tempfile
+import base64, hashlib, json, math, os, re, sys, tempfile
 from pathlib import Path
 from portraits import read_raster, normalize_raster, MAX_PNG_BYTES
 MAX_SAVE = 12 * 1024 * 1024
+# Leave room for the campaign and its formatted JSON envelope.
+MAX_PORTRAIT_BASE64 = MAX_SAVE - 2 * 1024 * 1024
 
 def portrait_character_aliases():
     catalog = json.loads((Path(__file__).resolve().parent / 'data' / 'character-identities.json').read_text(encoding='utf-8'))
@@ -23,6 +25,13 @@ def prepare_portraits(meta, allowed):
         raw = base64.b64decode(entry['png'], validate=True)
         if hashlib.sha256(raw).hexdigest() != entry.get('sha256'): raise ValueError('保存画像が破損しています')
         normalize_raster(raw, stored=True)
+        framing = entry.get('framing', {'zoom': 1, 'x': 0, 'y': 0})
+        if not isinstance(framing, dict) or set(framing) != {'zoom', 'x', 'y'}:
+            raise ValueError('画像の表示位置が不正です')
+        for key, low, high in [('zoom', 1, 4), ('x', -1, 1), ('y', -1, 1)]:
+            value = framing[key]
+            if type(value) not in (int, float) or not math.isfinite(value) or not low <= value <= high:
+                raise ValueError('画像の表示位置が不正です')
     return meta
 
 def encoded_save(data):
@@ -124,7 +133,11 @@ def recover_write(path, data, operation, resolved_target=None):
 def run(r):
     if r['action']=='portrait':
         raw=read_raster(r['path'])
-        return {'sha256':hashlib.sha256(raw).hexdigest(),'png':base64.b64encode(raw).decode('ascii')}
+        png=base64.b64encode(raw).decode('ascii')
+        retained=r.get('retainedPortraitChars',0)
+        if type(retained) is not int or retained<0 or retained+len(png)>MAX_PORTRAIT_BASE64:
+            raise ValueError('人物画像の合計サイズが上限を超えます。小さい画像を選ぶか、別の人物の画像を解除してください。')
+        return {'sha256':hashlib.sha256(raw).hexdigest(),'png':png}
     if r['action']=='read':
         path=Path(r['path'])
         if path.stat().st_size>MAX_SAVE: raise ValueError('保存サイズ超過')

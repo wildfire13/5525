@@ -37,7 +37,7 @@ func select_item(id: String):
 func row(parent,item: Dictionary):
  var choose=preload("res://member_inventory.gd").add_row(ui,parent,item,select_item.bind(str(item.id)),shop.selection_kind=="sell" and item_id==str(item.id),busy())
  choose.name="SaleItem_"+str(item.id)
- preload("res://item_drag.gd").source(choose,shop.pages.party_view.workspace.payload.bind(item,"transfer",null,owner_id),str(item.name),choose.icon)
+ preload("res://item_drag.gd").source(choose,shop.pages.party_view.workspace.payload.bind(item,"transfer",null,owner_id),str(item.name),choose.icon,shop.can_drop_product.bind(owner_id),shop.drop_inventory)
  ui.memory.key(choose,"sale_"+str(item.id));ui.memory.item(choose,str(item.id))
  choose.tooltip_text=str(item.get("sale",{}).get("reason",""))
 func change_filter(value: String):

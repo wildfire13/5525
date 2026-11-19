@@ -30,6 +30,7 @@ steps=[
  ('Individual growth and inert legacy team fields',['node','test_team_growth.cjs']),
  ('Eleven equipment proposals',['node','test_equipment_skills.cjs']),
  ('Eight equipment slots',['node','test_equipment_slots.cjs']),
+ ('Shop drag transactions',['node','test_shop_drag.cjs']),
  ('Dual normal attacks',['node','test_dual_attack.cjs']),
  ('Dual skill attacks',['node','test_dual_skills.cjs']),
  ('Support skill reach',['node','test_support_reach.cjs']),

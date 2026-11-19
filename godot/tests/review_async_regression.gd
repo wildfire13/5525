@@ -91,8 +91,8 @@ func quote_cases():
 				for i in range(2):
 					var panel=shop.comparison_view.panels[i]
 					check("D01",panel.is_visible_in_tree() and text(panel).contains(str(expected.get("current" if i==0 else "gear",{}).get("name","なし"))),"visible inline equipment matches latest canonical reply, column "+str(i))
-					for stat in shop.comparison_view.stat_changes(game.roster().filter(func(u):return u.id==owner)[0],expected):
-						check("D01",text(panel).contains("%s　%d" % [stat[0],stat[i+1]]),"visible latest comparison statistic: "+str(stat[0])+", column "+str(i))
+					for line in shop.comparison_view.equipment_rows(expected.current,expected.gear)[i]:
+						check("D01",text(panel).contains(line),"visible latest equipment statistic: "+line)
 				press("ShopComparisonBuy");await settle()
 				check("D01",game.modal_open() and control("PurchaseDecline")!=null,"only latest comparison opens current purchase confirmation")
 				var quotes=probe.calls.filter(func(call):return call.get("action","")=="purchaseQuote")
