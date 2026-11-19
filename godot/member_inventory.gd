@@ -26,7 +26,7 @@ static func add_row(ui, parent, entry: Dictionary, on_pressed: Callable, selecte
 	button.alignment=HORIZONTAL_ALIGNMENT_LEFT
 	button.custom_minimum_size.y=60
 	button.clip_text=true
-	button.tooltip_text=button.text
+	button.tooltip_text=str(entry.name)
 	var icon=ui.icons.equipment(entry) if entry.kind=="equipment" else "items" if entry.kind=="quest" else str(entry.id)
 	button.icon=ui.icons.texture(icon)
 	button.expand_icon=true
