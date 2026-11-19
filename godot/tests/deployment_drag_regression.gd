@@ -34,7 +34,7 @@ func layout(label: String):
 	var formation=game.hud.deployment_bar;var actions=game.hud.deployment_actions;var begin=node("DeploymentBegin")
 	var field=game.board.get_global_rect()
 	check(formation.get_global_rect().end.y<=field.position.y and begin.get_global_rect().position.y>=field.end.y,label+" formation above board and start below board remain separate")
-	check(node("BattleDetails")==null and game.hud.right_panel.footer.find_children("*","Label",true,false).any(func(hint):return hint.text.contains("右ドラッグ") and hint.text.contains("中ドラッグ") and hint.text.contains("ホイール")),label+" prep details hidden and camera help below enemy info")
+	check(game.hud.camera_hint.is_visible_in_tree() and game.hud.camera_hint.text==game.board.CAMERA_HINT and game.hud.camera_hint.global_position.y>field.end.y,label+" shared camera hint below battlefield")
 	var rows=[]
 	for control in [formation,actions]:
 		check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(control.get_global_rect()),label+" footer inside viewport "+str(control.name))

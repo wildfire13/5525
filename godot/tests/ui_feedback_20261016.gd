@@ -21,9 +21,9 @@ func node(id):return game.find_child(id,true,false)
 func saved():return (await game.engine.request({"op":"campaign_save"})).data
 func click(id):node(id).pressed.emit();await settle()
 func mouse(button,pressed):
-	var event=InputEventMouseButton.new();event.button_index=button;event.pressed=pressed;event.position=Vector2(800,400);game.board.input_event(event)
+	var event=InputEventMouseButton.new();event.button_index=button;event.pressed=pressed;event.position=Vector2(12,12);game.board.input_event(event)
 func motion(delta):
-	var event=InputEventMouseMotion.new();event.relative=delta;event.position=Vector2(800,400);game.board.input_event(event)
+	var event=InputEventMouseMotion.new();event.relative=delta;event.position=Vector2(12,12);game.board.input_event(event)
 func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
@@ -67,10 +67,10 @@ func run():
 	game.hud.inspected_uid="";game.hud.selected_cell=-1;game.hud.render_person();check(not game.hud.person_box.has_meta("inspected_unit"),"S2 right panel does not default to actor")
 	game.hud.inspected_uid=str(game.hud.acting().id);game.hud.render_person();check(game.hud.person_box.get_meta("inspected_unit","")==game.hud.acting().id,"S2 explicitly targeted self appears right")
 	var board=game.board;var pan=board.camera_pan
-	mouse(MOUSE_BUTTON_RIGHT,true);motion(Vector2(80,30));mouse(MOUSE_BUTTON_RIGHT,false)
-	check(board.camera_pan!=pan and board.camera_drag==0,"S3 right drag pans and release retains view")
-	mouse(MOUSE_BUTTON_MIDDLE,true);motion(Vector2(45,-10000));mouse(MOUSE_BUTTON_MIDDLE,false)
-	check(board.camera_pitch>=.2 and board.world.camera.position.y>0,"S3 middle drag tilt clamped above ground")
+	mouse(MOUSE_BUTTON_LEFT,true);motion(Vector2(80,30));mouse(MOUSE_BUTTON_LEFT,false)
+	check(board.camera_pan!=pan and board.camera_drag==0,"S3 left drag pans and release retains view")
+	mouse(MOUSE_BUTTON_RIGHT,true);motion(Vector2(45,-10000));mouse(MOUSE_BUTTON_RIGHT,false)
+	check(board.camera_pitch>=.2 and board.world.camera.position.y>0,"S3 right drag tilt clamped above ground")
 	var zoom=board.world.zoom;mouse(MOUSE_BUTTON_WHEEL_UP,true);check(board.world.zoom<zoom,"S3 wheel zoom retained")
 	var prefs=preload("res://ui_preferences.gd").new();check(prefs.camera().pan.is_equal_approx(game.preferences.camera().pan) and is_equal_approx(prefs.camera().yaw,game.preferences.camera().yaw) and is_equal_approx(prefs.camera().zoom,game.preferences.camera().zoom),"S3 camera disk roundtrip")
 	var bounded=prefs.bounded(Rect2(-2000,5000,2500,1800),Vector2(1280,720),Vector2(280,240));check(Rect2(Vector2.ZERO,Vector2(1280,720)).encloses(bounded),"S7 off-screen preferences clamped")

@@ -61,9 +61,6 @@ func choose(id: String):
 			var detail=split.find_child("QuestDetail",true,false)
 			ui.clear(detail)
 			render_detail(detail,quest,active is Dictionary)
-			var requester=split.get_node("QuestRequester")
-			split.remove_child(requester)
-			requester.queue_free()
 			render_requester(split,quest))
 		return
 func time_status(q: Dictionary) -> String:
@@ -113,7 +110,7 @@ func render_detail(parent,q: Dictionary,active: bool):
 	if q.get("story") is Array and not q.story.is_empty():
 		var story=pages.b(details,"依頼時の話" if active else "話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);story.custom_minimum_size.y=44
 
-	var actions=pages.row(parent);actions.name="QuestDetailActions";actions.alignment=BoxContainer.ALIGNMENT_END
+	var actions=pages.row(parent);actions.name="QuestDetailActions";actions.alignment=BoxContainer.ALIGNMENT_CENTER
 	if active:
 		var m: Dictionary=q.get("meeting",{})
 		if m.get("canWait",false):
@@ -123,7 +120,7 @@ func render_detail(parent,q: Dictionary,active: bool):
 		elif pages.c().location==q.to and q.get("eventId")!="wheel":
 			if not pages.c().get("cargoAboard",false):pages.l(details,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
 			ui.primary(pages.b(actions,"拠点で荷物を届ける",ui.navigate.bind("hub")))
-		else:pages.b(actions,"移動先を確認",ui.navigate.bind("map"))
+		else:pages.b(actions,"届け先を確認",ui.navigate.bind("map"))
 
 	else:
 		var accept=ui.green_button(pages.b(actions,"この依頼を引き受ける",open_picker.bind(str(q.id)),not pages.c().get("hasPorter",false)));accept.name="QuestAccept";accept.size_flags_horizontal=Control.SIZE_SHRINK_END;accept.custom_minimum_size.x=280
@@ -143,11 +140,23 @@ func reward_line(parent,caption: String,kind: String,amount: int,rp: int):
 func separator(parent: Node,control_name: String):
 	var line=HSeparator.new();line.name=control_name;parent.add_child(line)
 func render_requester(parent,q: Dictionary):
-	var column=VBoxContainer.new();column.name="QuestRequester";column.custom_minimum_size.x=280;parent.add_child(column)
-	pages.l(column,"依頼者").add_theme_font_size_override("font_size",14)
+	var stage=parent.get_node_or_null("QuestRequester")
+	if stage==null:
+		stage=Control.new();stage.name="QuestRequester";stage.custom_minimum_size.x=ui.mock_shell.SHOP_CATALOG_WIDTH
+		stage.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(stage)
+		var art=TextureRect.new();art.name="QuestRequesterPortrait";art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;art.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		stage.add_child(art)
+		stage.item_rect_changed.connect(position_requester.bind(art))
+	var image=stage.get_node("QuestRequesterPortrait")
 	var path="res://assets/quest_npcs/"+str(q.get("portrait","requester-placeholder"))+".png"
 	if not ResourceLoader.exists(path):path="res://assets/quest_npcs/requester-placeholder.png"
-	var image=TextureRect.new();image.name="QuestRequesterPortrait";image.texture=load(path);image.custom_minimum_size=Vector2(280,480);image.size_flags_vertical=Control.SIZE_EXPAND_FILL;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;column.add_child(image)
+	image.texture=load(path)
+	position_requester(image)
+func position_requester(image: TextureRect):
+	if image.texture==null or not image.is_inside_tree():return
+	var bounds=preload("res://facility_npc.gd").portrait_rect(image.get_viewport_rect().size,image.texture)
+	image.size=bounds.size;image.global_position=bounds.position
 func open_story(q: Dictionary):
 	if ui.locked or ui.modal_open() or ui.presenting:return
 	var scene=_dialogue()

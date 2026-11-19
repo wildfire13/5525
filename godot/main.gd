@@ -233,7 +233,7 @@ func show_help():
 			["町・施設", "左の名簿で人物を選び、装備・インベントリ・能力・スキルのタブを切り替えます。ショップでは名簿で取引する人物を選びます。"],
 			["編成・配置", "ギルドでは人物を選ぶかドラッグして編成を変更します。戦闘準備では控えを有効マスへドラッグして追加・交換、配置済みの人物を盤面外へドラッグして除外できます。"],
 			["地図・出発", "行先を選んで『出発する』で移動します。地図内のホイールは上で縮小、下で拡大。『全体表示』で元に戻せます。"],
-			["戦闘", "行動を選んで対象マスを指定し、確認して実行します。コマンド未選択で人物のマスをクリックすると右側に情報を固定します。右ドラッグで盤面移動、中ドラッグで角度、ホイールで拡大縮小できます。"],
+			["戦闘", "行動を選んで対象マスを指定し、確認して実行します。コマンド未選択で人物のマスをクリックすると右側に情報を固定します。空いているマスや背景を左ドラッグで盤面移動、右ドラッグで角度、ホイールで拡大縮小できます。"],
 			["詳細・取消・保存", "アイコンや無効な操作にカーソルを合わせると説明を確認できます。戻る・キャンセル、またはEscで閉じます。未確定の編集は確認に従ってください。保存・読込はメニューから行います。"]]:
 			label_(body,section[0],true);label_(body,section[1])
 		local_button(actions,"通知の詳細",show_status_details)
@@ -563,7 +563,7 @@ func render():
 	content.add_theme_constant_override("separation",8)
 	ui_size_mode="standard" if available.x>=1120 and available.y>=720 else "compact"
 	var margin=24 if available.x>=1800 and available.y>=1000 else 12 if ui_size_mode=="standard" else 8
-	base.offset_left=48 if view_kind!="battle" else margin;base.offset_right=-base.offset_left;base.offset_top=12;base.offset_bottom=-margin
+	base.offset_left=margin;base.offset_right=-base.offset_left;base.offset_top=12;base.offset_bottom=-margin
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
 	header.text="配置" if phase=="deployment" and page=="character" else town_name(place)
@@ -780,7 +780,7 @@ func on_cell(pos: int):
 	if hud.action_menu and not s.get("deploying",false):hud.pin_inspection(pos);render();return
 	if u.get("side")=="enemy":hud.selected_enemy=str(u.id)
 	if s.get("deploying",false):
-		if u.get("side")=="enemy":hud.render_person();return
+		if u.get("side")=="enemy":hud.open_equipment_sheet(str(u.id));return
 		if u.get("side")=="ally" and u.get("hp",0)>0:
 			hud.selected_enemy=""
 			selected=u.id

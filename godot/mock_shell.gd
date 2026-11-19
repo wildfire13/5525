@@ -6,6 +6,7 @@ const PAPER=Color("#faf9f5")
 const MUTED_INK=Color("#606960")
 const GREEN=Color("#345c4e")
 const ROSTER_WIDTH=280
+const SHOP_CATALOG_WIDTH=440
 const SURFACE_ALPHA=0.90
 const NESTED_SURFACE_ALPHA=0.12
 func _init(frontend):ui=frontend
@@ -129,11 +130,8 @@ func roster(parent,deployment=null):
 		ui.memory.key(button,"mock_roster_member_"+str(id))
 		var selected=ui.pages.shop_view.selected_owner() if ui.pages.shop_view.sale_mode() else ui.pages.party_uid
 		ui.mark_selected(button,str(id)==(ui.selected if deployment!=null else selected))
-		var line=HBoxContainer.new();button.add_child(line);line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);line.offset_left=6;line.offset_top=6;line.offset_right=-6;line.offset_bottom=-6;line.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		var portrait=ui.portrait(line,u,false,32);portrait.custom_minimum_size=Vector2(40,72);portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		var info=VBoxContainer.new();info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.mouse_filter=Control.MOUSE_FILTER_IGNORE;line.add_child(info)
-		var name=ui.label_(info,str(u.name));name.add_theme_font_size_override("font_size",18);name.autowrap_mode=TextServer.AUTOWRAP_OFF;name.clip_text=true
-		var hp=ui.label_(info,"HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]);hp.add_theme_font_size_override("font_size",16)
+		var line=roster_member_line(button,u)
+		var info=line.get_node("MemberInfo")
 		var inventory=ui.campaign().get("inventoryByCharacter",{}).get(str(id),{});var capacity=inventory.get("capacity",{});var weight=inventory.get("weight",{});var stats=u.get("stats",u)
 		var detail=ui.label_(info,"%s / %s   Wt %s / %s" % [int(capacity.get("used",0)),int(capacity.get("limit",0)) if capacity.get("limit")!=null else "∞",int(weight.get("total",0)) if weight.get("total")!=null else "?",int(stats.get("str",0))]);detail.add_theme_font_size_override("font_size",16)
 		if weight.get("total")!=null and float(weight.total)>float(stats.get("str",0)):detail.add_theme_color_override("font_color",Color("#b04430"))
@@ -146,6 +144,15 @@ func roster(parent,deployment=null):
 		button.member_id=str(id)
 		button.set_drag_forwarding(Callable(),func(_at,payload):return can_drop(payload,str(id)),func(_at,payload):drop(payload,str(id)))
 	return panel
+func roster_member_line(button: Button,u: Dictionary) -> HBoxContainer:
+	button.custom_minimum_size.y=88
+	var line=HBoxContainer.new();button.add_child(line);line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);line.offset_left=6;line.offset_top=6;line.offset_right=-6;line.offset_bottom=-6;line.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var portrait=ui.portrait(line,u,false,32);portrait.custom_minimum_size=Vector2(40,72);portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var info=VBoxContainer.new();info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.mouse_filter=Control.MOUSE_FILTER_IGNORE;info.name="MemberInfo";line.add_child(info)
+	var name=ui.label_(info,str(u.name));name.add_theme_font_size_override("font_size",18);name.autowrap_mode=TextServer.AUTOWRAP_OFF;name.clip_text=true
+	var hp=ui.label_(info,"HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]);hp.add_theme_font_size_override("font_size",16)
+	for child in info.get_children():child.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	return line
 func refresh_roster_selection():
 	var roster_panel=ui.content.find_child("PartyRoster",true,false)
 	if roster_panel==null:return

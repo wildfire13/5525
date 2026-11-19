@@ -26,17 +26,17 @@ func orbit(delta: Vector2):
 	var yaw=board.camera_yaw
 	var pitch=board.camera_pitch
 	var press=InputEventMouseButton.new()
-	press.button_index=MOUSE_BUTTON_MIDDLE;press.pressed=true
+	press.button_index=MOUSE_BUTTON_RIGHT;press.pressed=true
 	press.position=start;press.global_position=start
 	root.push_input(press,true);await process_frame
 	var motion=InputEventMouseMotion.new()
 	motion.position=start+delta;motion.global_position=motion.position
-	motion.relative=delta;motion.button_mask=MOUSE_BUTTON_MASK_MIDDLE
+	motion.relative=delta;motion.button_mask=MOUSE_BUTTON_MASK_RIGHT
 	root.push_input(motion,true);await process_frame
 	var release=InputEventMouseButton.new()
-	release.button_index=MOUSE_BUTTON_MIDDLE;release.position=motion.position;release.global_position=motion.position
+	release.button_index=MOUSE_BUTTON_RIGHT;release.position=motion.position;release.global_position=motion.position
 	root.push_input(release,true);await settle()
-	check(is_equal_approx(board.camera_yaw,yaw-delta.x*.008) and is_equal_approx(board.camera_pitch,clampf(pitch+delta.y*.008,.2,1.4)) and board.camera_drag==0,"viewport middle drag exercises orbit and pitch controls")
+	check(is_equal_approx(board.camera_yaw,yaw-delta.x*.008) and is_equal_approx(board.camera_pitch,clampf(pitch+delta.y*.008,.2,1.4)) and board.camera_drag==0,"viewport right drag exercises orbit and pitch controls")
 
 func verify_sprites(custom_id: String = "", custom_path: String = ""):
 	for unit in game.state().units:

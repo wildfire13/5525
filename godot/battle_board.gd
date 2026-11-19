@@ -36,8 +36,11 @@ var selected := ""
 var targets: Array = []
 var actors: Dictionary = {}
 var ghost: Sprite3D
-var press_cell := -1
-var press_uid := ""
+const CAMERA_HINT = "左ドラッグ: 移動 / 右ドラッグ: 角度 / ホイール: 拡大縮小"
+var pressed_cell := -1
+var unit_press := false
+var pan_distance := Vector2.ZERO
+var pan_started := false
 var pulse := 0.0
 var hit_tween: Tween
 var low_hp_font: FontVariation
@@ -138,7 +141,7 @@ func hover_unit_at(at: Vector2) -> Dictionary:
 	# Hover and click both resolve the floor cell, regardless of portrait overlap.
 	return unit_at(cell_at(at))
 func input_event(event):
-	if reference_mode and (event is InputEventKey and event.keycode in [KEY_ENTER,KEY_KP_ENTER] or event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT):accept_event();return
+	if reference_mode and event is InputEventKey and event.keycode in [KEY_ENTER,KEY_KP_ENTER]:accept_event();return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var x=keyboard_cell%10;var y=int(keyboard_cell/10)
 		match event.keycode:
@@ -150,7 +153,7 @@ func input_event(event):
 			_:return
 		keyboard_cell=y*10+x;set_hover(str(unit_at(keyboard_cell).get("id","")),true);accept_event();overlay.queue_redraw();return
 	if event is InputEventMouseButton:
-		if event.button_index in [MOUSE_BUTTON_RIGHT,MOUSE_BUTTON_MIDDLE]:
+		if event.button_index==MOUSE_BUTTON_RIGHT:
 			camera_drag=event.button_index if event.pressed else 0
 			if not event.pressed:persist_camera()
 			accept_event();return
@@ -163,27 +166,50 @@ func input_event(event):
 				keyboard_cell=pos if pos>=0 else keyboard_cell
 				if has_focus():set_hover(str(unit_at(keyboard_cell).get("id","")),true)
 				else:grab_focus()
-				press_cell=pos;press_uid=str(unit_at(pos).get("id",""))
+				var occupant=sprite_unit_at(event.position)
+				if occupant.is_empty():occupant=unit_at(pos)
+				unit_press=not occupant.is_empty()
+				pressed_cell=pos
+				pan_started=false;pan_distance=Vector2.ZERO
+				camera_drag=MOUSE_BUTTON_LEFT if occupant.is_empty() else 0
 			elif suppress_deployment_release or get_viewport().gui_is_dragging():
 				# Native D&D alone owns release once a drag began, including cancel.
-				suppress_deployment_release=false;press_cell=-1;press_uid="";accept_event();return
-			elif pos>=0:cell_clicked.emit(pos)
+				unit_press=false;suppress_deployment_release=false;accept_event();return
+			else:
+				unit_press=false
+				if camera_drag==MOUSE_BUTTON_LEFT:camera_drag=0
+				if pan_started:persist_camera();pan_started=false
+				elif not reference_mode:
+					if pressed_cell>=0:cell_clicked.emit(pressed_cell)
+				pressed_cell=-1
 	if event is InputEventMouseMotion:
+		if unit_press and event.button_mask&MOUSE_BUTTON_MASK_LEFT:
+			pan_distance+=event.relative
+			if pan_distance.length()>=drag_threshold():pressed_cell=-1
 		if camera_drag!=0:
-			if camera_drag==MOUSE_BUTTON_RIGHT:camera_pan=(camera_pan+event.relative*world.zoom/maxf(1,size.x)).clamp(Vector2(-12,-8),Vector2(12,8))
+			if camera_drag==MOUSE_BUTTON_LEFT:
+				var delta=event.relative
+				if not pan_started:
+					pan_distance+=delta
+					if pan_distance.length()<drag_threshold():return
+					pan_started=true;delta=pan_distance
+				camera_pan=(camera_pan+delta*world.zoom/maxf(1,size.x)).clamp(Vector2(-12,-8),Vector2(12,8))
 			else:camera_yaw-=event.relative.x*.008;camera_pitch=clampf(camera_pitch+event.relative.y*.008,0.2,1.4)
 			update_camera();accept_event();return
 		var u=hover_unit_at(event.position)
 		set_hover(str(u.get("id","")))
+func drag_threshold() -> float:
+	return float(ProjectSettings.get_setting("gui/common/default_drag_threshold",10))
 func persist_camera():
 	if preferences!=null and world!=null:preferences.store_camera({"pan":camera_pan,"yaw":camera_yaw,"pitch":camera_pitch,"zoom":world.zoom})
 func _get_drag_data(at_position: Vector2):
-	if not is_instance_valid(deployment_ui):return null
-	var member=unit_at(cell_at(at_position))
+	if not is_instance_valid(deployment_ui) or reference_mode or camera_drag!=0:return null
+	var member=sprite_unit_at(at_position)
+	if member.is_empty():member=unit_at(cell_at(at_position))
 	if member.get("side")!="ally" or member.get("hp",0)<=0:return null
 	var payload=DeploymentDrag.make_payload(deployment_ui,str(member.id),"board")
 	if payload==null:return null
-	suppress_deployment_release=true;press_cell=-1;press_uid=""
+	suppress_deployment_release=true
 	set_drag_preview(DeploymentDrag.preview(deployment_ui,str(member.id)))
 	set_hover("")
 	return payload
@@ -220,7 +246,10 @@ func _input(event):
 		if payload is Dictionary and payload.get("kind")=="deployment_member":
 			suppress_deployment_release=true;get_viewport().gui_cancel_drag();get_viewport().set_input_as_handled();return
 	if camera_drag!=0 and event is InputEventMouseButton and not event.pressed and event.button_index==camera_drag:
-		camera_drag=0;persist_camera()
+		camera_drag=0
+		if pan_started:
+			pan_started=false;persist_camera();get_viewport().set_input_as_handled()
+		elif event.button_index==MOUSE_BUTTON_RIGHT:persist_camera()
 func compact_board() -> bool:return size.y<300
 func framing_bounds() -> Rect2:
 	var result=Rect2();var first=true

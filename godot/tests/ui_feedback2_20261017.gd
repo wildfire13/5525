@@ -55,11 +55,12 @@ func run():
 	check(node("DeploymentFormation_flank").get_meta("selected") and not node("DeploymentFormation_convoy").get_meta("selected"),"formation selection moves to the chosen preset")
 	check(game.state().units.map(func(u):return u.pos)==positions and game.state().formationKind=="flank" and game.find_children("*","ConfirmationDialog",true,false).is_empty(),"formation switch changes rules without touching placement or prompting")
 	var enemy=game.state().units.filter(func(u):return u.side=="enemy")[0];await game.on_cell(int(enemy.pos));await settle()
-	var sidebar=game.hud.right_panel.body
-	check(game.hud.selected_enemy==enemy.id and sidebar.find_children("*","Label",true,false).any(func(n):return n.text==enemy.name) and sidebar.find_children("*","Label",true,false).any(func(n):return n.text=="HP %d/%d    MP %d/%d" % [enemy.hp,enemy.max,enemy.mp,enemy.maxMp]),"clicked deployment enemy exposes correct identity and resources in live sidebar")
-	var detail=sidebar.find_children("*","Button",true,false).filter(func(b):return b.text=="能力・効果の詳細")[0]
-	var inspected_save=await saved();detail.pressed.emit();await settle()
-	check(game.dialog.window.title==enemy.name and game.dialog.body.find_children("*","Label",true,false).any(func(n):return n.text.begins_with("DEF")) and await saved()==inspected_save,"deployment enemy details expose real DEF without changing save")
+	check(game.hud.selected_enemy==enemy.id and game.modal_open(),"clicked deployment enemy opens its details")
+	game.dialog.close();await settle()
+	var row=node("DeploymentEnemy_"+str(enemy.id))
+	check(row.find_children("*","Label",true,false).any(func(n):return n.text=="HP %d/%d   MP %d/%d" % [enemy.hp,enemy.max,enemy.mp,enemy.maxMp]),"enemy roster displays the member's current HP and MP")
+	var inspected_save=await saved();row.pressed.emit();await settle()
+	check(game.modal_open() and await saved()==inspected_save,"enemy roster opens details without changing save")
 	game.dialog.close();await settle()
 	var fixtures=battle_fixture();await game.update({"op":"campaign_load","data":fixtures.archer});await settle()
 	var hud=game.hud

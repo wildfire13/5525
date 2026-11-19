@@ -51,6 +51,7 @@ var bottom_commands: VBoxContainer
 var left_panel
 var right_panel
 var deployment_bar: PanelContainer
+var deployment_instructions: Label
 var deployment_options: VBoxContainer
 var deployment_actions: HBoxContainer
 var deployment_layout := false
@@ -106,12 +107,12 @@ func mount():
 		ui.board=preload("res://battle_board.gd").new();ui.board.preferences=ui.preferences;ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";ui.board.deployment_ui=ui;ui.add_child(ui.board);ui.move_child(ui.board,0);ui.board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deployment_assigned.connect(ui.deployment_assigned);ui.board.unit_hovered.connect(inspect_hover.bind(ui.board))
 	left_panel=preload("res://floating_panel.gd").new();left_panel.viewport_bounds=true;middle.add_child(left_panel)
-	left_panel.configure(ui.preferences,"battle_actor_b","行動者 / コマンド",Rect2(0,64,360,760))
+	left_panel.configure(ui.preferences,"battle_actor_b","行動者 / コマンド",Rect2(0,64,ui.mock_shell.ROSTER_WIDTH,760))
 	right_panel=preload("res://floating_panel.gd").new();right_panel.viewport_bounds=true;middle.add_child(right_panel)
 	right_panel.configure(ui.preferences,"battle_target_b","対象 / 効果",Rect2(maxf(0,ui.size.x-448),64,400,760))
 	dock=left_panel
 	tools=HBoxContainer.new();tools.name="BattleTools";middle.add_child(tools)
-	camera_hint=l(middle,"右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小")
+	camera_hint=l(middle,preload("res://battle_board.gd").CAMERA_HINT)
 	camera_hint.name="BattleCameraHint";camera_hint.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	camera_hint.autowrap_mode=TextServer.AUTOWRAP_OFF
 	camera_hint.add_theme_font_size_override("font_size",18)
@@ -124,6 +125,10 @@ func mount():
 	deployment_bar=PanelContainer.new();deployment_bar.name="DeploymentFormationWindow";middle.add_child(deployment_bar)
 	var formation_style=StyleBoxFlat.new();formation_style.bg_color=Color("#18212aef");formation_style.border_color=Color("#63717f");formation_style.set_border_width_all(1);formation_style.set_corner_radius_all(5);formation_style.set_content_margin_all(10);deployment_bar.add_theme_stylebox_override("panel",formation_style)
 	deployment_options=VBoxContainer.new();deployment_bar.add_child(deployment_options)
+	deployment_instructions=Label.new();deployment_instructions.name="DeploymentInstructions";deployment_instructions.text="人物をドラッグ、または人物と配置先を順に選択"
+	deployment_instructions.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	deployment_instructions.add_theme_color_override("font_color",Color.WHITE);deployment_instructions.add_theme_color_override("font_shadow_color",Color.BLACK)
+	middle.add_child(deployment_instructions)
 	deployment_actions=HBoxContainer.new();deployment_actions.name="DeploymentActions";middle.add_child(deployment_actions)
 	# Control input follows sibling order, independently of drawing z_index.
 	middle.move_child(left_panel,-1);middle.move_child(right_panel,-1)
@@ -169,11 +174,11 @@ func render():
 		expanded_menu="";item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";inspected_uid="";inspection_pinned=false;range_reference=false;ui.invalidate_preview();last_actor=str(a.get("id",""));last_action_count=int(s.get("actions",0));ui.memory.request_focus("command_attack")
 	if s.get("result")!=null or phase is Dictionary or ui.presenting:clear_inspection()
 	var deploying=bool(s.get("deploying",false))
-	camera_hint.visible=not deploying
+	deployment_instructions.visible=deploying
 	if deploying!=deployment_layout:
 		deployment_layout=deploying
 		if not deploying:deployment_workspace.restore()
-		for pair in [[left_panel,"deployment_ally" if deploying else "battle_actor_b",Rect2(0,64,360,760)], [right_panel,"deployment_enemy" if deploying else "battle_target_b",Rect2(maxf(0,middle.size.x-400),64,400,760)]]:
+		for pair in [[left_panel,"deployment_ally" if deploying else "battle_actor_b",Rect2(0,64,ui.mock_shell.ROSTER_WIDTH,760)], [right_panel,"deployment_enemy" if deploying else "battle_target_b",Rect2(maxf(0,middle.size.x-400),64,400,760)]]:
 			var panel=pair[0];panel.layout_key=pair[1]
 			panel.restore_rect(pair[2])
 	left_panel.find_child("DragHandle",true,false).text="配置する味方  ⋮" if deploying else "行動者 / コマンド  ⋮"
@@ -232,7 +237,7 @@ func build_panels(s,phase,a,deploying):
 	if ui.data.get("trial") is Dictionary:
 		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.name="EndTrial";end.custom_minimum_size=Vector2(160,52)
 
-	tools.tooltip_text="右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小"
+	tools.tooltip_text=preload("res://battle_board.gd").CAMERA_HINT
 	if deploying:
 		var hint=l(right_panel.footer,tools.tooltip_text)
 		hint.name="DeploymentCameraHint";hint.add_theme_font_size_override("font_size",18)
@@ -270,7 +275,7 @@ func update_board():
 	ui.board.update_state(ui.data,reference_preview if range_reference else ui.preview,ui.command,ui.selected if ui.state().get("deploying",false) else "",ui.chosen)
 func render_actor(_a: Dictionary):
 	ui.header.text="配置" if ui.state().get("deploying",false) else "戦闘"
-	ui.header.tooltip_text="右ドラッグ: 移動 / 中ドラッグ: 角度 / ホイール: 拡大縮小"
+	ui.header.tooltip_text=preload("res://battle_board.gd").CAMERA_HINT
 func queue_entries() -> Array:
 	var entries=[]
 	var presenting=ui.data.get("presentation") is Dictionary or ui.presenting

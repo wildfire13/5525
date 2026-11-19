@@ -41,6 +41,9 @@ func run():
   check(node("QuestList").get_global_rect().end.x<=node("QuestDetail").get_global_rect().position.x,"list left of details "+str(dims))
   var q=game.campaign().board[1];await choose(node("QuestChoice_"+str(q.id)))
   check(game.pages.quest_board.selected_id==q.id and await saved()==seed,"selection changes presentation only")
+  var requester=node("QuestRequesterPortrait")
+  var expected_rect=preload("res://facility_npc.gd").portrait_rect(Vector2(root.size),requester.texture)
+  check(requester.get_global_rect().is_equal_approx(expected_rect) and requester.mouse_filter==Control.MOUSE_FILTER_IGNORE,"selected requester uses the shop portrait scale and position without blocking input")
   var rewards=q.get("rewards",{})
   check(not rewards.is_empty(),"current quest supplies explicit reward breakdown")
   var kind="experience" if q.get("rewardType","money")=="experience" else "money"

@@ -26,10 +26,9 @@ module.exports=function({I,clone,integer,getGear,template,shop,inventoryToken,in
     const g=getGear(id),owner=template(ownerId)&&s.characters[ownerId],amount=owner?I.count(owner.inventory,id):0;
     const price=g?.salePrice??g?.price??0;
     const q={ok:false,reason:'',ownerId,itemId:id,count,name:g?.name||id,ownerName:template(ownerId)?.name||ownerId,available:amount,price,proceeds:price*count,goldBefore:s.gold,afterGold:s.gold+price*count,token:inventoryToken(s)};
+    if(!g||g.type==='empty'||g.sellable===false)return {...q,reason:'売却できないアイテムです'};
     if(!saleAvailable(s))return {...q,reason:'装備店（イース・ウエス・ノース）で売却できます'};
     if(!owner||!s.selected.includes(ownerId))return {...q,reason:'編成中の所持者を選んでください'};
-    if(!g||g.type==='empty')return {...q,reason:'売却できる装備品を選んでください'};
-    if(g.sellable===false)return {...q,reason:'この装備は売却できません'};
     if(!I.quantity(count)||count>amount)return {...q,reason:'所持数を確認してください。装備中の品は先に外してください'};
     if(!integer(q.afterGold))return {...q,reason:'所持金を保存できる範囲を超えます'};
     return {...q,ok:true};

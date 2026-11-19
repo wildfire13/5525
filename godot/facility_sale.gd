@@ -69,7 +69,7 @@ func render_detail(parent,footer):
  if not quote.is_empty():show_quote(totals)
  elif not busy() and not previewing:request_quote()
 func show_quote(label: Label):
- label.text="売却 %dG\n所持金 %d → %d G" % [quote.proceeds,quote.goldBefore,quote.afterGold] if quote.get("ok",false) else "売却不可："+str(quote.get("reason","金額を取得できません。"))
+ label.text="売却 %dG\n所持金 %d → %d G" % [quote.proceeds,quote.goldBefore,quote.afterGold] if quote.get("ok",false) else str(quote.get("reason","金額を取得できません。"))
 func valid(ticket: int,epoch: int,connection: int,owner: String,item: String,count: int,token) -> bool:
  return ticket==generation and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and owner==owner_id and item==item_id and count==amount and token==ui.campaign().get("inventoryToken") and shop.sale_mode() and not ui.closing
 func request_quote():

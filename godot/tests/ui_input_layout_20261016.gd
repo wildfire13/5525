@@ -36,12 +36,12 @@ func run():
 	check(left.size.x>extent.x and left.size.y>extent.y,"S7 viewport-dispatched corner drag resizes panel")
 	point=left.global_position+Vector2(25,80);await send(point);await send(point,MOUSE_BUTTON_WHEEL_UP,true);await send(point,MOUSE_BUTTON_WHEEL_UP,false);await send(point,MOUSE_BUTTON_RIGHT,true);await send(point+Vector2(20,20),0,false,Vector2(20,20));await send(point+Vector2(20,20),MOUSE_BUTTON_RIGHT,false)
 	check(game.preferences.camera()==camera,"S3 UI move/resize/scroll/right drag do not move camera")
-	var pan=game.board.camera_pan;point=Vector2(960,500)
-	await send(point);await send(point,MOUSE_BUTTON_RIGHT,true);await send(point+Vector2(50,0),0,false,Vector2(50,0));await send(point+Vector2(50,0),MOUSE_BUTTON_RIGHT,false)
-	check(game.board.camera_pan!=pan,"S3 viewport-dispatched board right drag pans camera")
+	var pan=game.board.camera_pan;point=Vector2(960,190)
+	await send(point);await send(point,MOUSE_BUTTON_LEFT,true);await send(point+Vector2(50,0),0,false,Vector2(50,0));await send(point+Vector2(50,0),MOUSE_BUTTON_LEFT,false)
+	check(game.board.camera_pan!=pan,"S3 viewport-dispatched background left drag pans camera")
 	var pitch=game.board.camera_pitch
-	await send(point,MOUSE_BUTTON_MIDDLE,true);await send(point+Vector2(0,40),0,false,Vector2(0,40));await send(point+Vector2(0,40),MOUSE_BUTTON_MIDDLE,false)
-	check(game.board.camera_pitch>pitch,"S3 viewport-dispatched middle drag tilts camera")
+	await send(point,MOUSE_BUTTON_RIGHT,true);await send(point+Vector2(0,40),0,false,Vector2(0,40));await send(point+Vector2(0,40),MOUSE_BUTTON_RIGHT,false)
+	check(game.board.camera_pitch>pitch,"S3 viewport-dispatched right drag tilts camera")
 	var zoom=game.board.world.zoom;await send(point,MOUSE_BUTTON_WHEEL_UP,true);await send(point,MOUSE_BUTTON_WHEEL_UP,false)
 	check(game.board.world.zoom<zoom,"S3 viewport-dispatched wheel zooms camera")
 	var edges_ok=true

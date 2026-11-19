@@ -11,7 +11,7 @@ for(const [name,right,left,growth,job='job_warrior'] of [
  ['empty-with-growth','empty-rightHand','empty-leftHand',6],
  ['two-handed','longspear-wood','empty-leftHand',6],
  ['two-handed-sword','greatsword-wood','empty-leftHand',0],
- ['porter','porter-kit','empty-leftHand',6,'porter'],
+ ['porter','porter-kit','empty-leftHand',6,'job_porter'],
 ]){
  const s=C.create();
  const member=C.view(s).roster.find(u=>s.selected.includes(u.id)&&u.job===job);

@@ -93,7 +93,7 @@ func render(parent):
 	render_inventory_column(column)
 	var middle=make_panel(layout,"ShopTransaction",0)
 	transaction_column=middle
-	var stock=make_panel(layout,"ShopCatalog",440)
+	var stock=make_panel(layout,"ShopCatalog",ui.mock_shell.SHOP_CATALOG_WIDTH)
 	catalog_column=stock
 	backdrop(stock,pages.facility_art.npc.texture,"ShopKeeperArt")
 	render_transaction(middle)
