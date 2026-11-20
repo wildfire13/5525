@@ -18,7 +18,8 @@ func run():
 	var boots=game.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text==entry.name)[0]
 	boots.pressed.emit();await settle()
 	var comparison=node("CharacterEquipmentComparison")
-	check(comparison.text.contains(entry.name) and not comparison.text.contains("+0"),"S1/S2 selected boots show the comparison without unchanged bonuses")
+	var candidate=node("ShopComparisonProduct")
+	check(candidate!=null and candidate.is_visible_in_tree() and candidate.text==entry.name and comparison.is_visible_in_tree() and comparison.text.begins_with("比較対象："+str(game.campaign().slots.feet)) and not comparison.text.contains("+0"),"S1/S2 selected boots show the comparison without unchanged bonuses")
 	var q={"before":{"max":245,"maxMp":10,"speed":14,"def":0},"after":{"max":207,"maxMp":10,"speed":14,"def":0}}
 	var text=game.pages.shop_view.comparison_view.comparison_text({"hp":144,"mp":10},{"equipSlots":[]},"upperBody",q)
 	check(text.contains("-38") and not text.contains("MP") and not text.contains("現在HP") and not text.contains("DEF"),"S3 retains HP upper limit -38 and omits unchanged resources")
