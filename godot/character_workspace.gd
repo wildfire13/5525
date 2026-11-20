@@ -220,6 +220,7 @@ func ability(parent,member):
 	var attack=ui.icons.line(ui,values,"attack","通常ATK %d / 射程 %d" % [ui.pages.normal_atk(stats,1),ui.pages.normal_reach(stats)]);attack.name="CharacterAttackProfile";attack.tooltip_text=ui.pages.attack_profile(stats);attack.mouse_filter=Control.MOUSE_FILTER_STOP
 	for defense in [false,true]:
 		var line=ui.row(values);line.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+		line.name="CharacterDefense" if defense else "CharacterElementalAttack"
 		if defense:ui.icons.line(ui,line,"defend","DEF 物%d" % stats.get("def",0))
 		else:ui.label_(line,"属性ATK").autowrap_mode=TextServer.AUTOWRAP_OFF
 		for element in ["fire","water","earth"]:
