@@ -7,7 +7,7 @@ const PAPER=Color("#faf9f5")
 const MUTED_INK=Color("#606960")
 const GREEN=Color("#345c4e")
 const ROSTER_WIDTH=280
-const ROSTER_GAP=16
+const COLUMN_GAP=16
 const SHOP_CATALOG_WIDTH=440
 const SURFACE_ALPHA=0.90
 const NESTED_SURFACE_ALPHA=0.12
@@ -37,7 +37,7 @@ func apply_theme():
 	for key in ["embedded_border","embedded_unfocused_border"]:
 		var frame=surface_style(GREEN);frame.expand_margin_top=32
 		ui.theme.set_stylebox(key,"Window",frame)
-	ui.theme.set_constant("title_height","Window",32)
+	ui.theme.set_constant("title_height","Window",ui.preferences.TITLE_HEIGHT)
 	ui.theme.set_color("title_color","Window",PAPER)
 	ui.theme.set_stylebox("panel","TabContainer",surface_style(PAPER,true))
 	for state in ["tab_selected","tab_unselected","tab_hovered","tab_disabled"]:
@@ -96,6 +96,11 @@ func elapsed_time_text() -> String:
 	return "経過時間：%d時間" % int(ui.campaign().get("worldTime",0))
 func needs_roster() -> bool:
 	return ui.page!="board" and not ui.pages.facility_entry.at_top() and ui.campaign().get("phase")!="result"
+func columns(parent: Control) -> HBoxContainer:
+	var row=ui.row(parent)
+	row.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+	row.add_theme_constant_override("separation",COLUMN_GAP)
+	return row
 func workspace(parent) -> VBoxContainer:
 	if ui.page=="character" or ui.pages.warehouse_view.available() or (ui.page=="shop" and not ui.pages.facility_entry.at_top()):
 		var scroll=ScrollContainer.new()
@@ -104,7 +109,7 @@ func workspace(parent) -> VBoxContainer:
 		parent.add_child(scroll)
 		ui.memory.watch(scroll,"member_workspace_"+ui.page)
 		parent=scroll
-	var row=ui.row(parent);row.name="CampaignWorkspace";row.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;row.add_theme_constant_override("separation",ROSTER_GAP)
+	var row=columns(parent);row.name="CampaignWorkspace"
 	if parent is ScrollContainer:row.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	if needs_roster():
 		var ids=ui.campaign().get("selected",[])

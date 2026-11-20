@@ -24,7 +24,7 @@ func layout():
  hud.left_panel.hide()
  var sidebar_width=ui.mock_shell.ROSTER_WIDTH
  var roster_width=ui.mock_shell.ROSTER_WIDTH
- var field_left=roster_width+16
+ var field_left=roster_width+ui.mock_shell.COLUMN_GAP
  var strip=ui.get("deployment_party_strip")
  var controls_bottom=area.size.y
  if is_instance_valid(strip):

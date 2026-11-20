@@ -43,7 +43,7 @@ func render_top(parent: Control,page: String) -> bool:
  sync()
  if not at_top(page):return false
  var title=facility_name(page)
- var layout=HBoxContainer.new();layout.name="FacilityEntry";layout.custom_minimum_size.y=ui.mock_shell.content_height();layout.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;layout.add_theme_constant_override("separation",32);parent.add_child(layout)
+ var layout=ui.mock_shell.columns(parent);layout.name="FacilityEntry";layout.custom_minimum_size.y=ui.mock_shell.content_height()
  var options=VBoxContainer.new();options.name="FacilityChoices";options.custom_minimum_size.x=300;options.add_theme_constant_override("separation",16);layout.add_child(options)
  var town_label=ui.label_(options,ui.town_name(pages.c().get("location","")));town_label.add_theme_font_size_override("font_size",20);town_label.add_theme_color_override("font_color",Color("#faf9f5"));town_label.add_theme_color_override("font_outline_color",Color("#283128"));town_label.add_theme_constant_override("outline_size",6)
  var title_label=ui.label_(options,title,true);title_label.name="FacilityEntryTitle";title_label.add_theme_font_size_override("font_size",30);title_label.add_theme_color_override("font_color",Color("#faf9f5"));title_label.add_theme_color_override("font_outline_color",Color("#283128"));title_label.add_theme_constant_override("outline_size",6)

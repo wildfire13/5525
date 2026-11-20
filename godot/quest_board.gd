@@ -29,7 +29,7 @@ func render(parent):
 			var after=pages.card(parent);after.name="QuestAftermath_"+str(entry.id);pages.l(after,str(entry.name),true);pages.b(after,"出来事を知る",func():play_scene(entry.story,str(entry.get("portrait","")))).name="QuestAftermathStory_"+str(entry.id)
 		return
 	if not quests.any(func(q):return str(q.id)==selected_id):selected_id=str(quests[0].id)
-	var split=pages.row(parent);split.name="QuestBoardColumns";split.add_theme_constant_override("separation",16);split.custom_minimum_size.y=ui.mock_shell.content_height();split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+	var split=ui.mock_shell.columns(parent);split.name="QuestBoardColumns";split.custom_minimum_size.y=ui.mock_shell.content_height()
 	var list=ui.scroller(split);list.name="QuestList";list.get_parent().custom_minimum_size=Vector2(520,0);list.get_parent().size_flags_horizontal=Control.SIZE_FILL
 	ui.memory.watch(list.get_parent(),"quest_board_list")
 	var detail=pages.card(split);detail.name="QuestDetail";detail.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL

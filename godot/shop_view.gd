@@ -86,7 +86,7 @@ func render(parent):
 	if not c().get("selected",[]).has(ui.shop_uid):
 		ui.shop_uid=str(c().get("selected",[""])[0])
 	if sale.owner_id!=ui.shop_uid:sale.apply_owner(ui.shop_uid)
-	var layout=HBoxContainer.new();layout.name="ShopWorkspace";layout.add_theme_constant_override("separation",16);layout.custom_minimum_size.y=ui.mock_shell.content_height();layout.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;parent.add_child(layout)
+	var layout=ui.mock_shell.columns(parent);layout.name="ShopWorkspace";layout.custom_minimum_size.y=ui.mock_shell.content_height()
 	var column=preload("res://member_loadout_column.gd").new()
 	layout.add_child(column)
 	inventory_column=column

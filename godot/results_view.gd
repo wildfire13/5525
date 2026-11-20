@@ -171,7 +171,8 @@ func _layout():
   body=VBoxContainer.new();panel.add_child(body);body.minimum_size_changed.connect(_queue_layout);_build();continue_button.grab_focus()
  var available=ui.size;var margin=16.0 if available.x>=1120 and available.y>=720 else 8.0
  var width=minf(1160,available.x-margin*2);var height=minf(870,available.y-margin*2)
- panel.position=Vector2((available.x-width)*.5,(available.y-height)*.5);panel.size=Vector2(width,height)
+ var frame=ui.preferences.overlay_rect(available,Vector2(width,height),margin)
+ panel.position=frame.position;panel.size=frame.size
  var padding=24 if available.y>=720 else 12
  if is_instance_valid(body):body.position=Vector2(padding,padding);body.size=Vector2(width-padding*2,height-padding*2)
 func advance():advance_to("hub")

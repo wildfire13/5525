@@ -23,7 +23,7 @@ func progress() -> float:
  return clampf(float(Time.get_ticks_msec()-recovery_started)/(RECOVERY_SECONDS*1000.0),0.0,1.0) if recovery_started>0 else 1.0
 func render(parent):
  if pages.facility_entry.render_top(parent,"inn"):reset();return
- var surface=HBoxContainer.new();surface.name="InnService";surface.custom_minimum_size.y=ui.mock_shell.content_height();surface.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;surface.add_theme_constant_override("separation",24);parent.add_child(surface)
+ var surface=ui.mock_shell.columns(parent);surface.name="InnService";surface.custom_minimum_size.y=ui.mock_shell.content_height()
  var panel=PanelContainer.new();panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;surface.add_child(panel)
  var content=VBoxContainer.new();content.add_theme_constant_override("separation",16);panel.add_child(content)
  var q: Dictionary=pages.c().get("inn",{})

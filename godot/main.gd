@@ -519,7 +519,8 @@ func show_engine_stop():
 	add_child(stop_dialog)
 	stop_dialog.confirmed.connect(close_game)
 	stop_dialog.canceled.connect(close_game)
-	stop_dialog.popup_centered()
+	preferences.bind_window(stop_dialog,"engine_stop",size,Vector2(560,300))
+	stop_dialog.popup()
 func invalidate_preview():
 	if pages!=null:pages.shop_view.cancel_pending()
 	if hud!=null:hud.discard_reference();hud.invalidate_hover()
@@ -937,7 +938,7 @@ func save_log():
 func portrait_dialog():
 	if data.get("trial")!=null or campaign().get("phase") in ["battle","deployment"]:notice="画像変更は戦闘・試用の終了後にできます";render();return
 	pages.shop_view.cancel_pending()
-	var d=Window.new();d.name="PortraitChooser";d.exclusive=true;d.title="キャラ画像";d.size=Vector2i(mini(660,int(size.x)-32),mini(700,int(size.y)-72));add_child(d)
+	var d=Window.new();d.name="PortraitChooser";d.exclusive=true;d.title="キャラ画像";add_child(d)
 	var body=scroller(d);body.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	label_(body,"各キャラの画像を変更します。能力・装備は変わりません。")
 	label_(body,"PNG / JPEG / WebP / BMP / GIF（先頭フレーム）、16MiBまで。透過・縦横比を保持し最大1024pxに正規化。割当を残すには進行を保存してください。")
@@ -1011,7 +1012,7 @@ func menu_focus_controls() -> Array:
 	return menu.find_children("*","Control",true,false).filter(func(control):return control.focus_mode==Control.FOCUS_ALL and control.is_visible_in_tree() and (not control is BaseButton or not control.disabled))
 func fit_menu():
 	menu.size=Vector2(minf(440,maxf(1,size.x-24)),minf(760,maxf(1,size.y-48)))
-	menu.position=(size-menu.size)/2
+	menu.position=preferences.overlay_rect(size,menu.size).position
 func file_dialog_open() -> bool:
 	# Native dialogs live outside the scene and do not set Window.visible.
 	for child in find_children("*","FileDialog",true,false):
@@ -1030,12 +1031,11 @@ func queue_layout():
 func refresh_layout():
 	layout_queued=false
 	if not closing:
-		render();dialog.resize()
+		render()
 func _process(_delta):
 	if menu.visible:fit_menu()
 	for child in find_children("*","Window",true,false):
-		if child==dialog.window:dialog.keep_visible()
-		elif child.get_meta("managed_layout",false):preferences.keep_visible(child,size)
+		if child.get_meta("managed_layout",false):preferences.keep_visible(child,size)
 	fit_battle_layout()
 func fit_battle_layout():
 	if closing or view_kind!="battle" or not is_instance_valid(hud.middle):return

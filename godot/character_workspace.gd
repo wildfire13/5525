@@ -30,9 +30,7 @@ func render(parent):
 	if not members.any(func(u):return str(u.id)==ui.pages.party_uid):ui.pages.party_uid=str(ui.campaign().get("selected",[])[0])
 	var member=members.filter(func(u):return str(u.id)==ui.pages.party_uid)[0]
 	if owner!=str(member.id):owner=str(member.id);picked={};allocating=false
-	var split=ui.row(parent)
-	split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
-	split.add_theme_constant_override("separation",16)
+	var split=ui.mock_shell.columns(parent)
 	var column=preload("res://member_loadout_column.gd").new()
 	split.add_child(column)
 	column.build(ui,member,tab,set_tab,"CharacterTab_")

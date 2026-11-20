@@ -68,6 +68,10 @@ const QUEUE_ARROW_WIDTH=24
 const QUEUE_GAP=8
 const QUEUE_PITCH=QUEUE_CARD_WIDTH+QUEUE_ARROW_WIDTH+QUEUE_GAP*2
 const COMMANDS=[["action_attack","攻撃"],["action_move","移動"],["action_skill","スキル"],["items","アイテム"],["action_defend","防御"]]
+func actor_panel_rect() -> Rect2:
+	return Rect2(0,64,ui.mock_shell.ROSTER_WIDTH,760)
+func target_panel_rect() -> Rect2:
+	return Rect2(maxf(0,middle.size.x-400),64,400,760)
 func _init(frontend):ui=frontend
 func l(parent,text,large:=false):
 	var label=ui.label_(parent,str(text),large)
@@ -106,9 +110,9 @@ func mount():
 		ui.board=preload("res://battle_board.gd").new();ui.board.preferences=ui.preferences;ui.board.portraits=ui.portraits;ui.board.name="BattleBoard";ui.board.deployment_ui=ui;ui.add_child(ui.board);ui.move_child(ui.board,0);ui.board.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		ui.memory.key(ui.board,"board");ui.board.cell_clicked.connect(ui.on_cell);ui.board.deployment_assigned.connect(ui.deployment_assigned);ui.board.unit_hovered.connect(inspect_hover.bind(ui.board))
 	left_panel=preload("res://floating_panel.gd").new();left_panel.viewport_bounds=true;middle.add_child(left_panel)
-	left_panel.configure(ui.preferences,"battle_actor_b","行動者 / コマンド",Rect2(0,64,ui.mock_shell.ROSTER_WIDTH,760))
+	left_panel.configure(ui.preferences,"battle_actor_b","行動者 / コマンド",actor_panel_rect())
 	right_panel=preload("res://floating_panel.gd").new();right_panel.viewport_bounds=true;middle.add_child(right_panel)
-	right_panel.configure(ui.preferences,"battle_target_b","対象 / 効果",Rect2(maxf(0,ui.size.x-448),64,400,760))
+	right_panel.configure(ui.preferences,"battle_target_b","対象 / 効果",target_panel_rect())
 	dock=left_panel
 	tools=HBoxContainer.new();tools.name="BattleTools";middle.add_child(tools)
 	camera_hint=l(middle,preload("res://battle_board.gd").CAMERA_HINT)
@@ -179,7 +183,7 @@ func render():
 	if deploying!=deployment_layout:
 		deployment_layout=deploying
 		if not deploying:deployment_workspace.restore()
-		for pair in [[left_panel,"deployment_ally" if deploying else "battle_actor_b",Rect2(0,64,ui.mock_shell.ROSTER_WIDTH,760)], [right_panel,"deployment_enemy" if deploying else "battle_target_b",Rect2(maxf(0,middle.size.x-400),64,400,760)]]:
+		for pair in [[left_panel,"deployment_ally" if deploying else "battle_actor_b",actor_panel_rect()], [right_panel,"deployment_enemy" if deploying else "battle_target_b",target_panel_rect()]]:
 			var panel=pair[0];panel.layout_key=pair[1]
 			panel.restore_rect(pair[2])
 	left_panel.find_child("DragHandle",true,false).text="配置する味方  ⋮" if deploying else "行動者 / コマンド  ⋮"
@@ -695,7 +699,7 @@ func open_equipment_sheet(uid: String):
 		return
 func draw_loadout(body,member: Dictionary,tab: String):
 	ui.clear(body)
-	var line=ui.row(body)
+	var line=ui.mock_shell.columns(body)
 	var column=preload("res://member_loadout_column.gd").new();line.add_child(column)
 	column.build(ui,member,tab,func(next):draw_loadout(body,member,next),"BattleLoadoutTab_")
 	column.custom_minimum_size.y=0

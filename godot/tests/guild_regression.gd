@@ -106,7 +106,7 @@ func run():
 	var reserve_rect=node("GuildReserveDetail").get_parent().get_global_rect()
 	check(active_rect.size.x==map_rect.size.x and reserve_rect.size.x==map_rect.size.x,"equipment panel widths at FHD: map %d, guild active %d, reserve %d" % [map_rect.size.x,active_rect.size.x,reserve_rect.size.x])
 	check(active_rect.position.x==map_rect.position.x and reserve_rect.position.x==reserve_left,"equipment left edges at FHD: map %d, guild active %d, reserve %d (ability tab %d)" % [map_rect.position.x,active_rect.position.x,reserve_rect.position.x,reserve_left])
-	var gap=game.mock_shell.ROSTER_GAP
+	var gap=game.mock_shell.COLUMN_GAP
 	check(map_rect.position.x-map_roster_edge==gap and active_rect.position.x-node("PartyRoster").get_global_rect().end.x==gap and active_rect.position.y==map_rect.position.y,"equipment origins follow roster +%d: map %s, guild %s" % [gap,map_rect.position,active_rect.position])
 	await check_roster_anchor(node("GuildActiveDetail").get_parent(),"guild")
 	var proof=OS.get_environment("UIUX_REVIEW_EVIDENCE")
