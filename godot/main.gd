@@ -1061,6 +1061,8 @@ func _input(event):
 		var focus=get_viewport().gui_get_focus_owner()
 		if focus is BaseButton or focus==board:get_viewport().set_input_as_handled()
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
+		if not event.pressed and page=="character" and get_viewport().gui_is_dragging():
+			pages.party_view.workspace.outside_drop(get_viewport().gui_get_drag_data(),event.position)
 		if event.double_click and event.pressed:
 			var allow_repeated_drag=campaign().get("phase")=="deployment" and not modal_open()
 			var bar=find_child("PartyFaceBar",true,false)

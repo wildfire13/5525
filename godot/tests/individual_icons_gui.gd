@@ -150,9 +150,9 @@ func shop_cases():
   check(await saved()==before,"comparison and cancellation preserve exact save "+place)
  # Representative ordinary purchase, cancel, and two-count sale use canonical quotes.
  await at_fixture("east");await enter_facility("shop");await settle();var before=await saved()
- await reveal("Product_spear-wood","ShopProductsScroll");await os_click(node("Product_spear-wood"));await os_click(node("ShopComparisonBuy"));await os_click(node("PurchaseDecline"))
- check(await saved()==before,"ordinary purchase cancellation consumes no money or inventory")
- await os_click(node("ShopComparisonBuy"));await os_click(node("PurchaseAgree"))
+ await reveal("Product_spear-wood","ShopProductsScroll");await os_click(node("Product_spear-wood"))
+ check(await saved()==before,"ordinary product preview consumes no money or inventory")
+ await os_click(node("ShopComparisonBuy"));await os_click(node("PurchaseReceiptClose"))
  var bought=await saved();var price=game.campaign().shop.filter(func(g):return g.id=="spear-wood")[0].price
  check(int(bought.state.gold)==int(before.state.gold)-int(price) and int(bought.state.characters["character_mirei"].inventory["spear-wood"])==int(before.state.characters["character_mirei"].inventory["spear-wood"])+1,"actual ordinary purchase matches displayed canonical price and owner quantity")
  await os_click(node("ShopInventoryTab_inventory"));await reveal("SaleItem_spear-wood","ShopInventoryScroll");await os_click(node("SaleItem_spear-wood"))

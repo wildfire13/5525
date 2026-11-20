@@ -60,16 +60,15 @@ func render_detail(parent,footer):
  var icon=ui.icons.equipment(item) if item.get("kind")=="equipment" else "items" if item.get("kind")=="quest" else str(item.id)
  if item.get("kind")=="equipment":shop.pages.describe_gear(parent,item.get("definition",item),true)
  else:ui.icons.line(ui,parent,icon,str(item.name),true).name="FacilitySaleTarget"
- var controls=ui.row(parent);ui.label_(controls,"個数")
- var count=SpinBox.new();count.name="FacilitySaleQuantity";count.min_value=1;count.max_value=int(item.count);amount=clampi(amount,1,int(item.count));count.step=1;count.value=amount;count.custom_minimum_size.x=104;count.editable=not busy();controls.add_child(count)
- count.value_changed.connect(func(value):amount=int(value);quote={};generation+=1;request_quote())
- var totals=ui.label_(parent,message if not message.is_empty() else "売却額を確認中…");totals.name="FacilitySaleTotals"
+ amount=clampi(amount,1,int(item.count))
+ var totals=shop.transaction_fields(footer,false,int(item.get("sale",{}).get("price",0)),amount,int(item.count),func(value):amount=int(value);quote={};generation+=1;request_quote())
+ if not message.is_empty():totals.text=message
  var button=ui.green_button(ui.button(footer,"買取明細へ",confirm_sale,not item.get("sale",{}).get("ok",false) or busy()));button.name="FacilitySalePrepare";button.size_flags_horizontal=Control.SIZE_SHRINK_END
  button.tooltip_text=str(item.get("sale",{}).get("reason",""))
  if not quote.is_empty():show_quote(totals)
  elif not busy() and not previewing:request_quote()
 func show_quote(label: Label):
- label.text="売却 %dG\n所持金 %d → %d G" % [quote.proceeds,quote.goldBefore,quote.afterGold] if quote.get("ok",false) else str(quote.get("reason","金額を取得できません。"))
+ label.text="所持金 %dG ＋ 売却 %dG = 残金 %dG" % [quote.goldBefore,quote.proceeds,quote.afterGold] if quote.get("ok",false) else str(quote.get("reason","金額を取得できません。"))
 func valid(ticket: int,epoch: int,connection: int,owner: String,item: String,count: int,token) -> bool:
  return ticket==generation and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and owner==owner_id and item==item_id and count==amount and token==ui.campaign().get("inventoryToken") and shop.sale_mode() and not ui.closing
 func request_quote():

@@ -50,10 +50,7 @@ func run():
   await snapshot("comparison-"+str(dims.x))
   await os_click(node("RosterMember_character_shion"))
   check(comparison.owner_id=="character_shion" and node("RosterMember_character_shion").has_focus(),"OS owner change updates comparison and keyboard focus")
-  await os_click(node("ShopComparisonSlot"));await os_key("End");await os_key("Return");await settle()
-  check(comparison.slot=="leftHand" and node("ShopComparisonSlot").has_focus(),"OS keyboard slot change updates same comparison")
-  await os_click(node("ShopComparisonBuy"));await os_click(node("PurchaseDecline"))
-  check(not game.modal_open() and (await saved())==before,"OS purchase cancellation has no side effects")
+  check(node("ShopComparisonSlot")==null and (await saved())==before,"weapon preview uses current hand without an extra selector")
   var start_buy=request_id
   await game.pages.shop_view.confirm_purchase("spear-wood");await settle();await os_click(node("PurchaseAgree"))
   check(node("RecipientPayment").text.contains("500 → 410G"),"OS recipient selection shows payment")
