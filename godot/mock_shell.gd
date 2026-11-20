@@ -7,6 +7,7 @@ const PAPER=Color("#faf9f5")
 const MUTED_INK=Color("#606960")
 const GREEN=Color("#345c4e")
 const ROSTER_WIDTH=280
+const ROSTER_GAP=16
 const SHOP_CATALOG_WIDTH=440
 const SURFACE_ALPHA=0.90
 const NESTED_SURFACE_ALPHA=0.12
@@ -103,7 +104,7 @@ func workspace(parent) -> VBoxContainer:
 		parent.add_child(scroll)
 		ui.memory.watch(scroll,"member_workspace_"+ui.page)
 		parent=scroll
-	var row=ui.row(parent);row.name="CampaignWorkspace";row.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;row.add_theme_constant_override("separation",16)
+	var row=ui.row(parent);row.name="CampaignWorkspace";row.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;row.add_theme_constant_override("separation",ROSTER_GAP)
 	if parent is ScrollContainer:row.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	if needs_roster():
 		var ids=ui.campaign().get("selected",[])

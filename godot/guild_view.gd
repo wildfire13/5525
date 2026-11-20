@@ -66,9 +66,9 @@ func render(parent):
 	select_filtered_current(current,str(ui.mock_shell.roster_jobs.get("party","")))
 	if active(chosen_id):chosen_id=""
 	var split=HBoxContainer.new();split.name="GuildColumns";split.custom_minimum_size.y=ui.mock_shell.content_height();split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;split.add_theme_constant_override("separation",16);parent.add_child(split)
-	var panel=PanelContainer.new();panel.name="GuildComparison";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(panel)
-	var surface=ui.mock_shell.surface_style();surface.set_content_margin(SIDE_LEFT,0);panel.add_theme_stylebox_override("panel",surface)
-	var center=VBoxContainer.new();center.add_theme_constant_override("separation",16);panel.add_child(center)
+	var panel=PanelContainer.new();panel.name="GuildComparison";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(panel)
+	var background=ui.mock_shell.surface_style();background.set_content_margin_all(0);panel.add_theme_stylebox_override("panel",background)
+	var center=VBoxContainer.new();panel.add_child(center)
 	var tabs=ui.row(center)
 	for index in range(3):
 		var tab=b(tabs,["能力","装備","スキル"][index],select_tab.bind(index));tab.name="GuildTab_"+str(index);ui.mark_selected(tab,detail_tab==index)
@@ -147,9 +147,7 @@ func match_current_filter(job: String):
 	select_filtered_current(groups()[1],job);refresh_selection()
 func render_member(column,u: Dictionary,caption: String):
 	if detail_tab==1:
-		var panel=column.get_parent()
-		panel.custom_minimum_size.x=preload("res://member_loadout_column.gd").WIDTH
-		panel.size_flags_horizontal=Control.SIZE_EXPAND | Control.SIZE_SHRINK_BEGIN
+		preload("res://member_loadout_column.gd").align_column(column.get_parent())
 	l(column,caption).add_theme_font_size_override("font_size",18)
 	if u.is_empty():
 		if caption=="控え":

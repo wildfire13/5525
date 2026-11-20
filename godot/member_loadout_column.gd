@@ -13,8 +13,13 @@ var stage: Control
 var portrait: TextureRect
 var panel: PanelContainer
 
+static func align_column(column: Control):
+	column.custom_minimum_size.x=WIDTH
+	column.size_flags_horizontal=(column.size_flags_horizontal & Control.SIZE_EXPAND) | Control.SIZE_SHRINK_BEGIN
+
 func build(ui, member: Dictionary, tab: String, choose: Callable, prefix: String, disabled:=false):
-	custom_minimum_size=Vector2(WIDTH,ui.mock_shell.content_height())
+	align_column(self)
+	custom_minimum_size.y=ui.mock_shell.content_height()
 	var tabs=ui.row(self)
 	for entry in [["equipment","装備"],["inventory","インベントリ"]]:
 		var button=ui.button(tabs,entry[1],choose.bind(entry[0]),disabled)

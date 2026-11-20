@@ -53,6 +53,16 @@ func current_ids() -> Array:
 func current_scroll():return node("PartyRosterScroll")
 func labels(control) -> String:
 	return "\n".join(control.find_children("*","Label",true,false).map(func(n):return n.text))
+func check_roster_anchor(panel: Control,scene: String):
+	var roster_panel=node("PartyRoster")
+	var origin=panel.global_position
+	var roster_width=roster_panel.custom_minimum_size.x
+	roster_panel.custom_minimum_size.x+=32
+	await settle()
+	check(panel.global_position==origin+Vector2(32,0),scene+" equipment follows a widened roster")
+	roster_panel.custom_minimum_size.x=roster_width
+	await settle()
+
 func run():
 	var qa=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/").to_lower()
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
@@ -70,7 +80,10 @@ func run():
 	var entry_before=await saved();game.navigate("hub");await settle()
 	check(node("HubFacility_guild")!=null and node("HubFacility_guild").text=="ギルド","G01 Astaris hub has explicit guild entry")
 	await tap("RosterMember_"+guard)
-	var map_rect=node("CharacterTab_equipment").get_parent().get_parent().panel.get_global_rect()
+	var map_roster_edge=node("PartyRoster").get_global_rect().end.x
+	var map_panel=node("CharacterTab_equipment").get_parent().get_parent().panel
+	var map_rect=map_panel.get_global_rect()
+	await check_roster_anchor(map_panel,"party")
 	await tap("Header_character")
 	await tap("HubFacility_guild")
 	check(node("FacilityChoice_guild")!=null and (await saved())==entry_before,"G01 guild opens pure service entry")
@@ -93,6 +106,9 @@ func run():
 	var reserve_rect=node("GuildReserveDetail").get_parent().get_global_rect()
 	check(active_rect.size.x==map_rect.size.x and reserve_rect.size.x==map_rect.size.x,"equipment panel widths at FHD: map %d, guild active %d, reserve %d" % [map_rect.size.x,active_rect.size.x,reserve_rect.size.x])
 	check(active_rect.position.x==map_rect.position.x and reserve_rect.position.x==reserve_left,"equipment left edges at FHD: map %d, guild active %d, reserve %d (ability tab %d)" % [map_rect.position.x,active_rect.position.x,reserve_rect.position.x,reserve_left])
+	var gap=game.mock_shell.ROSTER_GAP
+	check(map_rect.position.x-map_roster_edge==gap and active_rect.position.x-node("PartyRoster").get_global_rect().end.x==gap and active_rect.position.y==map_rect.position.y,"equipment origins follow roster +%d: map %s, guild %s" % [gap,map_rect.position,active_rect.position])
+	await check_roster_anchor(node("GuildActiveDetail").get_parent(),"guild")
 	var proof=OS.get_environment("UIUX_REVIEW_EVIDENCE")
 	if not proof.is_empty() and DisplayServer.get_name()!="headless":
 		await RenderingServer.frame_post_draw
