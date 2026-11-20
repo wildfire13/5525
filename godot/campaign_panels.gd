@@ -319,7 +319,7 @@ func invalidate_quote(clear_id:=false):
 	if clear_id:gear_id=""
 func reset_context():
 	warehouse_view.reset()
-	quest_board.reset();inn_view.reset()
+	quest_board.reset();inn_view.reset();ui.mock_shell.roster_jobs.clear()
 	hub_view.reset()
 	facility_art.reset()
 	if ui.hud!=null:ui.hud.reset_context()

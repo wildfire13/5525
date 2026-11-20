@@ -13,8 +13,16 @@ func run():
 	var badge=node("ElementIcon_earth")
 	check(badge!=null and badge.texture!=null and badge.tooltip_text.contains("地属性"),"character ability presents the guard's elemental identity and explanation")
 	var stats=game.roster().filter(func(member):return member.id==owner)[0].stats
-	var labels=node("CharacterAttackProfile").get_parent().find_children("*","Label",true,false)
-	check(labels.any(func(label):return label.text=="属性ATK  火%d / 水%d / 地%d" % [stats.atkFire,stats.atkWater,stats.atkEarth]) and labels.any(func(label):return label.text==game.pages.defense_profile(stats)),"ability displays all three elemental attack and defense values")
+	for defense in [false,true]:
+		var row=node("CharacterDefense" if defense else "CharacterElementalAttack")
+		var prefix="def" if defense else "atk"
+		var expected=["DEF 物%d" % stats.def] if defense else ["属性ATK"]
+		for element in ["fire","water","earth"]:
+			var icon=row.get_node_or_null("ElementIcon_"+element)
+			check(icon is TextureRect and icon.texture!=null,"%s has %s icon" % [prefix,element])
+			expected.append("%s%d" % [preload("res://element_badges.gd").spec(element).label,stats[prefix+element.capitalize()]])
+		var labels=row.find_children("*","Label",true,false).map(func(label):return label.text)
+		check(labels==expected,"%s displays the character's values in element order" % prefix)
 	check(await saved()==before,"reading abilities preserves the campaign")
 	var cases=battle_fixture()
 	await game.update({"op":"campaign_load","data":cases.archer});await settle()

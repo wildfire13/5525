@@ -30,22 +30,25 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 	var choices=slots_for(gear)
 	slot=ui.shop_slot if choices.has(ui.shop_slot) else str(choices[0])
 	panels.clear()
-	var title=ui.icons.line(ui,body,ui.icons.equipment(gear),str(gear.name),true);title.name="ShopComparisonProduct";title.add_theme_font_size_override("font_size",28)
-	var selectors=ui.row(body)
-	var positions=OptionButton.new();positions.name="ShopComparisonSlot";positions.custom_minimum_size=Vector2(140,36);selectors.add_child(positions)
-	for id_ in choices:
-		positions.add_item(str(shop.c().get("slots",{}).get(id_,id_)));positions.set_item_metadata(positions.item_count-1,id_)
-		if id_==slot:positions.select(positions.item_count-1)
-	positions.item_selected.connect(func(i):switch_target(owner_id,str(positions.get_item_metadata(i))))
 	var comparison=RichTextLabel.new();comparison.name="ShopComparisonStats";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.scroll_active=false;comparison.add_theme_font_size_override("normal_font_size",22);comparison.add_theme_color_override("default_color",Color("#29332f"));comparison.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(comparison);comparison.text="比較を読み込み中…"
-	var pair=ui.row(body);pair.name="ShopComparisonSkills"
-	for heading in ["現在の装備","購入候補"]:
-		var column=ui.card(pair)
-		column.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		ui.label_(column,heading)
-		panels.append(column)
+	panels=equipment_columns(body,"購入候補")
+	if shop.c().get("location")=="north":
+		var header=panels[0].get_child(0)
+		var positions=OptionButton.new();positions.name="ShopComparisonSlot";positions.custom_minimum_size=Vector2(140,36);header.add_child(positions)
+		for id_ in choices:
+			positions.add_item(str(shop.c().get("slots",{}).get(id_,id_)));positions.set_item_metadata(positions.item_count-1,id_)
+			if id_==slot:positions.select(positions.item_count-1)
+		positions.item_selected.connect(func(i):switch_target(owner_id,str(positions.get_item_metadata(i))))
 	skill_rows=null
 	var conditions=ui.label_(body,"");conditions.name="ShopComparisonConditions";conditions.add_theme_font_size_override("font_size",20)
+	equipment_notes(body,gear)
+	# Keep payment/rejection beside the decision, outside long scrolling notes.
+	var money=shop.checkout_fields(actions,gear.price,func():switch_target(owner_id,slot))
+	var trial=ui.button(actions,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_END;trial.custom_minimum_size.y=40;trial.add_theme_font_size_override("font_size",20)
+	var buy=ui.primary(ui.button(actions,"取引を確認",purchase,true));buy.name="ShopComparisonBuy";buy.custom_minimum_size.y=40;buy.size_flags_horizontal=Control.SIZE_SHRINK_END
+	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
+	refresh(money,comparison,conditions,buy)
+func equipment_notes(body: Control,gear: Dictionary):
 	# Mechanics in the original equipment note must remain visible at purchase.
 	var note=str(gear.get("note","")).strip_edges()
 	var flavor=str(gear.get("flavor","")).strip_edges()
@@ -53,12 +56,29 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 		var description=ui.label_(body,flavor);description.name="ShopComparisonFlavor";description.add_theme_font_size_override("font_size",20)
 	if not note.is_empty():
 		var memo=ui.label_(body,note);memo.name="ShopComparisonNotes";memo.add_theme_font_size_override("font_size",20)
-	# Keep payment/rejection beside the decision, outside long scrolling notes.
-	var money=shop.checkout_fields(actions,gear.price,func():switch_target(owner_id,slot))
-	var trial=ui.button(actions,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_END;trial.custom_minimum_size.y=40;trial.add_theme_font_size_override("font_size",20)
-	var buy=ui.primary(ui.button(actions,"取引を確認",purchase,true));buy.name="ShopComparisonBuy";buy.custom_minimum_size.y=40;buy.size_flags_horizontal=Control.SIZE_SHRINK_END
-	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
-	refresh(money,comparison,conditions,buy)
+
+func equipment_columns(body: Control,candidate: String) -> Array:
+	var pair=ui.row(body);pair.name="ShopComparisonSkills"
+	var columns=[]
+	for heading in ["現在の装備",candidate]:
+		var column=ui.card(pair)
+		column.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		ui.label_(ui.row(column),heading)
+		columns.append(column)
+	return columns
+
+func fill_columns(columns: Array,q: Dictionary):
+	var rows=equipment_rows(q.current,q.gear)
+	for i in range(2):
+		var panel=columns[i]
+		while panel.get_child_count()>1:
+			var child=panel.get_child(-1);panel.remove_child(child);child.queue_free()
+		var gear=q.get("current" if i==0 else "gear",{})
+		var name_label=ui.icons.line(ui,panel,ui.icons.equipment(gear),str(gear.get("name","なし")),true)
+		if i==1:
+			name_label.name="ShopComparisonProduct";name_label.add_theme_font_size_override("font_size",28)
+		for line in rows[i]:ui.label_(panel,line)
+
 func open(id: String):
 	panels.clear();inline_host=null;item_id=id
 	var gear=item()
@@ -130,16 +150,7 @@ func refresh(money,comparison,conditions,buy):
 	comparison.text=comparison_text(person,entry,slot,q).replace("#8ee6ab","#277242").replace("#ffb1a6","#a84432").replace("#d5dbe2","#6e786f")
 	if not panels.is_empty():
 		comparison.hide()
-		for i in range(2):
-			var panel=panels[i]
-			while panel.get_child_count()>1:
-				var child=panel.get_child(-1);panel.remove_child(child);child.queue_free()
-			var gear=q.get("current" if i==0 else "gear",{})
-			ui.icons.line(ui,panel,ui.icons.equipment(gear),str(gear.get("name","なし")),true)
-		var rows=equipment_rows(q.current,q.gear)
-		for i in range(2):
-			for line in rows[i]:
-				ui.label_(panels[i],line)
+		fill_columns(panels,q)
 	render_skills(q)
 	conditions.text="" if q.get("eligible",false) else "装備不可："+str(q.get("reason","正規判定を確認できません"))
 	var payment=await ui.engine.request({"op":"campaign","action":"purchaseQuote","args":[item_id,owner_id,shop.purchase_quantity if not panels.is_empty() else 1]})
@@ -150,10 +161,10 @@ func refresh(money,comparison,conditions,buy):
 	shop.display_payment(money,buy,cost)
 
 func purchase():
-	if shop.busy():return
+	if shop.busy() or (is_instance_valid(inline_host) and ui.modal_open()):return
 	var id=item_id;var uid=owner_id
 	invalidate();ui.dialog.close(false)
-	shop.confirm_purchase(id,uid,shop.purchase_quantity if not panels.is_empty() else 1)
+	shop.confirm_purchase(id,uid,shop.purchase_quantity if not panels.is_empty() else 1,not panels.is_empty())
 
 func source_key(source: Dictionary) -> String:
 	return str(source.id)+":"+str(int(source.get("level",1)))

@@ -6,7 +6,7 @@ func check_layout(tag: String):
  var reserve=node("GuildReserveColumn");var current=node("PartyRoster");var middle=node("GuildComparison");var buttons=[node("GuildAdd"),node("GuildSwap"),node("GuildRemove")]
  var r=reserve.get_global_rect();var c=current.get_global_rect();var m=middle.get_global_rect();var viewport=Rect2(Vector2.ZERO,Vector2(root.size))
  check(c.end.x<=m.position.x+1 and m.end.x<=r.position.x+1,tag+" shared roster, inline comparison and reserves retain approved order")
- check(node("GuildSwap").get_parent().get_parent()==node("GuildComparisonDetails") and node("GuildRemove").get_parent()==node("GuildActions"),tag+" explicit swap and removal remain beside comparison")
+ check(node("GuildSwapColumn").is_ancestor_of(node("GuildSwap")) and current.is_ancestor_of(node("GuildRemove")),tag+" swap in center and removal below active list")
  for control in buttons+[node("GuildActions"),node("GuildReturn")]:
   check(viewport.encloses(control.get_global_rect()),tag+" operation stays on screen "+str(control.name))
  var members=game.find_children("GuildMember_*","Button",true,false)

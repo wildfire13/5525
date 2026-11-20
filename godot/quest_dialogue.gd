@@ -8,6 +8,7 @@ var index:=0
 var shown:=0
 var elapsed:=0.0
 var portrait: TextureRect
+var board_portrait: TextureRect
 var portrait_right: TextureRect
 var speaker: Label
 var words: Label
@@ -19,15 +20,18 @@ var _closed:=false
 const SPEAKERS={"sluice-ferrymaster":"水門の舟守","farmer":"農夫","weigher":"計量係","apprentice":"若い陶工","master":"陶工の師匠","wheelwright":"車輪職人","merchant":"行商人"}
 const PORTRAITS={"farmer":"farmer","weigher":"weigher","apprentice":"apprentice","master":"master","wheelwright":"wheelwright","merchant":"merchant"}
 func _init(frontend,board):ui=frontend;quest_board=board
-func open(q: Dictionary,on_accept:=Callable(),on_close:=Callable()):
+func open(q: Dictionary,on_accept:=Callable(),on_close:=Callable(),requester: TextureRect=null):
+	board_portrait=requester
 	quest=q.duplicate(true);lines=quest.get("story",[]).duplicate(true);index=0;shown=0;elapsed=0.0;accept_callback=on_accept;close_callback=on_close;_closed=false
 	layer=1800;name="QuestDialogue";process_mode=Node.PROCESS_MODE_ALWAYS
 	var root=Control.new();root.name="DialogueScreen";root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(root)
 	if not str(quest.get("sceneLabel","")).is_empty():
 		var caption=Label.new();caption.name="QuestSceneLabel";caption.text=str(quest.sceneLabel);caption.position=Vector2(48,24);caption.add_theme_font_size_override("font_size",22);caption.add_theme_color_override("font_color",Color("#f3eee3"));caption.add_theme_stylebox_override("normal",_style(Color("#111820"),Color("#9da7b0"),1,8));root.add_child(caption)
 	var tint=ColorRect.new();tint.color=Color(0.025,0.035,0.05,0.2);tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);tint.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(tint)
-	portrait=TextureRect.new();portrait.name="QuestPortrait";portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	root.add_child(portrait)
+	if is_instance_valid(board_portrait):portrait=board_portrait
+	else:
+		portrait=TextureRect.new();portrait.name="QuestPortrait";portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		root.add_child(portrait)
 	portrait_right=TextureRect.new();portrait_right.name="QuestPortraitRight";portrait_right.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait_right.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;portrait_right.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(portrait_right)
 	var panel=Panel.new();panel.name="QuestDialoguePanel";panel.add_theme_stylebox_override("panel",_style(Color(0.015,0.02,0.03,0.94),Color("#aeb5bd"),2,12));root.add_child(panel)
 	speaker=Label.new();speaker.name="QuestSpeaker";speaker.add_theme_font_size_override("font_size",22);speaker.add_theme_color_override("font_color",Color("#f3eee3"));speaker.add_theme_stylebox_override("normal",_style(Color("#111820"),Color("#9da7b0"),1,8));speaker.add_theme_constant_override("margin_left",14);speaker.add_theme_constant_override("margin_right",14);speaker.add_theme_constant_override("margin_top",5);speaker.add_theme_constant_override("margin_bottom",5);root.add_child(speaker)
@@ -42,7 +46,8 @@ func _layout():
 	if not is_instance_valid(portrait):return
 	var size=ui.size;var compact=size.x<1120 or size.y<720;var cast: Array=quest.get("cast",[]);var two=cast.size()>1
 	var portrait_width=size.x*(.37 if two else .39 if not compact else .34);var portrait_height=size.y*.84
-	portrait.position=Vector2(size.x*(.025 if two else .04),size.y*.08);portrait.size=Vector2(portrait_width,portrait_height)
+	if not is_instance_valid(board_portrait):
+		portrait.position=Vector2(size.x*(.025 if two else .04),size.y*.08);portrait.size=Vector2(portrait_width,portrait_height)
 	portrait_right.visible=two;portrait_right.position=Vector2(size.x*.605,size.y*.08);portrait_right.size=Vector2(size.x*.37,portrait_height)
 	var panel=get_node_or_null("DialogueScreen/QuestDialoguePanel");var speaker_node=get_node_or_null("DialogueScreen/QuestSpeaker")
 	var panel_x=size.x*.055;var panel_y=size.y*.59;var panel_w=size.x*.89;var panel_h=size.y*.36
@@ -63,7 +68,7 @@ func _set_portraits(active: String,narration: bool):
 	var cast: Array=quest.get("cast",[])
 	if cast.is_empty() and not str(quest.get("portrait","")).is_empty():cast=[str(quest.get("portrait"))]
 	var right=str(cast[1]) if cast.size()>1 else "";var left=str(cast[0]) if not cast.is_empty() else ""
-	portrait.texture=_texture_for(left);portrait.visible=portrait.texture!=null
+	if not is_instance_valid(board_portrait):portrait.texture=_texture_for(left);portrait.visible=portrait.texture!=null
 	portrait_right.texture=_texture_for(right);portrait_right.visible=portrait.texture!=null and portrait_right.texture!=null
 	if narration:
 		portrait.modulate=Color(.48,.52,.57,1);portrait_right.modulate=Color(.48,.52,.57,1)
@@ -101,5 +106,6 @@ func _close():
 	if _closed:return
 	_closed=true
 	if ui.resized.is_connected(_layout):ui.resized.disconnect(_layout)
+	if is_instance_valid(board_portrait):board_portrait.modulate=Color.WHITE
 	if close_callback.is_valid():close_callback.call()
 	queue_free()

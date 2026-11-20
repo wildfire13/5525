@@ -50,9 +50,19 @@ func ids(name_: String):
 	return node(name_).get_child(0).get_children().filter(func(n):return n.has_meta("member_id")).map(func(n):return n.get_meta("member_id"))
 func current_ids() -> Array:
 	return node("PartyRoster").find_children("RosterMember_*","Button",true,false).map(func(n):return str(n.member_id))
-func current_scroll():return node("PartyRoster").find_children("*","ScrollContainer",true,false)[0]
+func current_scroll():return node("PartyRosterScroll")
 func labels(control) -> String:
 	return "\n".join(control.find_children("*","Label",true,false).map(func(n):return n.text))
+func check_roster_anchor(panel: Control,scene: String):
+	var roster_panel=node("PartyRoster")
+	var origin=panel.global_position
+	var roster_width=roster_panel.custom_minimum_size.x
+	roster_panel.custom_minimum_size.x+=32
+	await settle()
+	check(panel.global_position==origin+Vector2(32,0),scene+" equipment follows a widened roster")
+	roster_panel.custom_minimum_size.x=roster_width
+	await settle()
+
 func run():
 	var qa=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/").to_lower()
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
@@ -69,6 +79,12 @@ func run():
 	check(loaded.get("ok",false),"fixture uses valid owned stock and earned growth points")
 	var entry_before=await saved();game.navigate("hub");await settle()
 	check(node("HubFacility_guild")!=null and node("HubFacility_guild").text=="ギルド","G01 Astaris hub has explicit guild entry")
+	await tap("RosterMember_"+guard)
+	var map_roster_edge=node("PartyRoster").get_global_rect().end.x
+	var map_panel=node("CharacterTab_equipment").get_parent().get_parent().panel
+	var map_rect=map_panel.get_global_rect()
+	await check_roster_anchor(map_panel,"party")
+	await tap("Header_character")
 	await tap("HubFacility_guild")
 	check(node("FacilityChoice_guild")!=null and (await saved())==entry_before,"G01 guild opens pure service entry")
 	await tap("FacilityChoice_guild")
@@ -78,11 +94,34 @@ func run():
 	var reserve_ids=game.campaign().roster.filter(func(member):return not game.campaign().selected.has(member.id)).map(func(member):return str(member.id))
 	check(game.campaign().roster.size()==24 and reserve_ids.size()==19 and game.campaign().roster.all(func(member):return str(member.id).begins_with("character_")),"G02 fresh campaign contains exactly twenty-four live recruits and nineteen reserves")
 	check(current_ids()==game.campaign().selected and ids("GuildReserveScroll")==reserve_ids,"G02 lists retain selected and complete reserve order")
-	check(labels(node("GuildComparison")).contains("Lv.1") and labels(node("RosterMember_"+guard)).contains("HP") and not labels(node("RosterMember_"+porter)).contains("編成固定"),"G02 rows show resources and level without job-based lock")
+	check(not labels(node("GuildActiveDetail")).contains("Lv.1") and labels(node("RosterMember_"+guard)).contains("HP") and not labels(node("RosterMember_"+porter)).contains("編成固定"),"G02 rows show resources and level without job-based lock")
 	await tap("RosterMember_"+guard)
 	check((await saved())==before and guild.current_id==guard,"G05 first row selection is pure")
 	var intent=guild.candidate("swap",guard,alternate);var context=guild.stamp();var ticket=guild.generation+1
 	await tap("GuildMember_"+alternate)
+	var reserve_left=node("GuildReserveDetail").get_parent().global_position.x
+	await tap("GuildTab_1")
+	check(node("GuildActiveDetail").find_child("GuildEq_"+guard+"_head",true,false)!=null and node("GuildReserveDetail").find_child("GuildEq_"+alternate+"_head",true,false)!=null,"equipment shows both paper dolls")
+	var active_rect=node("GuildActiveDetail").get_parent().get_global_rect()
+	var reserve_rect=node("GuildReserveDetail").get_parent().get_global_rect()
+	check(active_rect.size.x==map_rect.size.x and reserve_rect.size.x==map_rect.size.x,"equipment panel widths at FHD: map %d, guild active %d, reserve %d" % [map_rect.size.x,active_rect.size.x,reserve_rect.size.x])
+	check(active_rect.position.x==map_rect.position.x and reserve_rect.position.x==reserve_left,"equipment left edges at FHD: map %d, guild active %d, reserve %d (ability tab %d)" % [map_rect.position.x,active_rect.position.x,reserve_rect.position.x,reserve_left])
+	var gap=game.mock_shell.COLUMN_GAP
+	check(map_rect.position.x-map_roster_edge==gap and active_rect.position.x-node("PartyRoster").get_global_rect().end.x==gap and active_rect.position.y==map_rect.position.y,"equipment origins follow roster +%d: map %s, guild %s" % [gap,map_rect.position,active_rect.position])
+	await check_roster_anchor(node("GuildActiveDetail").get_parent(),"guild")
+	var proof=OS.get_environment("UIUX_REVIEW_EVIDENCE")
+	if not proof.is_empty() and DisplayServer.get_name()!="headless":
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png(proof.path_join("guild-equipment.png"))
+	await tap("GuildTab_2")
+	check(not labels(node("GuildActiveDetail")).contains("使用可能:") and not labels(node("GuildReserveDetail")).contains("使用可能:"),"skill summaries omitted on both sides")
+	var filter=node("PartyJobFilter")
+	var job=str(guild.person(guard).job)
+	for index in range(filter.item_count):
+		if filter.get_item_metadata(index)==job:filter.select(index);filter.item_selected.emit(index);break
+	await settle()
+	check(node("RosterMember_"+guard).visible and not node("RosterMember_"+porter).visible and node("GuildMember_"+reserve_porter).visible,"active filter independent of reserves")
+	filter.select(0);filter.item_selected.emit(0);await settle();await tap("GuildTab_0")
 	check((await saved())==before and recorder.select_count==0 and not node("GuildSwap").disabled,"G05 counterpart selection is pure until explicit swap")
 	recorder.hold_next=true;recorder.release=false;node("GuildSwap").pressed.emit()
 	var deadline=Time.get_ticks_msec()+4000
@@ -143,8 +182,8 @@ func run():
 	game.pages.shop_view.open_comparison("undertow-sword");await settle()
 	check(node("ShopComparisonBuy")!=null and node("ShopComparisonStats")!=null,"G10 shop inline comparison and purchase flow present")
 	await tap("ShopComparisonBuy")
-	check(game.dialog.window.title=="購入の確認" and node("PurchaseAgree")!=null and node("PurchaseRecipient_"+guard)==null,"G10 payment precedes recipient")
-	await tap("PurchaseDecline");await tap("RosterMember_"+archer)
+	check(node("PurchaseReceiptClose")!=null,"G10 purchase shows completion")
+	await tap("PurchaseReceiptClose");await tap("RosterMember_"+archer)
 	check(game.shop_uid==archer,"G10 shop roster selects purchase owner without mutation")
 	game.navigate("character");await settle();await tap("RosterMember_"+alternate);await tap("RosterMember_"+archer)
 	check(game.page=="character" and game.pages.party_uid==archer and node("CharacterSlot_head")!=null and game.pages.party_view.workspace.owner==archer,"G10 shared roster opens named character workspace")

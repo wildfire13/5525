@@ -88,7 +88,7 @@ func render(parent: Control):
 		quote_context=current_quote_context()
 		quote_generation+=1;unequip_quote={}
 		refresh_unequip_quote.call_deferred(quote_generation,quote_context)
-	var split=HBoxContainer.new();split.name="WarehouseColumns";split.custom_minimum_size.y=ui.mock_shell.content_height();split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;split.add_theme_constant_override("separation",16);parent.add_child(split)
+	var split=ui.mock_shell.columns(parent);split.name="WarehouseColumns";split.custom_minimum_size.y=ui.mock_shell.content_height()
 	var loadout=Loadout.new()
 	split.add_child(loadout)
 	loadout.build(ui,member,tab,set_tab,"WarehouseTab_",busy())

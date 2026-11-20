@@ -20,9 +20,8 @@ func open(title: String, builder: Callable, closed: Callable=Callable(),initial_
 	escape_handler=Callable()
 	ui.memory.capture();checkpoint=ui.memory.scrolls.duplicate(true);origin=ui.memory.focus_key
 	epoch=ui.pages.epoch;connection=ui.engine.connection_generation;restore_callback=closed
-	window=Window.new();window.set_meta("managed_layout",true);window.name="StateDetails";window.title=title;window.exclusive=true;window.transient=true;window.unresizable=false;window.min_size=Vector2i(420,300)
+	window=Window.new();window.name="StateDetails";window.title=title;window.exclusive=true;window.transient=true
 	ui.add_child(window)
-	if initial_rect.has_area():window.set_meta("initial_rect",initial_rect)
 	var margin=preload("res://modal_input.gd").new();margin.owner_ref=weakref(self);window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,12)
 	var box=VBoxContainer.new();box.add_theme_constant_override("separation",8);margin.add_child(box)
@@ -35,31 +34,27 @@ func open(title: String, builder: Callable, closed: Callable=Callable(),initial_
 	window.window_input.connect(func(event):
 		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
 			window.set_input_as_handled();ui.get_viewport().set_input_as_handled();ui.modal_escape_frame=Engine.get_process_frames();escape())
-	resize();window.popup()
+	place_window(initial_rect);window.popup()
 	if actions.get_child_count()>0:actions.get_child(0).grab_focus()
 	return window
 func layout_key() -> String:
 	return "dialog:"+window.title.get_slice(" / ",0)
 func remember():
-	if is_instance_valid(window):keep_visible();ui.preferences.remember_window(window,layout_key())
-func keep_visible():
-	if not is_instance_valid(window):return
-	ui.preferences.keep_visible(window,ui.size)
-func resize():
-	if not is_instance_valid(window):return
-	if window.has_meta("layout_preferred"):
-		keep_visible();return
-	var extent=Vector2(1280,680) if window.title=="商品と装備の比較" else Vector2(840,620)
-	if window.title=="荷物を持つポーターを選択":extent=Vector2(840,420)
-	var rect=ui.preferences.rect_for(layout_key(),window.get_meta("initial_rect",Rect2((ui.size-extent)/2,extent)),ui.size,Vector2(420,300))
+	if is_instance_valid(window):
+		ui.preferences.keep_visible(window,ui.size)
+		ui.preferences.remember_window(window,layout_key())
+func place_window(initial_rect: Rect2):
+	var extent=ui.preferences.DEFAULT_DIALOG_SIZE
+	if window.title=="商品と装備の比較":extent=Vector2(1280,680)
+	elif window.title=="荷物を持つポーターを選択":extent=Vector2(840,420)
+	var fallback=initial_rect if initial_rect.has_area() else ui.preferences.default_window_rect(ui.size,extent)
+	var key=layout_key()
 	if window.title=="商品と装備の比較" and not ui.preferences.config.get_value("migration","shop_feedback30",false):
-		rect.size.x=maxf(rect.size.x,minf(1280,ui.size.x-32));rect=ui.preferences.bounded(rect,ui.size,Vector2(420,300))
-		ui.preferences.config.set_value("migration","shop_feedback30",true);ui.preferences.store_rect(layout_key(),rect)
-	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position.max(Vector2(0,36)))
-	var preferred=ui.preferences.config.get_value("windows",layout_key(),rect)
-	window.set_meta("layout_preferred",preferred if preferred is Rect2 else rect)
-	window.set_meta("layout_applied",Rect2(Vector2(window.position),Vector2(window.size)))
-	window.set_meta("layout_area",Vector2(-1,-1))
+		var rect=ui.preferences.rect_for(key,fallback,ui.size,Vector2(420,300))
+		rect.size.x=maxf(rect.size.x,minf(extent.x,ui.size.x-32))
+		ui.preferences.config.set_value("migration","shop_feedback30",true);ui.preferences.store_rect(key,rect)
+	var previous=initial_rect if initial_rect.has_area() else Rect2((ui.size-extent)/2,extent)
+	ui.preferences.place_window(window,key,ui.size,fallback,Vector2(420,300),previous)
 func escape():
 	# Window and its input margin can both receive the same key event.
 	var frame=Engine.get_process_frames()

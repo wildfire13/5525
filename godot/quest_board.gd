@@ -8,6 +8,7 @@ var selected_id := ""
 var picker_generation := 0
 var picker_owner := ""
 var submitted := false
+var requester_tween: Tween
 var dialogue
 var meeting
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui;meeting=preload("res://quest_meeting.gd").new(ui)
@@ -28,7 +29,7 @@ func render(parent):
 			var after=pages.card(parent);after.name="QuestAftermath_"+str(entry.id);pages.l(after,str(entry.name),true);pages.b(after,"出来事を知る",func():play_scene(entry.story,str(entry.get("portrait","")))).name="QuestAftermathStory_"+str(entry.id)
 		return
 	if not quests.any(func(q):return str(q.id)==selected_id):selected_id=str(quests[0].id)
-	var split=pages.row(parent);split.name="QuestBoardColumns";split.add_theme_constant_override("separation",16);split.custom_minimum_size.y=ui.mock_shell.content_height();split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+	var split=ui.mock_shell.columns(parent);split.name="QuestBoardColumns";split.custom_minimum_size.y=ui.mock_shell.content_height()
 	var list=ui.scroller(split);list.name="QuestList";list.get_parent().custom_minimum_size=Vector2(520,0);list.get_parent().size_flags_horizontal=Control.SIZE_FILL
 	ui.memory.watch(list.get_parent(),"quest_board_list")
 	var detail=pages.card(split);detail.name="QuestDetail";detail.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -146,8 +147,8 @@ func render_requester(parent,q: Dictionary):
 		stage.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(stage)
 		var art=TextureRect.new();art.name="QuestRequesterPortrait";art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
 		art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;art.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		stage.add_child(art)
-		stage.item_rect_changed.connect(position_requester.bind(art))
+		art.top_level=true;stage.add_child(art)
+		stage.resized.connect(position_requester.bind(art))
 	var image=stage.get_node("QuestRequesterPortrait")
 	var path="res://assets/quest_npcs/"+str(q.get("portrait","requester-placeholder"))+".png"
 	if not ResourceLoader.exists(path):path="res://assets/quest_npcs/requester-placeholder.png"
@@ -156,13 +157,24 @@ func render_requester(parent,q: Dictionary):
 func position_requester(image: TextureRect):
 	if image.texture==null or not image.is_inside_tree():return
 	var bounds=preload("res://facility_npc.gd").portrait_rect(image.get_viewport_rect().size,image.texture)
-	image.size=bounds.size;image.global_position=bounds.position
+	image.size=bounds.size
+	image.global_position=bounds.position
+func slide_requester(image: TextureRect,to_left: bool):
+	if not is_instance_valid(image):return
+	if requester_tween!=null:requester_tween.kill()
+	var width=image.get_viewport_rect().size
+	var home=preload("res://facility_npc.gd").portrait_rect(width,image.texture).position
+	var destination=Vector2(width.x*.04,home.y) if to_left else home
+	requester_tween=image.create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	requester_tween.tween_property(image,"global_position",destination,.30)
 func open_story(q: Dictionary):
 	if ui.locked or ui.modal_open() or ui.presenting:return
 	var scene=_dialogue()
 	if scene.get_parent()==null:ui.add_child(scene)
 	var scene_quest=q.duplicate(true);scene_quest["cast"]=scene_cast(str(q.get("eventId","")),"request",q.get("cast",[]));scene_quest["sceneLabel"]="依頼時の話" if pages.c().get("activeQuest") is Dictionary else "依頼の話"
-	scene.open(scene_quest,Callable() if pages.c().get("activeQuest") is Dictionary else func():open_picker(str(q.id)))
+	var image=ui.content.find_child("QuestRequesterPortrait",true,false)
+	if image!=null:slide_requester(image,true)
+	scene.open(scene_quest,Callable() if pages.c().get("activeQuest") is Dictionary else func():open_picker(str(q.id)),func():slide_requester(image,false),image)
 func scene_cast(event_id: String,kind: String,fallback: Array=[]) -> Array:
 	var request={"turnip":["farmer"],"kiln":["apprentice"],"wheel":["wheelwright"]}
 	var delivery={"turnip":["weigher","farmer"],"kiln":["master"],"wheel":["merchant"]}

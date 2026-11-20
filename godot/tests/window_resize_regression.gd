@@ -7,6 +7,33 @@ func run():
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
+ var expected=Vector2i((game.size-game.preferences.DEFAULT_DIALOG_SIZE)/2)
+ var prefs=game.preferences
+ var old_extent=Vector2(560,300)
+ var previous=Rect2((game.size-old_extent+prefs.TITLE_MARGIN)/2,old_extent)
+ for key in ["old-default","hand-placed"]:
+  if prefs.config.has_section_key("layout_origin_v2",key):prefs.config.erase_section_key("layout_origin_v2",key)
+  var stored=previous if key=="old-default" else Rect2(Vector2(74,96),old_extent)
+  prefs.store_rect(key,stored)
+  var probe=Window.new();game.add_child(probe);prefs.bind_window(probe,key,game.size,old_extent)
+  check(probe.position==(expected if key=="old-default" else Vector2i(stored.position)),key+" layout restored at the intended position")
+  probe.queue_free();await settle()
+ game.open_menu();await settle()
+ check(Vector2i(game.menu.position)==expected-Vector2i(0,game.theme.get_constant("title_height","Window")),"menu aligns with the visible top-left of dialog title bars");game.menu.hide()
+ var confirmation=game.confirm("確認",func():pass);await settle()
+ check(confirmation.position==expected,"confirmation opens at same origin");confirmation.canceled.emit();await settle()
+ game.portrait_dialog();await settle()
+ var chooser=node("PortraitChooser");check(chooser.position==expected,"portrait chooser opens at shared origin");chooser.close_requested.emit();await settle()
+ var ordinary=game.dialog.open("通知の詳細",func(_body,_actions):pass);await settle()
+ check(ordinary.position==expected,"detail opens at same origin")
+ game.dialog.close();await settle()
+ if game.debug_view.is_enabled() and DisplayServer.get_name()!="headless":
+  game.debug_view.open();await settle()
+  var dev=game.debug_view.window
+  var desktop=DisplayServer.screen_get_usable_rect(game.get_window().current_screen)
+  var desired=Rect2(Vector2(game.get_window().position+expected-desktop.position),Vector2(dev.size))
+  check(dev.position==desktop.position+Vector2i(game.preferences.bounded(desired,Vector2(desktop.size),Vector2(dev.min_size)).position),"native developer window opens at the shared origin in desktop coordinates")
+  dev.hide();await settle()
  game.navigate("character");game.pages.party_view.workspace.set_tab("skills");await settle()
  var skills=game.find_children("CharacterSkill_active_*","Button",true,false)
  check(not skills.is_empty(),"active member has a skill explanation")
@@ -14,6 +41,7 @@ func run():
  var origin=str(skills[0].name)
  node(origin).grab_focus();await click(origin);var before=await saved()
  var detail=node("SkillDetailsWindow")
+ check(detail.position==expected,"equipment skill description opens at shared origin")
  for dims in [Vector2i(1920,1080)]:
   root.size_changed.emit();await settle()
   check(node("SkillDetailsWindow")==detail and Rect2(Vector2.ZERO,Vector2(dims)).encloses(Rect2(Vector2(detail.position),Vector2(detail.size))),"already-open nested explanation fits FHD parent "+str(dims))

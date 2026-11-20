@@ -86,7 +86,7 @@ func render(parent):
 	if not c().get("selected",[]).has(ui.shop_uid):
 		ui.shop_uid=str(c().get("selected",[""])[0])
 	if sale.owner_id!=ui.shop_uid:sale.apply_owner(ui.shop_uid)
-	var layout=HBoxContainer.new();layout.name="ShopWorkspace";layout.add_theme_constant_override("separation",16);layout.custom_minimum_size.y=ui.mock_shell.content_height();layout.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;parent.add_child(layout)
+	var layout=ui.mock_shell.columns(parent);layout.name="ShopWorkspace";layout.custom_minimum_size.y=ui.mock_shell.content_height()
 	var column=preload("res://member_loadout_column.gd").new()
 	layout.add_child(column)
 	inventory_column=column
@@ -231,25 +231,28 @@ func select_equipment(gear: Dictionary):
 	if busy():return
 	selection_kind="equipment";selected_equipment=gear;sale.item_id="";ui.render()
 func checkout_fields(actions: Control,unit_price: int,changed: Callable) -> Label:
+	return transaction_fields(actions,true,unit_price,purchase_quantity,99,func(value):
+		purchase_quantity=int(value)
+		changed.call())
+
+func transaction_fields(actions: Control,buying: bool,unit_price: int,amount: int,limit: int,changed: Callable) -> Label:
 	var total=actions.get_parent()
 	var quantity_line=ui.row(total)
 	total.move_child(quantity_line,actions.get_index())
-	var caption=ui.label_(quantity_line,"購入数")
+	var caption=ui.label_(quantity_line,"購入数" if buying else "売却数")
 	caption.autowrap_mode=TextServer.AUTOWRAP_OFF
 	caption.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
-	var quantity=SpinBox.new();quantity.name="ShopPurchaseQuantity";quantity.min_value=1;quantity.max_value=99;quantity.value=purchase_quantity;quantity_line.add_child(quantity)
+	var quantity=SpinBox.new();quantity.name="ShopPurchaseQuantity" if buying else "FacilitySaleQuantity";quantity.min_value=1;quantity.max_value=limit;quantity.value=amount;quantity.editable=not busy();quantity_line.add_child(quantity)
 	ui.label_(quantity_line,"単価 %d G" % unit_price)
-	quantity.value_changed.connect(func(value):
-		purchase_quantity=int(value)
-		changed.call())
-	var money=ui.icons.line(ui,actions.get_parent(),"money","費用を確認中…");money.name="ShopComparisonPayment"
+	quantity.value_changed.connect(changed)
+	var money=ui.icons.line(ui,total,"money","金額を確認中…");money.name="ShopComparisonPayment" if buying else "FacilitySaleTotals"
 	actions.get_parent().move_child(money.get_parent(),actions.get_index())
 	return money
 
 func display_payment(money: Label,buy: Button,cost: Dictionary):
 	money.text="所持金 %dG − 購入 %dG = 残金 %dG" % [cost.goldBefore,cost.cost,cost.afterGold] if cost.get("ok",false) else "購入不可："+str(cost.reason)+" / 価格 %dG / 所持金 %dG" % [cost.cost,cost.goldBefore]
 	money.add_theme_color_override("font_color",Color("#29332f") if cost.get("ok",false) else Color("#a84432"))
-	buy.text="%d個の購入へ" % cost.count
+	buy.text=("%d個の購入へ" if c().get("location")=="south" else "%d個購入する") % cost.count
 	buy.disabled=not cost.get("ok",false) or busy();buy.set_meta("base_disabled",buy.disabled)
 	buy.tooltip_text="購入品はインベントリへ入ります。" if not buy.disabled else str(cost.get("reason","購入できません"))
 	for state in ["normal","hover","pressed","disabled"]:
@@ -370,7 +373,7 @@ func valid_ticket(ticket: int,epoch: int,connection: int,place: String) -> bool:
 func cancel_purchase(ticket: int):
 	if ticket!=generation or stage=="S5":return
 	generation+=1;consent={};stage="S0";ui.render()
-func confirm_purchase(id: String="",recipient: String="",count: int=1):
+func confirm_purchase(id: String="",recipient: String="",count: int=1,direct:=false):
 	if busy() or id.is_empty():return
 	if not recipient.is_empty() and not c().get("selected",[]).has(recipient):return
 	if c().get("location")=="south":
@@ -381,6 +384,10 @@ func confirm_purchase(id: String="",recipient: String="",count: int=1):
 	if reply.get("connection_lost",false):unknown=true;stage="S7";message="接続が失われました。購入は確定していません。";ui.handle_connection_loss(reply,connection);return
 	var q: Dictionary=reply.get("purchaseQuote",{})
 	if not reply.get("ok",false) or not q.get("ok",false):stage="S0";message=str(q.get("reason",reply.get("error","購入できません")));ui.render();return
+	if direct and not recipient.is_empty():
+		stage="S9"
+		await buy(q,recipient,ticket,true)
+		return
 	consent=q.duplicate(true);stage="S4"
 	ui.dialog.open("購入の確認",func(body,actions):
 		l(body,"%s / %d個" % [q.gear.name,q.count],true)
@@ -405,7 +412,7 @@ func choose_recipient(ticket: int):
 			b(line,str(person.name)+"のインベントリへ",buy.bind(consent.duplicate(true),str(person.id),ticket)).name="PurchaseRecipient_"+str(person.id)
 		b(actions,"取り消す",ui.dialog.close).name="PurchaseRecipientCancel",
 		cancel_purchase.bind(ticket))
-func buy(q: Dictionary,uid: String,ticket: int):
+func buy(q: Dictionary,uid: String,ticket: int,show_receipt:=false):
 	if stage!="S9" or ticket!=generation or ui.locked or unknown:return
 	stage="S5";var epoch=pages.epoch;var connection=ui.engine.connection_generation;var place=str(c().get("location"))
 	var before=int(c().get("characters",{}).get(uid,{}).get("inventory",{}).get(q.gearId,0))
@@ -415,7 +422,12 @@ func buy(q: Dictionary,uid: String,ticket: int):
 	var after=int(c().get("characters",{}).get(uid,{}).get("inventory",{}).get(q.gearId,0))
 	if result.get("ok",false) and after==before+int(q.count) and c().get("gold")==q.afterGold:
 		stage="S0";receipt=q.duplicate(true);receipt.characterId=uid;message=""
-		transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×%d / 支払%dG" % [ui.member_name(uid),q.gear.name,q.count,q.cost]};ui.save_notice.display(str(transaction.text))
+		transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×%d / 支払%dG" % [ui.member_name(uid),q.gear.name,q.count,q.cost]}
+		if show_receipt:
+			ui.dialog.open("購入完了",func(body,actions):
+				l(body,str(transaction.text),true)
+				ui.local_button(actions,"閉じる",ui.dialog.close).name="PurchaseReceiptClose")
+		else:ui.save_notice.display(str(transaction.text))
 	else:
 		unknown=result.get("connection_lost",false) or result.get("ok",false);stage="S7" if unknown else "S0"
 		message="購入結果を確認できません。再送せず保存済みの進行を読み込んで確認してください。" if unknown else "購入を確定できませんでした。所持金・在庫を確認して選び直してください。"
