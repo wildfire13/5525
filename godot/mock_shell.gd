@@ -1,6 +1,7 @@
 extends RefCounted
 ## Shared campaign chrome. All values and operations come from the game bridge.
 var ui
+var roster_jobs := {}
 const INK=Color("#29332f")
 const PAPER=Color("#faf9f5")
 const MUTED_INK=Color("#606960")
@@ -109,6 +110,18 @@ func workspace(parent) -> VBoxContainer:
 		if not ids.is_empty() and not ids.has(ui.pages.party_uid):ui.pages.party_uid=str(ids[0])
 		roster(row)
 	var body=VBoxContainer.new();body.name="CampaignBody";body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.size_flags_vertical=Control.SIZE_EXPAND_FILL;row.add_child(body);return body
+func job_filter(parent,selected: String,changed: Callable) -> OptionButton:
+	var chooser=OptionButton.new();parent.add_child(chooser);chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	chooser.custom_minimum_size.y=40;chooser.tooltip_text="職業で絞り込む"
+	chooser.add_item("すべて");chooser.set_item_metadata(0,"")
+	var jobs=[]
+	for member in ui.roster():
+		var job=str(member.get("job",""))
+		if job.is_empty() or jobs.has(job):continue
+		jobs.append(job);chooser.add_item(str(member.get("role",job)));chooser.set_item_metadata(chooser.item_count-1,job)
+		if job==selected:chooser.select(chooser.item_count-1)
+	chooser.item_selected.connect(func(index):changed.call(str(chooser.get_item_metadata(index))))
+	return chooser
 func roster(parent,deployment=null):
 	var panel=PanelContainer.new();panel.name="PartyRoster";panel.custom_minimum_size=Vector2(ROSTER_WIDTH,content_height());panel.size_flags_horizontal=Control.SIZE_FILL;panel.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
 	if deployment!=null:
@@ -118,14 +131,24 @@ func roster(parent,deployment=null):
 	var body=VBoxContainer.new();panel.add_child(body)
 	var ids=ui.campaign().get("selected",[])
 	ui.label_(body,"パーティメンバー     %d / %d" % [ids.size(),ui.campaign().get("partyLimit",12)])
+	var scene="deployment" if deployment!=null else str(ui.page)
+	var job=str(roster_jobs.get(scene,""))
+	var filter=job_filter(body,job,func(value):
+		roster_jobs[scene]=value
+		for row in body.find_children("*","Button",true,false):
+			if row.has_meta("roster_job"):row.visible=value.is_empty() or row.get_meta("roster_job")==value
+		if deployment==null and ui.pages.guild_view.available():
+			ui.pages.guild_view.match_current_filter(value))
+	filter.name="PartyJobFilter"
 	var list=ui.scroller(body);list.get_parent().name="PartyRosterScroll";ui.memory.watch(list.get_parent(),"deployment_roster" if deployment!=null else "mock_party_roster")
-	if deployment==null:list.get_parent().custom_minimum_size.y=content_height()-64
+	list.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
 	list.add_theme_constant_override("separation",0)
 	for id in ids:
 		var matches=ui.roster().filter(func(u):return str(u.id)==str(id))
 		if matches.is_empty():continue
 		var u=matches[0]
 		var button=ui.button(list,"",activate.bind(str(id)) if deployment==null else func():pass)
+		button.set_meta("roster_job",u.job);button.visible=job.is_empty() or u.job==job
 		button.custom_minimum_size=Vector2(254,88)
 		ui.memory.key(button,"mock_roster_member_"+str(id))
 		var selected=ui.pages.shop_view.selected_owner() if ui.pages.shop_view.sale_mode() else ui.pages.party_uid
@@ -143,6 +166,7 @@ func roster(parent,deployment=null):
 		button.set_script(preload("res://roster_drop_target.gd"))
 		button.member_id=str(id)
 		button.set_drag_forwarding(Callable(),func(_at,payload):return can_drop(payload,str(id)),func(_at,payload):drop(payload,str(id)))
+	if deployment==null and ui.pages.guild_view.available():ui.pages.guild_view.remove_button(body)
 	return panel
 func roster_member_line(button: Button,u: Dictionary) -> HBoxContainer:
 	button.custom_minimum_size.y=88

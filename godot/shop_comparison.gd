@@ -41,6 +41,14 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 		positions.item_selected.connect(func(i):switch_target(owner_id,str(positions.get_item_metadata(i))))
 	skill_rows=null
 	var conditions=ui.label_(body,"");conditions.name="ShopComparisonConditions";conditions.add_theme_font_size_override("font_size",20)
+	equipment_notes(body,gear)
+	# Keep payment/rejection beside the decision, outside long scrolling notes.
+	var money=shop.checkout_fields(actions,gear.price,func():switch_target(owner_id,slot))
+	var trial=ui.button(actions,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_END;trial.custom_minimum_size.y=40;trial.add_theme_font_size_override("font_size",20)
+	var buy=ui.primary(ui.button(actions,"取引を確認",purchase,true));buy.name="ShopComparisonBuy";buy.custom_minimum_size.y=40;buy.size_flags_horizontal=Control.SIZE_SHRINK_END
+	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
+	refresh(money,comparison,conditions,buy)
+func equipment_notes(body: Control,gear: Dictionary):
 	# Mechanics in the original equipment note must remain visible at purchase.
 	var note=str(gear.get("note","")).strip_edges()
 	var flavor=str(gear.get("flavor","")).strip_edges()
@@ -48,12 +56,7 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 		var description=ui.label_(body,flavor);description.name="ShopComparisonFlavor";description.add_theme_font_size_override("font_size",20)
 	if not note.is_empty():
 		var memo=ui.label_(body,note);memo.name="ShopComparisonNotes";memo.add_theme_font_size_override("font_size",20)
-	# Keep payment/rejection beside the decision, outside long scrolling notes.
-	var money=shop.checkout_fields(actions,gear.price,func():switch_target(owner_id,slot))
-	var trial=ui.button(actions,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_END;trial.custom_minimum_size.y=40;trial.add_theme_font_size_override("font_size",20)
-	var buy=ui.primary(ui.button(actions,"取引を確認",purchase,true));buy.name="ShopComparisonBuy";buy.custom_minimum_size.y=40;buy.size_flags_horizontal=Control.SIZE_SHRINK_END
-	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
-	refresh(money,comparison,conditions,buy)
+
 func equipment_columns(body: Control,candidate: String) -> Array:
 	var pair=ui.row(body);pair.name="ShopComparisonSkills"
 	var columns=[]

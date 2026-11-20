@@ -80,7 +80,7 @@ func run():
 			if member.id==incoming.id:member.name="長い名前の人物を見分けるための検証名"
 		game.render();await settle()
 		await tap("GuildMember_"+incoming.id)
-		check(labels(node("GuildComparisonDetails")).contains("長い名前の人物を見分けるための検証名"),"A1 selecting clipped reserve card exposes complete long name in inline details "+str(dims.x))
+		check(node("GuildMember_"+incoming.id).tooltip_text=="長い名前の人物を見分けるための検証名","A1 selecting clipped reserve card exposes complete long name through its tooltip "+str(dims.x))
 		var filter=node("GuildReserveJobFilter");var reserve=node("GuildReserveScroll");var current=node("PartyRoster")
 		check(filter.get_global_rect().end.x<=dims.x and reserve.size.y>100 and current.get_global_rect().end.x<reserve.global_position.x and current.size.y>100,"A1 filter and ordered roster and reserve regions fit "+str(dims.x)+" filter="+str(filter.get_global_rect())+" reserve="+str(reserve.get_global_rect())+" current="+str(current.get_global_rect()))
 		check(node("GuildActions").get_global_rect().end.y<=dims.y and node("GuildReturn").get_global_rect().end.y<=dims.y,"A1 selection/actions/return stay within supported window "+str(dims.x))

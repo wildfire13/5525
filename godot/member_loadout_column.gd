@@ -25,6 +25,9 @@ func build(ui, member: Dictionary, tab: String, choose: Callable, prefix: String
 	panel=display.get_parent()
 	panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	ui.label_(display,{"equipment":"装備","inventory":"インベントリ","ability":"能力","skills":"スキル"}[tab])
+	build_art(ui,display,member,tab)
+
+func build_art(ui,display,member,tab):
 	stage=Control.new()
 	stage.custom_minimum_size=ART_SIZE
 	stage.size_flags_vertical=Control.SIZE_EXPAND_FILL
@@ -52,6 +55,7 @@ func equipment(ui,member: Dictionary,selected_slot: String,prefix: String,choose
 		button.tooltip_text=str(slot.label)+" / "+str(item.name)
 		ui.mark_selected(button,selected_slot==slot.slot)
 		button.icon=ui.icons.texture(ui.icons.equipment(item))
+		if disabled:button.add_theme_color_override("icon_disabled_color",Color.WHITE)
 		button.expand_icon=true
 		button.add_theme_constant_override("icon_max_width",68)
 		var caption=ui.label_(stage,str(slot.label))

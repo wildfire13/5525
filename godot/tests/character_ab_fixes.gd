@@ -66,7 +66,7 @@ func run():
  check(game.campaign().inventoryByCharacter[uid].entries.filter(func(e):return e.id=="potion")[0].count==2,"discard cancel preserves inventory")
  ws.confirm_discard(uid,potion);await settle();game.pages.epoch+=1;game.find_child("CharacterDiscardConfirm",true,false).pressed.emit();await settle()
  check(game.campaign().inventoryByCharacter[uid].entries.filter(func(e):return e.id=="potion")[0].count==2,"stale discard confirmation cannot mutate inventory")
- ws.confirm_discard(uid,potion);await settle();game.find_child("CharacterDiscardQuantity",true,false).value=1;game.find_child("CharacterDiscardConfirm",true,false).pressed.emit();await settle()
+ await drag_item(item_row(potion.name),game.get_viewport_rect().end-Vector2(3,3));await settle();game.find_child("CharacterDiscardQuantity",true,false).value=1;game.find_child("CharacterDiscardConfirm",true,false).pressed.emit();await settle()
  check(game.campaign().inventoryByCharacter[uid].entries.filter(func(e):return e.id=="potion")[0].count==1,"discard quantity uses canonical commit")
  var other=str(game.campaign().selected[1])
  var previous=int(game.campaign().characters[other].inventory.get("potion",0))

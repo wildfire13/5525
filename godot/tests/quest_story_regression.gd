@@ -15,6 +15,17 @@ func run():
 	if game.data.is_empty():check(false,"campaign initializes");quit(1);return
 	game.checks_fast=true;await process_frame;await process_frame
 	var saved=await game.engine.request({"op":"campaign_save"})
+	for town in ["west","astaris","south","east","north"]:
+		var visit=saved.data.duplicate(true);visit.state.location=town
+		await game.update({"op":"campaign_load","data":visit});game.navigate("board")
+		for frame in range(8):await process_frame
+		var choices=game.find_children("QuestChoice_*","Button",true,false)
+		for i in range(mini(2,choices.size())):
+			if i>0:choices[i].pressed.emit()
+			for frame in range(4):await process_frame
+			var art=game.find_child("QuestRequesterPortrait",true,false)
+			var bounds=preload("res://facility_npc.gd").portrait_rect(Vector2(root.size),art.texture)
+			check(art.get_global_rect().is_equal_approx(bounds),town+" requester at reference position on entry/selection "+str(i))
 	var incoming=saved.data.duplicate(true);incoming.state.location="north"
 	await game.update({"op":"campaign_load","data":incoming});await process_frame
 	game.navigate("board");await process_frame;await process_frame
@@ -24,24 +35,35 @@ func run():
 	var story_button=game.find_child("QuestStory_standalone-turnip",true,false)
 	check(story_button is Button,"story can be read separately from accepting cargo")
 	if story_button==null:quit(1);return
-	story_button.pressed.emit();await process_frame;await process_frame
+	var requester=game.find_child("QuestRequesterPortrait",true,false);var home=requester.global_position
+	story_button.pressed.emit();await create_timer(.35).timeout
 	var scene=game.find_child("QuestDialogue",true,false)
 	check(scene!=null,"dialogue overlay opens on top of the existing town scene")
 	if scene==null:quit(1);return
 	var left=scene.find_child("QuestPortrait",true,false);var right=scene.find_child("QuestPortraitRight",true,false)
-	check(left is TextureRect and right is TextureRect and left.visible and not right.visible,"request scene contains only the farmer, not the recipient")
-	check(left.texture!=null and left.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and right.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED,"portrait source proportions are preserved")
-	check(left.modulate.r==1.0 and scene.find_child("QuestSpeaker",true,false).text=="農夫","requester is bright; name tab remains in place")
+	check(left==null and right is TextureRect and not right.visible and requester.is_visible_in_tree() and requester.global_position.x<home.x-200,"request scene contains only the farmer, not the recipient")
+	check(requester.texture!=null and requester.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and right.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED,"portrait source proportions are preserved")
+	check(requester.modulate.r==1.0 and scene.find_child("QuestSpeaker",true,false).text=="農夫","requester is bright; name tab remains in place")
 	check(root.size==Vector2i(1920,1080),"dialogue layout measured at FHD 1920×1080")
 	var panel=scene.find_child("QuestDialoguePanel",true,false)
 	check(panel.position.x>=0 and panel.position.y>=0 and panel.position.x+panel.size.x<=1920 and panel.position.y+panel.size.y<=1080,"black dialogue panel remains inside the FHD viewport")
 	check(game.campaign().activeQuest==null,"reading the opening scene does not accept the quest")
-	for i in range(scene.lines.size()*2):scene._advance()
+	var proof=OS.get_environment("UIUX_REVIEW_EVIDENCE")
+	if not proof.is_empty() and DisplayServer.get_name()!="headless":
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png(proof.path_join("board-story.png"))
+	scene._close();await create_timer(.35).timeout
+	check(requester.global_position.is_equal_approx(home),"closing talk slides the same requester to the original position")
+	story_button.pressed.emit();await create_timer(.35).timeout
+	scene=game.find_child("QuestDialogue",true,false)
+	while not scene.choice_row.visible:scene._advance()
 	await process_frame
 	check(scene.find_child("QuestStoryAccept",true,false) is Button and scene.find_child("QuestStoryDecline",true,false) is Button,"choice appears after all typewritten lines")
 	if scene.find_child("QuestStoryAccept",true,false) is Button:
 		scene.find_child("QuestStoryAccept",true,false).pressed.emit();await process_frame;await process_frame
 		check(game.campaign().activeQuest==null and game.dialog.window!=null and game.dialog.window.visible,"accept choice leads to carrier selection before cargo is issued")
+		await create_timer(.35).timeout
+		check(requester.global_position.is_equal_approx(home),"accepting the story returns the requester while the carrier picker is open")
 		if game.dialog.window!=null:game.dialog.close(false)
 	# The moving recipient's board copy must keep its destination and explanatory text aligned.
 	var wheel_save=await game.engine.request({"op":"campaign_save"});var wheel_fixture=wheel_save.data.duplicate(true)
@@ -98,7 +120,7 @@ func run():
 	while game.locked or game.engine.busy or game.loading_screen.active:await process_frame
 	check(not game.modal_open() and game.campaign().phase=="deployment","route selection proceeds directly (receipt deadline approaching)")
 	if not failures.is_empty():print("FAILURES: "+"; ".join(failures))
-	else:print("quest story regression: "+str(checks)+" checks passed; FHD geometry verified without a GUI framebuffer")
+	else:print("quest story regression: "+str(checks)+" checks passed; FHD layout verified")
 	game.closing=true;game.dialog.close(false);await game.audio.finish_audio();game.engine.close_engine()
 	await create_timer(.15).timeout;game.queue_free()
 	for i in range(6):await process_frame

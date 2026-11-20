@@ -16,6 +16,14 @@ func run():
  var field=game.board.get_global_rect();var sidebar=game.hud.right_panel.get_global_rect()
  var strip=game.deployment_party_strip
  var cards=strip.scroll.get_child(0)
+ var chooser=strip.find_child("PartyJobFilter",true,false)
+ var first_job=cards.get_child(0).get_meta("roster_job")
+ for index in range(chooser.item_count):
+  if chooser.get_item_metadata(index)==first_job:
+   chooser.select(index);chooser.item_selected.emit(index);break
+ await settle()
+ check(cards.get_children().all(func(card):return card.visible==(card.get_meta("roster_job")==first_job)),"deployment filter limits visible cards to the chosen job")
+ chooser.select(0);chooser.item_selected.emit(0);await settle()
  check(strip.find_child("PartyRoster",true,false)!=null and strip.size.x==game.mock_shell.ROSTER_WIDTH,"deployment uses the campaign roster and its width")
  check(cards.vertical and strip.scroll.vertical_scroll_mode==ScrollContainer.SCROLL_MODE_AUTO,"deployment roster uses vertical scrolling")
  check(strip.get_global_rect().end.x<field.position.x and not strip.get_global_rect().intersects(sidebar),"roster left, battlefield center, inspector right")

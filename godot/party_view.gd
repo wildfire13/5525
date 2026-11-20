@@ -47,9 +47,11 @@ func growth(parent,u: Dictionary):
 	l(parent,pages.stats_text(stats,str(u.id)));l(parent,"Wt上限はSTR。戦闘終了後、生存者が戦闘不能者の装備と荷物の重量を分担します。SPD（行動速度）はAGIと装備補正から算出します。")
 	pages.elemental_combat_line(parent,stats)
 	l(parent,"編成はアスタリスのギルドで変更できます。")
-func skills(parent,u: Dictionary):
+func skills(parent,u: Dictionary,show_summary:=true):
 	var s=u.get("stats",u);var names=pages.c().get("skillNames",{})
-	l(parent,"使用可能: "+" / ".join(u.get("activeSkillNames",[])));l(parent,"効果: "+" / ".join(u.get("effectNames",[])))
+	if show_summary:
+		l(parent,"使用可能: "+" / ".join(u.get("activeSkillNames",[])))
+		l(parent,"効果: "+" / ".join(u.get("effectNames",[])))
 	var seen={}
 	for source in s.get("skillSources",[]):
 		var id=str(source.id);var level=int(source.get("level",1))

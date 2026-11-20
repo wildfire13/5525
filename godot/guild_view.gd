@@ -58,21 +58,12 @@ func set_reserve_job(value: String):
 	ui.memory.request_focus("guild_reserve_job");ui.render()
 func reserve_filter(parent):
 	var filter_row=ui.row(parent);filter_row.name="GuildReserveFilter"
-	var caption=l(filter_row,"控えの職業");caption.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;caption.autowrap_mode=TextServer.AUTOWRAP_OFF;caption.add_theme_font_size_override("font_size",18)
-	var chooser=OptionButton.new();chooser.name="GuildReserveJobFilter";chooser.custom_minimum_size=Vector2(180,40);chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	chooser.add_item("すべて");chooser.set_item_metadata(0,"")
-	var jobs=[]
-	for member in ui.roster():
-		var job=str(member.get("job",""))
-		if job.is_empty() or jobs.has(job):continue
-		jobs.append(job);chooser.add_item(str(member.get("role",job)));chooser.set_item_metadata(chooser.item_count-1,job)
-		if job==reserve_job:chooser.select(chooser.item_count-1)
-	chooser.disabled=busy() or stage!="idle";filter_row.add_child(chooser);ui.memory.key(chooser,"guild_reserve_job")
-	chooser.item_selected.connect(func(index):set_reserve_job(str(chooser.get_item_metadata(index))))
+	var chooser=ui.mock_shell.job_filter(filter_row,reserve_job,set_reserve_job)
+	chooser.name="GuildReserveJobFilter";chooser.disabled=busy() or stage!="idle";ui.memory.key(chooser,"guild_reserve_job")
 	return filter_row
 func render(parent):
 	var lists=groups();var current=lists[1];var reserves=visible_reserves(lists[0])
-	if not active(current_id):current_id=str(current[0].id) if not current.is_empty() else ""
+	select_filtered_current(current,str(ui.mock_shell.roster_jobs.get("party","")))
 	if active(chosen_id):chosen_id=""
 	var split=HBoxContainer.new();split.name="GuildColumns";split.custom_minimum_size.y=ui.mock_shell.content_height();split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;split.add_theme_constant_override("separation",16);parent.add_child(split)
 	var panel=PanelContainer.new();panel.name="GuildComparison";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(panel)
@@ -88,7 +79,7 @@ func render(parent):
 	var body=ui.scroller(reserve);body.get_parent().name="GuildReserveScroll";ui.memory.watch(body.get_parent(),"guild_reserves_"+reserve_job)
 	for u in reserves:
 		var id=str(u.id);var button=b(body,"",choose.bind(id),busy());button.name="GuildMember_"+id;button.custom_minimum_size=Vector2(300,100)
-		button.set_script(preload("res://guild_member_card.gd"));button.configure(self,id);button.set_meta("member_id",id);button.set_meta("guild_active",false);ui.memory.key(button,"guild_member_"+id)
+		button.tooltip_text=str(u.name);button.set_script(preload("res://guild_member_card.gd"));button.configure(self,id);button.set_meta("member_id",id);button.set_meta("guild_active",false);ui.memory.key(button,"guild_member_"+id)
 		ui.mark_selected(button,id==chosen_id)
 		var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;button.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		for edge in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+edge,8)
@@ -99,6 +90,7 @@ func render(parent):
 			var label=l(copy,text);label.add_theme_font_size_override("font_size",18);label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.clip_text=true;label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	if reserves.is_empty():l(body,"この職業の控えはいません")
 	var add=b(reserve,"編成に加える",func():prepare("add","",chosen_id),busy() or candidate("add","",chosen_id).is_empty());add.name="GuildAdd";add.custom_minimum_size.y=44;ui.green_button(add)
+	update_remove_button();ui.mock_shell.refresh_roster_selection()
 func select_tab(index: int):
 	if detail_tab==index:return
 	detail_tab=index
@@ -124,34 +116,49 @@ func refresh_selection():
 		var add=reserve.find_child("GuildAdd",true,false)
 		add.disabled=busy() or candidate("add","",chosen_id).is_empty()
 		add.set_meta("base_disabled",add.disabled)
+		update_remove_button()
 		ui.mock_shell.refresh_roster_selection())
 
 func build_comparison(center):
 	compare=HBoxContainer.new();compare.name="GuildComparisonDetails";compare.size_flags_vertical=Control.SIZE_EXPAND_FILL;compare.add_theme_constant_override("separation",20);center.add_child(compare)
-	render_member(compare,person(current_id),"現在のパーティ")
-	var swap_column=VBoxContainer.new();swap_column.size_flags_vertical=Control.SIZE_EXPAND_FILL;compare.add_child(swap_column)
-	var space=Control.new();space.size_flags_vertical=Control.SIZE_EXPAND_FILL;swap_column.add_child(space)
+	var left=pages.card(compare);left.name="GuildActiveDetail";left.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	render_member(left,person(current_id),"現在のパーティ")
+	var swap_column=pages.card(compare);swap_column.name="GuildSwapColumn";swap_column.alignment=BoxContainer.ALIGNMENT_CENTER
 	var swap=b(swap_column,"入れ替える",prepare.bind("swap",current_id,chosen_id),busy() or candidate("swap",current_id,chosen_id).is_empty());swap.name="GuildSwap";swap.custom_minimum_size=Vector2(112,48)
-	var space2=Control.new();space2.size_flags_vertical=Control.SIZE_EXPAND_FILL;swap_column.add_child(space2)
-	render_member(compare,person(chosen_id),"控え")
+	var right=pages.card(compare);right.name="GuildReserveDetail";right.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	render_member(right,person(chosen_id),"控え")
 	footer=ui.row(center);footer.name="GuildActions"
 	var notice_label=l(footer,notice);notice_label.name="GuildNotice";notice_label.add_theme_font_size_override("font_size",18)
-	var remove=b(footer,"パーティから外す",prepare.bind("remove",current_id,""),busy() or candidate("remove",current_id,"").is_empty());remove.name="GuildRemove"
 	b(footer,"戻る",pages.facility_entry.back,busy()).name="GuildReturn"
-func render_member(parent,u: Dictionary,caption: String):
-	var column=VBoxContainer.new();column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;column.size_flags_stretch_ratio=1;parent.add_child(column)
+func remove_button(parent):
+	var remove=b(parent,"パーティから外す",func():prepare("remove",current_id,""));remove.name="GuildRemove";ui.green_button(remove)
+	remove.custom_minimum_size.y=44
+func update_remove_button():
+	var button=ui.content.find_child("GuildRemove",true,false)
+	if button!=null:
+		button.disabled=busy() or candidate("remove",current_id,"").is_empty()
+		button.set_meta("base_disabled",button.disabled)
+func select_filtered_current(current: Array,job: String):
+	var matches=current.filter(func(u):return job.is_empty() or u.job==job)
+	if not matches.any(func(u):return str(u.id)==current_id):current_id=str(matches[0].id) if not matches.is_empty() else ""
+	ui.pages.party_uid=current_id
+func match_current_filter(job: String):
+	select_filtered_current(groups()[1],job);refresh_selection()
+func render_member(column,u: Dictionary,caption: String):
+	l(column,caption).add_theme_font_size_override("font_size",18)
 	if u.is_empty():
-		var npc=pages.facility_art.npc
-		if npc.texture!=null:
-			var image=TextureRect.new();image.texture=npc.texture;image.custom_minimum_size=Vector2(160,300);image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;column.add_child(image)
-		l(column,"控えから人物を選んでください").add_theme_font_size_override("font_size",18)
+		if caption=="控え":
+			var npc=pages.facility_art.npc
+			if npc.texture!=null:
+				var image=TextureRect.new();image.texture=npc.texture;image.custom_minimum_size=Vector2(160,300);image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;column.add_child(image)
+		l(column,"控えから人物を選んでください" if caption=="控え" else "この職業のメンバーはいません")
 		return
-	var hero=ui.row(column);var portrait=ui.portrait(hero,u,false,128);portrait.custom_minimum_size=Vector2(128,220)
-	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;hero.add_child(copy)
-	l(copy,caption).add_theme_font_size_override("font_size",18)
-	l(copy,str(u.name),true)
-	l(copy,str(u.get("role",""))+" · Lv."+str(int(u.get("level",1)))).add_theme_font_size_override("font_size",18)
-	l(copy,"HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]).add_theme_font_size_override("font_size",18)
+	if detail_tab==1:
+		var doll=preload("res://member_loadout_column.gd").new();column.add_child(doll)
+		doll.build_art(ui,doll,u,"equipment")
+		doll.equipment(ui,u,"","GuildEq_"+str(u.id)+"_",func(_item):pass,Callable(),true)
+		return
+	var portrait=ui.portrait(column,u,false,128);portrait.custom_minimum_size=Vector2(128,220);portrait.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 	var details=ui.scroller(column)
 	match detail_tab:
 		0:
@@ -159,14 +166,7 @@ func render_member(parent,u: Dictionary,caption: String):
 			for pair in [["STR","str"],["INT","int"],["AGI","agi"],["SPD","speed"]]:l(details,"%s  %s" % [pair[0],str(int(stats.get(pair[1],stats.get("agi",0))))]).add_theme_font_size_override("font_size",20)
 			l(details,pages.defense_profile(stats)).add_theme_font_size_override("font_size",18)
 			l(details,pages.attack_profile(stats)).add_theme_font_size_override("font_size",18)
-		1:
-			var loadout=preload("res://member_loadout_column.gd")
-			for slot in loadout.ordered_slots(u):
-				var line=ui.row(details)
-				var item=loadout.slot_item(ui,u,slot)
-				ui.icons.add(line,ui.icons.equipment(item),36)
-				l(line,str(slot.label)+"  "+str(item.name)).add_theme_font_size_override("font_size",18)
-		2:pages.party_view.skills(details,u)
+		2:pages.party_view.skills(details,u,false)
 func select_current(id: String):
 	if not available() or busy() or ui.modal_open() or not active(id):return
 	current_id=id;notice="";refresh_selection()

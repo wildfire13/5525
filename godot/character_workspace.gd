@@ -94,6 +94,7 @@ func owned_comparison(detail,card,member,item):
 	selector.disabled=busy
 	selector.item_selected.connect(func(i):equip_slot=str(selector.get_item_metadata(i));refresh())
 	var summary=RichTextLabel.new();summary.name="CharacterEquipmentComparison";summary.bbcode_enabled=true;summary.fit_content=true;summary.add_theme_color_override("default_color",Color("#29332f"));detail.add_child(summary)
+	comparison.equipment_notes(detail,item.get("definition",item))
 	var actions=ui.row(card);actions.alignment=BoxContainer.ALIGNMENT_END
 	ui.button(actions,"キャンセル",func():picked={};refresh(),busy).name="CharacterEquipCancel"
 	var equip=ui.green_button(ui.button(actions,"変更する",perform.bind(owner,str(item.id),"equip",null,1,equip_slot),true))
@@ -198,7 +199,7 @@ func preview(columns,text,member,item,equip):
 		var stats=["比較対象："+str(ui.campaign().get("slots",{}).get(chosen,chosen))]
 		for change in comparison.stat_changes(member,quote):stats.append(comparison.change(change[0],change[1],change[2]))
 		text.text="\n".join(stats).replace("#8ee6ab","#247044").replace("#ffb1a6","#b04430").replace("#d5dbe2","#707970")
-		ui.pages.shop_view.comparison_view.fill_columns(columns,quote)
+		comparison.fill_columns(columns,quote)
 		render_comparison_skills(columns[1],quote,columns[0])
 		equip.disabled=busy or not item.get("equipSlots",[]).any(func(q):return q.slot==chosen and q.ok);equip.set_meta("base_disabled",equip.disabled)
 	else:text.text="比較を取得できません。選び直してください。"

@@ -50,7 +50,7 @@ func ids(name_: String):
 	return node(name_).get_child(0).get_children().filter(func(n):return n.has_meta("member_id")).map(func(n):return n.get_meta("member_id"))
 func current_ids() -> Array:
 	return node("PartyRoster").find_children("RosterMember_*","Button",true,false).map(func(n):return str(n.member_id))
-func current_scroll():return node("PartyRoster").find_children("*","ScrollContainer",true,false)[0]
+func current_scroll():return node("PartyRosterScroll")
 func labels(control) -> String:
 	return "\n".join(control.find_children("*","Label",true,false).map(func(n):return n.text))
 func run():
@@ -78,11 +78,26 @@ func run():
 	var reserve_ids=game.campaign().roster.filter(func(member):return not game.campaign().selected.has(member.id)).map(func(member):return str(member.id))
 	check(game.campaign().roster.size()==24 and reserve_ids.size()==19 and game.campaign().roster.all(func(member):return str(member.id).begins_with("character_")),"G02 fresh campaign contains exactly twenty-four live recruits and nineteen reserves")
 	check(current_ids()==game.campaign().selected and ids("GuildReserveScroll")==reserve_ids,"G02 lists retain selected and complete reserve order")
-	check(labels(node("GuildComparison")).contains("Lv.1") and labels(node("RosterMember_"+guard)).contains("HP") and not labels(node("RosterMember_"+porter)).contains("編成固定"),"G02 rows show resources and level without job-based lock")
+	check(not labels(node("GuildActiveDetail")).contains("Lv.1") and labels(node("RosterMember_"+guard)).contains("HP") and not labels(node("RosterMember_"+porter)).contains("編成固定"),"G02 rows show resources and level without job-based lock")
 	await tap("RosterMember_"+guard)
 	check((await saved())==before and guild.current_id==guard,"G05 first row selection is pure")
 	var intent=guild.candidate("swap",guard,alternate);var context=guild.stamp();var ticket=guild.generation+1
 	await tap("GuildMember_"+alternate)
+	await tap("GuildTab_1")
+	check(node("GuildActiveDetail").find_child("GuildEq_"+guard+"_head",true,false)!=null and node("GuildReserveDetail").find_child("GuildEq_"+alternate+"_head",true,false)!=null,"equipment shows both paper dolls")
+	var proof=OS.get_environment("UIUX_REVIEW_EVIDENCE")
+	if not proof.is_empty() and DisplayServer.get_name()!="headless":
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png(proof.path_join("guild-equipment.png"))
+	await tap("GuildTab_2")
+	check(not labels(node("GuildActiveDetail")).contains("使用可能:") and not labels(node("GuildReserveDetail")).contains("使用可能:"),"skill summaries omitted on both sides")
+	var filter=node("PartyJobFilter")
+	var job=str(guild.person(guard).job)
+	for index in range(filter.item_count):
+		if filter.get_item_metadata(index)==job:filter.select(index);filter.item_selected.emit(index);break
+	await settle()
+	check(node("RosterMember_"+guard).visible and not node("RosterMember_"+porter).visible and node("GuildMember_"+reserve_porter).visible,"active filter independent of reserves")
+	filter.select(0);filter.item_selected.emit(0);await settle();await tap("GuildTab_0")
 	check((await saved())==before and recorder.select_count==0 and not node("GuildSwap").disabled,"G05 counterpart selection is pure until explicit swap")
 	recorder.hold_next=true;recorder.release=false;node("GuildSwap").pressed.emit()
 	var deadline=Time.get_ticks_msec()+4000
