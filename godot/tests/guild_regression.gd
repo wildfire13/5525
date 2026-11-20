@@ -69,6 +69,9 @@ func run():
 	check(loaded.get("ok",false),"fixture uses valid owned stock and earned growth points")
 	var entry_before=await saved();game.navigate("hub");await settle()
 	check(node("HubFacility_guild")!=null and node("HubFacility_guild").text=="ギルド","G01 Astaris hub has explicit guild entry")
+	await tap("RosterMember_"+guard)
+	var map_width=node("CharacterTab_equipment").get_parent().get_parent().panel.size.x
+	await tap("Header_character")
 	await tap("HubFacility_guild")
 	check(node("FacilityChoice_guild")!=null and (await saved())==entry_before,"G01 guild opens pure service entry")
 	await tap("FacilityChoice_guild")
@@ -85,6 +88,9 @@ func run():
 	await tap("GuildMember_"+alternate)
 	await tap("GuildTab_1")
 	check(node("GuildActiveDetail").find_child("GuildEq_"+guard+"_head",true,false)!=null and node("GuildReserveDetail").find_child("GuildEq_"+alternate+"_head",true,false)!=null,"equipment shows both paper dolls")
+	var active_width=node("GuildActiveDetail").get_parent().size.x
+	var reserve_width=node("GuildReserveDetail").get_parent().size.x
+	check(active_width==map_width and reserve_width==map_width,"equipment panel widths at FHD: map %d, guild active %d, reserve %d" % [map_width,active_width,reserve_width])
 	var proof=OS.get_environment("UIUX_REVIEW_EVIDENCE")
 	if not proof.is_empty() and DisplayServer.get_name()!="headless":
 		await RenderingServer.frame_post_draw

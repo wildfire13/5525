@@ -145,6 +145,10 @@ func select_filtered_current(current: Array,job: String):
 func match_current_filter(job: String):
 	select_filtered_current(groups()[1],job);refresh_selection()
 func render_member(column,u: Dictionary,caption: String):
+	if detail_tab==1:
+		var panel=column.get_parent()
+		panel.custom_minimum_size.x=preload("res://member_loadout_column.gd").WIDTH
+		panel.size_flags_horizontal=Control.SIZE_EXPAND | Control.SIZE_SHRINK_CENTER
 	l(column,caption).add_theme_font_size_override("font_size",18)
 	if u.is_empty():
 		if caption=="控え":
