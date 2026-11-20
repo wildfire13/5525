@@ -67,6 +67,7 @@ func render(parent):
 	if active(chosen_id):chosen_id=""
 	var split=HBoxContainer.new();split.name="GuildColumns";split.custom_minimum_size.y=ui.mock_shell.content_height();split.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;split.add_theme_constant_override("separation",16);parent.add_child(split)
 	var panel=PanelContainer.new();panel.name="GuildComparison";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(panel)
+	var surface=ui.mock_shell.surface_style();surface.set_content_margin(SIDE_LEFT,0);panel.add_theme_stylebox_override("panel",surface)
 	var center=VBoxContainer.new();center.add_theme_constant_override("separation",16);panel.add_child(center)
 	var tabs=ui.row(center)
 	for index in range(3):
@@ -148,7 +149,7 @@ func render_member(column,u: Dictionary,caption: String):
 	if detail_tab==1:
 		var panel=column.get_parent()
 		panel.custom_minimum_size.x=preload("res://member_loadout_column.gd").WIDTH
-		panel.size_flags_horizontal=Control.SIZE_EXPAND | Control.SIZE_SHRINK_CENTER
+		panel.size_flags_horizontal=Control.SIZE_EXPAND | Control.SIZE_SHRINK_BEGIN
 	l(column,caption).add_theme_font_size_override("font_size",18)
 	if u.is_empty():
 		if caption=="控え":

@@ -70,7 +70,7 @@ func run():
 	var entry_before=await saved();game.navigate("hub");await settle()
 	check(node("HubFacility_guild")!=null and node("HubFacility_guild").text=="ギルド","G01 Astaris hub has explicit guild entry")
 	await tap("RosterMember_"+guard)
-	var map_width=node("CharacterTab_equipment").get_parent().get_parent().panel.size.x
+	var map_rect=node("CharacterTab_equipment").get_parent().get_parent().panel.get_global_rect()
 	await tap("Header_character")
 	await tap("HubFacility_guild")
 	check(node("FacilityChoice_guild")!=null and (await saved())==entry_before,"G01 guild opens pure service entry")
@@ -86,11 +86,13 @@ func run():
 	check((await saved())==before and guild.current_id==guard,"G05 first row selection is pure")
 	var intent=guild.candidate("swap",guard,alternate);var context=guild.stamp();var ticket=guild.generation+1
 	await tap("GuildMember_"+alternate)
+	var reserve_left=node("GuildReserveDetail").get_parent().global_position.x
 	await tap("GuildTab_1")
 	check(node("GuildActiveDetail").find_child("GuildEq_"+guard+"_head",true,false)!=null and node("GuildReserveDetail").find_child("GuildEq_"+alternate+"_head",true,false)!=null,"equipment shows both paper dolls")
-	var active_width=node("GuildActiveDetail").get_parent().size.x
-	var reserve_width=node("GuildReserveDetail").get_parent().size.x
-	check(active_width==map_width and reserve_width==map_width,"equipment panel widths at FHD: map %d, guild active %d, reserve %d" % [map_width,active_width,reserve_width])
+	var active_rect=node("GuildActiveDetail").get_parent().get_global_rect()
+	var reserve_rect=node("GuildReserveDetail").get_parent().get_global_rect()
+	check(active_rect.size.x==map_rect.size.x and reserve_rect.size.x==map_rect.size.x,"equipment panel widths at FHD: map %d, guild active %d, reserve %d" % [map_rect.size.x,active_rect.size.x,reserve_rect.size.x])
+	check(active_rect.position.x==map_rect.position.x and reserve_rect.position.x==reserve_left,"equipment left edges at FHD: map %d, guild active %d, reserve %d (ability tab %d)" % [map_rect.position.x,active_rect.position.x,reserve_rect.position.x,reserve_left])
 	var proof=OS.get_environment("UIUX_REVIEW_EVIDENCE")
 	if not proof.is_empty() and DisplayServer.get_name()!="headless":
 		await RenderingServer.frame_post_draw
