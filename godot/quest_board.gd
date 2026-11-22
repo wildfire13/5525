@@ -80,7 +80,9 @@ func render_detail(parent,q: Dictionary,active: bool):
 	pages.l(parent,("受注中: " if active else "")+str(q.name),true).name="QuestDetailTitle"
 	var details=ui.scroller(parent);details.name="QuestDetailBody";details.get_parent().custom_minimum_size.y=64
 	var description=pages.l(details,str(q.get("text","")));description.name="QuestDetailDescription";description.add_theme_font_size_override("font_size",20);description.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
-	field(details,"期限切れの確認", "どの町でも可能") if q.get("meeting",{}).get("canSettleFailure",false) else field(details,"届け先",pages.town(q.get("to","")))
+	var facility=pages.hub_view.FACILITIES.get(q.get("deliveryFacility",""),[])
+	var destination=pages.town(q.get("to",""))+("・"+str(facility[0]) if not facility.is_empty() else "")
+	field(details,"期限切れの確認", "どの町でも可能") if q.get("meeting",{}).get("canSettleFailure",false) else field(details,"届け先",destination)
 	field(details,"依頼者" if q.get("scenario",false) else "受取人",str(q.get("client","")))
 	if q.get("scenario",false) and q.get("eventId")!="wheel":field(details,"受取人",str({"turnip":"計量係","kiln":"陶工の師匠"}.get(str(q.get("eventId","")),"")))
 	if q.get("scenario",false) and q.get("eventId")!="wheel":
@@ -120,7 +122,8 @@ func render_detail(parent,q: Dictionary,active: bool):
 			ui.primary(pages.b(actions,"拠点で期限切れを確認" if m.get("canSettleFailure",false) else "拠点で受け渡しを確認",ui.navigate.bind("hub")))
 		elif pages.c().location==q.to and q.get("eventId")!="wheel":
 			if not pages.c().get("cargoAboard",false):pages.l(details,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
-			ui.primary(pages.b(actions,"拠点で荷物を届ける",ui.navigate.bind("hub")))
+			var label="拠点で荷物を届ける" if facility.is_empty() else str(facility[0])+"で納品する"
+			ui.primary(pages.b(actions,label,ui.navigate.bind("hub" if facility.is_empty() else facility[1])))
 		else:pages.b(actions,"届け先を確認",ui.navigate.bind("map"))
 
 	else:

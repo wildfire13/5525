@@ -47,10 +47,10 @@ func run():
 		check(game.campaign().phase=="town" and game.page=="hub" and node("TownHub")!=null,"direct hub arrival quest="+str(quest))
 		check(game.save_notice.visible and game.campaign().gold==cash,"arrival notice with no automatic cargo reward quest="+str(quest))
 		if quest:
-			check(node("HubDeliverCargo")!=null and not node("HubDeliverCargo").disabled,"destination hub has cargo delivery")
+			check(node("HubDeliverCargo")==null,"east smith delivery is inside the weapon shop")
 			await click("HubFacility_board");check(node("QuestComplete")==null,"board no longer owns delivery action")
-			game.navigate("hub");await settle();await click("HubDeliverCargo")
-			check(game.campaign().activeQuest==null and game.campaign().gold>cash,"hub delivers and pays existing reward")
+			game.navigate("hub");await settle();await click("HubFacility_weapon");await click("FacilityChoice_delivery")
+			check(game.campaign().activeQuest==null and game.campaign().gold>cash,"weapon shop delivers and pays existing reward")
 			var paid=await saved();var reward=game.campaign().gold
 			await game.act("completeQuest",[]);await settle()
 			check(game.campaign().gold==reward and await saved()==paid,"repeated delivery cannot pay or consume cargo twice")

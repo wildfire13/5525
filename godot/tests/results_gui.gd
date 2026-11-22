@@ -38,7 +38,7 @@ func run():
  var scroll=view.shade.find_child("ResultMembersScroll",true,false);await key("End");await shot("battle-result-members-bottom")
  check(scroll.scroll_vertical>=int(scroll.get_v_scroll_bar().max_value-scroll.get_v_scroll_bar().page)-2,"result keyboard End reaches final member")
  await os_click(view.continue_button);check(not view.active and await saved()==paid,"result real continue closes without regrant")
- await load_case(cases.normal.ready);game.navigate("hub");await settle();await os_click(node("HubDeliverCargo"));check(view.active and view.current.kind=="quest","real cargo hand-in opens quest completion result")
+ await load_case(cases.normal.ready);game.navigate("hub");await settle();await os_click(node("HubFacility_"+str(game.campaign().activeQuest.deliveryFacility)));await os_click(node("FacilityChoice_delivery"));check(view.active and view.current.kind=="quest","real cargo hand-in opens quest completion result")
  var delivered=await saved();await shot("quest-result-FHD");await os_click(view.shade.find_child("ResultShop",true,false))
  check(not view.active and game.campaign().phase=="town" and game.page=="shop" and game.campaign().gold==delivered.state.gold,"quest facility shortcut acknowledges once and preserves paid reward")
  await load_case(cases.late.result);await shot("late-result-FHD")

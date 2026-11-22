@@ -19,6 +19,10 @@ func run():
 			check(texture.get_image()!=null and not texture.get_image().is_empty(),"decoded pixel image available: "+variant.id)
 			check(image.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_COVERED and image.get_global_rect()==Rect2(Vector2.ZERO,Vector2(root.size)),"full-window aspect-preserved cover image at FHD: "+variant.id)
 			check(node("TownArtStyle")==null and game.location_label.text.begins_with(game.town_name(town)),"duplicate art/location heading removed; shared band identifies town: "+variant.id)
+			var landmarks={"east":{"board":Vector2(.79,.54),"weapon":Vector2(.21,.46)},"north":{"board":Vector2(.30,.52),"accessory":Vector2(.65,.58)}}
+			for facility in landmarks.get(town,{}):
+				var target=landmarks[town][facility]*Vector2(root.size)
+				check(node("HubFacility_"+facility).get_global_rect().has_point(target),"button covers artwork landmark: "+variant.id+"/"+facility)
 			var buttons=game.find_children("HubFacility_*","Button",true,false).map(func(b):return b.name)
 			for button in buttons:
 				await click(button);game.town_back.pressed.emit();await settle()

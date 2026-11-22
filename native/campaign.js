@@ -275,10 +275,12 @@ const Campaign = (() => {
     if(!q)return q;
     const shown=q.eventId==='wheel'?wheelPresentation(s,q):clone(q);
     if(q.id==='sluice-bell')Object.assign(shown,sluiceScene('offer'),{text:sluiceRequest+'（一度限りの依頼。遅配・撤退・敗北でも再受注できません。）'});
+    const regularId=new RegExp(`^${q.from}-${q.to}-[0-9]+-[0-9]+$`);
+    shown.deliveryFacility=regularId.test(q.id)?({east:'weapon',west:'armor',south:'items',astaris:'guild'}[q.to]||''):'';
     shown.rewards=questRewards(q);
     shown.rewardType=q.rewardType||'money';
     if(q.text===LEGACY_QUEST_TEXT&&locations.some(p=>p.id===q.from)&&locations.some(p=>p.id===q.to)&&
-       new RegExp(`^${q.from}-${q.to}-[0-9]+-[0-9]+$`).test(q.id))shown.text=questText(q);
+       regularId.test(q.id))shown.text=questText(q);
     return shown; // Presentation only: never rewrite the saved quest or journey.
   }
   // Revisionless accepted quests retain their original character EXP contract.
@@ -339,6 +341,7 @@ const Campaign = (() => {
     if(!s.selected.includes(ownerId)||template(ownerId)?.job!=='job_porter')return false;
     if(!I.canReceive(s.characters[ownerId].inventory,Cargo.key(s.sequence+1),1,inventoryCapacity(s,ownerId)))return false;
     s.rollback=snapshot(s);s.sequence++;s.activeQuest={...quest,token:s.sequence};
+    delete s.activeQuest.deliveryFacility;
     if(s.activeQuest.eventId==='wheel')for(const key of ['meeting','merchantAtStop','merchantCurrentStop','merchantTraveling','merchantCanWait','merchantWaitHours','merchantWindow','merchantDeparted'])delete s.activeQuest[key];
     if(quest.scenario){const event=s.standaloneEvents.events[quest.eventId];if(!event||event.status!=='available')return false;event.status='accepted';s.activeQuest.eventEpoch=s.standaloneEvents.epoch;}
     Cargo.issue(s,ownerId);invalidateInventory(s);note(s,quest.name+'を受注。'+template(ownerId).name+'が「荷物」を受け取りました。');return true;
