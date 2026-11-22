@@ -117,9 +117,12 @@ func _ready():
 	audio=preload("res://audio.gd").new();add_child(audio)
 	save_notice=preload("res://save_notice.gd").new();save_notice.name="SaveNotice";add_child(save_notice)
 	debug_view=preload("res://debug_window.gd").new();debug_view.configure(self);add_child(debug_view)
-	# A native Popup closes before forwarding its outside click, which used to
-	# reopen it on this same menu button. Keep this menu in the root canvas.
-	menu_overlay=Control.new();menu_overlay.name="CommonMenuOverlay";add_child(menu_overlay);menu_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu_overlay.z_index=60;menu_overlay.hide()
+	# Facility controls use top_level for grid placement. A separate canvas puts
+	# the open menu first for pointer input as well as drawing.
+	var menu_layer=CanvasLayer.new()
+	add_child(menu_layer)
+	menu_overlay=Control.new();menu_overlay.name="CommonMenuOverlay";menu_layer.add_child(menu_overlay)
+	menu_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu_overlay.hide()
 	menu=PanelContainer.new();menu.name="CommonMenu";menu_overlay.add_child(menu);menu.hide()
 	menu.add_theme_stylebox_override("panel",get_theme_stylebox("panel","TooltipPanel").duplicate())
 	menu.visibility_changed.connect(func():

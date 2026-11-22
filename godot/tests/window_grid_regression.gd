@@ -64,6 +64,8 @@ func mouse_press(control: Control,button:=MOUSE_BUTTON_LEFT):
 	var point=control.get_global_rect().get_center()
 	# Embedded windows are routed by the root viewport, like OS input.
 	if control.get_window()!=root:point+=Vector2(control.get_window().position)
+	await click_at(point,button)
+func click_at(point: Vector2,button:=MOUSE_BUTTON_LEFT):
 	var motion=InputEventMouseMotion.new()
 	motion.position=point;motion.global_position=point;root.push_input(motion,true)
 	for pressed in [true,false]:
@@ -72,12 +74,43 @@ func mouse_press(control: Control,button:=MOUSE_BUTTON_LEFT):
 		root.push_input(event,true)
 		await process_frame
 	await settle()
+func facility_menu_input(facility: String):
+	game.navigate(facility);await settle()
+	var header=node("CampaignHeader")
+	var trigger=header.find_children("*","Button",true,false).filter(func(b):return b.text=="メニュー")[0]
+	await mouse_press(trigger)
+	var exit_rect=node("FacilityExit").get_global_rect()
+	var overlap=exit_rect.intersection(game.menu.get_global_rect())
+	check(game.menu.visible and overlap.has_area(),facility+" exit overlaps the open menu")
+	var motion=InputEventMouseMotion.new()
+	motion.position=overlap.get_center();motion.global_position=motion.position;root.push_input(motion,true)
+	await process_frame
+	var hovered=root.gui_get_hovered_control()
+	check(hovered!=null and (hovered==game.menu or game.menu.is_ancestor_of(hovered)),facility+" menu receives pointer above exit; hit "+str(hovered))
+	var label_switch=node("UiLabelSwitch")
+	var was_on=label_switch.button_pressed
+	await mouse_press(label_switch)
+	check(game.menu.visible and label_switch.button_pressed!=was_on and game.page==facility,facility+" menu item accepts click")
+	if label_switch.button_pressed!=was_on:await mouse_press(label_switch)
+	await click_at(Vector2(exit_rect.position.x+8,exit_rect.get_center().y))
+	check(not game.menu.visible and game.page==facility,facility+" stays open after outside click")
+	if game.menu.visible:game.menu.hide()
+	if game.page==facility:await mouse_press(node("FacilityExit"))
+	check(game.page=="hub",facility+" exit works after menu is closed")
 func run():
 	create_timer(100).timeout.connect(func():quit(2))
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	check(root.size==Vector2i(1920,1080),"FHD game viewport")
+	await facility_menu_input("inn")
+	await facility_menu_input("party")
+	var home=await saved()
+	var east=home.duplicate(true);east.state.location="east"
+	await game.update({"op":"campaign_load","data":east})
+	await facility_menu_input("shop")
+	await game.update({"op":"campaign_load","data":home})
+	game.navigate("hub");await settle()
 	game.open_menu();await settle()
 	region(game.menu);region(node("AudioSettings"));await shot("menu")
 	game.menu.hide();game.save_notice.display("グリッド通知");await settle();region(game.save_notice)
