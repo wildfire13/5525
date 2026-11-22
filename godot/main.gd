@@ -124,13 +124,12 @@ func _ready():
 	menu_overlay=Control.new();menu_overlay.name="CommonMenuOverlay";menu_layer.add_child(menu_overlay)
 	menu_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu_overlay.hide()
 	menu=PanelContainer.new();menu.name="CommonMenu";menu_overlay.add_child(menu);menu.hide()
-	menu.add_theme_stylebox_override("panel",get_theme_stylebox("panel","TooltipPanel").duplicate())
+	var menu_style=mock_shell.style()
+	menu_style.set_content_margin_all(0);menu.add_theme_stylebox_override("panel",menu_style)
 	menu.visibility_changed.connect(func():
 		if not menu.visible:menu_overlay.hide();menu_button.grab_focus())
 	menu_overlay.gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:menu.hide();menu_overlay.accept_event())
-	var menu_style=menu.get_theme_stylebox("panel").duplicate()
-	menu_style.set_content_margin_all(0);menu.add_theme_stylebox_override("panel",menu_style)
 	var menu_grid=preload("res://window_grid.gd").new();menu.add_child(menu_grid)
 	var menu_scroll=ScrollContainer.new();menu_scroll.name="CommonMenuScroll";menu_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;menu_scroll.follow_focus=true;menu_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;menu_grid.add_child(menu_scroll)
 	var menu_body=VBoxContainer.new();menu_body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;menu_scroll.add_child(menu_body)
@@ -591,6 +590,7 @@ func render():
 		themes_ready=true
 	var next_theme=battle_theme if battle else campaign_theme
 	if theme!=next_theme:theme=next_theme
+	if menu_overlay.theme!=next_theme:menu_overlay.theme=next_theme
 	if is_instance_valid(parked_board) and (parked_epoch!=pages.epoch or phase!="deployment"):
 		parked_board.queue_free()
 		parked_board=null
@@ -1003,9 +1003,6 @@ func open_menu():
 func menu_focus_controls() -> Array:
 	return menu.find_children("*","Control",true,false).filter(func(control):return control.focus_mode==Control.FOCUS_ALL and control.is_visible_in_tree() and (not control is BaseButton or not control.disabled))
 func fit_menu():
-	var style=menu.get_theme_stylebox("panel")
-	if style.get_content_margin(SIDE_LEFT)!=0:
-		style=style.duplicate();style.set_content_margin_all(0);menu.add_theme_stylebox_override("panel",style)
 	preload("res://screen_grid.gd").place(menu,preload("res://screen_grid.gd").cell_rect(size,3,1,3,8))
 func file_dialog_open() -> bool:
 	# Native dialogs live outside the scene and do not set Window.visible.

@@ -46,7 +46,6 @@ func apply_theme():
 	for state in ["tab_selected","tab_unselected","tab_hovered","tab_disabled"]:
 		ui.theme.set_stylebox(state,"TabContainer",style(Color("#e0e8dd") if state=="tab_selected" else PAPER))
 	for key in ["font_selected_color","font_unselected_color","font_hovered_color","font_focus_color"]:ui.theme.set_color(key,"TabContainer",INK)
-	ui.menu.add_theme_stylebox_override("panel",surface_style())
 var character_origin := "hub"
 
 func toggle_character():

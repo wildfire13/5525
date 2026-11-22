@@ -23,4 +23,3 @@ static func apply(ui):
    panel.content_margin_left=12;panel.content_margin_right=12
    panel.content_margin_top=8;panel.content_margin_bottom=8
    ui.theme.set_stylebox(state,kind,panel)
- ui.menu.add_theme_stylebox_override("panel",ui.mock_shell.surface_style())

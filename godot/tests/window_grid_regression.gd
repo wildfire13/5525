@@ -112,7 +112,11 @@ func run():
 	await game.update({"op":"campaign_load","data":home})
 	game.navigate("hub");await settle()
 	game.open_menu();await settle()
-	region(game.menu);region(node("AudioSettings"));await shot("menu")
+	region(game.menu);region(node("AudioSettings"))
+	var volume=node("AudioVolumeValue_bgm")
+	check(volume.get_theme_color("font_color")==game.mock_shell.INK,"menu volume uses the shared dark text")
+	check(game.menu.get_theme_stylebox("panel").bg_color.a==1.0,"map text cannot show through the menu")
+	await shot("menu")
 	game.menu.hide();game.save_notice.display("グリッド通知");await settle();region(game.save_notice)
 	game.dialog.open("グリッド詳細",func(body,actions):
 		game.label_(body,"内容と入力を保持する詳細")

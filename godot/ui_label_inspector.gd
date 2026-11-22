@@ -4,7 +4,7 @@ const CATALOG = preload("res://ui_labels.json")
 const FONT = preload("res://assets/fonts/NotoSansJP.ttf")
 const FONT_SIZE = 14
 const INK = Color("#665775")
-const OUTLINE = Color("#fffdf5")
+const PAPER = Color("#fffdf5")
 var ui
 var enabled := true
 var definitions := {}
@@ -21,7 +21,7 @@ class RegionOverlay extends Control:
 	func _draw():
 		for caption in captions:
 			var baseline: Vector2 = caption[1].position + Vector2(0, FONT.get_ascent(FONT_SIZE))
-			draw_string_outline(FONT, baseline, caption[0], HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, 3, OUTLINE)
+			draw_rect(caption[1].grow(1), PAPER)
 			draw_string(FONT, baseline, caption[0], HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, INK)
 
 func setup(game):
