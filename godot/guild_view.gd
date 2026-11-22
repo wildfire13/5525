@@ -66,14 +66,16 @@ func render(parent):
 	select_filtered_current(current,str(ui.mock_shell.roster_jobs.get("party","")))
 	if active(chosen_id):chosen_id=""
 	var split=ui.mock_shell.columns(parent);split.name="GuildColumns";split.custom_minimum_size.y=ui.mock_shell.content_height()
+	split.add_theme_constant_override("separation",0)
 	var panel=PanelContainer.new();panel.name="GuildComparison";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(panel)
 	var background=ui.mock_shell.surface_style();background.set_content_margin_all(0);panel.add_theme_stylebox_override("panel",background)
-	var center=VBoxContainer.new();panel.add_child(center)
+	var center=VBoxContainer.new();center.add_theme_constant_override("separation",0);panel.add_child(center)
 	var tabs=ui.row(center)
+	tabs.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	for index in range(3):
 		var tab=b(tabs,["能力","装備","スキル"][index],select_tab.bind(index));tab.name="GuildTab_"+str(index);ui.mark_selected(tab,detail_tab==index)
 	build_comparison(center)
-	var reserve_panel=PanelContainer.new();reserve_panel.custom_minimum_size.x=320;split.add_child(reserve_panel)
+	var reserve_panel=PanelContainer.new();reserve_panel.custom_minimum_size.x=ui.mock_shell.grid_cell().x*2;reserve_panel.add_theme_stylebox_override("panel",background);split.add_child(reserve_panel)
 	reserve=VBoxContainer.new();reserve.name="GuildReserveColumn";reserve.size_flags_vertical=Control.SIZE_EXPAND_FILL;reserve_panel.add_child(reserve)
 	l(reserve,"控え %d人" % lists[0].size()).name="GuildReserveHeading"
 	reserve_filter(reserve)
@@ -129,6 +131,7 @@ func build_comparison(center):
 	var right=pages.card(compare);right.name="GuildReserveDetail";right.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	render_member(right,person(chosen_id),"控え")
 	footer=ui.row(center);footer.name="GuildActions"
+	footer.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	var notice_label=l(footer,notice);notice_label.name="GuildNotice";notice_label.add_theme_font_size_override("font_size",18)
 	b(footer,"戻る",pages.facility_entry.back,busy()).name="GuildReturn"
 func remove_button(parent):
@@ -157,7 +160,8 @@ func render_member(column,u: Dictionary,caption: String):
 		l(column,"控えから人物を選んでください" if caption=="控え" else "この職業のメンバーはいません")
 		return
 	if detail_tab==1:
-		var doll=preload("res://member_loadout_column.gd").new();column.add_child(doll)
+		var equipment_body=ui.scroller(column)
+		var doll=preload("res://member_loadout_column.gd").new();equipment_body.add_child(doll)
 		doll.build_art(ui,doll,u)
 		doll.equipment(ui,u,"","GuildEq_"+str(u.id)+"_",func(_item):pass,Callable(),true)
 		return

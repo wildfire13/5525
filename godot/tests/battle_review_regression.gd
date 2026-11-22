@@ -93,10 +93,14 @@ func movement_cases():
 	await restore()
 	for mode in range(3):
 		game.board.camera_yaw=[0.0,.45,-.45][mode];game.board.camera_pitch=[.65,.9,.4][mode];game.board.update_camera();game.choose_command("action_move");await settle();var before=await snapshot();var first=geometry();var dest=int(game.data.choices.action_move[0])
+		await game.on_cell(int(game.hud.acting().pos));await settle()
+		check("JY-03",game.pending==null and game.board.move_preview_caption().is_empty(),"illegal move has no hit-rate caption")
 		await game.on_cell(dest);await settle();var original=game.preview.duplicate(true);var placed=geometry()
+		check("JY-03",game.board.move_preview_caption()=="命中率：100％","legal movement preview displays 100 percent")
 		check("JY-03",stable(first,placed),str(root.size)+" view "+str(mode)+" selection and ghost keep all 50 projected positions and camera unchanged")
 		game.preview.risks=["長い敵の名前と予告条件を確認するための表示試験".repeat(12)];game.render();await settle();var long_text=geometry();check("JY-03",stable(first,long_text),"long forecast cannot resize or move board");game.preview=original;game.render();await settle()
 		game.hud.open_range_reference();await settle();var open=geometry();var overlay=false
+		check("JY-04",game.board.move_preview_caption().is_empty(),"range reference does not show the move hit rate")
 		for child in game.get_children():
 			if child is Window and child.visible and Rect2(Vector2(child.position),Vector2(child.size)).intersects(game.board.get_global_rect()):overlay=true
 		check("JY-04",not overlay and stable(first,open) and game.board.ghost.visible,"reference leaves ghost and full board unobscured at identical coordinates")
@@ -112,6 +116,7 @@ func movement_cases():
 		await click(game.board.global_position+game.board.project_cell(int(game.data.choices.action_move[-1])));check("JY-04",game.pending==dest and game.hud.range_reference,"board click cannot replace destination through reference mode")
 		await escape();check("JY-04",not game.hud.range_reference and game.pending==dest and game.preview==original and game.can_commit(),"Escape returns to the same executable movement ghost")
 		game.cancel();await settle();check("JY-03",stable(first,geometry()),"cancel restores choice without moving any cell");check("JY-04",await snapshot()==before,"reference and cancellation change no resources")
+		check("JY-03",game.board.move_preview_caption().is_empty(),"cancel clears the move hit rate")
 		measurements.append({"window":str(root.size),"mode":mode,"select":recorded(first),"ghost":recorded(placed),"long_text":recorded(long_text),"reference":recorded(open),"cancel":recorded(geometry()),"stable":stable(first,placed) and stable(first,open)})
 func target_details():
 	await restore();var before=await snapshot()

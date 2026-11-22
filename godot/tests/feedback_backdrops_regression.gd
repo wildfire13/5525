@@ -35,8 +35,9 @@ func run():
 			await visual_contract(str(spec)+str(dims))
 			var npc=node("FacilityNpc");var before=await saved();var art=game.pages.facility_art;var path=art.npc.selected_path;var random=art.npc.rng.state
 			if spec[2] not in ["departure_map",""]:
-				check(npc!=null and npc.get_parent().name=="FacilityEntryArt" and npc.size.y>root.size.y and npc.get_global_rect().end.y>root.size.y and is_equal_approx(npc.size.x/npc.size.y,2.0/3.0),"facility original enlarged with lower-body crop "+str(spec)+str(dims))
-				check(npc!=null and npc.mouse_filter==Control.MOUSE_FILTER_IGNORE and npc.focus_mode==Control.FOCUS_NONE,"enlarged NPC cannot block UI inputs "+str(spec)+str(dims))
+				var region=Rect2(1152,216,768,864)
+				check(npc!=null and npc.get_parent().name=="FacilityNpcRegion" and npc.get_parent().get_global_rect()==region and is_equal_approx(npc.size.y,root.size.y*1.28) and npc.texture==art.npc.texture and npc.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED,"facility portrait keeps its aspect ratio inside right-side grid region "+str(spec)+str(dims))
+				check(npc!=null and npc.mouse_filter==Control.MOUSE_FILTER_IGNORE and npc.focus_mode==Control.FOCUS_NONE,"NPC cannot block UI inputs "+str(spec)+str(dims))
 			else:check(npc==null,"no invented NPC for hub/map "+str(spec))
 			game.render();await settle()
 			check(art.npc.selected_path==path and art.npc.rng.state==random and await saved()==before,"rerender preserves visit and exact save "+str(spec)+str(dims))

@@ -20,6 +20,7 @@ func run():
 	var comparison=node("CharacterEquipmentComparison")
 	var candidate=node("ShopComparisonProduct")
 	check(candidate!=null and candidate.is_visible_in_tree() and candidate.text==entry.name and comparison.is_visible_in_tree() and comparison.text.begins_with("比較対象："+str(game.campaign().slots.feet)) and not comparison.text.contains("+0"),"S1/S2 selected boots show the comparison without unchanged bonuses")
+	await click("SkillDetailsBack")
 	var q={"before":{"max":245,"maxMp":10,"speed":14,"def":0},"after":{"max":207,"maxMp":10,"speed":14,"def":0}}
 	var text=game.pages.shop_view.comparison_view.comparison_text({"hp":144,"mp":10},{"equipSlots":[]},"upperBody",q)
 	check(text.contains("-38") and not text.contains("MP") and not text.contains("現在HP") and not text.contains("DEF"),"S3 retains HP upper limit -38 and omits unchanged resources")
@@ -28,6 +29,7 @@ func run():
 	entry=game.campaign().inventoryByCharacter["character_mirei"].entries.filter(func(e):return e.id=="potion")[0]
 	var potion=game.find_children("*","Button",true,false).filter(func(b):return b.tooltip_text==entry.name)[0]
 	potion.pressed.emit();await settle()
+	await click("SkillDetailsBack")
 	await click("CharacterItemDetails")
 	check(node("SkillDetailsBody").text.contains("HP"),"S5 owned potion details include its recovery effect")
 	await click("SkillDetailsBack")
@@ -50,9 +52,14 @@ func run():
 	check(game.find_children("ProductSummary_*","Label",true,false).is_empty(),"S6 no permanent performance descriptions")
 	var product=node("Product_swift-boots");var price=product_price(product)
 	check(product.is_ancestor_of(price) and product.get_global_rect().encloses(price.get_global_rect()),"S6 price inside product right edge")
-	check(product.tooltip_text.contains("俊足"),"S6 product identity available on hover")
+	var product_name=product.tooltip_text
+	check(product_name.contains("俊足"),"S6 product identity available on hover")
 	before=await saved();await click("Product_swift-boots")
-	check(node("ShopComparisonStats")!=null and not node("ShopComparisonStats").text.is_empty() and not game.modal_open() and await saved()==before,"S6 selecting product exposes inline performance without changing save")
+	var detail=node("SkillDetailsWindow")
+	check(detail!=null and detail.visible and node("SkillDetailsBody").text.contains("Wt") and await saved()==before,"S6 selecting product opens common equipment performance without changing save")
+	if detail!=null:await click("SkillDetailsBack")
+	var inline_candidate=node("ShopComparisonProduct")
+	check(not game.modal_open() and inline_candidate!=null and inline_candidate.is_visible_in_tree() and inline_candidate.text==product_name and await saved()==before,"S6 closing product detail leaves the inline comparison and save intact")
 	check(not game.find_children("*","Label",true,false).any(func(label):return label.text.contains("購入した品は")),"S6 redundant recipient instruction removed")
 	var original_shop=game.data.campaign.shop.duplicate(true)
 	for item in game.data.campaign.shop:item.name="長い商品名の折り返し確認".repeat(16)

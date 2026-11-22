@@ -11,10 +11,16 @@ func run():
 		prefs.store_rect("deployment_ally",Rect2(10,100,340,550));prefs.store_rect("deployment_enemy",Rect2(1510,100,350,600))
 		print("PASS write presentation preferences in isolated process");quit();return
 	var ok=prefs.camera()=={"pan":Vector2(1.5,-2),"yaw":.35,"pitch":.6,"zoom":14.0}
-	ok=ok and prefs.rect_for("battle_actor",Rect2(),Vector2(1920,1080),Vector2(280,240))==Rect2(55,90,350,600)
-	ok=ok and prefs.rect_for("battle_target",Rect2(),Vector2(1920,1080),Vector2(280,240))==Rect2(1480,80,360,650)
-	ok=ok and prefs.rect_for("status",Rect2(),Vector2(1920,1080),Vector2(420,300))==Rect2(70,90,900,720)
-	ok=ok and prefs.rect_for("deployment_ally",Rect2(),Vector2(1920,1080),Vector2(280,240))==Rect2(10,100,340,550)
-	ok=ok and prefs.rect_for("deployment_enemy",Rect2(),Vector2(1920,1080),Vector2(280,240))==Rect2(1510,100,350,600)
-	print(("PASS " if ok else "FAIL ")+"fresh process restores left/right/status and full camera transform")
+	print(("PASS " if ok else "FAIL ")+"fresh process restores full camera transform")
+	for entry in [
+		["battle_actor",Vector2(280,240),Rect2(0,108,384,648)],
+		["battle_target",Vector2(280,240),Rect2(1536,108,384,648)],
+		["status",Vector2(420,300),Rect2(0,108,960,756)],
+		["deployment_ally",Vector2(280,240),Rect2(0,108,384,540)],
+		["deployment_enemy",Vector2(280,240),Rect2(1536,108,384,648)],
+	]:
+		var actual=prefs.rect_for(entry[0],Rect2(),Vector2(1920,1080),entry[1])
+		var matches=actual==entry[2]
+		print(("PASS " if matches else "FAIL ")+"fresh process restores %s on the FHD grid: %s (expected %s)" % [entry[0],actual,entry[2]])
+		ok=ok and matches
 	quit(0 if ok else 1)

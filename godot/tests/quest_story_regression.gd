@@ -2,13 +2,31 @@ extends SceneTree
 var failures: Array[String]=[]
 var checks:=0
 var game
+const Grid=preload("res://screen_grid.gd")
+func grid_area(area: String):
+	var control=game.find_child(area,true,false)
+	if not control is Control or not control.is_visible_in_tree():check(false,area+" visible");return
+	var rect: Rect2=control.get_global_rect()
+	check(Grid.snap_rect(rect,Vector2(root.size)).is_equal_approx(rect),area+" actual FHD rectangle "+str(rect))
+func screenshot(label: String):
+	var proof=OS.get_environment("UIUX_REVIEW_EVIDENCE")
+	if not proof.is_empty() and DisplayServer.get_name()!="headless":
+		await RenderingServer.frame_post_draw
+		var image=root.get_texture().get_image()
+		check(image.get_size()==Vector2i(1920,1080) and image.save_png(proof.path_join(label+".png"))==OK,"rendered FHD evidence "+label)
+func escape_dialogue():
+	for down in [true,false]:
+		var event=InputEventKey.new();event.keycode=KEY_ESCAPE;event.pressed=down
+		Input.parse_input_event(event)
+		await process_frame
 func check(ok: bool,label: String):
 	checks+=1
 	if not ok:failures.append(label)
 	print(("PASS " if ok else "FAIL ")+label)
 func _initialize():call_deferred("run")
 func run():
-	root.size=Vector2i(1920,1080)
+	root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1920,1080)
+	create_timer(90).timeout.connect(func():quit(2))
 	game=load("res://main.tscn").instantiate();root.add_child(game)
 	var deadline=Time.get_ticks_msec()+15000
 	while game.data.is_empty() and Time.get_ticks_msec()<deadline:await process_frame
@@ -24,8 +42,8 @@ func run():
 			if i>0:choices[i].pressed.emit()
 			for frame in range(4):await process_frame
 			var art=game.find_child("QuestRequesterPortrait",true,false)
-			var bounds=preload("res://facility_npc.gd").portrait_rect(Vector2(root.size),art.texture)
-			check(art.get_global_rect().is_equal_approx(bounds),town+" requester at reference position on entry/selection "+str(i))
+			var bounds=game.find_child("QuestRequester",true,false).get_global_rect()
+			check(art.texture!=null and art.get_global_rect().is_equal_approx(bounds),town+" requester fills the stage on entry/selection "+str(i))
 	var incoming=saved.data.duplicate(true);incoming.state.location="north"
 	await game.update({"op":"campaign_load","data":incoming});await process_frame
 	game.navigate("board");await process_frame;await process_frame
@@ -48,23 +66,30 @@ func run():
 	var panel=scene.find_child("QuestDialoguePanel",true,false)
 	check(panel.position.x>=0 and panel.position.y>=0 and panel.position.x+panel.size.x<=1920 and panel.position.y+panel.size.y<=1080,"black dialogue panel remains inside the FHD viewport")
 	check(game.campaign().activeQuest==null,"reading the opening scene does not accept the quest")
-	var proof=OS.get_environment("UIUX_REVIEW_EVIDENCE")
-	if not proof.is_empty() and DisplayServer.get_name()!="headless":
-		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png(proof.path_join("board-story.png"))
-	scene._close();await create_timer(.35).timeout
-	check(requester.global_position.is_equal_approx(home),"closing talk slides the same requester to the original position")
+	for area in ["DialogueScreen","QuestRequesterPortrait","QuestDialoguePanel"]:grid_area(area)
+	await screenshot("board-story")
+	await escape_dialogue()
+	check(not is_instance_valid(scene) and requester.global_position.is_equal_approx(home),"Escape closes talk and returns the same requester")
 	story_button.pressed.emit();await create_timer(.35).timeout
 	scene=game.find_child("QuestDialogue",true,false)
 	while not scene.choice_row.visible:scene._advance()
 	await process_frame
 	check(scene.find_child("QuestStoryAccept",true,false) is Button and scene.find_child("QuestStoryDecline",true,false) is Button,"choice appears after all typewritten lines")
+	grid_area("QuestStoryChoices")
+	await screenshot("board-story-choices")
 	if scene.find_child("QuestStoryAccept",true,false) is Button:
 		scene.find_child("QuestStoryAccept",true,false).pressed.emit();await process_frame;await process_frame
 		check(game.campaign().activeQuest==null and game.dialog.window!=null and game.dialog.window.visible,"accept choice leads to carrier selection before cargo is issued")
 		await create_timer(.35).timeout
 		check(requester.global_position.is_equal_approx(home),"accepting the story returns the requester while the carrier picker is open")
 		if game.dialog.window!=null:game.dialog.close(false)
+	game.pages.quest_board.play_scene([["weigher","荷物を受け取ります。"],["farmer","ありがとう。"]],"weigher",[],"turnip")
+	await process_frame
+	for area in ["DialogueScreen","QuestPortrait","QuestPortraitRight","QuestDialoguePanel"]:grid_area(area)
+	await screenshot("delivery-story-two-portraits")
+	scene=game.find_child("QuestDialogue",true,false)
+	await escape_dialogue()
+	check(not is_instance_valid(scene),"Escape closes delivery story")
 	# The moving recipient's board copy must keep its destination and explanatory text aligned.
 	var wheel_save=await game.engine.request({"op":"campaign_save"});var wheel_fixture=wheel_save.data.duplicate(true)
 	wheel_fixture.state.location="east";wheel_fixture.state.worldTime=22;wheel_fixture.state.hours=22
@@ -78,6 +103,16 @@ func run():
 	check(window_label is Label and not window_label.text.contains("希望条件") and window_label.text.contains("サウス") and window_label.text.contains("18時間以上36時間まで"),"board shows South stop window with inclusive end")
 	check(game.find_child("QuestStatus",true,false)==null,"board omits redundant current-stop line")
 	check(availability is Label and availability.text.contains("サウスへ向かってください"),"board directs player to merchant's different stop")
+	grid_area("QuestMerchantAvailability")
+	var schedule=game.find_child("QuestScheduleToggle",true,false)
+	schedule.pressed.emit();await process_frame;await process_frame
+	var detail_scroll=schedule.get_parent().get_parent() as ScrollContainer
+	detail_scroll.scroll_vertical=int(detail_scroll.get_v_scroll_bar().max_value)
+	await process_frame
+	check(window_label.is_visible_in_tree() and (detail_scroll.scroll_vertical>0 or detail_scroll.get_global_rect().encloses(window_label.get_global_rect())),"expanded merchant schedule can be read within the detail viewport")
+	grid_area("QuestMerchantAvailability")
+	grid_area("QuestDetailActions")
+	await screenshot("wheel-board-schedule")
 	var carrier=game.campaign().selected.filter(func(id):return game.campaign().roster.any(func(c):return c.id==id and c.job=="job_porter"))[0]
 	await game.act("accept",["standalone-wheel",carrier]);await process_frame;await process_frame
 	var accepted_save=await game.engine.request({"op":"campaign_save"});var wait_fixture=accepted_save.data.duplicate(true)

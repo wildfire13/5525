@@ -87,13 +87,14 @@ func render(parent):
 		ui.shop_uid=str(c().get("selected",[""])[0])
 	if sale.owner_id!=ui.shop_uid:sale.apply_owner(ui.shop_uid)
 	var layout=ui.mock_shell.columns(parent);layout.name="ShopWorkspace";layout.custom_minimum_size.y=ui.mock_shell.content_height()
+	layout.add_theme_constant_override("separation",0)
 	var column=preload("res://member_loadout_column.gd").new()
 	layout.add_child(column)
 	inventory_column=column
 	render_inventory_column(column)
 	var middle=make_panel(layout,"ShopTransaction",0)
 	transaction_column=middle
-	var stock=make_panel(layout,"ShopCatalog",ui.mock_shell.SHOP_CATALOG_WIDTH)
+	var stock=make_panel(layout,"ShopCatalog",ui.mock_shell.grid_cell().x*2)
 	catalog_column=stock
 	backdrop(stock,pages.facility_art.npc.texture,"ShopKeeperArt")
 	render_transaction(middle)
@@ -132,16 +133,19 @@ func render_inventory_column(column):
 		ui.memory.watch(inventory.get_parent(),"shop_inventory_"+inventory_tab)
 		sale.render_inventory(inventory)
 func render_transaction(middle):
-	l(middle,"購入" if selection_kind=="buy" else "売却" if selection_kind=="sell" else "取引を確認").name="ShopTransactionHeading"
+	var heading=l(middle,"購入" if selection_kind=="buy" else "売却" if selection_kind=="sell" else "取引を確認")
+	heading.name="ShopTransactionHeading";heading.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	var detail=ui.scroller(middle);detail.get_parent().name="ShopTransactionScroll"
-	render_notice(detail)
-	var footer=ui.row(middle);footer.name="ShopTransactionFooter";footer.alignment=BoxContainer.ALIGNMENT_END
+	detail.add_theme_constant_override("separation",0)
+	var operations=VBoxContainer.new();operations.name="ShopTransactionFooter";operations.custom_minimum_size.y=ui.mock_shell.grid_cell().y*2;operations.add_theme_constant_override("separation",0);middle.add_child(operations)
+	var footer=ui.row(operations);footer.alignment=BoxContainer.ALIGNMENT_END
+	render_notice(operations)
 	if selection_kind=="sell":
 		sale.render_detail(detail,footer)
 		b(footer,"商品一覧へ",func():selection_kind="";ui.render(),busy())
 	elif selection_kind=="owned" and not sale.selected().is_empty():
 		var member=ui.roster().filter(func(u):return u.id==ui.shop_uid)[0]
-		pages.party_view.workspace.owned_comparison(detail,middle,member,sale.selected(),cancel_owned_comparison)
+		pages.party_view.workspace.owned_comparison(detail,operations,member,sale.selected(),cancel_owned_comparison)
 	elif selection_kind=="equipment":
 		if not selected_equipment.is_empty():
 			pages.party_view.workspace.equipped_detail(detail,ui.shop_uid,selected_equipment,busy())
@@ -184,8 +188,8 @@ func sync_product_rows(products: Control):
 func make_panel(parent: Control,node_name: String,width: float) -> VBoxContainer:
 	var panel=PanelContainer.new();panel.name=node_name;panel.custom_minimum_size.x=width;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL if width==0 else Control.SIZE_FILL
-	var style=StyleBoxFlat.new();style.bg_color=Color("#faf9f5");style.border_color=Color("#cbd0c7");style.set_border_width_all(1);style.set_corner_radius_all(3);style.set_content_margin_all(12);panel.add_theme_stylebox_override("panel",style);parent.add_child(panel)
-	var body=VBoxContainer.new();body.add_theme_constant_override("separation",12);body.size_flags_vertical=Control.SIZE_EXPAND_FILL;panel.add_child(body)
+	var style=StyleBoxFlat.new();style.bg_color=Color("#faf9f5");style.border_color=Color("#cbd0c7");style.set_border_width_all(1);style.set_corner_radius_all(3);style.set_content_margin_all(0);panel.add_theme_stylebox_override("panel",style);parent.add_child(panel)
+	var body=VBoxContainer.new();body.add_theme_constant_override("separation",0);body.size_flags_vertical=Control.SIZE_EXPAND_FILL;panel.add_child(body)
 	return body
 func backdrop(body: Control,texture: Texture2D,node_name: String):
 	if texture==null:return
@@ -228,6 +232,7 @@ func render_product(parent: Control,item: Dictionary):
 		label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
 		label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	list_surface(choose,selection_kind=="buy" and pages.gear_id==str(item.id));ui.memory.key(choose,"product_"+str(item.id))
+	preload("res://equipment_tooltip.gd").bind_details(choose,ui,{"id":item.id,"name":item.name,"kind":"item" if c().location=="south" else "equipment","count":1,"definition":item})
 	preload("res://item_drag.gd").source(choose,func():
 		if busy():return null
 		return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":pages.epoch},str(item.name),ui.icons.texture(str(item.id) if c().location=="south" else ui.icons.equipment(item)),can_drop_sale,drop_sale)
@@ -353,6 +358,7 @@ func render_recipient(parent):
 func consumable_row(parent,item: Dictionary):
 	var line=ui.row(parent);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=64
 	var label=b(line,str(item.name),show_consumable_details.bind(str(item.id)),busy());label.name="Product_"+str(item.id);label.alignment=HORIZONTAL_ALIGNMENT_LEFT;label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;label.custom_minimum_size=Vector2(240,64);ui.icons.apply(label,str(item.id));ui.memory.key(label,"product_"+str(item.id))
+	preload("res://equipment_tooltip.gd").bind_hover(label,{"name":item.name,"kind":"item","definition":item},c())
 	preload("res://item_drag.gd").source(label,func():
 		if busy():return null
 		return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":pages.epoch},str(item.name),label.icon)
@@ -374,9 +380,6 @@ func purchase_consumable(id: String,count: int):
 		transaction={"kind":"buy","ownerId":owner,"text":"%sへ %s×%d / 支払%dG" % [ui.member_name(owner),item[0].name,count,int(item[0].price)*count]};message="";ui.save_notice.display(str(transaction.text))
 	else:message=str(reply.get("error","購入結果を確認してください。"))
 	ui.render()
-func configure_tooltip(button,item: Dictionary):
-	button.set_script(preload("res://equipment_tooltip.gd"))
-	button.configure(str(item.name),item,{"names":c().get("skillNames",{}),"definitions":c().get("skillDefinitions",{}),"title_size":24 if ui.size.x>=1800 else 20,"detail_size":18 if ui.size.x>=1800 else 16})
 func cancel_pending():
 	# Quotes are pure; an in-flight committed purchase must not be discarded here.
 	if stage!="S1":return

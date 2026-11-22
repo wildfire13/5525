@@ -4,6 +4,14 @@ func _initialize():call_deferred("run")
 func check(value,label):
 	print(("PASS " if value else "FAIL ")+label)
 	if not value:failures.append(label)
+func check_grid(game, names):
+	for node_name in names:
+		var control=game.find_child(node_name,true,false)
+		var rect=control.get_global_rect()
+		var aligned=root.get_visible_rect().encloses(rect)
+		for point in [rect.position,rect.end]:
+			aligned=aligned and (point/Vector2(192,108)).is_equal_approx((point/Vector2(192,108)).round())
+		check(aligned,node_name+" on FHD screen grid")
 func run():
 	root.size=Vector2i(1920,1080)
 	var game=load("res://main.tscn").instantiate();root.add_child(game)
@@ -34,7 +42,8 @@ func run():
 	var strip=game.find_child("TravelRouteStrip",true,false)
 	check(strip!=null,"horizontal travel strip mounted")
 	check(game.find_child("RouteChoices",true,false)!=null,"route choice buttons")
-	check(strip.size.y==160,"fixed compact travel strip height")
+	check(strip.size.y==216,"compact travel strip spans two grid rows")
+	check_grid(game,["TravelRouteStrip","CampActions","RouteChoices"])
 	check(game.find_child("RouteChoice_short",true,false).text.contains("2時間") and not game.find_child("RouteChoice_short",true,false).text.contains("敵") and game.find_child("RouteChoice_safe",true,false).text.contains("4時間"),"route choices expose time without disclosing enemy details")
 	if not OS.get_environment("TRAVEL_FIX_CAPTURE").is_empty():
 		await RenderingServer.frame_post_draw
@@ -43,9 +52,11 @@ func run():
 	for i in range(5):await process_frame
 	var full_map=game.find_child("TravelFullMap",true,false)
 	check(full_map!=null and full_map.read_only,"expanded travel map is read only")
+	check_grid(game,["TravelRouteStrip","TravelFullMap","CampActions","RouteChoices"])
 	game.find_child("TravelMapToggle",true,false).pressed.emit()
 	for i in range(5):await process_frame
 	check(game.find_child("TravelFullMap",true,false)==null and game.find_child("TravelRouteStrip",true,false)==strip,"collapse restores compact route only")
+	check_grid(game,["CampActions","RouteChoices"])
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(3):await process_frame
 	quit(0 if failures.is_empty() else 1)

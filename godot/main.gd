@@ -134,7 +134,10 @@ func _ready():
 		if not menu.visible:menu_overlay.hide();menu_button.grab_focus())
 	menu_overlay.gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:menu.hide();menu_overlay.accept_event())
-	var menu_scroll=ScrollContainer.new();menu_scroll.name="CommonMenuScroll";menu_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;menu_scroll.follow_focus=true;menu.add_child(menu_scroll)
+	var menu_style=menu.get_theme_stylebox("panel").duplicate()
+	menu_style.set_content_margin_all(0);menu.add_theme_stylebox_override("panel",menu_style)
+	var menu_grid=preload("res://window_grid.gd").new();menu.add_child(menu_grid)
+	var menu_scroll=ScrollContainer.new();menu_scroll.name="CommonMenuScroll";menu_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;menu_scroll.follow_focus=true;menu_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;menu_grid.add_child(menu_scroll)
 	var menu_body=VBoxContainer.new();menu_body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;menu_scroll.add_child(menu_body)
 	for item in [["セーブ",save_game],["ロード",load_dialog],["行動ログ",show_action_log]]:
 		var callback: Callable=item[1]
@@ -159,7 +162,7 @@ func _ready():
 	menu_body.add_child(label_switch)
 	local_button(menu_body,"操作説明",func():menu.hide();show_help())
 	local_button(menu_body,"全画面 F11",func():menu.hide();fullscreen())
-	var audio_settings=VBoxContainer.new();audio_settings.name="AudioSettings";menu_body.add_child(audio_settings)
+	var audio_settings=VBoxContainer.new();audio_settings.name="AudioSettings";menu_grid.add_child(audio_settings)
 	for pair in [["bgm","BGM"],["voice","ボイス"],["se","SE"]]:
 		var kind=str(pair[0]);var caption=str(pair[1]);var controls=VBoxContainer.new();audio_settings.add_child(controls)
 		var category=Label.new();category.text=caption+"音量";controls.add_child(category)
@@ -232,7 +235,7 @@ func button(parent: Node,text: String,fn: Callable,disabled:=false) -> Button:
 func set_status(message: String):
 	# Newlines and wrapping must never enlarge the fixed status row.
 	# Reserve the populated line even when empty, so the party strip stays put.
-	footer.custom_minimum_size.y=maxf(24,ceilf(footer.get_theme_font("font").get_height(footer.get_theme_font_size("font_size"))))
+	footer.custom_minimum_size.y=maxf(footer.custom_minimum_size.y,ceilf(footer.get_theme_font("font").get_height(footer.get_theme_font_size("font_size"))))
 	footer.text=message.replace("\r","").replace("\n"," / ")
 	footer.tooltip_text=message;footer.set_meta("full_message",message)
 	footer.focus_mode=Control.FOCUS_NONE if message.is_empty() else Control.FOCUS_ALL
@@ -332,7 +335,7 @@ func confirm(text: String,fn: Callable,build: Callable=Callable()):
 	var epoch=pages.epoch;var generation=engine.connection_generation
 	var origin=get_viewport().gui_get_focus_owner()
 	var origin_key=str(origin.get_meta("ui_key","")) if origin!=null else memory.focus_key
-	var d=ConfirmationDialog.new();d.exclusive=true;d.title="確認";d.dialog_text=text;d.ok_button_text="実行する";d.cancel_button_text="キャンセル"
+	var d=preload("res://grid_confirmation.gd").new();d.exclusive=true;d.title="確認";d.dialog_text=text;d.ok_button_text="実行する";d.cancel_button_text="キャンセル"
 	d.add_theme_stylebox_override("panel",mock_shell.surface_style())
 	d.dialog_autowrap=true;d.add_theme_font_size_override("font_size",18)
 	d.get_label().add_theme_font_size_override("font_size",18)
@@ -588,6 +591,11 @@ func render():
 	header.tooltip_text=header.text
 	var inspecting_deployment=phase=="deployment" and page=="character"
 	var battle=not inspecting_deployment and not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
+	base.add_theme_constant_override("separation",8 if battle else 0)
+	content.add_theme_constant_override("separation",8 if battle else 0)
+	footer.custom_minimum_size.y=24 if battle else size.y/10.0
+	if not battle:
+		base.offset_left=0;base.offset_right=0;base.offset_top=0;base.offset_bottom=0
 	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
 	sync_audio()
 	if not themes_ready:
@@ -620,7 +628,9 @@ func render():
 	var lower_return=phase=="result" or phase=="town" and page!="hub"
 	town_back.visible=not battle and page!="hub" and phase=="town" and not lower_return
 	town_back.text="アスタリスへ戻る" if page=="party" and c.get("guildAvailable",false) else "拠点へ"
-	top.custom_minimum_size.y=56 if battle and ui_size_mode=="standard" else 44
+	if battle:
+		base.offset_left=0;base.offset_top=0;base.offset_right=0;base.offset_bottom=0
+	top.custom_minimum_size.y=preload("res://screen_grid.gd").cell_rect(available,0,0,10,1).size.y if battle else 44
 	var common_menu=find_child("CommonMenuButton",true,false)
 	if common_menu!=null:
 		common_menu.visible=battle
@@ -675,9 +685,7 @@ func render():
 		elif page=="character":pages.party_view.render_page(body)
 		elif phase=="camp" and page=="items":render_items(body)
 		else:render_journey(body)
-		if phase=="result":
-			var return_row=row(content);return_row.name="TownReturnRow";return_row.alignment=BoxContainer.ALIGNMENT_END
-			var back=green_button(button(return_row,pages.facility_entry.return_label() if phase=="town" else "広場に移動",pages.acknowledge.bind("hub") if phase=="result" else pages.facility_entry.back,pages.guild_view.busy() if page=="party" else false));back.name="GuildReturn" if page=="party" else "InnReturn" if page=="inn" else "TownReturn"
+		if phase=="result":pages.return_to_town(body)
 
 	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else (focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if battle else ""))
 	widgets=widgets.filter(func(b):return is_instance_valid(b) and b.is_inside_tree())
@@ -1022,8 +1030,10 @@ func open_menu():
 func menu_focus_controls() -> Array:
 	return menu.find_children("*","Control",true,false).filter(func(control):return control.focus_mode==Control.FOCUS_ALL and control.is_visible_in_tree() and (not control is BaseButton or not control.disabled))
 func fit_menu():
-	menu.size=Vector2(minf(440,maxf(1,size.x-24)),minf(760,maxf(1,size.y-48)))
-	menu.position=preferences.overlay_rect(size,menu.size).position
+	var style=menu.get_theme_stylebox("panel")
+	if style.get_content_margin(SIDE_LEFT)!=0:
+		style=style.duplicate();style.set_content_margin_all(0);menu.add_theme_stylebox_override("panel",style)
+	preload("res://screen_grid.gd").place(menu,preload("res://screen_grid.gd").cell_rect(size,3,1,3,8))
 func file_dialog_open() -> bool:
 	# Native dialogs live outside the scene and do not set Window.visible.
 	for child in find_children("*","FileDialog",true,false):
@@ -1096,7 +1106,7 @@ func show_skill_details(id: String,title_: String,level: int=1,gear: Dictionary=
 	var context=member_name(str(state().get("actor",""))) if view_kind=="battle" else member_name(pages.party_uid)
 	if not gear.is_empty():context+=" / "+str(gear.get("name",""))
 	detail.configure(self,preload("res://skill_text.gd").document(id,title_,level,campaign(),gear),context,str(gear.get("note","")),str(gear.get("flavor","")))
-func show_equipment_details(entry: Dictionary):
+func show_equipment_details(entry: Dictionary,origin_name: String=""):
 	if locked or presenting or closing:return
 	var existing=find_child("SkillDetailsWindow",true,false)
 	if existing!=null and existing.visible:existing.grab_focus();return
@@ -1104,4 +1114,5 @@ func show_equipment_details(entry: Dictionary):
 	var doc=helper.detail_document(entry);helper.free()
 	var host=dialog.window if is_instance_valid(dialog.window) else self
 	var detail=preload("res://skill_details.gd").new();host.add_child(detail)
-	detail.configure(self,doc,member_name(pages.party_uid)+" / "+str(entry.name),str(entry.get("definition",{}).get("note","")) if entry.kind=="equipment" else "",str(entry.get("definition",{}).get("flavor","")) if entry.kind=="equipment" else "")
+	detail.configure(self,doc,"",str(entry.get("definition",{}).get("note","")) if entry.kind=="equipment" else "",str(entry.get("definition",{}).get("flavor","")) if entry.kind=="equipment" else "")
+	if not origin_name.is_empty():detail.origin_name=origin_name

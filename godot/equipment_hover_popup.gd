@@ -1,91 +1,76 @@
 extends Control
-## Read-only hover drawn above embedded windows, with genuine UI click-through.
-## Embedded Window.mouse_passthrough is unsupported; Control IGNORE is portable.
+## A root overlay, including when the source is in an embedded window.
+const Grid=preload("res://screen_grid.gd")
+const SURFACE=Color("#20242b")
+const INK=Color("#f3f6fb")
+const PADDING=10
+const WIDTH_CELLS=3
 var source: Control
 var content: Control
-var idle := 0.0
-var layout_bounds := Vector2i.ZERO
-var input_guard: Control
-var source_window: Window
-var ui: Node
-class HoverInputGuard extends Control:
-	var hover: Control
-	func _input(event):
-		if visible and event is InputEventMouse and get_global_rect().has_point(event.position):
-			hover.scroll_event(event)
-			get_viewport().set_input_as_handled()
+var title: Label
+var body: Label
+var panel: Panel
+var measured_width := 0.0
+
 func _ready():
-	name="EquipmentFullHover";add_to_group("equipment_full_hover");hide();mouse_filter=Control.MOUSE_FILTER_IGNORE;mouse_force_pass_scroll_events=false
-	var panel=PanelContainer.new();panel.name="EquipmentTooltipPanel";panel.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.mouse_force_pass_scroll_events=false;add_child(panel);panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	input_guard=HoverInputGuard.new();input_guard.hover=self;input_guard.name="EquipmentTooltipRootInputGuard";input_guard.mouse_filter=Control.MOUSE_FILTER_STOP;input_guard.mouse_force_pass_scroll_events=false;input_guard.hide();get_tree().root.add_child(input_guard)
-	input_guard.gui_input.connect(func(event):scroll_event(event);input_guard.accept_event())
-	visibility_changed.connect(sync_guard)
-	source_window=source.get_window();source_window.window_input.connect(source_input)
-	var ancestor: Node=source
-	while ancestor!=null:
-		if ancestor.has_method("modal_open"):ui=ancestor;break
-		ancestor=ancestor.get_parent()
-func ignore_pointer(node: Node):
-	if node is Control:node.mouse_filter=Control.MOUSE_FILTER_IGNORE;node.mouse_force_pass_scroll_events=false
-	for child in node.get_children(true):ignore_pointer(child)
-func rebuild():
-	var panel=get_child(0)
-	if is_instance_valid(content):panel.remove_child(content);content.queue_free()
-	theme=source.theme if source.theme!=null else source.get_window().theme
-	var surface=source.get_theme_stylebox("panel","TooltipPanel").duplicate() as StyleBoxFlat
-	surface.bg_color=Color("#20242b")
-	panel.add_theme_stylebox_override("panel",surface)
-	content=source._make_custom_tooltip(source.tooltip_text);content.set_meta("hover_owner",weakref(self));panel.add_child(content);ignore_pointer(content)
-	layout_bounds=get_tree().root.size
-	var margins=panel.get_theme_stylebox("panel").get_minimum_size()
-	size=(content.get_combined_minimum_size()+margins).ceil()
+	name="CompactHover";add_to_group("equipment_full_hover");hide()
+	mouse_filter=Control.MOUSE_FILTER_IGNORE
+	panel=Panel.new();panel.name="EquipmentTooltipPanel";panel.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(panel)
+	if source.has_method("configure_skill"):panel.set_meta("ui_region","CompactSkillHover")
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var style=StyleBoxFlat.new();style.bg_color=SURFACE;style.border_color=Color("#a8c9ed")
+	style.set_border_width_all(1);style.set_corner_radius_all(6)
+	panel.add_theme_stylebox_override("panel",style)
+	content=Control.new();content.name="EquipmentTooltip";content.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	content.set_meta("hover_owner",weakref(self));add_child(content);content.position=Vector2(PADDING,PADDING)
+	title=make_label("EquipmentTooltipName",20)
+	title.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+	body=make_label("EquipmentTooltipDetails",18)
+	body.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+
+func make_label(label_name: String,font_size: int) -> Label:
+	var label=Label.new();label.name=label_name;content.add_child(label)
+	label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	label.add_theme_font_override("font",source.get_theme_font("font"))
+	label.add_theme_font_size_override("font_size",font_size)
+	label.add_theme_color_override("font_color",INK)
+	return label
+
 func present():
-	idle=0;rebuild();place();show()
-func place():
-	var bounds=Vector2(get_tree().root.size)
-	var anchor=source.game_window_offset()+source.get_global_rect().position
-	var x=anchor.x+source.size.x+12
-	if x+size.x>bounds.x-8:x=anchor.x-size.x-12
-	position=Vector2(x,anchor.y+12).clamp(Vector2(8,8),(bounds-size-Vector2(8,8)).max(Vector2(8,8)))
-	sync_guard()
-func sync_guard():
-	if not is_instance_valid(input_guard):return
-	input_guard.position=position;input_guard.size=size
-	# Embedded character controls receive real clicks/drags underneath. Outside
-	# that Window, the same rectangle stops root board input. Root shop hovers
-	# never install a guard over their own purchase/comparison controls.
-	input_guard.visible=visible and is_instance_valid(source) and source.get_window()!=get_tree().root
-func scroll_event(event) -> bool:
-	if not visible or not is_instance_valid(content) or not content.get_meta("scrollable",false):return false
-	if not event is InputEventMouseButton or not event.pressed or event.button_index not in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:return false
-	var scroll=content.find_child("EquipmentTooltipScroll",true,false)
-	var direction=-1 if event.button_index==MOUSE_BUTTON_WHEEL_UP else 1
-	scroll.scroll_vertical+=direction*maxi(24,int(source.detail_size)*3)
-	idle=0;return true
-func source_input(event):
-	if not visible or not event is InputEventMouseButton:return
-	var point=event.position+(Vector2(source_window.position) if source_window!=get_tree().root else Vector2.ZERO)
-	if get_global_rect().has_point(point) and scroll_event(event):source_window.set_input_as_handled()
-func _exit_tree():
-	if is_instance_valid(source_window) and source_window.window_input.is_connected(source_input):source_window.window_input.disconnect(source_input)
-	if is_instance_valid(input_guard):input_guard.hide();input_guard.queue_free()
-func obstructed() -> bool:
-	if not is_instance_valid(ui):return false
-	var menu=ui.get("menu")
-	if is_instance_valid(menu) and menu.visible:return true
-	for window in ui.find_children("*","Window",true,false):
-		if window!=source_window and window.visible and not window.is_in_group("equipment_comparison_hover"):return true
-	return false
-func _process(delta):
-	if not visible:return
-	if obstructed():hide();return
-	if not is_instance_valid(source) or not source.is_visible_in_tree() or source.get_viewport().gui_is_dragging():hide();return
-	if get_tree().root.size!=layout_bounds:rebuild()
+	title.text=source.heading;body.text=source.brief();body.visible=not body.text.is_empty()
+	measured_width=0
 	place()
-	var point=source.get_global_mouse_position()+source.game_window_offset()
-	var over_source=source.get_global_rect().has_point(source.get_global_mouse_position())
-	var over_hover=get_global_rect().has_point(point)
-	if over_source or over_hover:idle=0
-	else:
-		idle+=delta
-		if idle>.22:hide()
+	show()
+
+func place():
+	var view=get_tree().root.get_visible_rect().size
+	var cell=view/Grid.DIVISIONS
+	var width=Grid.cell_rect(view,0,0,WIDTH_CELLS,1).size.x
+	if width!=measured_width:
+		measured_width=width
+		title.size=Vector2(width-2*PADDING,0);body.size=Vector2(width-2*PADDING,0)
+		body.position.y=title.get_line_height()+3
+		var body_height=body.get_line_height()*body.get_line_count() if body.visible else 0
+		content.size=Vector2(width-2*PADDING,body.position.y+body_height)
+		title.size.y=body.position.y-3;body.size.y=body_height
+	var height=content.size.y+2*PADDING
+	var span=clampi(ceili(height/cell.y),1,Grid.DIVISIONS)
+	var to_game=get_tree().root.get_screen_transform().affine_inverse()*source.get_window().get_screen_transform()
+	var anchor=to_game*source.get_global_transform_with_canvas()*Rect2(Vector2.ZERO,source.size)
+	# Start beyond the source so the hover does not cover its own icon.
+	var right=ceili(anchor.end.x/cell.x)
+	var left=floori(anchor.position.x/cell.x)-WIDTH_CELLS
+	var x=right if right+WIDTH_CELLS<=Grid.DIVISIONS else left
+	var y=clampi(floori(anchor.position.y/cell.y),0,Grid.DIVISIONS-span)
+	if x<0:
+		x=clampi(floori(anchor.position.x/cell.x),0,Grid.DIVISIONS-WIDTH_CELLS)
+		var below=ceili(anchor.end.y/cell.y)
+		y=below if below+span<=Grid.DIVISIONS else maxi(0,floori(anchor.position.y/cell.y)-span)
+	Grid.place(self,Grid.cell_rect(view,x,y,WIDTH_CELLS,span))
+
+func _process(_delta):
+	if not visible:return
+	if not is_instance_valid(source) or not source.is_visible_in_tree() or source.get_viewport().gui_is_dragging():
+		hide()
+		return
+	place()

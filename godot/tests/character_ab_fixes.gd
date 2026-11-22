@@ -28,6 +28,11 @@ func item_row(name_: String):
  for b in game.find_children("*","Button",true,false):
   if b.tooltip_text==name_ and b.text.contains("Wt"):return b
  return null
+func click_and_close_details(button: Button,expects_detail:=true):
+ button.pressed.emit();await settle()
+ var detail=game.find_child("SkillDetailsWindow",true,false)
+ if expects_detail:check(detail!=null and detail.visible,"item click opens common details")
+ if detail!=null:detail.finish();await settle()
 func run():
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
@@ -37,7 +42,7 @@ func run():
  await game.update({"op":"campaign_load","data":save});game.navigate("character");await settle()
  var ws=game.pages.party_view.workspace;ws.set_tab("inventory");await settle()
  var candidate=game.campaign().inventoryByCharacter[uid].entries.filter(func(e):return e.id=="javelin-wood")[0]
- item_row(candidate.name).pressed.emit();await settle()
+ await click_and_close_details(item_row(candidate.name))
  check(game.find_child("CharacterEquipCancel",true,false)!=null and game.find_child("CharacterDiscard",true,false)!=null,"clicked gear offers comparison cancel and separate discard")
  game.find_child("CharacterEquipCancel",true,false).pressed.emit();await settle()
  check(ws.picked.is_empty(),"cancel returns to inventory without equipping")
@@ -106,10 +111,10 @@ func run():
   game.find_child("CharacterEquip",true,false).pressed.emit();await settle()
   check(not game.campaign().characters[uid].inventory.has("javelin-wood") and int(game.campaign().gold)==int(before_shop.state.gold),"equipping owned stock consumes it without charging gold")
  shop.set_inventory_tab("equipment");await settle()
- game.find_child("ShopEquipped_feet",true,false).pressed.emit();await settle()
- game.find_child("Product_javelin-wood",true,false).pressed.emit();await settle()
+ await click_and_close_details(game.find_child("ShopEquipped_feet",true,false),false)
+ await click_and_close_details(game.find_child("Product_javelin-wood",true,false))
  check(game.find_child("ShopEquipped_rightHand",true,false).get_meta("selected",false),"product selection moves highlight to a compatible hand")
- game.find_child("ShopEquipped_leftHand",true,false).pressed.emit();await settle()
+ await click_and_close_details(game.find_child("ShopEquipped_leftHand",true,false))
  check(shop.comparison_view.slot=="leftHand" and game.find_child("ShopEquipped_leftHand",true,false).get_meta("selected",false),"clicking the left hand compares against that hand")
  var notes=game.find_child("ShopComparisonNotes",true,false)
  check(notes!=null and shop.comparison_view.panels[1].is_ancestor_of(notes),"candidate note stays inside its own column")
@@ -118,7 +123,7 @@ func run():
  await game.update({"op":"campaign_load","data":save});game.navigate("shop");await settle()
  game.find_child("FacilityChoice_buy",true,false).pressed.emit();await settle()
  shop.set_inventory_tab("equipment");await settle()
- game.find_child("Product_lone-ring-1",true,false).pressed.emit();await settle()
- game.find_child("ShopEquipped_accessory2",true,false).pressed.emit();await settle()
+ await click_and_close_details(game.find_child("Product_lone-ring-1",true,false))
+ await click_and_close_details(game.find_child("ShopEquipped_accessory2",true,false),false)
  check(shop.comparison_view.slot=="accessory2" and game.find_child("ShopEquipped_accessory2",true,false).get_meta("selected",false),"second accessory icon switches comparison and highlight")
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await process_frame;quit(0 if failures.is_empty() else 1)

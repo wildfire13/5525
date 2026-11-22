@@ -32,4 +32,5 @@ static func add_row(ui, parent, entry: Dictionary, on_pressed: Callable, selecte
 	button.expand_icon=true
 	button.add_theme_constant_override("icon_max_width",40)
 	ui.mark_selected(button,selected)
+	preload("res://equipment_tooltip.gd").bind_details(button,ui,entry)
 	return button

@@ -70,6 +70,8 @@ GODOT_SUITES = (
     'quest_board_feedback3',
     'warehouse_regression',
     'updateplan_regression',
+    'common_details_shop_261122',
+    'window_grid_regression',
 )
 
 

@@ -10,13 +10,14 @@ func send(point: Vector2,button:=0,pressed:=false,delta:=Vector2.ZERO):
 		if pressed:mask|=1<<(button-1)
 		else:mask&=~(1<<(button-1))
 	event.button_mask=mask;event.position=point;event.global_position=point;root.push_input(event,true);await frames(2)
-func drag(panel,delta: Vector2,label: String):
-	var header=panel.find_child("DragHandle",true,false);var point=header.get_global_rect().get_center();var start=panel.position
+func drag(panel,delta: Vector2,expected_y: float,label: String):
+	var header=panel.find_child("DragHandle",true,false);var point=header.get_global_rect().get_center();var start=panel.get_global_rect()
 	await send(point)
 	var hovered=root.gui_get_hovered_control();print("HIT ",label," ",hovered.get_path() if hovered!=null else "null"," panel=",panel.get_global_rect()," visible=",panel.is_visible_in_tree())
-	await send(point,MOUSE_BUTTON_LEFT,true);print("PRESSED dragging=",panel.dragging," moving=",panel.moving)
+	await send(point,MOUSE_BUTTON_LEFT,true)
+	var grabbed=panel.dragging and panel.moving
 	await send(point+delta,0,false,delta);await send(point+delta,MOUSE_BUTTON_LEFT,false)
-	check(panel.position!=start,label)
+	check(grabbed and not panel.dragging and panel.get_global_rect()==Rect2(Vector2(start.position.x,expected_y),start.size),label)
 func run():
 	create_timer(100).timeout.connect(func():print("FAIL drag review watchdog");quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
@@ -34,21 +35,24 @@ func run():
 			var before=await saved();var camera=game.preferences.camera().duplicate(true)
 			for panel in [game.hud.left_panel,game.hud.right_panel]:
 				if cycle==1:check(panel.global_position.y==0,"top position survives town and reload "+str(resolution)+str(panel.name))
-				await drag(panel,Vector2(-20,30),"normal header "+str(resolution)+str(cycle)+str(panel.name))
-				await drag(panel,Vector2(0,-1000),"to top "+str(panel.name))
-				await drag(panel,Vector2(-20,30),"from top "+str(panel.name))
-				await drag(panel,Vector2(0,-1000),"save at top "+str(panel.name))
+				await drag(panel,Vector2(0,30),panel.global_position.y,"sub-cell header motion "+str(panel.name))
+				if cycle==0:await drag(panel,Vector2(0,108),216,"header stops at bottom grid boundary "+str(panel.name))
+				var step=-108 if cycle==0 else 108
+				await drag(panel,Vector2(0,step),108,"normal header "+str(resolution)+str(cycle)+str(panel.name))
+				await drag(panel,Vector2(0,-1000),0,"to top "+str(panel.name))
+				await drag(panel,Vector2(0,108),108,"from top "+str(panel.name))
+				await drag(panel,Vector2(0,-1000),0,"save at top "+str(panel.name))
 			check(await saved()==before and game.preferences.camera()==camera,"dragging leaves game and camera unchanged")
 		var left=game.hud.left_panel;var right=game.hud.right_panel
-		left.global_position=Vector2(200,200);right.global_position=Vector2(350,200);await frames()
+		left.global_position=Vector2(192,216);right.global_position=Vector2(384,216);await frames()
 		# Click an exposed header; compare GUI input target with visible front window.
 		for panel in [left,right]:
 			var point=panel.global_position+Vector2(25 if panel==left else panel.size.x-25,25)
 			await send(point);await send(point,MOUSE_BUTTON_LEFT,true);await send(point,MOUSE_BUTTON_LEFT,false)
-			await send(Vector2(420,225));var hit=root.gui_get_hovered_control()
+			await send(Vector2(480,234));var hit=root.gui_get_hovered_control()
 			check(hit!=null and (hit==panel or panel.is_ancestor_of(hit)) and panel.get_index()>((right if panel==left else left).get_index()),"clicked panel owns foreground drawing and input "+str(panel.name))
-		left.global_position=Vector2(20,68);await frames();await drag(left,Vector2(20,30),"header overlaps toolbar")
-		left.global_position=Vector2(20,0);await frames();await drag(left,Vector2(20,30),"header overlaps root top")
+		left.global_position=Vector2.ZERO;await frames();await drag(left,Vector2(0,108),108,"header overlaps toolbar")
+		left.global_position=Vector2(192,0);await frames();await drag(left,Vector2(0,108),108,"header overlaps root top")
 		# Observe the normal-speed opening from its first frame, not just a final rectangle.
 		game.hud.clear_opening_visual();left.show();game.hud.open_actor_panel()
 		while not is_instance_valid(game.hud.opening_visual):await process_frame

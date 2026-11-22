@@ -22,6 +22,14 @@ func button(id: String):
 	else: check(false, "missing button " + id)
 	await settle()
 
+func inspect_item_and_return(id: String):
+	await button(id)
+	var detail=game.find_child("SkillDetailsWindow",true,false)
+	check(is_instance_valid(detail) and detail.visible,"item explanation opens from "+id)
+	if is_instance_valid(detail):
+		detail.finish()
+		await settle()
+
 func page(id: String):
 	game.navigate(id)
 	await settle()
@@ -40,6 +48,18 @@ func capture(id: String, expected: Array, window: Window = null):
 		names.append(caption.trim_prefix(inspector.CATALOG.data.prefix))
 		captions.append([caption,rect.position.x,rect.position.y])
 		check(window.get_visible_rect().encloses(rect),"within " + id + " " + caption)
+	# Measure the labeled controls in main-window coordinates, including child windows.
+	var to_game=root.get_screen_transform().affine_inverse()*window.get_screen_transform()
+	var cell=Vector2(root.size)/10
+	for node in inspector.controls.get(window,[]):
+		if not is_instance_valid(node) or not node.is_visible_in_tree() or node.is_queued_for_deletion():continue
+		var key=str(node.get_meta("ui_region",node.name))
+		if not inspector.definitions[key].any(func(region):return region.label in names):continue
+		var visible_rect=inspector.visible_box(node,window.get_visible_rect())
+		if not visible_rect.has_area():continue
+		var box=to_game*visible_rect
+		var aligned=box.position.is_equal_approx((box.position/cell).round()*cell) and box.end.is_equal_approx((box.end/cell).round()*cell)
+		check(aligned,id+" grid "+key+" "+str(box))
 	for name_ in expected: check(name_ in names,id + " shows " + name_ + " alongside " + str(names))
 	check(overlay.mouse_filter == Control.MOUSE_FILTER_IGNORE, id + " allows pointer through")
 	if output.is_empty() or DisplayServer.get_name()=="headless": return
@@ -113,6 +133,23 @@ func run():
 	for tab in ["equipment","inventory","ability","skills"]:
 		if workspace.tab!=tab:workspace.set_tab(tab)
 		await capture(tab,["人物情報"])
+	var hover_skill=game.find_child("CharacterSkill_active_*",true,false)
+	hover_skill.show_hover()
+	await capture("skill-hover",["スキルホバー詳細"])
+	hover_skill.close_hover()
+	workspace.set_tab("equipment")
+	await settle()
+	var gear=game.find_child("CharacterSlot_upperBody",true,false)
+	gear.show_hover()
+	await capture("equipment-hover",["装備ホバー詳細"])
+	gear.close_hover()
+	var portrait_member=game.roster().filter(func(u):return u.id=="character_rio")[0]
+	await game.import_portrait(ProjectSettings.globalize_path("res://../native/assets/characters/scout-human-female-01.png"),portrait_member.id)
+	workspace.open_portrait(portrait_member)
+	await settle()
+	await capture("portrait-framing",["人物画像調整"],game.dialog.window)
+	game.dialog.close()
+	await settle()
 	await page("board")
 	await capture("board",["クエスト一覧","クエスト詳細"])
 	var board=game.pages.quest_board
@@ -131,6 +168,27 @@ func run():
 	await capture("porter",["荷物の担当"],game.dialog.window)
 	game.dialog.close()
 	await settle()
+	var merchant_seed=initial.duplicate(true)
+	merchant_seed.state.location="east"
+	await game.update({"op":"campaign_load","data":merchant_seed})
+	await page("board")
+	var porter=game.roster().filter(func(u):return u.job=="job_porter" and u.id in game.campaign().selected)[0].id
+	await game.act("accept",["standalone-wheel",porter])
+	merchant_seed=(await game.engine.request({"op":"campaign_save"})).data
+	merchant_seed.state.location="south"
+	merchant_seed.state.worldTime=15
+	merchant_seed.state.hours=15
+	await game.update({"op":"campaign_load","data":merchant_seed})
+	await page("hub")
+	await capture("merchant-hub",["受取人・待機"])
+	await button("HubWaitForMerchant")
+	var waiting=game.find_child("MerchantWaitConfirmation",true,false)
+	await capture("merchant-wait",["確認メッセージ","通知・確認操作"],waiting)
+	waiting.canceled.emit()
+	await settle()
+	await page("board")
+	await capture("merchant-board",["受取人・待機"])
+	await game.update({"op":"campaign_load","data":initial})
 	await page("map")
 	await capture("map",["ワールドマップ・経路操作"])
 	await page("inn")
@@ -146,7 +204,7 @@ func run():
 	await capture("warehouse",["倉庫台帳"])
 	await button("WarehouseTab_inventory")
 	await capture("warehouse-inventory",["インベントリ","倉庫台帳"])
-	await button("WarehouseItem_character_potion")
+	await inspect_item_and_return("WarehouseItem_character_potion")
 	await capture("deposit",["インベントリ","選択アイテム","倉庫操作"])
 	await button("WarehouseTransfer")
 	var receipt=game.find_child("WarehouseDepositConfirmation",true,false)
@@ -170,7 +228,7 @@ func run():
 		await button("FacilityChoice_buy")
 		game.pages.shop_view.set_inventory_tab("equipment")
 		await capture("shop-"+town,["商品一覧","取引確認"])
-	await button("Product_undertow-sword")
+	await inspect_item_and_return("Product_undertow-sword")
 	await capture("shop",["商品一覧","取引確認","現在の装備","装備候補"])
 	var skill_button=game.find_child("ComparisonSkill_*",true,false)
 	if skill_button!=null:
@@ -182,7 +240,7 @@ func run():
 			skill.finish()
 			await settle()
 	var shop=game.pages.shop_view
-	await button("Product_spear-wood")
+	await inspect_item_and_return("Product_spear-wood")
 	await capture("shop-spear",["現在の装備","装備候補"])
 	shop.drop_equipment({"kind":"shop_product","item":"spear-wood","connection":game.engine.connection_generation,"epoch":game.pages.epoch,"token":game.campaign().inventoryToken},"rightHand")
 	await settle()
@@ -194,7 +252,7 @@ func run():
 	else: check(false,"real purchase confirmation opened")
 	shop.set_inventory_tab("inventory")
 	await capture("shop-inventory",["インベントリ"])
-	await button("SaleItem_sword-wood")
+	await inspect_item_and_return("SaleItem_sword-wood")
 	game.save_notice.dismiss()
 	await capture("sale",["インベントリ","取引操作"])
 	await button("FacilitySalePrepare")
@@ -217,6 +275,10 @@ func run():
 	for cmd in ["action_attack","action_move","skill","item"]:
 		if game.hud.buttons.has(cmd) and not game.hud.buttons[cmd].disabled:
 			game.hud.buttons[cmd].pressed.emit()
+			if cmd=="action_move" and not game.data.choices.action_move.is_empty():
+				await game.on_cell(int(game.data.choices.action_move[0]))
+				await settle()
+				check(game.board.move_preview_caption()=="命中率：100％","valid move selected on the board")
 			await capture("battle-"+cmd,["場面：戦闘"])
 			game.hud.back_to_commands()
 			await settle()
@@ -249,6 +311,15 @@ func run():
 		await game.update({"op":"campaign_load","data":cases.normal.ready})
 		await game.act("completeQuest",[])
 		await capture("complete",["場面：配達リザルト","結果操作"])
+		game.results_view.advance()
+		await settle()
+		await game.update({"op":"campaign_load","data":cases.late.ready})
+		await game.act("completeQuest",[])
+		await capture("complete-late",["場面：配達リザルト","結果操作"])
+		game.results_view.advance()
+		await settle()
+		await game.update({"op":"campaign_load","data":cases.no_preference})
+		await capture("complete-without-preference",["場面：配達リザルト","結果操作"])
 		game.results_view.advance()
 		await settle()
 		await game.update({"op":"campaign_load","data":cases.defeat})

@@ -4,6 +4,17 @@ const PORTER="character_yuno"
 const OTHER_PORTER="character_teo"
 func choose(control):
  if DisplayServer.get_name()=="headless":control.pressed.emit();await settle()
+ elif OS.get_environment("QUEST_GRID_VIEWPORT_INPUT")=="1":
+  check(control!=null and control.is_visible_in_tree(),"viewport click target visible")
+  if control==null:return
+  if control.get_viewport()!=root:control.pressed.emit()
+  else:
+   for down in [true,false]:
+    var event=InputEventMouseButton.new();event.button_index=MOUSE_BUTTON_LEFT;event.pressed=down
+    event.position=control.get_global_rect().get_center();event.global_position=event.position
+    root.push_input(event,true)
+    await process_frame
+  await settle()
  else:await os_click(control)
 func reward_row(caption: String):
  for label in node("QuestDetail").find_children("*","Label",true,false):
@@ -39,12 +50,15 @@ func run():
   check(filters.all(func(control):return control.disabled),"unimplemented quest filters absent or disabled, never actionable")
   check(node("Header_board")!=null and not node("Header_board").disabled,"common header provides enabled return to local map")
   check(node("QuestList").get_global_rect().end.x<=node("QuestDetail").get_global_rect().position.x,"list left of details "+str(dims))
-  check(is_equal_approx(node("QuestList").get_parent().global_position.x,24.0),"FHD board uses the same left edge as the battle roster")
+  var grid=preload("res://screen_grid.gd")
+  for area in ["QuestList","QuestDetail","QuestRequester","QuestDetailActions","QuestRequesterPortrait"]:
+   var rect: Rect2=node(area).get_global_rect()
+   check(grid.snap_rect(rect,Vector2(dims)).is_equal_approx(rect),area+" actual FHD rectangle "+str(rect))
+  check(node("QuestList") is ScrollContainer and node("QuestDetailBody").get_parent() is ScrollContainer,"list and detail remain independently scrollable")
   var q=game.campaign().board[1];await choose(node("QuestChoice_"+str(q.id)))
   check(game.pages.quest_board.selected_id==q.id and await saved()==seed,"selection changes presentation only")
   var requester=node("QuestRequesterPortrait")
-  var expected_rect=preload("res://facility_npc.gd").portrait_rect(Vector2(root.size),requester.texture)
-  check(requester.get_global_rect().is_equal_approx(expected_rect) and requester.mouse_filter==Control.MOUSE_FILTER_IGNORE,"selected requester uses the shop portrait scale and position without blocking input")
+  check(requester.texture!=null and requester.get_global_rect().is_equal_approx(node("QuestRequester").get_global_rect()) and requester.mouse_filter==Control.MOUSE_FILTER_IGNORE,"selected requester fills its stage without blocking input")
   var rewards=q.get("rewards",{})
   check(not rewards.is_empty(),"current quest supplies explicit reward breakdown")
   var kind="experience" if q.get("rewardType","money")=="experience" else "money"
@@ -83,7 +97,7 @@ func run():
  await board.commit(id,token,epoch,connection,generation);check(await saved()==after,"duplicate stale confirm preserves complete accepted state")
  await choose(node("Header_board"));check(game.page=="hub","common header return to local map retained")
  var reply=await game.update({"op":"campaign_load","data":after});await settle();game.navigate("board");await settle()
- check(reply.ok and game.campaign().activeQuest.cargoOwnerId==OTHER_PORTER,"save reload retains confirmed cargo owner")
+ check(reply.ok and game.campaign().get("activeQuest") is Dictionary and game.campaign().activeQuest.cargoOwnerId==OTHER_PORTER,"save reload retains confirmed cargo owner")
  await game.update({"op":"campaign_load","data":seed});await settle();game.navigate("board");await settle();await choose(node("QuestAccept"));await choose(node("QuestCargoOwner_"+PORTER))
  token=game.campaign().inventoryToken;epoch=game.pages.epoch;connection=game.engine.connection_generation;generation=board.picker_generation;id=board.selected_id
  await choose(node("QuestCargoCancel"));await board.commit(id,token,epoch,connection,generation);check(await saved()==seed,"callback from canceled picker cannot accept")

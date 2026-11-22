@@ -106,8 +106,8 @@ func run():
 	var reserve_rect=node("GuildReserveDetail").get_parent().get_global_rect()
 	check(active_rect.size.x==map_rect.size.x and reserve_rect.size.x==map_rect.size.x,"equipment panel widths at FHD: map %d, guild active %d, reserve %d" % [map_rect.size.x,active_rect.size.x,reserve_rect.size.x])
 	check(active_rect.position.x==map_rect.position.x and reserve_rect.position.x==reserve_left,"equipment left edges at FHD: map %d, guild active %d, reserve %d (ability tab %d)" % [map_rect.position.x,active_rect.position.x,reserve_rect.position.x,reserve_left])
-	var gap=game.mock_shell.COLUMN_GAP
-	check(map_rect.position.x-map_roster_edge==gap and active_rect.position.x-node("PartyRoster").get_global_rect().end.x==gap and active_rect.position.y==map_rect.position.y,"equipment origins follow roster +%d: map %s, guild %s" % [gap,map_rect.position,active_rect.position])
+	var tabs_rect=node("GuildTab_1").get_parent().get_global_rect()
+	check(map_rect.position.x==map_roster_edge and active_rect.position.x==node("PartyRoster").get_global_rect().end.x and active_rect.position.y==tabs_rect.end.y and active_rect.position.y==map_rect.position.y and reserve_rect.position.y==active_rect.position.y,"equipment abuts roster and guild cards align below tabs: party %s, guild %s" % [map_rect.position,active_rect.position])
 	await check_roster_anchor(node("GuildActiveDetail").get_parent(),"guild")
 	var proof=OS.get_environment("UIUX_REVIEW_EVIDENCE")
 	if not proof.is_empty() and DisplayServer.get_name()!="headless":
@@ -156,9 +156,15 @@ func run():
 	await tap("RosterMember_"+alternate);await tap("GuildMember_"+guard);recorder.reject_next=true;await tap("GuildSwap")
 	check(guild.stage=="idle" and guild.notice.contains("拒否") and (await saved())==roundtrip,"G10 rejected select preserves state and explains reason")
 	guild.cancel_selection();await settle()
-	var footer_y=node("GuildActions").global_position.y;var original_ids=game.data.campaign.selected.duplicate()
-	game.data.campaign.selected.append(guard);game.render();await settle()
-	check(current_ids().size()==6 and node("GuildActions").global_position.y==footer_y and node("GuildReturn").global_position.y+node("GuildReturn").size.y<=1080,"G08 six-row mock scrolls without moving operations offscreen")
+	var original_ids=game.data.campaign.selected.duplicate()
+	for member in game.roster():
+		if game.data.campaign.selected.size()>=11:break
+		if not game.data.campaign.selected.has(member.id):game.data.campaign.selected.append(member.id)
+	game.render();await settle()
+	var footer_rect=node("GuildActions").get_global_rect()
+	var scroll=current_scroll();scroll.scroll_vertical=int(scroll.get_v_scroll_bar().max_value);await frames()
+	var return_rect=node("GuildReturn").get_global_rect()
+	check(guild.detail_tab==1 and current_ids().size()==11 and scroll.scroll_vertical>0 and node("GuildActions").get_global_rect()==footer_rect and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(footer_rect) and footer_rect.encloses(return_rect),"G08 populated roster scroll keeps equipment-tab actions onscreen: scroll=%s, footer=%s, return=%s" % [scroll.scroll_vertical,footer_rect,return_rect])
 	game.data.campaign.selected=original_ids;game.render();await settle()
 	await game.act("accept",[game.campaign().board[0].id,porter]);await settle()
 	var cargo=await saved();await tap("RosterMember_"+porter);await tap("GuildRemove")

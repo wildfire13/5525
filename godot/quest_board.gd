@@ -8,9 +8,9 @@ var selected_id := ""
 var picker_generation := 0
 var picker_owner := ""
 var submitted := false
-var requester_tween: Tween
 var dialogue
 var meeting
+const Grid=preload("res://screen_grid.gd")
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui;meeting=preload("res://quest_meeting.gd").new(ui)
 func _dialogue():
 	if not is_instance_valid(dialogue):dialogue=preload("res://quest_dialogue.gd").new(ui,self)
@@ -22,17 +22,15 @@ func render(parent):
 	var aftermath: Array=pages.c().get("scenarioAftermath",[])
 	var active=pages.c().get("activeQuest")
 	if active is Dictionary:quests=[active]
-	if quests.is_empty() and aftermath.is_empty():pages.l(parent,"いま受注できる依頼はありません。");return
-	if quests.is_empty():pages.l(parent,"いま受注できる依頼はありません。")
 	if quests.is_empty():
-		for entry in aftermath:
-			var after=pages.card(parent);after.name="QuestAftermath_"+str(entry.id);pages.l(after,str(entry.name),true);pages.b(after,"出来事を知る",func():play_scene(entry.story,str(entry.get("portrait","")))).name="QuestAftermathStory_"+str(entry.id)
-		return
-	if not quests.any(func(q):return str(q.id)==selected_id):selected_id=str(quests[0].id)
-	var split=ui.mock_shell.columns(parent);split.name="QuestBoardColumns";split.custom_minimum_size.y=ui.mock_shell.content_height()
-	var list=ui.scroller(split);list.name="QuestList";list.get_parent().custom_minimum_size=Vector2(520,0);list.get_parent().size_flags_horizontal=Control.SIZE_FILL
+		selected_id=""
+	elif not quests.any(func(q):return str(q.id)==selected_id):selected_id=str(quests[0].id)
+	var split=Control.new();split.name="QuestBoardColumns";split.custom_minimum_size.y=ui.mock_shell.content_height();parent.add_child(split)
+	var list=ui.scroller(split);list.get_parent().name="QuestList"
 	ui.memory.watch(list.get_parent(),"quest_board_list")
-	var detail=pages.card(split);detail.name="QuestDetail";detail.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	if quests.is_empty():pages.l(list,"いま受注できる依頼はありません。")
+	var detail=Panel.new();detail.name="QuestDetail";detail.add_theme_stylebox_override("panel",ui.mock_shell.surface_style());split.add_child(detail)
+	detail.visible=not quests.is_empty()
 	for q in quests:
 		var choice=pages.b(list,str(q.name),choose.bind(str(q.id)))
 		choice.name="QuestChoice_"+str(q.id);choice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;choice.alignment=HORIZONTAL_ALIGNMENT_LEFT;choice.custom_minimum_size.y=76;ui.mark_selected(choice,str(q.id)==selected_id)
@@ -40,10 +38,33 @@ func render(parent):
 		if str(q.id)==selected_id:
 			render_detail(detail,q,active is Dictionary)
 			render_requester(split,q)
-	# Aftermath must remain inside the existing scrollable list, not below a full-height board.
 	for entry in aftermath:
 		var after=pages.card(list);after.name="QuestAftermath_"+str(entry.id);pages.l(after,str(entry.name),true);pages.b(after,"出来事を知る",func():play_scene(entry.story,str(entry.get("portrait","")))).name="QuestAftermathStory_"+str(entry.id)
-	if not pages.c().get("hasPorter",false):pages.l(parent,"受注には編成中のポーターが必要です。")
+	for container in [split,parent,parent.get_parent()]:
+		container.item_rect_changed.connect(layout_board.bind(split))
+	layout_board.call_deferred(split)
+
+func layout_board(split: Control):
+	if not is_instance_valid(split) or not split.is_inside_tree() or split.is_queued_for_deletion():return
+	var view: Vector2=ui.size
+	var bottom=9 if ui.footer.visible else 10
+	Grid.place(split.get_node("QuestList"),Grid.cell_rect(view,0,1,3,bottom-1))
+	var detail=split.get_node("QuestDetail")
+	if not detail.visible:return
+	var frame=Grid.cell_rect(view,3,1,4,bottom-1)
+	var action=Grid.cell_rect(view,3,bottom-1,4,1)
+	Grid.place(detail,frame)
+	Grid.place(detail.get_node("QuestDetailActions"),action)
+	var body_end=action.position.y
+	var availability=detail.get_node_or_null("QuestMerchantAvailability")
+	if availability!=null:
+		var status_rect=Grid.cell_rect(view,3,bottom-2,4,1)
+		Grid.place(availability,status_rect)
+		body_end=status_rect.position.y
+	Grid.place(detail.get_node("QuestDetailContent"),Rect2(frame.position+Vector2(8,8),Vector2(frame.size.x-16,body_end-frame.position.y-16)))
+	var stage=split.get_node("QuestRequester")
+	Grid.place(stage,Grid.cell_rect(view,7,1,3,bottom-1))
+	position_requester(stage.get_node_or_null("QuestRequesterPortrait"))
 func choose(id: String):
 	if ui.locked or ui.modal_open():return
 	if id==selected_id:return
@@ -53,7 +74,7 @@ func choose(id: String):
 		if str(quest.id)!=id:continue
 		var split=ui.content.find_child("QuestBoardColumns",true,false)
 		if split==null:return
-		var list=split.find_child("QuestList",true,false)
+		var list=split.get_node("QuestList").get_child(0)
 		ui.mark_selected(list.get_node("QuestChoice_"+selected_id),false)
 		selected_id=id
 		ui.mark_selected(list.get_node("QuestChoice_"+id),true)
@@ -62,7 +83,8 @@ func choose(id: String):
 			var detail=split.find_child("QuestDetail",true,false)
 			ui.clear(detail)
 			render_detail(detail,quest,active is Dictionary)
-			render_requester(split,quest))
+			render_requester(split,quest)
+			layout_board(split))
 		return
 func time_status(q: Dictionary) -> String:
 	var remaining: int
@@ -77,8 +99,9 @@ func time_status(q: Dictionary) -> String:
 	return "希望条件を超過（遅配）" if remaining<0 else "希望条件まであと%d時間" % remaining
 
 func render_detail(parent,q: Dictionary,active: bool):
-	pages.l(parent,("受注中: " if active else "")+str(q.name),true).name="QuestDetailTitle"
-	var details=ui.scroller(parent);details.name="QuestDetailBody";details.get_parent().custom_minimum_size.y=64
+	var content=VBoxContainer.new();content.name="QuestDetailContent";parent.add_child(content)
+	pages.l(content,("受注中: " if active else "")+str(q.name),true).name="QuestDetailTitle"
+	var details=ui.scroller(content);details.name="QuestDetailBody";details.get_parent().custom_minimum_size.y=64
 	var description=pages.l(details,str(q.get("text","")));description.name="QuestDetailDescription";description.add_theme_font_size_override("font_size",20);description.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	var facility=pages.hub_view.FACILITIES.get(q.get("deliveryFacility",""),[])
 	var destination=pages.town(q.get("to",""))+("・"+str(facility[0]) if not facility.is_empty() else "")
@@ -96,6 +119,9 @@ func render_detail(parent,q: Dictionary,active: bool):
 	for cargo in cargo_items:
 		var item=HBoxContainer.new();cargo_flow.add_child(item)
 		var icon_key=str(cargo.get("icon","items"));var icon=ui.icons.add(item,icon_key,32);icon.tooltip_text=str(cargo.get("name","荷物"));icon.mouse_filter=Control.MOUSE_FILTER_STOP
+		var cargo_name=icon.tooltip_text
+		preload("res://equipment_tooltip.gd").bind_hover(icon,{"name":cargo_name,"kind":"quest","definition":cargo},pages.c())
+		icon.tooltip_text=cargo_name
 		var count=pages.l(item,"×%d" % int(cargo.get("quantity",1)));count.autowrap_mode=TextServer.AUTOWRAP_OFF;count.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 		total_weight+=float(cargo.get("weight",0))*int(cargo.get("quantity",1))
 	var weight_text=str(int(total_weight)) if is_equal_approx(total_weight,round(total_weight)) else str(total_weight)
@@ -109,7 +135,7 @@ func render_detail(parent,q: Dictionary,active: bool):
 		# Scenario quests also carry the on-time difference in bonus/bonusRP.
 		reward_line(details,"希望条件達成報酬",str(rewards.get("type","money")),int(rewards.get("bonus",0)),int(rewards.get("bonusRP",0)))
 		if rewards.get("legacyXP",false):reward_line(details,"キャラクター報酬","experience",int(q.get("xp",0)),0)
-	if q.get("scenario",false) and str(q.get("eventId",""))=="wheel":meeting.render(details,q,"Quest",true)
+	if q.get("scenario",false) and str(q.get("eventId",""))=="wheel":meeting.render(details,q,"Quest",true,parent)
 	if q.get("story") is Array and not q.story.is_empty():
 		var story=pages.b(details,"依頼時の話" if active else "話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);story.custom_minimum_size.y=44
 
@@ -128,6 +154,8 @@ func render_detail(parent,q: Dictionary,active: bool):
 
 	else:
 		var accept=ui.green_button(pages.b(actions,"この依頼を引き受ける",open_picker.bind(str(q.id)),not pages.c().get("hasPorter",false)));accept.name="QuestAccept";accept.size_flags_horizontal=Control.SIZE_SHRINK_END;accept.custom_minimum_size.x=280
+		if not pages.c().get("hasPorter",false):pages.l(details,"受注には編成中のポーターが必要です。")
+	for button in actions.get_children():button.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 
 func field(parent,caption: String,value: String):
 	var row=pages.row(parent);row.name="QuestField_"+caption;var label=pages.l(row,caption);label.name="QuestFieldCaption";label.custom_minimum_size.x=150;label.size_flags_horizontal=Control.SIZE_FILL;label.add_theme_font_size_override("font_size",18);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
@@ -146,38 +174,24 @@ func separator(parent: Node,control_name: String):
 func render_requester(parent,q: Dictionary):
 	var stage=parent.get_node_or_null("QuestRequester")
 	if stage==null:
-		stage=Control.new();stage.name="QuestRequester";stage.custom_minimum_size.x=ui.mock_shell.SHOP_CATALOG_WIDTH
+		stage=Control.new();stage.name="QuestRequester"
 		stage.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(stage)
 		var art=TextureRect.new();art.name="QuestRequesterPortrait";art.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
 		art.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;art.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		art.top_level=true;stage.add_child(art)
-		stage.resized.connect(position_requester.bind(art))
+		stage.add_child(art)
 	var image=stage.get_node("QuestRequesterPortrait")
 	var path="res://assets/quest_npcs/"+str(q.get("portrait","requester-placeholder"))+".png"
 	if not ResourceLoader.exists(path):path="res://assets/quest_npcs/requester-placeholder.png"
 	image.texture=load(path)
-	position_requester(image)
 func position_requester(image: TextureRect):
-	if image.texture==null or not image.is_inside_tree():return
-	var bounds=preload("res://facility_npc.gd").portrait_rect(image.get_viewport_rect().size,image.texture)
-	image.size=bounds.size
-	image.global_position=bounds.position
-func slide_requester(image: TextureRect,to_left: bool):
-	if not is_instance_valid(image):return
-	if requester_tween!=null:requester_tween.kill()
-	var width=image.get_viewport_rect().size
-	var home=preload("res://facility_npc.gd").portrait_rect(width,image.texture).position
-	var destination=Vector2(width.x*.04,home.y) if to_left else home
-	requester_tween=image.create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	requester_tween.tween_property(image,"global_position",destination,.30)
+	if is_instance_valid(image):Grid.place(image,image.get_parent().get_global_rect())
 func open_story(q: Dictionary):
 	if ui.locked or ui.modal_open() or ui.presenting:return
 	var scene=_dialogue()
 	if scene.get_parent()==null:ui.add_child(scene)
 	var scene_quest=q.duplicate(true);scene_quest["cast"]=scene_cast(str(q.get("eventId","")),"request",q.get("cast",[]));scene_quest["sceneLabel"]="依頼時の話" if pages.c().get("activeQuest") is Dictionary else "依頼の話"
 	var image=ui.content.find_child("QuestRequesterPortrait",true,false)
-	if image!=null:slide_requester(image,true)
-	scene.open(scene_quest,Callable() if pages.c().get("activeQuest") is Dictionary else func():open_picker(str(q.id)),func():slide_requester(image,false),image)
+	scene.open(scene_quest,Callable() if pages.c().get("activeQuest") is Dictionary else func():open_picker(str(q.id)),Callable(),image)
 func scene_cast(event_id: String,kind: String,fallback: Array=[]) -> Array:
 	var request={"turnip":["farmer"],"kiln":["apprentice"],"wheel":["wheelwright"]}
 	var delivery={"turnip":["weigher","farmer"],"kiln":["master"],"wheel":["merchant"]}

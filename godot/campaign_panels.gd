@@ -1,5 +1,6 @@
 extends RefCounted
 const ElementBadges=preload("res://element_badges.gd")
+const ScreenGrid=preload("res://screen_grid.gd")
 ## Presentation of existing Campaign.view fields. Mutations stay in the bridge.
 var ui
 var party_uid := ""
@@ -104,7 +105,12 @@ func hub(parent):hub_view.render(parent)
 func board(parent):quest_board.render(parent)
 func accept(id: String):quest_board.open_picker(id)
 func map(parent):
-	var surface=card(parent);surface.get_parent().custom_minimum_size.y=ui.mock_shell.content_height();parent=surface
+	var surface=card(parent);var panel=surface.get_parent()
+	panel.custom_minimum_size.y=ui.mock_shell.content_height()
+	var style=panel.get_theme_stylebox("panel").duplicate()
+	for side in ["left","top","right","bottom"]:style.set("content_margin_"+side,0.0)
+	panel.add_theme_stylebox_override("panel",style)
+	surface.add_theme_constant_override("separation",0);parent=surface
 	var available=[]
 	for place in c().get("destinations",[]):available.append(place.id if place is Dictionary else place)
 	var quest=c().get("activeQuest")
@@ -112,9 +118,9 @@ func map(parent):
 	var chart=preload("res://town_map.gd").new();chart.name="TownMap"
 	chart.towns=c().get("locations",[]);chart.current=c().location;chart.selected=ui.destination;chart.available=available;chart.routes=c().get("routes",{});chart.icons=ui.icons
 	chart.quest_destination=str(quest.to) if quest is Dictionary else ""
-	parent.add_child(chart);chart.custom_minimum_size.y=ui.mock_shell.content_height()-228;chart.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	parent.add_child(chart);chart.custom_minimum_size.y=ui.mock_shell.content_height()-ui.mock_shell.grid_cell().y;chart.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	for id in chart.buttons:ui.widgets.append(chart.buttons[id])
-	var actions=row(parent);actions.name="MapControls";actions.custom_minimum_size.y=72
+	var actions=row(parent);actions.name="MapControls";actions.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	var route=VBoxContainer.new();route.custom_minimum_size.x=320;actions.add_child(route)
 	var route_title=l(route,town(c().location)+" → "+town(ui.destination),true)
 	chart.destination_selected.connect(func(id):
@@ -132,18 +138,30 @@ func choose_formation(value: String):ui.formation=value;ui.render()
 func shop_guide(parent):
 	var facilities=row(parent)
 	for item in [["weapon_shop","武器店"],["armor_shop","防具店"],["item_shop","道具店"],["accessory_shop","装飾品店"]]:ui.icons.line(ui,facilities,item[0],item[1])
+func grid_height(cells: int) -> float:
+	return ScreenGrid.cell_rect(ui.size,0,0,1,cells).size.y
+
 func journey(parent):
 	var phase=c().get("phase","");var journey_: Dictionary=c().get("journey") if c().get("journey") is Dictionary else {}
-	if phase=="result":result(parent);return
+	if phase=="result":
+		result(ui.scroller(parent))
+		return
 	if phase=="prepare":map(parent);return
+	parent.add_theme_constant_override("separation",0)
 	var strip=preload("res://travel_strip.gd").new();strip.name="TravelRouteStrip"
 	strip.origin=town(journey_.get("origin",c().get("location","")))
 	strip.destination=town(journey_.get("outboundDestination",journey_.get("destination","")))
 	strip.returning=journey_.get("returning",false);strip.stage=int(journey_.get("stage",0));strip.phase=phase;parent.add_child(strip)
-	var toggle=b(parent,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",toggle_travel_map.bind(parent,journey_))
-	toggle.name="TravelMapToggle";toggle.size_flags_horizontal=Control.SIZE_SHRINK_END
+	strip.custom_minimum_size.y=grid_height(2)
+	var quest=c().get("activeQuest")
+	var sluice_trip=phase=="road" and quest is Dictionary and quest.get("id")=="sluice-bell" and journey_.get("destination")=="east" and not strip.returning
+	var map_row=row(parent);map_row.alignment=BoxContainer.ALIGNMENT_END;map_row.custom_minimum_size.y=grid_height(3)-grid_height(2)
+	var toggle=b(map_row,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",func():toggle_travel_map(parent,map_row,journey_))
+	toggle.name="TravelMapToggle"
 	if travel_map_expanded:add_travel_map(parent,journey_)
-	var actions=row(parent);actions.name="CampActions";actions.custom_minimum_size.y=72
+	var actions=row(parent);actions.name="CampActions"
+	var action_cell=6 if travel_map_expanded else 3
+	actions.custom_minimum_size.y=grid_height(action_cell+1)-grid_height(action_cell)
 	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(copy)
 	l(copy,"帰路" if strip.returning else "野営地" if phase=="camp" else "到着" if phase in ["arrival","delivery"] else "%d区間目の道" % (int(journey_.get("stage",0))+1),true)
 	var remaining=maxi(0,2-int(journey_.get("stage",0)))*3
@@ -160,8 +178,7 @@ func journey(parent):
 			ui.green_button(b(actions,"都市に入る" if journey_.get("destination")=="astaris" else "村に入る",ui.act.bind("arrive",[])))
 	if phase=="road":
 		var choices=row(parent);choices.name="RouteChoices"
-		var quest = c().get("activeQuest")
-		var sluice_trip = quest is Dictionary and quest.get("id") == "sluice-bell" and journey_.get("destination") == "east" and not strip.returning
+		choices.custom_minimum_size.y=grid_height(action_cell+2)-grid_height(action_cell+1)
 		for route in [["short","峠の近道",2],["safe","川沿いの道",4]]:
 			var caption = "%s\n移動 %d時間" % [route[1], route[2]]
 			if sluice_trip:
@@ -174,16 +191,19 @@ func journey(parent):
 			gate_note += "\n舟守の合図は一戦一度。開門後、味方が道を空けてポーターが一手で出口に届くと、次はポーターの手番。"
 			if int(journey_.get("stage", 0)) == 0:
 				gate_note += "\n最初の区間で川沿いの舟守を助けると、次の戦闘の出口が近くなる。"
-			l(parent, gate_note)
+			var note=l(map_row,gate_note)
+			note.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+			note.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+			map_row.move_child(note,0)
 	if phase=="camp":
 		b(parent,"インベントリ",party_view.open_camp_inventory)
-func toggle_travel_map(parent,journey_):
+func toggle_travel_map(parent,map_row,journey_):
 	travel_map_expanded=not travel_map_expanded
-	var toggle=parent.get_node("TravelMapToggle")
+	var toggle=map_row.get_node("TravelMapToggle")
 	toggle.text="経路だけ表示" if travel_map_expanded else "ワールドマップを表示"
 	if travel_map_expanded:
-		add_travel_map(parent,journey_)
-		parent.move_child(parent.get_node("TravelFullMap"),toggle.get_index()+1)
+		var chart=add_travel_map(parent,journey_)
+		parent.move_child(chart,map_row.get_index()+1)
 	else:
 		var chart=parent.get_node("TravelFullMap")
 		parent.remove_child(chart)
@@ -194,7 +214,8 @@ func add_travel_map(parent,journey_):
 	chart.towns=c().get("locations",[]);chart.current=str(journey_.get("origin",c().get("location","")));chart.selected=str(journey_.get("outboundDestination",journey_.get("destination","")))
 	chart.available=chart.towns.map(func(place):return place.id);chart.routes=c().get("routes",{});chart.icons=ui.icons
 	var quest=c().get("activeQuest");chart.quest_destination=str(quest.to) if quest is Dictionary else ""
-	parent.add_child(chart);chart.custom_minimum_size.y=300;chart.size_flags_vertical=Control.SIZE_FILL
+	parent.add_child(chart);chart.custom_minimum_size.y=grid_height(6)-grid_height(3);chart.size_flags_vertical=Control.SIZE_FILL
+	return chart
 
 func party(parent):
 	if not facility_entry.render_top(parent,"party"):
@@ -219,11 +240,25 @@ func close_items() -> bool:
 func use_selected_item(uid: String):
 	if item_stage!="target" or item_id.is_empty():return
 	await ui.act("useItem",[item_id,uid])
+func item_members(parent) -> GridContainer:
+	var body=ui.scroller(parent)
+	var members: GridContainer=ui.member_grid(body,"CampParty" if c().phase=="camp" else "ItemParty")
+	var fit=func():
+		var cell=ui.size.y/ScreenGrid.DIVISIONS
+		if cell>0:members.custom_minimum_size.y=grid_height(maxi(1,ceili(members.get_minimum_size().y/cell)))
+	members.minimum_size_changed.connect(fit,CONNECT_DEFERRED)
+	fit.call_deferred()
+	return members
+
 func items(parent):
 	if c().phase not in ["town","camp"]:l(parent,"町・野営で使用できます");return
+	parent.add_theme_constant_override("separation",0)
 	if c().has("inventoryByCharacter"):
-		l(parent,"インベントリ / 所持者を選択",true)
-		var members=ui.member_grid(parent,"CampParty" if c().phase=="camp" else "ItemParty")
+		var controls=card(parent)
+		var panel=controls.get_parent();panel.name="CampaignItems";panel.custom_minimum_size.y=grid_height(2)-grid_height(1)
+		var heading=l(controls,"インベントリ / 所持者を選択",true)
+		heading.size_flags_vertical=Control.SIZE_EXPAND_FILL;heading.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+		var members=item_members(parent)
 		for uid in c().get("selected",[]):
 			var u=roster().filter(func(member):return member.id==uid)[0]
 			var member=card(members);member.name="ItemMember_"+str(uid);member.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -239,20 +274,23 @@ func items(parent):
 	for item in catalog:
 		if item.id==item_id:selected_item=item
 	if item_stage=="target" and selected_item.is_empty():reset_items()
-	var controls=card(parent);controls.name="CampaignItems"
+	var controls=card(parent)
+	var panel=controls.get_parent();panel.name="CampaignItems";panel.custom_minimum_size.y=grid_height(2)
 	if item_stage=="entry":
 		var entry=ui.icons.apply(b(controls,"アイテム",show_items.bind("list")),"items");entry.name="CampaignItemEntry";ui.memory.key(entry,"campaign_item_entry")
 	elif item_stage=="list":
 		l(controls,"アイテム / 種類を選択",true)
 		var choices=row(controls);choices.name="CampaignItemList"
 		for item in catalog:
-			ui.memory.key(ui.icons.apply(b(choices,"%s %s / %d個" % [item.name,ItemMenu.effect(item),inventory.get(item.id,0)],show_items.bind("target",item.id),int(inventory.get(item.id,0))<=0),str(item.id)),"campaign_item_"+str(item.id))
+			var control=ui.icons.apply(b(choices,"%s %s / %d個" % [item.name,ItemMenu.effect(item),inventory.get(item.id,0)],show_items.bind("target",item.id),int(inventory.get(item.id,0))<=0),str(item.id))
+			preload("res://equipment_tooltip.gd").bind_hover(control,{"name":item.name,"kind":"item","definition":item},c())
+			ui.memory.key(control,"campaign_item_"+str(item.id))
 		b(controls,"戻る",show_items.bind("entry"))
 	else:
 		ui.icons.line(ui,controls,str(selected_item.id),"%s / 対象を選択" % selected_item.name,true)
 		l(controls,"%s / 残り%d個。生存している編成中の仲間に使用します。" % [ItemMenu.effect(selected_item),inventory.get(item_id,0)])
 		b(controls,"アイテム一覧へ",show_items.bind("list"))
-	var members=ui.member_grid(parent,"CampParty" if c().phase=="camp" else "ItemParty")
+	var members=item_members(parent)
 	for u in roster():
 		if not c().selected.has(u.id):continue
 		var member=card(members);member.name="ItemMember_"+str(u.id);member.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -277,9 +315,17 @@ func purchase(_q: Dictionary):shop_view.confirm_purchase()
 func buy(id: String):
 	await shop_view.confirm_purchase(id)
 func cancel_quote():shop_view.back_list()
+func return_to_town(parent):
+	parent.add_theme_constant_override("separation",0)
+	var actions=row(parent);actions.name="TownReturnRow";actions.alignment=BoxContainer.ALIGNMENT_END
+	actions.custom_minimum_size.y=grid_height(9)-grid_height(8)
+	var back=ui.green_button(b(actions,"広場に移動",acknowledge.bind("hub"),ui.page=="party" and guild_view.busy()))
+	back.name="GuildReturn" if ui.page=="party" else "InnReturn" if ui.page=="inn" else "TownReturn"
+
 func result(parent):
 	var result_: Dictionary=c().get("result",{});var outcome=result_.get("outcome","")
-	l(parent,{"success":"配達完了！","late":"配達完了！ / 遅配","failed":"クエスト失敗 / 出発前へ","travel":"目的地に到着"}.get(outcome,"旅の結果"),true)
+	var delivery_status: String=ui.results_view.delivery_status(result_)
+	l(parent,delivery_status if not delivery_status.is_empty() else {"failed":"クエスト失敗 / 出発前へ","travel":"目的地に到着"}.get(outcome,"旅の結果"),true)
 	quest_board.render_sluice_story(parent,result_)
 	if outcome=="failed":
 		l(parent,result_.get("reason","護送隊が敗北しました"))
@@ -357,5 +403,5 @@ func describe_gear(parent,gear: Dictionary,party_detail:=false):
 			var button=ui.button(icons,"Lv%d" % level,ui.show_skill_details.bind(id,title,level,gear))
 			button.icon=comparison.skill_texture(id,level);button.expand_icon=true;button.custom_minimum_size.x=96;button.add_theme_constant_override("icon_max_width",40)
 			button.accessibility_name=title+" Lv%d" % level
-			button.tooltip_text=preload("res://skill_text.gd").plain(preload("res://skill_text.gd").document(id,title,level,c(),gear))
+			preload("res://comparison_skill_icon.gd").bind_hover(button,id,title,level,c(),gear)
 	comparison.equipment_notes(parent,gear)

@@ -12,7 +12,6 @@ var controls := {}
 var foreground := {}
 var overlays := {}
 var file_windows := {}
-var tooltip_controls := {}
 var dirty := true
 var elapsed := 0.0
 
@@ -41,11 +40,7 @@ func setup(game):
 func invalidate(): dirty = true
 
 func window_added(node):
-	if node is Control and node.name in [&"ComparisonSkillTooltip", &"SkillDescriptionTooltip"] and node.get_window() is Popup:
-		var popup = node.get_window()
-		tooltip_controls[popup] = node
-		call_deferred("attach_window", popup.get_instance_id())
-	elif node is FileDialog and ui.is_ancestor_of(node):
+	if node is FileDialog and ui.is_ancestor_of(node):
 		file_windows[node] = true
 	elif node is Window and not node is Popup and ui.is_ancestor_of(node):
 		call_deferred("attach_window", node.get_instance_id())
@@ -64,7 +59,6 @@ func window_removed(node):
 	if node is Window:
 		overlays.erase(node)
 		file_windows.erase(node)
-		tooltip_controls.erase(node)
 
 func add_overlay(window: Window, canvas: CanvasLayer):
 	var overlay = RegionOverlay.new()
@@ -106,7 +100,6 @@ func visible_box(node: Control, bounds: Rect2) -> Rect2:
 	return rect
 
 func screen_id(window: Window, include_menu := true) -> String:
-	if tooltip_controls.has(window): return "tooltip"
 	if window != ui.get_window(): return "debug" if window.name == &"DeveloperWindow" else "window"
 	for dialog in file_windows:
 		if dialog.get_meta("file_dialog_active", false): return "file"
@@ -176,7 +169,6 @@ func refresh():
 		foreground.clear()
 		collect(ui)
 		for hover in get_tree().get_nodes_in_group("equipment_full_hover"): collect(hover)
-		for popup in tooltip_controls: controls[popup] = [tooltip_controls[popup]]
 		for dialog in overlays:
 			if dialog is AcceptDialog:
 				var buttons = dialog.get_ok_button().get_parent()
@@ -192,12 +184,12 @@ func refresh():
 		var underneath = screen_id(window, false) if screen == "menu" else screen
 		var occupied=occupied_text(window,bounds)
 		var captions := []
-		if screen != "tooltip": place(captions, "場面：" + title, Rect2(Vector2.ZERO, Vector2(bounds.size.x * 0.68, 30)), bounds, occupied)
+		place(captions, "場面：" + title, Rect2(Vector2.ZERO, Vector2(bounds.size.x * 0.68, 30)), bounds, occupied)
 		for node in controls.get(window, []):
 			if not is_instance_valid(node) or not node.is_visible_in_tree() or node.is_queued_for_deletion(): continue
 			for region in definitions[str(node.get_meta("ui_region",node.name))]:
 				if not region.screens.has(screen) and not region.screens.has(underneath) and not region.screens.has("共通"): continue
-				if region.screens.has("共通") and screen in ["loading","story","complete","victory","file","tooltip"]: continue
+				if region.screens.has("共通") and screen in ["loading","story","complete","victory","file"]: continue
 				var area = visible_box(node, bounds)
 				if area.size.x < 12 or area.size.y < 10: continue
 				var caption: String = CATALOG.data.prefix + region.label

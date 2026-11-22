@@ -60,10 +60,12 @@ func run():
 	check(node("BattleHistory")!=null and game.battle_header.global_position.y>root.size.y*.75 and viewport.encloses(node("BattleHistory").get_global_rect()) and node("BattleHistory").global_position.x>=node("TurnOrderViewport").get_global_rect().end.x,"S1 history remains visible beside bottom turn order")
 	check(game.hud.left_panel.visible and game.hud.buttons.size()==5 and not game.actor_face.visible and not game.header.text.contains("HP"),"S2 ally and commands left; no duplicate top actor")
 	check(not game.find_children("*","Button",true,false).any(func(b):return b.text in ["戦術","低","高"]),"S3 preset camera controls removed")
-	var left=game.hud.left_panel;left.position=Vector2(40,90);left.size=Vector2(360,630);left.persist();var rect=Rect2(left.position,left.size)
+	var left=game.hud.left_panel
+	var rect=Rect2(192,216,384,540)
+	left.global_position=rect.position;left.size=rect.size;left.persist()
 	var previous=game.data.duplicate(true);var enemy=game.state().units.filter(func(u):return u.side=="enemy")[0]
 	game.data.state.actor=enemy.id;game.hud.render();await frames();check(not left.visible,"S2 enemy turn hides entire left panel")
-	game.data=previous;game.hud.render();await frames();check(left.visible and Rect2(left.position,left.size)==rect,"S2/S7 next ally restores exact geometry")
+	game.data=previous;game.hud.render();await frames();check(left.visible and left.get_global_rect()==rect,"S2/S7 next ally restores exact grid geometry")
 	game.hud.inspected_uid="";game.hud.selected_cell=-1;game.hud.render_person();check(not game.hud.person_box.has_meta("inspected_unit"),"S2 right panel does not default to actor")
 	game.hud.inspected_uid=str(game.hud.acting().id);game.hud.render_person();check(game.hud.person_box.get_meta("inspected_unit","")==game.hud.acting().id,"S2 explicitly targeted self appears right")
 	var board=game.board;var pan=board.camera_pan
@@ -73,10 +75,10 @@ func run():
 	check(board.camera_pitch>=.2 and board.world.camera.position.y>0,"S3 right drag tilt clamped above ground")
 	var zoom=board.world.zoom;mouse(MOUSE_BUTTON_WHEEL_UP,true);check(board.world.zoom<zoom,"S3 wheel zoom retained")
 	var prefs=preload("res://ui_preferences.gd").new();check(prefs.camera().pan.is_equal_approx(game.preferences.camera().pan) and is_equal_approx(prefs.camera().yaw,game.preferences.camera().yaw) and is_equal_approx(prefs.camera().zoom,game.preferences.camera().zoom),"S3 camera disk roundtrip")
-	var bounded=prefs.bounded(Rect2(-2000,5000,2500,1800),Vector2(1280,720),Vector2(280,240));check(Rect2(Vector2.ZERO,Vector2(1280,720)).encloses(bounded),"S7 off-screen preferences clamped")
+	var bounded=prefs.bounded(Rect2(-2000,5000,2500,1800),viewport.size,Vector2(280,240));check(viewport.encloses(bounded),"S7 off-screen preferences clamped")
 	var camera=game.preferences.camera();await game.update({"op":"campaign_load","data":baseline});await settle();await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
 	check(game.board.camera_pan==camera.pan and game.board.camera_pitch==camera.pitch and game.board.world.zoom==camera.zoom,"S3 next battle restores camera")
-	check(Rect2(game.hud.left_panel.position,game.hud.left_panel.size)==rect,"S7 next battle restores left panel")
+	check(game.hud.left_panel.get_global_rect()==rect,"S7 next battle restores left panel")
 	var record={"camera":str(camera),"left":str(rect),"viewport":str(root.size),"checks":checks,"gui_review":"not performed; headless state/layout assertions only"}
 	var f=FileAccess.open(evidence.path_join("ui-feedback-20261016.json"),FileAccess.WRITE);f.store_string(JSON.stringify(record,"\t"));f.close()
 	game.closing=true;game.invalidate_preview();await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames()

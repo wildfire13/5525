@@ -59,11 +59,16 @@ func equipment_notes(body: Control,gear: Dictionary):
 
 func equipment_columns(body: Control,candidate: String) -> Array:
 	var pair=ui.row(body);pair.name="ShopComparisonSkills"
+	pair.add_theme_constant_override("separation",0)
+	pair.custom_minimum_size.y=ui.mock_shell.grid_cell().y*5
 	var columns=[]
 	for heading in ["現在の装備",candidate]:
-		var column=ui.card(pair)
-		column.get_parent().name="ComparisonCurrentColumn" if columns.is_empty() else "ComparisonCandidateColumn"
-		column.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		var scroll=ScrollContainer.new()
+		scroll.name="ComparisonCurrentColumn" if columns.is_empty() else "ComparisonCandidateColumn"
+		scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+		pair.add_child(scroll)
+		var column=VBoxContainer.new();column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(column)
 		ui.label_(ui.row(column),heading)
 		columns.append(column)
 	return columns
@@ -78,9 +83,11 @@ func fill_columns(columns: Array,q: Dictionary):
 		gear_summary(panel,gear,rows[i],i==1)
 
 func gear_summary(parent,gear: Dictionary,rows: Array,candidate:=false):
-	var label=ui.icons.line(ui,parent,ui.icons.equipment(gear),str(gear.get("name","なし")),true)
+	var label=ui.local_button(parent,str(gear.get("name","なし")),func():pass)
+	label.icon=ui.icons.texture(ui.icons.equipment(gear));label.expand_icon=true;label.add_theme_constant_override("icon_max_width",40)
 	if candidate:
 		label.name="ShopComparisonProduct";label.add_theme_font_size_override("font_size",28)
+	preload("res://equipment_tooltip.gd").bind_details(label,ui,gear)
 	for line in rows:ui.label_(parent,line)
 
 func open(id: String):
@@ -199,12 +206,10 @@ func render_skills(q: Dictionary):
 		for source in group[1]:
 			var id=str(source.id);var level=int(source.get("level",1));var name_=str(shop.c().get("skillNames",{}).get(id,id))
 			var gear=q.get("gear",{}) if group[0]=="追加" else q.get("current",{})
-			var doc=preload("res://skill_text.gd").document(id,name_,level,shop.c(),gear)
-			var button=preload("res://comparison_skill_icon.gd").new();line.add_child(button);button.name="ComparisonSkill_"+group[0]+"_"+id+"_"+str(line.get_child_count());button.text="Lv%d" % level
+			var button=Button.new();line.add_child(button);button.name="ComparisonSkill_"+group[0]+"_"+id+"_"+str(line.get_child_count());button.text="Lv%d" % level
 			button.custom_minimum_size=Vector2(96,52);button.icon=skill_texture(id,level);button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40)
-			button.tooltip_text=group[0]+"："+str(shop.c().get("slots",{}).get(source.get("slot",""),source.get("slot","")))+" / 付与枠%d\n" % int(source.get("grantSlot",1))+preload("res://skill_text.gd").plain(doc)
-			button.pressed.connect(func():
-				var detail=preload("res://skill_details.gd").new();(inline_host if is_instance_valid(inline_host) else ui.dialog.window).add_child(detail);detail.configure(ui,doc,group[0]+"スキル / "+name_))
+			preload("res://comparison_skill_icon.gd").bind_hover(button,id,name_,level,shop.c(),gear)
+			button.pressed.connect(ui.show_skill_details.bind(id,name_,level,gear))
 
 func skill_texture(id: String,level: int) -> Texture2D:
 	# Older adopted recipes may only have a Lv1 badge. Use the unchanged art

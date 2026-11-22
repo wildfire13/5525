@@ -22,6 +22,7 @@ function stateAt(s,worldTime,location){s.worldTime=worldTime;s.hours=worldTime;s
 {
   const s=setup('turnip','north');assert.equal(s.activeQuest.weight,8);stateAt(s,18,'astaris');
   assert(C.completeQuest(s));assert.equal(s.result.outcome,'success');assert.equal(s.result.gold,240);assert(s.result.story.some(line=>line[0]==='weigher'));
+  assert.equal(C.view(s).result.preferredMet,undefined);
   assert.equal(C.validate(s).ok,true,C.validate(s).error);assert.equal(C.view(s).scenarioStages.turnip,'second');
   assert(!C.board(s).some(q=>q.eventId==='turnip'));assert(C.serialize(s));
 }
@@ -51,6 +52,8 @@ function stateAt(s,worldTime,location){s.worldTime=worldTime;s.hours=worldTime;s
     else assert.match(displayed.text,/出発しました/);
     const encoded=C.serialize(q),reloaded=C.deserialize(encoded);assert.equal(C.view(reloaded).activeQuest.to,place,`saved destination at +${age}h`);
     assert(C.completeQuest(q),`complete at +${age}h`);assert.equal(q.result.gold,gold);assert.equal(q.result.outcome,outcome);
+    assert.equal(C.view(q).result.preferredMet,age>36?undefined:age<=24);
+    assert.equal(q.result.preferredMet,undefined,'preferred result is display-only');
     if(age===37){assert.equal(q.gold,before);assert.equal(q.location,'east');assert.equal(q.result.restored,true);}
     else {assert.equal(q.gold,before+gold);assert.equal(C.completeQuest(q),false);}
   }

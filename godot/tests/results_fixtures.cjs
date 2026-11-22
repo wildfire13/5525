@@ -9,5 +9,6 @@ function quest(urgent){
  const s=C.create(),q=C.board(s).find(q=>urgent?q.deadline===6:q.deadline===10);assert(q);assert(C.accept(s,q.id,'character_yuno'));assert(C.depart(s,q.to));won(s);assert(C.finishBattle(s));assert(C.onward(s));won(s);assert(C.finishBattle(s));assert(C.arrive(s));const ready=saved(s);const before=C.view(s);assert(C.completeQuest(s));return {ready,result:saved(s),before,after:C.view(s)};
 }
 const fail=clone(victory);fail.state.battle.resultKind='defeat';fail.state.battle.result='敗北。';for(const u of fail.state.battle.units)u.hp=u.side==='ally'?0:u.max;fail.state.battle.actor=null;assert(C.validate(fail.state).ok,C.validate(fail.state).error);
-const value={victory,finished,battle_before:before,battle_after:after,normal:quest(false),late:quest(true),defeat:fail};
+const kiln=C.create();assert(C.accept(kiln,'standalone-kiln','character_yuno'));kiln.location='east';kiln.worldTime=20;kiln.hours=20;assert(C.completeQuest(kiln));
+const value={victory,finished,battle_before:before,battle_after:after,normal:quest(false),late:quest(true),no_preference:saved(kiln),defeat:fail};
 process.stdout.write(JSON.stringify(value).replace(/[^\x00-\x7f]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0')));

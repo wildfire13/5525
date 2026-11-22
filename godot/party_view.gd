@@ -60,7 +60,8 @@ func skills(parent,u: Dictionary,show_summary:=true):
 		var title=str(names.get(id,id))+(" Lv%d" % level if preload("res://skill_text.gd").LEVELLED.has(id) else "")
 		ui.icons.line(ui,heading,ui.icons.skill(id,level),title,true)
 		var gear=u.get("equipmentDetails",{}).get(source.slot,{})
-		ui.local_button(heading,"説明",ui.show_skill_details.bind(id,str(names.get(id,id)),level,gear)).name="PartySkillDetails_"+id+("_%d" % occurrence if occurrence>0 else "")
+		var button=ui.local_button(heading,"説明",ui.show_skill_details.bind(id,str(names.get(id,id)),level,gear));button.name="PartySkillDetails_"+id+("_%d" % occurrence if occurrence>0 else "")
+		preload("res://comparison_skill_icon.gd").bind_hover(button,id,str(names.get(id,id)),level,pages.c(),gear)
 		l(parent,preload("res://skill_text.gd").plain(preload("res://skill_text.gd").document(id,str(names.get(id,id)),level,pages.c(),gear)))
 		l(parent,"由来: "+str(pages.c().slots.get(source.slot,source.slot))+" / "+str(gear.get("name",source.itemId)))
 

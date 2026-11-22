@@ -68,10 +68,17 @@ const QUEUE_ARROW_WIDTH=24
 const QUEUE_GAP=8
 const QUEUE_PITCH=QUEUE_CARD_WIDTH+QUEUE_ARROW_WIDTH+QUEUE_GAP*2
 const COMMANDS=[["action_attack","攻撃"],["action_move","移動"],["action_skill","スキル"],["items","アイテム"],["action_defend","防御"]]
-func actor_panel_rect() -> Rect2:
-	return Rect2(0,64,ui.mock_shell.ROSTER_WIDTH,760)
-func target_panel_rect() -> Rect2:
-	return Rect2(maxf(0,middle.size.x-400),64,400,760)
+const Grid=preload("res://screen_grid.gd")
+func panel_rect(right: bool) -> Rect2:
+	var cols=clampi(int(ui.preferences.config.get_value("battle","panel_columns",2)),2,5)
+	var rect=Grid.cell_rect(ui.size,10-cols if right else 0,1,cols,7)
+	rect.position-=middle.global_position
+	return rect
+func actor_panel_rect() -> Rect2:return panel_rect(false)
+func target_panel_rect() -> Rect2:return panel_rect(true)
+func set_panel_columns(count: int):
+	for panel in [left_panel,right_panel]:panel.grid_columns=count
+	ui.preferences.config.set_value("battle","panel_columns",count)
 func _init(frontend):ui=frontend
 func l(parent,text,large:=false):
 	var label=ui.label_(parent,str(text),large)
@@ -113,6 +120,9 @@ func mount():
 	left_panel.configure(ui.preferences,"battle_actor_b","行動者 / コマンド",actor_panel_rect())
 	right_panel=preload("res://floating_panel.gd").new();right_panel.viewport_bounds=true;middle.add_child(right_panel)
 	right_panel.configure(ui.preferences,"battle_target_b","対象 / 効果",target_panel_rect())
+	for panel in [left_panel,right_panel]:
+		panel.grid_columns=clampi(int(ui.preferences.config.get_value("battle","panel_columns",2)),2,5)
+		panel.columns_changed.connect(set_panel_columns)
 	dock=left_panel
 	tools=HBoxContainer.new();tools.name="BattleTools";middle.add_child(tools)
 	camera_hint=l(middle,preload("res://battle_board.gd").CAMERA_HINT)
@@ -147,27 +157,19 @@ func resize():
 	camera_hint.global_position=Vector2(24,ui.size.y-camera_hint.get_combined_minimum_size().y-8)
 	var queue_scroll=ui.battle_header.find_child("TurnOrderViewport",true,false)
 	if queue_scroll!=null:queue_scroll.custom_minimum_size.x=queue_viewport_width()
-	ui.battle_header.position.y=maxf(0,middle.size.y-maxf(108,ui.battle_header.get_combined_minimum_size().y));ui.battle_header.size.x=middle.size.x
-	# Both preparation controls end on the same baseline above the shared partybar.
-	var footer_end=middle.size.y-8
-	var common_menu=ui.find_child("CommonMenuButton",true,false)
-	if deployment_layout and is_instance_valid(common_menu) and common_menu.is_visible_in_tree():footer_end=minf(footer_end,common_menu.global_position.y-middle.global_position.y-8)
-	var action_height=maxf(1,deployment_actions.get_combined_minimum_size().y)
-	deployment_actions.size=Vector2(330,action_height);deployment_actions.position=Vector2(middle.size.x-330,footer_end-action_height)
-	var formation_height=maxf(action_height,deployment_bar.get_combined_minimum_size().y)
-	deployment_bar.size=Vector2(maxf(280,middle.size.x-350),formation_height)
-	deployment_bar.position=Vector2(0,footer_end-formation_height)
-	left_panel.viewport_bounds=true;right_panel.viewport_bounds=true
-	left_panel.reserved_top=0;right_panel.reserved_top=0
-	# Both phases have pinned controls below the draggable information panels.
-	var protected_top=minf(deployment_bar.global_position.y,deployment_actions.global_position.y) if deployment_layout else ui.battle_header.global_position.y
-	ui.board.deployment_bottom_limit=protected_top-ui.board.global_position.y if deployment_layout else 0.0
+	var order_region=Grid.cell_rect(ui.size,0,9,10,1)
+	Grid.place(ui.battle_header,order_region)
+	var order=ui.battle_header.find_child("TurnOrderControls",true,false)
+	if order!=null:order.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	ui.board.deployment_bottom_limit=0
 	ui.board.update_camera()
-	var reserved=maxf(0,ui.size.y-protected_top+8)
-	left_panel.reserved_bottom=reserved;right_panel.reserved_bottom=reserved
-	left_panel.z_index=10;right_panel.z_index=10
-	left_panel.layout_bounds=Rect2();right_panel.layout_bounds=Rect2()
-	left_panel.constrain();right_panel.constrain();tools.size=Vector2(middle.size.x,56)
+	for panel in [left_panel,right_panel]:
+		panel.reserved_bottom=ui.size.y-order_region.position.y
+		panel.z_index=10
+		panel.fit_sections()
+		panel.constrain()
+	Grid.place(tools,Grid.cell_rect(ui.size,0,0,1,1))
+
 func render():
 	var opening=false
 	var s=ui.state();var phase=ui.data.get("presentation");var a=acting()
@@ -235,7 +237,7 @@ func render():
 	if is_instance_valid(opening_visual):left_panel.hide()
 	if opening:open_actor_panel()
 func build_panels(s,phase,a,deploying):
-	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(left_panel.body);ui.clear(right_panel.body);ui.clear(right_panel.footer)
+	ui.clear(ui.battle_header);ui.clear(tools);ui.clear(left_panel.body);ui.clear(left_panel.lower);ui.clear(right_panel.body);ui.clear(right_panel.lower);ui.clear(right_panel.footer)
 	render_queue()
 	tools.visible=not deploying;tools.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	if ui.data.get("trial") is Dictionary:
@@ -262,7 +264,8 @@ func build_panels(s,phase,a,deploying):
 			var weight=l(battle_stats,"Wt %.1f / %.1f" % [float(a.get("carriedWeight",0))+float(a.get("fallenWeightShare",0)),float(a.get("weightLimit",0))])
 			weight.mouse_filter=Control.MOUSE_FILTER_STOP
 			weight.tooltip_text="所持重量 / STR上限。上限を超えると行動速度が半減します。"
-	bottom_commands=VBoxContainer.new();bottom_commands.name="ActorCommands";left_info.add_child(bottom_commands);
+	left_panel.lower_scroll.name="BattleCommandRegion"
+	bottom_commands=left_panel.lower;bottom_commands.name="ActorCommands"
 	if not deploying:render_bottom_commands()
 	actor_box=left_info;command_box=left_info
 	person_box=VBoxContainer.new();person_box.name="BattlePersonInfo";right_panel.body.add_child(person_box)
@@ -411,7 +414,9 @@ func render_items():
 			var text="アイテム使用 Lv%d（" % int(grant.get("level",1))+skill_source_short(grant)+"）"
 			if int(grant.get("cooldown",0))>0:text+="\nクールタイム中"
 			var choice=b(list,text,ui.select_skill.bind(str(grant.get("key",grant.id))),int(grant.get("cooldown",0))>0)
-			choice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;choice.tooltip_text=skill_source_text(grant)
+			choice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+			preload("res://comparison_skill_icon.gd").bind_hover(choice,str(grant.id),str(grant.name),int(grant.get("level",1)),ui.campaign())
+			choice.tooltip_text+="\n"+skill_source_text(grant)
 			ui.mark_selected(choice,selected)
 			ui.memory.key(choice,"item_skill_"+str(grant.get("key",grant.id)))
 	for item in ItemMenu.definitions(ui.campaign()):
@@ -426,7 +431,9 @@ func render_items():
 		elif ui.data.get("choices",{}).get(kind,[]).is_empty():reason="回復できる生存味方なし"
 		var selected=not item_list and ui.command==kind
 		var control=b(list,"%s / %d個" % [item.name,count],ui.choose_command.bind(kind),not reason.is_empty())
-		control.tooltip_text=ItemMenu.effect(item)+" / "+item_range_text()+" / 1個・1行動"+(" / "+reason if not reason.is_empty() else "")
+		control.set_script(preload("res://equipment_tooltip.gd"))
+		control.configure_entry({"name":item.name,"kind":"item","definition":item},ui.campaign())
+		control.tooltip_text+="\n"+item_range_text()+" / 1個・1行動"+(" / "+reason if not reason.is_empty() else "")
 		control.name="BattleItem_"+str(item.id);ui.icons.apply(control,str(item.id));ui.mark_selected(control,selected)
 
 func skill_unavailable_reason() -> String:
@@ -555,7 +562,8 @@ func render_skills(parent):
 		control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		control.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 		control.name="BattleSkill_"+str(skill.id);ui.mark_selected(control,selected)
-		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip(str(skill.id),str(skill.name),level)+"\n"+source+("\nクールタイム中：次の行動機会から使用できます" if cooling else "")
+		preload("res://comparison_skill_icon.gd").bind_hover(control,str(skill.id),str(skill.name),level,ui.campaign())
+		control.tooltip_text+="\n"+source+("\nクールタイム中：次の行動機会から使用できます" if cooling else "")
 		ui.memory.key(control,"battle_skill_"+key)
 		var info=skill_info_icon(line,str(skill.id),str(skill.name),level)
 		ui.memory.key(info,"battle_skill_details_"+key)
@@ -568,13 +576,15 @@ func render_skills(parent):
 		if skill.get("used",false):text+="\n使用済み"
 		var control=b(line,text,ui.select_return_skill.bind(key),skill.get("used",false));control.name="BattleSkill_skill_return_home";ui.mark_selected(control,selected)
 		control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-		control.set_script(preload("res://skill_tooltip.gd"));control.tooltip_text=skill_tooltip("skill_return_home","帰還",1)+"\n"+source+"\nこの付与元は1戦闘に1回"
+		preload("res://comparison_skill_icon.gd").bind_hover(control,"skill_return_home","帰還",1,ui.campaign())
+		control.tooltip_text+="\n"+source+"\nこの付与元は1戦闘に1回"
 		ui.memory.key(control,"battle_return_"+key)
 		var info=skill_info_icon(line,"skill_return_home","帰還",1)
 		ui.memory.key(info,"battle_return_details_"+key)
 func skill_info_icon(line,id: String,title: String,level: int) -> Button:
 	var info=ui.local_button(line,"",ui.show_skill_details.bind(id,title,level))
-	info.name="BattleSkillDetails_"+id;info.tooltip_text=title+"の説明"
+	info.name="BattleSkillDetails_"+id
+	preload("res://comparison_skill_icon.gd").bind_hover(info,id,title,level,ui.campaign())
 	ui.icons.apply(info,ui.icons.skill(id,level),32);line.move_child(info,0)
 	return info
 func has_return() -> bool:return acting().get("effects",[]).has("skill_return_home")
@@ -706,15 +716,10 @@ func draw_loadout(body,member: Dictionary,tab: String):
 	var detail=VBoxContainer.new();detail.size_flags_horizontal=Control.SIZE_EXPAND_FILL;line.add_child(detail)
 	if member.side=="enemy":line.move_child(detail,0)
 	if tab=="equipment":
-		column.equipment(ui,member,"","BattleSlot_",func(item):
-			ui.clear(detail)
-			if item.get("type")!="empty":ui.pages.describe_gear(detail,item,true))
+		column.equipment(ui,member,"","BattleSlot_",func(_item):pass)
 		for slot in member.get("equipmentSlots",[]):
 			var button=column.stage.get_node_or_null("BattleSlot_"+str(slot.slot))
-			if button==null:continue
-			ui.memory.key(button,"equipment_"+str(slot.slot))
-			button.set_script(preload("res://equipment_tooltip.gd"))
-			button.configure(ui.pages.party_view.equipment_name(slot),member.equipmentDetails[slot.slot],{"names":ui.campaign().get("skillNames",{}),"definitions":ui.campaign().get("skillDefinitions",{}),"occupied":slot.get("occupiedBy")!=null,"job":member.job,"title_size":24,"detail_size":18})
+			if button!=null:ui.memory.key(button,"equipment_"+str(slot.slot))
 		return
 	var inventory=column.inventory_overlay();inventory.name="BattleInventory"
 	var entries=ui.campaign().get("inventoryByCharacter",{}).get(member.id,{}).get("entries",[])
@@ -912,9 +917,6 @@ func close_menu():
 	await ui.get_tree().create_timer(.001 if ui.checks_fast else .2).timeout
 	if ticket!=menu_ticket or ui.closing:return
 	menu_transition=false;expanded_menu="";ui.invalidate_preview();item_list=false;skill_list=false;action_menu=true;ui.render()
-func skill_tooltip(id: String,title: String,level: int) -> String:
-	return preload("res://skill_text.gd").plain(preload("res://skill_text.gd").document(id,title,level,ui.campaign()))
-
 func visual_only(control: Control):
 	control.mouse_filter=Control.MOUSE_FILTER_IGNORE;control.focus_mode=Control.FOCUS_NONE
 	control.process_mode=Node.PROCESS_MODE_DISABLED

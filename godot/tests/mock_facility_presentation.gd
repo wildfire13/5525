@@ -24,7 +24,8 @@ func run():
   await game.update({"op":"campaign_load","data":save});game.navigate(pair[1]);await settle()
   var label=pair[0]+"-"+pair[1]
   check(node("FacilityStill")!=null and node("FacilityStill").texture!=null,label+" adopted facility backdrop")
-  check(node("FacilityNpc").size.y>=900,label+" prominent keeper")
+  var keeper=node("FacilityNpc")
+  check(keeper is TextureRect and keeper.is_visible_in_tree() and keeper.texture!=null and is_equal_approx(keeper.size.y,root.size.y*1.28) and is_equal_approx(keeper.get_parent().size.y,root.size.y*.8),label+" visible keeper occupies eight grid rows")
   check(node("FacilityExit").get_global_rect().end.y<1080 and node("FacilityEntrySpeech").get_global_rect().end.x<=1920,label+" choices and speech fit FHD")
   await capture(label)
   node("FacilityExit").pressed.emit();await settle()

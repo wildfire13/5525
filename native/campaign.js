@@ -989,6 +989,10 @@ const Campaign = (() => {
     syncWorld(s);
     // Older standalone deadline results omitted the reason. Present it without rewriting the save.
     const shown=clone(s),result=shown.result;
+    // A standalone hard deadline is a delivery requirement, not a preference.
+    if(result&&['success','late'].includes(result.outcome)&&(!result.scenario||SCENARIO_BY_ID[result.scenario]?.lateDeadline!=null)){
+      result.preferredMet=result.outcome==='success';
+    }
     if(result?.quest==='水門の鐘' && !result.story && ['success','late'].includes(result.outcome)){
       Object.assign(result,sluiceScene(result.outcome==='late'?'late':'onTime'));
     }

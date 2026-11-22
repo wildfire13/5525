@@ -28,13 +28,19 @@ func deadline_text(m: Dictionary) -> String:
 	if not m.get("finalOpen",true):return "受取期間は終了しました"
 	var final=("今なら受取可能。次に時間が進むと受取終了" if m.get("canDeliver",false) else "受取人はサウスに滞在中。次に時間が進むと受取終了") if m.get("finalBoundary",false) else "最終受取まで%d時間" % int(m.get("finalRemaining",0))
 	return preferred+"\n"+final
-func render(parent,q: Dictionary,prefix: String,with_details := false):
+func render(parent,q: Dictionary,prefix: String,with_details := false,availability_parent: Control=null):
 	var m: Dictionary=q.get("meeting",{})
 	if m.is_empty():return
 	var title=ui.label_(parent,"受取人: 行商人",true);title.name=prefix+"Recipient"
 	if prefix!="Quest" or m.get("canWait",false) or m.get("currentStop")==null or m.get("state")=="departed":
 		ui.label_(parent,status(m)).name=prefix+"Status"
-	ui.label_(parent,availability(m)).name="QuestMerchantAvailability" if prefix=="Quest" else "HubMerchantAvailability"
+	if availability_parent==null:
+		ui.label_(parent,availability(m)).name="QuestMerchantAvailability" if prefix=="Quest" else "HubMerchantAvailability"
+	else:
+		var label=Label.new();label.name="QuestMerchantAvailability"
+		label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;label.clip_text=true;label.max_lines_visible=2
+		label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+		label.text=availability(m);availability_parent.add_child(label)
 	ui.label_(parent,deadline_text(m)).name=prefix+"Deadline"
 	if not m.get("cargoAboard",false) and q.get("token")!=null and m.get("finalOpen",true):
 		ui.label_(parent,"納品には荷物を持つポーターの同行が必要です。").name=prefix+"CargoNotice"

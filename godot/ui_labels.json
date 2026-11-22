@@ -104,10 +104,6 @@
   "startup": {
    "label": "起動",
    "meaning": "キャンペーン取得前"
-  },
-  "tooltip": {
-   "label": "スキルの説明",
-   "meaning": "アイコンにポインターを置いている間の説明"
   }
  },
  "regions": [
@@ -171,18 +167,17 @@
    "nodes": [
     "EquipmentTooltipPanel"
    ],
-   "meaning": "装備・所持品の詳細"
+   "meaning": "装備・所持品の名前と要点。クリックで詳細を開く"
   },
   {
    "screens": [
-    "tooltip"
+    "共通"
    ],
    "label": "スキルホバー詳細",
    "nodes": [
-    "ComparisonSkillTooltip",
-    "SkillDescriptionTooltip"
+    "CompactSkillHover"
    ],
-   "meaning": "スキルの説明"
+   "meaning": "スキル名と要点。クリックで詳細を開く"
   },
   {
    "screens": [
@@ -247,7 +242,7 @@
    ],
    "label": "施設スタッフ",
    "nodes": [
-    "FacilityNpc",
+    "FacilityNpcRegion",
     "InnKeeper"
    ],
    "meaning": "応対する人物"
@@ -632,7 +627,7 @@
    ],
    "label": "控えメンバー",
    "nodes": [
-    "DeploymentReserves"
+    "DeploymentReserveRegion"
    ],
    "meaning": "控えの人物と配置・解除先"
   },
@@ -664,7 +659,7 @@
    ],
    "label": "戦闘コマンド",
    "nodes": [
-    "ActorCommands"
+    "BattleCommandRegion"
    ],
    "meaning": "攻撃・移動・スキル・アイテム・防御"
   },

@@ -11,6 +11,7 @@ const COLUMN_GAP=16
 const SHOP_CATALOG_WIDTH=440
 const SURFACE_ALPHA=0.90
 const NESTED_SURFACE_ALPHA=0.12
+const Grid=preload("res://screen_grid.gd")
 func _init(frontend):ui=frontend
 static func style(fill: Color=PAPER) -> StyleBoxFlat:
 	var s=StyleBoxFlat.new();s.bg_color=fill;s.border_color=Color("#cbd0c8");s.set_border_width_all(1);s.set_corner_radius_all(3);s.set_content_margin_all(8);return s
@@ -21,7 +22,9 @@ static func surface_style(fill: Color=PAPER,nested:=false) -> StyleBoxFlat:
 	surface.bg_color.a=NESTED_SURFACE_ALPHA if nested else SURFACE_ALPHA
 	return surface
 func content_height() -> float:
-	return maxf(584,ui.size.y-148)
+	return ui.size.y-grid_cell().y*(2 if ui.footer.visible else 1)
+func grid_cell() -> Vector2:
+	return Grid.cell_rect(ui.size,0,0,1,1).size
 func apply_theme():
 	ui.theme.default_font_size=20
 	for kind in ["Label","Button","OptionButton","CheckButton","RichTextLabel","TabBar","LineEdit","SpinBox"]:
@@ -63,8 +66,8 @@ func toggle_journey_quest():
 	ui.navigate("map" if ui.page=="board" else "board")
 
 func navigation(parent):
-	var panel=PanelContainer.new();panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
-	var bar=ui.row(panel);bar.name="CampaignHeader";bar.custom_minimum_size.y=56
+	var panel=PanelContainer.new();panel.name="CampaignHeader";panel.custom_minimum_size.y=grid_cell().y;panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
+	var bar=ui.row(panel);bar.name="CampaignHeaderContent";bar.custom_minimum_size.y=56
 	var elapsed=Label.new()
 	elapsed.name="CampaignElapsedTime"
 	elapsed.text=elapsed_time_text()
@@ -105,12 +108,14 @@ func workspace(parent) -> VBoxContainer:
 	if ui.page=="character" or ui.pages.warehouse_view.available() or (ui.page=="shop" and not ui.pages.facility_entry.at_top()):
 		var scroll=ScrollContainer.new()
 		scroll.name="MemberWorkspaceScroll"
-		scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_RESERVE
+		scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO
 		scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
 		parent.add_child(scroll)
 		ui.memory.watch(scroll,"member_workspace_"+ui.page)
 		parent=scroll
 	var row=columns(parent);row.name="CampaignWorkspace"
+	row.add_theme_constant_override("separation",0)
+	row.custom_minimum_size.y=content_height()
 	if parent is ScrollContainer:row.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	if needs_roster():
 		var ids=ui.campaign().get("selected",[])
@@ -135,6 +140,7 @@ func roster(parent,deployment=null):
 		panel.custom_minimum_size.y=0
 		panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	else:panel.custom_minimum_size.x=grid_cell().x*2
 	var body=VBoxContainer.new();panel.add_child(body)
 	var ids=ui.campaign().get("selected",[])
 	ui.label_(body,"パーティメンバー     %d / %d" % [ids.size(),ui.campaign().get("partyLimit",12)])

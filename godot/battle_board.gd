@@ -384,6 +384,10 @@ func legal_target_cells() -> Array:
 				for u in data.get("state",{}).get("units",[]):
 					if u.id==target:result.append(int(u.pos))
 	return result
+func move_preview_caption() -> String:
+	if kind=="action_move" and not reference_mode and not data.get("presentation") is Dictionary and preview.get("kind")=="action_move" and preview.get("destination")!=null:
+		return "命中率：100％"
+	return ""
 func draw_overlay():
 	if world==null or data.is_empty():return
 	var resolving=data.get("presentation") is Dictionary
@@ -431,7 +435,10 @@ func draw_overlay():
 		draw_coordinate(project(point(y*10)+Vector3(-.85,.02,0)),str(4-y),Color.WHITE)
 	if state.get("sluice") is Dictionary:
 		draw_sluice(state)
-	draw_unit_labels(state)
+	var move_caption=move_preview_caption()
+	draw_unit_labels(state,move_caption.is_empty())
+	if not move_caption.is_empty():
+		draw_prediction_caption(int(preview.destination),move_caption,Color("#a9ede0"),150)
 	if has_focus():
 		cell_outline(keyboard_cell,Color("#78edce"),3.0)
 func draw_coordinate(at: Vector2, value: String, color: Color):
@@ -507,7 +514,7 @@ func draw_sluice(state: Dictionary) -> void:
 	overlay.draw_rect(Rect2(8, 8, width, 26), Color("22332ef0"))
 	overlay.draw_string(font, Vector2(16, 27), tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
 
-func draw_unit_labels(state: Dictionary):
+func draw_unit_labels(state: Dictionary,show_hover_caption: bool):
 	var shown: Array[Rect2]=[]
 	var actor=state.get("actor","")
 	if data.get("presentation") is Dictionary:actor=data.presentation.get("actor_id",actor)
@@ -527,13 +534,15 @@ func draw_unit_labels(state: Dictionary):
 			else:overlay.draw_colored_polygon(PackedVector2Array([badge+Vector2(0,-4),badge+Vector2(3,3),badge+Vector2(-3,3)]),color)
 			if u.get("guard",false):overlay.draw_rect(Rect2(at-Vector2(width*.5+1,1),Vector2(width+2,6)),Color("#ffe197"),false,1)
 		elif u.get("guard",false):overlay.draw_string(ThemeDB.fallback_font,at+Vector2(-24,-5),"防",HORIZONTAL_ALIGNMENT_LEFT,-1,16,color)
-		if u.id!=hover_uid or hover_caption.is_empty():continue
-		var lines=hover_caption.split("\n");var width_=minf(330,size.x-12);var height_=lines.size()*24+12
-		var origin=project_cell(int(u.pos))+Vector2(18,-height_-18)
-		origin.x=clampf(origin.x,6,maxf(6,size.x-width_-6));origin.y=clampf(origin.y,6,maxf(6,size.y-height_-6))
-		var rect=Rect2(origin,Vector2(width_,height_))
-		overlay.draw_rect(rect,Color(.04,.1,.14,.95));overlay.draw_rect(rect,color,false,1.0)
-		for i in range(lines.size()):overlay.draw_string(ThemeDB.fallback_font,origin+Vector2(6,23+i*24),lines[i],HORIZONTAL_ALIGNMENT_LEFT,width_-12,18,Color.WHITE)
+		if show_hover_caption and u.id==hover_uid and not hover_caption.is_empty():
+			draw_prediction_caption(int(u.pos),hover_caption,color)
+func draw_prediction_caption(cell: int,caption: String,color: Color,max_width: float=330):
+	var lines=caption.split("\n");var width_=minf(max_width,size.x-12);var height_=lines.size()*24+12
+	var origin=project_cell(cell)+Vector2(18,-height_-18)
+	origin.x=clampf(origin.x,6,maxf(6,size.x-width_-6));origin.y=clampf(origin.y,6,maxf(6,size.y-height_-6))
+	var rect=Rect2(origin,Vector2(width_,height_))
+	overlay.draw_rect(rect,Color(.04,.1,.14,.95));overlay.draw_rect(rect,color,false,1.0)
+	for i in range(lines.size()):overlay.draw_string(ThemeDB.fallback_font,origin+Vector2(6,23+i*24),lines[i],HORIZONTAL_ALIGNMENT_LEFT,width_-12,18,Color.WHITE)
 func reset_animation():
 	if is_instance_valid(skill_effects):skill_effects.clear()
 	reset_portrait_animation()

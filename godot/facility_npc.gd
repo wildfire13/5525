@@ -22,7 +22,7 @@ func sync(facility: String):
 func available(viewport: Vector2) -> bool:
 	return texture!=null and viewport.x>=1120 and viewport.y>=720
 func mouth_anchor(parent: Control) -> Vector2:
-	var portrait=parent.get_node_or_null("FacilityNpc")
+	var portrait=parent.get_node_or_null("FacilityNpcRegion/FacilityNpc")
 	if portrait==null or texture==null:return Vector2(-1,-1)
 	var source: Vector2=MOUTHS.get(selected_path.get_file(),Vector2(512,240))
 	return portrait.global_position+portrait.size*source/texture.get_size()
@@ -31,11 +31,15 @@ func portrait_layer(parent: Control):
 	if not available(viewport):return
 	# The original full-body image is enlarged, then naturally cropped below
 	# the game window. Its face stays on the reserved right side; UI is later.
+	var region=Control.new();region.name="FacilityNpcRegion";region.clip_contents=true
+	region.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(region)
+	var grid_rect=preload("res://screen_grid.gd").cell_rect(viewport,6,2,4,8)
+	region.position=grid_rect.position;region.size=grid_rect.size
 	var portrait=TextureRect.new();portrait.name="FacilityNpc";portrait.texture=texture
 	portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE;portrait.focus_mode=Control.FOCUS_NONE;parent.add_child(portrait)
+	portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE;portrait.focus_mode=Control.FOCUS_NONE;region.add_child(portrait)
 	var bounds=portrait_rect(viewport,texture)
-	portrait.size=bounds.size;portrait.position=bounds.position
+	portrait.size=bounds.size;portrait.position=bounds.position-region.position
 	portrait.set_meta("facility",visit_key);portrait.set_meta("asset_path",selected_path)
 static func portrait_rect(viewport: Vector2,art: Texture2D) -> Rect2:
 	var height=viewport.y*1.28;var width=height*art.get_width()/art.get_height()

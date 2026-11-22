@@ -60,18 +60,14 @@ func open():
 func build():
  if not is_enabled():return
  window=Window.new();window.visible=false;window.name="DeveloperWindow";window.title="5525 開発情報";window.force_native=true;window.transient=false;window.exclusive=false;window.size=Vector2i(720,480);window.min_size=Vector2i(440,480);window.visible=false;window.theme=ui.theme;add_child(window)
- var desktop=DisplayServer.screen_get_usable_rect(ui.get_window().current_screen)
- if desktop.has_area():
-  var placement=ui.preferences.default_window_rect(ui.size,Vector2(window.size))
-  placement.position+=Vector2(ui.get_window().position-desktop.position)
-  window.position=desktop.position+Vector2i(ui.preferences.bounded(placement,Vector2(desktop.size),Vector2(window.min_size)).position)
+ ui.preferences.bind_window(window,"developer",ui.size,Vector2(960,864),Vector2(768,864))
  window.close_requested.connect(window.hide)
  window.window_input.connect(func(event):
   if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
    window.hide();window.set_input_as_handled())
  var margin=MarginContainer.new();window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
- for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,12)
- var column=VBoxContainer.new();margin.add_child(column)
+ for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,0)
+ var column=preload("res://window_grid.gd").new();margin.add_child(column)
  var heading=Label.new();heading.text="開発情報（ゲーム操作・保存データとは独立）";heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(heading)
  status=Label.new();status.name="DebugState";status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(status)
  var hint=Label.new();hint.text="表示は最新200件。構造化診断はローカルDBに保存（公開・送信なし）";hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(hint)

@@ -15,6 +15,7 @@ var intro: Tween
 var _replaying := false
 var _compact := false
 var _layout_queued := false
+const Grid=preload("res://screen_grid.gd")
 const GOLD=Color("#315b4b")
 const MUTED=preload("res://mock_shell.gd").MUTED_INK
 func _init(frontend=null):ui=frontend
@@ -33,6 +34,14 @@ func _member(c: Dictionary,id: String) -> Dictionary:
  for member in c.get("roster",[]):
   if str(member.id)==id:return member
  return {}
+func delivery_status(result: Dictionary) -> String:
+ var outcome=result.get("outcome")
+ if outcome not in ["success","late"]:return ""
+ var text="配達完了"
+ var preferred=result.get("preferredMet")
+ if preferred is bool:text+=" / "+("希望条件達成" if preferred else "希望条件未達")
+ if outcome=="late":text+="（遅配）"
+ return text
 func receipt_for(action: String,before: Dictionary,battle: Dictionary,reply: Dictionary) -> Dictionary:
  if not reply.get("ok",false) or not reply.get("campaign") is Dictionary:return {}
  var after: Dictionary=reply.campaign
@@ -47,7 +56,7 @@ func receipt_for(action: String,before: Dictionary,battle: Dictionary,reply: Dic
   rows.append({"id":str(id),"name":now.name,"member":now.duplicate(true),"xp_before":old.get("xp",0),"xp_after":now.get("xp",0),"xp_gain":int(now.get("xp",0))-int(old.get("xp",0)),"level_before":old.get("level",1),"level_after":now.get("level",1),"stat_gain":int(now.get("statPoints",0))-int(old.get("statPoints",0)),"skill_gain":int(now.get("skillPoints",0))-int(old.get("skillPoints",0))})
  var result: Dictionary=after.get("result",{}) if after.get("result") is Dictionary else {}
  var fallen=battle.get("units",[]).filter(func(u):return u.get("side")=="enemy" and int(u.get("hp",0))<=0).size()
- return {"kind":kind,"title":"BATTLE VICTORY" if kind=="battle" else "QUEST COMPLETE","subtitle":"戦闘勝利" if kind=="battle" else "配達達成","rp_gain":int(result.get("rp",0)),"gold_gain":int(after.get("gold",0))-int(before.get("gold",0)),"gold_after":after.get("gold",0),"members":rows,"quest":str(result.get("quest","")),"hours":result.get("hours"),"actions":battle.get("actions"),"defeated":fallen,"outcome":str(result.get("outcome","")),"location":str(after.get("location","")),"scenario":str(result.get("scenario","")),"storyId":result.get("storyId",""),"story":result.get("story",[]),"portrait":str(result.get("portrait","")),"cast":result.get("cast",[]),"restored":false,"acknowledge":kind=="quest"}
+ return {"kind":kind,"title":"BATTLE VICTORY" if kind=="battle" else "QUEST COMPLETE","subtitle":"戦闘勝利" if kind=="battle" else delivery_status(result),"rp_gain":int(result.get("rp",0)),"gold_gain":int(after.get("gold",0))-int(before.get("gold",0)),"gold_after":after.get("gold",0),"members":rows,"quest":str(result.get("quest","")),"hours":result.get("hours"),"actions":battle.get("actions"),"defeated":fallen,"outcome":str(result.get("outcome","")),"location":str(after.get("location","")),"scenario":str(result.get("scenario","")),"storyId":result.get("storyId",""),"story":result.get("story",[]),"portrait":str(result.get("portrait","")),"cast":result.get("cast",[]),"restored":false,"acknowledge":kind=="quest"}
 func enqueue(receipt: Dictionary):
  if receipt.is_empty():return
  pending.append(receipt.duplicate(true));recent=[receipt.duplicate(true)]
@@ -59,7 +68,7 @@ func restore_quest(c: Dictionary):
   var now=_member(c,str(id))
   if now.is_empty():continue
   rows.append({"id":str(id),"name":now.name,"member":now.duplicate(true),"xp_before":null,"xp_after":now.get("xp",0),"xp_gain":int(result.get("xp",0)),"level_before":null,"level_after":now.get("level",1),"stat_gain":null,"skill_gain":null})
- enqueue({"kind":"quest","title":"QUEST COMPLETE","subtitle":"配達達成","rp_gain":int(result.get("rp",0)),"gold_gain":int(result.get("gold",0)),"gold_after":c.get("gold",0),"members":rows,"quest":str(result.get("quest","")),"hours":result.get("hours"),"outcome":str(result.get("outcome","")),"location":str(c.get("location","")),"scenario":str(result.get("scenario","")),"storyId":result.get("storyId",""),"story":result.get("story",[]),"portrait":str(result.get("portrait","")),"cast":result.get("cast",[]),"restored":true,"acknowledge":true})
+ enqueue({"kind":"quest","title":"QUEST COMPLETE","subtitle":delivery_status(result),"rp_gain":int(result.get("rp",0)),"gold_gain":int(result.get("gold",0)),"gold_after":c.get("gold",0),"members":rows,"quest":str(result.get("quest","")),"hours":result.get("hours"),"outcome":str(result.get("outcome","")),"location":str(c.get("location","")),"scenario":str(result.get("scenario","")),"storyId":result.get("storyId",""),"story":result.get("story",[]),"portrait":str(result.get("portrait","")),"cast":result.get("cast",[]),"restored":true,"acknowledge":true})
 func present_pending():
  if active or pending.is_empty() or ui.closing or ui.loading_screen.active:return
  _replaying=false;_open(pending.pop_front())
@@ -82,7 +91,7 @@ func _label(parent: Node,text: String,size_: int,color:=Color("#29332e")) -> Lab
 func _build():
  var compact=ui.size.x<1120 or ui.size.y<720
  _compact=compact
- body.add_theme_constant_override("separation",8 if compact else 18)
+ body.add_theme_constant_override("separation",0)
  var heading=HBoxContainer.new();heading.name="ResultHeading";heading.add_theme_constant_override("separation",24);body.add_child(heading)
  var crest=TextureRect.new();crest.name="ResultCrest";crest.custom_minimum_size=Vector2(80,80) if compact else Vector2(100,100);crest.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;crest.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;crest.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var path="res://assets/results/"+("battle-crest.png" if current.kind=="battle" else "quest-crest.png")
@@ -111,9 +120,10 @@ func _build():
  if str(current.get("quest","")).length()>40:_label(members,str(current.quest),18,MUTED)
  var leveled=current.members.filter(func(member):return member.level_before!=null and member.level_after>member.level_before)
  if not leveled.is_empty():
-  _label(members,"レベルアップ",22,GOLD)
-  var strip_scroll=ScrollContainer.new();strip_scroll.name="ResultLevelUpScroll";strip_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;strip_scroll.custom_minimum_size.y=340;members.add_child(strip_scroll)
-  var strip=HBoxContainer.new();strip.name="ResultLevelUpStrip";strip.add_theme_constant_override("separation",24);strip_scroll.add_child(strip)
+  var strip_scroll=ScrollContainer.new();strip_scroll.name="ResultLevelUpScroll";strip_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;body.add_child(strip_scroll);body.move_child(strip_scroll,scroll.get_index())
+  var level_section=VBoxContainer.new();strip_scroll.add_child(level_section)
+  _label(level_section,"レベルアップ",22,GOLD).autowrap_mode=TextServer.AUTOWRAP_OFF
+  var strip=HBoxContainer.new();strip.name="ResultLevelUpStrip";strip.add_theme_constant_override("separation",24);level_section.add_child(strip)
   for member in leveled:
    var column=VBoxContainer.new();column.name="ResultLevelUp_"+str(member.id);column.custom_minimum_size.x=152;strip.add_child(column)
    var level=_label(column,"Lv.%d → Lv.%d" % [member.level_before,member.level_after],22,GOLD);level.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
@@ -169,12 +179,20 @@ func _layout():
   if intro and intro.is_running():intro.kill()
   for child in panel.get_children():panel.remove_child(child);child.queue_free()
   body=VBoxContainer.new();panel.add_child(body);body.minimum_size_changed.connect(_queue_layout);_build();continue_button.grab_focus()
- var available=ui.size;var margin=16.0 if available.x>=1120 and available.y>=720 else 8.0
- var width=minf(1160,available.x-margin*2);var height=minf(870,available.y-margin*2)
- var frame=ui.preferences.overlay_rect(available,Vector2(width,height),margin)
- panel.position=frame.position;panel.size=frame.size
- var padding=24 if available.y>=720 else 12
- if is_instance_valid(body):body.position=Vector2(padding,padding);body.size=Vector2(width-padding*2,height-padding*2)
+ if not is_instance_valid(body):return
+ var view=ui.size
+ var heading=body.get_node("ResultHeading")
+ var summary=body.get_node("ResultSummary")
+ var actions=body.get_node("ResultActions")
+ var strip=body.get_node_or_null("ResultLevelUpScroll")
+ var frame=Grid.cell_rect(view,1,0 if strip else 1,8,10 if strip else 8)
+ Grid.place(panel,frame);body.position=Vector2.ZERO;body.size=frame.size
+ var cell_height=view.y/Grid.DIVISIONS
+ # Use intrinsic content heights so a short receipt keeps room for its member list.
+ for row in [heading,summary,actions]:
+  var rows=maxi(1,ceili(row.get_minimum_size().y/cell_height))
+  row.custom_minimum_size.y=Grid.cell_rect(view,0,0,1,rows).size.y
+ if strip:strip.custom_minimum_size.y=Grid.cell_rect(view,0,0,1,4).size.y
 func advance():advance_to("hub")
 func advance_to(destination: String):
  if not active or ui.locked:return

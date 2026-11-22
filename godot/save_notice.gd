@@ -14,7 +14,6 @@ func dismiss():
 	if is_instance_valid(fade):fade.kill()
 	fade=null;caption.text="";tooltip_text="";modulate.a=1;hide()
 func place():
-	var ui=get_parent();var width=minf(680,maxf(160,ui.size.x*.45))
-	size=Vector2(width,50);position=Vector2((ui.size.x-width)/2,ui.top.get_global_rect().end.y+8)
+	preload("res://screen_grid.gd").place(self,preload("res://screen_grid.gd").cell_rect(get_parent().size,3,1,4,1))
 func _process(_delta):
 	if visible:place()

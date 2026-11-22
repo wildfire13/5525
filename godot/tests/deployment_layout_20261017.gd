@@ -63,7 +63,13 @@ func run():
 	var start=node("DeploymentBegin");start.pressed.emit();start.pressed.emit();await settle()
 	check(game.campaign().phase=="battle" and not game.state().get("deploying",false),"battle begins once under repeated button signal")
 	check(not game.hud.deployment_bar.visible and not game.hud.deployment_actions.visible and game.battle_header.visible,"battle hides placement controls and restores turn order")
-	check(Rect2(game.hud.left_panel.position,game.hud.left_panel.size)==battle_left and Rect2(game.hud.right_panel.position,game.hud.right_panel.size)==battle_right,"battle restores its own saved windows")
+	for pair in [[game.hud.left_panel,battle_left],[game.hud.right_panel,battle_right]]:
+		var restored=pair[0].get_global_rect()
+		var requested=Rect2(pair[1].position+game.hud.middle.global_position,pair[1].size)
+		requested.size.x=root.size.x*0.2
+		var bounds=Rect2(Vector2.ZERO,Vector2(root.size.x,game.battle_header.global_position.y))
+		check(restored==preload("res://screen_grid.gd").snap_rect(requested,Vector2(root.size),pair[0].minimum,bounds),"saved battle panel restored on game grid "+str(pair[0].name))
+	check(game.hud.left_panel.size.x==game.hud.right_panel.size.x,"battle operation and target share width")
 	await game.update({"op":"campaign_load","data":deployment});await settle()
 	check(game.hud.deployment_bar.visible and game.hud.deployment_actions.visible and not game.battle_header.visible,"reentry restores deployment-only controls")
 	check(game.deployment_party_strip.get_global_rect()==left_deploy,"reentry restores deployment window geometry")

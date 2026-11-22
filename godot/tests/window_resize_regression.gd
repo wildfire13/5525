@@ -1,4 +1,12 @@
 extends "res://tests/ui_feedback_20261016.gd"
+const Grid=preload("res://screen_grid.gd")
+func rect(w: Window) -> Rect2:
+ return Rect2(Vector2(w.position)-game.preferences.window_origin(w),Vector2(w.size))
+func on_grid(r: Rect2) -> bool:
+ var view=Vector2(root.size)
+ var indices=(r.position*10/view).round()
+ var spans=(r.size*10/view).round()
+ return Rect2(Vector2.ZERO,view).encloses(r) and r==Grid.cell_rect(view,int(indices.x),int(indices.y),int(spans.x),int(spans.y))
 func contained(c: Control) -> bool:
  var w=c.get_window()
  return Rect2(Vector2.ZERO,Vector2(w.size)).encloses(c.get_global_rect()) and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(c.get_global_rect().position+Vector2(w.position),c.size))
@@ -7,7 +15,7 @@ func run():
  root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
  while game.data.is_empty():await process_frame
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
- var expected=Vector2i((game.size-game.preferences.DEFAULT_DIALOG_SIZE)/2)
+ var expected=Grid.cell_rect(Vector2(root.size),3,2,1,1).position
  var prefs=game.preferences
  var old_extent=Vector2(560,300)
  var previous=Rect2((game.size-old_extent+prefs.TITLE_MARGIN)/2,old_extent)
@@ -16,23 +24,21 @@ func run():
   var stored=previous if key=="old-default" else Rect2(Vector2(74,96),old_extent)
   prefs.store_rect(key,stored)
   var probe=Window.new();game.add_child(probe);prefs.bind_window(probe,key,game.size,old_extent)
-  check(probe.position==(expected if key=="old-default" else Vector2i(stored.position)),key+" layout restored at the intended position")
+  check(rect(probe).position==(expected if key=="old-default" else Grid.cell_rect(Vector2(root.size),0,1,1,1).position) and on_grid(rect(probe)),key+" layout restored on the intended cells")
   probe.queue_free();await settle()
  game.open_menu();await settle()
- check(Vector2i(game.menu.position)==expected-Vector2i(0,game.theme.get_constant("title_height","Window")),"menu aligns with the visible top-left of dialog title bars");game.menu.hide()
+ check(Rect2(game.menu.position,game.menu.size)==Grid.cell_rect(Vector2(root.size),3,1,3,8),"menu occupies its registered cells");game.menu.hide()
  var confirmation=game.confirm("確認",func():pass);await settle()
- check(confirmation.position==expected,"confirmation opens at same origin");confirmation.canceled.emit();await settle()
+ check(rect(confirmation).position==expected and on_grid(rect(confirmation)),"confirmation opens at shared grid origin");confirmation.canceled.emit();await settle()
  game.portrait_dialog();await settle()
- var chooser=node("PortraitChooser");check(chooser.position==expected,"portrait chooser opens at shared origin");chooser.close_requested.emit();await settle()
+ var chooser=node("PortraitChooser");check(rect(chooser).position==expected and on_grid(rect(chooser)),"portrait chooser opens at shared grid origin");chooser.close_requested.emit();await settle()
  var ordinary=game.dialog.open("通知の詳細",func(_body,_actions):pass);await settle()
- check(ordinary.position==expected,"detail opens at same origin")
+ check(rect(ordinary).position==expected and on_grid(rect(ordinary)),"detail opens at shared grid origin")
  game.dialog.close();await settle()
  if game.debug_view.is_enabled() and DisplayServer.get_name()!="headless":
   game.debug_view.open();await settle()
   var dev=game.debug_view.window
-  var desktop=DisplayServer.screen_get_usable_rect(game.get_window().current_screen)
-  var desired=Rect2(Vector2(game.get_window().position+expected-desktop.position),Vector2(dev.size))
-  check(dev.position==desktop.position+Vector2i(game.preferences.bounded(desired,Vector2(desktop.size),Vector2(dev.min_size)).position),"native developer window opens at the shared origin in desktop coordinates")
+  check(rect(dev).position==expected and on_grid(rect(dev)),"native developer window opens on the game grid in desktop coordinates")
   dev.hide();await settle()
  game.navigate("character");game.pages.party_view.workspace.set_tab("skills");await settle()
  var skills=game.find_children("CharacterSkill_active_*","Button",true,false)
@@ -41,13 +47,11 @@ func run():
  var origin=str(skills[0].name)
  node(origin).grab_focus();await click(origin);var before=await saved()
  var detail=node("SkillDetailsWindow")
- check(detail.position==expected,"equipment skill description opens at shared origin")
- for dims in [Vector2i(1920,1080)]:
-  root.size_changed.emit();await settle()
-  check(node("SkillDetailsWindow")==detail and Rect2(Vector2.ZERO,Vector2(dims)).encloses(Rect2(Vector2(detail.position),Vector2(detail.size))),"already-open nested explanation fits FHD parent "+str(dims))
-  check(contained(node("SkillDetailsBack")) and contained(node("SkillDetailsSummary")),"fixed summary and back fit both child and parent "+str(dims))
-  check(detail.min_size.y<=dims.y-36 and detail.min_size.y==560,"preferred minimum fits FHD "+str(dims))
-  check(await saved()==before,"FHD relayout changes no campaign or owner "+str(dims))
+ check(rect(detail).position==Grid.cell_rect(Vector2(root.size),3,1,1,1).position,"equipment skill description opens at its grid origin")
+ detail.position+=Vector2i(73,39);await settle()
+ check(node("SkillDetailsWindow")==detail and rect(detail).position==Grid.cell_rect(Vector2(root.size),3,1,1,1).position and on_grid(rect(detail)),"detail remains on its shared game cells")
+ check(contained(node("SkillDetailsBack")) and contained(node("SkillDetailsSummary")),"fixed summary and back fit both child and parent")
+ check(await saved()==before,"relayout changes no campaign or owner")
  await click("SkillDetailsBack");check(node(origin).has_focus(),"relayout close restores new instance of same logical character skill button")
  # Long titles and summary still leave the fixed close action reachable.
  var copy=preload("res://skill_text.gd");var doc=copy.document("skill_leg_sweep","長い足払いの名前".repeat(10),3,game.campaign())
@@ -57,14 +61,15 @@ func run():
  # More than one managed child must update independently, including nested ones.
  var first=Window.new();game.add_child(first);game.preferences.bind_window(first,"resize-test-one",game.size,Vector2(800,650),Vector2(560,560));first.popup()
  var second=Window.new();first.add_child(second);game.preferences.bind_window(second,"resize-test-two",game.size,Vector2(620,630),Vector2(420,600));second.popup()
- for dims in [Vector2i(1920,1080)]:
-  root.size_changed.emit();await settle()
-  for w in [first,second]:check(Rect2(Vector2.ZERO,Vector2(dims)).encloses(Rect2(Vector2(w.position),Vector2(w.size))) and w.min_size.y<=dims.y-36,"each nested managed window fits parent "+str(dims))
+ var original=[rect(first),rect(second)]
+ first.size+=Vector2i(170,95);second.position+=Vector2i(70,-80);await settle()
+ for w in [first,second]:check(on_grid(rect(w)) and w.min_size.x<=w.size.x and w.min_size.y<=w.size.y,"nested managed child fits the FHD game grid")
+ check(rect(first).size!=original[0].size and rect(second).position!=original[1].position,"resizing one child and moving another applies independently")
  second.hide();second.queue_free();first.hide();first.queue_free();await settle()
  game.preferences.store_rect("resize-reopen",Rect2(42,72,560,400))
  for i in range(3):
   var reopened=Window.new();game.add_child(reopened);game.preferences.bind_window(reopened,"resize-reopen",game.size,Vector2(560,400));reopened.popup();await settle()
-  check(reopened.position==Vector2i(42,72),"reopening saved child does not add another title margin "+str(i))
+  check(rect(reopened).position==Grid.cell_rect(Vector2(root.size),0,1,1,1).position and on_grid(rect(reopened)),"reopening saved child keeps the same grid origin "+str(i))
   reopened.hide();reopened.queue_free();await settle()
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"resize regression keeps all audio OFF")
  var f=FileAccess.open(evidence.path_join("window-resize-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()

@@ -1,4 +1,8 @@
 extends "res://tests/skill_grant_hud.gd"
+func close_item_details():
+ var back=game.find_child("SkillDetailsBack",true,false)
+ if is_instance_valid(back) and back.is_visible_in_tree():back.pressed.emit()
+
 func confirm_deposit():
  var move=game.find_child("WarehouseTransfer",true,false)
  move.pressed.emit();await settle()
@@ -29,6 +33,8 @@ func run():
  var control=game.find_child("WarehouseItem_character_potion",true,false)
  check(control!=null,"inventory potion row "+str(dims))
  control.pressed.emit();await settle()
+ check(game.modal_open(),"potion row opens item details")
+ close_item_details();await settle()
  var button=game.find_child("WarehouseTransfer",true,false)
  check(button!=null and not button.disabled,"deposit enabled "+str(dims))
  var outer=game.find_child("MemberWorkspaceScroll",true,false)
@@ -37,9 +43,9 @@ func run():
  await confirm_deposit()
  check(int(game.campaign().warehouse.get("potion",0))==1,"deposit reaches campaign "+str(dims))
  var stored=game.find_child("WarehouseItem_warehouse_potion",true,false)
- check(view.source=="warehouse" and stored.get_meta("selected"),"deposit selects the destination "+str(dims))
+ check(view.source=="warehouse" and stored!=null and stored.get_meta("selected"),"deposit selects the destination "+str(dims))
  outer=game.find_child("MemberWorkspaceScroll",true,false)
- check(outer.get_global_rect().encloses(stored.get_global_rect()),"deposit reveals row in window "+str(dims))
+ check(stored!=null and outer.get_global_rect().encloses(stored.get_global_rect()),"deposit reveals row in window "+str(dims))
  if not OS.get_environment("WAREHOUSE_CAPTURE").is_empty():
   await RenderingServer.frame_post_draw
   root.get_texture().get_image().save_png(OS.get_environment("WAREHOUSE_CAPTURE").path_join("warehouse-deposit-%dx%d.png" % [dims.x,dims.y]))
@@ -52,6 +58,7 @@ func run():
  view.set_filter("items","character");await settle()
  view.set_tab("equipment");await settle()
  game.find_child("WarehouseSlot_rightHand",true,false).pressed.emit();await settle()
+ close_item_details()
  var obsolete=view.quote_context
  var old_ticket=view.quote_generation
  view.select_owner(str(game.campaign().selected[1]));await settle()
@@ -60,6 +67,7 @@ func run():
  view.select_owner(owner);await settle()
  game.find_child("WarehouseSlot_upperBody",true,false).pressed.emit()
  game.find_child("WarehouseSlot_rightHand",true,false).pressed.emit();await settle()
+ close_item_details()
  check(view.unequip_quote.get("slot")=="rightHand","latest selected slot owns quote")
  var sword=view.item_id
  var remove=game.find_child("WarehouseUnequip",true,false)
@@ -69,6 +77,7 @@ func run():
  check(int(game.campaign().characters[owner].inventory.get(sword,0))==1,"repeated unequip moves one sword")
  view.set_tab("equipment");await settle()
  game.find_child("WarehouseSlot_upperBody",true,false).pressed.emit();await settle()
+ close_item_details()
  var quoted=view.unequip_quote
  check(quoted.has("ok") and game.find_child("WarehouseUnequip",true,false).disabled==not quoted.ok,"full inventory uses native unequip decision")
  check(game.find_child("WarehouseReason",true,false).text==quoted.reason,"native unequip reason shown unchanged")

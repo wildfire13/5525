@@ -4,6 +4,7 @@ extends RefCounted
 const RECOVERY_SECONDS := 1.2
 const FULL_GREETING := "みなさん、お元気ですね。今は休まなくても大丈夫ですよ。"
 const RESTED_GREETING := "おはようございます。みなさん、ゆっくり休めましたね。"
+const ScreenGrid=preload("res://screen_grid.gd")
 var owner_ref: WeakRef
 var pages:
  get:return owner_ref.get_ref()
@@ -24,21 +25,27 @@ func progress() -> float:
 func render(parent):
  if pages.facility_entry.render_top(parent,"inn"):reset();return
  var surface=ui.mock_shell.columns(parent);surface.name="InnService";surface.custom_minimum_size.y=ui.mock_shell.content_height()
+ surface.add_theme_constant_override("separation",0)
  var panel=PanelContainer.new();panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;surface.add_child(panel)
- var content=VBoxContainer.new();content.add_theme_constant_override("separation",16);panel.add_child(content)
+ var style=panel.get_theme_stylebox("panel").duplicate()
+ style.set_content_margin_all(0)
+ panel.add_theme_stylebox_override("panel",style)
+ var content=VBoxContainer.new();content.add_theme_constant_override("separation",0);panel.add_child(content)
  var q: Dictionary=pages.c().get("inn",{})
- var keeper=VBoxContainer.new();keeper.name="InnKeeperColumn";keeper.custom_minimum_size.x=440;keeper.add_theme_constant_override("separation",8);surface.add_child(keeper)
+ var keeper=VBoxContainer.new();keeper.name="InnKeeperColumn";keeper.custom_minimum_size.x=ScreenGrid.cell_rect(ui.size,8,0,2,1).size.x;keeper.add_theme_constant_override("separation",0);surface.add_child(keeper)
  var words=dialogue if not dialogue.is_empty() else FULL_GREETING if not q.get("needsRecovery",false) else pages.facility_entry.greeting_text()
- var speech=pages.facility_entry.make_speech(words,"normal");speech.name="InnKeeperSpeech";speech.custom_minimum_size=Vector2(440,172);speech.words.add_theme_font_size_override("font_size",22);speech.set_speaker_visible(false);keeper.add_child(speech)
+ var speech=pages.facility_entry.make_speech(words,"normal");speech.name="InnKeeperSpeech";speech.custom_minimum_size.y=pages.grid_height(3)-pages.grid_height(1);speech.words.add_theme_font_size_override("font_size",22);speech.set_speaker_visible(false);keeper.add_child(speech)
  var npc=pages.facility_art.npc
  if npc.texture!=null:
-  var image=TextureRect.new();image.name="InnKeeper";image.texture=npc.texture;image.custom_minimum_size=Vector2(440,ui.mock_shell.content_height()-180);image.size_flags_vertical=Control.SIZE_EXPAND_FILL;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;keeper.add_child(image)
- parent=content
+  var image=TextureRect.new();image.name="InnKeeper";image.texture=npc.texture;image.size_flags_vertical=Control.SIZE_EXPAND_FILL;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;keeper.add_child(image)
+ parent=inset(content,2)
  ui.icons.line(ui,parent,"inn","宿屋",true)
  if not q.get("available",false):pages.l(parent,"宿屋はアスタリスで利用できます。");return
  if q.get("needsRecovery",false):pages.l(parent,"パーティ全員で%dG" % q.price)
  var recovery_hint=pages.muted(parent,"編成中の全員のHP・MPを全回復。控えは対象外、時間は経過しません。");recovery_hint.add_theme_font_size_override("font_size",16);recovery_hint.add_theme_color_override("font_color",Color("#747d75"))
- cards(parent)
+ cards(content)
+ parent=inset(content,0)
+ parent.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
  if not q.get("needsRecovery",false):
   var status=pages.l(parent,"宿泊完了。全員のHP・MPが回復しました。" if not healing_party.is_empty() else "全員が全回復しています。料金はかかりません。")
   status.name="InnRecoveryStatus";status.add_theme_font_size_override("font_size",16)
@@ -49,16 +56,18 @@ func render(parent):
  var disabled=pending or not q.get("needsRecovery",false) or not q.get("affordable",false)
  ui.green_button(pages.b(actions,caption,stay,disabled)).name="InnStay"
  pages.b(actions,"戻る",pages.facility_entry.back,pending).name="InnReturn"
+func inset(parent: Control,cells: int) -> VBoxContainer:
+ var margin=MarginContainer.new()
+ margin.custom_minimum_size.y=pages.grid_height(cells+1)-pages.grid_height(1)
+ for side in ["left","top","right","bottom"]:margin.add_theme_constant_override("margin_"+side,8)
+ parent.add_child(margin)
+ var body=VBoxContainer.new()
+ margin.add_child(body)
+ return body
 func cards(parent):
- var scroll=ScrollContainer.new();scroll.name="InnPartyScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.custom_minimum_size.y=96;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(scroll)
+ var scroll=ScrollContainer.new();scroll.name="InnPartyScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.custom_minimum_size.y=pages.grid_height(7)-pages.grid_height(3);parent.add_child(scroll)
  var compact=ui.size.y<720
- if not compact:
-  scroll.size_flags_vertical=Control.SIZE_FILL
-  scroll.custom_minimum_size.y=mini(560.0,ui.size.y*0.52)
  var members=ui.member_grid(scroll,"InnParty",280.0 if compact else 170.0,3 if compact else 6)
- if not compact:
-  var fit_cards=func():scroll.custom_minimum_size.y=minf(560.0,members.get_combined_minimum_size().y)
-  members.minimum_size_changed.connect(fit_cards);fit_cards.call_deferred()
  var labels=[]
  for id in pages.c().get("selected",[]):
   var matches=pages.roster().filter(func(u):return u.id==id)

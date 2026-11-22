@@ -30,9 +30,10 @@ func run():
  var skills=node("ShopComparisonSkills").find_children("ComparisonSkill*","Button",true,false)
  check(not skills.is_empty(),"real comparison supplies skill hover")
  if not skills.is_empty():
-  var tip=skills[0]._make_custom_tooltip(skills[0].tooltip_text);game.add_child(tip)
-  check(contrast(tip.get_theme_color("font_color"),skills[0].get_theme_stylebox("panel","TooltipPanel").bg_color)>=4.5,"skill hover text contrasts with its actual tooltip surface")
-  check(tip.text==skills[0].tooltip_text,"hover preserves complete skill description");tip.queue_free()
+  skills[0].show_hover();await frames()
+  var tip=skills[0].hover_window
+  check(contrast(tip.body.get_theme_color("font_color"),tip.panel.get_theme_stylebox("panel").bg_color)>=4.5,"skill hover text contrasts with its actual tooltip surface")
+  check(not tip.body.text.is_empty() and not tip.body.text.contains("種別"),"hover shows the effect without detail headings");skills[0].close_hover()
  node("ShopTransactionScroll").scroll_vertical=200;await frames()
  check(payment.get_global_rect().end.y<=buy.get_global_rect().position.y and trial.get_parent()==buy.get_parent(),"scrolling cannot hide warning or trial action")
  node("ShopTransactionScroll").scroll_vertical=0;await frames()

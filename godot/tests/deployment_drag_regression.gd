@@ -48,13 +48,13 @@ func layout(label: String):
 		check(game.board.cell_at(game.board.project_cell(cell))==cell,label+" projected hover/click floor agrees "+str(cell))
 	layouts.append({"label":label,"size":str(root.size),"rows":rows})
 func reserve_scroll_access(label: String):
-	var panel=game.hud.right_panel;var scroll=panel.body.get_parent();var reserve=node("DeploymentReserves")
+	var panel=game.hud.right_panel;var scroll=panel.lower_scroll;var reserve=node("DeploymentReserves")
 	check(scroll is ScrollContainer and reserve!=null,label+" deployed detail content has a dedicated scroll viewport")
 	check(not scroll.get_global_rect().intersection(panel.footer.get_global_rect()).has_area(),label+" reserve viewport never sits behind pinned instructions")
 	var cards=reserve.find_children("*","Button",false,false)
 	if cards.is_empty():return
 	check(scroll.vertical_scroll_mode!=ScrollContainer.SCROLL_MODE_DISABLED,label+" deployed detail viewport allows vertical scrolling")
-	check(cards.size()==3 and reserve.get_parent()==panel.body,label+" all selected reserves remain in scrollable detail content")
+	check(cards.size()==3 and reserve.get_parent()==panel.lower,label+" all selected reserves remain in scrollable detail content")
 	var visible_reserves=reserve.get_global_rect().intersection(scroll.get_global_rect())
 	check(not visible_reserves.intersection(panel.footer.get_global_rect()).has_area(),label+" visible reserve cards do not overlap the fixed instruction text")
 func drag_roster_card(uid: String, cell: int):

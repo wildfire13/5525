@@ -89,6 +89,7 @@ func render(parent: Control):
 		quote_generation+=1;unequip_quote={}
 		refresh_unequip_quote.call_deferred(quote_generation,quote_context)
 	var split=ui.mock_shell.columns(parent);split.name="WarehouseColumns";split.custom_minimum_size.y=ui.mock_shell.content_height()
+	split.add_theme_constant_override("separation",0)
 	var loadout=Loadout.new()
 	split.add_child(loadout)
 	loadout.build(ui,member,tab,set_tab,"WarehouseTab_",busy())
@@ -102,7 +103,8 @@ func render(parent: Control):
 		render_ledger(split,member)
 		return
 	var panel=PanelContainer.new();panel.name="WarehouseSelectedPanel";panel.custom_minimum_size.x=440;panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(panel)
-	var details=VBoxContainer.new();details.name="WarehouseSelectedItem";details.add_theme_constant_override("separation",16);panel.add_child(details)
+	var surface=ui.mock_shell.surface_style();surface.set_content_margin_all(0);panel.add_theme_stylebox_override("panel",surface)
+	var details=VBoxContainer.new();details.name="WarehouseSelectedItem";details.add_theme_constant_override("separation",0);panel.add_child(details)
 	ui.label_(details,"選択アイテム").name="WarehouseHeading"
 	var selected=equipped if source=="equipped" else selected_row();var q=quote(source,item_id)
 	if selected.is_empty():
@@ -118,6 +120,7 @@ func render(parent: Control):
 		var reason_text=str(unequip_quote.get("reason","確認中…")) if source=="equipped" else str(q.get("reason",""))
 		var reason=ui.label_(details,error_message if not error_message.is_empty() else reason_text);reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",14)
 	var controls=ui.row(details);controls.name="WarehouseControls";controls.alignment=BoxContainer.ALIGNMENT_END
+	controls.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	if source=="equipped":
 		var remove=ui.button(controls,"装備を外す",unequip,busy() or not unequip_quote.get("ok",false));remove.name="WarehouseUnequip"
 	elif not selected.is_empty():
@@ -133,8 +136,9 @@ func owned_count(id: String) -> int:
 
 func render_ledger(parent: Control,member: Dictionary):
 	var panel=PanelContainer.new();panel.name="WarehouseStorage";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(panel)
+	var surface=ui.mock_shell.surface_style();surface.set_content_margin_all(0);panel.add_theme_stylebox_override("panel",surface)
 	ledger_panel=panel
-	var column=VBoxContainer.new();column.add_theme_constant_override("separation",16);panel.add_child(column)
+	var column=VBoxContainer.new();column.add_theme_constant_override("separation",0);panel.add_child(column)
 	ui.label_(column,"出庫台帳 — "+str(member.get("name",owner_id)))
 	var filter=Inventory.add_filter(ui,column,member,filters.warehouse,set_filter.bind("warehouse"))
 	filter.name="WarehouseFilter_warehouse";filter.disabled=busy()
@@ -147,6 +151,7 @@ func render_ledger(parent: Control,member: Dictionary):
 	var summary=ui.label_(column,"");summary.name="WarehouseBeforeAfter"
 	var reason=ui.label_(column,"");reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",14)
 	var controls=ui.row(column);controls.alignment=BoxContainer.ALIGNMENT_END
+	controls.name="WarehouseControls";controls.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	var recipient=owner_id;var epoch=pages.epoch;var token=str(pages.c().get("inventoryToken",""))
 	var withdraw=func():
 		if recipient==owner_id and epoch==pages.epoch and source=="warehouse":transfer("warehouse",item_id,quantity,token)

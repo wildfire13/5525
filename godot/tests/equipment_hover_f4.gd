@@ -1,112 +1,103 @@
 extends "res://tests/inventory_header_261020.gd"
-## First-pass popup measurement; actual OS hover is verified separately.
-var measurements=[]
-func equipped(slot: String):
-	var controls=game.find_children("*","Button",true,false).filter(func(button):return button.get_meta("ui_key","")=="equipment_"+slot)
-	check(controls.size()==1,"F4 equipped source uniquely identified "+slot)
-	return controls[0]
-func popup_for(source):
-	source.show_hover()
-	# Headless has no OS pointer: keep this geometry fixture visible while its
-	# ScrollContainer sorts. Real mouse enter/leave/scroll is tested in X11 QA.
-	source.hover_window.idle=-1000
-	await settle()
-	var popup=source.hover_window;var box=popup.content
-	check(source._make_custom_tooltip("")==null,"native empty-tooltip callback cannot create a second popup")
-	check(game.modal_open(),"battle equipment sheet remains active while game-root hover is open")
-	return {"popup":popup,"box":box,"first_height":box.get_combined_minimum_size().y}
-func geometry(result,label: String):
-	var popup=result.popup;var box=result.box;var body=box.find_child("EquipmentTooltipDetails",true,false);var scroll=box.find_child("EquipmentTooltipScroll",true,false)
-	check(popup.visible,"F4 geometry is measured on a visible popup "+label)
-	check(popup.get_parent() is CanvasLayer and popup.get_parent().get_parent()==root and popup.get_parent().layer==1025,"hover draws above battle equipment sheet in game coordinates "+label)
-	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(Rect2(Vector2(popup.position),Vector2(popup.size))),"F4 popup fits game viewport "+label)
-	check(absf(box.size.y-box.get_combined_minimum_size().y)<=4,"F4 background follows visible full/scrollable content "+label)
-	check(not body.get_meta("excerpt",true),"F4 no excerpt or cut text "+label)
-	check(body.get_content_height()<=body.size.y+2,"F4 rich body retains its whole natural height "+label)
-	var title=box.find_child("EquipmentTooltipName",true,false)
-	check(popup.mouse_filter==Control.MOUSE_FILTER_IGNORE and body.mouse_filter==Control.MOUSE_FILTER_IGNORE,"F4 full hover never steals character clicks or drag sources "+label)
-	check(popup.input_guard.visible==(popup.source.get_window()!=root),"F4 root input guard follows character/window ownership "+label)
-	if not box.get_meta("scrollable",false):
-		check(absf(scroll.size.y-(title.size.y+body.get_content_height()+8))<=4,"F4 ordinary popup has no stale first-width blank tail "+label)
-	measurements.append({"case":label,"root":str(root.size),"popup":str(Rect2(Vector2(popup.position),Vector2(popup.size))),"box":str(box.size),"body_height":body.size.y,"content_height":body.get_content_height(),"scroll_height":scroll.size.y,"scrollable":box.get_meta("scrollable",false)})
-func close_popup(result):
-	result.popup.hide();await frames()
-static func enter_equipment_battle(frontend):
-	await frontend.act("depart",["astaris","convoy"])
-	await frontend.act("travel",["safe"])
-	await frontend.hud.open_equipment_sheet("character_mirei")
+const Grid=preload("res://screen_grid.gd")
+var measurements={}
+
+func move_pointer(at: Vector2):
+	var motion=InputEventMouseMotion.new();motion.position=at;motion.global_position=at
+	if DisplayServer.get_name()!="headless":Input.warp_mouse(at)
+	root.push_input(motion)
+
+func observe(source: Button,label: String,leave:=true):
+	check(source!=null,"hover source exists: "+label)
+	if source==null:return {}
+	var anchor=source.get_global_rect()
+	if source.get_window()!=root:anchor.position+=Vector2(source.get_window().position)
+	move_pointer(anchor.get_center())
+	await create_timer(.65).timeout
+	var popup=source.hover_window
+	check(is_instance_valid(popup) and popup.visible,"pointer opens shared hover: "+label)
+	if not is_instance_valid(popup) or not popup.visible:return {}
+	var rect=popup.get_global_rect()
+	var area=root.get_visible_rect()
+	var xs=[];var ys=[]
+	for i in range(11):
+		var point=Grid.cell_rect(area.size,i,i,0,0).position
+		xs.append(point.x);ys.append(point.y)
+	check(area.encloses(rect) and xs.has(rect.position.x) and xs.has(rect.end.x) and ys.has(rect.position.y) and ys.has(rect.end.y) and rect.size.x==576,"FHD grid rectangle: "+label)
+	check(popup.content.get_global_rect().end.y<=rect.end.y and not rect.intersects(anchor),"hover fits and leaves its source uncovered: %s %s > %s" % [label,anchor,popup.content.get_global_rect()])
+	check(popup.mouse_filter==Control.MOUSE_FILTER_IGNORE and popup.find_children("*","Control",true,false).all(func(c):return c.mouse_filter==Control.MOUSE_FILTER_IGNORE),"overlay and every child ignore pointer input: "+label)
+	var sample={"title":popup.title.text,"body":popup.body.text,"size":str(rect.size),"surface":popup.panel.get_theme_stylebox("panel").bg_color.to_html(),"ink":popup.body.get_theme_color("font_color").to_html()}
+	measurements[label]={"rect":str(rect),"sample":sample}
+	if leave and DisplayServer.get_name()!="headless":
+		await RenderingServer.frame_post_draw
+		check(root.get_texture().get_image().save_png(evidence.path_join(label+".png"))==OK,"screenshot saved: "+label)
+	if leave:
+		move_pointer(Vector2(1917,5));await frames()
+		check(not popup.visible,"pointer leave hides overlay: "+label)
+	return sample
 
 func run():
-	create_timer(180).timeout.connect(func():print("FAIL F4 equipment hover watchdog");quit(2))
-	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):push_error("Isolated F4 profile required");quit(2);return
-	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
+	create_timer(90).timeout.connect(func():print("FAIL compact hover watchdog");quit(2))
+	if evidence.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(evidence.replace("\\","/").to_lower()+"/"):push_error("Isolated hover profile required");quit(2);return
+	root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1920,1080);root.gui_embed_subwindows=true
+	game=load("res://main.tscn").instantiate();root.add_child(game)
 	while game.data.is_empty():await process_frame
-	await game.new_game();
-	game.checks_fast=true;game.audio.fast_mode=true;await settle()
-	var seed=await saved();seed.state.location="east"
-	var hero=seed.state.characters["character_mirei"];hero.level=29;hero.xp=2800;hero.allocations.str=2;hero.allocations.agi=1;hero.statPoints=53;hero.skillPoints=28;hero.leftHand="empty-leftHand"
-	for dims in [Vector2i(1920,1080)]:
-		root.size=dims;await settle()
-		for gear in ["hammer-iron-1","partner-dagger","longspear-wood","grappling-rope"]:
-			hero.weapon=gear
-			check((await game.update({"op":"campaign_load","data":seed})).get("ok",false),"F4 canonical equipped level29 fixture "+gear)
-			await enter_equipment_battle(game);await settle()
-			if dims.x==1920:game.dialog.window.size=Vector2i(1280,640);await settle()
-			var before=await saved()
-			for slot in (["upperBody","rightHand"] if gear=="hammer-iron-1" else ["rightHand"]):
-				var source=equipped(slot);var full=source.tooltip_text
-				var original_lines=source.plain_details.duplicate();var original_rich=source.details.duplicate()
-				for cycle in range(2):
-					var result=await popup_for(source);var label=gear+" "+slot+" "+str(dims.x)+" reopen"+str(cycle)
-					geometry(result,label)
-					var body=result.box.find_child("EquipmentTooltipDetails",true,false)
-					check(not body.get_meta("excerpt",true) and source.plain_details==original_lines and source.tooltip_text.ends_with(original_lines.back()),"F4 ordinary equipment retains the complete accessible text "+label)
-					check(body.text=="\n".join(original_rich) and (not source.plain_details.any(func(line):return line.contains("付与スキル")) or body.text.contains("[color=")),"F4 text and colour spans are preserved "+label)
-					check(body.text.contains("[img=18x18]res://assets/element_icons/火属性.png[/img]") and body.text.contains("[img=18x18]res://assets/element_icons/水属性.png[/img]") and body.text.contains("[img=18x18]res://assets/element_icons/地属性.png[/img]"),"F4 ATK/DEF tooltip uses the assigned elemental artwork "+label)
-					check(body.get_parsed_text().contains("属性相性：有利×1.25"),"F4 ATK/DEF tooltip explains the existing matchup rule "+label)
-					check(source.tooltip_text==full and source.plain_details==original_lines and source.details==original_rich,"F4 popup never rewrites stored descriptions "+label)
-					await close_popup(result)
-			check((await saved())==before,"F4 resize reopen and equipped hover preserve exact save "+gear+str(dims.x))
-			game.dialog.close();await settle()
-	# Oversize original material remains complete in this same hover. Its own
-	# scroll reaches the end; no second window is needed to recover omitted text.
-	root.size=Vector2i(1920,1080);await game.update({"op":"campaign_load","data":seed});await enter_equipment_battle(game);await settle()
-	game.dialog.window.size=Vector2i(1180,420);await settle()
-	var before=await saved();var source=equipped("rightHand");var definition=game.roster().filter(func(u):return u.id=="character_mirei")[0].equipmentDetails.rightHand.duplicate(true)
-	var note="長い原文 [角括弧] の完全保持。".repeat(220)+"原文の最後まで保持"
-	definition.note=note;source.configure(definition.name,definition,{"names":game.campaign().skillNames,"definitions":game.campaign().skillDefinitions,"title_size":20,"detail_size":16})
-	var full=source.tooltip_text;var result=await popup_for(source);geometry(result,"oversize original note")
-	var body=result.box.find_child("EquipmentTooltipDetails",true,false);var hint=result.box.find_child("EquipmentTooltipHint",true,false);var scroll=result.box.find_child("EquipmentTooltipScroll",true,false)
-	check(source.tooltip_text.ends_with(note) and body.get_parsed_text().ends_with(note) and source.plain_details.any(func(line):return line.contains("火") and line.contains("水") and line.contains("地")),"F4 oversize hover preserves all accessible blocks and icon-coded ATK/DEF without excerpt")
-	check(hint.visible and hint.text.contains("スクロール") and not hint.text.contains("抜粋"),"F4 long hover has local scroll instruction")
-	check(result.popup.position.y+result.popup.size.y>game.dialog.window.position.y+game.dialog.window.size.y and result.popup.position.y+result.popup.size.y>=root.size.y-20,"F4 full hover uses game height beyond short equipment sheet")
-	scroll.scroll_vertical=100000;await settle()
-	print("SCROLL_END visible=",result.popup.visible," offset=",scroll.scroll_vertical," max ",scroll.get_v_scroll_bar().max_value," page ",scroll.get_v_scroll_bar().page," body ",body.get_global_rect()," scroll ",scroll.get_global_rect())
-	check(scroll.scroll_vertical>0 and body.get_global_rect().end.y<=scroll.get_global_rect().end.y+4,"F4 same hover reaches complete original final line")
-	check(source.tooltip_text==full and source.tooltip_text.ends_with(note),"F4 popup does not rewrite original note")
-	# Reopening the sheet rebuilds the equipped buttons.
-	for dims in [Vector2i(1920,1080)]:
-		var old=result.popup
-		game.dialog.close();await settle()
-		await game.hud.open_equipment_sheet("character_mirei");await settle()
-		check(not is_instance_valid(old) or not old.visible,"F4 rerender retires old hover with its rebuilt source "+str(dims))
-		source=equipped("rightHand");source.configure(definition.name,definition,{"names":game.campaign().skillNames,"definitions":game.campaign().skillDefinitions,"title_size":20,"detail_size":16})
-		result=await popup_for(source);geometry(result,"rerender and rehover "+str(dims))
-		check(result.box.find_child("EquipmentTooltipDetails",true,false).get_parsed_text().ends_with(note),"F4 rebuilt hover keeps entire original note "+str(dims))
-	await close_popup(result)
-	var equipped_source=equipped("rightHand");var other_source=equipped("upperBody")
-	equipped_source.show_hover();await frames(2);var first=equipped_source.hover_window
-	other_source.show_hover();await frames(2)
-	check(not first.visible and other_source.hover_window.visible,"F4 opening another equipment hover hides the previous one")
-	var active_popup=other_source.hover_window
-	game.dialog.escape();await settle()
-	check(not is_instance_valid(active_popup),"F4 Escape frees source-owned root hover")
-	check(not game.modal_open() and (await saved())==before,"F4 closing equipment hover preserves the battle save")
-	await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");before=await saved()
-	var catalog=node("Product_spear-wood")
-	check(catalog!=null,"F4 actual root shop product is available")
-	catalog.pressed.emit();await settle()
-	check(node("ShopComparisonProduct").text=="木製の片手槍" and node("ShopComparisonStats").text.contains("→") and not game.modal_open(),"F4 root product exposes full inline comparison without a hover window")
-	check((await saved())==before and game.audio.muted.values().all(func(value):return value),"F4 all previews remain read-only with BGM voice SE OFF")
-	var f=FileAccess.open(evidence.path_join("equipment-hover-f4-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify({"checks":checks,"measurements":measurements},"\t"));f.close()
+	await game.new_game();game.checks_fast=true;game.audio.fast_mode=true;await settle()
+	check(root.get_visible_rect().size==Vector2(1920,1080),"FHD root viewport")
+	var seed=await saved();seed.state.location="west"
+	check((await game.update({"op":"campaign_load","data":seed})).get("ok",false),"fresh west shop fixture")
+	game.navigate("shop");await settle();await click("FacilityChoice_buy")
+	var before=await saved()
+	var cloth=await observe(node("Product_armor-cloth"),"shop-cloth")
+	check(cloth.get("title")=="布製の旅装" and cloth.get("body")=="Wt 3.0\n防御 5 / 火1","cloth summary excludes zero attributes, empty grants and operation hints")
+	var product=node("Product_armor-cloth")
+	await observe(product,"shop-cloth-before-click",false)
+	await pointer_click(product)
+	var detail=node("SkillDetailsWindow")
+	check(detail!=null and detail.visible,"click on a hovered product still opens full details")
+	if detail!=null:detail.finish();await settle()
+	game.pages.shop_view.set_inventory_tab("equipment");await settle()
+	product=node("Product_cloth-head")
+	await observe(product,"shop-hat-before-drag",false)
+	var popup=product.hover_window
+	product.force_drag({"kind":"shop_product","item":"cloth-head","connection":game.engine.connection_generation,"epoch":game.pages.epoch,"token":game.campaign().inventoryToken},null)
+	await frames()
+	check(root.gui_is_dragging() and not popup.visible,"product drag starts and dismisses the shared overlay")
+	var target: Button=node("ShopEquipped_head")
+	var motion=InputEventMouseMotion.new();motion.position=target.get_global_rect().get_center();root.push_input(motion);await process_frame
+	var release=InputEventMouseButton.new();release.position=motion.position;release.button_index=MOUSE_BUTTON_LEFT
+	root.push_input(release);await settle()
+	check(node("PurchaseDecline")!=null,"drop from hovered product reaches purchase consent")
+	if node("PurchaseDecline")!=null:await click("PurchaseDecline")
+	check((await saved())==before,"shop cloth hover preserves the campaign")
+	await load_at(seed,"east");await enter_facility("shop")
+	before=await saved()
+	game.pages.shop_view.open_comparison("undertow-sword");await settle()
+	var skill=await observe(node("ComparisonSkill_追加_skill_retreat_slash_*"),"shop-retreat")
+	check(skill.get("body","").contains("70%攻撃") and skill.get("body","").contains("消費MP 1"),"retreat shows actual attack and cost")
+	check((await saved())==before,"shop comparison hover preserves the campaign")
+	await click("ProductTrial_undertow-sword");await click("TrialRecipient_character_mirei")
+	check(game.data.get("trial")!=null,"shop starts the real trial battle with the same skill")
+	var trial_state=game.state().duplicate(true)
+	await game.hud.open_equipment_sheet("character_mirei");await settle()
+	var equipped=game.find_children("*","Button",true,false).filter(func(b):return b.get_meta("ui_key","")=="equipment_upperBody")
+	var battle_cloth=await observe(equipped[0] if not equipped.is_empty() else null,"battle-cloth")
+	check(not cloth.is_empty() and battle_cloth==cloth,"shop and battle cloth share text, size and colors")
+	if not equipped.is_empty():
+		check(equipped[0].plain_details.any(func(line):return line.contains("属性相性")) and not equipped[0].brief().contains("属性相性"),"full detail text remains separate")
+	game.dialog.close();await settle()
+	game.hud.open_skills();await settle()
+	var battle_skill=await observe(node("BattleSkillDetails_skill_retreat_slash"),"battle-retreat")
+	check(not skill.is_empty() and battle_skill==skill,"shop and battle skill share text, size and colors")
+	var info=node("BattleSkillDetails_skill_retreat_slash")
+	await observe(info,"battle-retreat-before-click",false)
+	await pointer_click(info)
+	detail=node("SkillDetailsWindow")
+	check(detail!=null and detail.visible,"click on hovered battle skill icon still opens full details")
+	if detail!=null:detail.finish();await settle()
+	check(game.state()==trial_state,"battle hovers preserve the trial state")
+	await click("EndTrial")
+	check((await saved())==before,"ending trial after battle hovers restores the exact prior campaign")
+	var f=FileAccess.open(evidence.path_join("hover-checks.json"),FileAccess.WRITE)
+	f.store_string(JSON.stringify({"checks":checks,"measurements":measurements},"\t"));f.close()
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

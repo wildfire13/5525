@@ -1,12 +1,8 @@
 extends "res://tests/owned_equipment_regression.gd"
 var out=OS.get_environment("INVENTORY_QA_ROOT")
-func select_option(name_: String,value: String):
- var chooser=node(name_)
- chooser.grab_focus()
- for i in range(chooser.item_count):
-  if str(chooser.get_item_metadata(i))==value:
-   chooser.select(i);chooser.item_selected.emit(i);await settle();return
- check(false,"option exists "+name_+" "+value)
+func select_with_details(name_: String):
+ await tap(name_)
+ await tap("SkillDetailsBack")
 # Owner identity belongs to the shared roster; the compact body omits it.
 # Fetch an independent canonical preview for the requested owner, not the shop's
 # cached response, and compare the complete displayed result against that oracle.
@@ -34,7 +30,7 @@ func run():
   root.size=dims;await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");await settle()
   game.shop_uid="character_mirei";game.shop_slot="rightHand"
   var before=await saved();var shop=game.pages.shop_view
-  await tap("Product_spear-wood")
+  await select_with_details("Product_spear-wood")
   var rect=node("ShopTransaction").get_global_rect()
   var guard_expected=await expected_comparison("character_mirei")
   check(selected_owner_is("character_mirei") and node("ShopComparisonProduct").text=="木製の片手槍" and node("ShopComparisonStats").text==guard_expected,"shared roster owner and product match canonical guard comparison "+str(dims.x))
@@ -60,13 +56,12 @@ func run():
   await tap("RosterMember_character_mirei");shop.open_comparison("greatsword-wood");await settle()
   check(node("ShopComparisonConditions").text.contains("装備不可") and node("ShopComparisonConditions").text.contains("左手"),"canonical two-hand restriction shown")
   check(not node("ShopComparisonBuy").disabled,"inventory purchase independent from equipment restriction")
-  await tap("Product_spear-wood")
-  shop.open_comparison("spear-wood");await settle();await tap("ShopComparisonBuy")
+  await select_with_details("Product_spear-wood");await tap("ShopComparisonBuy")
   check(not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ 木製の片手槍×1 / 支払90G" % game.member_name("character_mirei"),"purchase completion is a non-modal recipient/item/count/payment notice")
   check(int(game.campaign().gold)==410 and int(game.campaign().characters["character_mirei"].inventory["spear-wood"])==4,"confirmed purchase matches displayed amount and exact owner")
   var bought=await saved();await shop.buy(shop.receipt,"character_mirei",shop.generation)
   check((await saved())==bought,"repeated purchase callback cannot charge twice")
-  await tap("SaleItem_spear-wood")
+  await tap("ShopInventoryTab_inventory");await select_with_details("SaleItem_spear-wood")
   node("FacilitySaleQuantity").value=2;await settle()
   check(shop.sale.quote.get("ownerId")=="character_mirei" and shop.sale.quote.get("count")==2 and shop.sale.quote.get("afterGold")==590 and node("FacilitySaleTotals").text.contains("590"),"quantity change displays canonical owner proceeds and final gold")
   check((await saved())==bought,"quantity and sale preview do not mutate state")
@@ -104,7 +99,7 @@ func run():
  check((await saved())==upper_before and game.pages.shop_view.stage=="S0" and not game.pages.shop_view.message.is_empty(),"recipient save-limit rejection preserves exact state and returns to actionable list")
  var south=original.duplicate(true);south.state.location="south";south.state.gold=500
  await game.update({"op":"campaign_load","data":south});await enter_facility("shop");await settle()
- await tap("RosterMember_character_mirei");await tap("Product_potion");node("ShopPurchaseQuantity").value=5;await settle()
+ await tap("RosterMember_character_mirei");await select_with_details("Product_potion");node("ShopPurchaseQuantity").value=5;await settle()
  check(game.pages.shop_view.purchase_quantity==5 and node("ShopComparisonPayment").text=="所持金 500G − 購入 200G = 残金 300G","five potions show the exact cost and remaining funds")
  var quantity_before=await saved();await tap("ProductBuy_potion_1")
  check((await saved())==quantity_before,"quantity purchase consent leaves full save unchanged")
@@ -118,7 +113,7 @@ func run():
  # Engine saves arrive through JSON with numeric variants normalized.
  check(quantity_after==JSON.parse_string(JSON.stringify(quantity_expected)),"quantity purchase changes only selected owner stock and gold in complete save")
  var full=south.duplicate(true);full.state.characters["character_mirei"].inventory.potion=99
- await game.update({"op":"campaign_load","data":full});await enter_facility("shop");await settle();await tap("Product_potion");node("ShopPurchaseQuantity").value=5;await settle()
+ await game.update({"op":"campaign_load","data":full});await enter_facility("shop");await settle();await select_with_details("Product_potion");node("ShopPurchaseQuantity").value=5;await settle()
  check(node("ProductBuy_potion_1").disabled and node("ProductBuy_potion_1").tooltip_text.contains("上限"),"consumable cap uses existing 99 stock rule and explains disabled action")
  var full_before=await saved();await game.pages.shop_view.confirm_purchase("potion","character_mirei");await settle();check((await saved())==full_before and not game.modal_open(),"programmatic over-cap purchase preserves full save")
  check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"all checks kept three sound categories muted")

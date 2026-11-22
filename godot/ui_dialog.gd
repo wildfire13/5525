@@ -23,12 +23,20 @@ func open(title: String, builder: Callable, closed: Callable=Callable(),initial_
 	window=Window.new();window.name="StateDetails";window.title=title;window.exclusive=true;window.transient=true
 	ui.add_child(window)
 	var margin=preload("res://modal_input.gd").new();margin.owner_ref=weakref(self);window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,12)
-	var box=VBoxContainer.new();box.add_theme_constant_override("separation",8);margin.add_child(box)
+	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,0)
+	var box=preload("res://window_grid.gd").new();margin.add_child(box)
 	if not initial_rect.has_area() and title not in ["行動ログ","商品と装備の比較","荷物を持つポーターを選択"]:ui.label_(box,title,true)
 	body=ui.scroller(box);body.get_parent().name="ModalDetailScroll";body.get_parent().custom_minimum_size.y=80
 	actions=ui.row(box);actions.name="ModalActions"
 	builder.call(body,actions)
+	for child in body.get_children():
+		if child.name not in ["ActionLogHistory","QuestCargoChoices","PortraitFraming"]:continue
+		var content=preload("res://window_grid.gd").new();content.scroll_content=true
+		content.size_flags_vertical=Control.SIZE_EXPAND_FILL
+		var children=body.get_children()
+		body.add_theme_constant_override("separation",0);body.add_child(content)
+		for item in children:item.reparent(content)
+		break
 	if actions.get_child_count()==0:ui.local_button(actions,"閉じる",close)
 	window.close_requested.connect(close)
 	window.window_input.connect(func(event):

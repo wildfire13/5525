@@ -1,4 +1,5 @@
 extends RefCounted
+const Grid=preload("res://screen_grid.gd")
 ## Local presentation preferences, deliberately separate from campaign saves.
 const DEFAULT_DIALOG_SIZE=Vector2(840,620)
 const TITLE_HEIGHT=32
@@ -10,9 +11,7 @@ func rect_for(key: String,fallback: Rect2,available: Vector2,minimum: Vector2) -
 	var value=config.get_value("windows",key,fallback)
 	return bounded(value if value is Rect2 else fallback,available,minimum)
 func bounded(value: Rect2,available: Vector2,minimum: Vector2) -> Rect2:
-	var limit=Vector2(maxf(1,available.x),maxf(1,available.y))
-	var extent=value.size.clamp(minimum.min(limit),limit)
-	return Rect2(value.position.clamp(Vector2.ZERO,(limit-extent).max(Vector2.ZERO)),extent)
+	return Grid.snap_rect(value,available,minimum)
 func store_rect(key: String,value: Rect2):
 	config.set_value("windows",key,value);save()
 func camera() -> Dictionary:
@@ -51,12 +50,11 @@ func place_window(window: Window,key: String,available: Vector2,fallback: Rect2,
 		if previous.has_area() and value==previous:value=fallback
 		config.set_value("layout_origin_v2",key,true)
 		if config.has_section_key("windows",key):store_rect(key,value)
-	# Stored positions already include the title-bar margin. Bound in the
-	# usable coordinate space, then convert back exactly once.
-	var rect=bounded(Rect2(value.position-TITLE_MARGIN,value.size),area,minimum)
+	# Preferences use game coordinates; native windows also need the desktop origin.
+	var rect=window_rect(value,available,minimum)
 	window.set_meta("layout_preferred",value)
-	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position+TITLE_MARGIN)
-	window.set_meta("layout_applied",Rect2(Vector2(window.position),Vector2(window.size)))
+	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position+window_origin(window))
+	window.set_meta("layout_applied",rect)
 	window.set_meta("layout_area",area)
 
 func keep_visible(window: Window,available: Vector2):
@@ -68,18 +66,26 @@ func keep_visible(window: Window,available: Vector2):
 	var minimum=Vector2(window.get_meta("layout_minimum")).min(area)
 	if window.min_size!=Vector2i(minimum) or window.max_size!=Vector2i(area):
 		window.min_size=Vector2i.ONE;window.max_size=Vector2i(area);window.min_size=Vector2i(minimum)
-	var current=Rect2(Vector2(window.position),Vector2(window.size))
+	var current=Rect2(Vector2(window.position)-window_origin(window),Vector2(window.size))
 	var preferred=window.get_meta("layout_preferred",current)
 	# Only a user resize/move in an unchanged parent updates the preference.
 	# Clamping a window to a smaller screen must not become its permanent size.
 	if area==window.get_meta("layout_area",area) and current!=window.get_meta("layout_applied",current):preferred=current
 	window.set_meta("layout_preferred",preferred)
-	var rect=bounded(Rect2(preferred.position-TITLE_MARGIN,preferred.size),area,Vector2(window.min_size))
-	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position+TITLE_MARGIN)
+	var rect=window_rect(preferred,available,Vector2(window.min_size))
+	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position+window_origin(window))
 
-	window.set_meta("layout_applied",Rect2(Vector2(window.position),Vector2(window.size)))
+	window.set_meta("layout_applied",Rect2(Vector2(window.position)-window_origin(window),Vector2(window.size)))
 	window.set_meta("layout_area",area)
 func remember_window(window: Window,key: String):
-	var current=Rect2(Vector2(window.position),Vector2(window.size))
+	var current=Rect2(Vector2(window.position)-window_origin(window),Vector2(window.size))
 	if current!=window.get_meta("layout_applied",current):window.set_meta("layout_preferred",current)
 	store_rect(key,window.get_meta("layout_preferred",current))
+
+func window_origin(window: Window) -> Vector2:
+	return Vector2.ZERO if window.is_embedded() else Vector2(window.get_tree().root.position)
+
+func window_rect(value: Rect2,available: Vector2,minimum: Vector2) -> Rect2:
+	# The first game row leaves the native/embedded title bar reachable.
+	var top=Grid.cell_rect(available,0,1,10,9)
+	return Grid.snap_rect(value,available,minimum,top)

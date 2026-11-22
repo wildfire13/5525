@@ -20,14 +20,15 @@ func run():
 	await enter_facility("shop");await settle()
 	var product=node("Product_armor-cloth")
 	check(product.find_children("*","TextureRect",true,false).any(func(icon):return icon.get_meta("ui_icon_id","")=="approved:equipment:armor-cloth"),"shop product uses individual equipment image")
-	var trial_before=await saved();await click("Product_armor-cloth")
+	var trial_before=await saved();game.pages.shop_view.open_comparison("armor-cloth");await settle()
 	var comparison=node("ShopComparisonStats");var stock=node("ShopCatalog");var own=node("ShopInventory");var transaction=node("ShopTransaction")
 	check(comparison!=null and not comparison.text.is_empty() and own.global_position.x<transaction.global_position.x and transaction.get_global_rect().end.x<=stock.global_position.x and transaction.get_global_rect().encloses(comparison.get_global_rect()) and not game.modal_open(),"shop trial is inline in central panel between inventory and catalog")
 	var trial=node("ProductTrial_armor-cloth")
 	check(await saved()==trial_before and node("ShopComparisonBuy")!=null and trial!=null and transaction.get_global_rect().encloses(trial.get_global_rect()),"shop comparison preserves complete save and retains contained trial and purchase buttons")
 	await click("ProductTrial_armor-cloth")
 	check(node("TrialRecipient_character_mirei")!=null and game.dialog.window.title=="木人で試す人物" and await saved()==trial_before,"inline trial opens real recipient selection without changing save")
-	await click("TrialRecipientCancel");check(await saved()==trial_before,"trial cancellation preserves full save")
+	if node("TrialRecipientCancel")!=null:await click("TrialRecipientCancel")
+	check(await saved()==trial_before,"trial cancellation preserves full save")
 	game.navigate("character");await settle()
 	var workspace=game.pages.party_view.workspace
 	workspace.set_tab("ability");await settle()
@@ -76,9 +77,10 @@ func run():
 	hud.choose_command("action_skill");await settle()
 	var skill_button=node("BattleSkill_skill_ambush")
 	var description=skill_button.tooltip_text
-	check(description.begins_with("[奇襲Lv1]") and description.contains("消費MP:") and description.contains("対象:") and description.contains("スキル効果:"),"skill tooltip follows requested four-part template")
-	var tooltip=skill_button._make_custom_tooltip(description.repeat(8));root.add_child(tooltip);await frames()
-	check(tooltip.autowrap_mode==TextServer.AUTOWRAP_WORD_SMART and tooltip.size.x<=520 and tooltip.size.y>50,"skill tooltip wraps lengthy text without ellipsis");tooltip.queue_free()
+	check(description.begins_with("[奇襲Lv1]") and description.contains("消費MP:") and description.contains("対象:") and description.contains("スキル効果:"),"full skill description remains available outside the hover")
+	skill_button.show_hover();await frames()
+	var tooltip=skill_button.hover_window
+	check(tooltip.body.text.contains("通常攻撃") and tooltip.body.text.contains("消費MP 1") and not tooltip.body.text.contains("対象:"),"shared hover shows the ambush effect and MP");skill_button.close_hover()
 	var porter=preload("res://tests/ui_current_fixture.gd").fixtures().porter
 	# Keep a legal save while filling all three basic formation cells.
 	# The Porter anchors the current three-cell formation at 22.

@@ -31,6 +31,7 @@ func render(parent):
 	var member=members.filter(func(u):return str(u.id)==ui.pages.party_uid)[0]
 	if owner!=str(member.id):owner=str(member.id);picked={};allocating=false
 	var split=ui.mock_shell.columns(parent)
+	split.add_theme_constant_override("separation",0)
 	var column=preload("res://member_loadout_column.gd").new()
 	split.add_child(column)
 	column.build(ui,member,tab,set_tab,"CharacterTab_",false,true)
@@ -58,18 +59,21 @@ func render(parent):
 	right.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	split.add_child(right)
 	var card=ui.card(right);card.get_parent().name="CharacterEquipmentDetail"
+	var surface=ui.mock_shell.surface_style();surface.set_content_margin_all(0);card.get_parent().add_theme_stylebox_override("panel",surface)
+	card.add_theme_constant_override("separation",0)
 	card.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
-	card.get_parent().custom_minimum_size=Vector2(400,ui.mock_shell.content_height()-52)
+	card.get_parent().custom_minimum_size=Vector2(ui.mock_shell.grid_cell().x*2,ui.mock_shell.content_height())
 	card.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	if not picked.is_empty():
 		var stock_space=Control.new()
 		stock_space.mouse_filter=Control.MOUSE_FILTER_IGNORE
-		stock_space.custom_minimum_size.x=ui.mock_shell.SHOP_CATALOG_WIDTH
+		stock_space.custom_minimum_size.x=ui.mock_shell.grid_cell().x*2
 		split.add_child(stock_space)
 	if tab=="equipment":
 		column.equipment(ui,member,picked.get("equipped_slot",""),"CharacterSlot_",select_equipped,payload)
 	else:inventory(column.inventory_overlay(),member)
 	var detail=ui.scroller(card)
+	detail.add_theme_constant_override("separation",0)
 	if picked.is_empty():return
 	if picked.has("equipped_slot"):
 		equipped_detail(detail,owner,picked,busy)
@@ -86,7 +90,7 @@ func render(parent):
 		var remove=ui.button(detail,"捨てる",confirm_discard.bind(owner,picked.duplicate(true)),busy or not discard.get("ok",false));remove.name="CharacterDiscard";remove.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;remove.tooltip_text=str(discard.get("reason",""))
 
 func owned_comparison(detail,card,member,item,cancel:=Callable()):
-	ui.label_(detail,"装備変更",true)
+	ui.label_(detail,"装備変更",true).custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	var comparison=ui.pages.shop_view.comparison_view
 	var columns=comparison.equipment_columns(detail,"変更候補")
 	var options=item.get("equipSlots",[])
@@ -194,7 +198,8 @@ func perform(uid,item,action,target,count,slot):
 	ui.render()
 func toast(text):
 	var panel=PanelContainer.new();panel.name="InventoryToast";panel.add_theme_stylebox_override("panel",ui.mock_shell.surface_style());ui.add_child(panel);panel.z_index=90
-	var label=ui.label_(panel,text);label.custom_minimum_size=Vector2(400,40);panel.position=Vector2(ui.size.x-460,ui.size.y-100)
+	var label=ui.label_(panel,text);label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	preload("res://screen_grid.gd").place(panel,preload("res://screen_grid.gd").cell_rect(ui.size,7,9,3,1))
 	ui.get_tree().create_timer(3).timeout.connect(panel.queue_free)
 func preview(columns,text,member,item,equip):
 	var chosen=equip_slot;var ticket=preview_generation;var token=ui.campaign().get("inventoryToken");var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation
@@ -260,7 +265,7 @@ func skills(parent,member):
 			if classification!=group[0]:continue
 			var level=int(source.get("level",1));var name=str(names.get(id,id));var gear=member.get("equipmentDetails",{}).get(source.slot,{})
 			var button=ui.button(grid,name,ui.show_skill_details.bind(id,name,level,gear));button.name="CharacterSkill_"+group[0]+"_"+id+"_"+str(source.slot);button.icon=ui.icons.texture(ui.icons.skill(id,level));button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40);button.custom_minimum_size=Vector2(280,52)
-			button.tooltip_text=preload("res://skill_text.gd").plain(preload("res://skill_text.gd").document(id,name,level,ui.campaign(),gear))
+			preload("res://comparison_skill_icon.gd").bind_hover(button,id,name,level,ui.campaign(),gear)
 		if grid.get_child_count()==0:ui.label_(content,"なし")
 
 func set_tab(value: String):
@@ -306,10 +311,9 @@ func render_comparison_skills(parent,quote: Dictionary,current=null):
 		for source in group[1]:
 			var id=str(source.id);var level=int(source.get("level",1));var name_=str(ui.campaign().get("skillNames",{}).get(id,id))
 			var gear=quote.get("gear",{}) if group[0]=="追加" else quote.get("current",{})
-			var doc=preload("res://skill_text.gd").document(id,name_,level,ui.campaign(),gear)
-			var button=preload("res://comparison_skill_icon.gd").new();line.add_child(button);button.name="CharacterComparisonSkill_"+group[0]+"_"+id;button.text="Lv%d" % level
+			var button=Button.new();line.add_child(button);button.name="CharacterComparisonSkill_"+group[0]+"_"+id;button.text="Lv%d" % level
 			button.icon=helper.skill_texture(id,level);button.custom_minimum_size=Vector2(96,52);button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40)
-			button.tooltip_text=group[0]+" / "+preload("res://skill_text.gd").plain(doc)
+			preload("res://comparison_skill_icon.gd").bind_hover(button,id,name_,level,ui.campaign(),gear)
 			button.pressed.connect(ui.show_skill_details.bind(id,name_,level,gear))
 
 func confirm_discard(uid: String,item: Dictionary):

@@ -9,6 +9,7 @@ var shown:=0
 var elapsed:=0.0
 var portrait: TextureRect
 var board_portrait: TextureRect
+var board_stage: Control
 var portrait_right: TextureRect
 var speaker: Label
 var words: Label
@@ -19,6 +20,7 @@ var close_callback: Callable
 var _closed:=false
 const SPEAKERS={"sluice-ferrymaster":"水門の舟守","farmer":"農夫","weigher":"計量係","apprentice":"若い陶工","master":"陶工の師匠","wheelwright":"車輪職人","merchant":"行商人"}
 const PORTRAITS={"farmer":"farmer","weigher":"weigher","apprentice":"apprentice","master":"master","wheelwright":"wheelwright","merchant":"merchant"}
+const Grid=preload("res://screen_grid.gd")
 func _init(frontend,board):ui=frontend;quest_board=board
 func open(q: Dictionary,on_accept:=Callable(),on_close:=Callable(),requester: TextureRect=null):
 	board_portrait=requester
@@ -28,7 +30,10 @@ func open(q: Dictionary,on_accept:=Callable(),on_close:=Callable(),requester: Te
 	if not str(quest.get("sceneLabel","")).is_empty():
 		var caption=Label.new();caption.name="QuestSceneLabel";caption.text=str(quest.sceneLabel);caption.position=Vector2(48,24);caption.add_theme_font_size_override("font_size",22);caption.add_theme_color_override("font_color",Color("#f3eee3"));caption.add_theme_stylebox_override("normal",_style(Color("#111820"),Color("#9da7b0"),1,8));root.add_child(caption)
 	var tint=ColorRect.new();tint.color=Color(0.025,0.035,0.05,0.2);tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);tint.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(tint)
-	if is_instance_valid(board_portrait):portrait=board_portrait
+	if is_instance_valid(board_portrait):
+		portrait=board_portrait
+		board_stage=portrait.get_parent()
+		portrait.reparent(root,false)
 	else:
 		portrait=TextureRect.new();portrait.name="QuestPortrait";portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		root.add_child(portrait)
@@ -44,20 +49,19 @@ func _style(fill: Color,border: Color,width: int,radius: int)->StyleBoxFlat:
 	var s=StyleBoxFlat.new();s.bg_color=fill;s.border_color=border;s.set_border_width_all(width);s.set_corner_radius_all(radius);s.set_content_margin_all(12);return s
 func _layout():
 	if not is_instance_valid(portrait):return
-	var size=ui.size;var compact=size.x<1120 or size.y<720;var cast: Array=quest.get("cast",[]);var two=cast.size()>1
-	var portrait_width=size.x*(.37 if two else .39 if not compact else .34);var portrait_height=size.y*.84
-	if not is_instance_valid(board_portrait):
-		portrait.position=Vector2(size.x*(.025 if two else .04),size.y*.08);portrait.size=Vector2(portrait_width,portrait_height)
-	portrait_right.visible=two;portrait_right.position=Vector2(size.x*.605,size.y*.08);portrait_right.size=Vector2(size.x*.37,portrait_height)
-	var panel=get_node_or_null("DialogueScreen/QuestDialoguePanel");var speaker_node=get_node_or_null("DialogueScreen/QuestSpeaker")
-	var panel_x=size.x*.055;var panel_y=size.y*.59;var panel_w=size.x*.89;var panel_h=size.y*.36
-	panel.position=Vector2(panel_x,panel_y);panel.size=Vector2(panel_w,panel_h)
-	var current=lines[index] if index<lines.size() else ["",""];var narration=str(current[0])=="narration"
+	var view: Vector2=ui.size
+	var compact=view.x<1120 or view.y<720
+	Grid.place(portrait,Grid.cell_rect(view,0,1,4,9))
+	Grid.place(portrait_right,Grid.cell_rect(view,6,1,4,9))
+	var panel_rect=Grid.cell_rect(view,1,6,8,4)
+	Grid.place(get_node("DialogueScreen/QuestDialoguePanel"),panel_rect)
+	var current=lines[mini(index,lines.size()-1)] if not lines.is_empty() else ["narration",""];var narration=str(current[0])=="narration"
 	var active=str(current[0]);speaker.visible=not narration;speaker.text="" if narration else str(SPEAKERS.get(active,active));_set_portraits(active,narration)
-	speaker.position=Vector2(panel_x+22,panel_y-35);speaker.size=Vector2(minf(260,panel_w*.32),44)
-	words.position=Vector2(panel_x+48,panel_y+34);words.size=Vector2(panel_w-96,panel_h-92);words.add_theme_font_size_override("font_size",24 if compact else 29)
-	advance_hint.position=Vector2(panel_x+panel_w-240,panel_y+panel_h-42);advance_hint.size=Vector2(210,30)
-	choice_row.position=Vector2(panel_x+panel_w-430,panel_y+panel_h-58);choice_row.size=Vector2(400,48)
+	speaker.position=panel_rect.position+Vector2(22,-35);speaker.size=Vector2(minf(260,panel_rect.size.x*.32),44)
+	words.position=panel_rect.position+Vector2(48,24);words.size=Vector2(panel_rect.size.x-96,Grid.cell_rect(view,0,0,1,3).size.y-48);words.add_theme_font_size_override("font_size",24 if compact else 29)
+	advance_hint.position=panel_rect.end-Vector2(240,42);advance_hint.size=Vector2(210,30)
+	for choice in choice_row.get_children():choice.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+	Grid.place(choice_row,Grid.cell_rect(view,4 if compact else 6,9,5 if compact else 3,1))
 func _show_line():
 	if index>=lines.size():_finish();return
 	var line=lines[index];var full=str(line[1]);words.text=full;shown=0;elapsed=0.0;words.visible_characters=0;advance_hint.text="表示中…";choice_row.visible=false;_layout()
@@ -102,10 +106,14 @@ func _finish():
 		var decline=Button.new();decline.name="QuestStoryDecline";decline.text="今は引き受けない";decline.custom_minimum_size=Vector2(200,46);decline.pressed.connect(_close);choice_row.add_child(decline)
 	else:
 		var close=Button.new();close.name="QuestStoryClose";close.text="閉じる";close.custom_minimum_size=Vector2(160,46);close.pressed.connect(_close);choice_row.add_child(close);ui.primary(close);close.grab_focus()
+	_layout()
 func _close():
 	if _closed:return
 	_closed=true
 	if ui.resized.is_connected(_layout):ui.resized.disconnect(_layout)
-	if is_instance_valid(board_portrait):board_portrait.modulate=Color.WHITE
+	if is_instance_valid(board_portrait) and is_instance_valid(board_stage) and board_stage.is_inside_tree():
+		board_portrait.modulate=Color.WHITE
+		board_portrait.reparent(board_stage,false)
+		quest_board.position_requester(board_portrait)
 	if close_callback.is_valid():close_callback.call()
 	queue_free()

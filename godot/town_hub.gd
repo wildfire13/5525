@@ -5,8 +5,8 @@ var catalog: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://a
 var location := ""
 var artwork: Dictionary={}
 var rng=RandomNumberGenerator.new()
-const MEETING_LEFT=0.70
 const MEETING_GAP=16.0
+const Grid=preload("res://screen_grid.gd")
 const FACILITIES={"board":["掲示板","board"],"guild":["ギルド","party"],"inn":["宿屋","inn"],"weapon":["武器店","shop"],"armor":["防具店","shop"],"items":["道具店","shop"],"accessory":["装飾品店","shop"]}
 func _init(frontend):ui=frontend;rng.randomize()
 func reset():location="";artwork={}
@@ -20,7 +20,8 @@ func _fit_before_meeting(panel: Control):
 	# Recompute from the original anchor on resize, so offsets never accumulate.
 	for button in panel.get_children():
 		if button is Button and button.has_meta("hub_x_anchor"):
-			button.position.x=minf(panel.size.x*float(button.get_meta("hub_x_anchor")),maxf(0,panel.size.x*MEETING_LEFT-button.size.x-MEETING_GAP))
+			var meeting_left=Grid.cell_rect(ui.size,7,1,3,8).position.x-panel.global_position.x
+			button.position.x=minf(panel.size.x*float(button.get_meta("hub_x_anchor")),maxf(0,meeting_left-button.size.x-MEETING_GAP))
 func render(parent):
 	var c=ui.campaign();select_art(str(c.location))
 	var place={}
@@ -48,7 +49,13 @@ func render(parent):
 		var fit=_fit_before_meeting.bind(panel);panel.resized.connect(fit);fit.call_deferred()
 	var map=ui.button(panel,"出発の準備\n街道口",ui.navigate.bind("map"));map.name="HubMap";map.anchor_left=.12;map.anchor_top=.82;map.custom_minimum_size=Vector2(168,64);ui.memory.key(map,"nav_map")
 	if has_meeting:
-		var box=PanelContainer.new();box.name="HubMeetingPanel";box.anchor_left=MEETING_LEFT;box.anchor_right=.99;box.anchor_top=.04;box.anchor_bottom=.96;box.add_theme_stylebox_override("panel",ui.mock_shell.surface_style());panel.add_child(box)
+		var box=PanelContainer.new();box.name="HubMeetingPanel";box.add_theme_stylebox_override("panel",ui.mock_shell.surface_style());panel.add_child(box)
+		var place_meeting=func():
+			if not is_instance_valid(box) or box.is_queued_for_deletion():return
+			Grid.place(box,Grid.cell_rect(ui.size,7,1,3,8 if ui.footer.visible else 9))
+			_fit_before_meeting(panel)
+		for container in [panel,parent,parent.get_parent()]:container.item_rect_changed.connect(place_meeting)
+		place_meeting.call_deferred()
 		var column=VBoxContainer.new();column.add_theme_constant_override("separation",12);box.add_child(column)
 		var details=ui.scroller(column);ui.pages.quest_board.meeting.render(details,quest,"Hub",true)
 		var m: Dictionary=quest.get("meeting",{})

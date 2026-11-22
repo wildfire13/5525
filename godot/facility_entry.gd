@@ -52,10 +52,11 @@ func render_top(parent: Control,page: String) -> bool:
  if not at_top(page):return false
  var title=facility_name(page)
  var layout=ui.mock_shell.columns(parent);layout.name="FacilityEntry";layout.custom_minimum_size.y=ui.mock_shell.content_height()
- var options=VBoxContainer.new();options.name="FacilityChoices";options.custom_minimum_size.x=300;options.add_theme_constant_override("separation",16);layout.add_child(options)
+ var cell=ui.mock_shell.grid_cell()
+ var options=VBoxContainer.new();options.name="FacilityChoices";options.custom_minimum_size.x=cell.x*2;options.add_theme_constant_override("separation",0);layout.add_child(options)
  var town_label=ui.label_(options,ui.town_name(pages.c().get("location","")));town_label.add_theme_font_size_override("font_size",20);town_label.add_theme_color_override("font_color",Color("#faf9f5"));town_label.add_theme_color_override("font_outline_color",Color("#283128"));town_label.add_theme_constant_override("outline_size",6)
  var title_label=ui.label_(options,title,true);title_label.name="FacilityEntryTitle";title_label.add_theme_font_size_override("font_size",30);title_label.add_theme_color_override("font_color",Color("#faf9f5"));title_label.add_theme_color_override("font_outline_color",Color("#283128"));title_label.add_theme_constant_override("outline_size",6)
- var gap=Control.new();gap.custom_minimum_size.y=24;options.add_child(gap)
+ town_label.custom_minimum_size.y=cell.y;title_label.custom_minimum_size.y=cell.y
  var choices=[]
  if page=="shop":
   choices=[["取引する","buy",true]]
@@ -69,7 +70,7 @@ func render_top(parent: Control,page: String) -> bool:
  for choice in choices:
   var button=ui.button(options,choice[0],choose.bind(choice[1]),not choice[2]);button.name="FacilityChoice_"+str(choice[1]);button.custom_minimum_size=Vector2(300,64);
   if choice[2]:ui.green_button(button)
-  button.custom_minimum_size.y=64
+  button.custom_minimum_size=Vector2(cell.x*2,cell.y)
   ui.memory.key(button,"facility_"+str(choice[1]))
   if not choice[2]:
    if choice[1]=="delivery":button.tooltip_text="荷物を持つポーターを同行させてください。" if handoff else "この施設に届ける依頼はありません。"
@@ -86,10 +87,7 @@ func render_entry_art(layout: Control):
  var art=Control.new();art.name="FacilityEntryArt";art.top_level=true;art.mouse_filter=Control.MOUSE_FILTER_IGNORE;stage.add_child(art);art.position=Vector2.ZERO;art.size=ui.size
  pages.facility_art.npc.portrait_layer(art)
  var speech=make_speech(greeting_text(),"normal");speech.name="FacilityEntrySpeech";art.add_child(speech)
- var speech_width=minf(640,ui.size.x-680)
- var line_count=ceili(float(speech.words.text.length())/maxf(1,floorf(speech_width*.8/22)))
- speech.size=Vector2(speech_width,maxf(190,float(line_count)*32/.52))
- speech.position=(ui.size-speech.size)*.5
+ ui.mock_shell.Grid.place(speech,ui.mock_shell.Grid.cell_rect(ui.size,3,4,4,2))
  speech.words.add_theme_font_size_override("font_size",22);speech.set_speaker_visible(false)
 func greeting_text() -> String:
  return "いらっしゃい。今日はどうしますか？" if ui.page=="shop" and view=="top" else ("売る品物の持ち主を、下の人物から選んでください。" if pages.shop_view.selected_owner().is_empty() else "売却する品物を選んでください。") if ui.page=="shop" and view=="sell" else "商品をご覧ください。" if ui.page=="shop" else "お泊まりですか？" if ui.page=="inn" else "仲間の編成はこちらでどうぞ。"

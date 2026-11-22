@@ -5,6 +5,7 @@ var hud:
  get:return hud_ref.get_ref()
  set(value):hud_ref=weakref(value)
 var last_selected=""
+const Grid=preload("res://screen_grid.gd")
 const Shell=preload("res://mock_shell.gd")
 var panel_style=Shell.surface_style()
 var button_style=Shell.style()
@@ -20,33 +21,31 @@ const Drag=preload("res://deployment_drag.gd")
 func label(parent,text,large=false):
  var control=ui.label_(parent,text,large);control.add_theme_color_override("font_color",Color("#293b33"));return control
 func layout():
- var area=hud.middle
+ var view=ui.size
  hud.left_panel.hide()
- var sidebar_width=ui.mock_shell.ROSTER_WIDTH
- var roster_width=ui.mock_shell.ROSTER_WIDTH
- var field_left=roster_width+ui.mock_shell.COLUMN_GAP
  var strip=ui.get("deployment_party_strip")
- var controls_bottom=area.size.y
  if is_instance_valid(strip):
   strip.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-  strip.position=area.global_position
-  strip.size=Vector2(roster_width,controls_bottom-8)
- var field_width=maxf(1,area.size.x-field_left-sidebar_width-20)
- hud.right_panel.pending_restore=null;hud.right_panel.position=Vector2(field_left+field_width+20,0);hud.right_panel.size=Vector2(sidebar_width,controls_bottom-64)
+  Grid.place(strip,Grid.cell_rect(view,0,1,2,8))
+ hud.right_panel.fit_sections()
+ hud.right_panel.pending_restore=null
+ Grid.place(hud.right_panel,Grid.cell_rect(view,8,1,2,8))
  hud.right_panel.find_child("DragHandle",true,false).hide()
  if normal_panel_style==null:normal_panel_style=hud.right_panel.get_theme_stylebox("panel").duplicate()
+ panel_style.set_content_margin_all(0)
  hud.right_panel.add_theme_stylebox_override("panel",panel_style)
- hud.deployment_bar.position=Vector2(field_left,0);hud.deployment_bar.size=Vector2(field_width,72)
+ Grid.place(hud.deployment_bar,Grid.cell_rect(view,2,1,6,1))
  hud.deployment_bar.add_theme_stylebox_override("panel",panel_style)
- hud.deployment_actions.position=Vector2(field_left+field_width-500,controls_bottom-56);hud.deployment_actions.size=Vector2(500,56)
- hud.camera_hint.global_position=Vector2(24,ui.size.y-hud.camera_hint.get_combined_minimum_size().y-8)
- hud.deployment_instructions.position=Vector2(field_left+12,88)
+ Grid.place(hud.deployment_actions,Grid.cell_rect(view,5,9,3,1))
+ hud.camera_hint.global_position=Vector2(24,view.y-hud.camera_hint.get_combined_minimum_size().y-8)
+ hud.deployment_instructions.global_position=Grid.cell_rect(view,2,2,1,1).position
  ui.board.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
- ui.board.position=area.global_position+Vector2(field_left,80);ui.board.size=Vector2(field_width,maxf(1,controls_bottom-144));ui.board.deployment_bottom_limit=0;ui.board.update_camera()
+ Grid.place(ui.board,Grid.cell_rect(view,2,2,6,7))
+ ui.board.deployment_bottom_limit=0;ui.board.update_camera()
 func render():
  if ui.selected!=last_selected:hud.selected_enemy="";last_selected=ui.selected
  ui.header.add_theme_color_override("font_color",Color("#293b33"))
- hud.left_panel.hide();ui.clear(hud.right_panel.body);ui.clear(hud.right_panel.footer)
+ hud.left_panel.hide();ui.clear(hud.right_panel.body);ui.clear(hud.right_panel.lower);ui.clear(hud.right_panel.footer)
  var body=hud.right_panel.body
  var enemies=ui.state().get("units",[]).filter(func(u):return u.side=="enemy")
  label(body,"敵パーティ　%d人" % enemies.size(),true)
@@ -56,8 +55,9 @@ func render():
   ui.mock_shell.roster_member_line(button,enemy)
  var deployed=Drag.deployed(ui)
  var reserves=ui.roster().filter(func(member):return ui.campaign().get("selected",[]).has(member.id) and not deployed.has(member.id))
- label(body,"控え %d" % reserves.size(),true)
- var reserve_area=VBoxContainer.new();reserve_area.name="DeploymentReserves";reserve_area.custom_minimum_size.y=90;body.add_child(reserve_area)
+ hud.right_panel.lower_scroll.name="DeploymentReserveRegion"
+ label(hud.right_panel.lower,"控え %d" % reserves.size(),true)
+ var reserve_area=VBoxContainer.new();reserve_area.name="DeploymentReserves";reserve_area.custom_minimum_size.y=90;hud.right_panel.lower.add_child(reserve_area)
  reserve_area.set_drag_forwarding(Callable(),func(_at,data):return Drag.valid(ui,data) and data.source=="board",func(_at,data):if Drag.consume(ui,data):ui.deployment_assigned(str(data.uid),null))
  if reserves.is_empty():label(reserve_area,"控えはいません")
  for member in reserves:

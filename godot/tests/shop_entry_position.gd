@@ -23,7 +23,8 @@ func run():
   await game.update({"op":"campaign_load","data":save});game.navigate(page);await settle()
   var portrait=node("FacilityNpc");var speech=node("FacilityEntrySpeech");var choices=node("FacilityChoices")
   check(game.find_children("FacilityNpc","TextureRect",true,false).size()==1,label+" single current keeper")
-  check(portrait.global_position.x>1000 and abs(portrait.size.y-1080*1.28)<2,label+" A right portrait framing")
+  var cell=Vector2(root.size)/10
+  check(portrait.get_parent().get_global_rect()==Rect2(cell*Vector2(6,2),cell*Vector2(4,8)),label+" portrait fills the reserved lower-right grid region")
   check(speech.get_global_rect().get_center().distance_to(Vector2(960,540))<2,label+" speech centered")
   check(not speech.get_global_rect().intersects(choices.get_global_rect()),label+" choices separate from speech")
   var mouth=game.pages.facility_art.npc.mouth_anchor(node("FacilityEntryArt"))

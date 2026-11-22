@@ -91,7 +91,12 @@ func run():
  var result=game.results_view
  result.enqueue({"kind":"quest","title":"QUEST COMPLETE","subtitle":"配達達成","gold_gain":0,"gold_after":180,"rp_gain":100,"members":rows,"quest":"試験配達","hours":6,"restored":false,"acknowledge":false,"location":"astaris"})
  result.present_pending();await settle()
- check(node("ResultLevelUpStrip").get_child_count()==2,"only leveled characters appear in portrait strip")
+ var strip=node("ResultLevelUpStrip")
+ var portrait_names=[]
+ if strip!=null:
+  for column in strip.get_children():
+   if column is VBoxContainer and column.is_visible_in_tree():portrait_names.append(str(column.name))
+ check(portrait_names==["ResultLevelUp_"+rows[0].id,"ResultLevelUp_"+rows[1].id],"only leveled characters appear in portrait strip")
  check(node("ResultContinue").text=="OK" and node("ResultRankPoints")!=null,"result shows RP and OK")
  await capture("result")
  result.advance();await settle()

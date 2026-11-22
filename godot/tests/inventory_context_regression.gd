@@ -35,16 +35,21 @@ func run():
 	scroll.ensure_control_visible(node("SaleItem_twin-bow"));await frames()
 	check(scroll.get_global_rect().intersects(node("SaleItem_twin-bow").get_global_rect()),"long shop inventory can reveal the selected row")
 	await tap("SaleItem_twin-bow")
+	check(node("SkillDetailsWindow")!=null,"selecting the sale item opens shared details")
+	if node("SkillDetailsBack")==null:quit(1);return
+	await tap("SkillDetailsBack")
 	node("FacilitySaleQuantity").value=2;await settle()
 	check(sale.quote.get("ownerId")==OWNER and sale.quote.get("count")==2,"visible sale quote uses the selected owner and quantity")
 	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(node("FacilitySalePrepare").get_global_rect()),"sale confirmation stays within the viewport")
 	await tap("FacilitySalePrepare")
-	sale.confirmation.canceled.emit();sale.confirmation.hide();await settle()
+	if node("FacilitySaleCancel")==null:check(false,"sale confirmation opens after closing details");quit(1);return
+	await tap("FacilitySaleCancel")
 	check((await saved())==before,"cancelling the quote preserves the entire save")
 
 	# Release the first owner's quote after switching via the live roster.
 	var actual=game.engine;var delayed=DelayedSaleEngine.new();delayed.actual=actual;game.add_child(delayed);game.engine=delayed
-	node("SaleItem_spear-wood").pressed.emit()
+	# Hold only the quote; a modal item description would prevent a roster click.
+	sale.select_item("spear-wood")
 	while not delayed.held:await process_frame
 	await tap("RosterMember_character_shion")
 	delayed.release=true
