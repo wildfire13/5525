@@ -1,0 +1,965 @@
+{
+ "prefix": "仮ラベル・削除予定：",
+ "screens": {
+  "hub": {
+   "label": "ローカルマップ",
+   "meaning": "5拠点の広場。施設や受取人を選ぶ"
+  },
+  "map": {
+   "label": "ワールドマップ",
+   "meaning": "行き先・出発・全体表示"
+  },
+  "board": {
+   "label": "掲示板",
+   "meaning": "募集・受注中・終了後の依頼"
+  },
+  "story": {
+   "label": "クエスト会話",
+   "meaning": "登場人物との会話・受注選択"
+  },
+  "entry": {
+   "label": "施設受付",
+   "meaning": "武器屋・防具屋・道具屋・装飾品店・ギルド・宿屋の入口"
+  },
+  "guild": {
+   "label": "ギルド編成",
+   "meaning": "同行者と控えの比較・加入・交代"
+  },
+  "warehouse": {
+   "label": "倉庫",
+   "meaning": "出庫台帳・取り出し・預け入れ・装備解除"
+  },
+  "shop": {
+   "label": "ショップ取引",
+   "meaning": "購入・売却・所持品の装備変更"
+  },
+  "inn": {
+   "label": "宿屋",
+   "meaning": "宿泊・回復"
+  },
+  "character": {
+   "label": "パーティ情報",
+   "meaning": "装備・インベントリ・能力・スキル"
+  },
+  "items": {
+   "label": "道具使用",
+   "meaning": "所有者・道具・使用対象の選択"
+  },
+  "road": {
+   "label": "街道",
+   "meaning": "区間・経路の選択"
+  },
+  "camp": {
+   "label": "野営地",
+   "meaning": "休息・引き返し・次の区間"
+  },
+  "arrival": {
+   "label": "到着",
+   "meaning": "目的地に入る"
+  },
+  "deployment": {
+   "label": "配置",
+   "meaning": "出場者・控え・陣形・配置先"
+  },
+  "battle": {
+   "label": "戦闘",
+   "meaning": "行動選択・対象・予測・演出・突破・敗北"
+  },
+  "trial": {
+   "label": "木人試用",
+   "meaning": "試用中の戦闘と試用終了"
+  },
+  "victory": {
+   "label": "戦闘リザルト",
+   "meaning": "戦闘報酬・成長"
+  },
+  "complete": {
+   "label": "配達リザルト",
+   "meaning": "依頼報酬・成長"
+  },
+  "result": {
+   "label": "旅の結果",
+   "meaning": "成功・遅配・撤退・失敗・自由移動の結果"
+  },
+  "menu": {
+   "label": "共通メニュー",
+   "meaning": "セーブ・ロード・ログ・設定・終了"
+  },
+  "loading": {
+   "label": "読み込み",
+   "meaning": "遷移中の画像と入力待機"
+  },
+  "window": {
+   "label": "詳細ウィンドウ",
+   "meaning": "ウィンドウ名を併記。操作説明・履歴・受取人・確認・画像編集など"
+  },
+  "debug": {
+   "label": "開発情報",
+   "meaning": "別ウィンドウの状態・履歴・永続化情報"
+  },
+  "file": {
+   "label": "ファイル選択",
+   "meaning": "セーブ・ロード・ログ保存・肖像取込で開くOSのダイアログ"
+  },
+  "startup": {
+   "label": "起動",
+   "meaning": "キャンペーン取得前"
+  },
+  "tooltip": {
+   "label": "スキルの説明",
+   "meaning": "アイコンにポインターを置いている間の説明"
+  }
+ },
+ "regions": [
+  {
+   "screens": [
+    "共通"
+   ],
+   "label": "ヘッダーナビ",
+   "nodes": [
+    "CampaignHeader",
+    "BattleHeader"
+   ],
+   "meaning": "地名・経過時間・画面切替・所持金・メニュー"
+  },
+  {
+   "screens": [
+    "共通"
+   ],
+   "label": "共通フッター",
+   "nodes": [
+    "StatusFooter"
+   ],
+   "meaning": "画面下の状態・操作案内"
+  },
+  {
+   "screens": [
+    "共通"
+   ],
+   "label": "パーティ名簿",
+   "nodes": [
+    "PartyRoster",
+    "PartyFacesScroll"
+   ],
+   "meaning": "人物の選択・受け渡し。配置時は出場状態も表示"
+  },
+  {
+   "screens": [
+    "共通"
+   ],
+   "label": "上中央の緑通知",
+   "nodes": [
+    "SaveNotice"
+   ],
+   "meaning": "購入・売却・到着・保存など、入力を妨げない標準の完了通知"
+  },
+  {
+   "screens": [
+    "共通"
+   ],
+   "label": "右下の所持品通知",
+   "nodes": [
+    "InventoryToast"
+   ],
+   "meaning": "所持品操作から出る既存の例外。新しい完了通知には「上中央の緑通知」を使う"
+  },
+  {
+   "screens": [
+    "共通"
+   ],
+   "label": "装備ホバー詳細",
+   "nodes": [
+    "EquipmentTooltipPanel"
+   ],
+   "meaning": "装備・所持品の詳細"
+  },
+  {
+   "screens": [
+    "tooltip"
+   ],
+   "label": "スキルホバー詳細",
+   "nodes": [
+    "ComparisonSkillTooltip",
+    "SkillDescriptionTooltip"
+   ],
+   "meaning": "スキルの説明"
+  },
+  {
+   "screens": [
+    "hub"
+   ],
+   "label": "拠点施設マップ",
+   "nodes": [
+    "TownHub"
+   ],
+   "meaning": "5拠点の施設と街道口"
+  },
+  {
+   "screens": [
+    "hub",
+    "board"
+   ],
+   "label": "受取人・待機",
+   "nodes": [
+    "HubMeetingPanel",
+    "QuestMerchantAvailability"
+   ],
+   "meaning": "受取・待機・期限確認"
+  },
+  {
+   "screens": [
+    "map",
+    "road",
+    "camp",
+    "arrival"
+   ],
+   "label": "ワールドマップ・経路操作",
+   "nodes": [
+    "TownMap",
+    "TravelFullMap"
+   ],
+   "meaning": "各拠点と経路"
+  },
+  {
+   "screens": [
+    "map"
+   ],
+   "label": "出発操作",
+   "nodes": [
+    "MapControls"
+   ],
+   "meaning": "行き先と最短移動時間、出発、全体表示"
+  },
+  {
+   "screens": [
+    "entry"
+   ],
+   "label": "施設案内",
+   "nodes": [
+    "FacilityChoices"
+   ],
+   "meaning": "サービス、納品、店を出る"
+  },
+  {
+   "screens": [
+    "entry",
+    "inn"
+   ],
+   "label": "施設スタッフ",
+   "nodes": [
+    "FacilityNpc",
+    "InnKeeper"
+   ],
+   "meaning": "応対する人物"
+  },
+  {
+   "screens": [
+    "entry",
+    "inn"
+   ],
+   "label": "店員との会話",
+   "nodes": [
+    "FacilityEntrySpeech",
+    "InnKeeperSpeech"
+   ],
+   "meaning": "施設の吹き出し"
+  },
+  {
+   "screens": [
+    "entry"
+   ],
+   "label": "パーティ編成案内",
+   "nodes": [
+    "FacilityChoice_guild"
+   ],
+   "meaning": "ギルドで編成へ進む入口"
+  },
+  {
+   "screens": [
+    "entry"
+   ],
+   "label": "共通倉庫案内",
+   "nodes": [
+    "FacilityChoice_warehouse"
+   ],
+   "meaning": "ギルドで倉庫へ進む入口"
+  },
+  {
+   "screens": [
+    "board"
+   ],
+   "label": "クエスト一覧",
+   "nodes": [
+    "QuestList"
+   ],
+   "meaning": "依頼・受注中の案件・後日談"
+  },
+  {
+   "screens": [
+    "board"
+   ],
+   "label": "クエスト詳細",
+   "nodes": [
+    "QuestDetail"
+   ],
+   "meaning": "届け先・受取人・希望条件・依頼品・報酬"
+  },
+  {
+   "screens": [
+    "board"
+   ],
+   "label": "依頼者画像",
+   "nodes": [
+    "QuestRequester"
+   ],
+   "meaning": "選択した依頼の人物"
+  },
+  {
+   "screens": [
+    "board"
+   ],
+   "label": "受注操作",
+   "nodes": [
+    "QuestDetailActions"
+   ],
+   "meaning": "受注・待機・物語の呼び出し"
+  },
+  {
+   "screens": [
+    "story"
+   ],
+   "label": "会話の立ち絵",
+   "nodes": [
+    "QuestPortrait",
+    "QuestPortraitRight",
+    "QuestRequesterPortrait"
+   ],
+   "meaning": "左右の話者"
+  },
+  {
+   "screens": [
+    "story"
+   ],
+   "label": "会話本文",
+   "nodes": [
+    "QuestDialoguePanel"
+   ],
+   "meaning": "話者・台詞・読み進め"
+  },
+  {
+   "screens": [
+    "story"
+   ],
+   "label": "会話選択肢",
+   "nodes": [
+    "QuestStoryChoices"
+   ],
+   "meaning": "受注・辞退・閉じる"
+  },
+  {
+   "screens": [
+    "character",
+    "shop",
+    "warehouse"
+   ],
+   "label": "人物情報",
+   "nodes": [
+    "CharacterLoadoutPanel",
+    "MemberLoadoutPanel",
+    "ShopInventory"
+   ],
+   "meaning": "共通の人物列とタブ"
+  },
+  {
+   "screens": [
+    "character",
+    "shop",
+    "warehouse"
+   ],
+   "label": "装備",
+   "nodes": [
+    "RegionEquipment"
+   ],
+   "meaning": "人物の装備配置。表示中のタブに対応"
+  },
+  {
+   "screens": [
+    "character",
+    "shop",
+    "warehouse"
+   ],
+   "label": "インベントリ",
+   "nodes": [
+    "RegionInventory"
+   ],
+   "meaning": "人物の所持品・絞り込み。表示中のタブに対応"
+  },
+  {
+   "screens": [
+    "character"
+   ],
+   "label": "人物能力・装備スキル",
+   "nodes": [
+    "CharacterAbilityValues",
+    "CharacterSkillList"
+   ],
+   "meaning": "能力・成長・アクティブ／パッシブスキル"
+  },
+  {
+   "screens": [
+    "character",
+    "warehouse"
+   ],
+   "label": "選択アイテム",
+   "nodes": [
+    "CharacterEquipmentDetail",
+    "WarehouseSelectedPanel"
+   ],
+   "meaning": "選択品の性能と使用・解除・変更"
+  },
+  {
+   "screens": [
+    "shop"
+   ],
+   "label": "商品一覧",
+   "nodes": [
+    "ShopCatalog"
+   ],
+   "meaning": "商品フィルター・値段・Wt"
+  },
+  {
+   "screens": [
+    "shop"
+   ],
+   "label": "取引確認",
+   "nodes": [
+    "ShopTransaction"
+   ],
+   "meaning": "購入・売却・所持品の装備変更"
+  },
+  {
+   "screens": [
+    "shop",
+    "character"
+   ],
+   "label": "現在の装備",
+   "nodes": [
+    "ComparisonCurrentColumn"
+   ],
+   "meaning": "装備比較の基準"
+  },
+  {
+   "screens": [
+    "shop",
+    "character"
+   ],
+   "label": "装備候補",
+   "nodes": [
+    "ComparisonCandidateColumn"
+   ],
+   "meaning": "変更後の品・性能・注記"
+  },
+  {
+   "screens": [
+    "shop"
+   ],
+   "label": "取引操作",
+   "nodes": [
+    "ShopTransactionFooter"
+   ],
+   "meaning": "支払い・数量・購入・木人試用・取引終了"
+  },
+  {
+   "screens": [
+    "warehouse"
+   ],
+   "label": "倉庫台帳",
+   "nodes": [
+    "WarehouseStorage"
+   ],
+   "meaning": "取り出し対象と数量"
+  },
+  {
+   "screens": [
+    "warehouse"
+   ],
+   "label": "倉庫操作",
+   "nodes": [
+    "WarehouseControls"
+   ],
+   "meaning": "預ける・取り出す・戻る"
+  },
+  {
+   "screens": [
+    "guild"
+   ],
+   "label": "編成比較",
+   "nodes": [
+    "GuildComparison"
+   ],
+   "meaning": "同行者と選択した控えの比較"
+  },
+  {
+   "screens": [
+    "guild"
+   ],
+   "label": "控え名簿",
+   "nodes": [
+    "GuildReserveColumn"
+   ],
+   "meaning": "控えと職業フィルター"
+  },
+  {
+   "screens": [
+    "guild"
+   ],
+   "label": "編成操作",
+   "nodes": [
+    "GuildActions"
+   ],
+   "meaning": "加入・入れ替え・除外・取消"
+  },
+  {
+   "screens": [
+    "inn"
+   ],
+   "label": "休息サービス",
+   "nodes": [
+    "InnService"
+   ],
+   "meaning": "料金・宿泊・回復の操作"
+  },
+  {
+   "screens": [
+    "inn"
+   ],
+   "label": "宿泊者一覧",
+   "nodes": [
+    "InnPartyScroll"
+   ],
+   "meaning": "各人のHP・MPと回復"
+  },
+  {
+   "screens": [
+    "road",
+    "camp",
+    "arrival"
+   ],
+   "label": "旅程",
+   "nodes": [
+    "TravelRouteStrip"
+   ],
+   "meaning": "出発地・現在位置・到着地"
+  },
+  {
+   "screens": [
+    "road"
+   ],
+   "label": "経路候補",
+   "nodes": [
+    "RouteChoices"
+   ],
+   "meaning": "区間の道と所要時間"
+  },
+  {
+   "screens": [
+    "road",
+    "camp",
+    "arrival"
+   ],
+   "label": "旅程操作",
+   "nodes": [
+    "CampActions"
+   ],
+   "meaning": "到着見込・引き返し・休息・次の区間"
+  },
+  {
+   "screens": [
+    "items"
+   ],
+   "label": "道具一覧",
+   "nodes": [
+    "CampaignItems"
+   ],
+   "meaning": "所有者選択・使用可能な道具"
+  },
+  {
+   "screens": [
+    "items"
+   ],
+   "label": "道具の所有者・対象",
+   "nodes": [
+    "CampParty",
+    "ItemParty"
+   ],
+   "meaning": "道具を使うメンバー"
+  },
+  {
+   "screens": [
+    "deployment",
+    "battle",
+    "trial"
+   ],
+   "label": "戦場・配置",
+   "nodes": [
+    "BattleBoard"
+   ],
+   "meaning": "配置と通常戦闘・木人試用に共通する盤面"
+  },
+  {
+   "screens": [
+    "deployment"
+   ],
+   "label": "陣形操作",
+   "nodes": [
+    "DeploymentFormationWindow"
+   ],
+   "meaning": "陣形と配置パターン"
+  },
+  {
+   "screens": [
+    "deployment"
+   ],
+   "label": "配置人物情報",
+   "nodes": [
+    "battle_target_b"
+   ],
+   "meaning": "配置時の敵一覧と控え欄"
+  },
+  {
+   "screens": [
+    "deployment"
+   ],
+   "label": "控えメンバー",
+   "nodes": [
+    "DeploymentReserves"
+   ],
+   "meaning": "控えの人物と配置・解除先"
+  },
+  {
+   "screens": [
+    "deployment"
+   ],
+   "label": "配置操作",
+   "nodes": [
+    "DeploymentActions"
+   ],
+   "meaning": "リセット・撤退・戦闘開始"
+  },
+  {
+   "screens": [
+    "battle",
+    "trial"
+   ],
+   "label": "戦闘操作",
+   "nodes": [
+    "battle_actor_b"
+   ],
+   "meaning": "行動者パネルと人物状態"
+  },
+  {
+   "screens": [
+    "battle",
+    "trial"
+   ],
+   "label": "戦闘コマンド",
+   "nodes": [
+    "ActorCommands"
+   ],
+   "meaning": "攻撃・移動・スキル・アイテム・防御"
+  },
+  {
+   "screens": [
+    "battle",
+    "trial"
+   ],
+   "label": "戦闘対象情報",
+   "nodes": [
+    "battle_target_b"
+   ],
+   "meaning": "対象と効果・予測・能力・結果"
+  },
+  {
+   "screens": [
+    "battle",
+    "trial"
+   ],
+   "label": "行動確定",
+   "nodes": [
+    "PinnedActions"
+   ],
+   "meaning": "実行・取消・参考表示"
+  },
+  {
+   "screens": [
+    "battle",
+    "trial"
+   ],
+   "label": "行動順",
+   "nodes": [
+    "TurnOrderControls"
+   ],
+   "meaning": "手番・順番詳細・戦闘履歴"
+  },
+  {
+   "screens": [
+    "trial"
+   ],
+   "label": "試用操作",
+   "nodes": [
+    "BattleTools"
+   ],
+   "meaning": "木人の試用を終える"
+  },
+  {
+   "screens": [
+    "victory",
+    "complete"
+   ],
+   "label": "結果・報酬",
+   "nodes": [
+    "ResultSummary"
+   ],
+   "meaning": "報酬の金額・経験値・RP"
+  },
+  {
+   "screens": [
+    "victory",
+    "complete"
+   ],
+   "label": "人物別結果",
+   "nodes": [
+    "ResultMembersScroll"
+   ],
+   "meaning": "参加メンバーの成長と明細"
+  },
+  {
+   "screens": [
+    "victory",
+    "complete"
+   ],
+   "label": "結果操作",
+   "nodes": [
+    "ResultActions"
+   ],
+   "meaning": "セーブ・施設へ移動・続行"
+  },
+  {
+   "screens": [
+    "result"
+   ],
+   "label": "旅の結果本文",
+   "nodes": [
+    "CampaignBody"
+   ],
+   "meaning": "成功・遅配・失敗・自由移動の結果"
+  },
+  {
+   "screens": [
+    "result"
+   ],
+   "label": "帰還操作",
+   "nodes": [
+    "TownReturnRow"
+   ],
+   "meaning": "結果から広場へ進む"
+  },
+  {
+   "screens": [
+    "menu"
+   ],
+   "label": "共通メニュー項目",
+   "nodes": [
+    "CommonMenu"
+   ],
+   "meaning": "セーブ・ロード・ログ・表示・音量・終了"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "明細本文",
+   "nodes": [
+    "ModalDetailScroll",
+    "ConfirmationTextScroll",
+    "SkillDetailsSummary"
+   ],
+   "meaning": "説明・確認内容"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "明細操作",
+   "nodes": [
+    "ModalActions",
+    "SkillDetailsActions"
+   ],
+   "meaning": "決定・取消・戻る"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "荷物の担当",
+   "nodes": [
+    "QuestCargoChoices"
+   ],
+   "meaning": "荷物を持つポーター"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "人物画像調整",
+   "nodes": [
+    "PortraitFraming"
+   ],
+   "meaning": "肖像の位置・倍率"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "詳細タブ",
+   "nodes": [
+    "SkillDetailsTabs"
+   ],
+   "meaning": "装備・スキルの詳細"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "行動ログ本文",
+   "nodes": [
+    "ActionLogHistory"
+   ],
+   "meaning": "履歴と時間"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "確認メッセージ",
+   "nodes": [
+    "ConfirmationMessage"
+   ],
+   "meaning": "確認ダイアログ本文"
+  },
+  {
+   "screens": [
+    "debug"
+   ],
+   "label": "開発状態",
+   "nodes": [
+    "DebugState"
+   ],
+   "meaning": "別ウィンドウの状態・永続化情報"
+  },
+  {
+   "screens": [
+    "debug"
+   ],
+   "label": "開発履歴",
+   "nodes": [
+    "DebugHistory"
+   ],
+   "meaning": "イベント履歴"
+  },
+  {
+   "screens": [
+    "loading"
+   ],
+   "label": "読み込み画像",
+   "nodes": [
+    "LoadingStill"
+   ],
+   "meaning": "場面遷移中の画像"
+  },
+  {
+   "screens": [
+    "entry",
+    "victory",
+    "complete"
+   ],
+   "label": "ページ見出し",
+   "nodes": [
+    "FacilityEntryTitle",
+    "ResultHeading"
+   ],
+   "meaning": "受付・リザルトの表題"
+  },
+  {
+   "screens": [
+    "victory",
+    "complete"
+   ],
+   "label": "結果人物",
+   "nodes": [
+    "ResultLevelUpScroll"
+   ],
+   "meaning": "レベルアップした人物の立ち絵と獲得ポイント"
+  },
+  {
+   "screens": [
+    "story"
+   ],
+   "label": "会話の場面",
+   "nodes": [
+    "DialogueScreen"
+   ],
+   "meaning": "クエスト会話の表示領域"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "通知・確認操作",
+   "nodes": [
+    "DialogActionBar"
+   ],
+   "meaning": "確認ダイアログの決定・取消"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "画像選択",
+   "nodes": [
+    "PortraitChoices"
+   ],
+   "meaning": "キャラクター画像の選択とリセット"
+  },
+  {
+   "screens": [
+    "debug"
+   ],
+   "label": "診断の保存状態",
+   "nodes": [
+    "DebugPersistence"
+   ],
+   "meaning": "ローカル診断DBの利用状態"
+  },
+  {
+   "screens": [
+    "debug"
+   ],
+   "label": "開発情報の操作",
+   "nodes": [
+    "DebugActions"
+   ],
+   "meaning": "履歴の消去とウィンドウを閉じる操作"
+  },
+  {
+   "screens": [
+    "menu"
+   ],
+   "label": "音量設定",
+   "nodes": [
+    "AudioSettings"
+   ],
+   "meaning": "BGM・ボイス・効果音の調整"
+  }
+ ]
+}

@@ -78,6 +78,6 @@ func build():
  persistence=Label.new();persistence.name="DebugPersistence";persistence.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(persistence)
  history=TextEdit.new();history.name="DebugHistory";history.editable=false;history.custom_minimum_size.y=120;history.size_flags_vertical=Control.SIZE_EXPAND_FILL;history.wrap_mode=TextEdit.LINE_WRAPPING_BOUNDARY;column.add_child(history)
  history.get_v_scroll_bar().changed.connect(follow_latest,CONNECT_DEFERRED)
- var actions=HBoxContainer.new();column.add_child(actions)
+ var actions=HBoxContainer.new();actions.name="DebugActions";column.add_child(actions)
  var clear=Button.new();clear.name="DebugClear";clear.text="表示履歴を消去";clear.pressed.connect(clear_history);actions.add_child(clear)
  var close=Button.new();close.name="DebugClose";close.text="閉じる";close.pressed.connect(window.hide);actions.add_child(close)

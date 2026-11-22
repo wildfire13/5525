@@ -29,6 +29,7 @@ var parked_epoch := -1
 var gear_preview: Dictionary={}
 var notice := ""
 var save_notice
+var ui_labels
 var locked := false
 var presenting := false
 var closing := false
@@ -111,7 +112,7 @@ func _ready():
 	base=VBoxContainer.new();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base.add_theme_constant_override("separation",8)
 	base.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	top=HBoxContainer.new();top.custom_minimum_size.y=44;base.add_child(top)
+	top=HBoxContainer.new();top.name="BattleHeader";top.custom_minimum_size.y=44;base.add_child(top)
 	var elapsed=Label.new();elapsed.name="BattleElapsedTime";top.add_child(elapsed)
 	actor_face=portrait(top,{},true,40);actor_face.visible=false
 	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
@@ -147,10 +148,20 @@ func _ready():
 		var job=campaign().get("activeQuest")
 		withdraw.visible=menu.visible and job is Dictionary and job.get("id")=="sluice-bell" and campaign().get("phase")=="battle" and not state().get("result"))
 	local_button(menu_body,"直近のリザルト",func():menu.hide();results_view.reopen()).name="ReopenResults"
+	ui_labels=preload("res://ui_label_inspector.gd").new()
+	add_child(ui_labels)
+	ui_labels.setup(self)
+	var label_switch=CheckButton.new()
+	label_switch.name="UiLabelSwitch"
+	label_switch.text="UIラベル表示"
+	label_switch.button_pressed=ui_labels.enabled
+	label_switch.toggled.connect(ui_labels.set_enabled)
+	menu_body.add_child(label_switch)
 	local_button(menu_body,"操作説明",func():menu.hide();show_help())
 	local_button(menu_body,"全画面 F11",func():menu.hide();fullscreen())
+	var audio_settings=VBoxContainer.new();audio_settings.name="AudioSettings";menu_body.add_child(audio_settings)
 	for pair in [["bgm","BGM"],["voice","ボイス"],["se","SE"]]:
-		var kind=str(pair[0]);var caption=str(pair[1]);var controls=VBoxContainer.new();menu_body.add_child(controls)
+		var kind=str(pair[0]);var caption=str(pair[1]);var controls=VBoxContainer.new();audio_settings.add_child(controls)
 		var category=Label.new();category.text=caption+"音量";controls.add_child(category)
 		var volume_row=HBoxContainer.new();controls.add_child(volume_row)
 		var slider=HSlider.new();slider.name="AudioVolume_"+kind;slider.min_value=0;slider.max_value=100;slider.step=10;slider.custom_minimum_size=Vector2(220,32);slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;volume_row.add_child(slider)
@@ -939,7 +950,7 @@ func portrait_dialog():
 	if data.get("trial")!=null or campaign().get("phase") in ["battle","deployment"]:notice="画像変更は戦闘・試用の終了後にできます";render();return
 	pages.shop_view.cancel_pending()
 	var d=Window.new();d.name="PortraitChooser";d.exclusive=true;d.title="キャラ画像";add_child(d)
-	var body=scroller(d);body.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var body=scroller(d);body.get_parent().name="PortraitChoices";body.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	label_(body,"各キャラの画像を変更します。能力・装備は変わりません。")
 	label_(body,"PNG / JPEG / WebP / BMP / GIF（先頭フレーム）、16MiBまで。透過・縦横比を保持し最大1024pxに正規化。割当を残すには進行を保存してください。")
 	d.window_input.connect(func(event):

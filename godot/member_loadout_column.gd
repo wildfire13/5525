@@ -34,6 +34,8 @@ func build(ui, member: Dictionary, tab: String, choose: Callable, prefix: String
 		var heading=ui.label_(display,"装備" if tab=="equipment" else "インベントリ")
 		heading.custom_minimum_size.y=get_child(0).get_combined_minimum_size().y
 	build_art(ui,display,member)
+	if tab=="equipment": stage.name="RegionEquipment"
+	elif tab=="inventory": stage.name="RegionInventory"
 
 func add_tabs(ui,parent,entries,tab,choose,prefix,disabled):
 	var tabs=ui.row(parent)

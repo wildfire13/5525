@@ -40,6 +40,7 @@ func render(parent):
 	art.name="CharacterPortrait"
 	if tab=="ability":
 		var values=ui.scroller(column.inventory_overlay())
+		values.get_parent().name="CharacterAbilityValues"
 		var heading=ui.row(values)
 		ui.label_(heading,str(member.name)+" / Lv."+str(int(member.level)),true)
 		var help=ui.button(heading,"",open_portrait.bind(member))
@@ -49,7 +50,9 @@ func render(parent):
 		ability(values,member)
 		return
 	if tab=="skills":
-		skills(column.inventory_overlay(),member)
+		var skill_list=column.inventory_overlay()
+		skill_list.name="CharacterSkillList"
+		skills(skill_list,member)
 		return
 	var right=VBoxContainer.new()
 	right.size_flags_horizontal=Control.SIZE_EXPAND_FILL

@@ -62,6 +62,7 @@ func equipment_columns(body: Control,candidate: String) -> Array:
 	var columns=[]
 	for heading in ["現在の装備",candidate]:
 		var column=ui.card(pair)
+		column.get_parent().name="ComparisonCurrentColumn" if columns.is_empty() else "ComparisonCandidateColumn"
 		column.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		ui.label_(ui.row(column),heading)
 		columns.append(column)
