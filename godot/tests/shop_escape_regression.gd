@@ -43,9 +43,11 @@ func run():
 	check((await game.engine.request({"op":"campaign_save"})).data==before,("headless sale cancellation" if headless else "sale Escape")+" preserves complete save")
 	var list_button=game.find_child("ShopTransactionFooter",true,false).find_children("*","Button",true,false).filter(func(b):return b.text=="商品一覧へ")[0]
 	list_button.pressed.emit();await settle()
-	await tap("Product_undertow-sword");await tap("ShopComparisonBuy");var purchased=(await game.engine.request({"op":"campaign_save"})).data;await escape_twice()
-	check(not game.modal_open() and game.page=="shop" and game.pages.shop_view.stage=="S0","one purchase Escape delivered through both routes closes only the receipt")
-	check((await game.engine.request({"op":"campaign_save"})).data==purchased and purchased.state.gold<before.state.gold,"receipt Escape retains the completed purchase")
+	await tap("Product_undertow-sword");await tap("ShopComparisonBuy");var purchased=(await game.engine.request({"op":"campaign_save"})).data
+	check(not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ %s×1 / 支払%dG" % [game.member_name(game.shop_uid),game.pages.shop_view.receipt.gear.name,int(game.pages.shop_view.receipt.cost)],"purchase completion is a non-modal recipient/item/count/payment notice")
+	await escape_twice()
+	check(not game.modal_open() and game.page=="shop" and game.pages.shop_view.stage=="S0","purchase notice needs no modal dismissal after Escape through both routes")
+	check((await game.engine.request({"op":"campaign_save"})).data==purchased and purchased.state.gold<before.state.gold,"Escape after purchase notice retains the completed purchase")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame
 	var f=FileAccess.open(OS.get_environment("INVENTORY_QA_ROOT").path_join("escape-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()

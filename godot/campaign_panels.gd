@@ -343,25 +343,19 @@ func restore_trial():
 	shop_view.back_list()
 	ui.memory.scrolls.merge(previous.scrolls,true);ui.memory.request_focus(previous.focus);ui.memory.restore()
 
-func gear_type(gear: Dictionary) -> String:
-	if gear.get("type")=="empty" and gear.get("slot") not in ["weapon","rightHand","leftHand"]:return "なし"
-	return {"empty":"なし（手占有0）","sword":"片手剣","greatsword":"両手剣","spear":"槍","dagger":"短剣","bow":"弓","staff":"杖","hammer":"槌","shield":"盾","book":"魔導書","armor":"防具","accessory":"装飾","boots":"足装備"}.get(gear.get("type",""),str(c().get("slots",{}).get(gear.get("slot",""),"装備")))
 func describe_gear(parent,gear: Dictionary,party_detail:=false):
-	ui.icons.line(ui,parent,ui.icons.equipment(gear),str(gear.get("name","装備")),true)
-	l(parent,gear_type(gear)+" / "+("両手・2枠" if gear.get("hands",1)==2 else "手占有0" if gear.get("type")=="empty" and gear.get("slot") in ["weapon","rightHand","leftHand"] else "片手・1枠" if gear.get("slot") in ["weapon","rightHand","leftHand"] else str(c().get("slots",{}).get(gear.get("slot",""),"装備"))))
-	var fields={"price":"購入価格G","atk":"武器ATK","reach":"武器射程","hp":"追加HP上限","mp":"追加MP上限","agiBonus":"行動速度補正","str":"必要STR","int":"必要INT","agi":"必要AGI"}
-	for field in fields:
-		if party_detail and field=="price":continue
-		if gear.has(field):l(parent,fields[field]+": "+str(int(gear[field])))
-	if gear.has("allowedSlots"):l(parent,"装備枠: "+" / ".join(gear.allowedSlots.map(func(slot):return str(c().get("slots",{}).get(slot,slot)))))
-	if party_detail and (gear.get("skill")!=null or gear.get("effect")!=null or not str(gear.get("flavor","")).is_empty() or gear.has("note")):
-		parent.add_child(HSeparator.new())
-	for field in ["skill","effect"]:
-		if gear.get(field)!=null:
-			ui.icons.line(ui,parent,ui.icons.skill(str(gear[field]),int(gear.get("skillLevel",1))),("スキル: " if field=="skill" else "効果: ")+str(c().get("skillNames",{}).get(gear[field],gear[field])))
-			l(parent,skill_description(str(gear[field]),int(gear.get("skillLevel",1))))
-	if not str(gear.get("flavor","")).is_empty():l(parent,"説明\n"+str(gear.flavor))
-	if gear.has("note"):l(parent,gear.note)
-
-func skill_description(id: String,stage: int=1) -> String:
-	return preload("res://skill_text.gd").description(id,stage,c())
+	var comparison=shop_view.comparison_view
+	comparison.gear_summary(parent,gear,comparison.equipment_rows(gear,gear)[0])
+	if not party_detail and gear.has("price"):l(parent,"購入価格 %dG" % int(gear.price))
+	for key in ["str","int","agi"]:
+		if int(gear.get(key,0))>0:l(parent,"必要%s：%d" % [key.to_upper(),int(gear[key])])
+	var grants=preload("res://equipment_grants.gd").list(gear)
+	if not grants.is_empty():
+		var icons=HFlowContainer.new();parent.add_child(icons)
+		for grant in grants:
+			var id=str(grant.id);var level=int(grant.level);var title=str(c().skillNames.get(id,id))
+			var button=ui.button(icons,"Lv%d" % level,ui.show_skill_details.bind(id,title,level,gear))
+			button.icon=comparison.skill_texture(id,level);button.expand_icon=true;button.custom_minimum_size.x=96;button.add_theme_constant_override("icon_max_width",40)
+			button.accessibility_name=title+" Lv%d" % level
+			button.tooltip_text=preload("res://skill_text.gd").plain(preload("res://skill_text.gd").document(id,title,level,c(),gear))
+	comparison.equipment_notes(parent,gear)

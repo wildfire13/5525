@@ -25,7 +25,7 @@ func run():
 	var initial=game.portraits.metadata.duplicate(true)
 	game.pages.party_view.workspace.open_portrait(member);await settle()
 	var editor=game.find_child("PortraitFraming",true,false)
-	check(editor!=null,"uploaded portrait exposes framing editor")
+	check(editor!=null and editor.size.y>=680 and game.dialog.window.size.x>=1300,"uploaded portrait opens in a large framing editor at FHD")
 	var wheel=InputEventMouseButton.new();wheel.button_index=MOUSE_BUTTON_WHEEL_UP;wheel.pressed=true
 	editor._gui_input(wheel)
 	game.dialog.close();await settle()

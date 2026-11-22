@@ -31,7 +31,7 @@ func run():
 	game.navigate("character");await settle()
 	var workspace=game.pages.party_view.workspace
 	workspace.set_tab("ability");await settle()
-	check(node("CharacterPortrait").tooltip_text=="クリックで画像変更","ability portrait advertises image editing")
+	check(node("CharacterPortraitHelp").tooltip_text=="クリックで画像変更","ability portrait advertises image editing")
 	var member=game.roster().filter(func(u):return u.id==game.pages.party_uid)[0]
 	var before=await saved();workspace.open_portrait(member);await settle()
 	check(game.dialog.body.find_children("*","TextureRect",true,false).any(func(pic):return pic.size.y>=160) and node("StatusChangePortrait")!=null,"portrait preview shows full image and change button")

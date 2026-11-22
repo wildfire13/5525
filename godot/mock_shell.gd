@@ -105,6 +105,7 @@ func workspace(parent) -> VBoxContainer:
 	if ui.page=="character" or ui.pages.warehouse_view.available() or (ui.page=="shop" and not ui.pages.facility_entry.at_top()):
 		var scroll=ScrollContainer.new()
 		scroll.name="MemberWorkspaceScroll"
+		scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_RESERVE
 		scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
 		parent.add_child(scroll)
 		ui.memory.watch(scroll,"member_workspace_"+ui.page)
@@ -204,7 +205,7 @@ func activate(id: String):
 func can_drop(payload,id: String) -> bool:
 	if payload is Dictionary and payload.get("kind")=="character_transfer":
 		if ui.page=="shop" and (ui.pages.shop_view.busy() or ui.modal_open() or payload.get("owner")!=ui.shop_uid):return false
-		return payload.get("owner")!=id or ui.page=="character" and payload.get("allowed",[]).has(id)
+		return payload.get("owner")!=id or payload.get("allowed",[]).has(id)
 	if ui.page=="shop":return ui.pages.shop_view.can_drop_product(payload,id)
 	if ui.pages.guild_view.available():return not ui.pages.guild_view.drop_operation(payload,id,false).is_empty()
 	return false

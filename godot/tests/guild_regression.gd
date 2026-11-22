@@ -81,7 +81,7 @@ func run():
 	check(node("HubFacility_guild")!=null and node("HubFacility_guild").text=="ギルド","G01 Astaris hub has explicit guild entry")
 	await tap("RosterMember_"+guard)
 	var map_roster_edge=node("PartyRoster").get_global_rect().end.x
-	var map_panel=node("CharacterTab_equipment").get_parent().get_parent().panel
+	var map_panel=node("CharacterLoadoutPanel")
 	var map_rect=map_panel.get_global_rect()
 	await check_roster_anchor(map_panel,"party")
 	await tap("Header_character")
@@ -182,8 +182,8 @@ func run():
 	game.pages.shop_view.open_comparison("undertow-sword");await settle()
 	check(node("ShopComparisonBuy")!=null and node("ShopComparisonStats")!=null,"G10 shop inline comparison and purchase flow present")
 	await tap("ShopComparisonBuy")
-	check(node("PurchaseReceiptClose")!=null,"G10 purchase shows completion")
-	await tap("PurchaseReceiptClose");await tap("RosterMember_"+archer)
+	check(not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ %s×1 / 支払%dG" % [game.member_name(game.shop_uid),game.pages.shop_view.receipt.gear.name,int(game.pages.shop_view.receipt.cost)],"G10 purchase shows recipient/item/count/payment without blocking")
+	await tap("RosterMember_"+archer)
 	check(game.shop_uid==archer,"G10 shop roster selects purchase owner without mutation")
 	game.navigate("character");await settle();await tap("RosterMember_"+alternate);await tap("RosterMember_"+archer)
 	check(game.page=="character" and game.pages.party_uid==archer and node("CharacterSlot_head")!=null and game.pages.party_view.workspace.owner==archer,"G10 shared roster opens named character workspace")

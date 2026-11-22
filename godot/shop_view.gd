@@ -106,6 +106,7 @@ func render_inventory_column(column):
 	column.panel.name="ShopInventory"
 	column.portrait.name="ShopCustomerArt"
 	var slot=selected_equipment.get("equipped_slot","") if selection_kind=="equipment" else ""
+	if selection_kind=="buy" and c().location!="south":slot=ui.shop_slot
 	if selection_kind=="equipment" and not person.get("equipmentSlots",[]).any(func(s):return s.slot==slot and s.id==selected_equipment.id):
 		selected_equipment={};selection_kind="";slot=""
 	if inventory_tab=="equipment":
@@ -138,6 +139,9 @@ func render_transaction(middle):
 	if selection_kind=="sell":
 		sale.render_detail(detail,footer)
 		b(footer,"商品一覧へ",func():selection_kind="";ui.render(),busy())
+	elif selection_kind=="owned" and not sale.selected().is_empty():
+		var member=ui.roster().filter(func(u):return u.id==ui.shop_uid)[0]
+		pages.party_view.workspace.owned_comparison(detail,middle,member,sale.selected(),cancel_owned_comparison)
 	elif selection_kind=="equipment":
 		if not selected_equipment.is_empty():
 			pages.party_view.workspace.equipped_detail(detail,ui.shop_uid,selected_equipment,busy())
@@ -147,7 +151,7 @@ func render_transaction(middle):
 			if comparison_view==null:comparison_view=preload("res://shop_comparison.gd").new(self)
 			comparison_view.render_inline(detail,footer,pages.gear_id,ui.shop_uid)
 	else:l(detail,"商品またはインベントリのアイテムを選択")
-	var finish=b(footer,"取引終了",finish_trading,busy());finish.name="ShopExit";finish.custom_minimum_size.y=40;finish.size_flags_horizontal=Control.SIZE_SHRINK_END
+	var finish=ui.green_button(b(footer,"取引終了",finish_trading,busy()));finish.name="ShopExit";finish.custom_minimum_size.y=40;finish.size_flags_horizontal=Control.SIZE_SHRINK_END
 func render_catalog(stock):
 	preload("res://item_drag.gd").target(stock,can_drop_sale,drop_sale)
 	l(stock,"商品リスト").name="ShopCatalogHeading";product_filter(stock)
@@ -227,8 +231,20 @@ func render_product(parent: Control,item: Dictionary):
 	preload("res://item_drag.gd").source(choose,func():
 		if busy():return null
 		return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":pages.epoch},str(item.name),ui.icons.texture(str(item.id) if c().location=="south" else ui.icons.equipment(item)),can_drop_sale,drop_sale)
+func mark_comparison_slot(slot: String):
+	if not is_instance_valid(inventory_column) or inventory_tab!="equipment":return
+	for button in inventory_column.find_children("ShopEquipped_*","Button",true,false):
+		ui.mark_selected(button,button.name=="ShopEquipped_"+slot)
+
 func select_equipment(gear: Dictionary):
 	if busy():return
+	var slot=str(gear.get("equipped_slot",""))
+	# While a product is being compared, clicking an equipped slot switches the
+	# comparison target instead of replacing the inline comparison with details.
+	if selection_kind=="buy" and c().location!="south" and slot!=ui.shop_slot and comparison_view.slots_for(comparison_view.item()).has(slot):
+		comparison_view.switch_target(ui.shop_uid,slot)
+		return
+	ui.shop_slot=slot
 	selection_kind="equipment";selected_equipment=gear;sale.item_id="";ui.render()
 func checkout_fields(actions: Control,unit_price: int,changed: Callable) -> Label:
 	return transaction_fields(actions,true,unit_price,purchase_quantity,99,func(value):
@@ -386,7 +402,7 @@ func confirm_purchase(id: String="",recipient: String="",count: int=1,direct:=fa
 	if not reply.get("ok",false) or not q.get("ok",false):stage="S0";message=str(q.get("reason",reply.get("error","購入できません")));ui.render();return
 	if direct and not recipient.is_empty():
 		stage="S9"
-		await buy(q,recipient,ticket,true)
+		await buy(q,recipient,ticket)
 		return
 	consent=q.duplicate(true);stage="S4"
 	ui.dialog.open("購入の確認",func(body,actions):
@@ -412,7 +428,7 @@ func choose_recipient(ticket: int):
 			b(line,str(person.name)+"のインベントリへ",buy.bind(consent.duplicate(true),str(person.id),ticket)).name="PurchaseRecipient_"+str(person.id)
 		b(actions,"取り消す",ui.dialog.close).name="PurchaseRecipientCancel",
 		cancel_purchase.bind(ticket))
-func buy(q: Dictionary,uid: String,ticket: int,show_receipt:=false):
+func buy(q: Dictionary,uid: String,ticket: int):
 	if stage!="S9" or ticket!=generation or ui.locked or unknown:return
 	stage="S5";var epoch=pages.epoch;var connection=ui.engine.connection_generation;var place=str(c().get("location"))
 	var before=int(c().get("characters",{}).get(uid,{}).get("inventory",{}).get(q.gearId,0))
@@ -423,11 +439,7 @@ func buy(q: Dictionary,uid: String,ticket: int,show_receipt:=false):
 	if result.get("ok",false) and after==before+int(q.count) and c().get("gold")==q.afterGold:
 		stage="S0";receipt=q.duplicate(true);receipt.characterId=uid;message=""
 		transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×%d / 支払%dG" % [ui.member_name(uid),q.gear.name,q.count,q.cost]}
-		if show_receipt:
-			ui.dialog.open("購入完了",func(body,actions):
-				l(body,str(transaction.text),true)
-				ui.local_button(actions,"閉じる",ui.dialog.close).name="PurchaseReceiptClose")
-		else:ui.save_notice.display(str(transaction.text))
+		ui.save_notice.display(str(transaction.text))
 	else:
 		unknown=result.get("connection_lost",false) or result.get("ok",false);stage="S7" if unknown else "S0"
 		message="購入結果を確認できません。再送せず保存済みの進行を読み込んで確認してください。" if unknown else "購入を確定できませんでした。所持金・在庫を確認して選び直してください。"
@@ -440,7 +452,8 @@ func start_trial(id: String=""):
 	for gear in c().get("shop",[]):
 		if gear.id==id:item=gear;break
 	if item.is_empty():stage="S0";return
-	var slot=str(item.get("allowedSlots",["rightHand"] if item.slot=="weapon" else ["upperBody"] if item.slot=="armor" else [item.slot])[0])
+	var options=comparison_view.slots_for(item)
+	var slot=str(ui.shop_slot if options.has(ui.shop_slot) else options[0])
 	for person in ui.roster():
 		if not c().get("selected",[]).has(person.id):continue
 		var reply=await ui.engine.request({"op":"campaign","action":"previewGear","args":[person.id,id,slot]})
@@ -490,6 +503,18 @@ func escape() -> bool:
 
 func can_drop_product(data: Dictionary,uid: String) -> bool:
 	return not busy() and not ui.modal_open() and ui.page=="shop" and c().get("selected",[]).has(uid) and data.get("kind")=="shop_product" and data.get("connection")==ui.engine.connection_generation and data.get("epoch")==pages.epoch and data.get("token")==c().get("inventoryToken") and offered().any(func(item):return item.id==data.get("item"))
+
+func preview_owned_drop(data: Dictionary):
+	if not can_drop_sale(data) or data.get("action")!="transfer":return
+	for item in sale.entries():
+		if item.id==data.get("item") and item.get("equipSlots",[]).any(func(option):return option.ok):
+			sale.apply_owner(ui.shop_uid)
+			sale.item_id=str(item.id)
+			selection_kind="owned"
+			ui.render()
+			return
+func cancel_owned_comparison():
+	selection_kind="";sale.item_id="";ui.render()
 
 func drop_inventory(data: Dictionary):
 	if not can_drop_product(data,ui.shop_uid):return

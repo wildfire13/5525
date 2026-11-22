@@ -23,6 +23,10 @@ func run():
 	game.find_child("CharacterSlot_upperBody",true,false).pressed.emit();await settle()
 	check(workspace.picked.equipped_slot=="upperBody","second equipped selection replaces details")
 	check(game.find_child("CharacterSlot_upperBody",true,false).get_meta("selected") and not game.find_child("CharacterSlot_rightHand",true,false).get_meta("selected"),"selection follows the equipped slot")
+	for pair in [["equipment","ability"],["inventory","skills"]]:
+		var upper=game.find_child("CharacterTab_"+pair[0],true,false).get_global_rect()
+		var lower=game.find_child("CharacterTab_"+pair[1],true,false).get_global_rect()
+		check(is_equal_approx(upper.position.x,lower.position.x) and is_equal_approx(upper.size.x,lower.size.x) and upper.end.y<=lower.position.y,"two aligned rows of tabs: "+pair[1])
 	var portrait_rect=game.find_child("CharacterPortrait",true,false).get_global_rect()
 	var member=game.roster().filter(func(u):return u.id==ids[0])[0]
 	var sword=member.equipmentSlots.filter(func(e):return e.slot=="rightHand")[0].id
@@ -37,6 +41,7 @@ func run():
 	var roster_id=game.find_child("PartyRoster",true,false).get_instance_id()
 	for tab in ["inventory","ability","skills"]:
 		workspace.set_tab(tab);await settle()
+		check(is_equal_approx(game.find_child("CharacterPortrait",true,false).modulate.a,0.22),"shared portrait opacity in "+tab)
 		check(game.find_child("CharacterPortrait",true,false).get_global_rect()==portrait_rect,"same portrait bounds in "+tab)
 		check(game.find_child("PartyRoster",true,false).get_instance_id()==roster_id,"tab keeps party roster")
 		check(game.find_child("PartyRoster",true,false).size.x==280,"fixed roster width in "+tab)

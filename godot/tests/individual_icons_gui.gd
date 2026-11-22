@@ -152,7 +152,8 @@ func shop_cases():
  await at_fixture("east");await enter_facility("shop");await settle();var before=await saved()
  await reveal("Product_spear-wood","ShopProductsScroll");await os_click(node("Product_spear-wood"))
  check(await saved()==before,"ordinary product preview consumes no money or inventory")
- await os_click(node("ShopComparisonBuy"));await os_click(node("PurchaseReceiptClose"))
+ await os_click(node("ShopComparisonBuy"))
+ check(not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ %s×1 / 支払%dG" % [game.member_name(game.shop_uid),game.pages.shop_view.receipt.gear.name,int(game.pages.shop_view.receipt.cost)],"purchase completion shows recipient/item/count/payment without blocking")
  var bought=await saved();var price=game.campaign().shop.filter(func(g):return g.id=="spear-wood")[0].price
  check(int(bought.state.gold)==int(before.state.gold)-int(price) and int(bought.state.characters["character_mirei"].inventory["spear-wood"])==int(before.state.characters["character_mirei"].inventory["spear-wood"])+1,"actual ordinary purchase matches displayed canonical price and owner quantity")
  await os_click(node("ShopInventoryTab_inventory"));await reveal("SaleItem_spear-wood","ShopInventoryScroll");await os_click(node("SaleItem_spear-wood"))

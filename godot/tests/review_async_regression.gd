@@ -95,10 +95,9 @@ func quote_cases():
 						check("D01",text(panel).contains(line),"visible latest equipment statistic: "+line)
 				check("D01",await snapshot()==before,"stale previews never change the campaign before purchase")
 				press("ShopComparisonBuy");await settle()
-				check("D01",game.modal_open() and control("PurchaseReceiptClose")!=null,"only the latest selection can produce a receipt")
+				check("D01",not game.modal_open() and game.save_notice.visible,"only the latest selection produces a non-modal purchase notice")
 				var quotes=probe.calls.filter(func(call):return call.get("action","")=="purchaseQuote")
-				check("D01",not quotes.is_empty() and quotes[-1].args[0]==wanted and quotes[-1].args[1]==owner and text(game.dialog.body).contains(expected.gear.name) and text(game.dialog.body).contains(game.member_name(owner)),"purchase confirmation uses latest product and recipient, not the obsolete reply")
-				press("PurchaseReceiptClose");await settle()
+				check("D01",not quotes.is_empty() and quotes[-1].args[0]==wanted and quotes[-1].args[1]==owner and game.save_notice.caption.text=="%sへ %s×1 / 支払%dG" % [game.member_name(owner),expected.gear.name,int(expected.gear.price)],"purchase notice uses latest product, recipient, count and payment, not the obsolete reply")
 			if action=="cancel":check("D01",await snapshot()==before,"cancelled comparison preserves complete campaign")
 	await fixture()
 	var before=await snapshot();var calls_before=probe.calls.size()
@@ -161,8 +160,7 @@ func shop_facts():
 		check("UX-SWIFT",pane.get_v_scroll_bar().max_value<=pane.get_v_scroll_bar().page+1,"representative swift effect needs no comparison scrolling at "+str(dims))
 		check("UX-SWIFT",await snapshot()==before,"reading the movement effect does not spend gold")
 		press("ShopComparisonBuy");await settle()
-		check("UX-SWIFT",control("PurchaseReceiptClose")!=null and text(game.dialog.body).contains(game.member_name(OWNER)) and text(game.dialog.body).contains("支払"),"receipt identifies recipient and cost")
-		game.dialog.close();await settle()
+		check("UX-SWIFT",not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ %s×1 / 支払%dG" % [game.member_name(OWNER),gear.name,int(gear.price)],"non-modal purchase notice identifies recipient, item, count and cost")
 func run():
 	create_timer(180).timeout.connect(func():print("FAIL review async watchdog");quit(2))
 	if q.is_empty():q="user://review-async"
