@@ -33,51 +33,56 @@ func render(parent):
 	var split=ui.mock_shell.columns(parent)
 	var column=preload("res://member_loadout_column.gd").new()
 	split.add_child(column)
-	column.build(ui,member,tab,set_tab,"CharacterTab_")
+	column.build(ui,member,tab,set_tab,"CharacterTab_",false,true)
+	column.panel.name="CharacterLoadoutPanel"
 	inventory_column=column if tab=="inventory" else null
 	var art=column.portrait
 	art.name="CharacterPortrait"
+	if tab=="ability":
+		var values=ui.scroller(column.inventory_overlay())
+		var heading=ui.row(values)
+		ui.label_(heading,str(member.name)+" / Lv."+str(int(member.level)),true)
+		var help=ui.button(heading,"",open_portrait.bind(member))
+		help.name="CharacterPortraitHelp";help.tooltip_text="クリックで画像変更";help.accessibility_name="画像変更"
+		help.icon=preload("res://assets/interface_icons/5525_help_icon_blue_v2.png")
+		help.expand_icon=true;help.custom_minimum_size=Vector2(44,44);help.size_flags_horizontal=Control.SIZE_SHRINK_END
+		ability(values,member)
+		return
+	if tab=="skills":
+		skills(column.inventory_overlay(),member)
+		return
 	var right=VBoxContainer.new()
 	right.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	split.add_child(right)
-	var right_tabs=ui.row(right)
-	for spec in [["ability","能力"],["skills","スキル"]]:
-		var control=ui.button(right_tabs,spec[1],set_tab.bind(str(spec[0])))
-		control.custom_minimum_size.x=140
-		ui.mark_selected(control,tab==spec[0])
-	var card=ui.card(right)
+	var card=ui.card(right);card.get_parent().name="CharacterEquipmentDetail"
 	card.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
-	card.get_parent().custom_minimum_size=Vector2(420,ui.mock_shell.content_height()-52)
+	card.get_parent().custom_minimum_size=Vector2(400,ui.mock_shell.content_height()-52)
 	card.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	if tab=="ability":
-		art.tooltip_text="クリックで画像変更"
-		art.mouse_filter=Control.MOUSE_FILTER_STOP
-		art.gui_input.connect(func(event):
-			if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and event.pressed:open_portrait(member))
-		ui.label_(card,str(member.name)+" / Lv."+str(int(member.level)),true)
-		ability(card,member)
-	elif tab=="skills":skills(card,member)
+	if not picked.is_empty():
+		var stock_space=Control.new()
+		stock_space.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		stock_space.custom_minimum_size.x=ui.mock_shell.SHOP_CATALOG_WIDTH
+		split.add_child(stock_space)
+	if tab=="equipment":
+		column.equipment(ui,member,picked.get("equipped_slot",""),"CharacterSlot_",select_equipped,payload)
+	else:inventory(column.inventory_overlay(),member)
+	var detail=ui.scroller(card)
+	if picked.is_empty():return
+	if picked.has("equipped_slot"):
+		equipped_detail(detail,owner,picked,busy)
 	else:
-		if tab=="equipment":
-			column.equipment(ui,member,picked.get("equipped_slot",""),"CharacterSlot_",select_equipped,payload)
-		else:inventory(column.inventory_overlay(),member)
-		var detail=ui.scroller(card)
-		if picked.is_empty():return
-		if picked.has("equipped_slot"):
-			equipped_detail(detail,owner,picked,busy)
+		if picked.get("kind")=="equipment":
+			owned_comparison(detail,card,member,picked)
 		else:
-			if picked.get("kind")=="equipment":
-				owned_comparison(detail,card,member,picked)
-			else:
-				ui.icons.line(ui,detail,str(picked.id) if picked.get("kind")!="quest" else "items",str(picked.get("name","")),true)
-				ui.label_(detail,"所持 %d個" % int(picked.get("count",1)))
-				for option in picked.get("useTargets",[]):
-					var control=ui.button(detail,str(option.targetName)+"に使う",perform.bind(owner,str(picked.id),"use",option.targetId,1,null),busy or not option.ok);control.tooltip_text=str(option.get("reason",""))
-			var explanation=ui.button(detail,"詳しい説明",ui.show_equipment_details.bind(picked.duplicate(true)));explanation.name="CharacterItemDetails";explanation.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
-			var discard=picked.get("discard",{})
-			var remove=ui.button(detail,"捨てる",confirm_discard.bind(owner,picked.duplicate(true)),busy or not discard.get("ok",false));remove.name="CharacterDiscard";remove.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;remove.tooltip_text=str(discard.get("reason",""))
+			ui.icons.line(ui,detail,str(picked.id) if picked.get("kind")!="quest" else "items",str(picked.get("name","")),true)
+			ui.label_(detail,"所持 %d個" % int(picked.get("count",1)))
+			for option in picked.get("useTargets",[]):
+				var control=ui.button(detail,str(option.targetName)+"に使う",perform.bind(owner,str(picked.id),"use",option.targetId,1,null),busy or not option.ok);control.tooltip_text=str(option.get("reason",""))
+		var explanation=ui.button(detail,"詳しい説明",ui.show_equipment_details.bind(picked.duplicate(true)));explanation.name="CharacterItemDetails";explanation.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+		var discard=picked.get("discard",{})
+		var remove=ui.button(detail,"捨てる",confirm_discard.bind(owner,picked.duplicate(true)),busy or not discard.get("ok",false));remove.name="CharacterDiscard";remove.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;remove.tooltip_text=str(discard.get("reason",""))
 
-func owned_comparison(detail,card,member,item):
+func owned_comparison(detail,card,member,item,cancel:=Callable()):
 	ui.label_(detail,"装備変更",true)
 	var comparison=ui.pages.shop_view.comparison_view
 	var columns=comparison.equipment_columns(detail,"変更候補")
@@ -92,17 +97,21 @@ func owned_comparison(detail,card,member,item):
 	selector.disabled=busy
 	selector.item_selected.connect(func(i):equip_slot=str(selector.get_item_metadata(i));refresh())
 	var summary=RichTextLabel.new();summary.name="CharacterEquipmentComparison";summary.bbcode_enabled=true;summary.fit_content=true;summary.add_theme_color_override("default_color",Color("#29332f"));detail.add_child(summary)
-	comparison.equipment_notes(detail,item.get("definition",item))
+
 	var actions=ui.row(card);actions.alignment=BoxContainer.ALIGNMENT_END
-	ui.button(actions,"キャンセル",func():picked={};refresh(),busy).name="CharacterEquipCancel"
-	var equip=ui.green_button(ui.button(actions,"変更する",perform.bind(owner,str(item.id),"equip",null,1,equip_slot),true))
+	ui.button(actions,"キャンセル",cancel if cancel.is_valid() else func():picked={};refresh(),busy).name="CharacterEquipCancel"
+	var equip=ui.green_button(ui.button(actions,"変更する",perform.bind(str(member.id),str(item.id),"equip",null,1,equip_slot),true))
 	equip.size_flags_horizontal=Control.SIZE_SHRINK_END;equip.name="CharacterEquip";equip.tooltip_text=str(options[selector.selected].get("reason",""))
 	preview(columns,summary,member,item,equip)
 
 func equipped_detail(parent,uid,item,disabled):
-	ui.pages.describe_gear(parent,item.get("definition",item),true)
+	var row=ui.row(parent)
+	var column=VBoxContainer.new();column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;row.add_child(column)
+	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;spacer.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(spacer)
+	ui.pages.describe_gear(column,item.get("definition",item),true)
 	if item.get("type")!="empty" and not item.get("occupied",false):
-		ui.button(parent,"装備を外す",perform.bind(uid,str(item.id),"unequip",null,1,item.equipped_slot),disabled).name="UnequipItem"
+		var unequip=ui.button(column,"装備を外す",perform.bind(uid,str(item.id),"unequip",null,1,item.equipped_slot),disabled)
+		unequip.name="UnequipItem"
 
 func select_equipped(item: Dictionary):
 	picked=item
@@ -127,7 +136,7 @@ func payload(item,action,slot,source_owner=owner) -> Dictionary:
 		var inventory=ui.campaign().get("inventoryByCharacter",{}).get(uid,{})
 		var capacity=inventory.get("capacity",{})
 		if capacity.get("limit")==null or int(capacity.get("used",0))<int(capacity.get("limit",0)) or inventory.get("entries",[]).any(func(e):return e.id==item.id):allowed.append(str(uid))
-	if ui.page=="character" and tab=="inventory" and action=="transfer" and item.get("equipSlots",[]).any(func(q):return q.ok):allowed.append(source_owner)
+	if (ui.page=="character" and tab=="inventory" or ui.page=="shop" and ui.pages.shop_view.sale_mode()) and action=="transfer" and item.get("equipSlots",[]).any(func(q):return q.ok):allowed.append(source_owner)
 	return {"allowed":allowed,"kind":"character_transfer","owner":source_owner,"item":str(item.id),"action":action,"slot":slot,"count":int(item.get("count",1)),"token":ui.campaign().get("inventoryToken"),"epoch":ui.pages.epoch,"connection":ui.engine.connection_generation}
 func drag_entry(data) -> Dictionary:
 	if not data is Dictionary or data.get("kind")!="character_transfer" or data.get("action")!="transfer" or busy or ui.locked or ui.presenting or ui.modal_open():return {}
@@ -150,6 +159,9 @@ func confirm_outside_drop(data):
 
 func drop(data,target):
 	if data.get("owner")==target:
+		if ui.page=="shop":
+			ui.pages.shop_view.preview_owned_drop(data)
+			return
 		var item=drag_entry(data)
 		if not item.is_empty() and item.get("equipSlots",[]).any(func(q):return q.ok):
 			picked=item;refresh()
@@ -199,6 +211,7 @@ func preview(columns,text,member,item,equip):
 		text.text="\n".join(stats).replace("#8ee6ab","#247044").replace("#ffb1a6","#b04430").replace("#d5dbe2","#707970")
 		comparison.fill_columns(columns,quote)
 		render_comparison_skills(columns[1],quote,columns[0])
+		comparison.equipment_notes(columns[1],item.get("definition",item))
 		equip.disabled=busy or not item.get("equipSlots",[]).any(func(q):return q.slot==chosen and q.ok);equip.set_meta("base_disabled",equip.disabled)
 	else:text.text="比較を取得できません。選び直してください。"
 
@@ -231,20 +244,19 @@ func ability(parent,member):
 	var allocate=ui.button(parent,"能力を割り振る  "+str(points),func():allocating=true;refresh(),points<=0);allocate.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 func skills(parent,member):
 	var stats=member.get("stats",member);var names=ui.campaign().get("skillNames",{});var definitions=ui.campaign().get("skillDefinitions",{})
-	var columns=ui.row(parent)
-	columns.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	var columns=ui.scroller(parent)
 	for group in [["active","アクティブスキル"],["passive","パッシブスキル"]]:
+		if group[0]=="passive":columns.add_child(HSeparator.new())
 		var content=VBoxContainer.new()
 		content.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		columns.add_child(content)
 		ui.label_(content,group[1],true)
-		var grid=ui.scroller(content)
+		var grid=VBoxContainer.new();content.add_child(grid)
 		for source in stats.get("skillSources",[]):
 			var id=str(source.id);var classification=str(source.get("classification",definitions.get(id,{}).get("classification","passive")))
 			if classification!=group[0]:continue
 			var level=int(source.get("level",1));var name=str(names.get(id,id));var gear=member.get("equipmentDetails",{}).get(source.slot,{})
-			var origin=str(ui.campaign().get("slots",{}).get(source.slot,source.slot))+" / "+str(gear.get("name",source.get("itemId","")))
-			var button=ui.button(grid,name+" Lv%d\n" % level+origin,ui.show_skill_details.bind(id,name,level,gear));button.name="CharacterSkill_"+group[0]+"_"+id+"_"+str(source.slot);button.icon=ui.icons.texture(ui.icons.skill(id,level));button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40);button.custom_minimum_size=Vector2(280,72)
+			var button=ui.button(grid,name,ui.show_skill_details.bind(id,name,level,gear));button.name="CharacterSkill_"+group[0]+"_"+id+"_"+str(source.slot);button.icon=ui.icons.texture(ui.icons.skill(id,level));button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40);button.custom_minimum_size=Vector2(280,52)
 			button.tooltip_text=preload("res://skill_text.gd").plain(preload("res://skill_text.gd").document(id,name,level,ui.campaign(),gear))
 		if grid.get_child_count()==0:ui.label_(content,"なし")
 
@@ -265,19 +277,21 @@ func open_portrait(member: Dictionary):
 		if not entry.is_empty():
 			var editor=preload("res://portrait_editor.gd").new();body.add_child(editor)
 			editor.name="PortraitFraming"
+			editor.size_flags_vertical=Control.SIZE_EXPAND_FILL
 			editor.setup(ui.portraits.image_for(member),entry.get("framing",{"zoom":1.0,"x":0.0,"y":0.0}))
+			editor.custom_minimum_size.y=680
 			ui.local_button(actions,"適用",func():
 				if not ui.active_member(uid):return
 				var updated=entry.duplicate(true);updated.framing=editor.framing.duplicate(true)
 				ui.portraits.assign(uid,updated);ui.dialog.close();ui.render()).name="PortraitFramingApply"
 		else:
-			var picture=ui.portrait(body,member,false,200);picture.custom_minimum_size=Vector2(300,400)
+			var picture=ui.portrait(body,member,false,200);picture.custom_minimum_size=Vector2(300,680);picture.size_flags_vertical=Control.SIZE_EXPAND_FILL
 		ui.local_button(actions,"画像変更",func():
 			ui.dialog.close()
 			ui.file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray(["*.png,*.jpg,*.jpeg,*.webp,*.bmp,*.gif ; キャラ画像"]),func(path):
 				await ui.import_portrait(path,uid)
 				if ui.active_member(uid):open_portrait(member))).name="StatusChangePortrait"
-		ui.local_button(actions,"閉じる",ui.dialog.close))
+		ui.local_button(actions,"閉じる",ui.dialog.close),Callable(),ui.preferences.overlay_rect(ui.size,Vector2(1400,860),16))
 func render_comparison_skills(parent,quote: Dictionary,current=null):
 	var helper=ui.pages.shop_view.comparison_view
 	var before=quote.before.get("skillSources",[]);var after=quote.after.get("skillSources",[])

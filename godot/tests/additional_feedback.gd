@@ -1,4 +1,11 @@
 extends "res://tests/ui_feedback2_20261016.gd"
+func arrive_with_cargo(town):
+	await game.act("depart",[town]);var arrival=await saved()
+	arrival.state.phase="arrival";arrival.state.journey.phase="delivery";arrival.state.journey.stage=2;arrival.state.journey.hours=4
+	arrival.state.journey.party=arrival.state.selected.map(func(id):return game.roster().filter(func(u):return u.id==id)[0].duplicate(true))
+	var loaded=await game.update({"op":"campaign_load","data":arrival});await settle()
+	check(loaded.get("ok",false),"arrival fixture accepts current roster in selected order")
+
 func run():
 	create_timer(100).timeout.connect(func():quit(2))
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/"):quit(2);return
@@ -44,13 +51,30 @@ func run():
 	check(game.pages.party_view.workspace.picked.get("id")==cargo and discard!=null and discard.disabled and discard.tooltip_text.contains("使用・売却・廃棄はできません"),"cargo selection explains its delivery restrictions")
 	check(not game.find_children("*","Button",true,false).any(func(button):return button.text.ends_with("に使う")) and discard!=null and not discard.tooltip_text.contains("回復対象がいません"),"cargo offers no recovery target or recovery explanation")
 	game.navigate("hub");await settle()
-	await game.act("depart",[q.to]);var arrival=await saved()
-	arrival.state.phase="arrival";arrival.state.journey.phase="delivery";arrival.state.journey.stage=2;arrival.state.journey.hours=4
-	arrival.state.journey.party=arrival.state.selected.map(func(id):return game.roster().filter(func(u):return u.id==id)[0].duplicate(true))
-	var loaded=await game.update({"op":"campaign_load","data":arrival});await settle()
-	check(loaded.get("ok",false),"arrival fixture accepts current roster in selected order")
+	await arrive_with_cargo(q.to)
 	check(game.page=="hub" and game.campaign().activeQuest!=null and node("TownHub")!=null,"arrival opens hub without auto-delivering cargo")
-	check(node("HubDeliverCargo")!=null and not node("HubDeliverCargo").disabled,"explicit delivery remains available at destination hub")
+	await click("HubFacility_weapon")
+	check(not node("FacilityChoice_delivery").disabled,"recipient accepts cargo in the weapon shop")
+	# Hand in at every distinct destination through its on-screen control.
+	for route in [["astaris","west",0,"armor"],["astaris","south",1,"items"],["east","astaris",0,"guild"],["astaris","north",2,""],["astaris","east",0,"sluice-bell"]]:
+		var start=baseline.duplicate(true)
+		start.state.location=route[0];start.state.boardRound=route[2]
+		await game.update({"op":"campaign_load","data":start});await settle()
+		var special=route[3]=="sluice-bell"
+		var offers=game.campaign().board.filter(func(offer):return offer.id=="sluice-bell" if special else offer.to==route[1] and not offer.get("scenario",false) and offer.id!="sluice-bell")
+		check(not offers.is_empty(),"current offer for "+str(route))
+		if offers.is_empty():continue
+		await game.act("accept",[offers[0].id,"character_yuno"])
+		await arrive_with_cargo(route[1])
+		if route[3]=="" or special:
+			check(node("HubDeliverCargo")!=null,"recipient has a local map handoff: "+str(route[1]))
+			await click("HubDeliverCargo")
+		else:
+			check(node("HubDeliverCargo")==null,"facility recipient cannot be paid on the map: "+str(route[1]))
+			await click("HubFacility_"+route[3])
+			check(node("FacilityChoice_delivery")!=null and not node("FacilityChoice_delivery").disabled,"correct facility accepts the parcel: "+str(route[3]))
+			await click("FacilityChoice_delivery")
+		check(game.campaign().activeQuest==null and game.campaign().phase=="result","handoff completes at "+str(route))
 	var fixtures=battle_fixture();await game.update({"op":"campaign_load","data":fixtures.guard});await settle()
 	await game.choose_command("action_item");await game.on_cell(int(game.hud.acting().pos));await settle()
 	var prediction=game.hud.left_info.find_child("Inspect_hp",true,false)

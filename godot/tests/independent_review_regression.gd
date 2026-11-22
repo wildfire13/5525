@@ -36,7 +36,8 @@ func empty_slots(seed):
 	var comparison=shop().comparison_view
 	var quote=(await game.engine.request({"op":"campaign","action":"previewGear","args":[comparison.owner_id,comparison.item_id,comparison.slot]})).get("previewGear",{})
 	check("EMPTY-quote",quote.has("retained") and not quote.retained,"selected shop comparison retains no empty accessory")
-	node("ShopComparisonBuy").pressed.emit();await settle();node("PurchaseReceiptClose").pressed.emit();await settle()
+	node("ShopComparisonBuy").pressed.emit();await settle()
+	check("EMPTY-notice",not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ %s×1 / 支払%dG" % [game.member_name(game.shop_uid),shop().receipt.gear.name,int(shop().receipt.cost)],"purchase completion shows recipient/item/count/payment without blocking")
 	check("EMPTY-purchase",game.campaign().characters[OWNER].inventory.get("lone-ring-1")==1 and game.campaign().gold==930 and clean(),"single purchase places only the real ring in inventory")
 	game.pages.party_view.open_inventory(OWNER);await settle()
 	var entry=game.campaign().inventoryByCharacter[OWNER].entries.filter(func(e):return e.id=="lone-ring-1")[0]

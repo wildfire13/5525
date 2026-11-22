@@ -49,6 +49,10 @@ func place_window(initial_rect: Rect2):
 	elif window.title=="荷物を持つポーターを選択":extent=Vector2(840,420)
 	var fallback=initial_rect if initial_rect.has_area() else ui.preferences.default_window_rect(ui.size,extent)
 	var key=layout_key()
+	if initial_rect.has_area() and window.title.ends_with("の画像"):
+		var saved=ui.preferences.config.get_value("windows",key,Rect2())
+		if saved is Rect2 and saved.size==ui.preferences.DEFAULT_DIALOG_SIZE:
+			ui.preferences.store_rect(key,Rect2(saved.position,initial_rect.size))
 	if window.title=="商品と装備の比較" and not ui.preferences.config.get_value("migration","shop_feedback30",false):
 		var rect=ui.preferences.rect_for(key,fallback,ui.size,Vector2(420,300))
 		rect.size.x=maxf(rect.size.x,minf(extent.x,ui.size.x-32))

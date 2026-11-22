@@ -33,13 +33,13 @@ func run():
 	game.cancel();await settle();check(await saved()==before and game.state().units.filter(func(u):return u.id=="character_mirei")[0].pos==22,"cancel vault preserves original position and MP")
 	await game.on_cell(24);await settle();await game.commit();await settle()
 	check(game.state().units.filter(func(u):return u.id=="character_mirei")[0].pos==24 and game.state().actions==1,"vault commits across occupied intermediate cell once")
-	for id in ["skill_grapple","grapple-blocked"]:
+	for id in ["grapple","grapple-blocked"]:
 		await game.update({"op":"campaign_load","data":cases[id]});await settle();await game.select_skill("skill_grapple");await game.on_cell(24);await settle()
 		var enemy=game.state().units.filter(func(u):return u.side=="enemy" and u.pos==24)[0]
 		check(game.preview_ready and game.can_commit(),"grapple remains selectable with occupied middle "+id)
 		before=await saved();game.cancel();await settle();check(await saved()==before,"cancel grapple leaves target and MP unchanged "+id)
 		await game.on_cell(24);await settle();await game.commit();await settle()
-		check(game.state().units.filter(func(u):return u.id==enemy.id)[0].pos==(23 if id=="skill_grapple" else 24) and game.state().actions==1,"grapple moves or consumes without movement "+id)
+		check(game.state().units.filter(func(u):return u.id==enemy.id)[0].pos==(23 if id=="grapple" else 24) and game.state().actions==1,"grapple moves or consumes without movement "+id)
 	for id in ["item1","item2","item3"]:
 		await game.update({"op":"campaign_load","data":cases[id]});await settle()
 		await game.choose_command("items");await settle()

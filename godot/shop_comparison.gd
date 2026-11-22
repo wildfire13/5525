@@ -29,6 +29,7 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 	if gear.is_empty():return
 	var choices=slots_for(gear)
 	slot=ui.shop_slot if choices.has(ui.shop_slot) else str(choices[0])
+	ui.shop_slot=slot;shop.mark_comparison_slot(slot)
 	panels.clear()
 	var comparison=RichTextLabel.new();comparison.name="ShopComparisonStats";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.scroll_active=false;comparison.add_theme_font_size_override("normal_font_size",22);comparison.add_theme_color_override("default_color",Color("#29332f"));comparison.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(comparison);comparison.text="比較を読み込み中…"
 	panels=equipment_columns(body,"購入候補")
@@ -41,7 +42,6 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 		positions.item_selected.connect(func(i):switch_target(owner_id,str(positions.get_item_metadata(i))))
 	skill_rows=null
 	var conditions=ui.label_(body,"");conditions.name="ShopComparisonConditions";conditions.add_theme_font_size_override("font_size",20)
-	equipment_notes(body,gear)
 	# Keep payment/rejection beside the decision, outside long scrolling notes.
 	var money=shop.checkout_fields(actions,gear.price,func():switch_target(owner_id,slot))
 	var trial=ui.button(actions,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_END;trial.custom_minimum_size.y=40;trial.add_theme_font_size_override("font_size",20)
@@ -74,10 +74,13 @@ func fill_columns(columns: Array,q: Dictionary):
 		while panel.get_child_count()>1:
 			var child=panel.get_child(-1);panel.remove_child(child);child.queue_free()
 		var gear=q.get("current" if i==0 else "gear",{})
-		var name_label=ui.icons.line(ui,panel,ui.icons.equipment(gear),str(gear.get("name","なし")),true)
-		if i==1:
-			name_label.name="ShopComparisonProduct";name_label.add_theme_font_size_override("font_size",28)
-		for line in rows[i]:ui.label_(panel,line)
+		gear_summary(panel,gear,rows[i],i==1)
+
+func gear_summary(parent,gear: Dictionary,rows: Array,candidate:=false):
+	var label=ui.icons.line(ui,parent,ui.icons.equipment(gear),str(gear.get("name","なし")),true)
+	if candidate:
+		label.name="ShopComparisonProduct";label.add_theme_font_size_override("font_size",28)
+	for line in rows:ui.label_(parent,line)
 
 func open(id: String):
 	panels.clear();inline_host=null;item_id=id
@@ -123,6 +126,12 @@ func render():
 	refresh(money,comparison,conditions,buy)
 func switch_target(uid: String,position: String):
 	generation+=1;owner_id=uid;slot=position;ui.shop_uid=uid;ui.shop_slot=position
+	if is_instance_valid(inline_host):
+		shop.mark_comparison_slot(position)
+		var selector=inline_host.find_child("ShopComparisonSlot",true,false)
+		if selector!=null:
+			for index in range(selector.item_count):
+				if selector.get_item_metadata(index)==position:selector.select(index);break
 	# Keep the selectors alive: replacing an open popup can replay Enter on the
 	# new control and lose keyboard focus. Clear old values before any request.
 	comparison_label.text="比較を読み込み中…";money_label.text="費用を確認中…";condition_label.text="条件を確認中…"
@@ -152,6 +161,7 @@ func refresh(money,comparison,conditions,buy):
 		comparison.hide()
 		fill_columns(panels,q)
 	render_skills(q)
+	if not panels.is_empty():equipment_notes(panels[1],item())
 	conditions.text="" if q.get("eligible",false) else "装備不可："+str(q.get("reason","正規判定を確認できません"))
 	var payment=await ui.engine.request({"op":"campaign","action":"purchaseQuote","args":[item_id,owner_id,shop.purchase_quantity if not panels.is_empty() else 1]})
 	if not valid(ticket,window,epoch,connection,token):return

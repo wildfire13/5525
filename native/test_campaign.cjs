@@ -7,6 +7,24 @@ const B=require('./campaign-battle.js');
 const clone=x=>JSON.parse(JSON.stringify(x));
 let passed=0;
 function test(name,fn){try{fn();passed++;console.log('PASS '+name);}catch(e){console.error('FAIL '+name);throw e;}}
+test('delivery facilities follow the recipient and remain available after reload',()=>{
+  const expected={east:'weapon',west:'armor',south:'items',north:'',astaris:'guild'};
+  const seen=new Set();
+  for(const from of ['astaris','east','west','south','north']){
+    const state=C.create();state.location=from;
+    for(let round=0;round<4;round++){
+      state.boardRound=round;
+      for(const offer of C.board(state)){
+        if(offer.eventId||offer.id==='sluice-bell'){assert.equal(offer.deliveryFacility,'');continue;}
+        const facility=expected[offer.to];
+        assert.equal(offer.deliveryFacility,facility);seen.add(offer.to);
+        const accepted=clone(state);assert(acceptWithPorter(accepted,offer.id));
+        assert.equal(C.view(C.deserialize(C.serialize(accepted))).activeQuest.deliveryFacility,facility);
+      }
+    }
+  }
+  assert.equal(seen.size,Object.keys(expected).length);
+});
 function random(seed=5525){return ()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);}
 function okay(s){const result=C.validate(s);assert.equal(result.ok,true,result.error);assert.deepEqual(C.deserialize(C.serialize(s)),clone(s));}
 function deployHealthy(s){

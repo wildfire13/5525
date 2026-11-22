@@ -32,7 +32,15 @@ func back():
  if supported(ui.page) and view!="top":
   pages.shop_view.cancel_pending();pages.shop_view.sale.reset();view="top";ui.render()
  else:ui.navigate("hub")
+func delivery_here(page: String) -> bool:
+ var c=pages.c();var q=c.get("activeQuest")
+ if not q is Dictionary or q.get("to")!=c.location:return false
+ var facility=pages.hub_view.FACILITIES.get(q.get("deliveryFacility",""),[])
+ return not facility.is_empty() and facility[1]==page
 func choose(value: String):
+ if value=="delivery":
+  if at_top() and delivery_here(ui.page) and pages.c().get("cargoAboard",false) and not ui.locked and not ui.modal_open():ui.act("completeQuest",[])
+  return
  if value not in ["buy","sell","inn","guild","warehouse"] or value=="sell" and not pages.c().get("saleAvailable",false):return
  if ui.locked or ui.presenting or ui.modal_open() or pages.shop_view.busy():return
  if ui.page=="shop" and value in ["buy","sell"] and pages.c().get("selected",[]).has(pages.party_uid):ui.shop_uid=pages.party_uid
@@ -52,15 +60,22 @@ func render_top(parent: Control,page: String) -> bool:
  if page=="shop":
   choices=[["取引する","buy",true]]
   if pages.c().get("location")!="south":choices.append(["強化する","upgrade",false])
-  choices.append(["納品する","delivery",false])
+
  elif page=="inn":choices=[["休息する","inn",true]]
  else:choices=[["パーティメンバー編成","guild",true],["倉庫を利用する","warehouse",true]]
+ var handoff=delivery_here(page)
+ if page=="shop" or handoff:
+  choices.append(["納品する","delivery",handoff and pages.c().get("cargoAboard",false)])
  for choice in choices:
   var button=ui.button(options,choice[0],choose.bind(choice[1]),not choice[2]);button.name="FacilityChoice_"+str(choice[1]);button.custom_minimum_size=Vector2(300,64);
   if choice[2]:ui.green_button(button)
   button.custom_minimum_size.y=64
   ui.memory.key(button,"facility_"+str(choice[1]))
-  if not choice[2]:button.tooltip_text="この機能はまだ利用できません。"
+  if not choice[2]:
+   if choice[1]=="delivery":button.tooltip_text="荷物を持つポーターを同行させてください。" if handoff else "この施設に届ける依頼はありません。"
+   else:button.tooltip_text="この機能はまだ利用できません。"
+ if handoff and not pages.c().get("cargoAboard",false):
+  ui.label_(options,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
  var exit_button=ui.button(options,"店を出る",ui.navigate.bind("hub"));exit_button.name="FacilityExit";exit_button.custom_minimum_size=Vector2(300,64)
  render_entry_art(layout)
  return true

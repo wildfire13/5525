@@ -15,7 +15,8 @@ func saved():return (await game.engine.request({"op":"campaign_save"})).data
 func row_y():return node("Product_greatsword-wood").global_position.y
 func buy(id: String,uid: String):
 	await tap("RosterMember_"+uid);await tap("Product_"+id)
-	await tap("ShopComparisonBuy");await tap("PurchaseReceiptClose")
+	await tap("ShopComparisonBuy")
+	check(not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ %s×1 / 支払%dG" % [game.member_name(uid),game.pages.shop_view.receipt.gear.name,int(game.pages.shop_view.receipt.cost)],"purchase completion shows recipient/item/count/payment without blocking")
 func return_to_catalog():
 	var buttons=node("ShopTransactionFooter").find_children("*","Button",true,false)
 	for button in buttons:
@@ -25,7 +26,7 @@ func return_to_catalog():
 	check(false,"sale detail has a return to catalog action")
 func check_weapon_values(attack: int,reach: int):
 	var labels=node("ShopTransaction").find_children("*","Label",true,false)
-	check(labels.any(func(label):return label.text=="武器ATK: %d" % attack) and labels.any(func(label):return label.text=="武器射程: %d" % reach),"owned weapon details show attack %d and reach %d" % [attack,reach])
+	check(labels.any(func(label):return label.text=="物理ATK：%d" % attack) and labels.any(func(label):return label.text=="武器射程：%d" % reach),"owned weapon details show attack %d and reach %d" % [attack,reach])
 func run():
 	var qa=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/").to_lower()
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return

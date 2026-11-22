@@ -31,6 +31,13 @@ func render(parent):
 	var quest=c.get("activeQuest")
 	var has_meeting=quest is Dictionary and quest.get("eventId","")=="wheel"
 	var points={"board":Vector2(.58,.22),"guild":Vector2(.18,.22),"inn":Vector2(.64,.65),"weapon":Vector2(.18,.28),"armor":Vector2(.18,.28),"items":Vector2(.18,.28),"accessory":Vector2(.18,.28)}
+	# Anchors are relative to the playable map beside the party list.
+	if c.location=="east":
+		points.board=Vector2(.73,.46)
+		points.weapon=Vector2(0,.40)
+	elif c.location=="north":
+		points.board=Vector2(.11,.45)
+		points.accessory=Vector2(.53,.52)
 	for id in place.get("facilities",[]):
 		if not FACILITIES.has(id):continue
 		var spec=FACILITIES[id];var button=ui.button(panel,spec[0],ui.navigate.bind(spec[1]));button.name="HubFacility_"+id;button.custom_minimum_size=Vector2(168,64);ui.memory.key(button,"nav_"+spec[1])
@@ -56,7 +63,7 @@ func render(parent):
 			ui.button(column,"荷物担当を確認",ui.navigate.bind("party")).name="HubCheckCarrier"
 		else:
 			ui.button(column,"移動先を確認",ui.navigate.bind("map")).name="HubMeetingMap"
-	elif quest is Dictionary and quest.get("to")==c.location:
+	elif quest is Dictionary and quest.get("to")==c.location and str(quest.get("deliveryFacility","")).is_empty():
 		var column=VBoxContainer.new();panel.add_child(column);column.anchor_left=.7;column.anchor_top=.82
 		var missing=not c.get("cargoAboard",false)
 		var deliver=ui.button(column,"荷物を届ける",ui.act.bind("completeQuest",[]),missing);deliver.name="HubDeliverCargo"

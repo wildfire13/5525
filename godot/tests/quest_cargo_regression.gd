@@ -65,7 +65,8 @@ func run():
 	var cash=game.campaign().gold
 	await arrive_fixture("east")
 	check(game.campaign().phase=="town" and game.campaign().activeQuest is Dictionary and game.campaign().gold==cash,"arrival with reserve cargo enters town without reward")
-	check(game.find_child("HubDeliverCargo",true,false).disabled and contains("依頼は未完了"),"missing cargo completion disabled with reason")
+	await tap("HubFacility_weapon")
+	check(game.find_child("FacilityChoice_delivery",true,false).disabled and contains("依頼は未完了"),"missing cargo completion disabled with reason")
 	game.navigate("map");await settle()
 	check(not game.find_child("TownMap",true,false).buttons.astaris.disabled,"ordinary road back to city available")
 	await arrive_fixture("astaris");await enter_guild()
@@ -73,8 +74,9 @@ func run():
 	cash=game.campaign().gold
 	await arrive_fixture("east")
 	check(game.campaign().gold==cash and game.campaign().characters[OTHER_PORTER].inventory.get(cargo)==1,"arrival with cargo does not deliver automatically")
-	check(not game.find_child("HubDeliverCargo",true,false).disabled,"delivery button enabled with actual cargo")
-	await tap("HubDeliverCargo")
+	await tap("HubFacility_weapon")
+	check(not game.find_child("FacilityChoice_delivery",true,false).disabled,"delivery button enabled with actual cargo")
+	await tap("FacilityChoice_delivery")
 	check(game.campaign().activeQuest==null and not game.campaign().characters[OTHER_PORTER].inventory.has(cargo) and game.campaign().history.any(func(line):return line.contains("「荷物」を渡しました")),"completion button hands over cargo exactly once")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame

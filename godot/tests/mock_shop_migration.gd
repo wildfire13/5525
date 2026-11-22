@@ -65,9 +65,8 @@ func run():
  check(root.get_visible_rect().encloses(purchase_rect),"purchase button visible at FHD")
  var buyer=shop.selected_owner();var before_gold=int(game.campaign().gold)
  game.find_child("ShopComparisonBuy",true,false).pressed.emit();await settle()
- check(game.find_child("PurchaseReceiptClose",true,false)!=null and int(game.campaign().gold)<before_gold,"one click purchases and shows the receipt")
+ check(not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ 木製の投げ槍×1 / 支払100G" % game.member_name(buyer) and int(game.campaign().gold)==before_gold-100,"one click purchases and shows a non-modal recipient/item/count/payment notice")
  await capture("purchase-complete")
- game.dialog.close();await settle()
  check(shop.sale.entries().any(func(item):return item.id=="javelin-wood"),"purchased product enters selected inventory")
  var filter=game.find_child("ShopInventoryFilter",true,false)
  filter.select(1);filter.item_selected.emit(1);await settle()
@@ -103,6 +102,7 @@ func run():
    game.find_child("ProductBuy_"+str(product.id)+"_1",true,false).pressed.emit();await settle()
    game.find_child("PurchaseAgree",true,false).pressed.emit();await settle()
    check(int(game.campaign().gold)==money-3*int(product.price) and int(game.campaign().characters[target].inventory.get(product.id,0))==old_count+3,"consumable quantity applies exact selected amount to chosen member")
+   check(not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ %s×3 / 支払%dG" % [game.member_name(target),product.name,3*int(product.price)],"consumable completion notice includes recipient, product, selected count and total payment")
   else:
    check(game.find_child("ShopComparisonStats",true,false)!=null and not game.modal_open(),place+" inline gear comparison")
    var slot=game.find_child("ShopComparisonSlot",true,false)
@@ -126,12 +126,12 @@ func recipient_regression():
  shop.open_comparison("javelin-wood");await settle()
  check(shop.comparison_view.owner_id==chosen,"entry comparison uses selected party member")
  game.find_child("ShopComparisonBuy",true,false).pressed.emit();await settle()
- check(game.dialog.window.find_children("*","Label",true,false).any(func(label):return label.text.contains(game.member_name(chosen)+"へ")),"purchase receipt names selected member")
+ check(not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ 木製の投げ槍×1 / 支払100G" % game.member_name(chosen),"purchase notice names selected member, item, count and payment")
  var before=(await game.engine.request({"op":"campaign_save"})).data
  game.mock_shell.activate(old);await settle()
- check(game.pages.party_uid==chosen and game.shop_uid==chosen,"modal blocks card selection as well as transaction owner")
- game.dialog.close();await settle()
- check((await game.engine.request({"op":"campaign_save"})).data==before,"closing receipt preserves exact post-purchase save")
+ check(game.pages.party_uid==old and game.shop_uid==old,"purchase notice permits immediate card selection")
+ check((await game.engine.request({"op":"campaign_save"})).data==before,"browsing under purchase notice preserves exact post-purchase save")
+ game.mock_shell.activate(chosen);await settle()
  check(int(game.campaign().characters[chosen].inventory.get("javelin-wood",0))==1 and int(game.campaign().characters[old].inventory.get("javelin-wood",0))==0,"purchase goes only to party-selected member")
  # Explicit drag destination takes priority without changing the browsing owner.
  var payload={"kind":"shop_product","item":"javelin-wood","connection":game.engine.connection_generation,"epoch":game.pages.epoch,"token":game.campaign().get("inventoryToken")}

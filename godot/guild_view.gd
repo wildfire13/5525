@@ -158,7 +158,7 @@ func render_member(column,u: Dictionary,caption: String):
 		return
 	if detail_tab==1:
 		var doll=preload("res://member_loadout_column.gd").new();column.add_child(doll)
-		doll.build_art(ui,doll,u,"equipment")
+		doll.build_art(ui,doll,u)
 		doll.equipment(ui,u,"","GuildEq_"+str(u.id)+"_",func(_item):pass,Callable(),true)
 		return
 	var portrait=ui.portrait(column,u,false,128);portrait.custom_minimum_size=Vector2(128,220);portrait.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN

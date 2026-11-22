@@ -17,22 +17,33 @@ static func align_column(column: Control):
 	column.custom_minimum_size.x=WIDTH
 	column.size_flags_horizontal=(column.size_flags_horizontal & Control.SIZE_EXPAND) | Control.SIZE_SHRINK_BEGIN
 
-func build(ui, member: Dictionary, tab: String, choose: Callable, prefix: String, disabled:=false):
+func build(ui, member: Dictionary, tab: String, choose: Callable, prefix: String, disabled:=false, character_tabs:=false):
 	align_column(self)
 	custom_minimum_size.y=ui.mock_shell.content_height()
-	var tabs=ui.row(self)
-	for entry in [["equipment","装備"],["inventory","インベントリ"]]:
+	var inset=MarginContainer.new();add_child(inset)
+	var surface=ui.mock_shell.surface_style()
+	inset.add_theme_constant_override("margin_left",int(surface.get_content_margin(SIDE_LEFT)))
+	inset.add_theme_constant_override("margin_right",int(surface.get_content_margin(SIDE_RIGHT)))
+	add_tabs(ui,inset,[["equipment","装備"],["inventory","インベントリ"]],tab,choose,prefix,disabled)
+	var display=ui.card(self)
+	panel=display.get_parent();panel.name="MemberLoadoutPanel"
+	panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	if character_tabs:
+		add_tabs(ui,display,[["ability","能力"],["skills","スキル"]],tab,choose,prefix,disabled)
+	else:
+		var heading=ui.label_(display,"装備" if tab=="equipment" else "インベントリ")
+		heading.custom_minimum_size.y=get_child(0).get_combined_minimum_size().y
+	build_art(ui,display,member)
+
+func add_tabs(ui,parent,entries,tab,choose,prefix,disabled):
+	var tabs=ui.row(parent)
+	for entry in entries:
 		var button=ui.button(tabs,entry[1],choose.bind(entry[0]),disabled)
 		button.name=prefix+entry[0]
 		button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		ui.mark_selected(button,tab==entry[0])
-	var display=ui.card(self)
-	panel=display.get_parent()
-	panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
-	ui.label_(display,{"equipment":"装備","inventory":"インベントリ","ability":"能力","skills":"スキル"}[tab])
-	build_art(ui,display,member,tab)
 
-func build_art(ui,display,member,tab):
+func build_art(ui,display,member):
 	stage=Control.new()
 	stage.custom_minimum_size=ART_SIZE
 	stage.size_flags_vertical=Control.SIZE_EXPAND_FILL
@@ -41,7 +52,7 @@ func build_art(ui,display,member,tab):
 	portrait.position=Vector2(0,8)
 	portrait.size=ART_SIZE
 	portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	if tab in ["equipment","inventory"]:portrait.modulate.a=.22
+	portrait.modulate.a=.22
 
 func inventory_overlay() -> VBoxContainer:
 	var overlay=VBoxContainer.new()
