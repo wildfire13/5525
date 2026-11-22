@@ -26,31 +26,3 @@ func mouth_anchor(parent: Control) -> Vector2:
 	if portrait==null or texture==null:return Vector2(-1,-1)
 	var source: Vector2=MOUTHS.get(selected_path.get_file(),Vector2(512,240))
 	return portrait.global_position+portrait.size*source/texture.get_size()
-func portrait_layer(parent: Control):
-	var viewport=parent.get_viewport_rect().size
-	if not available(viewport):return
-	# The original full-body image is enlarged, then naturally cropped below
-	# the game window. Its face stays on the reserved right side; UI is later.
-	var region=Control.new();region.name="FacilityNpcRegion";region.clip_contents=true
-	region.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(region)
-	var grid_rect=preload("res://screen_grid.gd").cell_rect(viewport,6,2,4,8)
-	region.position=grid_rect.position;region.size=grid_rect.size
-	var portrait=TextureRect.new();portrait.name="FacilityNpc";portrait.texture=texture
-	portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE;portrait.focus_mode=Control.FOCUS_NONE;region.add_child(portrait)
-	var bounds=portrait_rect(viewport,texture)
-	portrait.size=bounds.size;portrait.position=bounds.position-region.position
-	portrait.set_meta("facility",visit_key);portrait.set_meta("asset_path",selected_path)
-static func portrait_rect(viewport: Vector2,art: Texture2D) -> Rect2:
-	var height=viewport.y*1.28;var width=height*art.get_width()/art.get_height()
-	# The portrait's entire texture starts beneath the speech graphic, so even
-	# tall hair or hats cannot intersect its words or tail at supported sizes.
-	return Rect2(Vector2(viewport.x-width+viewport.y*.08,maxf(204,viewport.y*.19)),Vector2(width,height))
-func columns(parent: Control,viewport_width: float) -> Control:
-	if not available(parent.get_viewport_rect().size):return parent
-	var split=HBoxContainer.new();split.name="FacilityNpcColumns";split.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_theme_constant_override("separation",16);split.mouse_filter=Control.MOUSE_FILTER_PASS;parent.add_child(split)
-	var content=VBoxContainer.new();content.name="FacilityContent";content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.mouse_filter=Control.MOUSE_FILTER_PASS;split.add_child(content)
-	# Reserving a narrower empty region preserves all current controls. The art
-	# itself is on a full-window decoration layer, behind those controls.
-	var stage=Control.new();stage.name="FacilityNpcStage";stage.custom_minimum_size.x=clampf(viewport_width*.23,240,500);stage.size_flags_vertical=Control.SIZE_EXPAND_FILL;stage.mouse_filter=Control.MOUSE_FILTER_IGNORE;stage.focus_mode=Control.FOCUS_NONE;split.add_child(stage)
-	return content

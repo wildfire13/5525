@@ -9,7 +9,7 @@ func visual_contract(label: String):
 	var money=header.find_children("*","Label",true,false).filter(func(item):return item.text==str(int(game.campaign().gold))+" G")
 	var menu=header.find_children("*","Button",true,false).filter(func(item):return item.text=="メニュー")
 	check(money.size()==1 and menu.size()==1 and money[0].get_global_rect().end.x<=menu[0].get_global_rect().position.x,"current money precedes common menu "+label)
-	check(not game.top.visible and not game.location_bar.visible and node("TownFacilityHeading")==null,"old top and lower location band are replaced by B navigation "+label)
+	check(not game.top.visible and node("HeaderLocation").is_visible_in_tree() and node("TownFacilityHeading")==null,"old top and lower location band are replaced by B navigation "+label)
 	var before=await saved();var face=node("RosterMember_"+str(game.campaign().selected[0]))
 	if face!=null:
 		face.grab_focus();await frames()

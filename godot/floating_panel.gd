@@ -98,18 +98,6 @@ func configure(prefs,key: String,title: String,fallback: Rect2):
 	restore_rect(fallback)
 	gui_input.connect(func(event):handle(event,false))
 	resized.connect(_layout_regions)
-func fit_sections():
-	if not region_layout.is_empty():return
-	var cell=get_viewport_rect().size.y/Grid.DIVISIONS
-	var rows=maxi(1,roundi(size.y/maxf(1,cell)))
-	var footer_rows=mini(maxi(0,rows-1),ceili(footer.get_combined_minimum_size().y/maxf(1,cell))) if footer.get_child_count()>0 else 0
-	var lower_rows=mini(maxi(0,rows-footer_rows-1),ceili(lower.get_combined_minimum_size().y/maxf(1,cell))) if lower.get_child_count()>0 else 0
-	footer_scroll.visible=footer_rows>0
-	lower_scroll.visible=lower_rows>0
-	var row_end=roundi(get_global_rect().end.y/maxf(1,cell))
-	footer_scroll.custom_minimum_size.y=Grid.cell_rect(get_viewport_rect().size,0,row_end-footer_rows,1,footer_rows).size.y
-	lower_scroll.custom_minimum_size.y=Grid.cell_rect(get_viewport_rect().size,0,row_end-footer_rows-lower_rows,1,lower_rows).size.y
-
 func restore_rect(fallback: Rect2):
 	var stored=preferences.config.get_value("windows",layout_key,fallback)
 	var rect=bound_rect(stored if stored is Rect2 else fallback,true)

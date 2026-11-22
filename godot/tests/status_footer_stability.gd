@@ -1,7 +1,7 @@
 extends "res://tests/brushup_gui.gd"
 var measured=[]
 func geometry():
- return [node("CampaignHeader").get_global_rect(),node("QuestBoardColumns").get_global_rect(),game.footer.get_global_rect(),game.location_bar.get_global_rect()]
+ return [node("CampaignHeader").get_global_rect(),node("QuestBoardColumns").get_global_rect(),game.footer.get_global_rect()]
 func record(label: String):
  measured.append({"case":label,"geometry":geometry(),"text":game.footer.text,"visible":game.footer.visible})
  if DisplayServer.get_name()!="headless":await snapshot(label)
@@ -17,7 +17,7 @@ func run():
   game.set_status("難易度は未設定です。");await settle();var baseline=geometry();await record("shown-"+str(dims.x))
   for message in ["","処理中…","説明".repeat(100)+"\n末尾",""]:
    game.set_status(message);await settle()
-   check(geometry()==baseline,"header/board/footer/location coordinates unchanged "+str(dims)+" text length "+str(message.length()))
+   check(geometry()==baseline,"header/board/footer coordinates unchanged "+str(dims)+" text length "+str(message.length()))
    check(game.footer.get_meta("full_message")==message,"full text retained")
    if message.length()>100:
     await record("long-"+str(dims.x))

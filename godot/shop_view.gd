@@ -322,12 +322,6 @@ func finish_trading():
 	if comparison_view!=null:comparison_view.invalidate()
 	pages.gear_id="";selection_kind="";selected_equipment={};sale.reset();consent={};receipt={};transaction={};message=""
 	pages.facility_entry.back()
-func product_summary(item: Dictionary) -> String:
-	var parts=[]
-	if item.get("atk",0)>0:parts.append("ATK %d / 通常射程%d" % [item.atk,item.get("reach",0)])
-	for pair in [["hp","HP"],["mp","MP"],["agiBonus","行動速度"]]:
-		if item.get(pair[0],0)!=0:parts.append("%s %+d" % [pair[1],item[pair[0]]])
-	return " / ".join(parts) if not parts.is_empty() else "補正なし"
 func open_comparison(id: String):
 	if busy() or ui.modal_open():return
 	var previous_product=pages.gear_id
@@ -348,39 +342,6 @@ func render_notice(parent):
 	var notice=l(parent,message);notice.name="ShopNotice";notice.add_theme_color_override("font_color",Color("#a44a35"))
 func record_sale(q: Dictionary):
 	transaction={"kind":"sell","ownerId":q.ownerId,"text":"%sの%s×%dを売却 / 受取%dG" % [q.ownerName,q.name,q.count,q.proceeds]};message="";ui.save_notice.display(str(transaction.text))
-func render_recipient(parent):
-	if not c().get("selected",[]).has(ui.shop_uid):ui.shop_uid=str(c().selected[0])
-	var line=ui.row(parent);l(line,"購入品の受取人")
-	var recipient=OptionButton.new();recipient.name="ConsumableRecipient";recipient.custom_minimum_size=Vector2(180,44);line.add_child(recipient)
-	for uid in c().get("selected",[]):
-		recipient.add_item(ui.member_name(str(uid)));recipient.set_item_metadata(recipient.item_count-1,uid)
-		if uid==ui.shop_uid:recipient.select(recipient.item_count-1)
-	recipient.item_selected.connect(func(i):if not busy():ui.shop_uid=str(recipient.get_item_metadata(i));ui.render())
-func consumable_row(parent,item: Dictionary):
-	var line=ui.row(parent);line.name="ProductRow_"+str(item.id);line.custom_minimum_size.y=64
-	var label=b(line,str(item.name),show_consumable_details.bind(str(item.id)),busy());label.name="Product_"+str(item.id);label.alignment=HORIZONTAL_ALIGNMENT_LEFT;label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;label.custom_minimum_size=Vector2(240,64);ui.icons.apply(label,str(item.id));ui.memory.key(label,"product_"+str(item.id))
-	preload("res://equipment_tooltip.gd").bind_hover(label,{"name":item.name,"kind":"item","definition":item},c())
-	preload("res://item_drag.gd").source(label,func():
-		if busy():return null
-		return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":pages.epoch},str(item.name),label.icon)
-	var price=l(line,"%dG" % int(item.price));price.name="ProductPrice_"+str(item.id);price.custom_minimum_size.x=96;price.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;price.autowrap_mode=TextServer.AUTOWRAP_OFF
-	for amount in [1,5]:
-		var cost=int(item.price)*amount;var full=int(c().get("inventoryTotals",{}).get(item.id,0))+amount>99
-		var result_text="上限99個" if full else "所持金不足" if int(c().gold)<cost else "残金 %dG" % (int(c().gold)-cost)
-		var button=b(line,"%d個 / %dG\n%s" % [amount,cost,result_text],purchase_consumable.bind(str(item.id),amount),busy() or int(c().gold)<cost or full);button.name="ProductBuy_"+str(item.id)+"_"+str(amount);button.custom_minimum_size=Vector2(130 if amount==1 else 170,64)
-		button.tooltip_text=ui.member_name(ui.shop_uid)+"へ / "+("上限99個" if full else "所持金不足" if int(c().gold)<cost else "購入後 %dG" % (int(c().gold)-cost))
-func purchase_consumable(id: String,count: int):
-	if busy() or count not in [1,5] or not c().get("selected",[]).has(ui.shop_uid):return
-	var item=offered().filter(func(v):return v.id==id)
-	if item.is_empty():return
-	var owner=ui.shop_uid;var token=c().get("inventoryToken");generation+=1;var ticket=generation;stage="S5"
-	var reply=await ui.update({"op":"campaign","action":"buyItem","args":[id,count,owner,token]})
-	if ticket!=generation:return
-	unknown=reply.get("connection_lost",false);stage="S7" if unknown else "S0"
-	if reply.get("ok",false):
-		transaction={"kind":"buy","ownerId":owner,"text":"%sへ %s×%d / 支払%dG" % [ui.member_name(owner),item[0].name,count,int(item[0].price)*count]};message="";ui.save_notice.display(str(transaction.text))
-	else:message=str(reply.get("error","購入結果を確認してください。"))
-	ui.render()
 func cancel_pending():
 	# Quotes are pure; an in-flight committed purchase must not be discarded here.
 	if stage!="S1":return

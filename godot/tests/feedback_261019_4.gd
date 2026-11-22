@@ -14,7 +14,7 @@ func run():
 			check(game.header.text==name_ and game.header.is_visible_in_tree() and node("TownFacilityHeading").text==name_+"の広場","town and square headings "+place+str(resolution))
 			for page in (["board","map","inn","party"] if place=="astaris" else ["board","map","shop"]):
 				game.navigate(page);await settle()
-				check(game.header.text==name_ and game.header.is_visible_in_tree() and game.resource_header.visible,"persistent town and money "+place+page+str(resolution))
+				check(node("HeaderLocation").text==name_ and node("HeaderGold").is_visible_in_tree() and node("HeaderGold").text=="%d G" % int(game.campaign().gold),"persistent town and money "+place+page+str(resolution))
 				if page=="board":check(labels().has("掲示板"),"board below town")
 				if page=="inn":check(labels().has("宿屋"),"inn below town")
 				if page=="party":check(node("PartyFacilityHeading").text.begins_with("ギルド"),"guild below town")

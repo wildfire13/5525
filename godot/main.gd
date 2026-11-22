@@ -35,14 +35,9 @@ var presenting := false
 var closing := false
 var checks_fast := false
 var backdrop_layer: Control
-var location_bar: PanelContainer
-var location_label: Label
 var base: VBoxContainer
 var top: HBoxContainer
 var header: Label
-var resource_header: HBoxContainer
-var gold_header: Label
-var gold_feedback=preload("res://gold_feedback.gd").new(self)
 var content: VBoxContainer
 var battle_row: Control
 var board
@@ -50,7 +45,6 @@ var side: VBoxContainer
 var battle_header: VBoxContainer
 var battle_actions: Control
 var footer: Label
-var actor_row: HBoxContainer
 var widgets: Array[Button]=[]
 var view_kind := ""
 var generation := 0
@@ -61,8 +55,6 @@ var memory
 var preferences=preload("res://ui_preferences.gd").new()
 var hud
 var dialog
-var actor_face: TextureRect
-var town_back: Button
 var status_override := ""
 var modal_escape_frame := -1
 var ui_size_mode := "standard"
@@ -114,10 +106,8 @@ func _ready():
 	base.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	top=HBoxContainer.new();top.name="BattleHeader";top.custom_minimum_size.y=44;base.add_child(top)
 	var elapsed=Label.new();elapsed.name="BattleElapsedTime";top.add_child(elapsed)
-	actor_face=portrait(top,{},true,40);actor_face.visible=false
 	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
 
-	town_back=button(top,"拠点へ",navigate.bind("hub"));town_back.visible=false
 	var menu_region=Control.new();menu_region.name="BattleMenuRegion";menu_region.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(menu_region)
 	menu_region.hide();menu_region.anchor_left=0.9;menu_region.anchor_right=1.0
 	var menu_button=local_button(menu_region,"メニュー",open_menu);menu_button.name="CommonMenuButton"
@@ -186,10 +176,6 @@ func _ready():
 	footer.gui_input.connect(func(event):
 		if (event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT) or (event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ENTER,KEY_SPACE]):
 			show_status_details();footer.accept_event())
-	location_bar=PanelContainer.new();location_bar.name="CommonLocationBar";base.add_child(location_bar)
-	var bar_style=StyleBoxFlat.new();bar_style.bg_color=Color("#111b25ec");bar_style.content_margin_left=12;bar_style.content_margin_right=148;bar_style.content_margin_top=7;bar_style.content_margin_bottom=7;location_bar.add_theme_stylebox_override("panel",bar_style)
-	var location_row=row(location_bar);location_label=Label.new();location_label.name="CommonLocation";location_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;location_label.clip_text=true;location_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;location_row.add_child(location_label)
-	resource_header=row(location_row);gold_header=icons.line(self,resource_header,"money","");gold_header.name="CommonGold"
 	engine=preload("res://engine_bridge.gd").new();add_child(engine)
 	engine.engine_stopped.connect(show_engine_stop,CONNECT_DEFERRED)
 	if debug_view.is_enabled():engine.diagnostic_completed.connect(debug_view.request_finished)
@@ -472,9 +458,6 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 			if arrived or request.get("action")=="arrive":
 				pages.hub_view.reset();page="hub"
 			invalidate_preview();data=reply
-			if request.get("op")=="campaign" and request.get("action") not in ["trial","endTrial"]:
-				gold_feedback.change(int(result_before.get("gold",0)),int(campaign().get("gold",0)))
-			else:gold_feedback.reset(int(campaign().get("gold",0)))
 			for receipt in receipts:results_view.enqueue(receipt)
 			if request.get("op")=="campaign_load":results_view.restore_quest(campaign())
 		notice=""
@@ -588,9 +571,6 @@ func render():
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
 	header.text="配置" if phase=="deployment" and page=="character" else town_name(place)
-	location_label.text=town_name(place)+location_suffix(phase,c)
-	location_label.tooltip_text=location_label.text
-	gold_feedback.sync(int(c.get("gold",0)))
 	header.tooltip_text=header.text
 	var inspecting_deployment=phase=="deployment" and page=="character"
 	var battle=not inspecting_deployment and not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
@@ -611,8 +591,6 @@ func render():
 	if is_instance_valid(parked_board) and (parked_epoch!=pages.epoch or phase!="deployment"):
 		parked_board.queue_free()
 		parked_board=null
-	resource_header.visible=not battle
-	location_bar.visible=false
 	top.visible=battle or engine.disconnected
 	var active_battle=battle and not s.get("deploying",false)
 	var battle_elapsed=top.get_node("BattleElapsedTime")
@@ -627,10 +605,6 @@ func render():
 			caption.remove_theme_color_override("font_outline_color")
 			caption.remove_theme_constant_override("outline_size")
 	pages.facility_art.render_background(backdrop_layer,self,battle)
-	actor_face.visible=false
-	var lower_return=phase=="result" or phase=="town" and page!="hub"
-	town_back.visible=not battle and page!="hub" and phase=="town" and not lower_return
-	town_back.text="アスタリスへ戻る" if page=="party" and c.get("guildAvailable",false) else "拠点へ"
 	if battle:
 		base.offset_left=0;base.offset_top=0;base.offset_right=0;base.offset_bottom=0
 	top.custom_minimum_size.y=preload("res://screen_grid.gd").cell_rect(available,0,0,10,1).size.y if battle else 44
@@ -671,7 +645,7 @@ func render():
 			else:
 				board.persist_camera()
 				board.queue_free()
-		board=null;actor_row=null;clear(content);view_kind="page"
+		board=null;clear(content);view_kind="page"
 		mock_shell.navigation(content)
 		var body: VBoxContainer=mock_shell.workspace(content)
 		if phase=="town":
@@ -693,10 +667,6 @@ func render():
 	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else (focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if battle else ""))
 	widgets=widgets.filter(func(b):return is_instance_valid(b) and b.is_inside_tree())
 	rendering=false;memory.restore()
-func location_suffix(phase: String,c: Dictionary) -> String:
-	if phase!="town":return " / "+{"road":"街道","camp":"野営地","arrival":"到着","delivery":"配達","result":"結果","prepare":"出発準備"}.get(phase,"旅程")
-	if page=="shop":return " / "+{"east":"武器店","west":"防具店","south":"道具店","north":"装飾品店"}.get(str(c.get("location","")),"商店")
-	return " / "+{"hub":"広場","party":"ギルド","inn":"宿屋","map":"地図・出発","board":"掲示板","items":"道具"}.get(page,page)
 func town_name(id) -> String:
 	for t in campaign().get("towns",[]):
 		if t.id==id:return t.name
@@ -728,7 +698,6 @@ func display_log(line: String) -> String:
 		var x=int(found.get_string(1));var y=int(found.get_string(2))
 		if x>=1 and x<=10 and y>=1 and y<=5:line=line.replace(found.get_string(),"(X%d,Y%d)" % [x-1,5-y])
 	return line
-func select_shop(uid: String):await pages.select_member(uid)
 func render_shop(body):pages.shop(body)
 func preview_gear(id: String):await pages.request_quote(id)
 func inspect_movement(which: String):
@@ -756,14 +725,6 @@ func command_hint(kind: String="") -> String:
 	if kind==command and not hud.skill_unavailable_reason().is_empty():hint+="\n"+hud.skill_unavailable_reason()
 	elif kind not in ["action_defend","items","action_skill"] and data.get("choices",{}).get(kind,[]).is_empty():hint+="\n現在は対象を選べません。"
 	return hint
-func render_unit_details(parent: Node,s: Dictionary):
-	label_(parent,"全員の状態",true)
-	for u in s.get("units",[]):
-		var status="%s: HP %d/%d MP %d AGI %d%s%s" % [u.name,u.hp,u.max,u.mp,u.agi," 防御" if u.get("guard",false) else ""," 戦闘不能" if u.hp<=0 else ""]
-		var line=label_(parent,status)
-		emphasize_low_hp(line,u)
-		if u.get("cover")!=null:label_(parent,"かばう → "+member_name(str(u.cover)))
-		if not u.get("covers",[]).is_empty():label_(parent,"防衛線 → "+"・".join(u.covers.map(func(id):return member_name(str(id)))))
 func choose_command(value: String):
 	if locked or presenting or closing or hud.range_reference or hud.menu_transition:return
 	hud.clear_inspection()

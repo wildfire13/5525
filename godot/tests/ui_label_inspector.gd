@@ -182,6 +182,8 @@ func run():
 	await game.update({"op":"campaign_load","data":initial})
 	var inspector=game.ui_labels
 	await capture("hub",["場面：ローカルマップ","ヘッダーナビ","拠点施設マップ","パーティ名簿"])
+	var gold=game.find_child("HeaderGold",true,false)
+	check(gold is Label and gold.is_visible_in_tree() and gold.text=="%d G" % int(game.campaign().gold),"town header shows the current gold balance")
 	game.save_notice.display("購入して装備しました")
 	game.pages.party_view.workspace.toast("更新しました")
 	await capture("notice",["上中央の緑通知","右下の所持品通知"])

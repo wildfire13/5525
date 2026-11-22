@@ -41,14 +41,6 @@ func roster() -> Array:return ui.roster()
 func town(id) -> String:return ui.town_name(id)
 func muted(parent,text):
 	var label=l(parent,text);label.add_theme_color_override("font_color",Color("#bcc9d3"));return label
-func selected_party() -> Array:
-	var journey=c().get("journey")
-	if journey is Dictionary and journey.get("party") is Array:return journey.party
-	return roster().filter(func(u):return c().get("selected",[]).has(u.id))
-func party_status(parent):
-	for u in selected_party():
-		var line=l(parent,"%s［%s］ HP %d/%d / MP %d/%d%s" % [u.name,u.get("role",""),u.hp,u.max,u.mp,u.maxMp," 戦闘不能" if u.hp<=0 else ""])
-		ui.emphasize_low_hp(line,u)
 # Display normal attack power before formation, skills and target defense.
 # Match the battle rule: only reaching weapons, with growth added once.
 func normal_reach(stats: Dictionary) -> int:
@@ -78,8 +70,6 @@ func elemental_combat_line(parent,stats: Dictionary):
 		var values=l(detail,"%d / %d" % [stats.get("atk"+element.capitalize(),0),stats.get("def"+element.capitalize(),0)])
 		values.tooltip_text=explanation
 	detail.tooltip_text=explanation
-func elemental_badge(parent,element: String,pixels:=24):
-	if element in ["fire","water","earth"]:ElementBadges.add(parent,element,pixels)
 func stats_text(stats: Dictionary,character_id: String="") -> String:
 	var text="HP上限 %d / MP上限 %d / %s / %s / SPD %d / 属性 %s" % [stats.get("max",0),stats.get("maxMp",0),attack_profile(stats),defense_profile(stats),stats.get("speed",stats.get("agi",0)),element_name(stats.get("element","none"))]
 	if not character_id.is_empty():
@@ -89,18 +79,6 @@ func stats_text(stats: Dictionary,character_id: String="") -> String:
 			text+=" / Wt %s / STR上限 %d" % [str(current) if current!=null else str(weight.get("known",0))+"（一部不明）",stats.get("str",0)]
 			if current!=null and current>stats.get("str",0):text+="（超過中: SPD 50%）"
 	return text
-func member_stats(u: Dictionary) -> String:
-	var s=u.get("stats",u)
-	return "STR %d / INT %d / AGI %d\n%s / %s / 属性 %s" % [s.get("str",0),s.get("int",0),s.get("agi",0),attack_profile(s),defense_profile(s),element_name(s.get("element","none"))]
-func equipment(parent,u):
-	for e in u.get("equipmentSlots",[]):l(parent,e.label+": "+str(e.name).trim_prefix(e.label+":").trim_prefix(e.label+"：").strip_edges())
-	l(parent,"使用可能: "+" / ".join(u.get("activeSkillNames",[])))
-	l(parent,"装飾: "+" / ".join(u.get("accessoryNames",[])))
-	l(parent,"効果: "+" / ".join(u.get("effectNames",[])))
-func quest_info(parent,q: Dictionary):
-	l(parent,"行先 %s / 依頼主 %s" % [town(q.to),q.get("client","")])
-	l(parent,q.get("text",""))
-	l(parent,"荷物 %s / %d枠 / 納期 %d時間 / 報酬 %dG" % [q.get("cargo",""),q.get("weight",0),q.get("deadline",0),q.get("reward",0)])
 func hub(parent):hub_view.render(parent)
 func board(parent):quest_board.render(parent)
 func accept(id: String):quest_board.open_picker(id)
@@ -135,9 +113,6 @@ func map(parent):
 	var space=Control.new();space.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(space)
 	b(actions,"全体表示",chart.reset_view).name="MapFit"
 func choose_formation(value: String):ui.formation=value;ui.render()
-func shop_guide(parent):
-	var facilities=row(parent)
-	for item in [["weapon_shop","武器店"],["armor_shop","防具店"],["item_shop","道具店"],["accessory_shop","装飾品店"]]:ui.icons.line(ui,facilities,item[0],item[1])
 func grid_height(cells: int) -> float:
 	return ScreenGrid.cell_rect(ui.size,0,0,1,cells).size.y
 
@@ -311,8 +286,6 @@ func items(parent):
 			var reason=ItemMenu.camp_reason(selected_item,u,inventory)
 			var target=b(member,"使う" if reason.is_empty() else reason,use_selected_item.bind(u.id),not reason.is_empty());target.name="ItemTarget_"+str(u.id);ui.memory.key(target,"item_target_"+str(u.id))
 func inn(parent):inn_view.render(parent)
-func inn_cards(parent):inn_view.cards(parent)
-func stay_inn():inn_view.stay()
 func shop(parent):
 	if facility_entry.render_top(parent,"shop"):return
 	facility_entry.render_dialogue()
@@ -322,7 +295,6 @@ func select_slot(slot: String):await shop_view.select_slot(slot)
 func purchase(_q: Dictionary):shop_view.confirm_purchase()
 func buy(id: String):
 	await shop_view.confirm_purchase(id)
-func cancel_quote():shop_view.back_list()
 func return_to_town(parent):
 	parent.add_theme_constant_override("separation",0)
 	var actions=row(parent);actions.name="TownReturnRow";actions.alignment=BoxContainer.ALIGNMENT_END

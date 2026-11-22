@@ -18,8 +18,6 @@ func reset():view="top";visit="";speech_key="";speech_started=0
 func navigate(page: String):
  if page!=ui.page:
   view="top";visit="";speech_key="";pages.shop_view.sale.reset()
-func resume_buy():
- view="buy";visit=str(pages.c().get("location",""))+":shop";pages.shop_view.sale.reset()
 func sync():
  var key=str(pages.c().get("location",""))+":"+ui.page
  if key!=visit:visit=key;view="top"

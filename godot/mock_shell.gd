@@ -93,7 +93,7 @@ func navigation(parent):
 		nav.name="Header_"+str(link[0]);nav.custom_minimum_size=Vector2(140,44)
 		ui.mark_selected(nav,ui.page==link[0] or facility.supported(ui.page))
 	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bar.add_child(spacer)
-	ui.icons.line(ui,bar,"money",str(int(ui.campaign().get("gold",0)))+" G")
+	ui.icons.line(ui,bar,"money",str(int(ui.campaign().get("gold",0)))+" G").name="HeaderGold"
 	ui.memory.key(ui.local_button(bar,"メニュー",ui.open_menu),"game_menu")
 func elapsed_time_text() -> String:
 	return "経過時間：%d時間" % int(ui.campaign().get("worldTime",0))
