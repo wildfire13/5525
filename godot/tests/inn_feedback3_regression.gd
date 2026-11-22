@@ -20,6 +20,8 @@ func run():
  var maximum=int(game.roster().filter(func(u):return u.id==INJURED)[0].max)
  var seed=await saved();seed.state.gold=500;seed.state.characters[INJURED].hp=1;seed.state.characters[TIRED].mp=0
  await reload_inn(seed);var inn=game.pages.inn_view;var before=await saved()
+ var guest_rect=preload("res://screen_grid.gd").cell_rect(game.size,0,3,6,4)
+ check(node("InnPartyScroll").get_global_rect()==guest_rect and node("PartyRoster")==null,"injured guests occupy the inn grid without a second roster")
  inn.stay();await settle();check(consent()!=null,"injured party requests confirmation")
  consent().canceled.emit();await settle();check(await saved()==before,"cancel leaves exact save untouched")
  inn.stay();inn.stay();await settle();check(game.find_children("*","ConfirmationDialog",true,false).filter(func(d):return d.visible).size()==1,"repeat stay opens only one confirmation")
@@ -38,6 +40,7 @@ func run():
  check(not node("InnMP_"+INJURED).get_meta("recovering",false),"already full MP has no recovery animation")
  await create_timer(1.4).timeout;await frames();check(node("InnHP_"+INJURED).text=="HP %d → %d"%[maximum,maximum],"HP count-up ends exactly at canonical maximum")
  check(game.find_children("InnHeal_*","Control",true,false).is_empty(),"healing graphics clean up after count-up")
+ check(node("InnPartyScroll").get_global_rect()==guest_rect and node("PartyRoster")==null,"recovery preserves the same single guest list")
  check(node("InnStay").disabled,"fully recovered party cannot activate a paid stay from the UI")
  # Retained programmatic no-op remains safe even when the live button is disabled.
  before=await saved();inn.stay();await settle();check(await saved()==before and consent()==null,"full recovery click is free with no confirmation")

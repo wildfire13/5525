@@ -143,7 +143,7 @@ func navigation(parent):
 func elapsed_time_text() -> String:
 	return "経過時間：%d時間" % int(ui.campaign().get("worldTime",0))
 func needs_roster() -> bool:
-	return ui.page!="board" and not ui.pages.facility_entry.at_top() and ui.campaign().get("phase")!="result"
+	return ui.page not in ["board","inn"] and not ui.pages.facility_entry.at_top() and ui.campaign().get("phase")!="result"
 func columns(parent: Control) -> HBoxContainer:
 	var row=ui.row(parent)
 	row.size_flags_vertical=Control.SIZE_SHRINK_BEGIN

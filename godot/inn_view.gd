@@ -36,9 +36,10 @@ func render(parent):
  var words=dialogue if not dialogue.is_empty() else FULL_GREETING if not q.get("needsRecovery",false) else pages.facility_entry.greeting_text()
  pages.facility_entry.render_entry_art(surface,words,true)
  parent=inset(content,1)
- ui.icons.line(ui,parent,"inn","宿屋",true)
+ var heading=pages.row(parent)
+ ui.icons.line(ui,heading,"inn","宿屋",true)
  if not q.get("available",false):pages.l(parent,"宿屋はアスタリスで利用できます。");return
- if q.get("needsRecovery",false):pages.l(parent,"パーティ全員で%dG" % q.price)
+ if q.get("needsRecovery",false):pages.l(heading,"パーティ全員で%dG" % q.price)
  var recovery_hint=pages.muted(parent,"編成中の全員のHP・MPを全回復。控えは対象外、時間は経過しません。");recovery_hint.add_theme_font_size_override("font_size",16);recovery_hint.add_theme_color_override("font_color",Color("#747d75"))
  cards(content)
  parent=inset(content,0)
