@@ -7,7 +7,11 @@ static func source(control: Control,payload: Callable,caption: String,icon: Text
 		var preview=Button.new();preview.set_meta("ui_region","ItemDragPreview");preview.add_to_group("ui_drag_preview");preview.text=caption;preview.icon=icon
 		preview.mouse_filter=Control.MOUSE_FILTER_IGNORE;preview.alignment=HORIZONTAL_ALIGNMENT_LEFT
 		preview.custom_minimum_size=control.size;preview.size=control.size
-		for state in ["normal","hover","pressed"]:preview.add_theme_stylebox_override(state,control.get_theme_stylebox("normal").duplicate())
+		var theme_owner: Node=control
+		while theme_owner!=null:
+			if (theme_owner is Control or theme_owner is Window) and theme_owner.theme!=null:
+				preview.theme=theme_owner.theme;break
+			theme_owner=theme_owner.get_parent()
 		control.set_drag_preview(preview)
 		return data,func(_position,data):return data is Dictionary and allowed.is_valid() and allowed.call(data),
 		func(_position,data):

@@ -156,7 +156,7 @@ func render_transaction(middle):
 			if comparison_view==null:comparison_view=preload("res://shop_comparison.gd").new(self)
 			comparison_view.render_inline(detail,footer,pages.gear_id,ui.shop_uid)
 	else:l(detail,"商品またはインベントリのアイテムを選択")
-	var finish=ui.green_button(b(footer,"取引終了",finish_trading,busy()));finish.name="ShopExit";finish.custom_minimum_size.y=40;finish.size_flags_horizontal=Control.SIZE_SHRINK_END
+	var finish=b(footer,"取引終了",finish_trading,busy());finish.name="ShopExit";finish.custom_minimum_size.y=40;finish.size_flags_horizontal=Control.SIZE_SHRINK_END
 func render_catalog(stock):
 	preload("res://item_drag.gd").target(stock,can_drop_sale,drop_sale)
 	l(stock,"商品リスト").name="ShopCatalogHeading";product_filter(stock)
@@ -198,13 +198,6 @@ func backdrop(body: Control,texture: Texture2D,node_name: String):
 	# A plain Control is outside the VBox flow, so artwork never changes row sizes.
 	var layer=Control.new();layer.name=node_name+"Layer";layer.mouse_filter=Control.MOUSE_FILTER_IGNORE;body.get_parent().add_child(layer);body.get_parent().move_child(layer,0);layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);
 	layer.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);image.offset_top=64;image.offset_bottom=-8
-func list_surface(button: Button,selected: bool):
-	ui.mark_selected(button,false)
-	for state_ in ["normal","hover","pressed","disabled"]:
-		var style=button.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
-		style.bg_color=Color("#e0e8dd") if selected or state_ in ["hover","pressed"] else Color(0.98,0.976,0.96,.65)
-		button.add_theme_stylebox_override(state_,style)
-	if selected:ui.mark_selected(button,true)
 func set_inventory_tab(value: String):
 	if busy() or value==inventory_tab:return
 	inventory_tab=value
@@ -216,6 +209,7 @@ func set_inventory_tab(value: String):
 func render_product(parent: Control,item: Dictionary):
 	var choose=b(parent,"",open_comparison.bind(str(item.id)),busy());choose.name="Product_"+str(item.id);choose.custom_minimum_size=Vector2(0,68);choose.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	var margin=MarginContainer.new();margin.mouse_filter=Control.MOUSE_FILTER_IGNORE;choose.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);margin.add_theme_constant_override("margin_left",8);margin.add_theme_constant_override("margin_right",8)
+	ui.mock_shell.bind_button_text(choose,margin)
 	var line=HBoxContainer.new();line.add_theme_constant_override("separation",8);line.mouse_filter=Control.MOUSE_FILTER_IGNORE;margin.add_child(line)
 	ui.icons.add(line,str(item.id) if c().location=="south" else ui.icons.equipment(item),36)
 	var title=l(line,str(item.name));title.add_theme_font_size_override("font_size",18);title.mouse_filter=Control.MOUSE_FILTER_IGNORE;title.autowrap_mode=TextServer.AUTOWRAP_OFF;title.clip_text=true;choose.tooltip_text=str(item.name)
@@ -232,7 +226,7 @@ func render_product(parent: Control,item: Dictionary):
 		label.autowrap_mode=TextServer.AUTOWRAP_OFF
 		label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
 		label.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	list_surface(choose,selection_kind=="buy" and pages.gear_id==str(item.id));ui.memory.key(choose,"product_"+str(item.id))
+	ui.mark_selected(choose,selection_kind=="buy" and pages.gear_id==str(item.id));ui.memory.key(choose,"product_"+str(item.id))
 	preload("res://equipment_tooltip.gd").bind_details(choose,ui,{"id":item.id,"name":item.name,"kind":"item" if c().location=="south" else "equipment","count":1,"definition":item})
 	preload("res://item_drag.gd").source(choose,func():
 		if busy():return null
@@ -277,10 +271,6 @@ func display_payment(money: Label,buy: Button,cost: Dictionary):
 	buy.text=("%d個の購入へ" if c().get("location")=="south" else "%d個購入する") % cost.count
 	buy.disabled=not cost.get("ok",false) or busy();buy.set_meta("base_disabled",buy.disabled)
 	buy.tooltip_text="購入品はインベントリへ入ります。" if not buy.disabled else str(cost.get("reason","購入できません"))
-	for state in ["normal","hover","pressed","disabled"]:
-		var style=StyleBoxFlat.new();style.bg_color=Color("#33594b") if not buy.disabled else Color("#e8e9e3");style.set_corner_radius_all(5);style.set_content_margin_all(8);buy.add_theme_stylebox_override(state,style)
-	buy.add_theme_color_override("font_disabled_color",ui.mock_shell.MUTED_INK)
-	for key in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:buy.add_theme_color_override(key,Color.WHITE)
 func consumable_payment(item: Dictionary,uid: String) -> Dictionary:
 	var bag: Dictionary=c().characters[uid].inventory
 	var capacity: Dictionary=c().inventoryByCharacter[uid].capacity
@@ -308,6 +298,7 @@ func render_consumable_selection(parent: Control,actions: Control):
 	var owned=l(parent,"")
 	owned.name="ShopRecipientStock"
 	var buy=b(actions,"購入へ",confirm_purchase.bind(str(item.id),uid),true)
+	buy.theme_type_variation=&"ActionButton"
 	buy.name="ProductBuy_"+str(item.id)+"_1"
 	buy.size_flags_horizontal=Control.SIZE_SHRINK_END
 	buy.custom_minimum_size.y=40
@@ -336,7 +327,7 @@ func open_comparison(id: String):
 		if previous_product!=id:
 			for product in [previous_product,id]:
 				var control=catalog_column.find_child("Product_"+str(product),true,false)
-				if control!=null:list_surface(control,product==id))
+				if control!=null:ui.mark_selected(control,product==id))
 func render_notice(parent):
 	if message.is_empty():return
 	var notice=l(parent,message);notice.name="ShopNotice";notice.add_theme_color_override("font_color",Color("#a44a35"))
@@ -390,7 +381,8 @@ func choose_recipient(ticket: int):
 		for person in ui.roster():
 			if not c().get("selected",[]).has(person.id):continue
 			var line=ui.row(body);ui.portrait(line,person,false,56)
-			b(line,str(person.name)+"のインベントリへ",buy.bind(consent.duplicate(true),str(person.id),ticket)).name="PurchaseRecipient_"+str(person.id)
+			var recipient=b(line,str(person.name)+"のインベントリへ",buy.bind(consent.duplicate(true),str(person.id),ticket))
+			recipient.name="PurchaseRecipient_"+str(person.id);recipient.theme_type_variation=&"ActionButton"
 		b(actions,"取り消す",ui.dialog.close).name="PurchaseRecipientCancel",
 		cancel_purchase.bind(ticket))
 func buy(q: Dictionary,uid: String,ticket: int):
@@ -508,7 +500,7 @@ func drop_equipment(data: Dictionary,slot: String):
 		l(body,"%s / %s / 支払%dG" % [ui.member_name(uid),q.gear.name,int(q.cost)],true)
 		l(body,"選んだ部位に装備します。交換前の装備はインベントリに残ります。")
 		b(actions,"キャンセル",ui.dialog.close).name="PurchaseDecline"
-		b(actions,"購入して装備",func():
+		var agree=b(actions,"購入して装備",func():
 			if stage!="S4" or not valid_ticket(ticket,epoch,connection,place):return
 			stage="S5";ui.dialog.close(false)
 			var result=await ui.update({"op":"campaign","action":"buyGear","args":[uid,id,slot,token]})
@@ -516,7 +508,8 @@ func drop_equipment(data: Dictionary,slot: String):
 			unknown=result.get("connection_lost",false);stage="S7" if unknown else "S0"
 			message="" if result.get("ok",false) else "購入・装備を確定できませんでした。状態を確認して選び直してください。"
 			if result.get("ok",false):ui.save_notice.display("購入して装備しました")
-			ui.render()).name="PurchaseAgree",
+			ui.render())
+		agree.name="PurchaseAgree";agree.theme_type_variation=&"ActionButton",
 		cancel_purchase.bind(ticket))
 
 func can_drop_sale(data: Dictionary) -> bool:
@@ -543,7 +536,7 @@ func confirm_consumable(id: String,uid: String):
 	ui.dialog.open("購入の確認",func(body,actions):
 		l(body,"%s ×%d / 支払%dG / %sのインベントリへ" % [item.name,count,cost,ui.member_name(uid)],true)
 		b(actions,"キャンセル",ui.dialog.close).name="PurchaseDecline"
-		b(actions,"購入する",func():
+		var agree=b(actions,"購入する",func():
 			if stage!="S4" or ticket!=generation:return
 			stage="S5";ui.dialog.close(false)
 			var reply=await ui.update({"op":"campaign","action":"buyItem","args":[id,count,uid,token]})
@@ -552,7 +545,8 @@ func confirm_consumable(id: String,uid: String):
 				if reply.get("ok",false):
 					transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×%d / 支払%dG" % [ui.member_name(uid),item.name,count,cost]};message="";ui.save_notice.display(str(transaction.text))
 				else:message=str(reply.get("error","購入結果を確認してください。"))
-				ui.render()).name="PurchaseAgree",
+				ui.render())
+		agree.name="PurchaseAgree";agree.theme_type_variation=&"ActionButton",
 		cancel_purchase.bind(ticket))
 
 func show_consumable_details(id: String):

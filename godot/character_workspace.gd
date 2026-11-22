@@ -85,6 +85,7 @@ func render(parent):
 			ui.label_(detail,"所持 %d個" % int(picked.get("count",1)))
 			for option in picked.get("useTargets",[]):
 				var control=ui.button(detail,str(option.targetName)+"に使う",perform.bind(owner,str(picked.id),"use",option.targetId,1,null),busy or not option.ok);control.tooltip_text=str(option.get("reason",""))
+				control.theme_type_variation=&"ActionButton"
 		var explanation=ui.button(detail,"詳しい説明",ui.show_equipment_details.bind(picked.duplicate(true)));explanation.name="CharacterItemDetails";explanation.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 		var discard=picked.get("discard",{})
 		var remove=ui.button(detail,"捨てる",confirm_discard.bind(owner,picked.duplicate(true)),busy or not discard.get("ok",false));remove.name="CharacterDiscard";remove.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;remove.tooltip_text=str(discard.get("reason",""))
@@ -107,7 +108,7 @@ func owned_comparison(detail,card,member,item,cancel:=Callable()):
 
 	var actions=ui.row(card);actions.alignment=BoxContainer.ALIGNMENT_END
 	ui.button(actions,"キャンセル",cancel if cancel.is_valid() else func():picked={};refresh(),busy).name="CharacterEquipCancel"
-	var equip=ui.green_button(ui.button(actions,"変更する",perform.bind(str(member.id),str(item.id),"equip",null,1,equip_slot),true))
+	var equip=ui.action_button(ui.button(actions,"変更する",perform.bind(str(member.id),str(item.id),"equip",null,1,equip_slot),true))
 	equip.size_flags_horizontal=Control.SIZE_SHRINK_END;equip.name="CharacterEquip";equip.tooltip_text=str(options[selector.selected].get("reason",""))
 	preview(columns,summary,member,item,equip)
 
@@ -118,6 +119,7 @@ func equipped_detail(parent,uid,item,disabled):
 	ui.pages.describe_gear(column,item.get("definition",item),true)
 	if item.get("type")!="empty" and not item.get("occupied",false):
 		var unequip=ui.button(column,"装備を外す",perform.bind(uid,str(item.id),"unequip",null,1,item.equipped_slot),disabled)
+		unequip.theme_type_variation=&"ActionButton"
 		unequip.name="UnequipItem"
 
 func select_equipped(item: Dictionary):
@@ -177,7 +179,7 @@ func drop(data,target):
 	if int(data.count)>1:
 		ui.dialog.open("個数",func(body,actions):
 			var count=SpinBox.new();count.min_value=1;count.max_value=int(data.count);count.value=int(data.count);body.add_child(count)
-			ui.local_button(actions,"OK",func():var amount=int(count.value);ui.dialog.close();commit_drop(data,target,amount))
+			ui.local_button(actions,"OK",func():var amount=int(count.value);ui.dialog.close();commit_drop(data,target,amount)).theme_type_variation=&"ActionButton"
 			ui.local_button(actions,"キャンセル",ui.dialog.close))
 	else:commit_drop(data,target,1)
 func commit_drop(data,target,count):
@@ -288,10 +290,11 @@ func open_portrait(member: Dictionary):
 			editor.size_flags_vertical=Control.SIZE_EXPAND_FILL
 			editor.setup(ui.portraits.image_for(member),entry.get("framing",{"zoom":1.0,"x":0.0,"y":0.0}))
 			editor.custom_minimum_size.y=680
-			ui.local_button(actions,"適用",func():
+			var apply=ui.local_button(actions,"適用",func():
 				if not ui.active_member(uid):return
 				var updated=entry.duplicate(true);updated.framing=editor.framing.duplicate(true)
-				ui.portraits.assign(uid,updated);ui.dialog.close();ui.render()).name="PortraitFramingApply"
+				ui.portraits.assign(uid,updated);ui.dialog.close();ui.render())
+			apply.name="PortraitFramingApply";apply.theme_type_variation=&"ActionButton"
 		else:
 			var picture=ui.portrait(body,member,false,200);picture.custom_minimum_size=Vector2(300,680);picture.size_flags_vertical=Control.SIZE_EXPAND_FILL
 		ui.local_button(actions,"画像変更",func():
@@ -322,8 +325,9 @@ func confirm_discard(uid: String,item: Dictionary):
 	ui.dialog.open("アイテムを捨てる",func(body,actions):
 		ui.label_(body,str(item.name))
 		var count=SpinBox.new();count.name="CharacterDiscardQuantity";count.min_value=1;count.max_value=int(item.count);count.value=1;body.add_child(count)
-		ui.local_button(actions,"捨てる",func():
+		var confirm=ui.local_button(actions,"捨てる",func():
 			var amount=int(count.value);ui.dialog.close()
 			if token!=ui.campaign().get("inventoryToken") or epoch!=ui.pages.epoch or connection!=ui.engine.connection_generation:toast("状態が変わりました。もう一度選んでください");return
-			perform(uid,str(item.id),"discard",null,amount,null)).name="CharacterDiscardConfirm"
+			perform(uid,str(item.id),"discard",null,amount,null))
+		confirm.name="CharacterDiscardConfirm";confirm.theme_type_variation=&"ActionButton"
 		ui.local_button(actions,"キャンセル",ui.dialog.close))

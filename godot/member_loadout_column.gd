@@ -78,7 +78,6 @@ func equipment(ui,member: Dictionary,selected_slot: String,prefix: String,choose
 		button.tooltip_text=str(slot.label)+" / "+str(item.name)
 		ui.mark_selected(button,selected_slot==slot.slot)
 		button.icon=ui.icons.texture(ui.icons.equipment(item))
-		if disabled:button.add_theme_color_override("icon_disabled_color",Color.WHITE)
 		button.expand_icon=true
 		button.add_theme_constant_override("icon_max_width",68)
 		if item.get("type")!="empty":preload("res://equipment_tooltip.gd").bind_details(button,ui,item)

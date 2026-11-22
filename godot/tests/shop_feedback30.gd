@@ -62,7 +62,7 @@ func run():
  await click("FacilityChoice_buy");await click("ShopExit");check(game.pages.facility_entry.at_top(),"repeated trading entry and exit returns safely")
  await click("FacilityExit");check(game.page=="hub","facility exit returns to town")
  seed.state.gold=0;await game.update({"op":"campaign_load","data":seed});await enter_facility("shop");shop.open_comparison("dagger-steel");await wait_quote()
- check(node("ShopComparisonBuy").disabled and node("ShopComparisonBuy").get_theme_stylebox("disabled").bg_color==Color("#e8e9e3") and not node("ShopComparisonBuy").tooltip_text.is_empty() and node("ShopComparisonPayment").text.contains("購入不可"),"insufficient funds disable purchase with visible reason and neutral disabled state")
+ check(node("ShopComparisonBuy").disabled and node("ShopComparisonBuy").get_theme_stylebox("disabled")==game.theme.get_stylebox("disabled","Button") and not node("ShopComparisonBuy").tooltip_text.is_empty() and node("ShopComparisonPayment").text.contains("購入不可"),"insufficient funds disable purchase with visible reason and neutral disabled state")
  check(game.audio.muted.values().all(func(v):return v),"audio3 OFF")
  game.dialog.close(false);game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames()
  var failed=checks.filter(func(c):return not c.passed);print("SHOP_FEEDBACK30 "+str(checks.size()-failed.size())+"/"+str(checks.size()));quit(1 if failed.size() else 0)

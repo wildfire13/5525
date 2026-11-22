@@ -63,7 +63,7 @@ func render_detail(parent,footer):
  amount=clampi(amount,1,int(item.count))
  var totals=shop.transaction_fields(footer,false,int(item.get("sale",{}).get("price",0)),amount,int(item.count),func(value):amount=int(value);quote={};generation+=1;request_quote())
  if not message.is_empty():totals.text=message
- var button=ui.green_button(ui.button(footer,"買取明細へ",confirm_sale,not item.get("sale",{}).get("ok",false) or busy()));button.name="FacilitySalePrepare";button.size_flags_horizontal=Control.SIZE_SHRINK_END
+ var button=ui.action_button(ui.button(footer,"買取明細へ",confirm_sale,not item.get("sale",{}).get("ok",false) or busy()));button.name="FacilitySalePrepare";button.size_flags_horizontal=Control.SIZE_SHRINK_END
  button.tooltip_text=str(item.get("sale",{}).get("reason",""))
  if not quote.is_empty():show_quote(totals)
  elif not busy() and not previewing:request_quote()

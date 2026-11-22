@@ -35,6 +35,12 @@ func content(message_region: String="") -> VBoxContainer:
 	return contents
 
 func _ready():
+	if theme==null:
+		var theme_owner: Node=get_parent()
+		while theme_owner!=null:
+			if (theme_owner is Control or theme_owner is Window) and theme_owner.theme!=null:
+				theme=theme_owner.theme;break
+			theme_owner=theme_owner.get_parent()
 	# AcceptDialog includes even its hidden label in the minimum size.
 	get_label().top_level=true
 	var style=get_theme_stylebox("panel").duplicate()

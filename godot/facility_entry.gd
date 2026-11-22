@@ -85,7 +85,7 @@ func render_top(parent: Control,page: String) -> bool:
   choices.append(["納品する","delivery",handoff and pages.c().get("cargoAboard",false)])
  for choice in choices:
   var button=ui.button(options,choice[0],choose.bind(choice[1]),not choice[2]);button.name="FacilityChoice_"+str(choice[1]);button.custom_minimum_size=Vector2(300,64);
-  if choice[2]:ui.green_button(button)
+  button.theme_type_variation=&"ActionButton"
   button.custom_minimum_size=Vector2(cell.x*2,cell.y)
   button.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
   ui.memory.key(button,"facility_"+str(choice[1]))

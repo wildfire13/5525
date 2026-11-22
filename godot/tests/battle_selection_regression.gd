@@ -1,17 +1,12 @@
 extends "res://tests/skill_grant_hud.gd"
-const SELECTED_BG=Color("#dfe8dc")
-const SELECTED_HOVER=Color("#d2e0d3")
-const SELECTED_BORDER=Color("#345c4e")
-func selected_palette(style):
- var flat=style as StyleBoxFlat
- return flat!=null and flat.bg_color.is_equal_approx(SELECTED_BG) and flat.border_color.is_equal_approx(SELECTED_BORDER) and flat.border_width_left==2 and flat.border_width_top==2 and flat.border_width_right==2 and flat.border_width_bottom==2
 func selected_palette_all(control):
- var hover=control.get_theme_stylebox("hover") as StyleBoxFlat
- return selected_palette(control.get_theme_stylebox("normal")) and selected_palette(control.get_theme_stylebox("pressed")) and hover!=null and hover.bg_color.is_equal_approx(SELECTED_HOVER)
+ for state_name in ["normal","hover","pressed","disabled"]:
+  if control.get_theme_stylebox(state_name)!=game.campaign_theme.get_stylebox(state_name,"SelectedButton"):return false
+ return true
 func selected_button(control):
- return control!=null and control.get_meta("selected",false) and not control.text.begins_with("● ") and selected_palette(control.get_theme_stylebox("normal"))
+ return control!=null and control.get_meta("selected",false) and not control.text.begins_with("● ") and control.theme_type_variation==&"SelectedButton"
 func unselected_button(control):
- return control!=null and not control.get_meta("selected",false) and not control.has_theme_stylebox_override("normal") and not control.has_theme_stylebox_override("hover") and not control.has_theme_stylebox_override("pressed")
+ return control!=null and not control.get_meta("selected",false) and control.theme_type_variation==&""
 func contrast_ratio(a: Color,b: Color) -> float:
  var a_luma=a.srgb_to_linear().get_luminance()
  var b_luma=b.srgb_to_linear().get_luminance()

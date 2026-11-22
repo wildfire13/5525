@@ -148,15 +148,15 @@ func render_detail(parent,q: Dictionary,active: bool):
 		if m.get("canWait",false):
 			ui.primary(pages.b(actions,meeting.wait_label(q),meeting.open_wait)).name="WaitForMerchant"
 		elif not m.is_empty() and (m.get("canDeliver",false) or m.get("canSettleFailure",false)):
-			ui.primary(pages.b(actions,"拠点で期限切れを確認" if m.get("canSettleFailure",false) else "拠点で受け渡しを確認",ui.navigate.bind("hub")))
+			pages.b(actions,"拠点で期限切れを確認" if m.get("canSettleFailure",false) else "拠点で受け渡しを確認",ui.navigate.bind("hub"))
 		elif pages.c().location==q.to and q.get("eventId")!="wheel":
 			if not pages.c().get("cargoAboard",false):pages.l(details,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
 			var label="拠点で荷物を届ける" if facility.is_empty() else str(facility[0])+"で納品する"
-			ui.primary(pages.b(actions,label,ui.navigate.bind("hub" if facility.is_empty() else facility[1])))
+			pages.b(actions,label,ui.navigate.bind("hub" if facility.is_empty() else facility[1]))
 		else:pages.b(actions,"届け先を確認",ui.navigate.bind("map"))
 
 	else:
-		var accept=ui.green_button(pages.b(actions,"この依頼を引き受ける",open_picker.bind(str(q.id)),not pages.c().get("hasPorter",false)));accept.name="QuestAccept";accept.size_flags_horizontal=Control.SIZE_SHRINK_END;accept.custom_minimum_size.x=280
+		var accept=ui.action_button(pages.b(actions,"この依頼を引き受ける",open_picker.bind(str(q.id)),not pages.c().get("hasPorter",false)));accept.name="QuestAccept";accept.size_flags_horizontal=Control.SIZE_SHRINK_END;accept.custom_minimum_size.x=280
 		if not pages.c().get("hasPorter",false):pages.l(details,"受注には編成中のポーターが必要です。")
 	for button in actions.get_children():button.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 

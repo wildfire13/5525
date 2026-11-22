@@ -25,13 +25,62 @@ func content_height() -> float:
 	return ui.size.y-grid_cell().y*2
 func grid_cell() -> Vector2:
 	return Grid.cell_rect(ui.size,0,0,1,1).size
+# Variations share resources across both scene themes. A disabled action always
+# uses the same neutral appearance, even if it was previously selected.
+static func apply_button_theme(target: Theme):
+	var disabled=style(Color("#e4e6e1"))
+	var focus=style(Color.TRANSPARENT)
+	focus.border_color=Color("#397794");focus.set_border_width_all(2)
+	var colors={
+		&"Button":[PAPER,Color("#e0e8dd"),Color("#c6d6c9")],
+		&"ActionButton":[Color("#236044"),Color("#2f7652"),Color("#194a34")],
+		&"SelectedButton":[Color("#dfe8dc"),Color("#d2e0d3"),Color("#b7cebf")],
+		&"DestinationButton":[Color("#fff0ba"),Color("#f7e293"),Color("#e8cb79")],
+	}
+	for role in colors:
+		var types=[role]
+		if role==&"Button":types.append_array([&"OptionButton",&"CheckButton",&"CheckBox",&"MenuButton"])
+		else:target.set_type_variation(role,&"Button")
+		var ink=Color.WHITE if role==&"ActionButton" else INK
+		for type in types:
+			target.set_stylebox("focus",type,focus)
+			target.set_stylebox("disabled",type,disabled)
+			target.set_color("font_disabled_color",type,MUTED_INK)
+			for key in ["font_color","font_focus_color","font_hover_color","font_pressed_color","font_hover_pressed_color"]:
+				target.set_color(key,type,ink)
+		for i in 3:
+			var state=["normal","hover","pressed"][i]
+			var box=style(colors[role][i])
+			if role==&"SelectedButton":
+				box.border_color=GREEN;box.set_border_width_all(2)
+			for type in types:
+				target.set_stylebox(state,type,box)
+				if state=="pressed":target.set_stylebox("hover_pressed",type,box)
+	for type in [&"TabBar",&"TabContainer"]:
+		for pair in [["tab_unselected","normal"],["tab_hovered","hover"],["tab_disabled","disabled"]]:
+			target.set_stylebox(pair[0],type,target.get_stylebox(pair[1],&"Button"))
+		target.set_stylebox("tab_selected",type,target.get_stylebox("normal",&"SelectedButton"))
+		target.set_stylebox("tab_focus",type,focus)
+		for key in ["font_selected_color","font_unselected_color","font_hovered_color"]:
+			target.set_color(key,type,INK)
+		target.set_color("font_disabled_color",type,MUTED_INK)
+	target.set_type_variation(&"DisabledButtonText",&"Label")
+	target.set_color("font_color",&"DisabledButtonText",MUTED_INK)
+
+# A Button only paints its own text. Inventory rows and map pins also contain Labels.
+static func bind_button_text(button: Button,content: Control):
+	button.draw.connect(func():
+		var role=(&"DisabledButtonText" if button.disabled else &"")
+		if content.get_meta("button_text_role",&"")==role:return
+		content.set_meta("button_text_role",role)
+		for label in content.find_children("*","Label",true,false):
+			label.theme_type_variation=role)
+
 func apply_theme():
 	ui.theme.default_font_size=20
-	for kind in ["Label","Button","OptionButton","CheckButton","RichTextLabel","TabBar","LineEdit","SpinBox"]:
+	for kind in ["Label","RichTextLabel","LineEdit","SpinBox"]:
 		for key in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:ui.theme.set_color(key,kind,INK)
 		ui.theme.set_color("font_disabled_color",kind,MUTED_INK)
-	for kind in ["Button","OptionButton"]:
-		for state in ["normal","hover","pressed","disabled"]:ui.theme.set_stylebox(state,kind,style(Color("#e0e8dd") if state in ["hover","pressed"] else PAPER))
 	ui.theme.set_stylebox("panel","PanelContainer",surface_style())
 	ui.theme.set_stylebox("panel","AcceptDialog",style())
 	ui.theme.set_stylebox("read_only","TextEdit",style())
@@ -43,9 +92,6 @@ func apply_theme():
 	ui.theme.set_constant("title_height","Window",ui.preferences.TITLE_HEIGHT)
 	ui.theme.set_color("title_color","Window",PAPER)
 	ui.theme.set_stylebox("panel","TabContainer",surface_style(PAPER,true))
-	for state in ["tab_selected","tab_unselected","tab_hovered","tab_disabled"]:
-		ui.theme.set_stylebox(state,"TabContainer",style(Color("#e0e8dd") if state=="tab_selected" else PAPER))
-	for key in ["font_selected_color","font_unselected_color","font_hovered_color","font_focus_color"]:ui.theme.set_color(key,"TabContainer",INK)
 var character_origin := "hub"
 
 func toggle_character():
@@ -183,6 +229,7 @@ func roster(parent,deployment=null):
 func roster_member_line(button: Button,u: Dictionary) -> HBoxContainer:
 	button.custom_minimum_size.y=88
 	var line=HBoxContainer.new();button.add_child(line);line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);line.offset_left=6;line.offset_top=6;line.offset_right=-6;line.offset_bottom=-6;line.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	bind_button_text(button,line)
 	var portrait=ui.portrait(line,u,false,32);portrait.custom_minimum_size=Vector2(40,72);portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var info=VBoxContainer.new();info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.mouse_filter=Control.MOUSE_FILTER_IGNORE;info.name="MemberInfo";line.add_child(info)
 	var name=ui.label_(info,str(u.name));name.add_theme_font_size_override("font_size",18);name.autowrap_mode=TextServer.AUTOWRAP_OFF;name.clip_text=true

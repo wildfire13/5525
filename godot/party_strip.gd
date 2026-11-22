@@ -36,8 +36,8 @@ func build(owner):
 		control.custom_minimum_size=Vector2(96 if standard else 86,custom_minimum_size.y-18);control.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;control.size_flags_vertical=Control.SIZE_EXPAND_FILL
 		control.icon=ui.portraits.texture(member,true);control.expand_icon=true;control.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER;control.vertical_icon_alignment=VERTICAL_ALIGNMENT_TOP;control.add_theme_constant_override("icon_max_width",46 if standard else 32);control.clip_text=true
 		control.tooltip_text=str(member.name)+(" / 戦闘不能" if member.hp<=0 else "")+"\nHP%d/%d MP%d/%d" % [member.hp,member.max,member.mp,member.maxMp]+" / ステータスを開く"
-		if (ui.pages.shop_view.sale_mode() and str(id)==ui.pages.shop_view.selected_owner()) or (ui.pages.warehouse_view.available() and str(id)==ui.pages.warehouse_view.owner_id):view.tint(control,Color("#243c68"))
-		elif ui.pages.guild_view.available() and str(id)==ui.pages.guild_view.chosen_id:view.tint(control,Color("#236044"))
+		if (ui.pages.shop_view.sale_mode() and str(id)==ui.pages.shop_view.selected_owner()) or (ui.pages.warehouse_view.available() and str(id)==ui.pages.warehouse_view.owner_id):ui.mark_selected(control,true)
+		elif ui.pages.guild_view.available() and str(id)==ui.pages.guild_view.chosen_id:ui.mark_selected(control,true)
 		ui.memory.key(control,"face_"+str(id));ui.memory.item(control,str(id))
 	if guild_drag():
 		var slot=Button.new();slot.name="GuildPartyAppend";slot.text="満員" if ui.campaign().get("selected",[]).size()>=ui.pages.guild_view.party_limit() else "＋";slot.custom_minimum_size=Vector2(72,custom_minimum_size.y-18);slot.tooltip_text="控えをここへドラッグして末尾に追加";members.add_child(slot);slot.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data),func(_at,data):drop(data))

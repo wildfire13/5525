@@ -10,8 +10,8 @@ func run():
 	seed.state.characters["character_mirei"].inventory["sword-wood"]=1
 	await game.update({"op":"campaign_load","data":seed});game.navigate("map");await settle()
 	var map=node("TownMap");var current=map.buttons[map.current]
-	check(current.disabled and current.get_theme_stylebox("disabled").bg_color==Color("#345c4e") and current.get_node("TownContents").get_child(2).text=="出発地","map current town remains disabled with distinct paper-palette fill and origin label")
-	check(current.get_theme_stylebox("disabled")==current.get_theme_stylebox("normal") and current.get_theme_stylebox("pressed")==current.get_theme_stylebox("normal"),"map pressed/disabled styles preserve icon positions and appearance")
+	check(current.disabled and current.get_theme_stylebox("disabled")==game.theme.get_stylebox("disabled","Button") and current.get_node("TownContents").get_child(2).text=="出発地","map current town remains disabled with distinct paper-palette fill and origin label")
+	check(current.get_theme_stylebox("disabled").get_minimum_size()==current.get_theme_stylebox("normal").get_minimum_size() and current.get_theme_stylebox("pressed").get_minimum_size()==current.get_theme_stylebox("normal").get_minimum_size(),"map pressed/disabled styles preserve icon positions")
 	check(map.buttons.values().all(func(b):return b.text.is_empty() and b.find_children("Icon_*","TextureRect",true,false).size()>=2),"town content uses place plus facility icons")
 	check(not game.find_children("*","Label",true,false).any(func(n):return n.text.contains("武器はイース")),"redundant shop location sentence removed")
 	check(map.route_events.is_empty() and map.event_markers.is_empty(),"undisclosed route events do not invent battle markers")

@@ -26,7 +26,7 @@ func open(q: Dictionary,on_accept:=Callable(),on_close:=Callable(),requester: Te
 	board_portrait=requester
 	quest=q.duplicate(true);lines=quest.get("story",[]).duplicate(true);index=0;shown=0;elapsed=0.0;accept_callback=on_accept;close_callback=on_close;_closed=false
 	layer=1800;name="QuestDialogue";process_mode=Node.PROCESS_MODE_ALWAYS
-	var root=Control.new();root.name="DialogueScreen";root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(root)
+	var root=Control.new();root.theme=ui.theme;root.name="DialogueScreen";root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(root)
 	if not str(quest.get("sceneLabel","")).is_empty():
 		var caption=Label.new();caption.name="QuestSceneLabel";caption.text=str(quest.sceneLabel);caption.position=Vector2(48,24);caption.add_theme_font_size_override("font_size",22);caption.add_theme_color_override("font_color",Color("#f3eee3"));caption.add_theme_stylebox_override("normal",_style(Color("#111820"),Color("#9da7b0"),1,8));root.add_child(caption)
 	var tint=ColorRect.new();tint.color=Color(0.025,0.035,0.05,0.2);tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);tint.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(tint)
@@ -105,7 +105,7 @@ func _finish():
 		var accept=Button.new();accept.name="QuestStoryAccept";accept.text="引き受ける";accept.custom_minimum_size=Vector2(180,46);accept.pressed.connect(func():var cb=accept_callback;_close();cb.call());choice_row.add_child(accept);ui.primary(accept);accept.grab_focus()
 		var decline=Button.new();decline.name="QuestStoryDecline";decline.text="今は引き受けない";decline.custom_minimum_size=Vector2(200,46);decline.pressed.connect(_close);choice_row.add_child(decline)
 	else:
-		var close=Button.new();close.name="QuestStoryClose";close.text="閉じる";close.custom_minimum_size=Vector2(160,46);close.pressed.connect(_close);choice_row.add_child(close);ui.primary(close);close.grab_focus()
+		var close=Button.new();close.name="QuestStoryClose";close.text="閉じる";close.custom_minimum_size=Vector2(160,46);close.pressed.connect(_close);choice_row.add_child(close);close.grab_focus()
 	_layout()
 func _close():
 	if _closed:return

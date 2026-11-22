@@ -21,7 +21,7 @@ const MUTED=preload("res://mock_shell.gd").MUTED_INK
 func _init(frontend=null):ui=frontend
 func _ready():
  layer=1500;name="ResultsView"
- shade=Control.new();shade.name="ResultsBlocker";shade.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ shade=Control.new();shade.theme=ui.theme;shade.name="ResultsBlocker";shade.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  var bg=ColorRect.new();bg.name="ResultBackground";bg.color=Color("#eeede7");bg.mouse_filter=Control.MOUSE_FILTER_IGNORE;shade.add_child(bg);bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  panel=Panel.new();panel.theme=ui.theme;panel.name="ResultsPanel";panel.clip_contents=true;panel.add_theme_stylebox_override("panel",style(Color("#faf9f5"),Color("#cbd0c7"),24));shade.add_child(panel)
  ui.resized.connect(_layout);shade.hide()
@@ -76,7 +76,7 @@ func reopen():
  if active or recent.is_empty() or ui.locked or ui.presenting or ui.loading_screen.active or ui.campaign().get("phase") in ["battle","deployment"] or ui.data.get("trial")!=null:return
  _replaying=true;_open(recent[-1].duplicate(true))
 func _open(receipt: Dictionary):
- sequence+=1;current=receipt;active=true;panel.theme=ui.theme
+ sequence+=1;current=receipt;active=true;shade.theme=ui.theme;panel.theme=ui.theme
  ui.menu.hide()
  if is_instance_valid(ui.dialog.window):ui.dialog.close()
  for window in ui.find_children("*","Window",true,false):window.hide()
@@ -143,12 +143,12 @@ func _build():
  for row in current.members:_member_card(details,row,compact)
  if current.restored:_label(members,"保存済みの結果です。成長前の値は記録されていません。",14,MUTED)
  var actions=HBoxContainer.new();actions.name="ResultActions";actions.add_theme_constant_override("separation",16);body.add_child(actions)
- save_button=Button.new();save_button.name="ResultSave";save_button.text="セーブ";save_button.custom_minimum_size=Vector2(140,46);save_button.pressed.connect(func():if active and not ui.locked:ui.save_game());actions.add_child(save_button)
+ save_button=Button.new();save_button.theme_type_variation=&"ActionButton";save_button.name="ResultSave";save_button.text="セーブ";save_button.custom_minimum_size=Vector2(140,46);save_button.pressed.connect(func():if active and not ui.locked:ui.save_game());actions.add_child(save_button)
  if current.kind=="quest" and not _replaying and str(current.location) in ["east","west","south","north"]:
   var shortcut=Button.new();shortcut.name="ResultShop";shortcut.text=ui.town_name(current.location)+"の"+{"east":"武器店","west":"防具店","south":"道具店","north":"装飾品店"}[str(current.location)]+"へ";shortcut.custom_minimum_size=Vector2(180,46);actions.add_child(shortcut)
   var shortcut_owner=sequence;shortcut.pressed.connect(func():if active and sequence==shortcut_owner:advance_to("shop"))
  var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(spacer)
- continue_button=Button.new();continue_button.name="ResultContinue";continue_button.text="OK";continue_button.custom_minimum_size=Vector2(220,46);ui.green_button(continue_button);actions.add_child(continue_button)
+ continue_button=Button.new();continue_button.name="ResultContinue";continue_button.text="OK";continue_button.custom_minimum_size=Vector2(220,46);ui.action_button(continue_button);actions.add_child(continue_button)
  if current.get("storyId")!="sluice-bell" and current.get("story",[]) is Array and not current.get("story",[]).is_empty():
   var scene=Button.new();scene.name="ResultStory";scene.text="会話を見る";scene.custom_minimum_size=Vector2(160,46);actions.add_child(scene);scene.pressed.connect(func():if active:ui.pages.quest_board.play_scene(current.story,str(current.get("portrait","")),current.get("cast",[]),str(current.get("scenario",""))))
  var owner=sequence;continue_button.pressed.connect(func():if active and sequence==owner:advance())

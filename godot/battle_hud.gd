@@ -331,19 +331,24 @@ func render_queue():
 			var space=Control.new();space.custom_minimum_size.x=QUEUE_CARD_WIDTH;space.mouse_filter=Control.MOUSE_FILTER_IGNORE;band.add_child(space);continue
 		var u=entries[index].unit
 		var panel=PanelContainer.new();panel.custom_minimum_size.x=QUEUE_CARD_WIDTH;panel.name="TurnCard_"+str(index);panel.set_meta("unit_id",u.id);panel.mouse_filter=Control.MOUSE_FILTER_IGNORE;band.add_child(panel)
-		var style=StyleBoxFlat.new();style.bg_color=Color("#e0e8dd") if u.side=="ally" else Color("#f0deda");style.set_content_margin_all(2);style.set_corner_radius_all(4)
-		if index==0:style.set_border_width_all(1);style.border_color=Color("#345c4e")
-		panel.add_theme_stylebox_override("panel",style);panel.tooltip_text=str(u.name)+(" / "+str(entries[index].label) if not entries[index].label.is_empty() else "")
-		var row=ui.row(panel);ui.portrait(row,u,true,32 if ui.ui_size_mode=="standard" else 24)
-		var label=l(row,("● " if index==0 else "")+str(u.name));label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size=Vector2(132,24);label.clip_text=true;label.max_lines_visible=1;label.tooltip_text=str(u.name)
+		panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
+		panel.tooltip_text=str(u.name)+(" / "+str(entries[index].label) if not entries[index].label.is_empty() else "")
 		var inspect=Button.new()
 		inspect.name="InspectTurnMember"
-		inspect.flat=true
 		inspect.set_meta("read_only",true)
 		inspect.tooltip_text=str(u.name)+"の装備とインベントリ"
 		inspect.accessibility_name=inspect.tooltip_text
 		inspect.pressed.connect(open_equipment_sheet.bind(str(u.id)))
 		panel.add_child(inspect)
+		ui.mark_selected(inspect,index==0)
+		var row=ui.row(panel);row.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		ui.mock_shell.bind_button_text(inspect,row)
+		# Faction color belongs to the portrait; the whole card is an inspect button.
+		var badge=PanelContainer.new();badge.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(badge)
+		var badge_style=StyleBoxFlat.new();badge_style.bg_color=Color("#e0e8dd") if u.side=="ally" else Color("#f0deda")
+		badge.add_theme_stylebox_override("panel",badge_style)
+		ui.portrait(badge,u,true,32 if ui.ui_size_mode=="standard" else 24).mouse_filter=Control.MOUSE_FILTER_IGNORE
+		var label=l(row,("● " if index==0 else "")+str(u.name));label.mouse_filter=Control.MOUSE_FILTER_IGNORE;label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size=Vector2(132,24);label.clip_text=true;label.max_lines_visible=1;label.tooltip_text=str(u.name)
 	var all_=local(line,"順番詳細",open_order_details);all_.name="BattleOrderDetails";all_.custom_minimum_size=Vector2(QUEUE_CARD_WIDTH,40);all_.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
 	var history=local(line,"戦闘履歴",open_history);history.name="BattleHistory";history.custom_minimum_size=Vector2(QUEUE_CARD_WIDTH,40);history.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 	if presenting and str(ui.data.presentation.get("action_id",""))==shifted_action:queue_scroll.set_deferred("scroll_horizontal",queue_distance)
@@ -366,7 +371,7 @@ func render_bottom_commands():
 		control.add_theme_constant_override("h_separation",8)
 		ui.mark_selected(control,selected)
 		if pair[0]=="items" and not ui.data.get("itemUseInfo") is Dictionary:
-			control.modulate=Color(0.55,0.55,0.55);control.tooltip_text="拳の効果がないため使用できません。クリックで説明"
+			control.tooltip_text="拳の効果がないため使用できません。クリックで説明"
 		if pair[0]=="action_skill" and expanded_menu=="action_skill" and ui.command in ["action_skill","action_return"] and not action_menu:render_skills(bottom_commands)
 		if pair[0]=="items" and expanded_menu=="items" and ui.command in ["items","action_item","action_ether"] and not action_menu:render_items()
 func choose_command(kind: String):
@@ -477,7 +482,7 @@ func render_target():
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
 	if stage=="B2":ui.memory.key(b(ui.battle_actions,"仮位置の射程参考",open_range_reference),"range_reference")
 	if stage in ["B2","B4"] or ui.can_commit():
-		ui.memory.key(ui.green_button(b(ui.battle_actions,"実行",ui.commit,not ui.can_commit())),"battle_commit")
+		ui.memory.key(ui.action_button(b(ui.battle_actions,"実行",ui.commit,not ui.can_commit())),"battle_commit")
 	ui.memory.key(b(ui.battle_actions,"キャンセル",ui.cancel),"battle_cancel")
 func render_move(main):
 	if not ui.preview_ready or ui.pending==null:return
@@ -682,7 +687,7 @@ func render_deployment():
 	var job=ui.campaign().get("activeQuest")
 	if not (job is Dictionary and job.get("id")=="sluice-bell"):
 		b(deployment_actions,"撤退",func():ui.confirm("戦闘から撤退しますか？",ui.act.bind("retreat",[]))).name="DeploymentRetreat"
-	ui.green_button(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true))).name="DeploymentBegin"
+	ui.action_button(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true))).name="DeploymentBegin"
 func deployment_changed() -> bool:
 	for initial in ui.state().get("deploymentInitial",[]):
 		if unit(initial.id).get("pos")!=initial.pos:return true
@@ -694,7 +699,7 @@ func reset_deployment():
 	else:ui.act("deployment_reset",[])
 func render_result():
 	l(target_box,"木人の結果" if ui.data.get("trial") is Dictionary else "戦闘結果",true);l(target_box,str(ui.state().result))
-	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";ui.green_button(b(ui.battle_actions,"戦闘を終えて街道へ",ui.act.bind("finishBattle",[]),ui.data.get("trial")!=null))
+	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";ui.action_button(b(ui.battle_actions,"戦闘を終えて街道へ",ui.act.bind("finishBattle",[]),ui.data.get("trial")!=null))
 func open_equipment_sheet(uid: String):
 	if ui.modal_open() or not live_board():return
 	var origin=ui.board

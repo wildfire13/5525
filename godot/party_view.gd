@@ -42,7 +42,7 @@ func growth(parent,u: Dictionary):
 		ui.memory.key(b(row,"＋1",change_draft.bind(u,stat,1),not editable or remaining<=0),"allocate_"+stat)
 		ui.memory.key(b(row,"−1",change_draft.bind(u,stat,-1),not editable or draft[stat]<=0),"allocate_minus_"+stat)
 	var confirm=b(parent,"確定",confirm_allocation.bind(u),not editable or draft_total()==0);confirm.name="AllocationConfirm";confirm.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;confirm.custom_minimum_size.x=180;ui.memory.key(confirm,"allocation_confirm")
-	if draft_total()>0:tint(confirm,Color("#236044"))
+	confirm.theme_type_variation=&"ActionButton"
 	if not editable:l(parent,"控えは編成してから操作できます。" if not ui.active_member(str(u.id)) else "成長の配分は町にいる時だけ編集できます。" if pages.c().get("phase")!="town" else "確定結果を確認しています。")
 	l(parent,pages.stats_text(stats,str(u.id)));l(parent,"Wt上限はSTR。戦闘終了後、生存者が戦闘不能者の装備と荷物の重量を分担します。SPD（行動速度）はAGIと装備補正から算出します。")
 	pages.elemental_combat_line(parent,stats)
@@ -89,6 +89,7 @@ func change_draft(u: Dictionary,stat: String,amount: int):
 func point_help():
 	var dialog=ui.confirm("レベルアップで獲得し、STR・INT・AGIに配分できる未使用ポイントです。\n確定前の＋／−だけを調整できます。",func():pass)
 	dialog.ok_button_text="閉じる";dialog.get_cancel_button().hide();dialog.get_ok_button().grab_focus()
+	dialog.get_ok_button().theme_type_variation=&""
 func confirm_allocation(u: Dictionary):
 	if ui.locked or committing or draft_total()<=0 or pages.c().get("phase")!="town" or not ui.active_member(str(u.id)):return
 	var delta=draft.duplicate(true);var token=draft_token;var uid=str(u.id)
@@ -118,8 +119,3 @@ func open_inventory(uid: String):
 	if not guard_leave(open_inventory.bind(uid)):return
 	pages.party_uid=uid
 	open_camp_inventory()
-func tint(control: Button,color: Color):
-	for state_ in ["normal","hover","pressed"]:
-		var style=control.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
-		style.bg_color=color.lightened(.12) if state_=="hover" else color
-		control.add_theme_stylebox_override(state_,style)

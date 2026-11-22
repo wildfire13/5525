@@ -95,7 +95,7 @@ func render(parent):
 		for text in [str(u.name),str(u.get("role",""))+" · Lv."+str(int(u.get("level",1))),"HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]]:
 			var label=l(copy,text);label.add_theme_font_size_override("font_size",18);label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.clip_text=true;label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	if reserves.is_empty():l(body,"この職業の控えはいません")
-	var add=b(reserve,"編成に加える",func():prepare("add","",chosen_id),busy() or candidate("add","",chosen_id).is_empty());add.name="GuildAdd";add.custom_minimum_size.y=44;ui.green_button(add)
+	var add=b(reserve,"編成に加える",func():prepare("add","",chosen_id),busy() or candidate("add","",chosen_id).is_empty());add.name="GuildAdd";add.custom_minimum_size.y=44;ui.action_button(add)
 	update_remove_button();ui.mock_shell.refresh_roster_selection()
 func select_tab(index: int):
 	if detail_tab==index:return
@@ -143,7 +143,7 @@ func build_comparison(center):
 	var notice_label=l(footer,notice);notice_label.name="GuildNotice";notice_label.add_theme_font_size_override("font_size",18)
 	b(footer,"戻る",pages.facility_entry.back,busy()).name="GuildReturn"
 func remove_button(parent):
-	var remove=b(parent,"パーティから外す",func():prepare("remove",current_id,""));remove.name="GuildRemove";ui.green_button(remove)
+	var remove=b(parent,"パーティから外す",func():prepare("remove",current_id,""));remove.name="GuildRemove";ui.action_button(remove)
 	remove.custom_minimum_size.y=44
 func update_remove_button():
 	var button=ui.content.find_child("GuildRemove",true,false)

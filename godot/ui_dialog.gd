@@ -21,7 +21,7 @@ func open(title: String, builder: Callable, closed: Callable=Callable(),_initial
 	escape_handler=Callable()
 	ui.memory.capture();checkpoint=ui.memory.scrolls.duplicate(true);origin=ui.memory.focus_key
 	epoch=ui.pages.epoch;connection=ui.engine.connection_generation;restore_callback=closed
-	window=Window.new();window.name="StateDetails";window.title=title;window.exclusive=true;window.transient=true
+	window=Window.new();window.theme=ui.theme;window.name="StateDetails";window.title=title;window.exclusive=true;window.transient=true
 	ui.add_child(window)
 	var margin=preload("res://modal_input.gd").new();margin.owner_ref=weakref(self);window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,0)

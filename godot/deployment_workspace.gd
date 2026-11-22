@@ -8,8 +8,6 @@ var last_selected=""
 const Grid=preload("res://screen_grid.gd")
 const Shell=preload("res://mock_shell.gd")
 var panel_style=Shell.surface_style()
-var button_style=Shell.style()
-var highlighted_style=Shell.style(Color("#e0e8dd"))
 var normal_panel_style
 func restore():
  if normal_panel_style!=null:hud.right_panel.add_theme_stylebox_override("panel",normal_panel_style)
@@ -61,14 +59,11 @@ func render():
  if reserves.is_empty():label(reserve_area,"控えはいません")
  for member in reserves:
   var card=ui.button(reserve_area,str(member.name),ui.mock_shell.activate.bind(str(member.id)));card.alignment=HORIZONTAL_ALIGNMENT_LEFT;card.icon=ui.portraits.texture(member,true);card.expand_icon=true;card.add_theme_constant_override("icon_max_width",40);card.custom_minimum_size.y=56;card.tooltip_text="味方のマスへドラッグして配置"
+  ui.mark_selected(card,ui.selected==str(member.id))
   card.set_drag_forwarding(func(_at):var data=Drag.make_payload(ui,str(member.id),"party");if data!=null:card.set_drag_preview(Drag.preview(ui,str(member.id)));return data,Callable(),Callable())
  for member in ui.roster():
   if deployed.has(member.id) and member.hp<=0:ui.button(reserve_area,str(member.name)+"を控えに戻す",ui.deployment_assigned.bind(str(member.id),null))
- for box in [hud.right_panel,hud.deployment_options,hud.deployment_actions]:
-  for button in box.find_children("*","Button",true,false):
-   if box==hud.deployment_actions:button.custom_minimum_size=Vector2(156,56);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-   if button.name=="DeploymentBegin":continue
-   for state in ["normal","hover","pressed","disabled"]:button.add_theme_stylebox_override(state,highlighted_style if state in ["hover","pressed"] else button_style)
-   for color in ["font_color","font_hover_color","font_pressed_color"]:button.add_theme_color_override(color,Color("#293b33"))
+ for button in hud.deployment_actions.find_children("*","Button",true,false):
+  button.custom_minimum_size=Vector2(156,56);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  for child in hud.deployment_options.find_children("*","Label",true,false):child.add_theme_color_override("font_color",Color("#293b33"))
  layout()

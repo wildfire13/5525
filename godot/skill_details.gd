@@ -10,7 +10,7 @@ var context_stamp := ""
 const Layout=preload("res://window_grid.gd")
 func stamp() -> String:return JSON.stringify([ui.page,ui.state().get("actor"),ui.state().get("actions"),ui.pages.party_uid,ui.campaign().get("inventoryToken")])
 func configure(frontend,doc: Dictionary,context: String,note: String="",flavor: String=""):
- ui=frontend;epoch=ui.pages.epoch;connection=ui.engine.connection_generation;context_stamp=stamp()
+ ui=frontend;theme=ui.theme;epoch=ui.pages.epoch;connection=ui.engine.connection_generation;context_stamp=stamp()
  name="SkillDetailsWindow";title=doc.get("window_title","スキルの説明");exclusive=true;transient=true
  origin=get_parent().gui_get_focus_owner() if get_parent() is Window else ui.get_viewport().gui_get_focus_owner()
  host_ref=weakref(get_parent())

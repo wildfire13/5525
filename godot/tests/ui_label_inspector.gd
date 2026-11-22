@@ -60,6 +60,19 @@ func page(id: String):
 	game.navigate(id)
 	await settle()
 
+func palette_error(button: Button) -> String:
+	var role=button.theme_type_variation
+	if role in [&"",&"FlatButton",&"FlatMenuButton"]:role=&"Button"
+	for state in ["normal","hover","pressed","disabled","hover_pressed"]:
+		var actual=button.get_theme_stylebox(state)
+		var expected=game.campaign_theme.get_stylebox(state,role)
+		if not actual is StyleBoxFlat or not expected is StyleBoxFlat or actual.bg_color!=expected.bg_color or actual.border_color!=expected.border_color:
+			return "%s (%s, %s) %s background" % [button.get_path(),role,actual.get_class(),state]
+	for key in ["font_color","font_hover_color","font_pressed_color","font_disabled_color","font_hover_pressed_color"]:
+		if button.get_theme_color(key)!=game.campaign_theme.get_color(key,role):
+			return str(button.get_path())+" "+key
+	return ""
+
 func check_owners(id: String, window: Window, scopes: Dictionary):
 	var scene=window
 	if window is FileDialog:scene=window.get_vbox()
@@ -70,6 +83,7 @@ func check_owners(id: String, window: Window, scopes: Dictionary):
 	var panels=[]
 	var missing=[]
 	var examined=0
+	var palette_errors=[]
 	for node in scene.find_children("*","Control",true,false):
 		if node.get_window()!=window or not node.is_visible_in_tree() or node.is_queued_for_deletion():continue
 		if node.name==&"UiRegionLabels" or node is Label and node.text.is_empty():continue
@@ -77,6 +91,9 @@ func check_owners(id: String, window: Window, scopes: Dictionary):
 		var rect=inspector.visible_box(node,window.get_visible_rect())
 		if not rect.has_area():continue
 		examined+=1
+		if node is Button:
+			var error=palette_error(node)
+			if not error.is_empty():palette_errors.append(error)
 		var owner=node
 		while owner!=null and owner!=window:
 			if scopes.has(owner) and (owner==node or owner.name!=&"ResultsPanel"):break
@@ -87,6 +104,7 @@ func check_owners(id: String, window: Window, scopes: Dictionary):
 		if scopes.keys().any(func(s):return s.get_parent()==node.get_parent() and scopes[s].encloses(rect)):continue
 		if node is PanelContainer:panels.append([node,rect]);continue
 		missing.append(str(node.get_path()))
+	check(palette_errors.is_empty(),id+" button palette "+str(palette_errors))
 	for panel in panels:
 		var pieces=[panel[1]]
 		for scope in scopes:

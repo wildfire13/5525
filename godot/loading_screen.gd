@@ -12,7 +12,7 @@ var picture: TextureRect
 signal frame_presented(token: int)
 func _ready():
 	layer=2048;rng.randomize()
-	panel=Control.new();panel.name="LoadingInputBlocker";panel.mouse_filter=Control.MOUSE_FILTER_STOP;panel.focus_mode=Control.FOCUS_ALL;add_child(panel);panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel=Control.new();panel.theme=get_parent().theme;panel.name="LoadingInputBlocker";panel.mouse_filter=Control.MOUSE_FILTER_STOP;panel.focus_mode=Control.FOCUS_ALL;add_child(panel);panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var background=ColorRect.new();background.name="LoadingBackground";background.color=Color("#191d23");background.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.add_child(background)
 	var fit=func():preload("res://screen_grid.gd").place(background,preload("res://window_grid.gd").frame_rect(get_viewport().get_visible_rect().size))
 	panel.resized.connect(fit);fit.call()
@@ -20,6 +20,7 @@ func _ready():
 	var caption=Label.new();caption.name="LoadingCaption";caption.text="読み込み中…";caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;caption.mouse_filter=Control.MOUSE_FILTER_IGNORE;caption.add_theme_color_override("font_color",Color.WHITE);caption.add_theme_color_override("font_shadow_color",Color.BLACK);caption.add_theme_constant_override("shadow_offset_x",2);caption.add_theme_constant_override("shadow_offset_y",2);panel.add_child(caption);caption.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);caption.offset_left=-220;caption.offset_top=-52;caption.offset_right=-24;caption.offset_bottom=-20
 	panel.hide()
 func begin(kind: String,subdued:=false) -> int:
+	panel.theme=get_parent().theme
 	get_parent().move_child(self,-1)
 	sequence+=1;active=true
 	var images=BEFORE if kind=="before" else AFTER

@@ -73,7 +73,7 @@ func render(parent):
 	elif quest is Dictionary and quest.get("to")==c.location and str(quest.get("deliveryFacility","")).is_empty():
 		var column=VBoxContainer.new();panel.add_child(column);column.anchor_left=.7;column.anchor_top=.82
 		var missing=not c.get("cargoAboard",false)
-		var deliver=ui.button(column,"荷物を届ける",ui.act.bind("completeQuest",[]),missing);deliver.name="HubDeliverCargo"
+		var deliver=ui.primary(ui.button(column,"荷物を届ける",ui.act.bind("completeQuest",[]),missing));deliver.name="HubDeliverCargo"
 		if missing:ui.label_(column,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
 
 	if artwork.is_empty():ui.label_(parent,"拠点画像は準備中です。施設は利用できます。")

@@ -80,7 +80,10 @@ func run():
 	for card in game.find_children("TurnCard_*","PanelContainer",true,false):
 		var id=card.get_meta("unit_id")
 		sides[hud.unit(id).side]=true
-		await mouse_click(card.find_child("InspectTurnMember",true,false))
+		var entry=card.find_child("InspectTurnMember",true,false)
+		game.find_child("TurnOrderViewport",true,false).ensure_control_visible(entry)
+		await process_frame
+		await mouse_click(entry)
 		check(game.modal_open() and game.dialog.window.title.ends_with(str(hud.unit(id).name)),"turn card opens "+id)
 		var tab=game.find_child("BattleLoadoutTab_inventory",true,false)
 		if tab==null:break

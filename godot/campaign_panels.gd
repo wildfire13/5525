@@ -107,7 +107,7 @@ func map(parent):
 		route_title.text=town(c().location)+" → "+town(id))
 	l(route,"最短移動時間：6時間")
 	var over=c().get("inventoryOverflow",[])
-	var depart=ui.green_button(b(actions,"出発する",func():ui.act("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not over.is_empty()));depart.name="DepartButton"
+	var depart=ui.action_button(b(actions,"出発する",func():ui.act("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not over.is_empty()));depart.name="DepartButton"
 	if not over.is_empty():depart.tooltip_text="インベントリ枠を超えているメンバーがいます"
 	b(actions,"都市に入る" if c().location=="astaris" else "村に入る",ui.navigate.bind("hub"))
 	var space=Control.new();space.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(space)
@@ -145,13 +145,13 @@ func journey(parent):
 	l(copy,"最短の到着見込 %d時間" % (int(journey_.get("hours",0))+remaining))
 	match phase:
 		"camp":
-			ui.green_button(b(actions,"次の区間へ",ui.act.bind("onward",[])))
+			ui.action_button(b(actions,"次の区間へ",ui.act.bind("onward",[])))
 			var rest=b(actions,"休息済み" if journey_.get("rested",false) else "休息する",ui.forecast_action.bind("rest","rest",[]),journey_.get("rested",false));rest.tooltip_text="2時間 · HP +60 / MP +2"
 			if c().get("canTurnBack",false):b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[])).tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
 		"road":
 			if c().get("canTurnBack",false):b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[])).tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
 		"arrival","delivery":
-			ui.green_button(b(actions,"都市に入る" if journey_.get("destination")=="astaris" else "村に入る",ui.act.bind("arrive",[])))
+			ui.action_button(b(actions,"都市に入る" if journey_.get("destination")=="astaris" else "村に入る",ui.act.bind("arrive",[])))
 	if phase=="road":
 		var choices=row(route);choices.name="RouteChoices"
 		choices.custom_minimum_size.y=grid_height(action_cell+2)-grid_height(action_cell+1)
@@ -285,6 +285,7 @@ func items(parent):
 		if item_stage=="target":
 			var reason=ItemMenu.camp_reason(selected_item,u,inventory)
 			var target=b(member,"使う" if reason.is_empty() else reason,use_selected_item.bind(u.id),not reason.is_empty());target.name="ItemTarget_"+str(u.id);ui.memory.key(target,"item_target_"+str(u.id))
+			target.theme_type_variation=&"ActionButton"
 func inn(parent):inn_view.render(parent)
 func shop(parent):
 	if facility_entry.render_top(parent,"shop"):return
@@ -299,7 +300,7 @@ func return_to_town(parent):
 	parent.add_theme_constant_override("separation",0)
 	var actions=row(parent);actions.name="TownReturnRow";actions.alignment=BoxContainer.ALIGNMENT_END
 	actions.custom_minimum_size.y=grid_height(9)-grid_height(8)
-	var back=ui.green_button(b(actions,"広場に移動",acknowledge.bind("hub"),ui.page=="party" and guild_view.busy()))
+	var back=b(actions,"広場に移動",acknowledge.bind("hub"),ui.page=="party" and guild_view.busy());back.custom_minimum_size.y=44
 	back.name="GuildReturn" if ui.page=="party" else "InnReturn" if ui.page=="inn" else "TownReturn"
 
 func result(parent):

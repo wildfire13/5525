@@ -123,8 +123,10 @@ func render(parent: Control):
 	controls.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	if source=="equipped":
 		var remove=ui.button(controls,"装備を外す",unequip,busy() or not unequip_quote.get("ok",false));remove.name="WarehouseUnequip"
+		remove.theme_type_variation=&"ActionButton"
 	elif not selected.is_empty():
 		var move=ui.button(controls,"預ける" if source=="character" else "取り出す",request_transfer.bind(source,item_id),busy() or not q.get("ok",false));move.name="WarehouseTransfer";move.tooltip_text=str(q.get("reason",""))
+		move.theme_type_variation=&"ActionButton"
 	ui.button(controls,"戻る",pages.facility_entry.back,busy()).name="WarehouseReturn"
 	ui.button(controls,"出庫台帳",func():clear_selection();ui.render(),busy()).name="WarehouseLedgerReturn"
 	split.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data,"warehouse"),func(_at,data):drop(data,"warehouse"))

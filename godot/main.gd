@@ -85,17 +85,12 @@ func _ready():
 	var button_font=FontVariation.new();button_font.base_font=ui_font.base_font;button_font.variation_opentype={weight_axis:550}
 	theme_.default_font=ui_font
 	for type_ in ["Button","OptionButton","CheckButton"]:theme_.set_font("font",type_,button_font)
-	for type_ in ["Label","Button","OptionButton","CheckButton"]:
-		theme_.set_color("font_color",type_,Color("#eeeae2"))
+	theme_.set_color("font_color","Label",mock_shell.INK)
 	theme_.set_color("font_color","TooltipLabel",Color.WHITE)
 	var tip=StyleBoxFlat.new();tip.bg_color=Color("#20242bf5");tip.set_content_margin_all(8);tip.set_border_width_all(1);tip.border_color=Color("#7f8996");theme_.set_stylebox("panel","TooltipPanel",tip)
 	var focus=StyleBoxFlat.new();focus.bg_color=Color(0,0,0,0);focus.set_border_width_all(2);focus.border_color=Color("#a8c9ed");focus.set_corner_radius_all(5)
-	for type_ in ["Button","OptionButton","CheckButton","ItemList","TabBar"]:theme_.set_stylebox("focus",type_,focus)
-	for type_ in ["Button","OptionButton"]:
-		for state_ in ["normal","hover","pressed","disabled"]:
-			var style=StyleBoxFlat.new();style.bg_color=Color("#424a56" if state_=="hover" else "#514b3c" if state_=="pressed" else "#23262d" if state_=="disabled" else "#303640");style.border_color=Color("#e3c487" if state_=="pressed" else "#a4adba" if state_=="hover" else "#3d424c" if state_=="disabled" else "#626b78");style.set_border_width_all(1);style.set_corner_radius_all(5)
-			style.content_margin_left=8;style.content_margin_right=8;style.content_margin_top=4;style.content_margin_bottom=4;theme_.set_stylebox(state_,type_,style)
-		theme_.set_color("font_disabled_color",type_,Color("#9299a3"))
+	theme_.set_stylebox("focus","ItemList",focus)
+	mock_shell.apply_button_theme(theme_)
 	theme=theme_
 	campaign_theme=theme_
 	battle_theme=theme_.duplicate(false)
@@ -306,7 +301,6 @@ func facility_receipt(title_: String,item: Dictionary,owner: String,fn: Callable
 		icons.line(self,body,icon,"%s　（%s）" % [item.name,owner],true)
 		body.add_child(HSeparator.new())
 		build.call(body,d)
-		green_button(d.get_ok_button())
 		var ok=d.get_ok_button();var cancel=d.get_cancel_button()
 		ok.get_parent().move_child(ok,maxi(ok.get_index(),cancel.get_index())))
 	var shade=ColorRect.new()
@@ -334,6 +328,7 @@ func confirm(text: String,fn: Callable,build: Callable=Callable()):
 	d.get_label().hide()
 	var contents=d.content()
 	if build.is_valid():build.call(contents,d)
+	d.get_ok_button().theme_type_variation=&"ActionButton"
 	for button_ in [d.get_ok_button(),d.get_cancel_button()]:
 		button_.custom_minimum_size=Vector2(172,48) if build.is_valid() else Vector2(96,48) if size.x>=1800 else Vector2(80,44)
 		button_.add_theme_font_size_override("font_size",18)
@@ -967,28 +962,16 @@ func can_commit() -> bool:
 	return command=="action_defend" or (pending!=null and preview_ready and not preview.is_empty())
 func local_button(parent: Node,text: String,callback: Callable) -> Button:
 	var control=button(parent,text,callback);control.set_meta("read_only",true);control.disabled=false;return control
-func green_button(control: Button) -> Button:
-	for key in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:control.add_theme_color_override(key,Color.WHITE)
+func action_button(control: Button) -> Button:
+	control.theme_type_variation=&"ActionButton"
 	control.custom_minimum_size.y=44
-	for state_ in ["normal","hover","pressed"]:
-		var style=control.get_theme_stylebox(state_).duplicate();style.bg_color=Color("#2f7652") if state_=="hover" else Color("#236044");control.add_theme_stylebox_override(state_,style)
 	return control
 func primary(control: Button) -> Button:
-	control.custom_minimum_size.y=44;control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	for state_ in ["normal","hover","pressed"]:
-		var style=StyleBoxFlat.new();style.bg_color=Color("#ecd4a1" if state_=="hover" else "#bca16c" if state_=="pressed" else "#d8bd86");style.border_color=Color("#f2dcae");style.set_border_width_all(1);style.set_corner_radius_all(5);style.set_content_margin_all(8)
-		control.add_theme_stylebox_override(state_,style)
-	for color_ in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:control.add_theme_color_override(color_,Color("#252830"))
-	return control
+	control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	return action_button(control)
 func mark_selected(control: Button,selected: bool):
-	# Selection shares the campaign palette in every scene.
 	control.set_meta("selected",selected)
-	for state_ in ["normal","hover","pressed"]:
-		if not selected:control.remove_theme_stylebox_override(state_);continue
-		var style=control.get_theme_stylebox(state_).duplicate() as StyleBoxFlat
-		style.bg_color=Color("#d2e0d3" if state_=="hover" else "#dfe8dc")
-		style.border_color=Color("#345c4e");style.set_border_width_all(2)
-		control.add_theme_stylebox_override(state_,style)
+	control.theme_type_variation=&"SelectedButton" if selected else &""
 func short_name(control: Label,full: String):
 	control.max_lines_visible=2;control.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;control.tooltip_text=full
 	control.size_flags_horizontal=Control.SIZE_EXPAND_FILL

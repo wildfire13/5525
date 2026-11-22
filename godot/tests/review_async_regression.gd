@@ -139,7 +139,7 @@ func shop_facts():
 	root.size=Vector2i(1920,1080);await fixture();press("Product_staff-wood");await settle()
 	var chosen=control("Product_staff-wood");var other=control("Product_spear-wood")
 	control("ShopComparisonBuy").grab_focus()
-	check("UX-SELECT",chosen.get_meta("selected",false) and chosen.has_theme_stylebox_override("normal") and chosen.get_theme_stylebox("normal").border_width_left==2 and not other.get_meta("selected",false) and control("ShopComparisonProduct").text==chosen.tooltip_text,"selection has a persistent product title, border and background independent of focus")
+	check("UX-SELECT",chosen.get_meta("selected",false) and chosen.theme_type_variation==&"SelectedButton" and chosen.get_theme_stylebox("normal").border_width_left==2 and not other.get_meta("selected",false) and control("ShopComparisonProduct").text==chosen.tooltip_text,"selection has a persistent product title, border and background independent of focus")
 	press("ComparisonSkill_追加_skill_heal_1");await settle();press("SkillDetailsBack");await settle()
 	check("UX-SELECT",control("Product_staff-wood").get_meta("selected",false) and control("ShopComparisonProduct").text==chosen.tooltip_text,"detail return retains the selected product marker")
 	press("Product_spear-wood");await settle()

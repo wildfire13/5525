@@ -51,7 +51,7 @@ func render(parent):
  var actions=pages.row(parent);actions.name="InnActions";actions.alignment=BoxContainer.ALIGNMENT_END
  var caption="休息する"
  var disabled=pending or not q.get("needsRecovery",false) or not q.get("affordable",false)
- ui.green_button(pages.b(actions,caption,stay,disabled)).name="InnStay"
+ ui.action_button(pages.b(actions,caption,stay,disabled)).name="InnStay"
  pages.b(actions,"戻る",pages.facility_entry.back,pending).name="InnReturn"
 func inset(parent: Control,cells: int) -> VBoxContainer:
  var margin=MarginContainer.new()
