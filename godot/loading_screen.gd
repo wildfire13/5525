@@ -13,9 +13,9 @@ signal frame_presented(token: int)
 func _ready():
 	layer=2048;rng.randomize()
 	panel=Control.new();panel.name="LoadingInputBlocker";panel.mouse_filter=Control.MOUSE_FILTER_STOP;panel.focus_mode=Control.FOCUS_ALL;add_child(panel);panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var background=ColorRect.new();background.color=Color("#191d23");background.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.add_child(background);background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var background=ColorRect.new();background.name="LoadingBackground";background.color=Color("#191d23");background.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.add_child(background);background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	picture=TextureRect.new();picture.name="LoadingStill";picture.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;picture.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED;picture.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.add_child(picture);picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var caption=Label.new();caption.text="読み込み中…";caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;caption.mouse_filter=Control.MOUSE_FILTER_IGNORE;caption.add_theme_color_override("font_color",Color.WHITE);caption.add_theme_color_override("font_shadow_color",Color.BLACK);caption.add_theme_constant_override("shadow_offset_x",2);caption.add_theme_constant_override("shadow_offset_y",2);panel.add_child(caption);caption.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);caption.offset_left=-220;caption.offset_top=-52;caption.offset_right=-24;caption.offset_bottom=-20
+	var caption=Label.new();caption.name="LoadingCaption";caption.text="読み込み中…";caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;caption.mouse_filter=Control.MOUSE_FILTER_IGNORE;caption.add_theme_color_override("font_color",Color.WHITE);caption.add_theme_color_override("font_shadow_color",Color.BLACK);caption.add_theme_constant_override("shadow_offset_x",2);caption.add_theme_constant_override("shadow_offset_y",2);panel.add_child(caption);caption.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);caption.offset_left=-220;caption.offset_top=-52;caption.offset_right=-24;caption.offset_bottom=-20
 	panel.hide()
 func begin(kind: String,subdued:=false) -> int:
 	get_parent().move_child(self,-1)

@@ -22,7 +22,7 @@ func _init(frontend=null):ui=frontend
 func _ready():
  layer=1500;name="ResultsView"
  shade=Control.new();shade.name="ResultsBlocker";shade.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
- var bg=ColorRect.new();bg.color=Color("#eeede7");bg.mouse_filter=Control.MOUSE_FILTER_IGNORE;shade.add_child(bg);bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ var bg=ColorRect.new();bg.name="ResultBackground";bg.color=Color("#eeede7");bg.mouse_filter=Control.MOUSE_FILTER_IGNORE;shade.add_child(bg);bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  panel=Panel.new();panel.theme=ui.theme;panel.name="ResultsPanel";panel.clip_contents=true;panel.add_theme_stylebox_override("panel",style(Color("#faf9f5"),Color("#cbd0c7"),24));shade.add_child(panel)
  ui.resized.connect(_layout);shade.hide()
 func style(fill: Color,border: Color,padding: int) -> StyleBoxFlat:

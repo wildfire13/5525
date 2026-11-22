@@ -69,10 +69,10 @@ func fullscreen(parent: Control,town_texture: Texture2D=null):
 		image.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	image.name="FacilityStill" if texture!=null else "TownStill"
 	if image.texture!=selected:image.texture=selected
-	var shade=parent.get_node_or_null("FacilityReadabilityShade")
+	var shade=image.get_node_or_null("FacilityReadabilityShade")
 	if shade==null:
 		shade=ColorRect.new();shade.name="FacilityReadabilityShade";shade.color=Color(.025,.04,.06,.12)
-		shade.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		shade.mouse_filter=Control.MOUSE_FILTER_IGNORE;image.add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# NPC portraits are positioned by the facility entry or service view.
 func backdrop(parent: Control) -> Control:
 	var foreground=VBoxContainer.new();foreground.name="FacilityForeground";foreground.mouse_filter=Control.MOUSE_FILTER_PASS;foreground.size_flags_vertical=Control.SIZE_EXPAND_FILL;parent.add_child(foreground)

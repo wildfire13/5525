@@ -7,7 +7,7 @@ func _get_drag_data(_at: Vector2):
 	if guild==null or disabled:return null
 	var data=guild.drag_payload(uid)
 	if data!=null:
-		var preview=Label.new();preview.text=guild.ui.member_name(uid);preview.theme=theme;set_drag_preview(preview)
+		var preview=Label.new();preview.set_meta("ui_region","MemberDragPreview");preview.add_to_group("ui_drag_preview");preview.text=guild.ui.member_name(uid);preview.theme=theme;set_drag_preview(preview)
 	return data
 func _can_drop_data(_at: Vector2,data) -> bool:
 	var guild=guild_ref.get_ref()

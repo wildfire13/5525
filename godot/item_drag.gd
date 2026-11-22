@@ -4,7 +4,7 @@ static func source(control: Control,payload: Callable,caption: String,icon: Text
 	control.set_drag_forwarding(func(_position):
 		var data=payload.call()
 		if data==null:return null
-		var preview=Button.new();preview.text=caption;preview.icon=icon
+		var preview=Button.new();preview.set_meta("ui_region","ItemDragPreview");preview.add_to_group("ui_drag_preview");preview.text=caption;preview.icon=icon
 		preview.mouse_filter=Control.MOUSE_FILTER_IGNORE;preview.alignment=HORIZONTAL_ALIGNMENT_LEFT
 		preview.custom_minimum_size=control.size;preview.size=control.size
 		for state in ["normal","hover","pressed"]:preview.add_theme_stylebox_override(state,control.get_theme_stylebox("normal").duplicate())

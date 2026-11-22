@@ -25,7 +25,7 @@ func open(title: String, builder: Callable, closed: Callable=Callable(),initial_
 	var margin=preload("res://modal_input.gd").new();margin.owner_ref=weakref(self);window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,0)
 	var box=preload("res://window_grid.gd").new();margin.add_child(box)
-	if not initial_rect.has_area() and title not in ["行動ログ","商品と装備の比較","荷物を持つポーターを選択"]:ui.label_(box,title,true)
+	if not initial_rect.has_area() and title not in ["行動ログ","商品と装備の比較","荷物を持つポーターを選択"]:ui.label_(box,title,true).name="ModalHeading"
 	body=ui.scroller(box);body.get_parent().name="ModalDetailScroll";body.get_parent().custom_minimum_size.y=80
 	actions=ui.row(box);actions.name="ModalActions"
 	builder.call(body,actions)

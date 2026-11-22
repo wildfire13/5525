@@ -32,7 +32,7 @@ func build(ui, member: Dictionary, tab: String, choose: Callable, prefix: String
 	display.add_theme_constant_override("separation",0)
 	panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	if character_tabs:
-		add_tabs(ui,display,[["ability","能力"],["skills","スキル"]],tab,choose,prefix,disabled)
+		add_tabs(ui,display,[["ability","能力"],["skills","スキル"]],tab,choose,prefix,disabled).name="CharacterInfoTabs"
 	else:
 		var heading=ui.label_(display,"装備" if tab=="equipment" else "インベントリ")
 		heading.custom_minimum_size.y=ui.mock_shell.grid_cell().y
@@ -48,6 +48,7 @@ func add_tabs(ui,parent,entries,tab,choose,prefix,disabled):
 		button.name=prefix+entry[0]
 		button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		ui.mark_selected(button,tab==entry[0])
+	return tabs
 
 func build_art(ui,display,member):
 	stage=Control.new()

@@ -254,7 +254,7 @@ func build_panels(s,phase,a,deploying):
 		hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	left_panel.visible=deploying or (a.get("side")=="ally" and not s.get("deploying",false) and s.get("result")==null) or ui.engine.disconnected
 	if phase is Dictionary and (is_instance_valid(action_visual) or str(phase.get("action_id",""))==shifted_action):left_panel.hide()
-	left_info=left_panel.body
+	left_info=left_panel.body;left_info.name="BattleActorInfo"
 	if a.get("side")=="ally":
 		combat_portrait(left_info,a)
 		combat_resources(left_info,a)
@@ -714,6 +714,13 @@ func open_equipment_sheet(uid: String):
 func draw_loadout(body,member: Dictionary,tab: String):
 	ui.clear(body)
 	var line=ui.mock_shell.columns(body)
+	line.add_theme_constant_override("separation",0)
+	var unit=ui.mock_shell.grid_cell()
+	line.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+	line.custom_minimum_size.x=floorf(body.size.x/unit.x)*unit.x
+	var fit_row=func():line.custom_minimum_size.x=floorf(body.size.x/unit.x)*unit.x
+	body.resized.connect(fit_row)
+	line.tree_exiting.connect(func():body.resized.disconnect(fit_row))
 	var column=preload("res://member_loadout_column.gd").new();line.add_child(column)
 	column.build(ui,member,tab,func(next):draw_loadout(body,member,next),"BattleLoadoutTab_")
 	column.custom_minimum_size.y=0
@@ -736,7 +743,7 @@ func draw_loadout(body,member: Dictionary,tab: String):
 		var item=entry.duplicate();item.count=remaining.get(item.id,item.count)
 		if item.count<=0:continue
 		preload("res://member_inventory.gd").add_row(ui,inventory,item,func():
-			ui.clear(detail)
+			ui.clear(detail);detail.name="BattleItemDetail"
 			if item.kind=="equipment":ui.pages.describe_gear(detail,item.get("definition",item),true)
 			else:
 				l(detail,str(item.name),true);l(detail,"所持数 ×%d" % item.count)

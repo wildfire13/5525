@@ -109,7 +109,7 @@ func _ready():
 	battle_theme=theme_.duplicate(false)
 	low_hp_font=FontVariation.new();low_hp_font.base_font=ui_font.base_font;low_hp_font.variation_opentype={weight_axis:700}
 	backdrop_layer=Control.new();backdrop_layer.name="SceneBackdrop";backdrop_layer.mouse_filter=Control.MOUSE_FILTER_IGNORE;backdrop_layer.clip_contents=true;add_child(backdrop_layer);backdrop_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	base=VBoxContainer.new();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	base=VBoxContainer.new();base.hide();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base.add_theme_constant_override("separation",8)
 	base.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	top=HBoxContainer.new();top.name="BattleHeader";top.custom_minimum_size.y=44;base.add_child(top)
@@ -119,7 +119,7 @@ func _ready():
 
 	town_back=button(top,"拠点へ",navigate.bind("hub"));town_back.visible=false
 	var menu_region=Control.new();menu_region.name="BattleMenuRegion";menu_region.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(menu_region)
-	menu_region.anchor_left=0.9;menu_region.anchor_right=1.0
+	menu_region.hide();menu_region.anchor_left=0.9;menu_region.anchor_right=1.0
 	var menu_button=local_button(menu_region,"メニュー",open_menu);menu_button.name="CommonMenuButton"
 	memory.key(menu_button,"game_menu")
 	menu_button.z_index=61
@@ -529,6 +529,11 @@ func show_engine_stop():
 	stop_dialog.name="EngineStopDialog"
 	stop_dialog.title="ゲームを続けられません"
 	stop_dialog.dialog_text=engine.last_error if not engine.last_error.is_empty() else notice
+	stop_dialog.get_label().set_meta("ui_region","EngineStopMessage")
+	var panel_style=stop_dialog.get_theme_stylebox("panel").duplicate()
+	panel_style.set_content_margin_all(0);stop_dialog.add_theme_stylebox_override("panel",panel_style)
+	stop_dialog.add_theme_constant_override("buttons_min_height",roundi(size.y/10.0))
+	stop_dialog.add_theme_constant_override("buttons_separation",0)
 	stop_dialog.ok_button_text="ゲームを終了"
 	stop_dialog.dialog_hide_on_ok=false
 	stop_dialog.exclusive=true
@@ -572,6 +577,7 @@ func render():
 		show_engine_stop.call_deferred()
 		return
 	if rendering:return
+	base.show()
 	rendering=true
 	if not skip_capture_once:memory.capture()
 	skip_capture_once=false
@@ -903,6 +909,7 @@ func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback
 	var diagnostic_kind="file_save" if mode==FileDialog.FILE_MODE_SAVE_FILE else "file_open"
 	record_debug_event(diagnostic_kind,"start")
 	d.file_selected.connect(func(path):record_debug_event(diagnostic_kind,"success");d.set_meta("file_dialog_active",false);d.hide();d.queue_free();callback.call(path));d.canceled.connect(func():record_debug_event(diagnostic_kind,"cancel");d.set_meta("file_dialog_active",false);d.hide();d.queue_free())
+	if ui_labels.enabled:d.title+="　"+str(ui_labels.CATALOG.data.surfaces.file.label)
 	preferences.bind_window(d,"file_dialog",size,size*.85);d.popup()
 	localize_file_dialog(d)
 func localize_file_dialog(d: FileDialog):

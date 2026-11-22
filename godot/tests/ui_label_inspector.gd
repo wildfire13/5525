@@ -2,6 +2,7 @@ extends SceneTree
 
 var game
 var failed := false
+var witnessed := {}
 var frames := {}
 var output := OS.get_environment("UI_LABEL_EVIDENCE")
 
@@ -22,6 +23,21 @@ func button(id: String):
 	else: check(false, "missing button " + id)
 	await settle()
 
+func inspect_drag(source: Control, id: String, label: String):
+	var at=source.get_global_rect().get_center()
+	var move=InputEventMouseMotion.new();move.position=at;root.push_input(move,true)
+	var press=InputEventMouseButton.new();press.button_index=MOUSE_BUTTON_LEFT;press.pressed=true;press.position=at;root.push_input(press,true)
+	await process_frame
+	for offset in [Vector2(0,25),Vector2(10,60)]:
+		move=InputEventMouseMotion.new();move.position=at+offset;move.relative=offset;move.button_mask=MOUSE_BUTTON_MASK_LEFT;root.push_input(move,true)
+		await process_frame
+	check(root.gui_is_dragging(),id+" starts pointer drag")
+	await capture(id,[label])
+	root.gui_cancel_drag()
+	press.pressed=false;press.position=Vector2(-20,-20);root.push_input(press,true)
+	await settle()
+	check(not root.gui_is_dragging(),id+" cancels without drop")
+
 func inspect_item_and_return(id: String):
 	await button(id)
 	var detail=game.find_child("SkillDetailsWindow",true,false)
@@ -33,6 +49,47 @@ func inspect_item_and_return(id: String):
 func page(id: String):
 	game.navigate(id)
 	await settle()
+
+func check_owners(id: String, window: Window, scopes: Dictionary):
+	var scene=window
+	if window is FileDialog:scene=window.get_vbox()
+	var inspector=game.ui_labels
+	if window==root:
+		if game.loading_screen.active:scene=game.loading_screen
+		elif game.results_view.active:scene=game.results_view
+	var panels=[]
+	var missing=[]
+	var examined=0
+	for node in scene.find_children("*","Control",true,false):
+		if node.get_window()!=window or not node.is_visible_in_tree() or node.is_queued_for_deletion():continue
+		if node.name==&"UiRegionLabels" or node is Label and node.text.is_empty():continue
+		if not (node is BaseButton or node is Label or node is RichTextLabel or node is Range or node is LineEdit or node is TextEdit or node is TextureRect or node is ColorRect or node is Panel or node is PanelContainer or node.has_method("_draw")):continue
+		var rect=inspector.visible_box(node,window.get_visible_rect())
+		if not rect.has_area():continue
+		examined+=1
+		var owner=node
+		while owner!=null and owner!=window:
+			if scopes.has(owner) and (owner==node or owner.name!=&"ResultsPanel"):break
+			owner=owner.get_parent()
+		if scopes.has(owner):continue
+		# A panel behind its children or a label painted over its sibling can share
+		# their surface. Check the whole rectangle, never just its center.
+		if scopes.keys().any(func(s):return s.get_parent()==node.get_parent() and scopes[s].encloses(rect)):continue
+		if node is PanelContainer:panels.append([node,rect]);continue
+		missing.append(str(node.get_path()))
+	for panel in panels:
+		var pieces=[panel[1]]
+		for scope in scopes:
+			if not panel[0].is_ancestor_of(scope):continue
+			var remaining=[]
+			for piece in pieces:
+				var cut=piece.intersection(scopes[scope])
+				if not cut.has_area():remaining.append(piece);continue
+				for part in [Rect2(piece.position,Vector2(piece.size.x,cut.position.y-piece.position.y)),Rect2(Vector2(piece.position.x,cut.end.y),Vector2(piece.size.x,piece.end.y-cut.end.y)),Rect2(Vector2(piece.position.x,cut.position.y),Vector2(cut.position.x-piece.position.x,cut.size.y)),Rect2(Vector2(cut.end.x,cut.position.y),Vector2(piece.end.x-cut.end.x,cut.size.y))]:
+					if part.has_area():remaining.append(part)
+			pieces=remaining
+		if not pieces.is_empty():missing.append(str(panel[0].get_path()))
+	check(missing.is_empty(),"%s owners %d, missing %s" % [id,examined,missing])
 
 func capture(id: String, expected: Array, window: Window = null):
 	await settle()
@@ -46,20 +103,29 @@ func capture(id: String, expected: Array, window: Window = null):
 		var rect: Rect2 = entry[1]
 		var caption: String = entry[0]
 		names.append(caption.trim_prefix(inspector.CATALOG.data.prefix))
+		witnessed[names.back()]=true
 		captions.append([caption,rect.position.x,rect.position.y])
 		check(window.get_visible_rect().encloses(rect),"within " + id + " " + caption)
 	# Measure the labeled controls in main-window coordinates, including child windows.
 	var to_game=root.get_screen_transform().affine_inverse()*window.get_screen_transform()
 	var cell=Vector2(root.size)/10
+	var scopes={}
 	for node in inspector.controls.get(window,[]):
 		if not is_instance_valid(node) or not node.is_visible_in_tree() or node.is_queued_for_deletion():continue
 		var key=str(node.get_meta("ui_region",node.name))
-		if not inspector.definitions[key].any(func(region):return region.label in names):continue
-		var visible_rect=inspector.visible_box(node,window.get_visible_rect())
+		var active=inspector.definitions[key].filter(func(region):return region.label in names)
+		if active.is_empty():continue
+		var visible_rect=inspector.region_box(node,window,active[0])
 		if not visible_rect.has_area():continue
+		if key!="DialogSurface" and node.name not in [&"TownStill",&"FacilityStill",&"BattleBoard",&"DialogueScreen",&"LoadingStill",&"ResultBackground",&"LoadingBackground",&"ResultsPanel"]:
+			scopes[node]=visible_rect
+		else:
+			# A full-screen drawing owns itself, never other controls layered above it.
+			scopes[node]=Rect2()
 		var box=to_game*visible_rect
 		var aligned=box.position.is_equal_approx((box.position/cell).round()*cell) and box.end.is_equal_approx((box.end/cell).round()*cell)
 		check(aligned,id+" grid "+key+" "+str(box))
+	check_owners(id,window,scopes)
 	for name_ in expected: check(name_ in names,id + " shows " + name_ + " alongside " + str(names))
 	check(overlay.mouse_filter == Control.MOUSE_FILTER_IGNORE, id + " allows pointer through")
 	if output.is_empty() or DisplayServer.get_name()=="headless": return
@@ -88,6 +154,9 @@ func run():
 	root.size=Vector2i(1920,1080)
 	game=load("res://main.tscn").instantiate()
 	root.add_child(game)
+	if game.data.is_empty():
+		game.ui_labels.refresh()
+		check(game.ui_labels.overlays[root].captions.any(func(entry):return entry[0].ends_with("場面背景・余白")),"startup background has a region before campaign data arrives")
 	while game.data.is_empty(): await process_frame
 	game.checks_fast=true
 	game.audio.fast_mode=true
@@ -198,7 +267,18 @@ func run():
 	await page("party")
 	await capture("guild-entry",["パーティ編成案内","共通倉庫案内"])
 	await button("FacilityChoice_guild")
-	await capture("guild",["編成比較","控え名簿"])
+	await capture("guild",["編成比較","控え名簿","同行者の比較欄","控えの比較欄"])
+	var guild=game.pages.guild_view
+	var card=game.find_child("GuildMember_*",true,false)
+	var old_rect=card.get_global_rect()
+	old_rect.position.y+=24
+	guild.animate_swap({str(card.get_meta("member_id")):old_rect},guild.generation)
+	for i in 4:await process_frame
+	game.ui_labels.refresh()
+	var animated=game.ui_labels.overlays[root].captions.any(func(e):return e[0].ends_with("編成交代演出"))
+	check(animated,"guild animation has its own label")
+	if animated:witnessed["編成交代演出"]=true
+	await settle()
 	game.pages.facility_entry.back()
 	await button("FacilityChoice_warehouse")
 	await capture("warehouse",["装備・インベントリ切替","倉庫台帳"])
@@ -228,7 +308,12 @@ func run():
 		await button("FacilityChoice_buy")
 		game.pages.shop_view.set_inventory_tab("equipment")
 		await capture("shop-"+town,["商品一覧","取引確認"])
+	await inspect_drag(game.find_child("Product_undertow-sword",true,false),"drag-item","ドラッグ中の品物")
 	await inspect_item_and_return("Product_undertow-sword")
+	var filter=game.find_child("ShopSlotFilter",true,false)
+	filter.show_popup()
+	await capture("shop-filter",["選択候補一覧"])
+	filter.get_popup().hide()
 	await capture("shop",["装備・インベントリ切替","商品一覧","取引確認","現在の装備","装備候補"])
 	var skill_button=game.find_child("ComparisonSkill_*",true,false)
 	if skill_button!=null:
@@ -264,14 +349,33 @@ func run():
 	await game.act("trial",["character_mirei","spear-wood","rightHand"])
 	await capture("trial",["場面：木人試用"])
 	await game.act("endTrial",[])
-	await game.update({"op":"campaign_load","data":seed})
+	await game.update({"op":"campaign_load","data":initial})
 	await page("map")
 	await game.act("depart",["east","convoy"])
 	await capture("road",["旅程マップ切替","場面：街道"])
 	await game.act("travel",["safe"])
 	await capture("deployment",["カメラ操作案内","メニュー呼び出し","場面：配置","戦場・配置"])
+	await inspect_drag(game.find_child("PartyFace_character_mirei",true,false),"drag-member","ドラッグ中の人物")
 	await game.act("begin",[])
 	await capture("battle",["場面：戦闘","戦場・配置"])
+	game.hud.capture_action_visual()
+	await capture("command-flight",["戦闘コマンド演出"])
+	game.hud.clear_action_visual()
+	for side in ["ally","enemy"]:
+		var member=game.state().units.filter(func(u):return u.id=="character_mirei" if side=="ally" else u.side=="enemy")[0]
+		await game.hud.open_equipment_sheet(member.id)
+		await capture("battle-gear-"+side,["装備","装備・インベントリ切替"],game.dialog.window)
+		await button("BattleLoadoutTab_inventory")
+		await capture("battle-items-"+side,["インベントリ"],game.dialog.window)
+		if side=="ally":
+			var item=game.dialog.window.find_child("BattleInventory",true,false).find_children("*","Button",true,false)[0]
+			item.pressed.emit()
+			await capture("battle-item-detail",["所持品の詳細"],game.dialog.window)
+			var detail=game.find_child("SkillDetailsWindow",true,false)
+			if is_instance_valid(detail):detail.finish()
+			await settle()
+		game.dialog.close()
+		await settle()
 	for cmd in ["action_attack","action_move","skill","item"]:
 		if game.hud.buttons.has(cmd) and not game.hud.buttons[cmd].disabled:
 			game.hud.buttons[cmd].pressed.emit()
@@ -308,8 +412,15 @@ func run():
 		await settle()
 		await page("map")
 		await capture("camp",["旅程マップ切替","野営インベントリ操作","場面：野営地"])
+		var rest=game.find_child("CampActions",true,false).find_children("*","Button",true,false).filter(func(b):return b.text=="休息する")[0]
+		var motion=InputEventMouseMotion.new();motion.position=rest.get_global_rect().get_center();root.push_input(motion,true)
+		await create_timer(1.1).timeout
+		if DisplayServer.get_name()!="headless":await capture("native-hint",["操作ヒント"])
 		await page("items")
 		await capture("items",["場面：道具使用"])
+		await game.update({"op":"campaign_load","data":cases.normal.arrival})
+		await settle()
+		check(game.campaign().get("phase")=="town","arrival is automatically completed before rendering")
 		await game.update({"op":"campaign_load","data":cases.normal.ready})
 		await game.act("completeQuest",[])
 		await capture("complete",["場面：配達リザルト","結果操作"])
@@ -327,13 +438,35 @@ func run():
 		await game.update({"op":"campaign_load","data":cases.defeat})
 		await game.act("finishBattle",[])
 		await capture("result",["場面：旅の結果"])
+	game.notice="ゲーム処理が停止しました。ゲームを起動し直してください。"
+	game.show_engine_stop()
+	await settle()
+	await capture("stop",["停止理由","通知・確認操作"],game.stop_dialog)
+	game.stop_dialog.hide();game.stop_dialog.queue_free()
 	var token=game.loading_screen.begin("before")
 	await capture("loading",["読み込み画像"])
 	game.loading_screen.finish(token)
+	game.load_dialog()
+	await capture("file",["場面：ファイル選択","ファイル選択欄"])
+	var picker=game.find_children("*","FileDialog",true,false)[0]
+	check(picker.title.contains("ファイル選択欄"),"native file picker title names its region")
+	picker.canceled.emit()
+	await settle()
+	var fallback=FileDialog.new()
+	fallback.use_native_dialog=false
+	fallback.access=FileDialog.ACCESS_USERDATA
+	game.add_child(fallback)
+	game.preferences.bind_window(fallback,"file_dialog",game.size,game.size*.85)
+	fallback.popup()
+	await capture("builtin-file",["ファイル一覧と入力欄"],fallback)
+	fallback.hide();fallback.queue_free()
 	if not frames.is_empty():
 		var file=FileAccess.open(output.path_join("frames.json"),FileAccess.WRITE)
 		file.store_string(JSON.stringify(frames))
 		file.close()
+	if DisplayServer.get_name()!="headless":
+		for region in inspector.CATALOG.data.regions+inspector.CATALOG.data.surfaces.values():
+			check(witnessed.has(region.label),"observed catalog region "+str(region.label))
 	game.closing=true
 	await game.audio.finish_audio()
 	game.engine.close_engine()

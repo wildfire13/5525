@@ -12,6 +12,7 @@ var controls := {}
 var foreground := {}
 var overlays := {}
 var file_windows := {}
+var hint_windows := {}
 var dirty := true
 var elapsed := 0.0
 
@@ -35,13 +36,19 @@ func setup(game):
 	get_tree().tree_changed.connect(invalidate)
 	get_tree().node_added.connect(window_added)
 	get_tree().node_removed.connect(window_removed)
+	for popup in ui.find_children("*","Popup",true,false):window_added(popup)
 	set_process(enabled)
 
 func invalidate(): dirty = true
 
 func window_added(node):
-	if node is FileDialog and ui.is_ancestor_of(node):
+	if node is PopupMenu or node is PopupPanel:
+		hint_windows[node]=true
+	elif node is FileDialog and ui.is_ancestor_of(node):
 		file_windows[node] = true
+		if not node.use_native_dialog or not DisplayServer.has_feature(DisplayServer.FEATURE_NATIVE_DIALOG_FILE):
+			node.get_vbox().set_meta("ui_region","FileContents")
+			call_deferred("attach_window",node.get_instance_id())
 	elif node is Window and not node is Popup and ui.is_ancestor_of(node):
 		call_deferred("attach_window", node.get_instance_id())
 
@@ -50,6 +57,8 @@ func attach_window(id: int):
 	if not is_instance_valid(window) or not window.is_inside_tree() or overlays.has(window): return
 	if window is AcceptDialog:
 		window.get_ok_button().get_parent().set_meta("ui_region", "DialogActionBar")
+		for part in window.get_children(true):
+			if part is Panel:part.set_meta("ui_region","DialogSurface")
 	var canvas = CanvasLayer.new()
 	canvas.layer = layer
 	window.add_child(canvas)
@@ -59,6 +68,7 @@ func window_removed(node):
 	if node is Window:
 		overlays.erase(node)
 		file_windows.erase(node)
+		hint_windows.erase(node)
 
 func add_overlay(window: Window, canvas: CanvasLayer):
 	var overlay = RegionOverlay.new()
@@ -79,7 +89,7 @@ func set_enabled(value: bool):
 	for overlay in overlays.values(): overlay.visible = value
 
 func collect(node: Node):
-	if node == self or node is Node3D or node is SubViewport or node is Popup or node is FileDialog: return
+	if node == self or node is Node3D or node is SubViewport or node is Popup or node is FileDialog and not overlays.has(node): return
 	if node is BaseButton or node is Label:
 		var owner_window=node.get_window()
 		if not foreground.has(owner_window): foreground[owner_window]=[]
@@ -99,14 +109,30 @@ func visible_box(node: Control, bounds: Rect2) -> Rect2:
 		parent = parent.get_parent()
 	return rect
 
+# Transient content follows its source; its review region spans the game cells it touches.
+func cell_cover(rect: Rect2, window: Window) -> Rect2:
+	if not rect.has_area():return Rect2()
+	var root=get_tree().root
+	var to_game=root.get_screen_transform().affine_inverse()*window.get_screen_transform()
+	var box=to_game*rect
+	var unit=Vector2(root.size)/preload("res://screen_grid.gd").DIVISIONS
+	var first=(box.position/unit).floor()
+	var last=(box.end/unit).ceil()
+	return window.get_visible_rect().intersection(to_game.affine_inverse()*Rect2(first*unit,(last-first)*unit))
+
+func region_box(node: Control, window: Window, region: Dictionary) -> Rect2:
+	var rect=visible_box(node,window.get_visible_rect())
+	return cell_cover(rect,window) if region.get("grid_cover",false) else rect
+
 func screen_id(window: Window, include_menu := true) -> String:
+	if window is FileDialog:return "file"
 	if window != ui.get_window(): return "debug" if window.name == &"DeveloperWindow" else "window"
 	for dialog in file_windows:
-		if dialog.get_meta("file_dialog_active", false): return "file"
+		if include_menu and dialog.get_meta("file_dialog_active", false): return "file"
 	if ui.loading_screen.active: return "loading"
 	if include_menu and ui.menu.visible: return "menu"
 	var dialogue = ui.pages.quest_board.dialogue
-	if is_instance_valid(dialogue) and dialogue.is_inside_tree() and dialogue.visible: return "story"
+	if include_menu and is_instance_valid(dialogue) and dialogue.is_inside_tree() and dialogue.visible: return "story"
 	if ui.results_view.active: return "victory" if ui.results_view.current.get("kind") == "battle" else "complete"
 	var phase = ui.campaign().get("phase", "")
 	if ui.view_kind == "battle":
@@ -162,18 +188,48 @@ func place(captions: Array, text: String, area: Rect2, bounds: Rect2, occupied: 
 	captions.append([text,box])
 	occupied.append(box.grow(2))
 
+# Label each contiguous set of unoccupied grid cells once, on its widest row.
+func label_background(captions, bounds: Rect2, areas: Array, occupied):
+	var unit=Vector2(get_tree().root.size)/preload("res://screen_grid.gd").DIVISIONS
+	var empty={}
+	for y in roundi(bounds.size.y/unit.y):
+		for x in roundi(bounds.size.x/unit.x):
+			var cell=Vector2i(x,y)
+			var center=(Vector2(cell)+Vector2.ONE*0.5)*unit
+			if not areas.any(func(area):return area.has_point(center)):empty[cell]=true
+	while not empty.is_empty():
+		var start=empty.keys()[0]
+		var pending=[start]
+		var island={}
+		empty.erase(start)
+		while not pending.is_empty():
+			var cell=pending.pop_back()
+			island[cell]=true
+			for direction in [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN]:
+				var next=cell+direction
+				if empty.erase(next):pending.append(next)
+		var widest=Rect2()
+		for cell in island:
+			if island.has(cell+Vector2i.LEFT):continue
+			var width=1
+			while island.has(cell+Vector2i.RIGHT*width):width+=1
+			if width*unit.x>widest.size.x:widest=Rect2(Vector2(cell)*unit,Vector2(width,1)*unit)
+		place(captions,CATALOG.data.prefix+CATALOG.data.surfaces.background.label,widest,bounds,occupied)
+
 func refresh():
 	if dirty:
 		dirty = false
 		controls.clear()
 		foreground.clear()
 		collect(ui)
-		for hover in get_tree().get_nodes_in_group("equipment_full_hover"): collect(hover)
+		for group in ["equipment_full_hover","ui_drag_preview"]:
+			for external in get_tree().get_nodes_in_group(group):
+				if not ui.is_ancestor_of(external):collect(external)
 		for dialog in overlays:
 			if dialog is AcceptDialog:
-				var buttons = dialog.get_ok_button().get_parent()
-				if not controls.has(dialog): controls[dialog] = []
-				if not controls[dialog].has(buttons): controls[dialog].append(buttons)
+				if not controls.has(dialog):controls[dialog]=[]
+				for part in [dialog.get_ok_button().get_parent(),dialog.get_label()]+dialog.get_children(true):
+					if part is Control and definitions.has(str(part.get_meta("ui_region",part.name))) and not controls[dialog].has(part):controls[dialog].append(part)
 	for window in overlays:
 		if not window.visible: continue
 		var screen = screen_id(window)
@@ -181,19 +237,34 @@ func refresh():
 		var title: String = CATALOG.data.screens[screen].label
 		if screen == "window": title += "／" + window.title
 		if screen == "entry": title += "／" + ui.pages.facility_entry.facility_name(ui.page)
-		var underneath = screen_id(window, false) if screen == "menu" else screen
+		var underneath = screen_id(window, false) if screen in ["menu","story","file"] else screen
 		var occupied=occupied_text(window,bounds)
 		var captions := []
+		var areas := []
 		place(captions, "場面：" + title, Rect2(Vector2.ZERO, Vector2(bounds.size.x * 0.68, 30)), bounds, occupied)
 		for node in controls.get(window, []):
 			if not is_instance_valid(node) or not node.is_visible_in_tree() or node.is_queued_for_deletion(): continue
 			for region in definitions[str(node.get_meta("ui_region",node.name))]:
 				if not region.screens.has(screen) and not region.screens.has(underneath) and not region.screens.has("共通"): continue
-				if region.screens.has("共通") and screen in ["loading","story","complete","victory","file"]: continue
-				var area = visible_box(node, bounds)
+				if region.screens.has("共通") and screen in ["loading","complete","victory"]: continue
+				var area = region_box(node,window,region)
 				if area.size.x < 12 or area.size.y < 10: continue
 				var caption: String = CATALOG.data.prefix + region.label
 				place(captions, caption, area, bounds, occupied)
+				if node.name not in [&"TownStill",&"FacilityStill"]:areas.append(area)
+		# Godot draws these popup windows above the parent canvas. Mark the adjoining
+		# edge on the parent so review text cannot cover the choices or the hint.
+		for popup in hint_windows:
+			if not popup.visible or popup.get_parent().get_window()!=window:continue
+			var transform=window.get_screen_transform().affine_inverse()*popup.get_screen_transform()
+			var rect=bounds.intersection(transform*popup.get_visible_rect())
+			if not rect.has_area():continue
+			occupied.append(rect)
+			var role="choices" if popup is PopupMenu else "tooltip"
+			place(captions,CATALOG.data.prefix+CATALOG.data.surfaces[role].label,cell_cover(rect,window),bounds,occupied)
+		if screen=="file":
+			place(captions,CATALOG.data.prefix+CATALOG.data.surfaces.file.label,bounds,bounds,occupied)
+		else:label_background(captions,bounds,areas,occupied)
 		var overlay = overlays[window]
 		if overlay.captions != captions:
 			overlay.captions = captions

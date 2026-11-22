@@ -70,7 +70,7 @@ func render(parent):
 	var panel=PanelContainer.new();panel.name="GuildComparison";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(panel)
 	var background=ui.mock_shell.surface_style();background.set_content_margin_all(0);panel.add_theme_stylebox_override("panel",background)
 	var center=VBoxContainer.new();center.add_theme_constant_override("separation",0);panel.add_child(center)
-	var tabs=ui.row(center)
+	var tabs=ui.row(center);tabs.name="GuildInfoTabs"
 	tabs.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	for index in range(3):
 		var tab=b(tabs,["能力","装備","スキル"][index],select_tab.bind(index));tab.name="GuildTab_"+str(index);ui.mark_selected(tab,detail_tab==index)
@@ -123,13 +123,18 @@ func refresh_selection():
 		ui.mock_shell.refresh_roster_selection())
 
 func build_comparison(center):
-	compare=HBoxContainer.new();compare.name="GuildComparisonDetails";compare.size_flags_vertical=Control.SIZE_EXPAND_FILL;compare.add_theme_constant_override("separation",20);center.add_child(compare)
+	compare=HBoxContainer.new();compare.name="GuildComparisonDetails";compare.size_flags_vertical=Control.SIZE_EXPAND_FILL;compare.add_theme_constant_override("separation",0);center.add_child(compare)
 	var left=pages.card(compare);left.name="GuildActiveDetail";left.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	render_member(left,person(current_id),"現在のパーティ")
 	var swap_column=pages.card(compare);swap_column.name="GuildSwapColumn";swap_column.alignment=BoxContainer.ALIGNMENT_CENTER
 	var swap=b(swap_column,"入れ替える",prepare.bind("swap",current_id,chosen_id),busy() or candidate("swap",current_id,chosen_id).is_empty());swap.name="GuildSwap";swap.custom_minimum_size=Vector2(112,48)
 	var right=pages.card(compare);right.name="GuildReserveDetail";right.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	render_member(right,person(chosen_id),"控え")
+	for column in [left,swap_column,right]:
+		var frame=column.get_parent()
+		frame.name=str(column.name)+"Region"
+		frame.custom_minimum_size.x=ui.mock_shell.grid_cell().x*2
+		frame.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	footer=ui.row(center);footer.name="GuildActions"
 	footer.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	var notice_label=l(footer,notice);notice_label.name="GuildNotice";notice_label.add_theme_font_size_override("font_size",18)

@@ -6,7 +6,7 @@ function saved(s){assert(C.validate(s).ok,C.validate(s).error);return JSON.parse
 function won(s){assert(C.travel(s,'safe',()=>0));assert(C.begin(s));for(const u of s.battle.units)if(u.side==='enemy')u.hp=0;s.battle.actor=null;s.battle.resultKind='annihilation';s.battle.result='勝利！ ミラーマッチを制した。';return saved(s);}
 const free=C.create();assert(C.depart(free,'east'));const victory=won(free);const before=C.view(free);assert(C.finishBattle(free));const finished=saved(free),after=C.view(free);
 function quest(urgent){
- const s=C.create(),q=C.board(s).find(q=>urgent?q.deadline===6:q.deadline===10);assert(q);assert(C.accept(s,q.id,'character_yuno'));assert(C.depart(s,q.to));won(s);assert(C.finishBattle(s));assert(C.onward(s));won(s);assert(C.finishBattle(s));assert(C.arrive(s));const ready=saved(s);const before=C.view(s);assert(C.completeQuest(s));return {ready,result:saved(s),before,after:C.view(s)};
+ const s=C.create(),q=C.board(s).find(q=>urgent?q.deadline===6:q.deadline===10);assert(q);assert(C.accept(s,q.id,'character_yuno'));assert(C.depart(s,q.to));won(s);assert(C.finishBattle(s));assert(C.onward(s));won(s);assert(C.finishBattle(s));const arrival=saved(s);assert(C.arrive(s));const ready=saved(s);const before=C.view(s);assert(C.completeQuest(s));return {arrival,ready,result:saved(s),before,after:C.view(s)};
 }
 const fail=clone(victory);fail.state.battle.resultKind='defeat';fail.state.battle.result='敗北。';for(const u of fail.state.battle.units)u.hp=u.side==='ally'?0:u.max;fail.state.battle.actor=null;assert(C.validate(fail.state).ok,C.validate(fail.state).error);
 const kiln=C.create();assert(C.accept(kiln,'standalone-kiln','character_yuno'));kiln.location='east';kiln.worldTime=20;kiln.hours=20;assert(C.completeQuest(kiln));

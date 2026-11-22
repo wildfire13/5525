@@ -22,7 +22,7 @@ func _ready():
 	style.set_border_width_all(1);style.set_corner_radius_all(6)
 	panel.add_theme_stylebox_override("panel",style)
 	content=Control.new();content.name="EquipmentTooltip";content.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	content.set_meta("hover_owner",weakref(self));add_child(content);content.position=Vector2(PADDING,PADDING)
+	content.set_meta("hover_owner",weakref(self));panel.add_child(content);content.position=Vector2(PADDING,PADDING)
 	title=make_label("EquipmentTooltipName",20)
 	title.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
 	body=make_label("EquipmentTooltipDetails",18)

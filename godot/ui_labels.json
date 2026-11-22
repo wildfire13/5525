@@ -369,7 +369,8 @@
    "screens": [
     "character",
     "shop",
-    "warehouse"
+    "warehouse",
+    "window"
    ],
    "label": "装備",
    "nodes": [
@@ -381,7 +382,8 @@
    "screens": [
     "character",
     "shop",
-    "warehouse"
+    "warehouse",
+    "window"
    ],
    "label": "インベントリ",
    "nodes": [
@@ -1021,9 +1023,10 @@
    ],
    "label": "明細見出し",
    "nodes": [
-    "SkillDetailsTitle"
+    "SkillDetailsTitle",
+    "ModalHeading"
    ],
-   "meaning": "詳細を開いた装備・所持品・スキルの名前"
+   "meaning": "説明・確認の表題、または装備・所持品・スキルの名前"
   },
   {
    "screens": [
@@ -1035,6 +1038,293 @@
     "BattlePredictionRegion"
    ],
    "meaning": "移動先の命中率や対象に重ねて表示する行動予測"
+  },
+  {
+   "screens": [
+    "debug"
+   ],
+   "label": "開発情報の見出し",
+   "nodes": [
+    "DebugHeading"
+   ],
+   "meaning": "開発情報ウィンドウの表題"
+  },
+  {
+   "screens": [
+    "debug"
+   ],
+   "label": "履歴の記録案内",
+   "nodes": [
+    "DebugHistoryHint"
+   ],
+   "meaning": "履歴の表示件数と保存先の案内"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "停止理由",
+   "nodes": [
+    "EngineStopMessage"
+   ],
+   "meaning": "続行できない理由と再起動の案内",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "deployment"
+   ],
+   "label": "人物の配置案内",
+   "nodes": [
+    "DeploymentInstructions"
+   ],
+   "meaning": "人物を選んで配置する方法",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "loading"
+   ],
+   "label": "読み込み状態",
+   "nodes": [
+    "LoadingCaption"
+   ],
+   "meaning": "読み込み中の状態表示",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "hub",
+    "map",
+    "board",
+    "character",
+    "shop",
+    "warehouse",
+    "entry",
+    "guild",
+    "inn",
+    "items"
+   ],
+   "label": "背景画",
+   "nodes": [
+    "TownStill",
+    "FacilityStill"
+   ],
+   "meaning": "街・施設の背景とその上の暗幕"
+  },
+  {
+   "screens": [
+    "story"
+   ],
+   "label": "会話の場面名",
+   "nodes": [
+    "QuestSceneLabel"
+   ],
+   "meaning": "会話冒頭の場面名",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "story"
+   ],
+   "label": "話者名",
+   "nodes": [
+    "QuestSpeaker"
+   ],
+   "meaning": "いま話している人物",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "story"
+   ],
+   "label": "会話送り案内",
+   "nodes": [
+    "QuestAdvanceHint"
+   ],
+   "meaning": "会話の文字送り・次の操作",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "character",
+    "guild"
+   ],
+   "label": "人物情報タブ",
+   "nodes": [
+    "CharacterInfoTabs",
+    "GuildInfoTabs"
+   ],
+   "meaning": "能力・スキルなどの人物情報切替"
+  },
+  {
+   "screens": [
+    "guild"
+   ],
+   "label": "編成交代演出",
+   "nodes": [
+    "GuildAnimationClip",
+    "GuildPartyAnimation"
+   ],
+   "meaning": "編成の交代で移動する人物カード",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "共通"
+   ],
+   "label": "ドラッグ中の人物",
+   "nodes": [
+    "MemberDragPreview"
+   ],
+   "meaning": "配置・ギルドでカーソルに追従する人物",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "共通"
+   ],
+   "label": "ドラッグ中の品物",
+   "nodes": [
+    "ItemDragPreview"
+   ],
+   "meaning": "装備・所持品をドラッグしている間の表示",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "battle",
+    "trial"
+   ],
+   "label": "戦闘コマンド演出",
+   "nodes": [
+    "CommandOpeningFlight",
+    "CommandActionFlight"
+   ],
+   "meaning": "選択・確定時に移動するコマンドパネル",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "所持品の詳細",
+   "nodes": [
+    "BattleItemDetail"
+   ],
+   "meaning": "戦闘中、所持品を選んだときの内訳",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "victory",
+    "complete",
+    "loading",
+    "window"
+   ],
+   "label": "画面の下地",
+   "nodes": [
+    "ResultBackground",
+    "LoadingBackground",
+    "DialogSurface",
+    "ResultsPanel"
+   ],
+   "meaning": "リザルト・読み込み・確認ダイアログの背景面"
+  },
+  {
+   "screens": [
+    "file"
+   ],
+   "label": "ファイル一覧と入力欄",
+   "nodes": [
+    "FileContents"
+   ],
+   "meaning": "Godot内蔵のファイル選択で場所・ファイル名・種類を選ぶ領域",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "battle",
+    "trial"
+   ],
+   "label": "行動者情報",
+   "nodes": [
+    "BattleActorInfo"
+   ],
+   "meaning": "行動者のHP・MP・装備・能力",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "battle",
+    "trial"
+   ],
+   "label": "対象人物の状態",
+   "nodes": [
+    "BattlePersonInfo"
+   ],
+   "meaning": "対象人物の能力・装備と状態",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "battle",
+    "trial"
+   ],
+   "label": "行動内容・効果",
+   "nodes": [
+    "DecisionContent"
+   ],
+   "meaning": "選んだ行動の内容・効果・対象",
+   "grid_cover": true
+  },
+  {
+   "screens": [
+    "guild"
+   ],
+   "label": "同行者の比較欄",
+   "nodes": [
+    "GuildActiveDetailRegion"
+   ],
+   "meaning": "編成比較に表示している同行者"
+  },
+  {
+   "screens": [
+    "guild"
+   ],
+   "label": "控えの比較欄",
+   "nodes": [
+    "GuildReserveDetailRegion"
+   ],
+   "meaning": "編成比較に表示している控え候補"
+  },
+  {
+   "screens": [
+    "guild"
+   ],
+   "label": "入れ替え操作",
+   "nodes": [
+    "GuildSwapColumnRegion"
+   ],
+   "meaning": "同行者と控えを入れ替える中央の操作"
   }
- ]
+ ],
+ "surfaces": {
+  "background": {
+   "label": "場面背景・余白",
+   "meaning": "ほかの領域が占めていない格子の背景や空白"
+  },
+  "choices": {
+   "label": "選択候補一覧",
+   "meaning": "絞り込み・部位・受取人などを選ぶドロップダウン"
+  },
+  "tooltip": {
+   "label": "操作ヒント",
+   "meaning": "ボタンなどにカーソルを置いて表示される標準のヒント"
+  },
+  "file": {
+   "label": "ファイル選択欄",
+   "meaning": "保存・読み込み・画像取込で開くファイル選択画面"
+  }
+ }
 }

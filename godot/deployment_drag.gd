@@ -39,7 +39,7 @@ static func consume(ui,payload) -> bool:
 	payload.consumed=true
 	return true
 static func preview(ui,uid: String) -> Control:
-	var card=PanelContainer.new();card.theme=ui.theme;card.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var card=PanelContainer.new();card.set_meta("ui_region","MemberDragPreview");card.add_to_group("ui_drag_preview");card.theme=ui.theme;card.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var style=StyleBoxFlat.new();style.bg_color=Color("#18212aef");style.border_color=Color("#e3c487");style.set_border_width_all(2);style.set_corner_radius_all(5);style.set_content_margin_all(8);card.add_theme_stylebox_override("panel",style)
 	var row=HBoxContainer.new();row.mouse_filter=Control.MOUSE_FILTER_IGNORE;card.add_child(row)
 	for member in ui.campaign().get("roster",[]):
