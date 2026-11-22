@@ -155,7 +155,7 @@ func journey(parent):
 	strip.custom_minimum_size.y=grid_height(2)
 	var quest=c().get("activeQuest")
 	var sluice_trip=phase=="road" and quest is Dictionary and quest.get("id")=="sluice-bell" and journey_.get("destination")=="east" and not strip.returning
-	var map_row=row(parent);map_row.alignment=BoxContainer.ALIGNMENT_END;map_row.custom_minimum_size.y=grid_height(3)-grid_height(2)
+	var map_row=row(parent);map_row.name="JourneyMapBar";map_row.alignment=BoxContainer.ALIGNMENT_END;map_row.custom_minimum_size.y=grid_height(3)-grid_height(2)
 	var toggle=b(map_row,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",func():toggle_travel_map(parent,map_row,journey_))
 	toggle.name="TravelMapToggle"
 	if travel_map_expanded:add_travel_map(parent,journey_)
@@ -196,7 +196,9 @@ func journey(parent):
 			note.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
 			map_row.move_child(note,0)
 	if phase=="camp":
-		b(parent,"インベントリ",party_view.open_camp_inventory)
+		var inventory=VBoxContainer.new();inventory.name="CampInventoryBar";parent.add_child(inventory)
+		inventory.custom_minimum_size.y=grid_height(action_cell+2)-grid_height(action_cell+1)
+		b(inventory,"インベントリ",party_view.open_camp_inventory)
 func toggle_travel_map(parent,map_row,journey_):
 	travel_map_expanded=not travel_map_expanded
 	var toggle=map_row.get_node("TravelMapToggle")

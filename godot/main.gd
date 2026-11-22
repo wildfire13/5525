@@ -118,7 +118,9 @@ func _ready():
 	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
 
 	town_back=button(top,"拠点へ",navigate.bind("hub"));town_back.visible=false
-	var menu_button=local_button(self,"メニュー",open_menu);menu_button.name="CommonMenuButton"
+	var menu_region=Control.new();menu_region.name="BattleMenuRegion";menu_region.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(menu_region)
+	menu_region.anchor_left=0.9;menu_region.anchor_right=1.0
+	var menu_button=local_button(menu_region,"メニュー",open_menu);menu_button.name="CommonMenuButton"
 	memory.key(menu_button,"game_menu")
 	menu_button.z_index=61
 	menu_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);menu_button.offset_left=-136;menu_button.offset_top=-64;menu_button.offset_right=-12;menu_button.offset_bottom=-8
@@ -633,7 +635,10 @@ func render():
 	top.custom_minimum_size.y=preload("res://screen_grid.gd").cell_rect(available,0,0,10,1).size.y if battle else 44
 	var common_menu=find_child("CommonMenuButton",true,false)
 	if common_menu!=null:
-		common_menu.visible=battle
+		var menu_region=common_menu.get_parent()
+		menu_region.visible=battle
+		menu_region.anchor_top=0.0 if active_battle else 0.9
+		menu_region.anchor_bottom=0.1 if active_battle else 1.0
 		common_menu.anchor_top=0.0 if active_battle else 1.0
 		common_menu.anchor_bottom=common_menu.anchor_top
 		common_menu.offset_top=12 if active_battle else -64

@@ -132,7 +132,7 @@ func run():
 	var workspace=game.pages.party_view.workspace
 	for tab in ["equipment","inventory","ability","skills"]:
 		if workspace.tab!=tab:workspace.set_tab(tab)
-		await capture(tab,["人物情報"])
+		await capture(tab,["人物情報","装備・インベントリ切替"])
 	var hover_skill=game.find_child("CharacterSkill_active_*",true,false)
 	hover_skill.show_hover()
 	await capture("skill-hover",["スキルホバー詳細"])
@@ -201,7 +201,7 @@ func run():
 	await capture("guild",["編成比較","控え名簿"])
 	game.pages.facility_entry.back()
 	await button("FacilityChoice_warehouse")
-	await capture("warehouse",["倉庫台帳"])
+	await capture("warehouse",["装備・インベントリ切替","倉庫台帳"])
 	await button("WarehouseTab_inventory")
 	await capture("warehouse-inventory",["インベントリ","倉庫台帳"])
 	await inspect_item_and_return("WarehouseItem_character_potion")
@@ -229,14 +229,14 @@ func run():
 		game.pages.shop_view.set_inventory_tab("equipment")
 		await capture("shop-"+town,["商品一覧","取引確認"])
 	await inspect_item_and_return("Product_undertow-sword")
-	await capture("shop",["商品一覧","取引確認","現在の装備","装備候補"])
+	await capture("shop",["装備・インベントリ切替","商品一覧","取引確認","現在の装備","装備候補"])
 	var skill_button=game.find_child("ComparisonSkill_*",true,false)
 	if skill_button!=null:
 		skill_button.pressed.emit()
 		await settle()
 		var skill=game.find_child("SkillDetailsWindow",true,false)
 		if skill!=null:
-			await capture("skill-detail",["詳細タブ"],skill)
+			await capture("skill-detail",["明細見出し","詳細タブ"],skill)
 			skill.finish()
 			await settle()
 	var shop=game.pages.shop_view
@@ -267,9 +267,9 @@ func run():
 	await game.update({"op":"campaign_load","data":seed})
 	await page("map")
 	await game.act("depart",["east","convoy"])
-	await capture("road",["場面：街道"])
+	await capture("road",["旅程マップ切替","場面：街道"])
 	await game.act("travel",["safe"])
-	await capture("deployment",["場面：配置","戦場・配置"])
+	await capture("deployment",["カメラ操作案内","メニュー呼び出し","場面：配置","戦場・配置"])
 	await game.act("begin",[])
 	await capture("battle",["場面：戦闘","戦場・配置"])
 	for cmd in ["action_attack","action_move","skill","item"]:
@@ -279,7 +279,9 @@ func run():
 				await game.on_cell(int(game.data.choices.action_move[0]))
 				await settle()
 				check(game.board.move_preview_caption()=="命中率：100％","valid move selected on the board")
-			await capture("battle-"+cmd,["場面：戦闘"])
+			var expected=["場面：戦闘"]
+			if cmd=="action_move" and not game.board.move_preview_caption().is_empty() and DisplayServer.get_name()!="headless":expected.append("盤面の行動予測")
+			await capture("battle-"+cmd,expected)
 			game.hud.back_to_commands()
 			await settle()
 	await button("BattleHistory")
@@ -305,7 +307,7 @@ func run():
 		game.results_view.advance()
 		await settle()
 		await page("map")
-		await capture("camp",["場面：野営地"])
+		await capture("camp",["旅程マップ切替","野営インベントリ操作","場面：野営地"])
 		await page("items")
 		await capture("items",["場面：道具使用"])
 		await game.update({"op":"campaign_load","data":cases.normal.ready})

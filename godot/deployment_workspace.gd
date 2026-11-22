@@ -37,7 +37,7 @@ func layout():
  Grid.place(hud.deployment_bar,Grid.cell_rect(view,2,1,6,1))
  hud.deployment_bar.add_theme_stylebox_override("panel",panel_style)
  Grid.place(hud.deployment_actions,Grid.cell_rect(view,5,9,3,1))
- hud.camera_hint.global_position=Vector2(24,view.y-hud.camera_hint.get_combined_minimum_size().y-8)
+ hud.layout_camera_guide()
  hud.deployment_instructions.global_position=Grid.cell_rect(view,2,2,1,1).position
  ui.board.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
  Grid.place(ui.board,Grid.cell_rect(view,2,2,6,7))

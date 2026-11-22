@@ -125,7 +125,8 @@ func mount():
 		panel.columns_changed.connect(set_panel_columns)
 	dock=left_panel
 	tools=HBoxContainer.new();tools.name="BattleTools";middle.add_child(tools)
-	camera_hint=l(middle,preload("res://battle_board.gd").CAMERA_HINT)
+	var guidance=Control.new();guidance.name="CameraGuideRegion";guidance.mouse_filter=Control.MOUSE_FILTER_IGNORE;middle.add_child(guidance)
+	camera_hint=l(guidance,preload("res://battle_board.gd").CAMERA_HINT)
 	camera_hint.name="BattleCameraHint";camera_hint.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	camera_hint.autowrap_mode=TextServer.AUTOWRAP_OFF
 	camera_hint.add_theme_font_size_override("font_size",18)
@@ -146,6 +147,9 @@ func mount():
 	# Control input follows sibling order, independently of drawing z_index.
 	middle.move_child(left_panel,-1);middle.move_child(right_panel,-1)
 	resize()
+func layout_camera_guide():
+	Grid.place(camera_hint.get_parent(),Grid.cell_rect(ui.size,0,9,3,1))
+	camera_hint.global_position=Vector2(24,ui.size.y-camera_hint.get_combined_minimum_size().y-8)
 func resize():
 	if not is_instance_valid(left_panel) or not is_instance_valid(ui.board) or ui.board.is_queued_for_deletion() or middle.size.x<100:return
 	if deployment_layout:
@@ -154,7 +158,7 @@ func resize():
 	ui.board.position=Vector2.ZERO
 	ui.board.size=ui.size
 	ui.board.battle_play_width=maxf(1,ui.size.x-left_panel.size.x-right_panel.size.x-64)
-	camera_hint.global_position=Vector2(24,ui.size.y-camera_hint.get_combined_minimum_size().y-8)
+	layout_camera_guide()
 	var queue_scroll=ui.battle_header.find_child("TurnOrderViewport",true,false)
 	if queue_scroll!=null:queue_scroll.custom_minimum_size.x=queue_viewport_width()
 	var order_region=Grid.cell_rect(ui.size,0,9,10,1)

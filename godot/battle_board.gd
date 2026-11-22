@@ -23,6 +23,7 @@ var grille_motion: Tween
 var grille_open := false
 var view: SubViewport
 var viewport_container: SubViewportContainer
+var prediction_region: Control
 var overlay: Control
 var skill_effects: Control
 var effect_action: Dictionary = {}
@@ -76,6 +77,8 @@ func _ready():
 	skill_effects.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(skill_effects)
 	overlay=Control.new();overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(overlay);overlay.draw.connect(draw_overlay)
+	prediction_region=Control.new();prediction_region.name="BattlePredictionRegion"
+	prediction_region.mouse_filter=Control.MOUSE_FILTER_IGNORE;prediction_region.hide();overlay.add_child(prediction_region)
 	resized.connect(func():call_deferred("update_camera"))
 	call_deferred("update_camera")
 	gui_input.connect(input_event)
@@ -389,7 +392,9 @@ func move_preview_caption() -> String:
 		return "命中率：100％"
 	return ""
 func draw_overlay():
-	if world==null or data.is_empty():return
+	if world==null or data.is_empty():
+		prediction_region.hide()
+		return
 	var resolving=data.get("presentation") is Dictionary
 	var state: Dictionary=data.get("state") if data.get("state") is Dictionary else {}
 	var ranges=preview.get("ranges",data.get("ranges",{}).get(kind,[]))
@@ -436,9 +441,17 @@ func draw_overlay():
 	if state.get("sluice") is Dictionary:
 		draw_sluice(state)
 	var move_caption=move_preview_caption()
-	draw_unit_labels(state,move_caption.is_empty())
+	var prediction=draw_unit_labels(state,move_caption.is_empty())
 	if not move_caption.is_empty():
-		draw_prediction_caption(int(preview.destination),move_caption,Color("#a9ede0"),150)
+		prediction=draw_prediction_caption(int(preview.destination),move_caption,Color("#a9ede0"),150)
+	prediction_region.visible=prediction.has_area()
+	if prediction_region.visible:
+		var grid=preload("res://screen_grid.gd")
+		var view_size=Vector2(get_tree().root.size)
+		var step=view_size/grid.DIVISIONS
+		var first=Vector2i(((global_position+prediction.position)/step).floor())
+		var end=Vector2i(((global_position+prediction.end)/step).ceil())
+		grid.place(prediction_region,grid.cell_rect(view_size,first.x,first.y,end.x-first.x,end.y-first.y))
 	if has_focus():
 		cell_outline(keyboard_cell,Color("#78edce"),3.0)
 func draw_coordinate(at: Vector2, value: String, color: Color):
@@ -514,7 +527,8 @@ func draw_sluice(state: Dictionary) -> void:
 	overlay.draw_rect(Rect2(8, 8, width, 26), Color("22332ef0"))
 	overlay.draw_string(font, Vector2(16, 27), tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
 
-func draw_unit_labels(state: Dictionary,show_hover_caption: bool):
+func draw_unit_labels(state: Dictionary,show_hover_caption: bool) -> Rect2:
+	var prediction:=Rect2()
 	var shown: Array[Rect2]=[]
 	var actor=state.get("actor","")
 	if data.get("presentation") is Dictionary:actor=data.presentation.get("actor_id",actor)
@@ -535,14 +549,16 @@ func draw_unit_labels(state: Dictionary,show_hover_caption: bool):
 			if u.get("guard",false):overlay.draw_rect(Rect2(at-Vector2(width*.5+1,1),Vector2(width+2,6)),Color("#ffe197"),false,1)
 		elif u.get("guard",false):overlay.draw_string(ThemeDB.fallback_font,at+Vector2(-24,-5),"防",HORIZONTAL_ALIGNMENT_LEFT,-1,16,color)
 		if show_hover_caption and u.id==hover_uid and not hover_caption.is_empty():
-			draw_prediction_caption(int(u.pos),hover_caption,color)
-func draw_prediction_caption(cell: int,caption: String,color: Color,max_width: float=330):
+			prediction=draw_prediction_caption(int(u.pos),hover_caption,color)
+	return prediction
+func draw_prediction_caption(cell: int,caption: String,color: Color,max_width: float=330) -> Rect2:
 	var lines=caption.split("\n");var width_=minf(max_width,size.x-12);var height_=lines.size()*24+12
 	var origin=project_cell(cell)+Vector2(18,-height_-18)
 	origin.x=clampf(origin.x,6,maxf(6,size.x-width_-6));origin.y=clampf(origin.y,6,maxf(6,size.y-height_-6))
 	var rect=Rect2(origin,Vector2(width_,height_))
 	overlay.draw_rect(rect,Color(.04,.1,.14,.95));overlay.draw_rect(rect,color,false,1.0)
 	for i in range(lines.size()):overlay.draw_string(ThemeDB.fallback_font,origin+Vector2(6,23+i*24),lines[i],HORIZONTAL_ALIGNMENT_LEFT,width_-12,18,Color.WHITE)
+	return rect
 func reset_animation():
 	if is_instance_valid(skill_effects):skill_effects.clear()
 	reset_portrait_animation()

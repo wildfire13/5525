@@ -20,7 +20,7 @@ func build(ui, member: Dictionary, tab: String, choose: Callable, prefix: String
 	align_column(self)
 	add_theme_constant_override("separation",0)
 	custom_minimum_size.y=ui.mock_shell.content_height()
-	var inset=MarginContainer.new();add_child(inset)
+	var inset=MarginContainer.new();inset.name="LoadoutTabBar";add_child(inset)
 	var surface=ui.mock_shell.surface_style()
 	inset.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	add_tabs(ui,inset,[["equipment","装備"],["inventory","インベントリ"]],tab,choose,prefix,disabled)

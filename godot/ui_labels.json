@@ -955,6 +955,86 @@
     "AudioSettings"
    ],
    "meaning": "BGM・ボイス・効果音の調整"
+  },
+  {
+   "screens": [
+    "character",
+    "shop",
+    "warehouse",
+    "window"
+   ],
+   "label": "装備・インベントリ切替",
+   "nodes": [
+    "LoadoutTabBar"
+   ],
+   "meaning": "人物の装備とインベントリを切り替えるタブ"
+  },
+  {
+   "screens": [
+    "road",
+    "camp",
+    "arrival"
+   ],
+   "label": "旅程マップ切替",
+   "nodes": [
+    "JourneyMapBar"
+   ],
+   "meaning": "経路とワールドマップの切替。水門の鐘では経路の特殊条件も表示"
+  },
+  {
+   "screens": [
+    "camp"
+   ],
+   "label": "野営インベントリ操作",
+   "nodes": [
+    "CampInventoryBar"
+   ],
+   "meaning": "野営地でインベントリを開く操作"
+  },
+  {
+   "screens": [
+    "deployment",
+    "battle",
+    "trial"
+   ],
+   "label": "カメラ操作案内",
+   "nodes": [
+    "CameraGuideRegion"
+   ],
+   "meaning": "盤面の移動・回転・拡大縮小の操作案内"
+  },
+  {
+   "screens": [
+    "deployment",
+    "battle",
+    "trial"
+   ],
+   "label": "メニュー呼び出し",
+   "nodes": [
+    "BattleMenuRegion"
+   ],
+   "meaning": "配置・戦闘中に共通メニューを開くボタン"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "明細見出し",
+   "nodes": [
+    "SkillDetailsTitle"
+   ],
+   "meaning": "詳細を開いた装備・所持品・スキルの名前"
+  },
+  {
+   "screens": [
+    "battle",
+    "trial"
+   ],
+   "label": "盤面の行動予測",
+   "nodes": [
+    "BattlePredictionRegion"
+   ],
+   "meaning": "移動先の命中率や対象に重ねて表示する行動予測"
   }
  ]
 }
