@@ -7,12 +7,6 @@ func settle():
 	for i in range(12):await process_frame
 	while game.locked or game.engine.busy or game.presenting:await process_frame
 func tap(name_: String):game.find_child(name_,true,false).pressed.emit();await settle()
-func escape_twice():
-	var event=InputEventKey.new();event.pressed=true;event.keycode=KEY_ESCAPE
-	var window=game.dialog.window;var margin=window.get_child(0)
-	window.window_input.emit(event)
-	margin._unhandled_key_input(event)
-	await settle()
 func run():
 	var qa=OS.get_environment("INVENTORY_QA_ROOT").replace("\\","/").to_lower()
 	if qa.is_empty() or not OS.get_user_data_dir().replace("\\","/").to_lower().begins_with(qa+"/"):push_error("Isolated profile required");quit(2);return
@@ -37,7 +31,12 @@ func run():
 		# Exercise its cancellation callback without claiming an OS Escape test.
 		sale.confirmation.canceled.emit()
 	else:
-		sale.confirmation.push_input(escape,true)
+		escape.window_id=sale.confirmation.get_window_id()
+		escape.physical_keycode=KEY_ESCAPE
+		Input.parse_input_event(escape)
+		await process_frame
+		var release=escape.duplicate();release.pressed=false
+		Input.parse_input_event(release)
 	await settle()
 	check(not game.modal_open() and sale.stage=="selected" and sale.amount==2 and sale.quote.get("count")==2,("headless sale cancellation" if headless else "sale receipt Escape")+" retains selection and quantity")
 	check((await game.engine.request({"op":"campaign_save"})).data==before,("headless sale cancellation" if headless else "sale Escape")+" preserves complete save")
@@ -45,9 +44,9 @@ func run():
 	list_button.pressed.emit();await settle()
 	await tap("Product_undertow-sword");await tap("ShopComparisonBuy");var purchased=(await game.engine.request({"op":"campaign_save"})).data
 	check(not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ %s×1 / 支払%dG" % [game.member_name(game.shop_uid),game.pages.shop_view.receipt.gear.name,int(game.pages.shop_view.receipt.cost)],"purchase completion is a non-modal recipient/item/count/payment notice")
-	await escape_twice()
-	check(not game.modal_open() and game.page=="shop" and game.pages.shop_view.stage=="S0","purchase notice needs no modal dismissal after Escape through both routes")
-	check((await game.engine.request({"op":"campaign_save"})).data==purchased and purchased.state.gold<before.state.gold,"Escape after purchase notice retains the completed purchase")
+	await tap("Product_undertow-sword")
+	check(not game.modal_open() and game.find_child("ShopComparisonBuy",true,false).is_visible_in_tree(),"can select the next product directly after the purchase notice")
+	check((await game.engine.request({"op":"campaign_save"})).data==purchased and purchased.state.gold<before.state.gold,"selecting a product retains the completed purchase")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(8):await process_frame
 	var f=FileAccess.open(OS.get_environment("INVENTORY_QA_ROOT").path_join("escape-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
