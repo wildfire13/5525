@@ -70,7 +70,7 @@ const QUEUE_PITCH=QUEUE_CARD_WIDTH+QUEUE_ARROW_WIDTH+QUEUE_GAP*2
 const COMMANDS=[["action_attack","攻撃"],["action_move","移動"],["action_skill","スキル"],["items","アイテム"],["action_defend","防御"]]
 const Grid=preload("res://screen_grid.gd")
 func panel_rect(right: bool) -> Rect2:
-	var rect=Grid.cell_rect(ui.size,8 if right else 0,2,2,7)
+	var rect=Grid.cell_rect(ui.size,8 if right else 0,2,2,6)
 	rect.position-=middle.global_position
 	return rect
 func actor_panel_rect() -> Rect2:return panel_rect(false)
@@ -147,32 +147,37 @@ func mount():
 	middle.move_child(left_panel,-1);middle.move_child(right_panel,-1)
 	resize()
 func layout_camera_guide():
-	var region=Grid.cell_rect(ui.size,0,9,3,1)
+	var region=Grid.cell_rect(ui.size,2,8,3,1)
 	camera_hint.get_parent().clip_contents=true
 	Grid.place(camera_hint.get_parent(),region)
 	camera_hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	Grid.place(camera_hint,region)
 func resize():
 	if not is_instance_valid(left_panel) or not is_instance_valid(ui.board) or ui.board.is_queued_for_deletion() or middle.size.x<100:return
+	# In battle, keep movable panels clear of the order strip and camera help as well.
+	var central=Grid.cell_rect(ui.size,0,1 if deployment_layout else 2,10,8 if deployment_layout else 6)
+	for panel in [left_panel,right_panel]:
+		panel.reserved_top=central.position.y
+		panel.reserved_bottom=ui.size.y-central.end.y
 	if deployment_layout:
 		deployment_workspace.layout();return
 	ui.board.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	Grid.place(ui.board,Grid.cell_rect(ui.size,2,2,6,7))
+	Grid.place(ui.board,Grid.cell_rect(ui.size,2,2,6,6))
 	ui.board.battle_play_width=maxf(1,ui.size.x-left_panel.size.x-right_panel.size.x-64)
 	layout_camera_guide()
 	var queue_scroll=ui.battle_header.find_child("TurnOrderViewport",true,false)
 	if queue_scroll!=null:queue_scroll.custom_minimum_size.x=queue_viewport_width()
-	var order_region=Grid.cell_rect(ui.size,3,9,6,1)
+	var order_region=Grid.cell_rect(ui.size,2,1,6,1)
 	Grid.place(ui.battle_header,order_region)
 	var order=ui.battle_header.find_child("TurnOrderControls",true,false)
 	if order!=null:order.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	ui.board.deployment_bottom_limit=0
 	ui.board.update_camera()
-	left_panel.place_regions(ui.size,Grid.cell_rect(ui.size,0,2,2,7),Grid.cell_rect(ui.size,0,2,2,2),Grid.cell_rect(ui.size,0,4,2,5),Rect2(),true)
-	right_panel.place_regions(ui.size,Grid.cell_rect(ui.size,8,2,2,7),Grid.cell_rect(ui.size,8,5,2,3),Grid.cell_rect(ui.size,8,2,2,3),Grid.cell_rect(ui.size,8,8,2,1),true)
+	left_panel.place_regions(ui.size,Grid.cell_rect(ui.size,0,2,2,6),Grid.cell_rect(ui.size,0,2,2,2),Grid.cell_rect(ui.size,0,4,2,4),Rect2(),true)
+	right_panel.place_regions(ui.size,Grid.cell_rect(ui.size,8,2,2,6),Grid.cell_rect(ui.size,8,4,2,3),Grid.cell_rect(ui.size,8,2,2,2),Grid.cell_rect(ui.size,8,7,2,1),true)
 	for panel in [left_panel,right_panel]:
-		panel.z_index=10;panel.reserved_bottom=ui.size.y/Grid.DIVISIONS
-	Grid.place(tools,Grid.cell_rect(ui.size,0,0,1,1))
+		panel.z_index=10
+	Grid.place(tools,Grid.cell_rect(ui.size,8,1,2,1))
 
 func render():
 	var opening=false
@@ -355,7 +360,7 @@ func render_queue():
 func queue_viewport_width() -> float:
 	# Keep all five cards, with the details action outside their scrolling area.
 	var preferred=QUEUE_PITCH*QUEUE_VISIBLE-QUEUE_ARROW_WIDTH-QUEUE_GAP*2
-	return minf(preferred,maxf(1,Grid.cell_rect(ui.size,3,9,6,1).size.x-QUEUE_CARD_WIDTH*2-(QUEUE_ARROW_WIDTH+QUEUE_GAP*2)*2))
+	return minf(preferred,maxf(1,Grid.cell_rect(ui.size,2,1,6,1).size.x-QUEUE_CARD_WIDTH*2-(QUEUE_ARROW_WIDTH+QUEUE_GAP*2)*2))
 func target_name(id) -> String:
 	return str(unit(id).get("name","対象不明"))
 func command_selected(kind: String) -> bool:
@@ -480,10 +485,15 @@ func render_target():
 	for fact in facts.get_children():
 		if fact is Label:fact.add_theme_color_override("font_color",Color("#58675f"))
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
-	if stage=="B2":ui.memory.key(b(ui.battle_actions,"仮位置の射程参考",open_range_reference),"range_reference")
+	if stage=="B2":
+		var reference=b(ui.battle_actions,"仮位置の射程参考",open_range_reference)
+		reference.custom_minimum_size.y=48;ui.memory.key(reference,"range_reference")
+	var controls=ui.row(ui.battle_actions)
 	if stage in ["B2","B4"] or ui.can_commit():
-		ui.memory.key(ui.action_button(b(ui.battle_actions,"実行",ui.commit,not ui.can_commit())),"battle_commit")
-	ui.memory.key(b(ui.battle_actions,"キャンセル",ui.cancel),"battle_cancel")
+		var commit=ui.action_button(b(controls,"実行",ui.commit,not ui.can_commit()))
+		commit.custom_minimum_size.y=48;ui.memory.key(commit,"battle_commit")
+	var cancel=b(controls,"キャンセル",ui.cancel)
+	cancel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;cancel.custom_minimum_size.y=48;ui.memory.key(cancel,"battle_cancel")
 func render_move(main):
 	if not ui.preview_ready or ui.pending==null:return
 	var gate_effect := sluice_move_effect(ui.state(), acting(), ui.preview)
@@ -648,9 +658,12 @@ func render_reference():
 	if not compact:l(values,position_text)
 	l(values,"対象候補: "+("取得中…" if reference_pending else reference_error if not reference_error.is_empty() else " / ".join(reference_preview.get("targets",[]))))
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
-	b(ui.battle_actions,"通常攻撃の参考",request_reference.bind("action_attack"))
-	b(ui.battle_actions,"スキルの参考",request_reference.bind("action_skill"))
-	ui.memory.key(local(decision_footer if ui.ui_size_mode=="standard" else ui.battle_actions,"仮置きに戻る",close_reference),"reference_back")
+	var choices=ui.row(ui.battle_actions)
+	for entry in [["通常攻撃の参考","action_attack"],["スキルの参考","action_skill"]]:
+		var option=b(choices,entry[0],request_reference.bind(entry[1]))
+		option.size_flags_horizontal=Control.SIZE_EXPAND_FILL;option.custom_minimum_size.y=48
+	var back=local(ui.battle_actions,"仮置きに戻る",close_reference)
+	back.custom_minimum_size.y=48;ui.memory.key(back,"reference_back")
 func render_presentation(phase: Dictionary):
 	if phase.get("phase")=="action":presentation_action=phase.duplicate(true)
 	elif presentation_action.get("action_id")!=phase.get("action_id"):presentation_action={}
@@ -752,7 +765,7 @@ func draw_loadout(body,member: Dictionary,tab: String):
 		tabs.get_child(0).custom_minimum_size.y=tab_rect.size.y
 		column.panel.get_child(0).get_child(0).custom_minimum_size.y=heading_height
 		column.panel.custom_minimum_size.y=heading_height+stage_rect.size.y
-		detail_scroll.custom_minimum_size.y=heading_height+stage_rect.size.y
+		detail_scroll.custom_minimum_size.y=layout.local_rect(view,4,2,5,6).size.y
 		column.custom_minimum_size=Vector2(stage_rect.size.x,stage_rect.end.y)
 		grid.place(column,Rect2(tab_rect.position,column.custom_minimum_size))
 		stage.custom_minimum_size=Vector2.ZERO

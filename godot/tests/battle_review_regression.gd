@@ -91,6 +91,26 @@ func presentation_case():
 	check("JY-05",phases.all(func(p):return p.recipient_matches) and phases.any(func(p):return p.phase=="heal" and p.actor=="character_merina" and p.unit=="character_merina"),"actual result names only the received unit, including single-target self heal with other available candidates")
 func movement_cases():
 	await restore()
+	var grid=preload("res://screen_grid.gd")
+	var central=grid.cell_rect(game.size,0,1,10,8)
+	check("battle-bands",central.encloses(game.board.get_global_rect()),"battlefield stays between header and footer")
+	for control in [game.battle_header,game.hud.camera_hint.get_parent()]:
+		var rect: Rect2=control.get_global_rect()
+		check("battle-bands",central.encloses(rect) and not game.board.get_global_rect().intersects(rect),"order controls and camera guide stay off the common rows and field")
+	for panel in [game.hud.left_panel,game.hud.right_panel]:
+		check("battle-bands",central.encloses(panel.get_global_rect()),"default battle panel stays inside central body")
+		var handle=panel.find_child("DragHandle",true,false)
+		var start: Vector2=handle.get_global_rect().get_center()
+		var original=Rect2(panel.position,panel.size)
+		for y in [1.0,game.size.y-1.0]:
+			var press=InputEventMouseButton.new();press.button_index=MOUSE_BUTTON_LEFT;press.pressed=true;press.position=start;press.global_position=start
+			root.push_input(press,true)
+			var motion=InputEventMouseMotion.new();motion.button_mask=MOUSE_BUTTON_MASK_LEFT;motion.position=Vector2(start.x,y);motion.global_position=motion.position
+			root.push_input(motion,true)
+			var rect: Rect2=panel.get_global_rect()
+			check("battle-bands",central.encloses(rect) and not rect.intersects(game.battle_header.get_global_rect()) and not rect.intersects(game.hud.camera_hint.get_parent().get_global_rect()),"drag leaves both common rows and control strips clear")
+			press.pressed=false;press.position=motion.position;press.global_position=motion.position;root.push_input(press,true)
+			panel.position=original.position;panel.size=original.size
 	for mode in range(3):
 		game.board.camera_yaw=[0.0,.45,-.45][mode];game.board.camera_pitch=[.65,.9,.4][mode];game.board.update_camera();game.choose_command("action_move");await settle();var before=await snapshot();var first=geometry();var dest=int(game.data.choices.action_move[0])
 		await game.on_cell(int(game.hud.acting().pos));await settle()

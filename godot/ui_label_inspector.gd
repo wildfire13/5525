@@ -188,34 +188,6 @@ func place(captions: Array, text: String, area: Rect2, bounds: Rect2, occupied: 
 	captions.append([text,box])
 	occupied.append(box.grow(2))
 
-# Label each contiguous set of unoccupied grid cells once, on its widest row.
-func label_background(captions, bounds: Rect2, areas: Array, occupied):
-	var unit=Vector2(get_tree().root.size)/preload("res://screen_grid.gd").DIVISIONS
-	var empty={}
-	for y in roundi(bounds.size.y/unit.y):
-		for x in roundi(bounds.size.x/unit.x):
-			var cell=Vector2i(x,y)
-			var center=(Vector2(cell)+Vector2.ONE*0.5)*unit
-			if not areas.any(func(area):return area.has_point(center)):empty[cell]=true
-	while not empty.is_empty():
-		var start=empty.keys()[0]
-		var pending=[start]
-		var island={}
-		empty.erase(start)
-		while not pending.is_empty():
-			var cell=pending.pop_back()
-			island[cell]=true
-			for direction in [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN]:
-				var next=cell+direction
-				if empty.erase(next):pending.append(next)
-		var widest=Rect2()
-		for cell in island:
-			if island.has(cell+Vector2i.LEFT):continue
-			var width=1
-			while island.has(cell+Vector2i.RIGHT*width):width+=1
-			if width*unit.x>widest.size.x:widest=Rect2(Vector2(cell)*unit,Vector2(width,1)*unit)
-		place(captions,CATALOG.data.prefix+CATALOG.data.surfaces.background.label,widest,bounds,occupied)
-
 func refresh():
 	if dirty:
 		dirty = false
@@ -240,18 +212,16 @@ func refresh():
 		var underneath = screen_id(window, false) if screen in ["menu","story","file"] else screen
 		var occupied=occupied_text(window,bounds)
 		var captions := []
-		var areas := []
 		place(captions, "場面：" + title, Rect2(Vector2.ZERO, Vector2(bounds.size.x * 0.68, 30)), bounds, occupied)
 		for node in controls.get(window, []):
 			if not is_instance_valid(node) or not node.is_visible_in_tree() or node.is_queued_for_deletion(): continue
 			for region in definitions[str(node.get_meta("ui_region",node.name))]:
 				if not region.screens.has(screen) and not region.screens.has(underneath) and not region.screens.has("共通"): continue
-				if region.screens.has("共通") and screen in ["loading","complete","victory"]: continue
+				if region.screens.has("共通") and screen in ["loading","complete","victory"] and node.name not in [&"CampaignHeader",&"BattleHeader",&"StatusFooter"]: continue
 				var area = region_box(node,window,region)
 				if area.size.x < 12 or area.size.y < 10: continue
 				var caption: String = CATALOG.data.prefix + region.label
 				place(captions, caption, area, bounds, occupied)
-				if node.name not in [&"TownStill",&"FacilityStill"]:areas.append(area)
 		# Godot draws these popup windows above the parent canvas. Mark the adjoining
 		# edge on the parent so review text cannot cover the choices or the hint.
 		for popup in hint_windows:
@@ -264,7 +234,6 @@ func refresh():
 			place(captions,CATALOG.data.prefix+CATALOG.data.surfaces[role].label,cell_cover(rect,window),bounds,occupied)
 		if screen=="file":
 			place(captions,CATALOG.data.prefix+CATALOG.data.surfaces.file.label,bounds,bounds,occupied)
-		else:label_background(captions,bounds,areas,occupied)
 		var overlay = overlays[window]
 		if overlay.captions != captions:
 			overlay.captions = captions

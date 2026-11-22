@@ -28,7 +28,7 @@ func open(q: Dictionary,on_accept:=Callable(),on_close:=Callable(),requester: Te
 	layer=1800;name="QuestDialogue";process_mode=Node.PROCESS_MODE_ALWAYS
 	var root=Control.new();root.theme=ui.theme;root.name="DialogueScreen";root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(root)
 	if not str(quest.get("sceneLabel","")).is_empty():
-		var caption=Label.new();caption.name="QuestSceneLabel";caption.text=str(quest.sceneLabel);caption.position=Vector2(48,24);caption.add_theme_font_size_override("font_size",22);caption.add_theme_color_override("font_color",Color("#f3eee3"));caption.add_theme_stylebox_override("normal",_style(Color("#111820"),Color("#9da7b0"),1,8));root.add_child(caption)
+		var caption=Label.new();caption.name="QuestSceneLabel";caption.text=str(quest.sceneLabel);caption.add_theme_font_size_override("font_size",22);caption.add_theme_color_override("font_color",Color("#f3eee3"));caption.add_theme_stylebox_override("normal",_style(Color("#111820"),Color("#9da7b0"),1,8));root.add_child(caption)
 	var tint=ColorRect.new();tint.color=Color(0.025,0.035,0.05,0.2);tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);tint.mouse_filter=Control.MOUSE_FILTER_IGNORE;root.add_child(tint)
 	if is_instance_valid(board_portrait):
 		portrait=board_portrait
@@ -50,10 +50,12 @@ func _style(fill: Color,border: Color,width: int,radius: int)->StyleBoxFlat:
 func _layout():
 	if not is_instance_valid(portrait):return
 	var view: Vector2=ui.size
+	var caption=get_node_or_null("DialogueScreen/QuestSceneLabel")
+	if caption!=null:caption.position=Grid.cell_rect(view,0,1,1,1).position+Vector2(48,24)
 	var compact=view.x<1120 or view.y<720
-	Grid.place(portrait,Grid.cell_rect(view,0,1,4,9))
-	Grid.place(portrait_right,Grid.cell_rect(view,6,1,4,9))
-	var panel_rect=Grid.cell_rect(view,1,6,8,4)
+	Grid.place(portrait,Grid.cell_rect(view,0,1,4,8))
+	Grid.place(portrait_right,Grid.cell_rect(view,6,1,4,8))
+	var panel_rect=Grid.cell_rect(view,1,5,8,4)
 	Grid.place(get_node("DialogueScreen/QuestDialoguePanel"),panel_rect)
 	var current=lines[mini(index,lines.size()-1)] if not lines.is_empty() else ["narration",""];var narration=str(current[0])=="narration"
 	var active=str(current[0]);speaker.visible=not narration;speaker.text="" if narration else str(SPEAKERS.get(active,active));_set_portraits(active,narration)
@@ -61,7 +63,7 @@ func _layout():
 	words.position=panel_rect.position+Vector2(48,24);words.size=Vector2(panel_rect.size.x-96,Grid.cell_rect(view,0,0,1,3).size.y-48);words.add_theme_font_size_override("font_size",24 if compact else 29)
 	advance_hint.position=panel_rect.end-Vector2(240,42);advance_hint.size=Vector2(210,30)
 	for choice in choice_row.get_children():choice.size_flags_vertical=Control.SIZE_SHRINK_CENTER
-	Grid.place(choice_row,Grid.cell_rect(view,4 if compact else 6,9,5 if compact else 3,1))
+	Grid.place(choice_row,Grid.cell_rect(view,4 if compact else 6,8,5 if compact else 3,1))
 func _show_line():
 	if index>=lines.size():_finish();return
 	var line=lines[index];var full=str(line[1]);words.text=full;shown=0;elapsed=0.0;words.visible_characters=0;advance_hint.text="表示中…";choice_row.visible=false;_layout()

@@ -98,7 +98,7 @@ func run():
 	check(wheel_offer.size()==1 and wheel_offer[0].to=="south" and wheel_offer[0].text.contains("サウス"),"moving quest destination and description agree at +22h")
 	var wheel_choice=game.find_child("QuestChoice_standalone-wheel",true,false)
 	if wheel_choice is Button:wheel_choice.pressed.emit();await process_frame
-	var window_label=game.find_child("QuestMerchantWindow",true,false);var availability=game.find_child("QuestMerchantAvailability",true,false)
+	var window_label=game.find_child("QuestMerchantWindow",true,false);var availability=game.find_child("QuestMerchantStatus",true,false)
 	check(window_label.get_parent().get_children().any(func(child):return child is Label and child.text=="依頼掲載からの経過時間：22時間"),"schedule time starts at posting even before acceptance")
 	check(window_label is Label and not window_label.text.contains("希望条件") and window_label.text.contains("サウス") and window_label.text.contains("18時間以上36時間まで"),"board shows South stop window with inclusive end")
 	check(game.find_child("QuestStatus",true,false)==null,"board omits redundant current-stop line")
@@ -145,7 +145,7 @@ func run():
 	check(not game.modal_open() and game.campaign().phase=="deployment","route selection proceeds directly (merchant still travelling)")
 	var south_stop_fixture=accepted_save.data.duplicate(true);south_stop_fixture.state.location="astaris";south_stop_fixture.state.worldTime=22;south_stop_fixture.state.hours=22
 	await game.update({"op":"campaign_load","data":south_stop_fixture});game.navigate("board");await process_frame;await process_frame
-	var south_stop_label=game.find_child("QuestMerchantAvailability",true,false)
+	var south_stop_label=game.find_child("QuestMerchantStatus",true,false)
 	check(south_stop_label is Label and south_stop_label.text.contains("サウスへ向かってください") and not south_stop_label.text.contains("到着待ち"),"at +22h in Astaris the board directs the player South, not to wait")
 	var departed_fixture=accepted_save.data.duplicate(true);departed_fixture.state.location="east";departed_fixture.state.worldTime=31;departed_fixture.state.hours=31
 	await game.update({"op":"campaign_load","data":departed_fixture});game.navigate("map");await process_frame;await process_frame

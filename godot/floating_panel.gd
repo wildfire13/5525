@@ -117,7 +117,7 @@ func bound_rect(rect: Rect2,preserve_top:=false) -> Rect2:
 	if viewport_bounds:
 		var offset=get_parent_control().global_position
 		var view=get_viewport_rect().size
-		var available=Rect2(Vector2.ZERO,Vector2(view.x,maxf(1,view.y-reserved_bottom)))
+		var available=Rect2(0,reserved_top,view.x,maxf(1,view.y-reserved_top-reserved_bottom))
 		var global_rect=Rect2(rect.position+offset,rect.size)
 		if not dragging or drag_edges.x==0:
 			global_rect.size.x=view.x*grid_columns/Grid.DIVISIONS
@@ -130,7 +130,7 @@ func bound_rect(rect: Rect2,preserve_top:=false) -> Rect2:
 	return preferences.bounded(rect,get_parent_control().size,minimum)
 func constrain():
 	var current=Rect2(position,size)
-	var bounds=Rect2(get_parent_control().global_position,get_viewport_rect().size-Vector2(0,reserved_bottom))
+	var bounds=Rect2(get_parent_control().global_position+Vector2(0,reserved_top),get_viewport_rect().size-Vector2(0,reserved_top+reserved_bottom))
 	if applied_bounds==bounds and current!=applied_rect and pending_restore==null:preferred_rect=current
 	var rect=bound_rect(current,true)
 	if viewport_bounds:

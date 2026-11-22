@@ -47,12 +47,11 @@ func render(parent):
 func layout_board(split: Control):
 	if not is_instance_valid(split) or not split.is_inside_tree() or split.is_queued_for_deletion():return
 	var view: Vector2=ui.size
-	var bottom=9 if ui.footer.visible else 10
-	Grid.place(split.get_node("QuestList"),Grid.cell_rect(view,0,1,3,bottom-1))
+	Grid.place(split.get_node("QuestList"),Grid.cell_rect(view,0,1,3,8))
 	var detail=split.get_node("QuestDetail")
 	if not detail.visible:return
-	var frame=Grid.cell_rect(view,3,1,4,bottom-1)
-	var action=Grid.cell_rect(view,3,bottom-1,4,1)
+	var frame=Grid.cell_rect(view,3,1,4,8)
+	var action=Grid.cell_rect(view,3,8,4,1)
 	Grid.place(detail,frame)
 	var availability=detail.get_node_or_null("QuestMerchantAvailability")
 	Grid.place(detail.get_node("QuestDetailActions"),action)
@@ -62,7 +61,7 @@ func layout_board(split: Control):
 	Grid.place(detail.get_node("QuestDetailContent"),Rect2(frame.position+Vector2(8,8),Vector2(frame.size.x-16,body_end-frame.position.y-16)))
 	var stage=split.get_node("QuestRequester")
 	stage.visible=availability==null
-	Grid.place(stage,Grid.cell_rect(view,7,1,3,bottom-1))
+	Grid.place(stage,Grid.cell_rect(view,7,1,3,8))
 	position_requester(stage.get_node_or_null("QuestRequesterPortrait"))
 func choose(id: String):
 	if ui.locked or ui.modal_open():return

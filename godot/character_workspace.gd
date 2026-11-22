@@ -200,8 +200,8 @@ func perform(uid,item,action,target,count,slot):
 	ui.render()
 func toast(text):
 	var panel=PanelContainer.new();panel.name="InventoryToast";panel.add_theme_stylebox_override("panel",ui.mock_shell.surface_style());ui.add_child(panel);panel.z_index=90
+	preload("res://screen_grid.gd").place(panel,preload("res://screen_grid.gd").cell_rect(ui.size,7,8,3,1))
 	var label=ui.label_(panel,text);label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	preload("res://screen_grid.gd").place(panel,preload("res://screen_grid.gd").cell_rect(ui.size,7,9,3,1))
 	ui.get_tree().create_timer(3).timeout.connect(panel.queue_free)
 func preview(columns,text,member,item,equip):
 	var chosen=equip_slot;var ticket=preview_generation;var token=ui.campaign().get("inventoryToken");var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation

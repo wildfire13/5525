@@ -35,6 +35,7 @@ func content(message_region: String="") -> VBoxContainer:
 	return contents
 
 func _ready():
+	if is_embedded():close_requested.connect(func():canceled.emit())
 	if theme==null:
 		var theme_owner: Node=get_parent()
 		while theme_owner!=null:
@@ -50,7 +51,7 @@ func _ready():
 	fit_actions()
 func fit_actions():
 	var view=Vector2(get_tree().root.size)
-	var area=Layout.local_rect(view,2,9,7,1)
+	var area=Layout.local_rect(view,4,8,5,1)
 	var style=get_theme_stylebox("panel")
 	style.set_content_margin(SIDE_LEFT,area.position.x)
 	style.set_content_margin(SIDE_RIGHT,Layout.frame_rect(view).size.x-area.end.x)

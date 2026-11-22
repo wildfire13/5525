@@ -60,6 +60,17 @@ func run():
   check(bounds.encloses(view.continue_button.get_global_rect()) and bounds.encloses(view.save_button.get_global_rect()),str(dims)+" fixed primary/save actions remain visible")
   for gain in view.shade.find_children("ResultGain_*","Label",true,false):check(gain.size.x>=128 and gain.autowrap_mode==TextServer.AUTOWRAP_OFF,str(dims)+" growth amount remains one readable line "+str(gain.name))
   check(view.panel.get_global_rect().encloses(view.continue_button.get_global_rect()),str(dims)+" primary action stays within result frame")
+  var grid=preload("res://screen_grid.gd")
+  check(view.panel.get_global_rect()==preload("res://window_grid.gd").frame_rect(Vector2(dims)),"result uses the shared surface rectangle")
+  for entry in [["ResultHeading",1],["ResultActions",8]]:
+   var section=view.body.find_child(entry[0],true,false)
+   check(section.get_global_rect()==grid.cell_rect(Vector2(dims),1,entry[1],8,1),entry[0]+" fits reserved band")
+  var central=grid.cell_rect(Vector2(dims),0,1,10,8)
+  check(view.shade.get_node("ResultPaper").get_global_rect()==central and view.shade.get_global_rect()==bounds,"result backdrop clears both rows while modal input remains blocked")
+  check(view.body.get_node("ResultMembersScroll").is_ancestor_of(view.body.find_child("ResultContext",true,false)),"result context belongs to the registered members scroll region")
+  for node_name in ["ResultContext","ResultSummary","ResultLevelUpScroll","ResultMembersScroll"]:
+   var section=view.body.find_child(node_name,true,false)
+   if section!=null:check(central.encloses(section.get_global_rect()),node_name+" stays inside central body")
  check(game.audio.muted.values().all(func(v):return v),"result QA BGM voice SE OFF")
  var f=FileAccess.open(evidence.path_join("results-checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
  game.closing=true;view.reset();await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames();quit(0 if checks.all(func(c):return c.passed) else 1)

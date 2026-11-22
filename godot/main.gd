@@ -225,7 +225,6 @@ func set_status(message: String):
 	footer.tooltip_text=message;footer.set_meta("full_message",message)
 	footer.focus_mode=Control.FOCUS_NONE if message.is_empty() else Control.FOCUS_ALL
 	footer.mouse_filter=Control.MOUSE_FILTER_IGNORE if message.is_empty() else Control.MOUSE_FILTER_STOP
-	if view_kind=="page":footer.visible=page not in ["shop","party"]
 func show_help():
 	dialog.open("操作説明",func(body,actions):
 		for section in [
@@ -561,21 +560,16 @@ func render():
 	for b in widgets:
 		b.disabled=bool(b.get_meta("base_disabled",false)) or ((locked or presenting) and not b.get_meta("read_only",false))
 	var available=get_viewport_rect().size
-	content.add_theme_constant_override("separation",8)
 	ui_size_mode="standard" if available.x>=1120 and available.y>=720 else "compact"
-	var margin=24 if available.x>=1800 and available.y>=1000 else 12 if ui_size_mode=="standard" else 8
-	base.offset_left=margin;base.offset_right=-base.offset_left;base.offset_top=12;base.offset_bottom=-margin
 	var c=campaign();var s=state();var phase=c.get("phase","")
 	var place=c.get("journey",{}).get("destination",c.get("location","")) if phase=="arrival" and c.get("journey") is Dictionary else c.get("location","")
 	header.text="配置" if phase=="deployment" and page=="character" else town_name(place)
 	header.tooltip_text=header.text
 	var inspecting_deployment=phase=="deployment" and page=="character"
 	var battle=not inspecting_deployment and not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
-	base.add_theme_constant_override("separation",8 if battle else 0)
-	content.add_theme_constant_override("separation",8 if battle else 0)
-	footer.custom_minimum_size.y=24 if battle else size.y/10.0
-	if not battle:
-		base.offset_left=0;base.offset_right=0;base.offset_top=0;base.offset_bottom=0
+	base.add_theme_constant_override("separation",0)
+	content.add_theme_constant_override("separation",0)
+	footer.custom_minimum_size.y=mock_shell.grid_cell().y
 	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
 	sync_audio()
 	if not themes_ready:
@@ -603,8 +597,6 @@ func render():
 			caption.remove_theme_color_override("font_outline_color")
 			caption.remove_theme_constant_override("outline_size")
 	pages.facility_art.render_background(backdrop_layer,self,battle)
-	if battle:
-		base.offset_left=0;base.offset_top=0;base.offset_right=0;base.offset_bottom=0
 	top.custom_minimum_size.y=preload("res://screen_grid.gd").cell_rect(available,0,0,10,1).size.y if battle else 44
 	var common_menu=find_child("CommonMenuButton",true,false)
 	if common_menu!=null:
@@ -613,7 +605,6 @@ func render():
 		menu_region.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 		preload("res://screen_grid.gd").place(menu_region,preload("res://screen_grid.gd").cell_rect(available,9,0,1,1))
 		common_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	footer.visible=not battle and page not in ["shop","party"]
 	if battle:
 		if view_kind!="battle":
 			clear(content)
@@ -662,7 +653,7 @@ func render():
 		else:render_journey(body)
 		if phase=="result":pages.return_to_town(body)
 
-	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else (focus_hint if not focus_hint.is_empty() else "選択 → プレビュー → 確定 / Escで取消" if battle else ""))
+	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else focus_hint)
 	widgets=widgets.filter(func(b):return is_instance_valid(b) and b.is_inside_tree())
 	rendering=false;memory.restore()
 func town_name(id) -> String:

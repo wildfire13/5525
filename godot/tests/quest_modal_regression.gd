@@ -67,6 +67,7 @@ func cargo_picker(id: String, seed: Dictionary):
 	var picker: Window = choices.get_window()
 	var rect = window_rect(picker)
 	grid_check(rect,"cargo picker")
+	check(picker.borderless and rect==Grid.cell_rect(Vector2(root.size),1,1,8,8),"borderless cargo picker leaves the first and last game rows clear")
 	for region in [node("ModalDetailScroll"),choices,node("ModalActions")]:
 		grid_check(Rect2(region.get_global_rect().position+rect.position,region.size),str(region.name))
 	var confirm_ = node("QuestCargoConfirm")
@@ -75,9 +76,9 @@ func cargo_picker(id: String, seed: Dictionary):
 	check(confirm_.disabled and owner is Button and owner.icon != null and not owner.text.is_empty(),"cargo displays portrait and name and requires a selection")
 	await shot("cargo-picker")
 	var scroll = node("ModalDetailScroll")
-	var moved = Rect2(rect.position+Vector2(73,-39),rect.size)
-	picker.position += Vector2i(73,-39);await settle()
-	check(window_rect(picker)==moved and scroll.get_global_rect().end.y==node("ModalActions").get_global_rect().position.y and node("QuestCargoCancel").is_visible_in_tree(),"cargo picker retains its moved position and keeps cancel below the scroll viewport")
+	var moved = Rect2(rect.position+Vector2(192,0),rect.size)
+	picker.position += Vector2i(192,-108);await settle()
+	check(window_rect(picker)==moved and scroll.get_global_rect().end.y==node("ModalActions").get_global_rect().position.y and node("QuestCargoCancel").is_visible_in_tree(),"cargo picker stays below the reserved top row and keeps cancel below the scroll viewport")
 	await click(node("QuestCargoCancel"))
 	check(not is_instance_valid(picker) and await saved() == before,"pointer cancel keeps the mission unaccepted")
 	await click(node("QuestAccept"))
@@ -116,7 +117,7 @@ func verify_confirmation(d: ConfirmationDialog, context: String):
 	check(d.get_cancel_button().has_focus(),context + " starts focused on cancel")
 	check(d.exclusive,context + " remains exclusive")
 	var rect = window_rect(d)
-	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(rect),context + " fits FHD: " + str(rect))
+	check(Grid.cell_rect(Vector2(root.size),0,1,10,8).encloses(rect),context + " fits between the first and last FHD rows: " + str(rect))
 	grid_check(rect,context)
 func visible_confirmation():
 	for dialog_ in game.find_children("*","ConfirmationDialog",true,false):

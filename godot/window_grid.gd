@@ -8,7 +8,7 @@ var body: Control
 var actions: Control
 
 static func frame_rect(view: Vector2) -> Rect2:
-	return Grid.cell_rect(view,1,1,8,9)
+	return Grid.cell_rect(view,1,1,8,8)
 
 static func local_rect(view: Vector2,x: int,y: int,width: int,height: int) -> Rect2:
 	var rect=Grid.cell_rect(view,x,y,width,height)
@@ -25,6 +25,27 @@ static func title_label(text: String) -> Label:
 
 func set_regions(title: Control,content: Control,footer: Control):
 	fixed_regions=true;heading=title;body=content;actions=footer
+	if not is_inside_tree():
+		ready.connect(set_regions.bind(title,content,footer),CONNECT_ONE_SHOT);return
+	var window=get_window()
+	if window!=get_tree().root and window.is_embedded():
+		var close=Button.new();close.name="WindowHeadingClose";close.text="×";close.tooltip_text="閉じる"
+		heading.add_child(close)
+		close.pressed.connect(func():window.close_requested.emit())
+		var fit_close=func():
+			var width=heading.size.y
+			close.position=Vector2(heading.size.x-width,0);close.size=Vector2(width,heading.size.y)
+			var inset=StyleBoxEmpty.new();inset.set_content_margin(SIDE_RIGHT,width)
+			heading.add_theme_stylebox_override("normal",inset)
+		heading.resized.connect(fit_close)
+		heading.mouse_filter=Control.MOUSE_FILTER_STOP
+		heading.gui_input.connect(func(event):
+			if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
+				window.set_meta("heading_dragging",event.pressed)
+			elif event is InputEventMouseMotion and window.get_meta("heading_dragging",false) and event.button_mask & MOUSE_BUTTON_MASK_LEFT:
+				window.position+=Vector2i(event.relative))
+		window.window_input.connect(func(event):
+			if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed:window.set_meta("heading_dragging",false))
 	queue_sort()
 
 func _get_minimum_size() -> Vector2:
@@ -40,9 +61,9 @@ func _notification(what):
 	if what!=NOTIFICATION_SORT_CHILDREN or not is_inside_tree():return
 	var view=Vector2(get_tree().root.size)
 	if fixed_regions:
-		fit_child_in_rect(heading,local_rect(view,2,1,7,1))
-		fit_child_in_rect(body,local_rect(view,2,2,7,7))
-		if actions!=null:fit_child_in_rect(actions,local_rect(view,2,9,7,1))
+		fit_child_in_rect(heading,local_rect(view,4,1,5,1))
+		fit_child_in_rect(body,local_rect(view,2,2,7,6))
+		if actions!=null:fit_child_in_rect(actions,local_rect(view,4,8,5,1))
 		return
 	var unit=view.y/Grid.DIVISIONS
 	var rows=[]

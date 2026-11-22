@@ -21,8 +21,8 @@ const MUTED=preload("res://mock_shell.gd").MUTED_INK
 func _init(frontend=null):ui=frontend
 func _ready():
  layer=1500;name="ResultsView"
- shade=Control.new();shade.theme=ui.theme;shade.name="ResultsBlocker";shade.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
- var bg=ColorRect.new();bg.name="ResultBackground";bg.color=Color("#eeede7");bg.mouse_filter=Control.MOUSE_FILTER_IGNORE;shade.add_child(bg);bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ shade=Control.new();shade.theme=ui.theme;shade.name="ResultBackground";shade.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+ var bg=ColorRect.new();bg.name="ResultPaper";bg.color=Color("#eeede7");bg.mouse_filter=Control.MOUSE_FILTER_IGNORE;shade.add_child(bg);bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);bg.anchor_top=0.1;bg.anchor_bottom=0.9
  panel=Panel.new();panel.theme=ui.theme;panel.name="ResultsPanel";panel.clip_contents=true;panel.add_theme_stylebox_override("panel",style(Color("#faf9f5"),Color("#cbd0c7"),24));shade.add_child(panel)
  ui.resized.connect(_layout);shade.hide()
 func style(fill: Color,border: Color,padding: int) -> StyleBoxFlat:
@@ -102,10 +102,7 @@ func _build():
  var title_label=_label(titles,current.subtitle,24);title_label.name="ResultTitle"
  for label in [stage_label,title_label]:
   label.max_lines_visible=1;label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;label.tooltip_text=label.text
- var context=str(current.get("quest","")) if current.kind=="quest" else "敵部隊を退けました。同行者の戦果と成長を確認できます。"
- if context.is_empty():context="配達の報酬は所持金と同行者に反映済みです。"
- var context_label=_label(titles,context,18,MUTED);context_label.name="ResultContext";context_label.max_lines_visible=1;context_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;context_label.tooltip_text=context
- for line in titles.get_children():
+ for line in [stage_label,title_label]:
   line.autowrap_mode=TextServer.AUTOWRAP_OFF;line.clip_text=true
  var summary=Control.new();summary.name="ResultSummary";body.add_child(summary)
  if int(current.gold_gain)>0:_summary(summary,"獲得した所持金","+%d G" % int(current.gold_gain),"所持金 %d G" % int(current.gold_after),"ResultGold")
@@ -117,14 +114,16 @@ func _build():
  var meta=""
  if current.kind=="battle":meta="敵戦闘不能 %d人" % current.get("defeated",0)+("　戦闘行動 %d" % int(current.actions) if current.get("actions")!=null else "")
  elif current.get("hours")!=null:meta="所要時間 %d時間" % int(current.hours)
- var scroll=ScrollContainer.new();scroll.name="ResultMembersScroll";scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size.y=100;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.follow_focus=true;scroll.focus_mode=Control.FOCUS_ALL;body.add_child(scroll)
+ var scroll=ScrollContainer.new();scroll.name="ResultMembersScroll";scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.follow_focus=true;scroll.focus_mode=Control.FOCUS_ALL;body.add_child(scroll)
  var members=VBoxContainer.new();members.name="ResultMembers";members.size_flags_horizontal=Control.SIZE_EXPAND_FILL;members.add_theme_constant_override("separation",10);scroll.add_child(members)
+ var context=str(current.get("quest","")) if current.kind=="quest" else "敵部隊を退けました。同行者の戦果と成長を確認できます。"
+ if context.is_empty():context="配達の報酬は所持金と同行者に反映済みです。"
+ _label(members,context,18,MUTED).name="ResultContext"
  ui.pages.quest_board.render_sluice_story(members,current)
  if not meta.is_empty():_label(members,meta,18,MUTED).name="ResultFacts"
- if str(current.get("quest","")).length()>40:_label(members,str(current.quest),18,MUTED)
  var leveled=current.members.filter(func(member):return member.level_before!=null and member.level_after>member.level_before)
  if not leveled.is_empty():
-  var strip_scroll=ScrollContainer.new();strip_scroll.name="ResultLevelUpScroll";strip_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;body.add_child(strip_scroll);body.move_child(strip_scroll,scroll.get_index())
+  var strip_scroll=ScrollContainer.new();strip_scroll.name="ResultLevelUpScroll";strip_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;body.add_child(strip_scroll);body.move_child(strip_scroll,scroll.get_index())
   var level_section=VBoxContainer.new();strip_scroll.add_child(level_section)
   _label(level_section,"レベルアップ",22,GOLD).autowrap_mode=TextServer.AUTOWRAP_OFF
   var strip=HBoxContainer.new();strip.name="ResultLevelUpStrip";strip.add_theme_constant_override("separation",24);level_section.add_child(strip)
@@ -187,7 +186,10 @@ func _layout():
  var view=ui.size
  Grid.place(panel,preload("res://window_grid.gd").frame_rect(view))
  body.position=Vector2.ZERO;body.size=panel.size
- # Actual regions have fixed bounds; only their contents scroll.
+ # Keep the receipt body between the heading and the always-visible actions.
+ var row_height=Grid.cell_rect(view,0,1,1,1).size.y
+ var crest=body.find_child("ResultCrest",true,false)
+ crest.custom_minimum_size.y=minf(80 if compact else 100,row_height)
  for entry in [["ResultHeading",1,1,8,1],["ResultSummary",1,2,8,1],["ResultLevelUpScroll",1,3,8,4],["ResultMembersScroll",1,7,8,1],["ResultActions",1,8,8,1]]:
   var region=panel.find_child(entry[0],true,false)
   if region==null:continue

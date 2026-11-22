@@ -96,7 +96,7 @@ func check_owners(id: String, window: Window, scopes: Dictionary):
 			if not error.is_empty():palette_errors.append(error)
 		var owner=node
 		while owner!=null and owner!=window:
-			if scopes.has(owner) and (owner==node or owner.name!=&"ResultsPanel"):break
+			if scopes.has(owner) and (owner==node or owner.name not in [&"ResultsPanel",&"ResultBackground"] or node.name==&"ResultPaper"):break
 			owner=owner.get_parent()
 		if scopes.has(owner):continue
 		# A panel behind its children or a label painted over its sibling can share
@@ -140,6 +140,7 @@ func capture(id: String, expected: Array, window: Window = null):
 	var to_game=root.get_screen_transform().affine_inverse()*window.get_screen_transform()
 	var cell=Vector2(root.size)/10
 	var scopes={}
+	var center=preload("res://screen_grid.gd").cell_rect(Vector2(root.size),0,1,10,8)
 	for node in inspector.controls.get(window,[]):
 		if not is_instance_valid(node) or not node.is_visible_in_tree() or node.is_queued_for_deletion():continue
 		var key=str(node.get_meta("ui_region",node.name))
@@ -153,6 +154,12 @@ func capture(id: String, expected: Array, window: Window = null):
 			# A full-screen drawing owns itself, never other controls layered above it.
 			scopes[node]=Rect2()
 		var box=to_game*visible_rect
+		if window==root:
+			if key in ["CampaignHeader","BattleHeader","StatusFooter"]:
+				var row=9 if key=="StatusFooter" else 0
+				check(box==preload("res://screen_grid.gd").cell_rect(Vector2(root.size),0,row,10,1),id+" reserved row "+key)
+			elif key not in ["BattleMenuRegion","TownStill","FacilityStill","DialogueScreen","ResultBackground"] and not active[0].get("follows_target",false):
+				check(center.encloses(box),id+" body inside middle eight rows "+key+" "+str(box))
 		var aligned=box.position.is_equal_approx((box.position/cell).round()*cell) and box.end.is_equal_approx((box.end/cell).round()*cell)
 		check(aligned,id+" grid "+key+" "+str(box))
 		if not active[0].get("follows_target",false):
@@ -191,7 +198,7 @@ func run():
 	root.add_child(game)
 	if game.data.is_empty():
 		game.ui_labels.refresh()
-		check(game.ui_labels.overlays[root].captions.any(func(entry):return entry[0].ends_with("場面背景・余白")),"startup background has a region before campaign data arrives")
+		check(game.ui_labels.overlays[root].captions.size()==1 and game.ui_labels.overlays[root].captions[0][0]=="場面：起動","startup identifies the scene before campaign data arrives")
 	while game.data.is_empty(): await process_frame
 	game.checks_fast=true
 	game.audio.fast_mode=true

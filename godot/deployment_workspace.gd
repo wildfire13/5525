@@ -30,14 +30,14 @@ func layout():
  if normal_panel_style==null:normal_panel_style=hud.right_panel.get_theme_stylebox("panel").duplicate()
  panel_style.set_content_margin_all(0)
  hud.right_panel.add_theme_stylebox_override("panel",panel_style)
- Grid.place(hud.deployment_bar,Grid.cell_rect(view,2,1,6,1))
+ Grid.place(hud.deployment_bar,Grid.cell_rect(view,2,1,4,1))
  hud.deployment_bar.add_theme_stylebox_override("panel",panel_style)
- Grid.place(hud.deployment_actions,Grid.cell_rect(view,5,9,3,1))
+ Grid.place(hud.deployment_actions,Grid.cell_rect(view,5,8,3,1))
  hud.layout_camera_guide()
- Grid.place(hud.deployment_instructions,Grid.cell_rect(view,3,9,2,1))
+ Grid.place(hud.deployment_instructions,Grid.cell_rect(view,6,1,2,1))
  hud.deployment_instructions.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  ui.board.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
- Grid.place(ui.board,Grid.cell_rect(view,2,2,6,7))
+ Grid.place(ui.board,Grid.cell_rect(view,2,2,6,6))
  ui.board.deployment_bottom_limit=0;ui.board.update_camera()
 func render():
  if ui.selected!=last_selected:hud.selected_enemy="";last_selected=ui.selected

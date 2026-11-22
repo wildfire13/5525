@@ -42,7 +42,8 @@ func bind_window(window: Window,key: String,available: Vector2,extent: Vector2,m
 func place_window(window: Window,key: String,available: Vector2,fallback: Rect2,minimum:=Vector2(420,300),previous:=Rect2()):
 	window.set_meta("managed_layout",true)
 	window.set_meta("layout_minimum",minimum)
-	var area=(available-TITLE_MARGIN).max(Vector2.ONE)
+	var bounds=window_bounds(window,available)
+	var area=bounds.size.max(Vector2.ONE)
 	window.unresizable=false;window.min_size=Vector2i(minimum.min(area))
 	var value=config.get_value("windows",key,fallback)
 	if not value is Rect2:value=fallback
@@ -52,7 +53,7 @@ func place_window(window: Window,key: String,available: Vector2,fallback: Rect2,
 		config.set_value("layout_origin_v2",key,true)
 		if config.has_section_key("windows",key):store_rect(key,value)
 	# Preferences use game coordinates; native windows also need the desktop origin.
-	var rect=window_rect(value,available,minimum)
+	var rect=Grid.snap_rect(value,available,minimum,bounds)
 	window.set_meta("layout_preferred",value)
 	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position+window_origin(window))
 	window.set_meta("layout_applied",rect)
@@ -60,7 +61,8 @@ func place_window(window: Window,key: String,available: Vector2,fallback: Rect2,
 
 func keep_visible(window: Window,available: Vector2):
 	if not is_instance_valid(window) or not window.visible:return
-	var area=(available-TITLE_MARGIN).max(Vector2.ONE)
+	var bounds=window_bounds(window,available)
+	var area=bounds.size.max(Vector2.ONE)
 	# Retain the preferred minimum, but allow an already-open child to fit a
 	# smaller parent. Restore that minimum when the parent grows again.
 	if not window.has_meta("layout_minimum"):window.set_meta("layout_minimum",Vector2(window.min_size))
@@ -73,7 +75,7 @@ func keep_visible(window: Window,available: Vector2):
 	# Clamping a window to a smaller screen must not become its permanent size.
 	if area==window.get_meta("layout_area",area) and current!=window.get_meta("layout_applied",current):preferred=current
 	window.set_meta("layout_preferred",preferred)
-	var rect=window_rect(preferred,available,Vector2(window.min_size))
+	var rect=Grid.snap_rect(preferred,available,Vector2(window.min_size),bounds)
 	window.size=Vector2i(rect.size);window.position=Vector2i(rect.position+window_origin(window))
 
 	window.set_meta("layout_applied",Rect2(Vector2(window.position)-window_origin(window),Vector2(window.size)))
@@ -87,12 +89,19 @@ func window_origin(window: Window) -> Vector2:
 	return Vector2.ZERO if window.is_embedded() else Vector2(window.get_tree().root.position)
 
 func place_detail_frame(window: Window):
+	if window.is_embedded():window.borderless=true
 	window.unresizable=true
-	var rect=WindowGrid.frame_rect(Vector2(window.get_tree().root.size))
+	var view=Vector2(window.get_tree().root.size)
+	var rect=WindowGrid.frame_rect(view)
 	window.position=Vector2i(rect.position+window_origin(window))
 	window.size=Vector2i(rect.size)
+	window.set_meta("managed_layout",true)
+	window.set_meta("layout_minimum",rect.size)
+	window.set_meta("layout_preferred",rect)
+	window.set_meta("layout_applied",rect)
+	window.set_meta("layout_area",Grid.cell_rect(view,0,1,10,8).size)
 
-func window_rect(value: Rect2,available: Vector2,minimum: Vector2) -> Rect2:
-	# The first game row leaves the native/embedded title bar reachable.
-	var top=Grid.cell_rect(available,0,1,10,9)
-	return Grid.snap_rect(value,available,minimum,top)
+func window_bounds(window: Window,available: Vector2) -> Rect2:
+	# Godot draws a decorated embedded title bar above its client rectangle.
+	var first=2 if window.is_embedded() and not window.borderless else 1
+	return Grid.cell_rect(available,0,first,10,9-first)
