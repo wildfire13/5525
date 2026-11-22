@@ -58,7 +58,7 @@ func run():
 	if wait is ConfirmationDialog:
 		var rect=Rect2(Vector2(wait.position)-game.preferences.window_origin(wait),Vector2(wait.size))
 		check(rect==Grid.snap_rect(rect,Vector2(root.size)), "wait window has four grid edges: "+str(rect))
-		check(node("ConfirmationMessage").text==wait.dialog_text and wait.dialog_text.contains("15 → 18") and wait.get_cancel_button().has_focus(),"wait shows full explanation and defaults to cancel")
+		check(node("ConfirmationText").text==wait.dialog_text and wait.dialog_text.contains("15 → 18") and wait.get_cancel_button().has_focus(),"wait shows full explanation and defaults to cancel")
 		await shot("merchant-wait")
 		await click_control(wait.get_cancel_button())
 		check(await saved()==before_wait,"wait cancel leaves state unchanged")

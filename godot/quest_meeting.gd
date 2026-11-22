@@ -4,6 +4,8 @@ var ui
 var generation := 0
 func _init(frontend):ui=frontend
 func reset():generation+=1
+func panel_rect() -> Rect2:
+	return ui.mock_shell.Grid.cell_rect(ui.size,7,1,3,8)
 func status(m: Dictionary) -> String:
 	if m.get("state")=="departed":return "受取終了。行商人はサウスを出発済み"
 	if m.get("canWait",false):
@@ -35,7 +37,7 @@ func render(parent,q: Dictionary,prefix: String,with_details := false,availabili
 	if prefix!="Quest" or m.get("canWait",false) or m.get("currentStop")==null or m.get("state")=="departed":
 		ui.label_(parent,status(m)).name=prefix+"Status"
 	if availability_parent==null:
-		ui.label_(parent,availability(m)).name="QuestMerchantAvailability" if prefix=="Quest" else "HubMerchantAvailability"
+		ui.label_(parent,availability(m)).name="QuestMerchantStatus" if prefix=="Quest" else "HubMerchantAvailability"
 	else:
 		var label=Label.new();label.name="QuestMerchantAvailability"
 		label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;label.clip_text=true;label.max_lines_visible=2

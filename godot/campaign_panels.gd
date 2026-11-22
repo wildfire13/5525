@@ -151,16 +151,17 @@ func journey(parent):
 	var strip=preload("res://travel_strip.gd").new();strip.name="TravelRouteStrip"
 	strip.origin=town(journey_.get("origin",c().get("location","")))
 	strip.destination=town(journey_.get("outboundDestination",journey_.get("destination","")))
-	strip.returning=journey_.get("returning",false);strip.stage=int(journey_.get("stage",0));strip.phase=phase;parent.add_child(strip)
+	strip.returning=journey_.get("returning",false);strip.stage=int(journey_.get("stage",0));strip.phase=phase
+	var route=VBoxContainer.new();route.name="JourneyRoute";route.add_theme_constant_override("separation",0)
+	route.custom_minimum_size.y=ui.mock_shell.content_height()-ui.mock_shell.grid_cell().y;parent.add_child(route);route.add_child(strip)
 	strip.custom_minimum_size.y=grid_height(2)
 	var quest=c().get("activeQuest")
 	var sluice_trip=phase=="road" and quest is Dictionary and quest.get("id")=="sluice-bell" and journey_.get("destination")=="east" and not strip.returning
 	var map_row=row(parent);map_row.name="JourneyMapBar";map_row.alignment=BoxContainer.ALIGNMENT_END;map_row.custom_minimum_size.y=grid_height(3)-grid_height(2)
 	var toggle=b(map_row,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",func():toggle_travel_map(parent,map_row,journey_))
 	toggle.name="TravelMapToggle"
-	if travel_map_expanded:add_travel_map(parent,journey_)
-	var actions=row(parent);actions.name="CampActions"
-	var action_cell=6 if travel_map_expanded else 3
+	var actions=row(route);actions.name="CampActions"
+	var action_cell=3
 	actions.custom_minimum_size.y=grid_height(action_cell+1)-grid_height(action_cell)
 	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(copy)
 	l(copy,"帰路" if strip.returning else "野営地" if phase=="camp" else "到着" if phase in ["arrival","delivery"] else "%d区間目の道" % (int(journey_.get("stage",0))+1),true)
@@ -177,14 +178,14 @@ func journey(parent):
 		"arrival","delivery":
 			ui.green_button(b(actions,"都市に入る" if journey_.get("destination")=="astaris" else "村に入る",ui.act.bind("arrive",[])))
 	if phase=="road":
-		var choices=row(parent);choices.name="RouteChoices"
+		var choices=row(route);choices.name="RouteChoices"
 		choices.custom_minimum_size.y=grid_height(action_cell+2)-grid_height(action_cell+1)
-		for route in [["short","峠の近道",2],["safe","川沿いの道",4]]:
-			var caption = "%s\n移動 %d時間" % [route[1], route[2]]
+		for choice in [["short","峠の近道",2],["safe","川沿いの道",4]]:
+			var caption = "%s\n移動 %d時間" % [choice[1], choice[2]]
 			if sluice_trip:
-				caption += "\n陣形の外にいる味方が射手に狙われる" if route[0] == "short" else "\n番人が巻上機を塞ぐ"
-			var choose = b(choices, caption, ui.act.bind("travel", [route[0]]))
-			choose.name = "RouteChoice_" + route[0]
+				caption += "\n陣形の外にいる味方が射手に狙われる" if choice[0] == "short" else "\n番人が巻上機を塞ぐ"
+			var choose = b(choices, caption, ui.act.bind("travel", [choice[0]]))
+			choose.name = "RouteChoice_" + choice[0]
 			choose.custom_minimum_size = Vector2(400, 100) if sluice_trip else Vector2(260, 80)
 		if sluice_trip:
 			var gate_note = "守護者が通常移動で巻上機に入ると開門。離脱・撃破で閉門。"
@@ -196,16 +197,20 @@ func journey(parent):
 			note.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
 			map_row.move_child(note,0)
 	if phase=="camp":
-		var inventory=VBoxContainer.new();inventory.name="CampInventoryBar";parent.add_child(inventory)
+		var inventory=VBoxContainer.new();inventory.name="CampInventoryBar";route.add_child(inventory)
 		inventory.custom_minimum_size.y=grid_height(action_cell+2)-grid_height(action_cell+1)
 		b(inventory,"インベントリ",party_view.open_camp_inventory)
+	if travel_map_expanded:
+		route.hide()
+		add_travel_map(parent,journey_)
+
 func toggle_travel_map(parent,map_row,journey_):
 	travel_map_expanded=not travel_map_expanded
+	parent.get_node("JourneyRoute").visible=not travel_map_expanded
 	var toggle=map_row.get_node("TravelMapToggle")
 	toggle.text="経路だけ表示" if travel_map_expanded else "ワールドマップを表示"
 	if travel_map_expanded:
-		var chart=add_travel_map(parent,journey_)
-		parent.move_child(chart,map_row.get_index()+1)
+		add_travel_map(parent,journey_)
 	else:
 		var chart=parent.get_node("TravelFullMap")
 		parent.remove_child(chart)
@@ -216,7 +221,8 @@ func add_travel_map(parent,journey_):
 	chart.towns=c().get("locations",[]);chart.current=str(journey_.get("origin",c().get("location","")));chart.selected=str(journey_.get("outboundDestination",journey_.get("destination","")))
 	chart.available=chart.towns.map(func(place):return place.id);chart.routes=c().get("routes",{});chart.icons=ui.icons
 	var quest=c().get("activeQuest");chart.quest_destination=str(quest.to) if quest is Dictionary else ""
-	parent.add_child(chart);chart.custom_minimum_size.y=grid_height(6)-grid_height(3);chart.size_flags_vertical=Control.SIZE_FILL
+	parent.add_child(chart);parent.move_child(chart,0)
+	chart.custom_minimum_size.y=ui.mock_shell.content_height()-ui.mock_shell.grid_cell().y;chart.size_flags_vertical=Control.SIZE_FILL
 	return chart
 
 func party(parent):

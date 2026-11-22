@@ -167,7 +167,8 @@
    "nodes": [
     "EquipmentTooltipPanel"
    ],
-   "meaning": "装備・所持品の名前と要点。クリックで詳細を開く"
+   "meaning": "装備・所持品の名前と要点。クリックで詳細を開く",
+   "follows_target": true
   },
   {
    "screens": [
@@ -177,7 +178,8 @@
    "nodes": [
     "CompactSkillHover"
    ],
-   "meaning": "スキル名と要点。クリックで詳細を開く"
+   "meaning": "スキル名と要点。クリックで詳細を開く",
+   "follows_target": true
   },
   {
    "screens": [
@@ -355,7 +357,8 @@
    "screens": [
     "character",
     "shop",
-    "warehouse"
+    "warehouse",
+    "window"
    ],
    "label": "人物情報",
    "nodes": [
@@ -878,7 +881,8 @@
    "screens": [
     "entry",
     "victory",
-    "complete"
+    "complete",
+    "inn"
    ],
    "label": "ページ見出し",
    "nodes": [
@@ -1037,7 +1041,8 @@
    "nodes": [
     "BattlePredictionRegion"
    ],
-   "meaning": "移動先の命中率や対象に重ねて表示する行動予測"
+   "meaning": "移動先の命中率や対象に重ねて表示する行動予測",
+   "follows_target": true
   },
   {
    "screens": [
@@ -1103,14 +1108,17 @@
     "entry",
     "guild",
     "inn",
-    "items"
+    "items",
+    "victory",
+    "complete"
    ],
    "label": "背景画",
    "nodes": [
     "TownStill",
-    "FacilityStill"
+    "FacilityStill",
+    "ResultBackground"
    ],
-   "meaning": "街・施設の背景とその上の暗幕"
+   "meaning": "場面全体の背景"
   },
   {
    "screens": [
@@ -1167,7 +1175,8 @@
     "GuildPartyAnimation"
    ],
    "meaning": "編成の交代で移動する人物カード",
-   "grid_cover": true
+   "grid_cover": true,
+   "follows_target": true
   },
   {
    "screens": [
@@ -1178,7 +1187,8 @@
     "MemberDragPreview"
    ],
    "meaning": "配置・ギルドでカーソルに追従する人物",
-   "grid_cover": true
+   "grid_cover": true,
+   "follows_target": true
   },
   {
    "screens": [
@@ -1189,7 +1199,8 @@
     "ItemDragPreview"
    ],
    "meaning": "装備・所持品をドラッグしている間の表示",
-   "grid_cover": true
+   "grid_cover": true,
+   "follows_target": true
   },
   {
    "screens": [
@@ -1202,7 +1213,8 @@
     "CommandActionFlight"
    ],
    "meaning": "選択・確定時に移動するコマンドパネル",
-   "grid_cover": true
+   "grid_cover": true,
+   "follows_target": true
   },
   {
    "screens": [
@@ -1224,7 +1236,6 @@
    ],
    "label": "画面の下地",
    "nodes": [
-    "ResultBackground",
     "LoadingBackground",
     "DialogSurface",
     "ResultsPanel"
@@ -1249,10 +1260,9 @@
    ],
    "label": "行動者情報",
    "nodes": [
-    "BattleActorInfo"
+    "BattleActorInfoRegion"
    ],
-   "meaning": "行動者のHP・MP・装備・能力",
-   "grid_cover": true
+   "meaning": "行動者のHP・MP・装備・能力"
   },
   {
    "screens": [
@@ -1261,10 +1271,9 @@
    ],
    "label": "対象人物の状態",
    "nodes": [
-    "BattlePersonInfo"
+    "BattlePersonInfoRegion"
    ],
-   "meaning": "対象人物の能力・装備と状態",
-   "grid_cover": true
+   "meaning": "対象人物の能力・装備と状態"
   },
   {
    "screens": [
@@ -1273,10 +1282,9 @@
    ],
    "label": "行動内容・効果",
    "nodes": [
-    "DecisionContent"
+    "DecisionContentRegion"
    ],
-   "meaning": "選んだ行動の内容・効果・対象",
-   "grid_cover": true
+   "meaning": "選んだ行動の内容・効果・対象"
   },
   {
    "screens": [

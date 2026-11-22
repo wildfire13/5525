@@ -2,6 +2,31 @@ extends Container
 ## Rows use the game viewport's cells, never a subdivision of the child window.
 const Grid=preload("res://screen_grid.gd")
 var scroll_content=false
+var fixed_regions=false
+var heading: Control
+var body: Control
+var actions: Control
+
+static func frame_rect(view: Vector2) -> Rect2:
+	return Grid.cell_rect(view,1,1,8,9)
+
+static func local_rect(view: Vector2,x: int,y: int,width: int,height: int) -> Rect2:
+	var rect=Grid.cell_rect(view,x,y,width,height)
+	rect.position-=frame_rect(view).position
+	return rect
+
+static func title_label(text: String) -> Label:
+	var label=Label.new()
+	label.text=text;label.clip_text=true;label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.size_flags_vertical=Control.SIZE_FILL
+	label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;label.add_theme_font_size_override("font_size",24)
+	label.tooltip_text=text
+	return label
+
+func set_regions(title: Control,content: Control,footer: Control):
+	fixed_regions=true;heading=title;body=content;actions=footer
+	queue_sort()
+
 func _get_minimum_size() -> Vector2:
 	if not scroll_content or not is_inside_tree():return Vector2.ZERO
 	var unit=float(get_tree().root.size.y)/Grid.DIVISIONS
@@ -14,6 +39,11 @@ func _ready():
 func _notification(what):
 	if what!=NOTIFICATION_SORT_CHILDREN or not is_inside_tree():return
 	var view=Vector2(get_tree().root.size)
+	if fixed_regions:
+		fit_child_in_rect(heading,local_rect(view,2,1,7,1))
+		fit_child_in_rect(body,local_rect(view,2,2,7,7))
+		if actions!=null:fit_child_in_rect(actions,local_rect(view,2,9,7,1))
+		return
 	var unit=view.y/Grid.DIVISIONS
 	var rows=[]
 	var fixed=0

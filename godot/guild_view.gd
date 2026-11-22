@@ -70,8 +70,11 @@ func render(parent):
 	var panel=PanelContainer.new();panel.name="GuildComparison";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(panel)
 	var background=ui.mock_shell.surface_style();background.set_content_margin_all(0);panel.add_theme_stylebox_override("panel",background)
 	var center=VBoxContainer.new();center.add_theme_constant_override("separation",0);panel.add_child(center)
+	var cell=ui.mock_shell.grid_cell()
+	var spacer=Control.new();spacer.custom_minimum_size.y=cell.y;spacer.mouse_filter=Control.MOUSE_FILTER_IGNORE;center.add_child(spacer)
 	var tabs=ui.row(center);tabs.name="GuildInfoTabs"
-	tabs.custom_minimum_size.y=ui.mock_shell.grid_cell().y
+	tabs.custom_minimum_size=cell*Vector2(2,1)
+	tabs.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 	for index in range(3):
 		var tab=b(tabs,["能力","装備","スキル"][index],select_tab.bind(index));tab.name="GuildTab_"+str(index);ui.mark_selected(tab,detail_tab==index)
 	build_comparison(center)

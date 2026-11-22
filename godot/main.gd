@@ -344,10 +344,8 @@ func confirm(text: String,fn: Callable,build: Callable=Callable()):
 	# Keep dialog_text for the confirmation contract; a scrollable copy prevents
 	# long paths or explanations from forcing buttons outside a short window.
 	d.get_label().hide()
-	var message_scroll=ScrollContainer.new();message_scroll.name="ConfirmationTextScroll";message_scroll.custom_minimum_size=Vector2(0,100);message_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;d.add_child(message_scroll)
-	if build.is_valid():build.call(message_scroll,d)
-	else:
-		var message_label=Label.new();message_label.name="ConfirmationMessage";message_label.text=text;message_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;message_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;message_label.add_theme_font_size_override("font_size",18);message_scroll.add_child(message_label)
+	var contents=d.content()
+	if build.is_valid():build.call(contents,d)
 	for button_ in [d.get_ok_button(),d.get_cancel_button()]:
 		button_.custom_minimum_size=Vector2(172,48) if build.is_valid() else Vector2(96,48) if size.x>=1800 else Vector2(80,44)
 		button_.add_theme_font_size_override("font_size",18)
@@ -361,7 +359,7 @@ func confirm(text: String,fn: Callable,build: Callable=Callable()):
 		audio.ui("cancel");d.hide();d.queue_free()
 		if not closing and pages.epoch==epoch and engine.connection_generation==generation:
 			memory.scrolls.merge(scroll_state,true);memory.request_focus(origin_key);memory.restore())
-	preferences.bind_window(d,"facility_receipt" if build.is_valid() else "confirmation",size,Vector2(680,420) if build.is_valid() else Vector2(560,300));d.popup();d.get_cancel_button().grab_focus()
+	preferences.place_detail_frame(d);d.popup();d.get_cancel_button().grab_focus()
 	return d
 func fullscreen():
 	get_window().mode=Window.MODE_WINDOWED if get_window().mode==Window.MODE_FULLSCREEN else Window.MODE_FULLSCREEN
@@ -388,7 +386,6 @@ func _notification(what):
 func close_game():
 	if closing:return
 	if is_instance_valid(board):board.persist_camera()
-	if is_instance_valid(dialog.window):dialog.remember()
 	closing=true;results_view.reset();loading_screen.finish(loading_screen.sequence);invalidate_preview()
 	while engine.busy:await get_tree().process_frame
 	if not engine.disconnected and data.get("presentation")!=null:await engine.request({"op":"presentation_finish","id":data.presentation.id})
@@ -525,22 +522,20 @@ func show_engine_stop():
 	for window in find_children("*","Window",true,false):
 		if window.visible:window.hide()
 	menu.hide()
-	stop_dialog=AcceptDialog.new()
+	var d=preload("res://grid_confirmation.gd").new()
+	stop_dialog=d
 	stop_dialog.name="EngineStopDialog"
 	stop_dialog.title="ゲームを続けられません"
 	stop_dialog.dialog_text=engine.last_error if not engine.last_error.is_empty() else notice
-	stop_dialog.get_label().set_meta("ui_region","EngineStopMessage")
-	var panel_style=stop_dialog.get_theme_stylebox("panel").duplicate()
-	panel_style.set_content_margin_all(0);stop_dialog.add_theme_stylebox_override("panel",panel_style)
-	stop_dialog.add_theme_constant_override("buttons_min_height",roundi(size.y/10.0))
-	stop_dialog.add_theme_constant_override("buttons_separation",0)
+	d.get_label().hide();d.get_cancel_button().hide()
+	d.content("EngineStopMessage")
 	stop_dialog.ok_button_text="ゲームを終了"
 	stop_dialog.dialog_hide_on_ok=false
 	stop_dialog.exclusive=true
 	add_child(stop_dialog)
 	stop_dialog.confirmed.connect(close_game)
 	stop_dialog.canceled.connect(close_game)
-	preferences.bind_window(stop_dialog,"engine_stop",size,Vector2(560,300))
+	preferences.place_detail_frame(stop_dialog)
 	stop_dialog.popup()
 func invalidate_preview():
 	if pages!=null:pages.shop_view.cancel_pending()
@@ -643,12 +638,9 @@ func render():
 	if common_menu!=null:
 		var menu_region=common_menu.get_parent()
 		menu_region.visible=battle
-		menu_region.anchor_top=0.0 if active_battle else 0.9
-		menu_region.anchor_bottom=0.1 if active_battle else 1.0
-		common_menu.anchor_top=0.0 if active_battle else 1.0
-		common_menu.anchor_bottom=common_menu.anchor_top
-		common_menu.offset_top=12 if active_battle else -64
-		common_menu.offset_bottom=68 if active_battle else -8
+		menu_region.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		preload("res://screen_grid.gd").place(menu_region,preload("res://screen_grid.gd").cell_rect(available,9,0,1,1))
+		common_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	footer.visible=not battle and page not in ["shop","party"]
 	if battle:
 		if view_kind!="battle":
@@ -970,7 +962,12 @@ func portrait_dialog():
 	if data.get("trial")!=null or campaign().get("phase") in ["battle","deployment"]:notice="画像変更は戦闘・試用の終了後にできます";render();return
 	pages.shop_view.cancel_pending()
 	var d=Window.new();d.name="PortraitChooser";d.exclusive=true;d.title="キャラ画像";add_child(d)
-	var body=scroller(d);body.get_parent().name="PortraitChoices";body.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var layout=preload("res://window_grid.gd").new();d.add_child(layout);layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var heading=layout.title_label(d.title);heading.name="ModalHeading";layout.add_child(heading)
+	var content=MarginContainer.new();content.name="ModalDetailScroll";layout.add_child(content)
+	var body=scroller(content);body.get_parent().name="PortraitChoices"
+	var actions=row(layout);actions.name="ModalActions"
+	layout.set_regions(heading,content,actions)
 	label_(body,"各キャラの画像を変更します。能力・装備は変わりません。")
 	label_(body,"PNG / JPEG / WebP / BMP / GIF（先頭フレーム）、16MiBまで。透過・縦横比を保持し最大1024pxに正規化。割当を残すには進行を保存してください。")
 	d.window_input.connect(func(event):
@@ -986,8 +983,8 @@ func portrait_dialog():
 			button(r,"位置・ズーム",func():d.queue_free();pages.party_view.workspace.open_portrait(u),not active_member(str(u.id)))
 		button(r,"元に戻す",func():reset_portrait(str(u.id));d.queue_free(),not active_member(str(u.id)) or not portraits.metadata.get("characters",{}).has(u.id))
 	if reserves_visible():label_(body,"控えの画像を変更するには、先に編成へ加えてください。")
-	button(body,"閉じる",d.queue_free)
-	d.close_requested.connect(d.queue_free);preferences.bind_window(d,"portrait",size,Vector2(660,700));d.popup()
+	local_button(actions,"閉じる",d.queue_free)
+	d.close_requested.connect(d.queue_free);preferences.place_detail_frame(d);d.popup()
 func import_portrait(path: String,uid: String):
 	if not active_member(uid):return
 	var retained=0

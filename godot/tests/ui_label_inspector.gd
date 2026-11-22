@@ -33,6 +33,16 @@ func inspect_drag(source: Control, id: String, label: String):
 		await process_frame
 	check(root.gui_is_dragging(),id+" starts pointer drag")
 	await capture(id,[label])
+	var preview=get_first_node_in_group("ui_drag_preview") as Control
+	check(is_instance_valid(preview),id+" has a visible preview")
+	if not is_instance_valid(preview):
+		root.gui_cancel_drag()
+		return
+	var before=preview.global_position
+	var next=at+Vector2(-240 if at.x>root.size.x/2.0 else 240,-120 if at.y>root.size.y/2.0 else 120)
+	move=InputEventMouseMotion.new();move.position=next;move.relative=next-at-Vector2(10,60);move.button_mask=MOUSE_BUTTON_MASK_LEFT;root.push_input(move,true)
+	await capture(id+"-moved",[label])
+	check(preview.global_position.distance_to(before)>50,id+" artwork follows the pointer")
 	root.gui_cancel_drag()
 	press.pressed=false;press.position=Vector2(-20,-20);root.push_input(press,true)
 	await settle()
@@ -91,6 +101,8 @@ func check_owners(id: String, window: Window, scopes: Dictionary):
 		if not pieces.is_empty():missing.append(str(panel[0].get_path()))
 	check(missing.is_empty(),"%s owners %d, missing %s" % [id,examined,missing])
 
+var first_bounds := {}
+
 func capture(id: String, expected: Array, window: Window = null):
 	await settle()
 	var inspector = game.ui_labels
@@ -125,6 +137,11 @@ func capture(id: String, expected: Array, window: Window = null):
 		var box=to_game*visible_rect
 		var aligned=box.position.is_equal_approx((box.position/cell).round()*cell) and box.end.is_equal_approx((box.end/cell).round()*cell)
 		check(aligned,id+" grid "+key+" "+str(box))
+		if not active[0].get("follows_target",false):
+			var label=active[0].label
+			if not first_bounds.has(label):first_bounds[label]=[id,box]
+			var first=first_bounds[label]
+			check(box.is_equal_approx(first[1]),"%s fixed %s %s; %s %s" % [id,label,box,first[0],first[1]])
 	check_owners(id,window,scopes)
 	for name_ in expected: check(name_ in names,id + " shows " + name_ + " alongside " + str(names))
 	check(overlay.mouse_filter == Control.MOUSE_FILTER_IGNORE, id + " allows pointer through")
@@ -353,6 +370,9 @@ func run():
 	await page("map")
 	await game.act("depart",["east","convoy"])
 	await capture("road",["旅程マップ切替","場面：街道"])
+	await button("TravelMapToggle")
+	await capture("road-expanded",["旅程マップ切替"])
+	await button("TravelMapToggle")
 	await game.act("travel",["safe"])
 	await capture("deployment",["カメラ操作案内","メニュー呼び出し","場面：配置","戦場・配置"])
 	await inspect_drag(game.find_child("PartyFace_character_mirei",true,false),"drag-member","ドラッグ中の人物")
@@ -386,6 +406,20 @@ func run():
 			var expected=["場面：戦闘"]
 			if cmd=="action_move" and not game.board.move_preview_caption().is_empty() and DisplayServer.get_name()!="headless":expected.append("盤面の行動予測")
 			await capture("battle-"+cmd,expected)
+			if cmd=="action_move" and DisplayServer.get_name()!="headless" and game.data.choices.action_move.size()>1:
+				var first=int(game.data.choices.action_move[0])
+				var first_rect=game.board.prediction_region.get_global_rect()
+				var farthest=first
+				var origin: Vector2=game.board.project_cell(first)
+				var max_distance=0.0
+				for tile in game.data.choices.action_move:
+					var distance=origin.distance_squared_to(game.board.project_cell(int(tile)))
+					if distance>max_distance:
+						max_distance=distance
+						farthest=int(tile)
+				await game.on_cell(farthest)
+				await capture("battle-move-retarget",expected)
+				check(int(game.board.preview.destination)==farthest and game.board.prediction_region.get_global_rect()!=first_rect,"move prediction follows a different destination")
 			game.hud.back_to_commands()
 			await settle()
 	await button("BattleHistory")
@@ -413,7 +447,7 @@ func run():
 		await page("map")
 		await capture("camp",["旅程マップ切替","野営インベントリ操作","場面：野営地"])
 		var rest=game.find_child("CampActions",true,false).find_children("*","Button",true,false).filter(func(b):return b.text=="休息する")[0]
-		var motion=InputEventMouseMotion.new();motion.position=rest.get_global_rect().get_center();root.push_input(motion,true)
+		var motion=InputEventMouseMotion.new();motion.position=rest.get_global_rect().get_center();root.warp_mouse(motion.position);root.push_input(motion,true)
 		await create_timer(1.1).timeout
 		if DisplayServer.get_name()!="headless":await capture("native-hint",["操作ヒント"])
 		await page("items")

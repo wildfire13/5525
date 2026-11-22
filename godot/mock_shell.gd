@@ -22,7 +22,7 @@ static func surface_style(fill: Color=PAPER,nested:=false) -> StyleBoxFlat:
 	surface.bg_color.a=NESTED_SURFACE_ALPHA if nested else SURFACE_ALPHA
 	return surface
 func content_height() -> float:
-	return ui.size.y-grid_cell().y*(2 if ui.footer.visible else 1)
+	return ui.size.y-grid_cell().y*2
 func grid_cell() -> Vector2:
 	return Grid.cell_rect(ui.size,0,0,1,1).size
 func apply_theme():

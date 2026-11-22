@@ -24,21 +24,18 @@ func progress() -> float:
  return clampf(float(Time.get_ticks_msec()-recovery_started)/(RECOVERY_SECONDS*1000.0),0.0,1.0) if recovery_started>0 else 1.0
 func render(parent):
  if pages.facility_entry.render_top(parent,"inn"):reset();return
- var surface=ui.mock_shell.columns(parent);surface.name="InnService";surface.custom_minimum_size.y=ui.mock_shell.content_height()
- surface.add_theme_constant_override("separation",0)
- var panel=PanelContainer.new();panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;surface.add_child(panel)
+ var surface=Control.new();parent.add_child(surface);surface.name="InnService";surface.custom_minimum_size.y=ui.mock_shell.content_height();surface.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var panel=PanelContainer.new();panel.name="FacilityChoices";surface.add_child(panel)
+ pages.facility_entry.place_region(panel,Rect2(0,2,6,7))
+ pages.facility_entry.render_title(surface,"inn")
  var style=panel.get_theme_stylebox("panel").duplicate()
  style.set_content_margin_all(0)
  panel.add_theme_stylebox_override("panel",style)
  var content=VBoxContainer.new();content.add_theme_constant_override("separation",0);panel.add_child(content)
  var q: Dictionary=pages.c().get("inn",{})
- var keeper=VBoxContainer.new();keeper.name="InnKeeperColumn";keeper.custom_minimum_size.x=ScreenGrid.cell_rect(ui.size,8,0,2,1).size.x;keeper.add_theme_constant_override("separation",0);surface.add_child(keeper)
  var words=dialogue if not dialogue.is_empty() else FULL_GREETING if not q.get("needsRecovery",false) else pages.facility_entry.greeting_text()
- var speech=pages.facility_entry.make_speech(words,"normal");speech.name="InnKeeperSpeech";speech.custom_minimum_size.y=pages.grid_height(3)-pages.grid_height(1);speech.words.add_theme_font_size_override("font_size",22);speech.set_speaker_visible(false);keeper.add_child(speech)
- var npc=pages.facility_art.npc
- if npc.texture!=null:
-  var image=TextureRect.new();image.name="InnKeeper";image.texture=npc.texture;image.size_flags_vertical=Control.SIZE_EXPAND_FILL;image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;keeper.add_child(image)
- parent=inset(content,2)
+ pages.facility_entry.render_entry_art(surface,words,true)
+ parent=inset(content,1)
  ui.icons.line(ui,parent,"inn","宿屋",true)
  if not q.get("available",false):pages.l(parent,"宿屋はアスタリスで利用できます。");return
  if q.get("needsRecovery",false):pages.l(parent,"パーティ全員で%dG" % q.price)

@@ -52,7 +52,8 @@ func run():
 	for i in range(5):await process_frame
 	var full_map=game.find_child("TravelFullMap",true,false)
 	check(full_map!=null and full_map.read_only,"expanded travel map is read only")
-	check_grid(game,["TravelRouteStrip","TravelFullMap","CampActions","RouteChoices"])
+	check(not strip.is_visible_in_tree() and full_map.is_visible_in_tree(),"expanded map covers the route until the player returns")
+	check_grid(game,["TravelFullMap","JourneyMapBar"])
 	game.find_child("TravelMapToggle",true,false).pressed.emit()
 	for i in range(5):await process_frame
 	check(game.find_child("TravelFullMap",true,false)==null and game.find_child("TravelRouteStrip",true,false)==strip,"collapse restores compact route only")

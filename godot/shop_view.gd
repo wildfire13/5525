@@ -136,6 +136,7 @@ func render_transaction(middle):
 	var heading=l(middle,"購入" if selection_kind=="buy" else "売却" if selection_kind=="sell" else "取引を確認")
 	heading.name="ShopTransactionHeading";heading.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	var detail=ui.scroller(middle);detail.get_parent().name="ShopTransactionScroll"
+	detail.get_parent().vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	detail.add_theme_constant_override("separation",0)
 	var operations=VBoxContainer.new();operations.name="ShopTransactionFooter";operations.custom_minimum_size.y=ui.mock_shell.grid_cell().y*2;operations.add_theme_constant_override("separation",0);middle.add_child(operations)
 	var footer=ui.row(operations);footer.alignment=BoxContainer.ALIGNMENT_END

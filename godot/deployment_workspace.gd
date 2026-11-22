@@ -27,9 +27,7 @@ func layout():
  if is_instance_valid(strip):
   strip.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
   Grid.place(strip,Grid.cell_rect(view,0,1,2,8))
- hud.right_panel.fit_sections()
- hud.right_panel.pending_restore=null
- Grid.place(hud.right_panel,Grid.cell_rect(view,8,1,2,8))
+ hud.right_panel.place_regions(view,Grid.cell_rect(view,8,1,2,8),Grid.cell_rect(view,8,1,2,5),Grid.cell_rect(view,8,6,2,3),Rect2())
  hud.right_panel.find_child("DragHandle",true,false).hide()
  if normal_panel_style==null:normal_panel_style=hud.right_panel.get_theme_stylebox("panel").duplicate()
  panel_style.set_content_margin_all(0)
@@ -38,7 +36,8 @@ func layout():
  hud.deployment_bar.add_theme_stylebox_override("panel",panel_style)
  Grid.place(hud.deployment_actions,Grid.cell_rect(view,5,9,3,1))
  hud.layout_camera_guide()
- hud.deployment_instructions.global_position=Grid.cell_rect(view,2,2,1,1).position
+ Grid.place(hud.deployment_instructions,Grid.cell_rect(view,3,9,2,1))
+ hud.deployment_instructions.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  ui.board.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
  Grid.place(ui.board,Grid.cell_rect(view,2,2,6,7))
  ui.board.deployment_bottom_limit=0;ui.board.update_camera()

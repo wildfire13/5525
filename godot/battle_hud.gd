@@ -70,8 +70,7 @@ const QUEUE_PITCH=QUEUE_CARD_WIDTH+QUEUE_ARROW_WIDTH+QUEUE_GAP*2
 const COMMANDS=[["action_attack","攻撃"],["action_move","移動"],["action_skill","スキル"],["items","アイテム"],["action_defend","防御"]]
 const Grid=preload("res://screen_grid.gd")
 func panel_rect(right: bool) -> Rect2:
-	var cols=clampi(int(ui.preferences.config.get_value("battle","panel_columns",2)),2,5)
-	var rect=Grid.cell_rect(ui.size,10-cols if right else 0,1,cols,7)
+	var rect=Grid.cell_rect(ui.size,8 if right else 0,2,2,7)
 	rect.position-=middle.global_position
 	return rect
 func actor_panel_rect() -> Rect2:return panel_rect(false)
@@ -148,30 +147,31 @@ func mount():
 	middle.move_child(left_panel,-1);middle.move_child(right_panel,-1)
 	resize()
 func layout_camera_guide():
-	Grid.place(camera_hint.get_parent(),Grid.cell_rect(ui.size,0,9,3,1))
-	camera_hint.global_position=Vector2(24,ui.size.y-camera_hint.get_combined_minimum_size().y-8)
+	var region=Grid.cell_rect(ui.size,0,9,3,1)
+	camera_hint.get_parent().clip_contents=true
+	Grid.place(camera_hint.get_parent(),region)
+	camera_hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	Grid.place(camera_hint,region)
 func resize():
 	if not is_instance_valid(left_panel) or not is_instance_valid(ui.board) or ui.board.is_queued_for_deletion() or middle.size.x<100:return
 	if deployment_layout:
 		deployment_workspace.layout();return
 	ui.board.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	ui.board.position=Vector2.ZERO
-	ui.board.size=ui.size
+	Grid.place(ui.board,Grid.cell_rect(ui.size,2,2,6,7))
 	ui.board.battle_play_width=maxf(1,ui.size.x-left_panel.size.x-right_panel.size.x-64)
 	layout_camera_guide()
 	var queue_scroll=ui.battle_header.find_child("TurnOrderViewport",true,false)
 	if queue_scroll!=null:queue_scroll.custom_minimum_size.x=queue_viewport_width()
-	var order_region=Grid.cell_rect(ui.size,0,9,10,1)
+	var order_region=Grid.cell_rect(ui.size,3,9,6,1)
 	Grid.place(ui.battle_header,order_region)
 	var order=ui.battle_header.find_child("TurnOrderControls",true,false)
 	if order!=null:order.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	ui.board.deployment_bottom_limit=0
 	ui.board.update_camera()
+	left_panel.place_regions(ui.size,Grid.cell_rect(ui.size,0,2,2,7),Grid.cell_rect(ui.size,0,2,2,2),Grid.cell_rect(ui.size,0,4,2,5),Rect2(),true)
+	right_panel.place_regions(ui.size,Grid.cell_rect(ui.size,8,2,2,7),Grid.cell_rect(ui.size,8,5,2,3),Grid.cell_rect(ui.size,8,2,2,3),Grid.cell_rect(ui.size,8,8,2,1),true)
 	for panel in [left_panel,right_panel]:
-		panel.reserved_bottom=ui.size.y-order_region.position.y
-		panel.z_index=10
-		panel.fit_sections()
-		panel.constrain()
+		panel.z_index=10;panel.reserved_bottom=ui.size.y/Grid.DIVISIONS
 	Grid.place(tools,Grid.cell_rect(ui.size,0,0,1,1))
 
 func render():
@@ -254,6 +254,7 @@ func build_panels(s,phase,a,deploying):
 		hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	left_panel.visible=deploying or (a.get("side")=="ally" and not s.get("deploying",false) and s.get("result")==null) or ui.engine.disconnected
 	if phase is Dictionary and (is_instance_valid(action_visual) or str(phase.get("action_id",""))==shifted_action):left_panel.hide()
+	left_panel.section_with_handle.set_meta("ui_region","BattleActorInfoRegion")
 	left_info=left_panel.body;left_info.name="BattleActorInfo"
 	if a.get("side")=="ally":
 		combat_portrait(left_info,a)
@@ -272,7 +273,9 @@ func build_panels(s,phase,a,deploying):
 	bottom_commands=left_panel.lower;bottom_commands.name="ActorCommands"
 	if not deploying:render_bottom_commands()
 	actor_box=left_info;command_box=left_info
-	person_box=VBoxContainer.new();person_box.name="BattlePersonInfo";right_panel.body.add_child(person_box)
+	right_panel.section_with_handle.set_meta("ui_region","BattlePersonInfoRegion")
+	person_box=VBoxContainer.new();person_box.name="BattlePersonInfo";right_panel.lower.add_child(person_box)
+	right_panel.body_scroll.set_meta("ui_region","DecisionContentRegion")
 	target_box=VBoxContainer.new();target_box.name="DecisionContent";right_panel.body.add_child(target_box);right_panel.body.move_child(target_box,0)
 	decision_footer=right_panel.footer
 
@@ -347,7 +350,7 @@ func render_queue():
 func queue_viewport_width() -> float:
 	# Keep all five cards, with the details action outside their scrolling area.
 	var preferred=QUEUE_PITCH*QUEUE_VISIBLE-QUEUE_ARROW_WIDTH-QUEUE_GAP*2
-	return minf(preferred,maxf(1,middle.size.x-QUEUE_CARD_WIDTH*2-QUEUE_ARROW_WIDTH-QUEUE_GAP*3))
+	return minf(preferred,maxf(1,Grid.cell_rect(ui.size,3,9,6,1).size.x-QUEUE_CARD_WIDTH*2-(QUEUE_ARROW_WIDTH+QUEUE_GAP*2)*2))
 func target_name(id) -> String:
 	return str(unit(id).get("name","対象不明"))
 func command_selected(kind: String) -> bool:
@@ -705,34 +708,66 @@ func open_equipment_sheet(uid: String):
 		var member=unit(uid).merged(sheet,true)
 		clear_inspection()
 		var side="味方" if member.side=="ally" else "敵"
-		var extent=Vector2(minf(840,ui.size.x-48),minf(960,ui.size.y-64))
-		var left=24 if member.side=="ally" else ui.size.x-extent.x-24
 		ui.dialog.open(side+"の装備・所持品 / "+str(member.name),func(body,actions):
 			draw_loadout(body,member,"equipment")
-			local(actions,"閉じる",ui.dialog.close).name="CloseBattleEquipment",Callable(),Rect2(Vector2(left,(ui.size.y-extent.y)/2),extent))
+			local(actions,"閉じる",ui.dialog.close).name="CloseBattleEquipment")
 		return
 func draw_loadout(body,member: Dictionary,tab: String):
 	ui.clear(body)
+	var window=body.get_window()
+	var old=window.get_node_or_null("BattleLoadoutColumn")
+	if old!=null:
+		window.remove_child(old.stage);old.stage.queue_free()
+		window.remove_child(old);old.queue_free()
+	var layout=preload("res://window_grid.gd")
+	var grid=preload("res://screen_grid.gd")
+	var heading=window.find_child("ModalHeading",true,false)
+	heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
 	var line=ui.mock_shell.columns(body)
 	line.add_theme_constant_override("separation",0)
-	var unit=ui.mock_shell.grid_cell()
-	line.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
-	line.custom_minimum_size.x=floorf(body.size.x/unit.x)*unit.x
-	var fit_row=func():line.custom_minimum_size.x=floorf(body.size.x/unit.x)*unit.x
-	body.resized.connect(fit_row)
-	line.tree_exiting.connect(func():body.resized.disconnect(fit_row))
-	var column=preload("res://member_loadout_column.gd").new();line.add_child(column)
+	var spacer=Control.new();line.add_child(spacer)
+	var column=preload("res://member_loadout_column.gd").new()
+	column.name="BattleLoadoutColumn";window.add_child(column)
 	column.build(ui,member,tab,func(next):draw_loadout(body,member,next),"BattleLoadoutTab_")
-	column.custom_minimum_size.y=0
-	var detail=VBoxContainer.new();detail.size_flags_horizontal=Control.SIZE_EXPAND_FILL;line.add_child(detail)
-	if member.side=="enemy":line.move_child(detail,0)
+	var stage=column.stage
+	stage.reparent(window,false)
+	column.stage.clip_contents=true
+	var detail=ui.scroller(line)
+	var detail_scroll=detail.get_parent()
+	var art=Control.new();column.stage.add_child(art)
+	column.portrait.reparent(art,false)
+	var fit=func():
+		var view=Vector2(ui.get_tree().root.size)
+		var tab_rect=layout.local_rect(view,2,1,2,1)
+		var stage_rect=layout.local_rect(view,2,3,2,6)
+		var heading_height=layout.local_rect(view,2,2,2,1).size.y
+		spacer.custom_minimum_size.x=stage_rect.size.x
+		var tabs=column.get_node("LoadoutTabBar")
+		tabs.custom_minimum_size.y=tab_rect.size.y
+		tabs.get_child(0).custom_minimum_size.y=tab_rect.size.y
+		column.panel.get_child(0).get_child(0).custom_minimum_size.y=heading_height
+		column.panel.custom_minimum_size.y=heading_height+stage_rect.size.y
+		detail_scroll.custom_minimum_size.y=heading_height+stage_rect.size.y
+		column.custom_minimum_size=Vector2(stage_rect.size.x,stage_rect.end.y)
+		grid.place(column,Rect2(tab_rect.position,column.custom_minimum_size))
+		stage.custom_minimum_size=Vector2.ZERO
+		grid.place(stage,stage_rect)
+		var scale_factor=minf(stage_rect.size.x/column.ART_SIZE.x,stage_rect.size.y/column.ART_SIZE.y)
+		art.scale=Vector2.ONE*scale_factor
+		art.position.x=(stage_rect.size.x-column.ART_SIZE.x*scale_factor)/2.0
+	window.size_changed.connect(fit)
+	column.tree_exiting.connect(func():window.size_changed.disconnect(fit))
+	fit.call()
 	if tab=="equipment":
 		column.equipment(ui,member,"","BattleSlot_",func(_item):pass)
 		for slot in member.get("equipmentSlots",[]):
 			var button=column.stage.get_node_or_null("BattleSlot_"+str(slot.slot))
 			if button!=null:ui.memory.key(button,"equipment_"+str(slot.slot))
+		for child in column.stage.get_children():
+			if child!=art:child.reparent(art,false)
 		return
-	var inventory=column.inventory_overlay();inventory.name="BattleInventory"
+	var inventory=ui.scroller(column.stage);inventory.name="BattleInventory"
+	inventory.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var entries=ui.campaign().get("inventoryByCharacter",{}).get(member.id,{}).get("entries",[])
 	var remaining=ui.state().get("itemInventories",{}).get(member.id,{})
 	if member.side=="enemy":
@@ -743,7 +778,7 @@ func draw_loadout(body,member: Dictionary,tab: String):
 		var item=entry.duplicate();item.count=remaining.get(item.id,item.count)
 		if item.count<=0:continue
 		preload("res://member_inventory.gd").add_row(ui,inventory,item,func():
-			ui.clear(detail);detail.name="BattleItemDetail"
+			ui.clear(detail);detail_scroll.name="BattleItemDetail"
 			if item.kind=="equipment":ui.pages.describe_gear(detail,item.get("definition",item),true)
 			else:
 				l(detail,str(item.name),true);l(detail,"所持数 ×%d" % item.count)

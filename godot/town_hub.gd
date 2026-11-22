@@ -52,7 +52,7 @@ func render(parent):
 		var box=PanelContainer.new();box.name="HubMeetingPanel";box.add_theme_stylebox_override("panel",ui.mock_shell.surface_style());panel.add_child(box)
 		var place_meeting=func():
 			if not is_instance_valid(box) or box.is_queued_for_deletion():return
-			Grid.place(box,Grid.cell_rect(ui.size,7,1,3,8 if ui.footer.visible else 9))
+			Grid.place(box,ui.pages.quest_board.meeting.panel_rect())
 			_fit_before_meeting(panel)
 		for container in [panel,parent,parent.get_parent()]:container.item_rect_changed.connect(place_meeting)
 		place_meeting.call_deferred()

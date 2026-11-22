@@ -1,4 +1,38 @@
 extends "res://tests/ui_feedback_20261016.gd"
+const Grid=preload("res://screen_grid.gd")
+
+func exact(control: Control,x: int,y: int,w: int,h: int):
+	var offset=Vector2(control.get_window().position)-game.preferences.window_origin(control.get_window())
+	var actual=Rect2(control.global_position+offset,control.size)
+	check(actual==Grid.cell_rect(Vector2(root.size),x,y,w,h),str(control.name)+" "+str(actual))
+
+func battle_loadout(side: String):
+	var member=game.roster()[0].duplicate(true)
+	member.side=side;member.inventory={"potion":1}
+	game.dialog.open("装備と所持品",func(body,_actions):game.hud.draw_loadout(body,member,"equipment"))
+	await settle()
+	exact(node("LoadoutTabBar"),2,1,2,1);exact(node("RegionEquipment"),2,3,2,6)
+	exact(node("MemberLoadoutPanel"),2,2,2,7)
+	check(node("BattleSlot_rightHand")!=null,side+" equipment hit target exists")
+	await mouse_press(node("BattleLoadoutTab_inventory"))
+	exact(node("LoadoutTabBar"),2,1,2,1);exact(node("RegionInventory"),2,3,2,6)
+	var entries=node("BattleInventory")
+	for i in 40:game.label_(entries,"所持品 %d" % i)
+	await settle()
+	var scroll=entries.get_parent()
+	exact(scroll,2,3,2,6);exact(node("MemberLoadoutPanel"),2,2,2,7)
+	var existing_items=entries.find_children("*","Button",true,false)
+	if not existing_items.is_empty():
+		await mouse_press(existing_items[0])
+		exact(node("BattleItemDetail"),4,2,5,7)
+		var description=node("SkillDetailsWindow")
+		if is_instance_valid(description):description.finish()
+		await settle()
+	await mouse_press(scroll,MOUSE_BUTTON_WHEEL_DOWN)
+	check(scroll.scroll_vertical>0,side+" long inventory scrolls within the stage")
+	await mouse_press(node("BattleLoadoutTab_equipment"));exact(node("RegionEquipment"),2,3,2,6)
+	game.dialog.close();await settle()
+
 func aligned(rect: Rect2,label: String):
 	var unit=Vector2(root.size)/10
 	for point in [rect.position,rect.end]:
@@ -12,6 +46,20 @@ func shot(label: String):
 	if DisplayServer.get_name()=="headless":return
 	await RenderingServer.frame_post_draw
 	root.get_texture().get_image().save_png(evidence.path_join(label+".png"))
+func drag_title(window: Window,delta: Vector2i):
+	var start=Vector2(window.position+Vector2i(80,-12))
+	var press=InputEventMouseButton.new()
+	press.position=start;press.global_position=start
+	press.button_index=MOUSE_BUTTON_LEFT;press.button_mask=MOUSE_BUTTON_MASK_LEFT;press.pressed=true
+	root.push_input(press,true)
+	var motion=InputEventMouseMotion.new()
+	motion.position=start+Vector2(delta);motion.global_position=motion.position
+	motion.relative=Vector2(delta);motion.button_mask=MOUSE_BUTTON_MASK_LEFT
+	root.push_input(motion,true)
+	var release=InputEventMouseButton.new()
+	release.position=motion.position;release.global_position=motion.position;release.button_index=MOUSE_BUTTON_LEFT
+	root.push_input(release,true)
+	await settle()
 func mouse_press(control: Control,button:=MOUSE_BUTTON_LEFT):
 	var point=control.get_global_rect().get_center()
 	# Embedded windows are routed by the root viewport, like OS input.
@@ -39,23 +87,26 @@ func run():
 	await settle()
 	var window=game.dialog.window
 	aligned(Rect2(Vector2(window.position),Vector2(window.size)),"detail")
-	region(node("ModalDetailScroll"));region(node("ModalActions"));await shot("detail")
+	exact(node("ModalHeading"),2,1,7,1);exact(node("ModalDetailScroll"),2,2,7,7);exact(node("ModalActions"),2,9,7,1);await shot("detail")
 	var initial=Rect2(Vector2(window.position),Vector2(window.size))
-	window.position+=Vector2i(215,-95);window.size+=Vector2i(-170,90);await settle()
-	aligned(Rect2(Vector2(window.position),Vector2(window.size)),"moved/resized")
-	var expected=Rect2(Vector2(window.position),Vector2(window.size))
-	check(expected.position!=initial.position and expected.size!=initial.size,"move and resize land on different grid cells")
+	check(initial==Grid.cell_rect(Vector2(root.size),1,1,8,9),"detail opens in the common frame")
+	var heading_rect=node("ModalHeading").get_global_rect()
+	var body_rect=node("ModalDetailScroll").get_global_rect()
+	var actions_rect=node("ModalActions").get_global_rect()
+	var delta=Vector2i(73,-39)
+	await drag_title(window,delta)
+	check(Rect2(Vector2(window.position),Vector2(window.size))==Rect2(initial.position+Vector2(delta),initial.size),"title drag moves detail and position holds after settling")
+	check(node("ModalHeading").get_global_rect()==heading_rect and node("ModalDetailScroll").get_global_rect()==body_rect and node("ModalActions").get_global_rect()==actions_rect,"drag leaves child rectangles unchanged within the window")
 	await mouse_press(node("GridClose"))
 	check(not is_instance_valid(game.dialog.window),"mouse closes detail")
 	if is_instance_valid(window):quit(1);return
-	var persisted=preload("res://ui_preferences.gd").new()
-	var saved_rect=persisted.config.get_value("windows","dialog:グリッド詳細",Rect2())
-	check(saved_rect.has_area() and persisted.window_rect(saved_rect,Vector2(root.size),Vector2(420,300))==expected,"moved detail rectangle is restored from disk on the grid")
+	game.preferences.config.set_value("windows","dialog:グリッド詳細",Rect2(0,0,600,400))
 	game.dialog.open("グリッド詳細",func(_body,_actions):pass);await settle()
-	check(Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size))==expected,"reopen retains snapped geometry")
+	check(Rect2(Vector2(game.dialog.window.position),Vector2(game.dialog.window.size))==initial,"reopen resets the dragged position and ignores obsolete stored geometry")
 	var calls=[0]
 	var confirm=game.confirm("確認本文",func():calls[0]+=1);await settle()
-	region(node("ConfirmationTextScroll"));region(node("ConfirmationMessage"));region(confirm.get_ok_button().get_parent());await shot("confirmation")
+	exact(confirm.find_child("ModalHeading",true,false),2,1,7,1)
+	exact(node("ConfirmationTextScroll"),2,2,7,7);exact(confirm.get_ok_button().get_parent(),2,9,7,1);await shot("confirmation")
 	for pressed in [true,false]:
 		var escape=InputEventKey.new();escape.keycode=KEY_ESCAPE;escape.pressed=pressed;root.push_input(escape,true)
 		await process_frame
@@ -65,12 +116,30 @@ func run():
 	check(calls[0]==1 and not is_instance_valid(confirm),"mouse confirms once and closes")
 	if is_instance_valid(confirm):quit(1);return
 	game.dialog.close();await settle()
+	var body_clicks=[0,0]
+	var receipt=game.confirm("確認本文\n".repeat(100),func():pass,func(contents,d):
+		d.title="取引明細"
+		for index in 2:
+			game.local_button(contents,"項目 %d" % index,func():body_clicks[index]+=1).name="ReceiptOption%d" % index)
+	await settle()
+	var heading=receipt.find_child("ModalHeading",true,false)
+	exact(heading,2,1,7,1);check(heading.text=="取引明細","custom confirmation keeps its title")
+	exact(node("ConfirmationTextScroll"),2,2,7,7);exact(receipt.get_ok_button().get_parent(),2,9,7,1)
+	exact(node("ConfirmationMessage"),2,2,7,7)
+	node("ConfirmationTextScroll").scroll_vertical=100000;await settle()
+	for index in 2:await mouse_press(node("ReceiptOption%d" % index))
+	check(body_clicks==[1,1],"both confirmation body options receive pointer input after scrolling")
+	exact(node("ConfirmationMessage"),2,2,7,7)
+	receipt.canceled.emit();await settle()
 	var detail=preload("res://skill_details.gd").new();game.add_child(detail)
 	detail.configure(game,preload("res://skill_text.gd").document("skill_leg_sweep","足払い",3,game.campaign()),"テスト")
 	await settle()
-	for id in ["SkillDetailsSummary","SkillDetailsTabs","SkillDetailsActions"]:region(node(id))
+	exact(node("SkillDetailsTitle"),2,1,7,1)
+	exact(node("SkillDetailsTabs").get_parent(),2,2,7,7);exact(node("SkillDetailsActions"),2,9,7,1)
+	exact(node("SkillDetailsTabs"),2,3,7,6)
 	await shot("skill")
 	await mouse_press(node("SkillDetailsBack"))
+	for side in ["ally","enemy"]:await battle_loadout(side)
 	var history=game.campaign().get("history",[])
 	game.campaign()["history"]=range(80).map(func(i):return "行動ログ %d" % i)
 	game.show_action_log();await settle()
@@ -87,13 +156,13 @@ func run():
 	check(is_instance_valid(choices),"quest board opens the registered porter choices")
 	if not is_instance_valid(choices):quit(1);return
 	var picker=choices.get_window()
-	picker.size.y=324;await settle()
 	scroll=node("ModalDetailScroll")
-	await mouse_press(scroll,MOUSE_BUTTON_WHEEL_DOWN)
-	check(scroll.scroll_vertical>0,"mouse wheel scrolls porter choices in a short window")
+	exact(scroll,2,2,7,7)
 	await mouse_press(node("QuestCargoCancel"))
 	check(not is_instance_valid(picker) and game.campaign().get("activeQuest")==null,"porter picker cancel leaves the quest unaccepted")
-	game.portrait_dialog();await settle();region(node("PortraitChoices"));node("PortraitChooser").close_requested.emit();await settle()
+	game.portrait_dialog();await settle()
+	exact(node("ModalHeading"),2,1,7,1);exact(node("PortraitChoices"),2,2,7,7);exact(node("ModalActions"),2,9,7,1)
+	node("PortraitChooser").close_requested.emit();await settle()
 	game.navigate("character");await settle()
 	var member=game.roster().filter(func(u):return u.id=="character_rio")[0]
 	game.pages.party_uid=member.id
@@ -117,6 +186,12 @@ func run():
 		await RenderingServer.frame_post_draw
 		dev.get_texture().get_image().save_png(evidence.path_join("developer.png"))
 		dev.hide()
+	game.show_engine_stop();await settle()
+	var stop=node("EngineStopDialog")
+	exact(node("ModalHeading"),2,1,7,1);exact(node("ConfirmationTextScroll"),2,2,7,7)
+	exact(stop.get_ok_button().get_parent(),2,9,7,1)
+	check(not stop.get_cancel_button().visible and stop.get_ok_button().visible,"engine stop only offers quit")
+	stop.hide();stop.queue_free();await settle()
 	var f=FileAccess.open(evidence.path_join("checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames()
 	quit(0 if checks.all(func(c):return c.passed) else 1)

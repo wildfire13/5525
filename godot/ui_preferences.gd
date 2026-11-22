@@ -1,5 +1,6 @@
 extends RefCounted
 const Grid=preload("res://screen_grid.gd")
+const WindowGrid=preload("res://window_grid.gd")
 ## Local presentation preferences, deliberately separate from campaign saves.
 const DEFAULT_DIALOG_SIZE=Vector2(840,620)
 const TITLE_HEIGHT=32
@@ -84,6 +85,12 @@ func remember_window(window: Window,key: String):
 
 func window_origin(window: Window) -> Vector2:
 	return Vector2.ZERO if window.is_embedded() else Vector2(window.get_tree().root.position)
+
+func place_detail_frame(window: Window):
+	window.unresizable=true
+	var rect=WindowGrid.frame_rect(Vector2(window.get_tree().root.size))
+	window.position=Vector2i(rect.position+window_origin(window))
+	window.size=Vector2i(rect.size)
 
 func window_rect(value: Rect2,available: Vector2,minimum: Vector2) -> Rect2:
 	# The first game row leaves the native/embedded title bar reachable.

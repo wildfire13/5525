@@ -8,7 +8,7 @@ var recent: Array=[]
 var current: Dictionary={}
 var shade: Control
 var panel: Panel
-var body: VBoxContainer
+var body: Control
 var continue_button: Button
 var save_button: Button
 var intro: Tween
@@ -82,7 +82,7 @@ func _open(receipt: Dictionary):
  for window in ui.find_children("*","Window",true,false):window.hide()
  get_parent().move_child(self,-1)
  for child in panel.get_children():panel.remove_child(child);child.queue_free()
- body=VBoxContainer.new();body.add_theme_constant_override("separation",18);panel.add_child(body);body.minimum_size_changed.connect(_queue_layout)
+ body=Control.new();panel.add_child(body)
  _build();shade.show();_layout();continue_button.grab_focus()
  if intro and intro.is_running():intro.kill()
  body.modulate.a=0.0;intro=create_tween();intro.tween_property(body,"modulate:a",1.0,.22).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
@@ -98,12 +98,16 @@ func _build():
  if ResourceLoader.exists(path):crest.texture=load(path)
  heading.add_child(crest)
  var titles=VBoxContainer.new();titles.size_flags_horizontal=Control.SIZE_EXPAND_FILL;titles.add_theme_constant_override("separation",6);heading.add_child(titles)
- _label(titles,current.title,20 if compact else 25,GOLD).name="ResultStage"
- _label(titles,current.subtitle,28 if compact else 32).name="ResultTitle"
+ var stage_label=_label(titles,current.title,16,GOLD);stage_label.name="ResultStage"
+ var title_label=_label(titles,current.subtitle,24);title_label.name="ResultTitle"
+ for label in [stage_label,title_label]:
+  label.max_lines_visible=1;label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;label.tooltip_text=label.text
  var context=str(current.get("quest","")) if current.kind=="quest" else "敵部隊を退けました。同行者の戦果と成長を確認できます。"
  if context.is_empty():context="配達の報酬は所持金と同行者に反映済みです。"
- var context_label=_label(titles,context,16 if compact else 21,MUTED);context_label.name="ResultContext";context_label.max_lines_visible=2;context_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;context_label.tooltip_text=context
- var summary=GridContainer.new();summary.name="ResultSummary";summary.columns=3;summary.add_theme_constant_override("h_separation",16);summary.add_theme_constant_override("v_separation",12);body.add_child(summary)
+ var context_label=_label(titles,context,18,MUTED);context_label.name="ResultContext";context_label.max_lines_visible=1;context_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;context_label.tooltip_text=context
+ for line in titles.get_children():
+  line.autowrap_mode=TextServer.AUTOWRAP_OFF;line.clip_text=true
+ var summary=Control.new();summary.name="ResultSummary";body.add_child(summary)
  if int(current.gold_gain)>0:_summary(summary,"獲得した所持金","+%d G" % int(current.gold_gain),"所持金 %d G" % int(current.gold_after),"ResultGold")
  var gains=current.members.map(func(m):return int(m.xp_gain));var xptext="成長対象なし"
  if not gains.is_empty():
@@ -178,21 +182,21 @@ func _layout():
  if active and compact!=_compact:
   if intro and intro.is_running():intro.kill()
   for child in panel.get_children():panel.remove_child(child);child.queue_free()
-  body=VBoxContainer.new();panel.add_child(body);body.minimum_size_changed.connect(_queue_layout);_build();continue_button.grab_focus()
+  body=Control.new();panel.add_child(body);_build();continue_button.grab_focus()
  if not is_instance_valid(body):return
  var view=ui.size
- var heading=body.get_node("ResultHeading")
- var summary=body.get_node("ResultSummary")
- var actions=body.get_node("ResultActions")
- var strip=body.get_node_or_null("ResultLevelUpScroll")
- var frame=Grid.cell_rect(view,1,0 if strip else 1,8,10 if strip else 8)
- Grid.place(panel,frame);body.position=Vector2.ZERO;body.size=frame.size
- var cell_height=view.y/Grid.DIVISIONS
- # Use intrinsic content heights so a short receipt keeps room for its member list.
- for row in [heading,summary,actions]:
-  var rows=maxi(1,ceili(row.get_minimum_size().y/cell_height))
-  row.custom_minimum_size.y=Grid.cell_rect(view,0,0,1,rows).size.y
- if strip:strip.custom_minimum_size.y=Grid.cell_rect(view,0,0,1,4).size.y
+ Grid.place(panel,preload("res://window_grid.gd").frame_rect(view))
+ body.position=Vector2.ZERO;body.size=panel.size
+ # Actual regions have fixed bounds; only their contents scroll.
+ for entry in [["ResultHeading",1,1,8,1],["ResultSummary",1,2,8,1],["ResultLevelUpScroll",1,3,8,4],["ResultMembersScroll",1,7,8,1],["ResultActions",1,8,8,1]]:
+  var region=panel.find_child(entry[0],true,false)
+  if region==null:continue
+  region.clip_contents=true
+  Grid.place(region,Grid.cell_rect(view,entry[1],entry[2],entry[3],entry[4]))
+ var summary=panel.find_child("ResultSummary",true,false)
+ for entry in [["ResultGold",1,3],["ResultExperience",4,3],["ResultRankPoints",7,2]]:
+  var card=summary.get_node_or_null(entry[0])
+  if card!=null:Grid.place(card,Grid.cell_rect(view,entry[1],2,entry[2],1))
 func advance():advance_to("hub")
 func advance_to(destination: String):
  if not active or ui.locked:return

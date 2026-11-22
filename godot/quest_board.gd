@@ -54,15 +54,14 @@ func layout_board(split: Control):
 	var frame=Grid.cell_rect(view,3,1,4,bottom-1)
 	var action=Grid.cell_rect(view,3,bottom-1,4,1)
 	Grid.place(detail,frame)
+	var availability=detail.get_node_or_null("QuestMerchantAvailability")
 	Grid.place(detail.get_node("QuestDetailActions"),action)
 	var body_end=action.position.y
-	var availability=detail.get_node_or_null("QuestMerchantAvailability")
 	if availability!=null:
-		var status_rect=Grid.cell_rect(view,3,bottom-2,4,1)
-		Grid.place(availability,status_rect)
-		body_end=status_rect.position.y
+		Grid.place(availability,meeting.panel_rect())
 	Grid.place(detail.get_node("QuestDetailContent"),Rect2(frame.position+Vector2(8,8),Vector2(frame.size.x-16,body_end-frame.position.y-16)))
 	var stage=split.get_node("QuestRequester")
+	stage.visible=availability==null
 	Grid.place(stage,Grid.cell_rect(view,7,1,3,bottom-1))
 	position_requester(stage.get_node_or_null("QuestRequesterPortrait"))
 func choose(id: String):
@@ -135,7 +134,11 @@ func render_detail(parent,q: Dictionary,active: bool):
 		# Scenario quests also carry the on-time difference in bonus/bonusRP.
 		reward_line(details,"希望条件達成報酬",str(rewards.get("type","money")),int(rewards.get("bonus",0)),int(rewards.get("bonusRP",0)))
 		if rewards.get("legacyXP",false):reward_line(details,"キャラクター報酬","experience",int(q.get("xp",0)),0)
-	if q.get("scenario",false) and str(q.get("eventId",""))=="wheel":meeting.render(details,q,"Quest",true,parent)
+	var meeting_column: VBoxContainer=null
+	if q.get("scenario",false) and str(q.get("eventId",""))=="wheel" and not q.get("meeting",{}).is_empty():
+		var panel=PanelContainer.new();panel.name="QuestMerchantAvailability";panel.add_theme_stylebox_override("panel",ui.mock_shell.surface_style());parent.add_child(panel)
+		meeting_column=VBoxContainer.new();meeting_column.add_theme_constant_override("separation",12);panel.add_child(meeting_column)
+		meeting.render(ui.scroller(meeting_column),q,"Quest",true)
 	if q.get("story") is Array and not q.story.is_empty():
 		var story=pages.b(details,"依頼時の話" if active else "話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);story.custom_minimum_size.y=44
 
