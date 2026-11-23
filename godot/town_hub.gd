@@ -42,13 +42,13 @@ func render(parent):
 		points.accessory=Vector2(.53,.52)
 	for id in place.get("facilities",[]):
 		if not FACILITIES.has(id):continue
-		var spec=FACILITIES[id];var button=ui.button(panel,spec[0],ui.navigate.bind(spec[1]));button.name="HubFacility_"+id;Tokens.apply_button_size(button,Tokens.BUTTON_LG,false,Tokens.BUTTON_W_MD);ui.memory.key(button,"nav_"+spec[1])
+		var spec=FACILITIES[id];var button=ui.button(panel,spec[0],ui.navigate.bind(spec[1]));button.name="HubFacility_"+id;Tokens.apply_button_preset(button,"md_lg",false);ui.memory.key(button,"nav_"+spec[1])
 		var point=points.get(id,Vector2(.2,.2));button.anchor_left=point.x;button.anchor_top=point.y;button.anchor_right=point.x;button.anchor_bottom=point.y
 		if has_meeting:
 			button.set_meta("hub_x_anchor",point.x);button.resized.connect(_fit_before_meeting.bind(panel))
 	if has_meeting:
 		var fit=_fit_before_meeting.bind(panel);panel.resized.connect(fit);fit.call_deferred()
-	var map=ui.button(panel,"出発の準備\n街道口",ui.navigate.bind("map"));map.name="HubMap";map.anchor_left=.12;map.anchor_top=.82;Tokens.apply_button_size(map,Tokens.BUTTON_LG,false,Tokens.BUTTON_W_MD);ui.memory.key(map,"nav_map")
+	var map=ui.button(panel,"出発の準備\n街道口",ui.navigate.bind("map"));map.name="HubMap";map.anchor_left=.12;map.anchor_top=.82;Tokens.apply_button_preset(map,"md_lg",false);ui.memory.key(map,"nav_map")
 	if has_meeting:
 		var box=PanelContainer.new();box.name="HubMeetingPanel";box.add_theme_stylebox_override("panel",ui.mock_shell.surface_style());panel.add_child(box)
 		var place_meeting=func():
@@ -61,20 +61,20 @@ func render(parent):
 		var details=ui.scroller(column);ui.pages.quest_board.meeting.render(details,quest,"Hub",true)
 		var m: Dictionary=quest.get("meeting",{})
 		if m.get("canWait",false):
-			var wait_btn=ui.primary(ui.button(column,ui.pages.quest_board.meeting.wait_label(quest),ui.pages.quest_board.meeting.open_wait));wait_btn.name="HubWaitForMerchant";Tokens.apply_button_size(wait_btn,Tokens.BUTTON_MD,false,Tokens.BUTTON_W_MD)
+			var wait_btn=ui.primary(ui.button(column,ui.pages.quest_board.meeting.wait_label(quest),ui.pages.quest_board.meeting.open_wait));wait_btn.name="HubWaitForMerchant";Tokens.apply_button_preset(wait_btn,"md",false)
 		elif m.get("canDeliver",false) or m.get("canSettleFailure",false):
 			var action="期限切れを確認して荷物を戻す" if m.get("canSettleFailure",false) else "荷物を届ける"
 			var callback=ui.pages.quest_board.meeting.open_failure if m.get("canSettleFailure",false) else ui.act.bind("completeQuest",[])
-			var deliver=ui.primary(ui.button(column,action,callback));deliver.name="HubDeliverCargo";Tokens.apply_button_size(deliver,Tokens.BUTTON_MD,false,Tokens.BUTTON_W_MD)
+			var deliver=ui.primary(ui.button(column,action,callback));deliver.name="HubDeliverCargo";Tokens.apply_button_preset(deliver,"md",false)
 			deliver.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 		elif m.get("reason")=="cargo_missing":
-			var check_carrier=ui.button(column,"荷物担当を確認",ui.navigate.bind("party"));check_carrier.name="HubCheckCarrier";Tokens.apply_button_size(check_carrier,Tokens.BUTTON_MD,false,Tokens.BUTTON_W_MD)
+			var check_carrier=ui.button(column,"荷物担当を確認",ui.navigate.bind("party"));check_carrier.name="HubCheckCarrier";Tokens.apply_button_preset(check_carrier,"md",false)
 		else:
-			var meeting_map=ui.button(column,"移動先を確認",ui.navigate.bind("map"));meeting_map.name="HubMeetingMap";Tokens.apply_button_size(meeting_map,Tokens.BUTTON_MD,false,Tokens.BUTTON_W_MD)
+			var meeting_map=ui.button(column,"移動先を確認",ui.navigate.bind("map"));meeting_map.name="HubMeetingMap";Tokens.apply_button_preset(meeting_map,"md",false)
 	elif quest is Dictionary and quest.get("to")==c.location and str(quest.get("deliveryFacility","")).is_empty():
 		var column=VBoxContainer.new();panel.add_child(column);column.anchor_left=.7;column.anchor_top=.82
 		var missing=not c.get("cargoAboard",false)
-		var deliver=ui.primary(ui.button(column,"荷物を届ける",ui.act.bind("completeQuest",[]),missing));deliver.name="HubDeliverCargo";Tokens.apply_button_size(deliver,Tokens.BUTTON_LG,false,Tokens.BUTTON_W_MD)
+		var deliver=ui.primary(ui.button(column,"荷物を届ける",ui.act.bind("completeQuest",[]),missing));deliver.name="HubDeliverCargo";Tokens.apply_button_preset(deliver,"md_lg",false)
 		if missing:ui.label_(column,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
 
 	if artwork.is_empty():ui.label_(parent,"拠点画像は準備中です。施設は利用できます。")

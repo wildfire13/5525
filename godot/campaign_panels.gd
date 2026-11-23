@@ -34,7 +34,7 @@ func _init(frontend):
 	ui=frontend;shop_view=preload("res://shop_view.gd").new(self);party_view=preload("res://party_view.gd").new(self);guild_view=preload("res://guild_view.gd").new(self);facility_entry=preload("res://facility_entry.gd").new(self)
 	warehouse_view=preload("res://warehouse_view.gd").new(self)
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
-func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
+func b(parent,text,fn,disabled:=false,preset:=""):return ui.button(parent,text,fn,disabled,preset)
 func row(parent):return ui.row(parent)
 func card(parent):return ui.card(parent)
 func c() -> Dictionary:return ui.campaign()
@@ -100,6 +100,7 @@ func map(parent):
 	parent.add_child(chart);chart.custom_minimum_size.y=ui.mock_shell.content_height()-ui.mock_shell.grid_cell().y;chart.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	for id in chart.buttons:ui.widgets.append(chart.buttons[id])
 	var actions=row(parent);actions.name="MapControls";actions.custom_minimum_size.y=ui.mock_shell.grid_cell().y
+	var left_pad=Control.new();left_pad.custom_minimum_size.x=Tokens.SPACE_MD;left_pad.mouse_filter=Control.MOUSE_FILTER_IGNORE;actions.add_child(left_pad)
 	var route=VBoxContainer.new();route.custom_minimum_size.x=320;route.size_flags_vertical=Control.SIZE_SHRINK_CENTER;actions.add_child(route)
 	var route_title=l(route,town(c().location)+" → "+town(ui.destination),true)
 	chart.destination_selected.connect(func(id):
@@ -108,14 +109,12 @@ func map(parent):
 		route_title.text=town(c().location)+" → "+town(id))
 	l(route,"最短移動時間：6時間")
 	var over=c().get("inventoryOverflow",[])
-	var depart=ui.action_button(b(actions,"出発する",func():ui.act("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not over.is_empty()));depart.name="DepartButton"
-	Tokens.apply_button_size(depart)
+	var depart=ui.action_button(b(actions,"出発する",func():ui.act("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not over.is_empty()),"md");depart.name="DepartButton"
 	if not over.is_empty():depart.tooltip_text="インベントリ枠を超えているメンバーがいます"
-	var enter_town=b(actions,"都市に入る" if c().location=="astaris" else "村に入る",ui.navigate.bind("hub"))
-	Tokens.apply_button_size(enter_town)
+	b(actions,"都市に入る" if c().location=="astaris" else "村に入る",ui.navigate.bind("hub"),false,"md")
 	var space=Control.new();space.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(space)
-	var fit_button=b(actions,"全体表示",chart.reset_view);fit_button.name="MapFit"
-	Tokens.apply_button_size(fit_button)
+	var fit_button=b(actions,"全体表示",chart.reset_view,false,"sm");fit_button.name="MapFit"
+	var right_pad=Control.new();right_pad.custom_minimum_size.x=Tokens.SPACE_MD;right_pad.mouse_filter=Control.MOUSE_FILTER_IGNORE;actions.add_child(right_pad)
 func choose_formation(value: String):ui.formation=value;ui.render()
 func grid_height(cells: int) -> float:
 	return ScreenGrid.cell_rect(ui.size,0,0,1,cells).size.y

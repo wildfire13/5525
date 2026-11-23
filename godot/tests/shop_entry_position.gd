@@ -24,11 +24,14 @@ func run():
   var portrait=node("FacilityNpc");var speech=node("FacilityEntrySpeech");var choices=node("FacilityChoices")
   check(game.find_children("FacilityNpc","TextureRect",true,false).size()==1,label+" single current keeper")
   var cell=Vector2(root.size)/10
-  check(portrait.get_parent().get_global_rect()==Rect2(cell*Vector2(6,2),cell*Vector2(4,8)),label+" portrait fills the reserved lower-right grid region")
-  check(speech.get_global_rect().get_center().distance_to(Vector2(960,540))<2,label+" speech centered")
-  check(not speech.get_global_rect().intersects(choices.get_global_rect()),label+" choices separate from speech")
-  var mouth=game.pages.facility_art.npc.mouth_anchor(node("FacilityEntryArt"))
-  check(mouth.x>speech.get_global_rect().end.x,label+" face clear of speech")
+  var viewport=Rect2(Vector2.ZERO,Vector2(root.size))
+  var region_rect=portrait.get_parent().get_global_rect()
+  var speech_rect=speech.get_global_rect()
+  var choices_rect=choices.get_global_rect()
+  check(region_rect==Rect2(cell*Vector2(6,4),cell*Vector2(4,5)) and portrait.get_global_rect()==region_rect and viewport.encloses(region_rect),label+" portrait fills reserved lower-right grid region")
+  check(speech_rect==Rect2(cell*Vector2(6,2),cell*Vector2(4,2)) and viewport.encloses(speech_rect) and not speech.words.text.is_empty(),label+" speech occupies upper-right region above keeper")
+  check(not speech_rect.intersects(choices_rect) and not region_rect.intersects(choices_rect),label+" choices separate from speech and keeper")
+  check(speech_rect.end.y<=region_rect.position.y and not speech_rect.intersects(region_rect),label+" speech stays clear above keeper face")
   if not output.is_empty():
    await create_timer(2).timeout;await RenderingServer.frame_post_draw
    root.get_texture().get_image().save_png(output.path_join(label+"-entry.png"))

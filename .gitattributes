@@ -1,3 +1,20 @@
+# Explicit text line-ending normalization
+*.gd text eol=lf
+*.gdshader text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.json text eol=lf
+*.py text eol=lf
+*.cjs text eol=lf
+*.js text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
 native/** text=auto eol=lf
 native/**/*.png binary
 Start-5525.cmd text eol=crlf

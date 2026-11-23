@@ -45,8 +45,8 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 	var conditions=ui.label_(body,"");conditions.name="ShopComparisonConditions"
 	# Keep payment/rejection beside the decision, outside long scrolling notes.
 	var money=shop.checkout_fields(actions,gear.price,func():switch_target(owner_id,slot))
-	var trial=ui.button(actions,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_END;Tokens.apply_button_size(trial,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
-	var buy=ui.primary(ui.button(actions,"取引を確認",purchase,true));buy.name="ShopComparisonBuy";Tokens.apply_button_size(buy,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD);buy.size_flags_horizontal=Control.SIZE_SHRINK_END
+	var trial=ui.button(actions,"木人で試す",shop.start_trial.bind(item_id),shop.busy(),"md");trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_END
+	var buy=ui.primary(ui.button(actions,"取引を確認",purchase,true),"md");buy.name="ShopComparisonBuy";buy.size_flags_horizontal=Control.SIZE_SHRINK_END
 	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
 	refresh(money,comparison,conditions,buy)
 func equipment_notes(body: Control,gear: Dictionary):
@@ -146,7 +146,7 @@ func render():
 		ui.label_(body,"説明\n"+str(gear.flavor)).name="ShopComparisonFlavor"
 	if gear.has("note") and not str(gear.note).is_empty():
 		ui.label_(body,"装備メモ（原文）\n"+str(gear.note)).name="ShopComparisonNotes"
-	var buy=ui.button(ui.dialog.actions,"確認中…",purchase,true);buy.name="ShopComparisonBuy";ui.icons.apply(buy,"money");buy.size_flags_horizontal=Control.SIZE_SHRINK_END;Tokens.apply_button_size(buy,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_LG)
+	var buy=ui.button(ui.dialog.actions,"確認中…",purchase,true,"lg_md");buy.name="ShopComparisonBuy";ui.icons.apply(buy,"money");buy.size_flags_horizontal=Control.SIZE_SHRINK_END
 	buy.theme_type_variation=&"ActionButton"
 	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
 	refresh(money,comparison,conditions,buy)

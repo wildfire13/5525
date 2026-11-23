@@ -1,5 +1,6 @@
 extends "res://tests/ui_feedback_20261016.gd"
 const Grid=preload("res://screen_grid.gd")
+const WindowGrid=preload("res://window_grid.gd")
 
 func exact(control: Control,x: int,y: int,w: int,h: int):
 	var offset=Vector2(control.get_window().position)-game.preferences.window_origin(control.get_window())
@@ -127,13 +128,14 @@ func run():
 	aligned(Rect2(Vector2(window.position),Vector2(window.size)),"detail")
 	exact(node("ModalHeading"),2,1,6,1);exact(node("ModalDetailScroll"),2,2,6,6);exact(node("ModalActions"),2,8,6,1);await shot("detail")
 	var initial=Rect2(Vector2(window.position),Vector2(window.size))
-	check(window.borderless and initial==Grid.cell_rect(Vector2(root.size),2,1,6,8),"borderless detail leaves both reserved rows clear without shrinking its heading")
+	check(window.borderless and initial==WindowGrid.modal_frame_rect(Vector2(root.size)) and Grid.cell_rect(Vector2(root.size),0,1,10,8).encloses(initial),"borderless detail leaves both reserved rows clear without shrinking its heading")
 	var close=node("WindowHeadingClose")
 	check(node("ModalHeading").get_global_rect().encloses(close.get_global_rect()),"close control is inside the shared heading")
 	var heading_rect=node("ModalHeading").get_global_rect()
 	var body_rect=node("ModalDetailScroll").get_global_rect()
 	var actions_rect=node("ModalActions").get_global_rect()
-	var delta=Vector2i(Grid.cell_rect(Vector2(root.size),1,1,1,1).size.x,-108)
+	var cell=Grid.cell_rect(Vector2(root.size),0,0,1,1).size
+	var delta=Vector2i(int(cell.x),-int(cell.y))
 	await drag_title(window,delta)
 	check(Rect2(Vector2(window.position),Vector2(window.size))==Rect2(initial.position+Vector2(delta.x,0),initial.size),"title drag keeps horizontal movement but cannot enter the reserved top row")
 	check(node("ModalHeading").get_global_rect()==heading_rect and node("ModalDetailScroll").get_global_rect()==body_rect and node("ModalActions").get_global_rect()==actions_rect,"drag leaves child rectangles unchanged within the window")

@@ -42,7 +42,7 @@ func render(parent):
 	for entry in aftermath:
 		var after=pages.card(list);after.name="QuestAftermath_"+str(entry.id);pages.l(after,str(entry.name),true)
 		var after_story=pages.b(after,"出来事を知る",func():play_scene(entry.story,str(entry.get("portrait",""))))
-		after_story.name="QuestAftermathStory_"+str(entry.id);Tokens.apply_button_size(after_story,Tokens.BUTTON_MD,false,Tokens.BUTTON_W_MD)
+		after_story.name="QuestAftermathStory_"+str(entry.id);Tokens.apply_button_preset(after_story,"md",false)
 	for container in [split,parent,parent.get_parent()]:
 		container.item_rect_changed.connect(layout_board.bind(split))
 	layout_board.call_deferred(split)
@@ -58,6 +58,8 @@ func layout_board(split: Control):
 	Grid.place(detail,frame)
 	var availability=detail.get_node_or_null("QuestMerchantAvailability")
 	Grid.place(detail.get_node("QuestDetailActions"),action)
+	var footer_line=detail.get_node_or_null("QuestDetailFooterDivider")
+	if footer_line!=null:Grid.place(footer_line,Rect2(action.position,Vector2(action.size.x,Tokens.BORDER_WIDTH)))
 	var body_end=action.position.y
 	if availability!=null:
 		Grid.place(availability,meeting.panel_rect())
@@ -102,6 +104,7 @@ func time_status(q: Dictionary) -> String:
 func render_detail(parent,q: Dictionary,active: bool):
 	var content=VBoxContainer.new();content.name="QuestDetailContent";parent.add_child(content)
 	pages.l(content,("受注中: " if active else "")+str(q.name),true).name="QuestDetailTitle"
+	var title_line=ColorRect.new();title_line.name="QuestDetailTitleDivider";title_line.color=Tokens.BORDER;title_line.custom_minimum_size.y=Tokens.BORDER_WIDTH;title_line.size_flags_horizontal=Control.SIZE_EXPAND_FILL;title_line.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.add_child(title_line)
 	var details=ui.scroller(content);details.name="QuestDetailBody";details.get_parent().custom_minimum_size.y=64
 	var description=pages.l(details,str(q.get("text","")));description.name="QuestDetailDescription";description.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	var facility=pages.hub_view.FACILITIES.get(q.get("deliveryFacility",""),[])
@@ -142,8 +145,9 @@ func render_detail(parent,q: Dictionary,active: bool):
 		meeting_column=VBoxContainer.new();meeting_column.add_theme_constant_override("separation",Tokens.SPACE_MD);panel.add_child(meeting_column)
 		meeting.render(ui.scroller(meeting_column),q,"Quest",true)
 	if q.get("story") is Array and not q.story.is_empty():
-		var story=pages.b(details,"依頼時の話" if active else "話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);Tokens.apply_button_size(story,Tokens.BUTTON_MD,false,Tokens.BUTTON_W_MD)
+		var story=pages.b(details,"依頼時の話" if active else "話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);Tokens.apply_button_preset(story,"md",false)
 
+	var footer_line=ColorRect.new();footer_line.name="QuestDetailFooterDivider";footer_line.color=Tokens.BORDER;footer_line.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(footer_line)
 	var actions=pages.row(parent);actions.name="QuestDetailActions";actions.alignment=BoxContainer.ALIGNMENT_CENTER
 	if active:
 		var m: Dictionary=q.get("meeting",{})
@@ -160,7 +164,7 @@ func render_detail(parent,q: Dictionary,active: bool):
 	else:
 		var accept=ui.action_button(pages.b(actions,"この依頼を引き受ける",open_picker.bind(str(q.id)),not pages.c().get("hasPorter",false)));accept.name="QuestAccept";accept.size_flags_horizontal=Control.SIZE_SHRINK_END
 		if not pages.c().get("hasPorter",false):pages.l(details,"受注には編成中のポーターが必要です。")
-	for button in actions.get_children():Tokens.apply_button_size(button,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_LG)
+	for button in actions.get_children():Tokens.apply_button_preset(button,"lg_md")
 
 func field(parent,caption: String,value: String):
 	var row=pages.row(parent);row.name="QuestField_"+caption;var label=pages.l(row,caption);label.name="QuestFieldCaption";label.custom_minimum_size.x=150;label.size_flags_horizontal=Control.SIZE_FILL;label.add_theme_font_size_override("font_size",Tokens.FONT_SM);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
@@ -218,10 +222,9 @@ func render_sluice_story(parent: Control, result: Dictionary) -> void:
 	opening.name = "SluiceStoryOpening"
 	opening.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if lines.size() > 1:
-		var read = ui.local_button(parent, "続きを読む", play_scene.bind(lines.slice(1), str(result.get("portrait", "")), result.get("cast", [])))
+		var read = ui.local_button(parent, "続きを読む", play_scene.bind(lines.slice(1), str(result.get("portrait", "")), result.get("cast", [])), "md")
 		read.name = "ResultStory"
 		read.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		Tokens.apply_button_size(read, Tokens.BUTTON_MD, true, Tokens.BUTTON_W_MD)
 
 func open_picker(id: String):
 	if ui.locked or ui.modal_open() or pages.c().get("phase")!="town" or pages.c().get("activeQuest") is Dictionary:return

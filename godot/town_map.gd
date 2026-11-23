@@ -30,6 +30,8 @@ func _ready():
 		var b=Button.new();b.name="Town_"+id
 		b.text=""
 		var content=VBoxContainer.new();content.name="TownContents";content.mouse_filter=Control.MOUSE_FILTER_IGNORE;b.add_child(content);content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		content.offset_top=Tokens.SPACE_XS;content.offset_bottom=-Tokens.SPACE_XS
+		content.add_theme_constant_override("separation",Tokens.SPACE_XS)
 		preload("res://mock_shell.gd").bind_button_text(b,content)
 		content.alignment=BoxContainer.ALIGNMENT_CENTER
 		var title=Label.new();title.text=town.name;title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;title.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.add_child(title)
@@ -65,7 +67,7 @@ func layout():
 		if size.y<240:content.get_child(0).add_theme_font_size_override("font_size",Tokens.FONT_XS)
 		else:content.get_child(0).remove_theme_font_size_override("font_size")
 		for icon in content.get_child(1).get_children():icon.custom_minimum_size=Vector2.ONE*(16 if size.y<240 else 32)
-		buttons[id].size=Vector2(minf(240,size.x*.26),minf(88,size.y*.27));buttons[id].scale=Vector2.ONE*zoom;buttons[id].position=point(id)-buttons[id].size*zoom/2
+		buttons[id].size=Vector2(minf(240,size.x*.26),minf(88 if size.y<240 else 104,size.y*.27));buttons[id].scale=Vector2.ONE*zoom;buttons[id].position=point(id)-buttons[id].size*zoom/2
 	queue_redraw()
 func point(id: String) -> Vector2:return (POS[id]*size-size/2)*zoom+size/2+pan
 func reset_view():zoom=1.0;pan=Vector2.ZERO;layout()
@@ -82,6 +84,7 @@ func _gui_input(event):
 		pan+=event.relative;layout();accept_event()
 func _draw():
 	draw_rect(Rect2(Vector2.ZERO,size),Tokens.SURFACE_BACKDROP)
+	draw_line(Vector2(0,size.y-0.5),Vector2(size.x,size.y-0.5),Tokens.BORDER,Tokens.BORDER_WIDTH)
 	event_markers.clear()
 	var drawn={}
 	var graph=routes if not routes.is_empty() else {"astaris":["east","west","north","south"]}

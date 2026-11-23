@@ -7,7 +7,7 @@ const FONT_SIZE = 14
 const INK = Color("#665775")
 const PAPER = Color("#fffdf5")
 var ui
-var enabled := true
+var enabled := false
 var definitions := {}
 var controls := {}
 var foreground := {}
@@ -32,7 +32,7 @@ func setup(game):
 		for id in region.nodes:
 			if not definitions.has(id): definitions[id] = []
 			definitions[id].append(region)
-	enabled = ui.preferences.config.get_value("inspection", "labels", true)
+	enabled = ui.preferences.config.get_value("inspection", "labels", false)
 	layer = 2100
 	add_overlay(ui.get_window(), self)
 	get_tree().tree_changed.connect(invalidate)

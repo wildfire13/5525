@@ -138,16 +138,17 @@ func _build():
  var details=VBoxContainer.new();details.name="ResultMemberDetails";details.size_flags_horizontal=Control.SIZE_EXPAND_FILL;details.add_theme_constant_override("separation",Tokens.SPACE_SM);members.add_child(details)
  for row in current.members:_member_card(details,row,compact)
  if current.restored:_label(members,"保存済みの結果です。成長前の値は記録されていません。",Tokens.FONT_XS,MUTED)
- var action_h := Tokens.BUTTON_MD if compact else Tokens.BUTTON_LG
+ var md_preset := "md" if compact else "md_lg"
+ var lg_preset := "lg_md" if compact else "lg"
  var actions=HBoxContainer.new();actions.name="ResultActions";actions.add_theme_constant_override("separation",Tokens.SPACE_LG);body.add_child(actions)
- save_button=Button.new();save_button.theme_type_variation=&"ActionButton";save_button.name="ResultSave";save_button.text="セーブ";Tokens.apply_button_size(save_button,action_h,true,Tokens.BUTTON_W_MD);save_button.pressed.connect(func():if active and not ui.locked:ui.save_game());actions.add_child(save_button)
+ save_button=Button.new();save_button.theme_type_variation=&"ActionButton";save_button.name="ResultSave";save_button.text="セーブ";Tokens.apply_button_preset(save_button,md_preset);save_button.pressed.connect(func():if active and not ui.locked:ui.save_game());actions.add_child(save_button)
  if current.kind=="quest" and not _replaying and str(current.location) in ["east","west","south","north"]:
-  var shortcut=Button.new();shortcut.name="ResultShop";shortcut.text=ui.town_name(current.location)+"の"+{"east":"武器店","west":"防具店","south":"道具店","north":"装飾品店"}[str(current.location)]+"へ";Tokens.apply_button_size(shortcut,action_h,true,Tokens.BUTTON_W_LG);actions.add_child(shortcut)
+  var shortcut=Button.new();shortcut.name="ResultShop";shortcut.text=ui.town_name(current.location)+"の"+{"east":"武器店","west":"防具店","south":"道具店","north":"装飾品店"}[str(current.location)]+"へ";Tokens.apply_button_preset(shortcut,lg_preset);actions.add_child(shortcut)
   var shortcut_owner=sequence;shortcut.pressed.connect(func():if active and sequence==shortcut_owner:advance_to("shop"))
  var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(spacer)
- continue_button=Button.new();continue_button.name="ResultContinue";continue_button.text="OK";ui.action_button(continue_button);Tokens.apply_button_size(continue_button,action_h,true,Tokens.BUTTON_W_MD);actions.add_child(continue_button)
+ continue_button=Button.new();continue_button.name="ResultContinue";continue_button.text="OK";ui.action_button(continue_button,md_preset);actions.add_child(continue_button)
  if current.get("storyId")!="sluice-bell" and current.get("story",[]) is Array and not current.get("story",[]).is_empty():
-  var scene=Button.new();scene.name="ResultStory";scene.text="会話を見る";Tokens.apply_button_size(scene,action_h,true,Tokens.BUTTON_W_MD);actions.add_child(scene);scene.pressed.connect(func():if active:ui.pages.quest_board.play_scene(current.story,str(current.get("portrait","")),current.get("cast",[]),str(current.get("scenario",""))))
+  var scene=Button.new();scene.name="ResultStory";scene.text="会話を見る";Tokens.apply_button_preset(scene,md_preset);actions.add_child(scene);scene.pressed.connect(func():if active:ui.pages.quest_board.play_scene(current.story,str(current.get("portrait","")),current.get("cast",[]),str(current.get("scenario",""))))
  var owner=sequence;continue_button.pressed.connect(func():if active and sequence==owner:advance())
 func _summary(parent: Node,title: String,value: String,detail: String,node_name: String):
  var card=PanelContainer.new();card.name=node_name;card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.add_theme_stylebox_override("panel",style(Tokens.SURFACE_ALT,Tokens.BORDER,Tokens.SPACE_SM if _compact else Tokens.SPACE_MD,Tokens.RADIUS_LG));parent.add_child(card)

@@ -56,4 +56,5 @@
 - 別窓で開いたまま使う開発情報、入力を奪わないホバー、ゲーム終了へ誘導する停止案内など、操作の性質が異なる表示には専用部品を使える。新設時は既存の入口で扱えない具体的な理由を変更説明に記す。
 - 背景とその上の文字色は対で定義する。複数の画面で使う配色は共通テーマから参照し、専用部品が背景を上書きするときは本文・補助文字・リンクや数値の強調色もその背景に合わせる。読み取り専用欄と無効ボタンには、それぞれの状態で実際に使われるテーマ設定を適用する。
 - 1920×1080の実画像で、文字切れ・重なりと本文の判読性を確かめる。ホバー・選択・無効・読み取り専用など、変更した状態を表示する。部品・背景・状態が同じ箇所は代表例にまとめ、テーマや背景が変わる呼び出し元は個別に確認する。
-- 共通の配色・5段階の文字サイズ（`FONT_XS`〜`FONT_DISPLAY`）・4px基準の余白と角丸・ボタンサイズ（高さ `BUTTON_SM`/`BUTTON_MD`/`BUTTON_LG`・幅 `BUTTON_W_SM`/`BUTTON_W_MD`/`BUTTON_W_LG`・`apply_button_size()`）・ウィンドウバー（`WINDOW_BAR_HEIGHT`・`window_bar_box()`）および `StyleBoxFlat` ビルダーは `godot/ui_tokens.gd` に集約する。新規・改修のUI実装では色やサイズを直書きせず `ui_tokens.gd` の定数とヘルパーを参照する。
+- 共通の配色・5段階の文字サイズ（`FONT_XS`〜`FONT_DISPLAY`）・4px基準の余白と角丸・ボタンサイズ（高さ `BUTTON_SM`/`BUTTON_MD`/`BUTTON_LG`・幅 `BUTTON_W_SM`/`BUTTON_W_MD`/`BUTTON_W_LG`・`apply_button_size()`・`apply_button_preset()`）・ウィンドウバー（`WINDOW_BAR_HEIGHT`・`window_bar_box()`）および `StyleBoxFlat` ビルダーは `godot/ui_tokens.gd` に集約する。新規・改修のUI実装では色やサイズを直書きせず `ui_tokens.gd` の定数とヘルパーを参照する。
+- 標準サイズのボタンには `Tokens.apply_button_preset(button, preset)` または `ui.button(..., preset)` / `ui.local_button(..., preset)` / `ui.action_button(control, preset)` を使う（プリセット: `"sm"` / `"md"` / `"lg"` / `"md_lg"` / `"sm_lg"` / `"sm_compact"` / `"lg_md"`）。

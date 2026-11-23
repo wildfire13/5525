@@ -30,7 +30,7 @@ var transaction_column: Control
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui;sale=preload("res://facility_sale.gd").new(self);comparison_view=preload("res://shop_comparison.gd").new(self)
 func c() -> Dictionary:return pages.c()
 func l(parent,text,large:=false):return ui.label_(parent,str(text),large)
-func b(parent,text,fn,disabled:=false):return ui.button(parent,text,fn,disabled)
+func b(parent,text,fn,disabled:=false,preset:=""):return ui.button(parent,text,fn,disabled,preset)
 func busy() -> bool:return stage!="S0" or unknown or ui.locked or ui.presenting or ui.closing or ui.engine.disconnected or sale.busy() or pages.party_view.workspace.busy
 func reset():
 	if comparison_view!=null:comparison_view.invalidate()
@@ -168,7 +168,7 @@ func render_transaction(middle):
 	render_notice(footer_body)
 	if selection_kind=="sell":
 		sale.render_detail(detail,footer)
-		var back_list_btn=b(footer,"商品一覧へ",func():selection_kind="";ui.render(),busy());Tokens.apply_button_size(back_list_btn,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
+		b(footer,"商品一覧へ",func():selection_kind="";ui.render(),busy(),"md")
 	elif selection_kind=="owned" and not sale.selected().is_empty():
 		var member=ui.roster().filter(func(u):return u.id==ui.shop_uid)[0]
 		pages.party_view.workspace.owned_comparison(detail,footer_body,member,sale.selected(),cancel_owned_comparison)
@@ -181,7 +181,7 @@ func render_transaction(middle):
 			if comparison_view==null:comparison_view=preload("res://shop_comparison.gd").new(self)
 			comparison_view.render_inline(detail,footer,pages.gear_id,ui.shop_uid)
 	else:l(detail,"商品またはインベントリのアイテムを選択")
-	var finish=b(footer,"取引終了",finish_trading,busy());finish.name="ShopExit";Tokens.apply_button_size(finish,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD);finish.size_flags_horizontal=Control.SIZE_SHRINK_END
+	var finish=b(footer,"取引終了",finish_trading,busy(),"md");finish.name="ShopExit";finish.size_flags_horizontal=Control.SIZE_SHRINK_END
 func render_catalog(stock):
 	preload("res://item_drag.gd").target(stock,can_drop_sale,drop_sale)
 	l(stock,"商品リスト").name="ShopCatalogHeading";product_filter(stock)
@@ -322,11 +322,10 @@ func render_consumable_selection(parent: Control,actions: Control):
 	var held=int(c().characters[uid].inventory.get(item.id,0))
 	var owned=l(parent,"")
 	owned.name="ShopRecipientStock"
-	var buy=b(actions,"購入へ",confirm_purchase.bind(str(item.id),uid),true)
+	var buy=b(actions,"購入へ",confirm_purchase.bind(str(item.id),uid),true,"md")
 	buy.theme_type_variation=&"ActionButton"
 	buy.name="ProductBuy_"+str(item.id)+"_1"
 	buy.size_flags_horizontal=Control.SIZE_SHRINK_END
-	Tokens.apply_button_size(buy,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
 	var update=func():
 		owned.text="%sの所持数　%d → %d個" % [ui.member_name(uid),held,held+purchase_quantity]
 		display_payment(actions.get_parent().find_child("ShopComparisonPayment",true,false),buy,consumable_payment(item,uid))

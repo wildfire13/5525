@@ -126,3 +126,29 @@ static func apply_button_size(
 	button.custom_minimum_size.y = height
 	if shrink_v:
 		button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+
+static func apply_button_preset(
+	button: Control,
+	preset: String,
+	shrink_v: bool = true
+) -> void:
+	match preset:
+		"sm":
+			apply_button_size(button, BUTTON_MD, shrink_v, BUTTON_W_SM)
+		"md":
+			apply_button_size(button, BUTTON_MD, shrink_v, BUTTON_W_MD)
+		"lg":
+			apply_button_size(button, BUTTON_LG, shrink_v, BUTTON_W_LG)
+		"md_lg":
+			apply_button_size(button, BUTTON_LG, shrink_v, BUTTON_W_MD)
+		"sm_lg":
+			apply_button_size(button, BUTTON_LG, shrink_v, BUTTON_W_SM)
+		"sm_compact":
+			apply_button_size(button, BUTTON_SM, shrink_v, BUTTON_W_SM)
+		"lg_md":
+			apply_button_size(button, BUTTON_MD, shrink_v, BUTTON_W_LG)
+		"":
+			return
+		_:
+			push_warning("Unknown button preset: " + preset)

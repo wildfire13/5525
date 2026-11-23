@@ -1,3 +1,22 @@
+## UI設計統一・Godot 4.7.2移行・回帰全緑化（2026-11-23）
+
+- 作業ブランチは `feat/261122-ui-labels`（先行ローカルコミット `b1464c2` ＋ 本Phase A–Dローカルコミット）。ローカル保存のみで、リモートへのpushおよび `main` マージは未実施。
+- **主な成果（Phase A–D）**:
+  - `godot/ui_tokens.gd` に色・5段階文字サイズ・余白・角丸・ボタンサイズ（`BUTTON_W_*` / `apply_button_preset()`）を集約し、`ui.button()` / `ui.local_button()` / `ui.action_button()` に任意 `preset` 引数を追加して全画面で統一。
+  - 44px深緑ウィンドウバーと最適化したモーダル枠（詳細6×8・確認4×6）、薄紙基調のホバー／ドラッグ表示、全面3D表示の戦場・配置画面と下部フッター（ターン順／配置案内・操作）、対称レイアウトと職業フィルターを備えた敵配置パネル、1領域4タブのキャラクター表示、共通ヘッダー実装の統合、および `UIラベル表示` の初期OFF化を反映。
+  - 街・施設・移動など追加7画面（町ハブ・宿・ギルド・倉庫・店舗入口・マップ・依頼掲示板）の視認性と余白を実画面で調整。
+  - Godot **4.7.2-stable (`4.7.2.stable.official.ed1daf0bf`)** への移行と描画・物理・起動最適化（`godot/launch.ps1`・Dummy物理・リーク解消）を実施。
+  - 共通オーバーレイメニューを `godot/game_menu.gd`、戦闘装備・所持品モーダルを `godot/battle_loadout_modal.gd` へ分離（各 `.uid` 生成済み）し、`.gitattributes` に改行コード規約（LF/CRLF）と `CODING_RULES.md` にプリセット規約を追加。
+- **検証済みスイート（Godot 4.7.2-stable、警告・エラー・リーク0件）**:
+  - FHD UI回帰 `run_mock_ui_regression.py`：**24/24 PASS**（`errors: []`）
+  - native検査 `native/check.py`：**64/64 PASS**
+  - GUI／個別回帰：`ui_label_inspector.gd` **3167/3167**、`button_palette_regression.gd` **173/173**、`deployment_drag_regression.gd` **147/147**、`window_grid_regression.gd` **105/105**、`additional_feedback.gd` **79/79**、`results_regression.gd` **75/75**
+  - UID検査 `.github/scripts/check_godot_uids.py`：**PASS**、`Start-5525.cmd -Check`：**PASS**（Godot 4.7.2-stable起動確認済み；本ブランチ直下のgit無視 `.env` に `GODOT_BIN` を配置）
+- **保留・次工程**:
+  - ③ 野営画面の再設計（ユーザー仕様案待ち）。
+  - ユーザーによる `Start-5525.cmd` 実プレイ確認。
+  - リモートpush・PR作成・`main` マージ、および `main` 統合後の外部共有 `.env`（`GODOT_BIN`）切替。
+
 ## 全場面のヘッダー・フッター（2026-11-23）
 
 画面の上端と下端をそれぞれ全幅1段ずつ予約する。本文と画面固有の操作は中央8段に収める。背景画と操作対象に追従する表示は従来の扱い。空白を自動命名する処理は削除した。[FHDでの比較と検査結果](../../QA/現行版用/results/261123-reserved-rows/RESULTS.md)

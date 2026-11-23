@@ -196,6 +196,10 @@ func run():
 	root.size=Vector2i(1920,1080)
 	game=load("res://main.tscn").instantiate()
 	root.add_child(game)
+	check(not game.ui_labels.enabled and not game.ui_labels.overlays[root].visible and not game.ui_labels.is_processing(),"UI labels default to OFF on startup")
+	game.ui_labels.set_enabled(true)
+	var startup_toggle=game.find_child("UiLabelSwitch",true,false)
+	if startup_toggle is CheckButton:startup_toggle.set_pressed_no_signal(true)
 	if game.data.is_empty():
 		game.ui_labels.refresh()
 		check(game.ui_labels.overlays[root].captions.size()==1 and game.ui_labels.overlays[root].captions[0][0]=="場面：起動","startup identifies the scene before campaign data arrives")

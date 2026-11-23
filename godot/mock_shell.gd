@@ -112,15 +112,53 @@ func toggle_journey_quest():
 		return
 	ui.navigate("map" if ui.page=="board" else "board")
 
-func navigation(parent):
-	var panel=PanelContainer.new();panel.name="CampaignHeader";panel.custom_minimum_size.y=grid_cell().y;panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
-	var bar=ui.row(panel);bar.name="CampaignHeaderContent";bar.custom_minimum_size.y=Tokens.BUTTON_MD;bar.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+func add_header_menu_button(parent: Node,button_name: String="") -> Button:
+	var menu_btn=ui.local_button(parent,"メニュー",ui.open_menu)
+	if not button_name.is_empty():menu_btn.name=button_name
+	Tokens.apply_button_size(menu_btn,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
+	ui.memory.key(menu_btn,"game_menu")
+	return menu_btn
+
+func build_header_panel(parent: Node,panel_name: String,content_name: String,elapsed_name: String,title_text: String,title_name: String="") -> Dictionary:
+	var panel=PanelContainer.new()
+	panel.name=panel_name
+	panel.mouse_filter=Control.MOUSE_FILTER_STOP
+	panel.custom_minimum_size.y=maxf(float(Tokens.BUTTON_MD),grid_cell().y)
+	panel.add_theme_stylebox_override("panel",surface_style())
+	parent.add_child(panel)
+	var bar=ui.row(panel)
+	bar.name=content_name
+	bar.custom_minimum_size.y=Tokens.BUTTON_MD
+	bar.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+	bar.add_theme_constant_override("separation",Tokens.SPACE_MD)
 	var elapsed=Label.new()
-	elapsed.name="CampaignElapsedTime"
+	elapsed.name=elapsed_name
+	elapsed.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
 	elapsed.text=elapsed_time_text()
 	bar.add_child(elapsed)
-	var place=ui.label_(bar,ui.header.text,true)
-	place.name="HeaderLocation";place.size_flags_horizontal=Control.SIZE_FILL;place.custom_minimum_size.x=160
+	var title=ui.label_(bar,title_text,true)
+	if not title_name.is_empty():title.name=title_name
+	title.size_flags_horizontal=Control.SIZE_FILL
+	title.custom_minimum_size.x=160
+	title.autowrap_mode=TextServer.AUTOWRAP_OFF
+	title.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+	title.clip_text=true
+	title.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+	return {"panel":panel,"bar":bar,"elapsed":elapsed,"title":title}
+
+func refresh_header_panel(panel: PanelContainer,elapsed: Label,title: Label,available: Vector2,active: bool):
+	panel.add_theme_stylebox_override("panel",surface_style())
+	panel.custom_minimum_size.y=Grid.cell_rect(available,0,0,10,1).size.y if active else float(Tokens.BUTTON_MD)
+	elapsed.text=elapsed_time_text()
+	title.add_theme_font_size_override("font_size",Tokens.FONT_DISPLAY if available.x>=1800 else Tokens.FONT_HEADING)
+	for caption in [elapsed,title]:
+		caption.remove_theme_color_override("font_color")
+		caption.remove_theme_color_override("font_outline_color")
+		caption.remove_theme_constant_override("outline_size")
+
+func navigation(parent):
+	var parts=build_header_panel(parent,"CampaignHeader","CampaignHeaderContent","CampaignElapsedTime",ui.header.text,"HeaderLocation")
+	var bar: HBoxContainer=parts.bar
 	var town=ui.campaign().get("phase")=="town"
 	var facility=ui.pages.facility_entry
 	var links=[]
@@ -139,11 +177,9 @@ func navigation(parent):
 		var nav=ui.button(bar,link[1],link[2],blocked)
 		nav.name="Header_"+str(link[0]);Tokens.apply_button_size(nav,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
 		ui.mark_selected(nav,ui.page==link[0] or facility.supported(ui.page))
-	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bar.add_child(spacer)
+	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;spacer.mouse_filter=Control.MOUSE_FILTER_IGNORE;bar.add_child(spacer)
 	ui.icons.line(ui,bar,"money",str(int(ui.campaign().get("gold",0)))+" G").name="HeaderGold"
-	var menu_btn=ui.local_button(bar,"メニュー",ui.open_menu)
-	Tokens.apply_button_size(menu_btn,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
-	ui.memory.key(menu_btn,"game_menu")
+	add_header_menu_button(bar)
 func elapsed_time_text() -> String:
 	return "経過時間：%d時間" % int(ui.campaign().get("worldTime",0))
 func needs_roster() -> bool:

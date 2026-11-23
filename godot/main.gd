@@ -60,6 +60,7 @@ var dialog
 var status_override := ""
 var modal_escape_frame := -1
 var ui_size_mode := "standard"
+var game_menu
 var menu: PanelContainer
 var menu_overlay: Control
 var preview_pending := false
@@ -70,7 +71,6 @@ var focus_hint := ""
 var swallow_mouse_release := false
 var skip_capture_once := false
 var tracked_windows: Array[Window]=[]
-var _last_menu_size := Vector2.ZERO
 const Tokens=preload("res://ui_tokens.gd")
 const ScreenGrid=preload("res://screen_grid.gd")
 const BG=Tokens.BACKDROP_DARK
@@ -119,81 +119,25 @@ func _ready():
 	base=VBoxContainer.new();base.hide();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base.add_theme_constant_override("separation",Tokens.SPACE_SM)
 	base.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	top=PanelContainer.new();top.name="BattleHeader";top.mouse_filter=Control.MOUSE_FILTER_STOP;top.custom_minimum_size.y=Tokens.BUTTON_MD
-	top.add_theme_stylebox_override("panel",Tokens.surface_box())
-	base.add_child(top)
-	top_bar=HBoxContainer.new();top_bar.name="BattleHeaderContent";top_bar.custom_minimum_size.y=Tokens.BUTTON_MD;top_bar.size_flags_vertical=Control.SIZE_SHRINK_CENTER;top_bar.add_theme_constant_override("separation",Tokens.SPACE_MD);top.add_child(top_bar)
-	battle_elapsed=Label.new();battle_elapsed.name="BattleElapsedTime";battle_elapsed.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;top_bar.add_child(battle_elapsed)
-	header=Label.new();header.size_flags_horizontal=Control.SIZE_FILL;header.custom_minimum_size.x=160;header.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
-	header.add_theme_font_override("font",heading_font)
-	top_bar.add_child(header)
+	var header_parts=mock_shell.build_header_panel(base,"BattleHeader","BattleHeaderContent","BattleElapsedTime","")
+	top=header_parts.panel
+	top_bar=header_parts.bar
+	battle_elapsed=header_parts.elapsed
+	header=header_parts.title
 
 	var menu_region=Control.new();menu_region.name="BattleMenuRegion";menu_region.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(menu_region)
 	menu_region.hide();menu_region.anchor_left=0.9;menu_region.anchor_right=1.0
-	var menu_button=local_button(menu_region,"メニュー",open_menu);menu_button.name="CommonMenuButton"
-	Tokens.apply_button_size(menu_button,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
-	memory.key(menu_button,"game_menu")
+	var menu_button=mock_shell.add_header_menu_button(menu_region,"CommonMenuButton")
 	menu_button.z_index=61
 	menu_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);menu_button.offset_left=-Tokens.BUTTON_W_SM-12;menu_button.offset_top=-64;menu_button.offset_right=-12;menu_button.offset_bottom=-8
 	audio=preload("res://audio.gd").new();add_child(audio)
 	save_notice=preload("res://save_notice.gd").new();save_notice.name="SaveNotice";add_child(save_notice)
 	debug_view=preload("res://debug_window.gd").new();debug_view.configure(self);add_child(debug_view)
-	# Facility controls use top_level for grid placement. A separate canvas puts
-	# the open menu first for pointer input as well as drawing.
-	var menu_layer=CanvasLayer.new()
-	add_child(menu_layer)
-	menu_overlay=Control.new();menu_overlay.name="CommonMenuOverlay";menu_layer.add_child(menu_overlay)
-	menu_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);menu_overlay.hide()
-	menu=PanelContainer.new();menu.name="CommonMenu";menu_overlay.add_child(menu);menu.hide()
-	var menu_style=mock_shell.style()
-	menu_style.set_content_margin_all(0);menu.add_theme_stylebox_override("panel",menu_style)
-	menu.visibility_changed.connect(func():
-		if not menu.visible:menu_overlay.hide();menu_button.grab_focus())
-	menu_overlay.gui_input.connect(func(event):
-		if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT:menu.hide();menu_overlay.accept_event())
-	var menu_grid=preload("res://window_grid.gd").new();menu.add_child(menu_grid)
-	var menu_scroll=ScrollContainer.new();menu_scroll.name="CommonMenuScroll";menu_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;menu_scroll.follow_focus=true;menu_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;menu_grid.add_child(menu_scroll)
-	var menu_body=VBoxContainer.new();menu_body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;menu_scroll.add_child(menu_body)
-	for item in [["セーブ",save_game],["ロード",load_dialog],["行動ログ",show_action_log]]:
-		var callback: Callable=item[1]
-		button(menu_body,item[0],func():menu.hide();callback.call())
-	var withdraw=local_button(menu_body,"護送を断念して撤退",func():
-		menu.hide()
-		confirm("水門の鐘の護送を断念しますか？　報酬はなく、受注前の状態に戻ります。",act.bind("retreat",[])))
-	withdraw.name="WithdrawSluice"
-	withdraw.hide()
-	menu.visibility_changed.connect(func():
-		var job=campaign().get("activeQuest")
-		withdraw.visible=menu.visible and job is Dictionary and job.get("id")=="sluice-bell" and campaign().get("phase")=="battle" and not state().get("result"))
-	local_button(menu_body,"直近のリザルト",func():menu.hide();results_view.reopen()).name="ReopenResults"
 	ui_labels=preload("res://ui_label_inspector.gd").new()
 	add_child(ui_labels)
 	ui_labels.setup(self)
-	var label_switch=CheckButton.new()
-	label_switch.name="UiLabelSwitch"
-	label_switch.text="UIラベル表示"
-	Tokens.apply_button_size(label_switch,Tokens.BUTTON_MD)
-	label_switch.button_pressed=ui_labels.enabled
-	label_switch.toggled.connect(ui_labels.set_enabled)
-	menu_body.add_child(label_switch)
-	local_button(menu_body,"操作説明",func():menu.hide();show_help())
-	local_button(menu_body,"全画面 F11",func():menu.hide();fullscreen())
-	var audio_settings=VBoxContainer.new();audio_settings.name="AudioSettings";menu_grid.add_child(audio_settings)
-	for pair in [["bgm","BGM"],["voice","ボイス"],["se","SE"]]:
-		var kind=str(pair[0]);var caption=str(pair[1]);var controls=VBoxContainer.new();audio_settings.add_child(controls)
-		var category=Label.new();category.text=caption+"音量";controls.add_child(category)
-		var volume_row=HBoxContainer.new();controls.add_child(volume_row)
-		var slider=HSlider.new();slider.name="AudioVolume_"+kind;slider.min_value=0;slider.max_value=100;slider.step=10;slider.custom_minimum_size=Vector2(220,32);slider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;volume_row.add_child(slider)
-		var value_label=Label.new();value_label.name="AudioVolumeValue_"+kind;value_label.custom_minimum_size.x=90;value_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;volume_row.add_child(value_label)
-		var refresh_audio=func():
-			var level=audio.effective_volume(kind)
-			slider.set_value_no_signal(level);value_label.text="%d%%" % level+(" 無音" if level==0 else "")
-		refresh_audio.call();audio.settings_changed.connect(refresh_audio)
-		slider.value_changed.connect(func(value):audio.set_sound_level(kind,value);sync_audio())
-	if debug_view.is_enabled():local_button(menu_body,"開発情報（別ウィンドウ）",func():menu.hide();debug_view.open()).name="OpenDeveloperWindow"
-	button(menu_body,"新しい旅",func():menu.hide();confirm("未保存の進行を終了し、新しい旅を始めます。保存済みファイルは変更しません。",new_game))
-	local_button(menu_body,"ゲームを終了する",func():menu.hide();close_game()).name="QuitGame"
-	local_button(menu_body,"閉じる",menu.hide)
+	game_menu=preload("res://game_menu.gd").new(self)
+	game_menu.build(menu_button)
 	content=VBoxContainer.new();content.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.size_flags_vertical=Control.SIZE_EXPAND_FILL;base.add_child(content)
 	footer=Label.new();footer.name="StatusFooter";footer.custom_minimum_size.y=24;footer.clip_text=true;footer.max_lines_visible=1;footer.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;base.add_child(footer)
 	footer.focus_mode=Control.FOCUS_ALL;footer.mouse_filter=Control.MOUSE_FILTER_STOP;footer.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND;memory.key(footer,"status_footer")
@@ -228,10 +172,13 @@ func emphasize_low_hp(label: Label,unit: Dictionary):
 		label.add_theme_font_override("font",low_hp_font)
 func row(parent: Node) -> HBoxContainer:
 	var r=HBoxContainer.new();r.add_theme_constant_override("separation",Tokens.SPACE_SM);parent.add_child(r);return r
-func button(parent: Node,text: String,fn: Callable,disabled:=false) -> Button:
+func button(parent: Node,text: String,fn: Callable,disabled:=false,preset: String="") -> Button:
 	var b=Button.new();b.text=text
-	var height=Tokens.BUTTON_LG if view_kind=="battle" and size.x>=1800 and size.y>=1000 else Tokens.BUTTON_MD
-	Tokens.apply_button_size(b,height)
+	if not preset.is_empty():
+		Tokens.apply_button_preset(b,preset)
+	else:
+		var height=Tokens.BUTTON_LG if view_kind=="battle" and size.x>=1800 and size.y>=1000 else Tokens.BUTTON_MD
+		Tokens.apply_button_size(b,height)
 	b.set_meta("base_disabled",disabled);b.disabled=disabled or locked or presenting or (engine!=null and engine.disconnected)
 	parent.add_child(b);widgets.append(b)
 	b.pressed.connect(func():
@@ -613,15 +560,8 @@ func render():
 		parked_board.queue_free()
 		parked_board=null
 	top.visible=battle or engine.disconnected
-	top.add_theme_stylebox_override("panel",mock_shell.surface_style())
-	battle_elapsed.text=mock_shell.elapsed_time_text()
-	header.add_theme_font_size_override("font_size",Tokens.FONT_DISPLAY if available.x>=1800 else Tokens.FONT_HEADING)
-	for caption in [battle_elapsed,header]:
-		caption.remove_theme_color_override("font_color")
-		caption.remove_theme_color_override("font_outline_color")
-		caption.remove_theme_constant_override("outline_size")
+	mock_shell.refresh_header_panel(top,battle_elapsed,header,available,battle)
 	pages.facility_art.render_background(backdrop_layer,self,battle)
-	top.custom_minimum_size.y=ScreenGrid.cell_rect(available,0,0,10,1).size.y if battle else Tokens.BUTTON_MD
 	var common_menu=find_child("CommonMenuButton",true,false)
 	if common_menu!=null:
 		var menu_region=common_menu.get_parent()
@@ -966,8 +906,7 @@ func portrait_dialog():
 			button(r,"位置・ズーム",func():d.queue_free();pages.party_view.workspace.open_portrait(u),not active_member(str(u.id)))
 		button(r,"元に戻す",func():reset_portrait(str(u.id));d.queue_free(),not active_member(str(u.id)) or not portraits.metadata.get("characters",{}).has(u.id))
 	if reserves_visible():label_(body,"控えの画像を変更するには、先に編成へ加えてください。")
-	var close_btn=local_button(actions,"閉じる",d.queue_free)
-	Tokens.apply_button_size(close_btn,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
+	local_button(actions,"閉じる",d.queue_free,"sm")
 	d.close_requested.connect(d.queue_free);preferences.place_detail_frame(d);d.popup()
 func import_portrait(path: String,uid: String):
 	if not active_member(uid):return
@@ -985,15 +924,18 @@ func can_commit() -> bool:
 	if state().is_empty() or state().get("deploying",false) or state().get("result")!=null:return false
 	if hud.acting().get("side")!="ally":return false
 	return command=="action_defend" or (pending!=null and preview_ready and not preview.is_empty())
-func local_button(parent: Node,text: String,callback: Callable) -> Button:
-	var control=button(parent,text,callback);control.set_meta("read_only",true);control.disabled=false;return control
-func action_button(control: Button) -> Button:
+func local_button(parent: Node,text: String,callback: Callable,preset: String="") -> Button:
+	var control=button(parent,text,callback,false,preset);control.set_meta("read_only",true);control.disabled=false;return control
+func action_button(control: Button,preset: String="") -> Button:
 	control.theme_type_variation=&"ActionButton"
-	Tokens.apply_button_size(control,Tokens.BUTTON_MD)
+	if not preset.is_empty():
+		Tokens.apply_button_preset(control,preset)
+	else:
+		Tokens.apply_button_size(control,Tokens.BUTTON_MD)
 	return control
-func primary(control: Button) -> Button:
+func primary(control: Button,preset: String="") -> Button:
 	control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	return action_button(control)
+	return action_button(control,preset)
 func mark_selected(control: Button,selected: bool):
 	control.set_meta("selected",selected)
 	control.theme_type_variation=&"SelectedButton" if selected else &""
@@ -1001,18 +943,11 @@ func short_name(control: Label,full: String):
 	control.max_lines_visible=2;control.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;control.tooltip_text=full
 	control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 func open_menu():
-	var result_button=find_child("ReopenResults",true,false)
-	if result_button!=null:
-		result_button.disabled=results_view.recent.is_empty() or campaign().get("phase") in ["battle","deployment"] or data.get("trial")!=null;result_button.set_meta("base_disabled",result_button.disabled);result_button.tooltip_text="戦闘外で、直近に確認した結果を表示できます" if result_button.disabled else "報酬を再付与せず、直近の結果を見返します"
-	if menu.visible:menu.hide();return
-	menu_overlay.show();menu.show();fit_menu()
-	var controls=menu_focus_controls()
-	if not controls.is_empty():controls[0].grab_focus()
+	game_menu.open()
 func menu_focus_controls() -> Array:
-	return menu.find_children("*","Control",true,false).filter(func(control):return control.focus_mode==Control.FOCUS_ALL and control.is_visible_in_tree() and (not control is BaseButton or not control.disabled))
+	return game_menu.focus_controls()
 func fit_menu():
-	_last_menu_size=size
-	ScreenGrid.place(menu,ScreenGrid.cell_rect(size,3,1,3,8))
+	game_menu.fit()
 func file_dialog_open() -> bool:
 	# Native dialogs live outside the scene and do not set Window.visible.
 	for child in tracked_windows:
@@ -1033,7 +968,7 @@ func refresh_layout():
 	if not closing:
 		render()
 func _process(_delta):
-	if menu.visible and _last_menu_size!=size:fit_menu()
+	if game_menu!=null:game_menu.sync_size()
 	if not tracked_windows.is_empty():
 		var stale:=false
 		for child in tracked_windows:

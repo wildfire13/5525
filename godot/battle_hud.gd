@@ -55,6 +55,7 @@ var deployment_instructions: Label
 var deployment_actions: HBoxContainer
 var deployment_layout := false
 var deployment_workspace=preload("res://deployment_workspace.gd").new()
+var loadout_modal
 var left_info: VBoxContainer
 var person_box: VBoxContainer
 var inspected_uid := ""
@@ -79,7 +80,9 @@ func target_panel_rect() -> Rect2:return panel_rect(true)
 func set_panel_columns(count: int):
 	for panel in [left_panel,right_panel]:panel.grid_columns=count
 	ui.preferences.config.set_value("battle","panel_columns",count)
-func _init(frontend):ui=frontend
+func _init(frontend):
+	ui=frontend
+	loadout_modal=preload("res://battle_loadout_modal.gd").new(ui)
 func l(parent,text,large:=false):
 	var label=ui.label_(parent,str(text),large)
 	if large:label.add_theme_color_override("font_color",Tokens.INK)
@@ -278,7 +281,7 @@ func build_panels(s,phase,a,deploying):
 	render_queue()
 	tools.visible=not deploying;tools.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	if ui.data.get("trial") is Dictionary:
-		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.name="EndTrial";Tokens.apply_button_size(end,Tokens.BUTTON_LG,true,Tokens.BUTTON_W_MD)
+		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.name="EndTrial";Tokens.apply_button_preset(end,"md_lg")
 
 	tools.tooltip_text=preload("res://battle_board.gd").CAMERA_HINT
 	left_panel.visible=deploying or (a.get("side")=="ally" and not s.get("deploying",false) and s.get("result")==null) or ui.engine.disconnected
@@ -380,8 +383,8 @@ func render_queue():
 		ui.portrait(badge,u,true,32 if ui.ui_size_mode=="standard" else 24).mouse_filter=Control.MOUSE_FILTER_IGNORE
 		var label=l(row,("● " if index==0 else "")+str(u.name));label.mouse_filter=Control.MOUSE_FILTER_IGNORE;label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size=Vector2(132,24);label.clip_text=true;label.max_lines_visible=1;label.tooltip_text=str(u.name)
 	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;spacer.mouse_filter=Control.MOUSE_FILTER_IGNORE;line.add_child(spacer)
-	var all_=local(line,"順番詳細",open_order_details);all_.name="BattleOrderDetails";Tokens.apply_button_size(all_,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
-	var history=local(line,"戦闘履歴",open_history);history.name="BattleHistory";history.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;Tokens.apply_button_size(history,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
+	var all_=local(line,"順番詳細",open_order_details);all_.name="BattleOrderDetails";Tokens.apply_button_preset(all_,"md")
+	var history=local(line,"戦闘履歴",open_history);history.name="BattleHistory";history.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;Tokens.apply_button_preset(history,"md")
 	if presenting and str(ui.data.presentation.get("action_id",""))==shifted_action:queue_scroll.set_deferred("scroll_horizontal",queue_distance)
 func queue_viewport_width() -> float:
 	# Keep all five cards, with the details/history actions right-aligned outside their scrolling area.
@@ -718,15 +721,14 @@ func render_deployment():
 	ui.battle_actions=deployment_actions
 	var reset_btn=b(deployment_actions,"配置リセット",reset_deployment)
 	reset_btn.name="DeploymentReset"
-	Tokens.apply_button_size(reset_btn,Tokens.BUTTON_LG,true,Tokens.BUTTON_W_MD)
+	Tokens.apply_button_preset(reset_btn,"md_lg")
 	var job=ui.campaign().get("activeQuest")
 	if not (job is Dictionary and job.get("id")=="sluice-bell"):
 		var retreat_btn=b(deployment_actions,"撤退",func():ui.confirm("戦闘から撤退しますか？",ui.act.bind("retreat",[])))
 		retreat_btn.name="DeploymentRetreat"
-		Tokens.apply_button_size(retreat_btn,Tokens.BUTTON_LG,true,Tokens.BUTTON_W_SM)
-	var begin_btn=ui.action_button(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true)))
+		Tokens.apply_button_preset(retreat_btn,"sm_lg")
+	var begin_btn=ui.action_button(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true)),"lg")
 	begin_btn.name="DeploymentBegin"
-	Tokens.apply_button_size(begin_btn,Tokens.BUTTON_LG,true,Tokens.BUTTON_W_LG)
 func deployment_changed() -> bool:
 	for initial in ui.state().get("deploymentInitial",[]):
 		if unit(initial.id).get("pos")!=initial.pos:return true
@@ -738,103 +740,11 @@ func render_result():
 	l(target_box,"木人の結果" if ui.data.get("trial") is Dictionary else "戦闘結果",true);l(target_box,str(ui.state().result))
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";var finish=ui.action_button(b(ui.battle_actions,"戦闘を終えて街道へ",ui.act.bind("finishBattle",[]),ui.data.get("trial")!=null));Tokens.apply_button_size(finish,Tokens.BUTTON_MD,false)
 func open_equipment_sheet(uid: String):
-	if ui.modal_open() or not live_board():return
-	var origin=ui.board
-	while ui.engine.busy:
-		await ui.get_tree().process_frame
-		if ui.modal_open() or not live_board() or ui.board!=origin:return
-	var reply=await ui.engine.request({"op":"battle_equipment"})
-	if not reply.get("ok",false) or not live_board() or ui.board!=origin or ui.modal_open():return
-	for sheet in reply.get("members",[]):
-		if sheet.id!=uid:continue
-		var member=unit(uid).merged(sheet,true)
-		clear_inspection()
-		var side="味方" if member.side=="ally" else "敵"
-		ui.dialog.open(side+"の装備・所持品 / "+str(member.name),func(body,actions):
-			draw_loadout(body,member,"equipment")
-			local(actions,"閉じる",ui.dialog.close).name="CloseBattleEquipment")
-		return
+	await loadout_modal.open(uid)
+func open_loadout(uid: String):
+	await loadout_modal.open(uid)
 func draw_loadout(body,member: Dictionary,tab: String):
-	ui.clear(body)
-	var window=body.get_window()
-	var old=window.get_node_or_null("BattleLoadoutColumn")
-	if old!=null:
-		window.remove_child(old.stage);old.stage.queue_free()
-		window.remove_child(old);old.queue_free()
-	var layout=preload("res://window_grid.gd")
-	var grid=preload("res://screen_grid.gd")
-	var heading=window.find_child("ModalHeading",true,false)
-	layout.set_heading_alignment(heading,HORIZONTAL_ALIGNMENT_LEFT)
-	var host_scroll=body.get_parent()
-	if host_scroll is ScrollContainer:
-		host_scroll.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
-	var line=ui.mock_shell.columns(body)
-	line.add_theme_constant_override("separation",0)
-	var spacer=Control.new();line.add_child(spacer)
-	var column=preload("res://member_loadout_column.gd").new()
-	column.name="BattleLoadoutColumn";window.add_child(column)
-	column.build(ui,member,tab,func(next):draw_loadout(body,member,next),"BattleLoadoutTab_")
-	var stage=column.stage
-	stage.reparent(window,false)
-	column.stage.clip_contents=true
-	var detail=ui.scroller(line)
-	var detail_scroll: ScrollContainer=detail.get_parent()
-	var detail_pad=StyleBoxEmpty.new()
-	detail_pad.content_margin_left=Tokens.SPACE_MD;detail_pad.content_margin_right=Tokens.SPACE_MD
-	detail_pad.content_margin_top=Tokens.SPACE_SM;detail_pad.content_margin_bottom=Tokens.SPACE_SM
-	detail_scroll.add_theme_stylebox_override("panel",detail_pad)
-	var art=Control.new();column.stage.add_child(art)
-	column.portrait.reparent(art,false)
-	var fit=func():
-		var view=Vector2(ui.get_tree().root.size)
-		var tab_rect=layout.local_rect(view,2,2,2,1)
-		var stage_rect=layout.local_rect(view,2,3,2,5)
-		spacer.custom_minimum_size.x=stage_rect.size.x
-		var tabs: MarginContainer=column.get_node("LoadoutTabBar")
-		tabs.add_theme_constant_override("margin_left",Tokens.SPACE_SM)
-		tabs.add_theme_constant_override("margin_right",Tokens.SPACE_SM)
-		tabs.custom_minimum_size.y=tab_rect.size.y
-		tabs.get_child(0).custom_minimum_size.y=tab_rect.size.y
-		column.panel.get_child(0).get_child(0).custom_minimum_size.y=0
-		column.panel.custom_minimum_size.y=stage_rect.size.y
-		detail_scroll.custom_minimum_size.y=layout.local_rect(view,4,2,4,6).size.y
-		column.custom_minimum_size=Vector2(stage_rect.size.x,tab_rect.size.y+stage_rect.size.y)
-		grid.place(column,Rect2(tab_rect.position,column.custom_minimum_size))
-		stage.custom_minimum_size=Vector2.ZERO
-		grid.place(stage,stage_rect)
-		var scale_factor=minf(stage_rect.size.x/column.ART_SIZE.x,stage_rect.size.y/column.ART_SIZE.y)
-		art.scale=Vector2.ONE*scale_factor
-		art.position.x=(stage_rect.size.x-column.ART_SIZE.x*scale_factor)/2.0
-	window.size_changed.connect(fit)
-	column.tree_exiting.connect(func():window.size_changed.disconnect(fit))
-	fit.call()
-	if tab=="equipment":
-		column.equipment(ui,member,"","BattleSlot_",func(_item):pass)
-		for slot in member.get("equipmentSlots",[]):
-			var button=column.stage.get_node_or_null("BattleSlot_"+str(slot.slot))
-			if button!=null:ui.memory.key(button,"equipment_"+str(slot.slot))
-		for child in column.stage.get_children():
-			if child!=art:child.reparent(art,false)
-		return
-	var inventory=ui.scroller(column.stage);inventory.name="BattleInventory"
-	inventory.get_parent().set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var entries=ui.campaign().get("inventoryByCharacter",{}).get(member.id,{}).get("entries",[])
-	var remaining=ui.state().get("itemInventories",{}).get(member.id,{})
-	if member.side=="enemy":
-		entries=[];remaining=member.get("inventory",{})
-		for item in ui.campaign().get("itemDefinitions",[]):
-			if remaining.get(item.id,0)>0:entries.append({"id":item.id,"kind":"item","name":item.name,"count":remaining[item.id],"definition":item})
-	for entry in entries:
-		var item=entry.duplicate();item.count=remaining.get(item.id,item.count)
-		if item.count<=0:continue
-		preload("res://member_inventory.gd").add_row(ui,inventory,item,func():
-			ui.clear(detail);detail_scroll.name="BattleItemDetail"
-			if item.kind=="equipment":ui.pages.describe_gear(detail,item.get("definition",item),true)
-			else:
-				l(detail,str(item.name),true);l(detail,"所持数 ×%d" % item.count)
-				var description=str(item.get("definition",{}).get("description",""))
-				if not description.is_empty():l(detail,description),false,false)
-	if inventory.get_child_count()==0:l(inventory,"所持品はありません。")
+	loadout_modal.draw(body,member,tab)
 
 func close_detail() -> bool:
 	if range_reference:close_reference();return true

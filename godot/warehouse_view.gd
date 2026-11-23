@@ -118,7 +118,8 @@ func render(parent: Control):
 	var panel=PanelContainer.new();panel.name="WarehouseSelectedPanel";panel.custom_minimum_size.x=440;panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(panel)
 	panel.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_NONE))
 	var details=VBoxContainer.new();details.name="WarehouseSelectedItem";details.add_theme_constant_override("separation",Tokens.SPACE_NONE);panel.add_child(details)
-	ui.label_(details,"選択アイテム").name="WarehouseHeading"
+	var selected_heading=ui.label_(details,"選択アイテム");selected_heading.name="WarehouseHeading"
+	var selected_heading_style=StyleBoxFlat.new();selected_heading_style.bg_color=Color.TRANSPARENT;selected_heading_style.border_color=Tokens.BORDER;selected_heading_style.border_width_bottom=Tokens.BORDER_WIDTH;selected_heading_style.set_content_margin_all(Tokens.SPACE_SM);selected_heading.add_theme_stylebox_override("normal",selected_heading_style)
 	var selected=equipped if source=="equipped" else selected_row();var q=quote(source,item_id)
 	if selected.is_empty():
 		var hint=ui.label_(details,"アイテムを選択すると詳細が表示されます")
@@ -127,21 +128,24 @@ func render(parent: Control):
 		hint.vertical_alignment=VERTICAL_ALIGNMENT_TOP
 	else:
 		var content=ui.scroller(details);content.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
+		var content_pad=StyleBoxEmpty.new();content_pad.content_margin_left=Tokens.SPACE_SM;content_pad.content_margin_right=Tokens.SPACE_SM;content_pad.content_margin_top=Tokens.SPACE_SM;content.get_parent().add_theme_stylebox_override("panel",content_pad)
 		if source=="equipped":pages.describe_gear(content,selected,true)
 		else:render_item_detail(content,selected)
 		if source!="equipped":ui.label_(content,"×%d" % int(selected.get("count",0)))
 		var reason_text=str(unequip_quote.get("reason","確認中…")) if source=="equipped" else str(q.get("reason",""))
 		var reason=ui.label_(details,error_message if not error_message.is_empty() else reason_text);reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",Tokens.FONT_XS)
+	var selected_divider=ColorRect.new();selected_divider.name="WarehouseSelectedFooterDivider";selected_divider.color=Tokens.BORDER;selected_divider.custom_minimum_size.y=Tokens.BORDER_WIDTH;selected_divider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;selected_divider.mouse_filter=Control.MOUSE_FILTER_IGNORE;details.add_child(selected_divider)
 	var controls=ui.row(details);controls.name="WarehouseControls";controls.alignment=BoxContainer.ALIGNMENT_END
 	controls.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	if source=="equipped":
-		var remove=ui.button(controls,"装備を外す",unequip,busy() or not unequip_quote.get("ok",false));remove.name="WarehouseUnequip";Tokens.apply_button_size(remove,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
+		var remove=ui.button(controls,"装備を外す",unequip,busy() or not unequip_quote.get("ok",false),"md");remove.name="WarehouseUnequip"
 		remove.theme_type_variation=&"ActionButton"
 	elif not selected.is_empty():
-		var move=ui.button(controls,"預ける" if source=="character" else "取り出す",request_transfer.bind(source,item_id),busy() or not q.get("ok",false));move.name="WarehouseTransfer";move.tooltip_text=str(q.get("reason",""));Tokens.apply_button_size(move,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
+		var move=ui.button(controls,"預ける" if source=="character" else "取り出す",request_transfer.bind(source,item_id),busy() or not q.get("ok",false),"md");move.name="WarehouseTransfer";move.tooltip_text=str(q.get("reason",""))
 		move.theme_type_variation=&"ActionButton"
-	var back=ui.button(controls,"戻る",pages.facility_entry.back,busy());back.name="WarehouseReturn";Tokens.apply_button_size(back,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
-	var ledger_back=ui.button(controls,"出庫台帳",func():clear_selection();ui.render(),busy());ledger_back.name="WarehouseLedgerReturn";Tokens.apply_button_size(ledger_back,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
+	var back=ui.button(controls,"戻る",pages.facility_entry.back,busy(),"sm");back.name="WarehouseReturn"
+	var ledger_back=ui.button(controls,"出庫台帳",func():clear_selection();ui.render(),busy(),"md");ledger_back.name="WarehouseLedgerReturn"
+	var controls_pad=Control.new();controls_pad.custom_minimum_size.x=Tokens.SPACE_SM;controls_pad.mouse_filter=Control.MOUSE_FILTER_IGNORE;controls.add_child(controls_pad)
 	split.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data,"warehouse"),func(_at,data):drop(data,"warehouse"))
 
 func owned_count(id: String) -> int:
@@ -154,24 +158,34 @@ func render_ledger(parent: Control,member: Dictionary):
 	panel.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_NONE))
 	ledger_panel=panel
 	var column=VBoxContainer.new();column.add_theme_constant_override("separation",Tokens.SPACE_NONE);panel.add_child(column)
-	ui.label_(column,"出庫台帳 — "+str(member.get("name",owner_id)))
-	var filter=Inventory.add_filter(ui,column,member,filters.warehouse,set_filter.bind("warehouse"))
+	var ledger_head_margin=MarginContainer.new()
+	for edge in ["left","right","top","bottom"]:ledger_head_margin.add_theme_constant_override("margin_"+edge,Tokens.SPACE_SM)
+	column.add_child(ledger_head_margin)
+	var ledger_head=VBoxContainer.new();ledger_head.add_theme_constant_override("separation",Tokens.SPACE_XS);ledger_head_margin.add_child(ledger_head)
+	ui.label_(ledger_head,"出庫台帳 — "+str(member.get("name",owner_id)))
+	var filter=Inventory.add_filter(ui,ledger_head,member,filters.warehouse,set_filter.bind("warehouse"))
 	filter.name="WarehouseFilter_warehouse";filter.disabled=busy()
+	var ledger_head_divider=ColorRect.new();ledger_head_divider.name="WarehouseLedgerHeaderDivider";ledger_head_divider.color=Tokens.BORDER;ledger_head_divider.custom_minimum_size.y=Tokens.BORDER_WIDTH;ledger_head_divider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ledger_head_divider.mouse_filter=Control.MOUSE_FILTER_IGNORE;column.add_child(ledger_head_divider)
 	var body=ui.scroller(column);body.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
+	var body_pad=StyleBoxEmpty.new();body_pad.content_margin_left=Tokens.SPACE_SM;body_pad.content_margin_right=Tokens.SPACE_SM;body_pad.content_margin_top=Tokens.SPACE_XS;body.get_parent().add_theme_stylebox_override("panel",body_pad)
 	ui.memory.watch(body.get_parent(),"warehouse_warehouse_"+owner_id)
 	var table=GridContainer.new();table.columns=4;table.size_flags_horizontal=Control.SIZE_EXPAND_FILL;table.add_theme_constant_override("h_separation",Tokens.SPACE_LG);table.add_theme_constant_override("v_separation",Tokens.SPACE_SM);body.add_child(table)
 	for title in ["品名","倉庫",str(member.name)+"所持","取り出す数"]:
 		var heading=ui.label_(table,title)
 		heading.custom_minimum_size.x=148 if title!="品名" else 220
-	var summary=ui.label_(column,"");summary.name="WarehouseBeforeAfter"
-	var reason=ui.label_(column,"");reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",Tokens.FONT_XS)
+	var ledger_footer_divider=ColorRect.new();ledger_footer_divider.name="WarehouseLedgerFooterDivider";ledger_footer_divider.color=Tokens.BORDER;ledger_footer_divider.custom_minimum_size.y=Tokens.BORDER_WIDTH;ledger_footer_divider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ledger_footer_divider.mouse_filter=Control.MOUSE_FILTER_IGNORE;column.add_child(ledger_footer_divider)
+	var summary_margin=MarginContainer.new();summary_margin.add_theme_constant_override("margin_left",Tokens.SPACE_SM);summary_margin.add_theme_constant_override("margin_right",Tokens.SPACE_SM);summary_margin.add_theme_constant_override("margin_top",Tokens.SPACE_XS);column.add_child(summary_margin)
+	var summary_box=VBoxContainer.new();summary_box.add_theme_constant_override("separation",Tokens.SPACE_NONE);summary_margin.add_child(summary_box)
+	var summary=ui.label_(summary_box,"");summary.name="WarehouseBeforeAfter"
+	var reason=ui.label_(summary_box,"");reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",Tokens.FONT_XS)
 	var controls=ui.row(column);controls.alignment=BoxContainer.ALIGNMENT_END
 	controls.name="WarehouseControls";controls.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	var recipient=owner_id;var epoch=pages.epoch;var token=str(pages.c().get("inventoryToken",""))
 	var withdraw=func():
 		if recipient==owner_id and epoch==pages.epoch and source=="warehouse":transfer("warehouse",item_id,quantity,token)
-	var confirm=ui.primary(ui.button(controls,"取り出す",withdraw,true));confirm.name="WarehouseTransfer";confirm.size_flags_horizontal=Control.SIZE_SHRINK_END;Tokens.apply_button_size(confirm,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
-	var back=ui.button(controls,"戻る",pages.facility_entry.back,busy());back.name="WarehouseReturn";Tokens.apply_button_size(back,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
+	var confirm=ui.primary(ui.button(controls,"取り出す",withdraw,true),"md");confirm.name="WarehouseTransfer";confirm.size_flags_horizontal=Control.SIZE_SHRINK_END
+	var back=ui.button(controls,"戻る",pages.facility_entry.back,busy(),"sm");back.name="WarehouseReturn"
+	var ledger_controls_pad=Control.new();ledger_controls_pad.custom_minimum_size.x=Tokens.SPACE_SM;ledger_controls_pad.mouse_filter=Control.MOUSE_FILTER_IGNORE;controls.add_child(ledger_controls_pad)
 	var update_footer=func():
 		var selected=selected_row() if source=="warehouse" else {}
 		var count=int(selected.get("count",0));var held=owned_count(item_id);var q=quote("warehouse",item_id)
@@ -229,7 +243,9 @@ func render_list(column: Control,side: String,member: Dictionary):
 		button.set_drag_forwarding(func(_at):return drag(side,id),func(_at,data):return can_drop(data,side),func(_at,data):drop(data,side))
 		ui.memory.key(button,"warehouse_item_"+side+"_"+id)
 	if body.get_child_count()==0:ui.label_(body,"アイテムはありません").add_theme_font_size_override("font_size",Tokens.FONT_SM)
-	if source!="character":ui.label_(column,"ここへドラッグして"+("預ける" if side=="warehouse" else "取り出す")).add_theme_font_size_override("font_size",Tokens.FONT_XS)
+	if source!="character":
+		var hint_margin=MarginContainer.new();hint_margin.add_theme_constant_override("margin_left",Tokens.SPACE_SM);hint_margin.add_theme_constant_override("margin_right",Tokens.SPACE_SM);hint_margin.add_theme_constant_override("margin_top",Tokens.SPACE_XS);hint_margin.add_theme_constant_override("margin_bottom",Tokens.SPACE_SM);column.add_child(hint_margin)
+		ui.label_(hint_margin,"ここへドラッグして"+("預ける" if side=="warehouse" else "取り出す")).add_theme_font_size_override("font_size",Tokens.FONT_XS)
 func request_transfer(side: String,id: String):
 	if busy() or not available():return
 	var entry={}

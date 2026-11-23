@@ -104,10 +104,10 @@ func _advance():
 func _finish():
 	choice_row.visible=true;advance_hint.text=""
 	if accept_callback.is_valid():
-		var accept=Button.new();accept.name="QuestStoryAccept";accept.text="引き受ける";Tokens.apply_button_size(accept,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD);accept.pressed.connect(func():var cb=accept_callback;_close();cb.call());choice_row.add_child(accept);ui.primary(accept);accept.grab_focus()
-		var decline=Button.new();decline.name="QuestStoryDecline";decline.text="今は引き受けない";Tokens.apply_button_size(decline,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD);decline.pressed.connect(_close);choice_row.add_child(decline)
+		var accept=Button.new();accept.name="QuestStoryAccept";accept.text="引き受ける";accept.pressed.connect(func():var cb=accept_callback;_close();cb.call());choice_row.add_child(accept);ui.primary(accept,"md");accept.grab_focus()
+		var decline=Button.new();decline.name="QuestStoryDecline";decline.text="今は引き受けない";Tokens.apply_button_preset(decline,"md");decline.pressed.connect(_close);choice_row.add_child(decline)
 	else:
-		var close=Button.new();close.name="QuestStoryClose";close.text="閉じる";Tokens.apply_button_size(close,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM);close.pressed.connect(_close);choice_row.add_child(close);close.grab_focus()
+		var close=Button.new();close.name="QuestStoryClose";close.text="閉じる";Tokens.apply_button_preset(close,"sm");close.pressed.connect(_close);choice_row.add_child(close);close.grab_focus()
 	_layout()
 func _close():
 	if _closed:return
