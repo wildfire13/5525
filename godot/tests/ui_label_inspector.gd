@@ -155,15 +155,15 @@ func capture(id: String, expected: Array, window: Window = null):
 			scopes[node]=Rect2()
 		var box=to_game*visible_rect
 		if window==root:
-			if key in ["CampaignHeader","BattleHeader","StatusFooter"]:
-				var row=9 if key=="StatusFooter" else 0
+			if key in ["CampaignHeader","BattleHeader","StatusFooter","BattleTurnFooter","DeploymentFooter"]:
+				var row=9 if key in ["StatusFooter","BattleTurnFooter","DeploymentFooter"] else 0
 				check(box==preload("res://screen_grid.gd").cell_rect(Vector2(root.size),0,row,10,1),id+" reserved row "+key)
-			elif key not in ["BattleMenuRegion","TownStill","FacilityStill","DialogueScreen","ResultBackground"] and not active[0].get("follows_target",false):
+			elif key not in ["BattleMenuRegion","BattleBoard","DeploymentInstructions","TownStill","FacilityStill","DialogueScreen","ResultBackground"] and not active[0].get("follows_target",false):
 				check(center.encloses(box),id+" body inside middle eight rows "+key+" "+str(box))
 		var aligned=box.position.is_equal_approx((box.position/cell).round()*cell) and box.end.is_equal_approx((box.end/cell).round()*cell)
 		check(aligned,id+" grid "+key+" "+str(box))
-		if not active[0].get("follows_target",false):
-			var label=active[0].label
+		if not active[0].get("follows_target",false) and key!="ResultMembersScroll":
+			var label=("window:" if window!=root else "")+active[0].label
 			if not first_bounds.has(label):first_bounds[label]=[id,box]
 			var first=first_bounds[label]
 			check(box.is_equal_approx(first[1]),"%s fixed %s %s; %s %s" % [id,label,box,first[0],first[1]])

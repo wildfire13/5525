@@ -80,7 +80,7 @@ func compose_approved(id: String) -> Texture2D:
 	if not levels.has(level):level="1"
 	var has_level=levels.has(level)
 	# Keep artwork and the existing level badge inside the same square canvas.
-	var canvas=Image.create(64,64,false,Image.FORMAT_RGBA8)
+	var canvas=Image.create_empty(64,64,false,Image.FORMAT_RGBA8)
 	var base=fit_image(approved_image(spec),64)
 	canvas.blend_rect(base,Rect2i(Vector2i.ZERO,base.get_size()),Vector2i((64-base.get_width())/2,(64-base.get_height())/2))
 	if spec.has("badge"):
@@ -92,7 +92,7 @@ func compose_approved(id: String) -> Texture2D:
 	return ImageTexture.create_from_image(canvas)
 # Equipment-only fallback. Shared category icons and approved artwork stay exact.
 func compose_placeholder(category: String) -> Texture2D:
-	var canvas=Image.create(64,64,false,Image.FORMAT_RGBA8)
+	var canvas=Image.create_empty(64,64,false,Image.FORMAT_RGBA8)
 	canvas.fill(Color("#59451d"))
 	canvas.fill_rect(Rect2i(2,2,60,60),Color("#f2cc51"))
 	var base=fit_image(approved_image({"base":ROOT+category+".png"}),54)

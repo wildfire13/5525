@@ -14,24 +14,24 @@ import tempfile
 BASE = Path(__file__).resolve().parent
 ROOT = BASE.parent
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--godot", help="Godot 4.6 console executable (overrides GODOT_BIN and launcher.local.json)")
+parser.add_argument("--godot", help="Godot 4.7 console executable (overrides GODOT_BIN and launcher.local.json)")
 parser.add_argument("--full", action="store_true", help="Also rerun the complete native regression suite")
 parser.add_argument("--evidence", type=Path)
 args = parser.parse_args()
 reports = evidence_directory("headless", args.evidence)
-def is_godot_46(path: Path) -> bool:
+def is_godot_47(path: Path) -> bool:
     try:
         result = subprocess.run([str(path), "--version"], capture_output=True, text=True,
                                 encoding="utf-8", errors="replace", timeout=10)
     except (OSError, subprocess.TimeoutExpired):
         return False
-    return result.returncode == 0 and result.stdout.strip().startswith("4.6.")
+    return result.returncode == 0 and result.stdout.strip().startswith("4.7.")
 
 try:
     env = runtime_environment(ROOT)
-    godot_path, godot_source = resolve_godot(ROOT, explicit=args.godot, validate=is_godot_46)
+    godot_path, godot_source = resolve_godot(ROOT, explicit=args.godot, validate=is_godot_47)
 except (FileNotFoundError, ValueError) as error:
-    parser.error(f"{error} Install/use Godot 4.6.x, set GODOT_BIN, or create godot/launcher.local.json from the example.")
+    parser.error(f"{error} Install/use Godot 4.7.x, set GODOT_BIN, or create godot/launcher.local.json from the example.")
 args.godot = str(godot_path)
 node = env["NATIVE5525_NODE"]
 python = env["NATIVE5525_PYTHON"]
@@ -45,7 +45,11 @@ env.update(GODOT_BIN=args.godot, NATIVE5525_NODE=node, NATIVE5525_AUDIO_OFF="1",
            INVENTORY_QA_ROOT=evidence.as_posix(), UIUX_REVIEW_EVIDENCE=evidence.as_posix())
 profile = evidence / "profile"
 profile.mkdir()
-env["APPDATA" if os.name == "nt" else "XDG_DATA_HOME"] = str(profile)
+if os.name == "nt":
+    env["APPDATA"] = str(profile)
+    env["LOCALAPPDATA"] = str(profile)
+else:
+    env["XDG_DATA_HOME"] = str(profile)
 common = [args.godot, "--headless", "--resolution", "1920x1080", "--audio-driver", "Dummy", "--path", str(BASE)]
 steps = [
     ("QA configuration and reporting", [python, "-X", "utf8", "-B", "-m", "unittest", "discover", "-s", "tests", "-p", "*_tests.py"], BASE),
@@ -70,7 +74,7 @@ steps.append(("Fault handling and shutdown", [python, "-X", "utf8", "-B", str(BA
 if os.name == "nt":
     steps.append(("Candidate launcher", [python, "-X", "utf8", "-B", str(BASE / "tests/launcher_checks.py"), args.godot, "--evidence", str(reports)], BASE))
 ui_runner = str(BASE / "tests/run_mock_ui_regression.py")
-steps.append(("Current FHD UI regression", [python, "-X", "utf8", "-B", ui_runner, "--evidence", str(evidence)], BASE))
+steps.append(("Current FHD UI regression", [python, "-X", "utf8", "-B", ui_runner, "--godot", args.godot, "--evidence", str(evidence)], BASE))
 if args.full:
     steps.append(("Full native regression", [python, "-X", "utf8", "-B", "check.py", "--evidence", str(reports)], ROOT / "native"))
 report = {

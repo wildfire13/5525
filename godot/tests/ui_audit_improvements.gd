@@ -12,7 +12,7 @@ func run():
   var text_scroll=d.find_child("ConfirmationTextScroll",true,false);text_scroll.scroll_vertical=100000;await frames()
   var message=text_scroll.find_child("ConfirmationText",true,false)
   check(message.text.ends_with("長い確認文です。") and message.get_global_rect().end.y<=text_scroll.get_global_rect().end.y+2,"long confirmation end remains reachable "+str(dims))
-  check(d.get_label().get_theme_font_size("font_size")==18 and d.dialog_autowrap,"confirmation readable wrapped font")
+  check(d.get_label().get_theme_font_size("font_size")==20 and d.dialog_autowrap,"confirmation readable wrapped font")
  d.canceled.emit();await settle()
  game.navigate("map");await settle()
  for dims in [Vector2i(1920,1080)]:

@@ -135,7 +135,14 @@ class LauncherConfigTests(unittest.TestCase):
         self.assertEqual(source, "automatic discovery")
 
     def test_runtime_folder_is_discovered_after_path(self):
-        expected = self.executable("runtime/godot/Godot_v4.6_console.exe")
+        expected = self.executable("runtime/godot/Godot_v4.7_console.exe")
+        with patch("launcher_config.shutil.which", return_value=None):
+            actual, source = self.resolve(environ={})
+        self.assertEqual(actual, expected.resolve())
+        self.assertEqual(source, "automatic discovery")
+
+    def test_nested_godot_folder_is_discovered_in_runtime(self):
+        expected = self.executable("runtime/godot/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe")
         with patch("launcher_config.shutil.which", return_value=None):
             actual, source = self.resolve(environ={})
         self.assertEqual(actual, expected.resolve())

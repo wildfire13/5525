@@ -14,6 +14,7 @@ from mock_ui_suites import SUITES
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--evidence', required=True, type=Path)
+p.add_argument('--godot')
 p.add_argument('--only', nargs='+', choices=SUITES)
 a = p.parse_args()
 repo = Path(__file__).resolve().parents[2]
@@ -23,7 +24,7 @@ if out == repo or repo in out.parents:
 out.mkdir(parents=True, exist_ok=True)
 target = out / "results.json"
 target.write_text("[]\n", encoding="utf-8")
-settings = qa_environment()
+settings = qa_environment(godot=a.godot)
 godot = settings['GODOT_BIN']
 results = []
 
@@ -39,6 +40,7 @@ for name in a.only or SUITES:
         env[key] = str(path)
     if os.name == 'nt':
         env['APPDATA'] = str(scope / 'data')
+        env['LOCALAPPDATA'] = str(scope / 'cache')
     wrapper = scope / 'fhd-suite.gd'
     wrapper.write_text(
         f'extends "res://tests/{name}.gd"\n'

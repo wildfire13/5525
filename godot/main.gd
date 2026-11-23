@@ -36,13 +36,15 @@ var closing := false
 var checks_fast := false
 var backdrop_layer: Control
 var base: VBoxContainer
-var top: HBoxContainer
+var top: PanelContainer
+var top_bar: HBoxContainer
+var battle_elapsed: Label
 var header: Label
 var content: VBoxContainer
 var battle_row: Control
 var board
 var side: VBoxContainer
-var battle_header: VBoxContainer
+var battle_header: Control
 var battle_actions: Control
 var footer: Label
 var widgets: Array[Button]=[]
@@ -67,8 +69,25 @@ var layout_queued := false
 var focus_hint := ""
 var swallow_mouse_release := false
 var skip_capture_once := false
-const BG=Color("#191d23")
+var tracked_windows: Array[Window]=[]
+var _last_menu_size := Vector2.ZERO
+const Tokens=preload("res://ui_tokens.gd")
+const ScreenGrid=preload("res://screen_grid.gd")
+const BG=Tokens.BACKDROP_DARK
+func _track_window(node: Node):
+	if node is Window and is_ancestor_of(node) and not tracked_windows.has(node):
+		tracked_windows.append(node)
+func _untrack_window(node: Node):
+	if node is Window:
+		tracked_windows.erase(node)
+func _exit_tree():
+	var tree=get_tree()
+	if tree!=null:
+		if tree.node_added.is_connected(_track_window):tree.node_added.disconnect(_track_window)
+		if tree.node_removed.is_connected(_untrack_window):tree.node_removed.disconnect(_untrack_window)
 func _ready():
+	get_tree().node_added.connect(_track_window)
+	get_tree().node_removed.connect(_untrack_window)
 	loading_screen=preload("res://loading_screen.gd").new();loading_screen.name="LoadingScreen";add_child(loading_screen)
 	results_view=preload("res://results_view.gd").new(self);add_child(results_view)
 	pages=preload("res://campaign_panels.gd").new(self)
@@ -78,17 +97,18 @@ func _ready():
 	dialog=preload("res://ui_dialog.gd").new(self)
 	get_tree().auto_accept_quit=false
 	get_tree().root.gui_embed_subwindows=true
-	var theme_=Theme.new();theme_.default_font_size=18
+	var theme_=Theme.new();theme_.default_font_size=Tokens.FONT_BODY
 	var weight_axis=TextServerManager.get_primary_interface().name_to_tag("wght")
 	var ui_font=FontVariation.new();ui_font.base_font=preload("res://assets/fonts/NotoSansJP.ttf");ui_font.variation_opentype={weight_axis:450}
 	heading_font=FontVariation.new();heading_font.base_font=ui_font.base_font;heading_font.variation_opentype={weight_axis:650}
 	var button_font=FontVariation.new();button_font.base_font=ui_font.base_font;button_font.variation_opentype={weight_axis:550}
 	theme_.default_font=ui_font
 	for type_ in ["Button","OptionButton","CheckButton"]:theme_.set_font("font",type_,button_font)
-	theme_.set_color("font_color","Label",mock_shell.INK)
-	theme_.set_color("font_color","TooltipLabel",Color.WHITE)
-	var tip=StyleBoxFlat.new();tip.bg_color=Color("#20242bf5");tip.set_content_margin_all(8);tip.set_border_width_all(1);tip.border_color=Color("#7f8996");theme_.set_stylebox("panel","TooltipPanel",tip)
-	var focus=StyleBoxFlat.new();focus.bg_color=Color(0,0,0,0);focus.set_border_width_all(2);focus.border_color=Color("#a8c9ed");focus.set_corner_radius_all(5)
+	theme_.set_color("font_color","Label",Tokens.INK)
+	theme_.set_color("font_color","TooltipLabel",Tokens.INK)
+	theme_.set_font_size("font_size","TooltipLabel",Tokens.FONT_SM)
+	theme_.set_stylebox("panel","TooltipPanel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_MD))
+	var focus=Tokens.box(Color.TRANSPARENT,Tokens.FOCUS,Tokens.RADIUS_SM,Tokens.SPACE_SM,Tokens.BORDER_WIDTH_EMPHASIS)
 	theme_.set_stylebox("focus","ItemList",focus)
 	mock_shell.apply_button_theme(theme_)
 	theme=theme_
@@ -97,18 +117,24 @@ func _ready():
 	low_hp_font=FontVariation.new();low_hp_font.base_font=ui_font.base_font;low_hp_font.variation_opentype={weight_axis:700}
 	backdrop_layer=Control.new();backdrop_layer.name="SceneBackdrop";backdrop_layer.mouse_filter=Control.MOUSE_FILTER_IGNORE;backdrop_layer.clip_contents=true;add_child(backdrop_layer);backdrop_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	base=VBoxContainer.new();base.hide();add_child(base);base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	base.add_theme_constant_override("separation",8)
+	base.add_theme_constant_override("separation",Tokens.SPACE_SM)
 	base.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	top=HBoxContainer.new();top.name="BattleHeader";top.custom_minimum_size.y=44;base.add_child(top)
-	var elapsed=Label.new();elapsed.name="BattleElapsedTime";top.add_child(elapsed)
-	header=Label.new();header.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;top.add_child(header)
+	top=PanelContainer.new();top.name="BattleHeader";top.mouse_filter=Control.MOUSE_FILTER_STOP;top.custom_minimum_size.y=Tokens.BUTTON_MD
+	top.add_theme_stylebox_override("panel",Tokens.surface_box())
+	base.add_child(top)
+	top_bar=HBoxContainer.new();top_bar.name="BattleHeaderContent";top_bar.custom_minimum_size.y=Tokens.BUTTON_MD;top_bar.size_flags_vertical=Control.SIZE_SHRINK_CENTER;top_bar.add_theme_constant_override("separation",Tokens.SPACE_MD);top.add_child(top_bar)
+	battle_elapsed=Label.new();battle_elapsed.name="BattleElapsedTime";battle_elapsed.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;top_bar.add_child(battle_elapsed)
+	header=Label.new();header.size_flags_horizontal=Control.SIZE_FILL;header.custom_minimum_size.x=160;header.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+	header.add_theme_font_override("font",heading_font)
+	top_bar.add_child(header)
 
 	var menu_region=Control.new();menu_region.name="BattleMenuRegion";menu_region.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(menu_region)
 	menu_region.hide();menu_region.anchor_left=0.9;menu_region.anchor_right=1.0
 	var menu_button=local_button(menu_region,"メニュー",open_menu);menu_button.name="CommonMenuButton"
+	Tokens.apply_button_size(menu_button,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
 	memory.key(menu_button,"game_menu")
 	menu_button.z_index=61
-	menu_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);menu_button.offset_left=-136;menu_button.offset_top=-64;menu_button.offset_right=-12;menu_button.offset_bottom=-8
+	menu_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);menu_button.offset_left=-Tokens.BUTTON_W_SM-12;menu_button.offset_top=-64;menu_button.offset_right=-12;menu_button.offset_bottom=-8
 	audio=preload("res://audio.gd").new();add_child(audio)
 	save_notice=preload("res://save_notice.gd").new();save_notice.name="SaveNotice";add_child(save_notice)
 	debug_view=preload("res://debug_window.gd").new();debug_view.configure(self);add_child(debug_view)
@@ -146,6 +172,7 @@ func _ready():
 	var label_switch=CheckButton.new()
 	label_switch.name="UiLabelSwitch"
 	label_switch.text="UIラベル表示"
+	Tokens.apply_button_size(label_switch,Tokens.BUTTON_MD)
 	label_switch.button_pressed=ui_labels.enabled
 	label_switch.toggled.connect(ui_labels.set_enabled)
 	menu_body.add_child(label_switch)
@@ -192,17 +219,19 @@ func label_(parent: Node,text: String,large:=false) -> Label:
 	var l=Label.new();l.text=text;l.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	if parent is HBoxContainer:l.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	if large:
-		l.add_theme_font_size_override("font_size",28 if size.x>=1800 else 23)
+		l.add_theme_font_size_override("font_size",Tokens.FONT_DISPLAY if size.x>=1800 else Tokens.FONT_HEADING)
 		l.add_theme_font_override("font",heading_font)
 	parent.add_child(l);return l
 func emphasize_low_hp(label: Label,unit: Dictionary):
 	if unit.get("max",0)>0 and unit.get("hp",0)*4<unit.max:
-		label.add_theme_color_override("font_color",Color("#b13e30"))
+		label.add_theme_color_override("font_color",Tokens.DANGER)
 		label.add_theme_font_override("font",low_hp_font)
 func row(parent: Node) -> HBoxContainer:
-	var r=HBoxContainer.new();r.add_theme_constant_override("separation",8);parent.add_child(r);return r
+	var r=HBoxContainer.new();r.add_theme_constant_override("separation",Tokens.SPACE_SM);parent.add_child(r);return r
 func button(parent: Node,text: String,fn: Callable,disabled:=false) -> Button:
-	var b=Button.new();b.text=text;b.custom_minimum_size.y=56 if view_kind=="battle" and size.x>=1800 and size.y>=1000 else 44
+	var b=Button.new();b.text=text
+	var height=Tokens.BUTTON_LG if view_kind=="battle" and size.x>=1800 and size.y>=1000 else Tokens.BUTTON_MD
+	Tokens.apply_button_size(b,height)
 	b.set_meta("base_disabled",disabled);b.disabled=disabled or locked or presenting or (engine!=null and engine.disconnected)
 	parent.add_child(b);widgets.append(b)
 	b.pressed.connect(func():
@@ -261,7 +290,7 @@ func portrait(parent: Node,u: Dictionary,face:=false,size_:=72) -> TextureRect:
 	parent.add_child(p);return p
 func member_grid(parent: Node,grid_name: String,min_card_width:=170.0,max_columns:=6) -> GridContainer:
 	var grid=GridContainer.new();grid.name=grid_name;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation",8);grid.add_theme_constant_override("v_separation",8);parent.add_child(grid)
+	grid.add_theme_constant_override("h_separation",Tokens.SPACE_SM);grid.add_theme_constant_override("v_separation",Tokens.SPACE_SM);parent.add_child(grid)
 	var fit=func():grid.columns=clampi(int(grid.size.x/min_card_width),1,max_columns)
 	grid.resized.connect(fit);fit.call();return grid
 func card(parent: Node) -> VBoxContainer:
@@ -290,10 +319,10 @@ func facility_receipt(title_: String,item: Dictionary,owner: String,fn: Callable
 		d.title=title_
 		var body=VBoxContainer.new()
 		body.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		body.add_theme_constant_override("separation",12)
+		body.add_theme_constant_override("separation",Tokens.SPACE_MD)
 		var inset=MarginContainer.new()
 		inset.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		for side in ["left","right","top"]:inset.add_theme_constant_override("margin_"+side,16)
+		for side in ["left","right","top"]:inset.add_theme_constant_override("margin_"+side,Tokens.SPACE_LG)
 		scroll.add_child(inset);inset.add_child(body)
 		label_(body,title_,true).horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 		var icon=icons.equipment(item) if item.get("kind")=="equipment" else str(item.id)
@@ -303,7 +332,7 @@ func facility_receipt(title_: String,item: Dictionary,owner: String,fn: Callable
 		var ok=d.get_ok_button();var cancel=d.get_cancel_button()
 		ok.get_parent().move_child(ok,maxi(ok.get_index(),cancel.get_index())))
 	var shade=ColorRect.new()
-	shade.color=Color(0.08,0.1,0.09,0.38)
+	shade.color=Color(Tokens.OVERLAY_DARK.r,Tokens.OVERLAY_DARK.g,Tokens.OVERLAY_DARK.b,0.38)
 	shade.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	shade.z_index=100
 	add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -320,8 +349,7 @@ func confirm(text: String,fn: Callable,build: Callable=Callable()):
 	var origin_key=str(origin.get_meta("ui_key","")) if origin!=null else memory.focus_key
 	var d=preload("res://grid_confirmation.gd").new();d.exclusive=true;d.title="確認";d.dialog_text=text;d.ok_button_text="実行する";d.cancel_button_text="キャンセル"
 	d.add_theme_stylebox_override("panel",mock_shell.surface_style())
-	d.dialog_autowrap=true;d.add_theme_font_size_override("font_size",18)
-	d.get_label().add_theme_font_size_override("font_size",18)
+	d.dialog_autowrap=true
 	# Keep dialog_text for the confirmation contract; a scrollable copy prevents
 	# long paths or explanations from forcing buttons outside a short window.
 	d.get_label().hide()
@@ -329,8 +357,8 @@ func confirm(text: String,fn: Callable,build: Callable=Callable()):
 	if build.is_valid():build.call(contents,d)
 	d.get_ok_button().theme_type_variation=&"ActionButton"
 	for button_ in [d.get_ok_button(),d.get_cancel_button()]:
-		button_.custom_minimum_size=Vector2(172,48) if build.is_valid() else Vector2(96,48) if size.x>=1800 else Vector2(80,44)
-		button_.add_theme_font_size_override("font_size",18)
+		button_.custom_minimum_size.x=172 if build.is_valid() else 96 if size.x>=1800 else 80
+		Tokens.apply_button_size(button_,Tokens.BUTTON_MD)
 	if is_instance_valid(dialog.window) and dialog.window.visible:dialog.window.add_child(d)
 	else:add_child(d)
 	d.confirmed.connect(func():
@@ -341,7 +369,7 @@ func confirm(text: String,fn: Callable,build: Callable=Callable()):
 		audio.ui("cancel");d.hide();d.queue_free()
 		if not closing and pages.epoch==epoch and engine.connection_generation==generation:
 			memory.scrolls.merge(scroll_state,true);memory.request_focus(origin_key);memory.restore())
-	preferences.place_detail_frame(d);d.popup();d.get_cancel_button().grab_focus()
+	preferences.place_confirm_frame(d);d.popup();d.get_cancel_button().grab_focus()
 	return d
 func fullscreen():
 	get_window().mode=Window.MODE_WINDOWED if get_window().mode==Window.MODE_FULLSCREEN else Window.MODE_FULLSCREEN
@@ -514,7 +542,7 @@ func show_engine_stop():
 	add_child(stop_dialog)
 	stop_dialog.confirmed.connect(close_game)
 	stop_dialog.canceled.connect(close_game)
-	preferences.place_detail_frame(stop_dialog)
+	preferences.place_confirm_frame(stop_dialog)
 	stop_dialog.popup()
 func invalidate_preview():
 	if pages!=null:pages.shop_view.cancel_pending()
@@ -556,7 +584,7 @@ func render():
 	if not skip_capture_once:memory.capture()
 	skip_capture_once=false
 	audio.follow_connection(engine.connection_generation)
-	widgets=widgets.filter(func(b):return is_instance_valid(b) and (b.get_parent()==top or menu.is_ancestor_of(b) or (view_kind=="battle" and is_instance_valid(hud.middle) and hud.middle.is_ancestor_of(b))))
+	widgets=widgets.filter(func(b):return is_instance_valid(b) and (top.is_ancestor_of(b) or menu.is_ancestor_of(b) or (view_kind=="battle" and is_instance_valid(hud.middle) and hud.middle.is_ancestor_of(b))))
 	for b in widgets:
 		b.disabled=bool(b.get_meta("base_disabled",false)) or ((locked or presenting) and not b.get_meta("read_only",false))
 	var available=get_viewport_rect().size
@@ -569,6 +597,7 @@ func render():
 	var battle=not inspecting_deployment and not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	base.add_theme_constant_override("separation",0)
 	content.add_theme_constant_override("separation",0)
+	footer.visible=not battle
 	footer.custom_minimum_size.y=mock_shell.grid_cell().y
 	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
 	sync_audio()
@@ -584,27 +613,28 @@ func render():
 		parked_board.queue_free()
 		parked_board=null
 	top.visible=battle or engine.disconnected
-	var active_battle=battle and not s.get("deploying",false)
-	var battle_elapsed=top.get_node("BattleElapsedTime")
+	top.add_theme_stylebox_override("panel",mock_shell.surface_style())
 	battle_elapsed.text=mock_shell.elapsed_time_text()
+	header.add_theme_font_size_override("font_size",Tokens.FONT_DISPLAY if available.x>=1800 else Tokens.FONT_HEADING)
 	for caption in [battle_elapsed,header]:
-		if active_battle:
-			caption.add_theme_color_override("font_color",Color.WHITE)
-			caption.add_theme_color_override("font_outline_color",Color("#22332f"))
-			caption.add_theme_constant_override("outline_size",4)
-		else:
-			caption.remove_theme_color_override("font_color")
-			caption.remove_theme_color_override("font_outline_color")
-			caption.remove_theme_constant_override("outline_size")
+		caption.remove_theme_color_override("font_color")
+		caption.remove_theme_color_override("font_outline_color")
+		caption.remove_theme_constant_override("outline_size")
 	pages.facility_art.render_background(backdrop_layer,self,battle)
-	top.custom_minimum_size.y=preload("res://screen_grid.gd").cell_rect(available,0,0,10,1).size.y if battle else 44
+	top.custom_minimum_size.y=ScreenGrid.cell_rect(available,0,0,10,1).size.y if battle else Tokens.BUTTON_MD
 	var common_menu=find_child("CommonMenuButton",true,false)
 	if common_menu!=null:
 		var menu_region=common_menu.get_parent()
 		menu_region.visible=battle
 		menu_region.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-		preload("res://screen_grid.gd").place(menu_region,preload("res://screen_grid.gd").cell_rect(available,9,0,1,1))
-		common_menu.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		ScreenGrid.place(menu_region,ScreenGrid.cell_rect(available,9,0,1,1))
+		var pad_x=float(Tokens.SPACE_MD if menu_region.size.x>=160 else Tokens.SPACE_XS)
+		var menu_height=minf(menu_region.size.y,float(Tokens.BUTTON_MD))
+		var target_width=minf(menu_region.size.x-pad_x*2.0,float(Tokens.BUTTON_W_SM))
+		var menu_width=minf(menu_region.size.x,maxf(target_width,common_menu.get_combined_minimum_size().x))
+		common_menu.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		common_menu.position=Vector2(maxf(0.0,menu_region.size.x-menu_width-pad_x),floorf((menu_region.size.y-menu_height)*0.5))
+		common_menu.size=Vector2(menu_width,menu_height)
 	if battle:
 		if view_kind!="battle":
 			clear(content)
@@ -845,7 +875,6 @@ func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback
 	else:add_child(d)
 	d.title="保存先を選択" if mode==FileDialog.FILE_MODE_SAVE_FILE else "ファイルを選択"
 	d.ok_button_text="保存" if mode==FileDialog.FILE_MODE_SAVE_FILE else "開く";d.cancel_button_text="キャンセル"
-	d.add_theme_font_size_override("font_size",18)
 	d.current_dir=ProjectSettings.globalize_path("user://")
 	if not filename.is_empty():d.current_file=filename;d.title="保存先を選択";d.overwrite_warning_enabled=false
 	var diagnostic_kind="file_save" if mode==FileDialog.FILE_MODE_SAVE_FILE else "file_open"
@@ -858,7 +887,6 @@ func localize_file_dialog(d: FileDialog):
 	# Native dialogs are owned/localized by the OS; these are fallback children.
 	var words={"Path:":"場所:","File:":"ファイル名:","Filter:":"種類:","All Files (*)":"すべてのファイル (*)","Create Folder":"フォルダーを作成","Show Hidden Files":"隠しファイルを表示","Favorites":"お気に入り","Favorites:":"お気に入り:","Recent":"最近使った場所","Recent:":"最近使った場所:","Directories & Files:":"フォルダーとファイル:","Name":"名前","Size":"サイズ","Type":"種類","Date Modified":"更新日時","Open":"開く","Save":"保存","Cancel":"キャンセル","Go to previous folder.":"前のフォルダーへ","Go to next folder.":"次のフォルダーへ","Go to parent folder.":"親フォルダーへ","Refresh files.":"更新"}
 	for control in d.find_children("*","Control",true,false):
-		control.add_theme_font_size_override("font_size",18)
 		if control is Label or control is Button:
 			if words.has(control.text):control.text=words[control.text]
 		if words.has(control.tooltip_text):control.tooltip_text=words[control.tooltip_text]
@@ -915,8 +943,13 @@ func portrait_dialog():
 	var layout=preload("res://window_grid.gd").new();d.add_child(layout);layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var heading=layout.title_label(d.title);heading.name="ModalHeading";layout.add_child(heading)
 	var content=MarginContainer.new();content.name="ModalDetailScroll";layout.add_child(content)
-	var body=scroller(content);body.get_parent().name="PortraitChoices"
-	var actions=row(layout);actions.name="ModalActions"
+	var body=scroller(content);var portrait_scroll: ScrollContainer=body.get_parent();portrait_scroll.name="PortraitChoices"
+	var portrait_pad=StyleBoxEmpty.new()
+	portrait_pad.content_margin_left=Tokens.SPACE_LG;portrait_pad.content_margin_right=Tokens.SPACE_LG
+	portrait_pad.content_margin_top=Tokens.SPACE_SM;portrait_pad.content_margin_bottom=Tokens.SPACE_SM
+	portrait_scroll.add_theme_stylebox_override("panel",portrait_pad)
+	var actions=row(layout);actions.name="ModalActions";actions.alignment=BoxContainer.ALIGNMENT_CENTER
+	actions.add_theme_constant_override("separation",Tokens.SPACE_MD)
 	layout.set_regions(heading,content,actions)
 	label_(body,"各キャラの画像を変更します。能力・装備は変わりません。")
 	label_(body,"PNG / JPEG / WebP / BMP / GIF（先頭フレーム）、16MiBまで。透過・縦横比を保持し最大1024pxに正規化。割当を残すには進行を保存してください。")
@@ -933,7 +966,8 @@ func portrait_dialog():
 			button(r,"位置・ズーム",func():d.queue_free();pages.party_view.workspace.open_portrait(u),not active_member(str(u.id)))
 		button(r,"元に戻す",func():reset_portrait(str(u.id));d.queue_free(),not active_member(str(u.id)) or not portraits.metadata.get("characters",{}).has(u.id))
 	if reserves_visible():label_(body,"控えの画像を変更するには、先に編成へ加えてください。")
-	local_button(actions,"閉じる",d.queue_free)
+	var close_btn=local_button(actions,"閉じる",d.queue_free)
+	Tokens.apply_button_size(close_btn,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
 	d.close_requested.connect(d.queue_free);preferences.place_detail_frame(d);d.popup()
 func import_portrait(path: String,uid: String):
 	if not active_member(uid):return
@@ -955,7 +989,7 @@ func local_button(parent: Node,text: String,callback: Callable) -> Button:
 	var control=button(parent,text,callback);control.set_meta("read_only",true);control.disabled=false;return control
 func action_button(control: Button) -> Button:
 	control.theme_type_variation=&"ActionButton"
-	control.custom_minimum_size.y=44
+	Tokens.apply_button_size(control,Tokens.BUTTON_MD)
 	return control
 func primary(control: Button) -> Button:
 	control.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -977,11 +1011,12 @@ func open_menu():
 func menu_focus_controls() -> Array:
 	return menu.find_children("*","Control",true,false).filter(func(control):return control.focus_mode==Control.FOCUS_ALL and control.is_visible_in_tree() and (not control is BaseButton or not control.disabled))
 func fit_menu():
-	preload("res://screen_grid.gd").place(menu,preload("res://screen_grid.gd").cell_rect(size,3,1,3,8))
+	_last_menu_size=size
+	ScreenGrid.place(menu,ScreenGrid.cell_rect(size,3,1,3,8))
 func file_dialog_open() -> bool:
 	# Native dialogs live outside the scene and do not set Window.visible.
-	for child in find_children("*","FileDialog",true,false):
-		if child.get_meta("file_dialog_active",false) and not child.is_queued_for_deletion():return true
+	for child in tracked_windows:
+		if is_instance_valid(child) and child is FileDialog and child.get_meta("file_dialog_active",false) and not child.is_queued_for_deletion():return true
 	return false
 func modal_open() -> bool:
 	if file_dialog_open():return true
@@ -998,13 +1033,17 @@ func refresh_layout():
 	if not closing:
 		render()
 func _process(_delta):
-	if menu.visible:fit_menu()
-	for child in find_children("*","Window",true,false):
-		if child.get_meta("managed_layout",false):preferences.keep_visible(child,size)
+	if menu.visible and _last_menu_size!=size:fit_menu()
+	if not tracked_windows.is_empty():
+		var stale:=false
+		for child in tracked_windows:
+			if not is_instance_valid(child):stale=true;continue
+			if child.visible and child.get_meta("managed_layout",false):preferences.keep_visible(child,size)
+		if stale:tracked_windows=tracked_windows.filter(func(w):return is_instance_valid(w))
 	fit_battle_layout()
 func fit_battle_layout():
 	if closing or view_kind!="battle" or not is_instance_valid(hud.middle):return
-	hud.resize()
+	hud.resize(false)
 func _input(event):
 	if results_view.active:return
 	if loading_screen.active:get_viewport().set_input_as_handled();return

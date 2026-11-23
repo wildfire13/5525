@@ -5,6 +5,7 @@ const RECOVERY_SECONDS := 1.2
 const FULL_GREETING := "みなさん、お元気ですね。今は休まなくても大丈夫ですよ。"
 const RESTED_GREETING := "おはようございます。みなさん、ゆっくり休めましたね。"
 const ScreenGrid=preload("res://screen_grid.gd")
+const Tokens=preload("res://ui_tokens.gd")
 var owner_ref: WeakRef
 var pages:
  get:return owner_ref.get_ref()
@@ -28,10 +29,8 @@ func render(parent):
  var panel=PanelContainer.new();panel.name="FacilityChoices";surface.add_child(panel)
  pages.facility_entry.place_region(panel,Rect2(0,2,6,7))
  pages.facility_entry.render_title(surface,"inn")
- var style=panel.get_theme_stylebox("panel").duplicate()
- style.set_content_margin_all(0)
- panel.add_theme_stylebox_override("panel",style)
- var content=VBoxContainer.new();content.add_theme_constant_override("separation",0);panel.add_child(content)
+ panel.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_NONE))
+ var content=VBoxContainer.new();content.add_theme_constant_override("separation",Tokens.SPACE_NONE);panel.add_child(content)
  var q: Dictionary=pages.c().get("inn",{})
  var words=dialogue if not dialogue.is_empty() else FULL_GREETING if not q.get("needsRecovery",false) else pages.facility_entry.greeting_text()
  pages.facility_entry.render_entry_art(surface,words,true)
@@ -40,24 +39,24 @@ func render(parent):
  ui.icons.line(ui,heading,"inn","宿屋",true)
  if not q.get("available",false):pages.l(parent,"宿屋はアスタリスで利用できます。");return
  if q.get("needsRecovery",false):pages.l(heading,"パーティ全員で%dG" % q.price)
- var recovery_hint=pages.muted(parent,"編成中の全員のHP・MPを全回復。控えは対象外、時間は経過しません。");recovery_hint.add_theme_font_size_override("font_size",16);recovery_hint.add_theme_color_override("font_color",Color("#747d75"))
+ var recovery_hint=pages.muted(parent,"編成中の全員のHP・MPを全回復。控えは対象外、時間は経過しません。");recovery_hint.add_theme_font_size_override("font_size",Tokens.FONT_SM)
  cards(content)
  parent=inset(content,0)
  parent.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
  if not q.get("needsRecovery",false):
   var status=pages.l(parent,"宿泊完了。全員のHP・MPが回復しました。" if not healing_party.is_empty() else "全員が全回復しています。料金はかかりません。")
-  status.name="InnRecoveryStatus";status.add_theme_font_size_override("font_size",16)
+  status.name="InnRecoveryStatus";status.add_theme_font_size_override("font_size",Tokens.FONT_SM)
  elif not q.get("affordable",false):pages.l(parent,"所持金が足りません。宿泊には%dG必要です。" % q.price)
  var action_space=Control.new();action_space.size_flags_vertical=Control.SIZE_EXPAND_FILL;parent.add_child(action_space)
  var actions=pages.row(parent);actions.name="InnActions";actions.alignment=BoxContainer.ALIGNMENT_END
  var caption="休息する"
  var disabled=pending or not q.get("needsRecovery",false) or not q.get("affordable",false)
- ui.action_button(pages.b(actions,caption,stay,disabled)).name="InnStay"
- pages.b(actions,"戻る",pages.facility_entry.back,pending).name="InnReturn"
+ var stay_btn=ui.action_button(pages.b(actions,caption,stay,disabled));stay_btn.name="InnStay";Tokens.apply_button_size(stay_btn,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
+ var back_btn=pages.b(actions,"戻る",pages.facility_entry.back,pending);back_btn.name="InnReturn";Tokens.apply_button_size(back_btn,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
 func inset(parent: Control,cells: int) -> VBoxContainer:
  var margin=MarginContainer.new()
  margin.custom_minimum_size.y=pages.grid_height(cells+1)-pages.grid_height(1)
- for side in ["left","top","right","bottom"]:margin.add_theme_constant_override("margin_"+side,8)
+ for side in ["left","top","right","bottom"]:margin.add_theme_constant_override("margin_"+side,Tokens.SPACE_SM)
  parent.add_child(margin)
  var body=VBoxContainer.new()
  margin.add_child(body)
@@ -78,15 +77,15 @@ func cards(parent):
    var effect=preload("res://inn_heal_effect.gd").new();effect.name="InnHeal_"+str(id);effect.started=recovery_started;effect.duration=RECOVERY_SECONDS;face.add_child(effect)
   var copy=VBoxContainer.new() if compact else member
   if compact:content.add_child(copy);copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-  var name_label=pages.l(copy,u.name);name_label.name="InnName_"+str(id);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;ui.short_name(name_label,str(u.name));name_label.add_theme_font_size_override("font_size",16)
+  var name_label=pages.l(copy,u.name);name_label.name="InnName_"+str(id);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;ui.short_name(name_label,str(u.name));name_label.add_theme_font_size_override("font_size",Tokens.FONT_SM)
   var vitals=pages.row(copy) if compact else copy
   for stat in ["hp","mp"]:
    var maximum=int(u.max if stat=="hp" else u.maxMp);var current=int(u.get(stat,0))
-   var label=pages.l(vitals,"");label.name="Inn"+stat.to_upper()+"_"+str(id);label.add_theme_font_size_override("font_size",14 if compact else 16);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+   var label=pages.l(vitals,"");label.name="Inn"+stat.to_upper()+"_"+str(id);label.add_theme_font_size_override("font_size",Tokens.FONT_XS if compact else Tokens.FONT_SM);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
    var before=current
    if recovered.has(str(id)) and recovered[str(id)].get("after",{}).get(stat)==current:before=int(recovered[str(id)].before.get(stat,current))
    labels.append({"label":label,"stat":stat,"before":before,"after":current,"maximum":maximum})
-   if before<current and progress()<1.0:label.add_theme_color_override("font_color",Color("#28714c"));label.set_meta("recovering",true)
+   if before<current and progress()<1.0:label.add_theme_color_override("font_color",Tokens.POSITIVE);label.set_meta("recovering",true)
   if u.hp<=0:pages.l(member,"戦闘不能")
  paint(progress(),labels)
  if progress()<1.0:

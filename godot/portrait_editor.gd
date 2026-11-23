@@ -1,5 +1,6 @@
 extends Control
 
+const Tokens=preload("res://ui_tokens.gd")
 var image: Image
 var framing={"zoom":1.0,"x":0.0,"y":0.0}
 var preview: Texture2D
@@ -48,10 +49,10 @@ func display_rect() -> Rect2:
 
 func _draw():
 	if preview==null:return
-	draw_rect(Rect2(Vector2.ZERO,size),Color("#e3e5df"))
+	draw_rect(Rect2(Vector2.ZERO,size),Tokens.SURFACE_BACKDROP)
 	var rect=display_rect()
 	draw_texture_rect_region(preview,rect,Rect2(preload("res://portraits.gd").framing_rect(image,framing)))
-	draw_rect(rect,Color("#226fa2"),false,2)
+	draw_rect(rect,Tokens.FOCUS,false,Tokens.BORDER_WIDTH_EMPHASIS)
 
 func _gui_input(event):
 	if event is InputEventMouseButton:

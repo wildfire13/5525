@@ -2,6 +2,7 @@ extends Panel
 ## Draggable header and all eight resize edges. Children never pass input to board.
 signal columns_changed(count: int)
 const Grid=preload("res://screen_grid.gd")
+const Tokens=preload("res://ui_tokens.gd")
 var grid_columns := 2
 var preferences
 var layout_key := ""
@@ -30,6 +31,7 @@ var region_mode := ""
 var region_frame := Rect2()
 var region_movable := false
 var body_scroll: ScrollContainer
+var drag_handle: Label
 var section_with_handle := Control.new()
 var region_parent_position := Vector2.ZERO
 var laid_out_size := Vector2.ZERO
@@ -38,7 +40,7 @@ func place_regions(_view: Vector2,frame: Rect2,body_rect: Rect2,lower_rect: Rect
 	var parent_position=get_parent_control().global_position
 	var sections=[body_rect,lower_rect,footer_rect]
 	if region_mode!=layout_key or region_frame!=frame:
-		pending_restore=null;dragging=false
+		pending_restore=null;set_process(false);dragging=false
 		Grid.place(self,frame)
 		preferred_rect=Rect2(position,size)
 	elif region_parent_position!=parent_position:
@@ -52,7 +54,7 @@ func place_regions(_view: Vector2,frame: Rect2,body_rect: Rect2,lower_rect: Rect
 func _layout_regions():
 	if region_layout.is_empty():return
 	laid_out_size=size
-	var header=find_child("DragHandle",true,false)
+	var header=drag_handle if is_instance_valid(drag_handle) else find_child("DragHandle",true,false)
 	header.visible=region_movable
 	section_with_handle.visible=region_movable
 	var scale_=size/region_frame.size
@@ -72,7 +74,7 @@ func _layout_regions():
 			if header.get_parent()!=parent:
 				header.reparent(parent)
 				move_child(section_with_handle,-1)
-			header.position=Vector2.ZERO;header.size=Vector2(rect.size.x,36)
+			header.position=Vector2.ZERO;header.size=Vector2(rect.size.x,Tokens.WINDOW_BAR_HEIGHT)
 			rect.position=Vector2(0,header.size.y);rect.size.y=maxf(0,rect.size.y-header.size.y)
 		control.position=rect.position;control.size=rect.size
 
@@ -80,9 +82,10 @@ func configure(prefs,key: String,title: String,fallback: Rect2):
 	preferences=prefs;layout_key=key;name=key
 	section_with_handle.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(section_with_handle)
 	mouse_filter=Control.MOUSE_FILTER_STOP
-	var style=preload("res://mock_shell.gd").surface_style();style.set_content_margin_all(0);add_theme_stylebox_override("panel",style)
+	var style=Tokens.surface_box();style.set_content_margin_all(0);add_theme_stylebox_override("panel",style)
 	var box=VBoxContainer.new();box.add_theme_constant_override("separation",0);add_child(box);box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var header=Label.new();header.name="DragHandle";header.text=title+"  ⋮";header.custom_minimum_size.y=36;header.add_theme_color_override("font_color",Color("#29332f"));header.add_theme_font_size_override("font_size",20);header.mouse_filter=Control.MOUSE_FILTER_STOP;header.mouse_default_cursor_shape=Control.CURSOR_MOVE;box.add_child(header)
+	var header=Label.new();header.name="DragHandle";header.text=title+"  ⋮";header.custom_minimum_size.y=Tokens.WINDOW_BAR_HEIGHT;header.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;header.clip_text=true;header.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;header.add_theme_stylebox_override("normal",Tokens.window_bar_box());header.add_theme_color_override("font_color",Tokens.INK_INVERSE);header.add_theme_font_size_override("font_size",Tokens.FONT_BODY);header.mouse_filter=Control.MOUSE_FILTER_STOP;header.mouse_default_cursor_shape=Control.CURSOR_MOVE;box.add_child(header)
+	drag_handle=header
 	header.gui_input.connect(func(event):handle(event,true))
 	header.reparent(self)
 	var scroll=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;box.add_child(scroll)
@@ -103,13 +106,13 @@ func restore_rect(fallback: Rect2):
 	var rect=bound_rect(stored if stored is Rect2 else fallback,true)
 	position=rect.position;size=rect.size
 	preferred_rect=stored if stored is Rect2 else fallback
-	pending_restore=preferred_rect;restore_frames=2
+	pending_restore=preferred_rect;restore_frames=2;set_process(true)
 func _process(_delta):
-	if pending_restore==null:return
+	if pending_restore==null:set_process(false);return
 	restore_frames-=1
 	if restore_frames>0:return
 	# Containers finish positioning the parent after mount/render. Clamp in that final space.
-	var rect=bound_rect(pending_restore,true);pending_restore=null
+	var rect=bound_rect(pending_restore,true);pending_restore=null;set_process(false)
 	position=rect.position;size=rect.size
 func edges(at: Vector2) -> Vector2:
 	return Vector2(-1 if at.x<9 else 1 if at.x>size.x-9 else 0,-1 if at.y<9 else 1 if at.y>size.y-9 else 0)
@@ -149,7 +152,7 @@ func persist():
 func handle(event,header: bool):
 	if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			pending_restore=null
+			pending_restore=null;set_process(false)
 			get_parent().move_child(self,-1)
 			drag_edges=edges(event.global_position-global_position);moving=header and drag_edges==Vector2.ZERO
 			dragging=moving or drag_edges!=Vector2.ZERO;origin=Rect2(position,size);pointer=event.global_position

@@ -59,7 +59,7 @@
   },
   "deployment": {
    "label": "配置",
-   "meaning": "出場者・控え・陣形・配置先"
+   "meaning": "出場者・敵情報・配置先"
   },
   "battle": {
    "label": "戦闘",
@@ -610,31 +610,11 @@
    "screens": [
     "deployment"
    ],
-   "label": "陣形操作",
-   "nodes": [
-    "DeploymentFormationWindow"
-   ],
-   "meaning": "陣形と配置パターン"
-  },
-  {
-   "screens": [
-    "deployment"
-   ],
    "label": "配置人物情報",
    "nodes": [
     "battle_target_b"
    ],
-   "meaning": "配置時の敵一覧と控え欄"
-  },
-  {
-   "screens": [
-    "deployment"
-   ],
-   "label": "控えメンバー",
-   "nodes": [
-    "DeploymentReserveRegion"
-   ],
-   "meaning": "控えの人物と配置・解除先"
+   "meaning": "配置時の敵一覧と職業フィルター"
   },
   {
    "screens": [
@@ -642,9 +622,9 @@
    ],
    "label": "配置操作",
    "nodes": [
-    "DeploymentActions"
+    "DeploymentFooter"
    ],
-   "meaning": "リセット・撤退・戦闘開始"
+   "meaning": "配置案内・リセット・撤退・戦闘開始"
   },
   {
    "screens": [
@@ -697,7 +677,7 @@
    ],
    "label": "行動順",
    "nodes": [
-    "TurnOrderControls"
+    "BattleTurnFooter"
    ],
    "meaning": "手番・順番詳細・戦闘履歴"
   },
@@ -781,10 +761,19 @@
    "label": "明細本文",
    "nodes": [
     "ModalDetailScroll",
-    "ConfirmationTextScroll",
     "SkillDetailsSummary"
    ],
-   "meaning": "説明・確認内容"
+   "meaning": "説明・詳細内容"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "確認見出し",
+   "nodes": [
+    "ConfirmationHeading"
+   ],
+   "meaning": "確認ダイアログの表題"
   },
   {
    "screens": [
@@ -1155,12 +1144,10 @@
   },
   {
    "screens": [
-    "character",
     "guild"
    ],
    "label": "人物情報タブ",
    "nodes": [
-    "CharacterInfoTabs",
     "GuildInfoTabs"
    ],
    "meaning": "能力・スキルなどの人物情報切替"
@@ -1231,16 +1218,24 @@
    "screens": [
     "victory",
     "complete",
-    "loading",
-    "window"
+    "loading"
    ],
    "label": "画面の下地",
    "nodes": [
     "LoadingBackground",
-    "DialogSurface",
     "ResultsPanel"
    ],
-   "meaning": "リザルト・読み込み・確認ダイアログの背景面"
+   "meaning": "リザルト・読み込みの背景面"
+  },
+  {
+   "screens": [
+    "window"
+   ],
+   "label": "確認ダイアログの下地",
+   "nodes": [
+    "DialogSurface"
+   ],
+   "meaning": "確認ダイアログの背景面"
   },
   {
    "screens": [

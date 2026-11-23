@@ -9,6 +9,7 @@ var visit := ""
 var speech_key := ""
 var speech_started := 0
 const SpeechBubble=preload("res://speech_bubble.gd")
+const Tokens=preload("res://ui_tokens.gd")
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui
 func supported(page: String) -> bool:
  if pages.c().get("phase")!="town":return false
@@ -61,16 +62,16 @@ func render_title(parent: Control,page: String):
  var heading=ui.label_(layer,facility_name(page),true);heading.name="FacilityEntryTitle"
  heading.autowrap_mode=TextServer.AUTOWRAP_OFF
  heading.custom_minimum_size=Vector2.ZERO
- heading.add_theme_font_size_override("font_size",30);heading.add_theme_color_override("font_color",Color("#faf9f5"));heading.add_theme_color_override("font_outline_color",Color("#283128"));heading.add_theme_constant_override("outline_size",6)
+ heading.add_theme_font_size_override("font_size",Tokens.FONT_DISPLAY);heading.add_theme_color_override("font_color",Tokens.INK_INVERSE);heading.add_theme_color_override("font_outline_color",Tokens.TEXT_OUTLINE);heading.add_theme_constant_override("outline_size",6)
  place_region(heading,Rect2(1,1,8,1))
 func render_top(parent: Control,page: String) -> bool:
  sync()
  if not at_top(page):return false
  var layout=Control.new();parent.add_child(layout);layout.name="FacilityEntry";layout.custom_minimum_size.y=ui.mock_shell.content_height();layout.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  var cell=ui.mock_shell.grid_cell()
- var options=VBoxContainer.new();options.name="FacilityChoices";options.add_theme_constant_override("separation",0);layout.add_child(options)
+ var options=VBoxContainer.new();options.name="FacilityChoices";options.add_theme_constant_override("separation",Tokens.SPACE_NONE);layout.add_child(options)
  place_region(options,Rect2(0,2,6,7))
- var town_label=ui.label_(options,ui.town_name(pages.c().get("location","")));town_label.add_theme_font_size_override("font_size",20);town_label.add_theme_color_override("font_color",Color("#faf9f5"));town_label.add_theme_color_override("font_outline_color",Color("#283128"));town_label.add_theme_constant_override("outline_size",6)
+ var town_label=ui.label_(options,ui.town_name(pages.c().get("location","")));town_label.add_theme_color_override("font_color",Tokens.INK_INVERSE);town_label.add_theme_color_override("font_outline_color",Tokens.TEXT_OUTLINE);town_label.add_theme_constant_override("outline_size",6)
  render_title(layout,page)
  town_label.custom_minimum_size.y=cell.y
  var choices=[]
@@ -84,7 +85,7 @@ func render_top(parent: Control,page: String) -> bool:
  if page=="shop" or handoff:
   choices.append(["納品する","delivery",handoff and pages.c().get("cargoAboard",false)])
  for choice in choices:
-  var button=ui.button(options,choice[0],choose.bind(choice[1]),not choice[2]);button.name="FacilityChoice_"+str(choice[1]);button.custom_minimum_size=Vector2(300,64);
+  var button=ui.button(options,choice[0],choose.bind(choice[1]),not choice[2]);button.name="FacilityChoice_"+str(choice[1])
   button.theme_type_variation=&"ActionButton"
   button.custom_minimum_size=Vector2(cell.x*2,cell.y)
   button.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
@@ -94,7 +95,7 @@ func render_top(parent: Control,page: String) -> bool:
    else:button.tooltip_text="この機能はまだ利用できません。"
  if handoff and not pages.c().get("cargoAboard",false):
   ui.label_(options,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
- var exit_button=ui.button(options,"店を出る",ui.navigate.bind("hub"));exit_button.name="FacilityExit";exit_button.custom_minimum_size=Vector2(300,64)
+ var exit_button=ui.button(options,"店を出る",ui.navigate.bind("hub"));exit_button.name="FacilityExit";Tokens.apply_button_size(exit_button,Tokens.BUTTON_LG,false,Tokens.BUTTON_W_LG)
  render_entry_art(layout)
  return true
 func render_entry_art(layout: Control,words: String="",inn_service: bool=false):
@@ -110,7 +111,7 @@ func render_entry_art(layout: Control,words: String="",inn_service: bool=false):
   image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  var speech=make_speech(greeting_text() if words.is_empty() else words,"normal");speech.name="InnKeeperSpeech" if inn_service else "FacilityEntrySpeech";art.add_child(speech)
  place_region(speech,Rect2(6,2,4,2))
- speech.words.add_theme_font_size_override("font_size",22);speech.set_speaker_visible(false)
+ speech.words.add_theme_font_size_override("font_size",Tokens.FONT_BODY);speech.set_speaker_visible(false)
 func greeting_text() -> String:
  return "いらっしゃい。今日はどうしますか？" if ui.page=="shop" and view=="top" else ("売る品物の持ち主を、下の人物から選んでください。" if pages.shop_view.selected_owner().is_empty() else "売却する品物を選んでください。") if ui.page=="shop" and view=="sell" else "商品をご覧ください。" if ui.page=="shop" else "お泊まりですか？" if ui.page=="inn" else "仲間の編成はこちらでどうぞ。"
 func make_speech(text: String,kind: String) -> Control:

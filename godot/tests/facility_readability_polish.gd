@@ -26,8 +26,8 @@ func run():
  check(visible>=11,"FHD catalog shows at least eleven complete products")
  check(game.find_child("ShopWorkspace",true,false).size.y==game.mock_shell.content_height(),"shop height matches shared roster")
  game.pages.shop_view.open_comparison("javelin-wood");await settle()
- check(game.find_child("ShopComparisonStats",true,false).get_theme_font_size("normal_font_size")==22,"comparison body 22px")
- check(game.find_child("ShopComparisonProduct",true,false).get_theme_font_size("font_size")==28,"comparison heading 28px")
+ check(game.find_child("ShopComparisonStats",true,false).get_theme_font_size("normal_font_size")==20,"comparison body 20px")
+ check(game.find_child("ShopComparisonProduct",true,false).get_theme_font_size("font_size")==20,"comparison heading 20px")
  await shot("shop-readable")
  var items=game.campaign().shop.filter(func(e):return e.get("type")!="empty" and e.get("shopProductId",e.id)==e.id)
  seed.state.location="astaris";seed.state.warehouse={"potion":50,"ether":50}

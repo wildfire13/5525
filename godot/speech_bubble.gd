@@ -1,5 +1,6 @@
 extends Control
 ## Original text-free atlas UVs; the independent text layer never rotates.
+const Tokens=preload("res://ui_tokens.gd")
 const ART = preload("res://assets/speech/comic_balloons.png")
 const REGIONS = {"normal":Rect2(20,30,1210,390),"thought":Rect2(20,428,1210,408),"shout":Rect2(20,837,1210,385)}
 const LETTERS_PER_SECOND = 30.0
@@ -38,7 +39,7 @@ func configure(text: String, kind: String, start: int):
 		else:
 			for i in range(2):pointer.add_child(picture("ThoughtDot"+str(i),THOUGHT_REGIONS[i]))
 	words=Label.new();words.name="FacilityGreetingText";words.text=text;words.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;words.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;words.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;words.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	words.add_theme_color_override("font_color",Color("332c28"));words.add_theme_font_size_override("font_size",18);add_child(words)
+	words.add_theme_color_override("font_color",Tokens.INK);words.add_theme_font_size_override("font_size",Tokens.FONT_SM);add_child(words)
 	resized.connect(layout_words);layout_words();_process(0)
 func set_speaker_visible(value: bool):
 	speaker_visible=value;layout_words()

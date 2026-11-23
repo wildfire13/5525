@@ -2,6 +2,7 @@ extends CanvasLayer
 ## Draw the mock's review captions without adding children to the game's layout.
 const CATALOG = preload("res://ui_labels.json")
 const FONT = preload("res://assets/fonts/NotoSansJP.ttf")
+const Grid = preload("res://screen_grid.gd")
 const FONT_SIZE = 14
 const INK = Color("#665775")
 const PAPER = Color("#fffdf5")
@@ -13,6 +14,7 @@ var foreground := {}
 var overlays := {}
 var file_windows := {}
 var hint_windows := {}
+var _text_extents := {}
 var dirty := true
 var elapsed := 0.0
 
@@ -115,7 +117,7 @@ func cell_cover(rect: Rect2, window: Window) -> Rect2:
 	var root=get_tree().root
 	var to_game=root.get_screen_transform().affine_inverse()*window.get_screen_transform()
 	var box=to_game*rect
-	var unit=Vector2(root.size)/preload("res://screen_grid.gd").DIVISIONS
+	var unit=Vector2(root.size)/Grid.DIVISIONS
 	var first=(box.position/unit).floor()
 	var last=(box.end/unit).ceil()
 	return window.get_visible_rect().intersection(to_game.affine_inverse()*Rect2(first*unit,(last-first)*unit))
@@ -169,7 +171,12 @@ func occupied_text(window: Window, bounds: Rect2) -> Array[Rect2]:
 	return occupied
 
 func place(captions: Array, text: String, area: Rect2, bounds: Rect2, occupied: Array[Rect2]):
-	var extent = FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).ceil()
+	var extent: Vector2
+	if _text_extents.has(text):
+		extent = _text_extents[text]
+	else:
+		extent = FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).ceil()
+		_text_extents[text] = extent
 	var corner = (area.end-extent-Vector2(6,2)).clamp(Vector2.ONE*2,(bounds.end-extent-Vector2.ONE*2).max(Vector2.ONE*2)).floor()
 	var box = Rect2(corner,extent)
 	# Prefer the same edge, then the adjoining margin, before moving up the panel.
@@ -178,12 +185,23 @@ func place(captions: Array, text: String, area: Rect2, bounds: Rect2, occupied: 
 			var candidate = Rect2(corner+Vector2(-dx,dy),extent)
 			if candidate.position.x < minf(area.position.x,corner.x)-2: break
 			if not bounds.encloses(candidate): continue
-			if occupied.any(func(rect: Rect2): return rect.intersects(candidate)): continue
+			var blocked := false
+			for rect in occupied:
+				if rect.intersects(candidate):
+					blocked = true
+					break
+			if blocked: continue
 			captions.append([text,candidate])
 			occupied.append(candidate.grow(2))
 			return
 	# Small controls without an empty margin still need their review label.
-	while captions.any(func(entry): return box.intersects(entry[1])) and box.position.y>=extent.y+4:
+	while box.position.y>=extent.y+4:
+		var overlaps := false
+		for entry in captions:
+			if box.intersects(entry[1]):
+				overlaps = true
+				break
+		if not overlaps: break
 		box.position.y-=extent.y+3
 	captions.append([text,box])
 	occupied.append(box.grow(2))

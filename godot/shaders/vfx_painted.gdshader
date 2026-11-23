@@ -14,16 +14,23 @@ uniform float allowed_cells[50];
 varying vec3 world_point;
 void vertex() {
  world_point = (MODEL_MATRIX * vec4(VERTEX,1.0)).xyz;
- float radius = length(UV-vec2(0.67,0.45));
- VERTEX.z -= exp(-radius*8.0)*sin(radius*20.0-progress*9.0)*wave*0.06;
+ if (wave != 0.0) {
+  float radius = length(UV-vec2(0.67,0.45));
+  VERTEX.z -= exp(-radius*8.0)*sin(radius*20.0-progress*9.0)*wave*0.06;
+ }
 }
 void fragment() {
  vec2 at = UV;
- at.x += sin(UV.y*10.0-progress*5.0)*flow*0.014;
+ if (flow != 0.0) {
+  at.x += sin(UV.y*10.0-progress*5.0)*flow*0.014;
+ }
  vec4 paint = texture(art,uv_rect.xy+at*uv_rect.zw);
  float rising = scan>=0.999 ? 1.0 : smoothstep(-0.1,0.08,scan-(1.0-UV.y));
- float grain = fract(sin(dot(floor(UV*90.0),vec2(12.9898,78.233)))*43758.5453);
- float worn = dissolve<0.001 ? 1.0 : 1.0-smoothstep(grain-0.12,grain+0.12,dissolve);
+ float worn = 1.0;
+ if (dissolve >= 0.001) {
+  float grain = fract(sin(dot(floor(UV*90.0),vec2(12.9898,78.233)))*43758.5453);
+  worn = 1.0-smoothstep(grain-0.12,grain+0.12,dissolve);
+ }
  float coverage = 1.0;
  if (ground_masked) {
   int col=int(floor(world_point.x/1.35+5.0));

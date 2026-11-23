@@ -16,17 +16,18 @@ var _replaying := false
 var _compact := false
 var _layout_queued := false
 const Grid=preload("res://screen_grid.gd")
-const GOLD=Color("#315b4b")
-const MUTED=preload("res://mock_shell.gd").MUTED_INK
+const Tokens=preload("res://ui_tokens.gd")
+const GOLD=Tokens.ACCENT
+const MUTED=Tokens.MUTED_INK
 func _init(frontend=null):ui=frontend
 func _ready():
  layer=1500;name="ResultsView"
  shade=Control.new();shade.theme=ui.theme;shade.name="ResultBackground";shade.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
- var bg=ColorRect.new();bg.name="ResultPaper";bg.color=Color("#eeede7");bg.mouse_filter=Control.MOUSE_FILTER_IGNORE;shade.add_child(bg);bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);bg.anchor_top=0.1;bg.anchor_bottom=0.9
- panel=Panel.new();panel.theme=ui.theme;panel.name="ResultsPanel";panel.clip_contents=true;panel.add_theme_stylebox_override("panel",style(Color("#faf9f5"),Color("#cbd0c7"),24));shade.add_child(panel)
+ var bg=ColorRect.new();bg.name="ResultPaper";bg.color=Tokens.SURFACE_BACKDROP;bg.mouse_filter=Control.MOUSE_FILTER_IGNORE;shade.add_child(bg);bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);bg.anchor_top=0.1;bg.anchor_bottom=0.9
+ panel=Panel.new();panel.theme=ui.theme;panel.name="ResultsPanel";panel.clip_contents=true;panel.add_theme_stylebox_override("panel",style(Tokens.SURFACE,Tokens.BORDER,Tokens.SPACE_XL,Tokens.RADIUS_LG));shade.add_child(panel)
  ui.resized.connect(_layout);shade.hide()
-func style(fill: Color,border: Color,padding: int) -> StyleBoxFlat:
- var s=StyleBoxFlat.new();s.bg_color=fill;s.border_color=border;s.set_border_width_all(1);s.set_corner_radius_all(10);s.set_content_margin_all(padding);return s
+func style(fill: Color,border: Color,padding: int,radius: int=Tokens.RADIUS_LG) -> StyleBoxFlat:
+ return Tokens.box(fill,border,radius,padding)
 func reset():
  active=false;pending.clear();recent.clear();current.clear();shade.hide()
  if intro and intro.is_running():intro.kill()
@@ -86,20 +87,20 @@ func _open(receipt: Dictionary):
  _build();shade.show();_layout();continue_button.grab_focus()
  if intro and intro.is_running():intro.kill()
  body.modulate.a=0.0;intro=create_tween();intro.tween_property(body,"modulate:a",1.0,.22).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-func _label(parent: Node,text: String,size_: int,color:=Color("#29332e")) -> Label:
+func _label(parent: Node,text: String,size_: int,color:=Tokens.INK) -> Label:
  var l=Label.new();l.text=text;l.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;l.add_theme_font_size_override("font_size",size_);l.add_theme_color_override("font_color",color);parent.add_child(l);return l
 func _build():
  var compact=ui.size.x<1120 or ui.size.y<720
  _compact=compact
- body.add_theme_constant_override("separation",0)
- var heading=HBoxContainer.new();heading.name="ResultHeading";heading.add_theme_constant_override("separation",24);body.add_child(heading)
+ body.add_theme_constant_override("separation",Tokens.SPACE_NONE)
+ var heading=HBoxContainer.new();heading.name="ResultHeading";heading.add_theme_constant_override("separation",Tokens.SPACE_XL);body.add_child(heading)
  var crest=TextureRect.new();crest.name="ResultCrest";crest.custom_minimum_size=Vector2(80,80) if compact else Vector2(100,100);crest.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;crest.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;crest.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var path="res://assets/results/"+("battle-crest.png" if current.kind=="battle" else "quest-crest.png")
  if ResourceLoader.exists(path):crest.texture=load(path)
  heading.add_child(crest)
- var titles=VBoxContainer.new();titles.size_flags_horizontal=Control.SIZE_EXPAND_FILL;titles.add_theme_constant_override("separation",6);heading.add_child(titles)
- var stage_label=_label(titles,current.title,16,GOLD);stage_label.name="ResultStage"
- var title_label=_label(titles,current.subtitle,24);title_label.name="ResultTitle"
+ var titles=VBoxContainer.new();titles.size_flags_horizontal=Control.SIZE_EXPAND_FILL;titles.add_theme_constant_override("separation",Tokens.SPACE_XS);heading.add_child(titles)
+ var stage_label=_label(titles,current.title,Tokens.FONT_SM,GOLD);stage_label.name="ResultStage"
+ var title_label=_label(titles,current.subtitle,Tokens.FONT_HEADING);title_label.name="ResultTitle"
  for label in [stage_label,title_label]:
   label.max_lines_visible=1;label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;label.tooltip_text=label.text
  for line in [stage_label,title_label]:
@@ -111,64 +112,61 @@ func _build():
   var lo=gains.min();var hi=gains.max();xptext="+%d EXP / 人" % lo if lo==hi else "+%d〜%d EXP" % [lo,hi]
  if gains.any(func(value):return value>0):_summary(summary,"獲得EXP",xptext,"各パーティメンバーへ","ResultExperience")
  if int(current.get("rp_gain",0))>0:_summary(summary,"獲得RP","+%d RP" % int(current.rp_gain),"パーティのランク経験値","ResultRankPoints")
- var meta=""
- if current.kind=="battle":meta="敵戦闘不能 %d人" % current.get("defeated",0)+("　戦闘行動 %d" % int(current.actions) if current.get("actions")!=null else "")
- elif current.get("hours")!=null:meta="所要時間 %d時間" % int(current.hours)
  var scroll=ScrollContainer.new();scroll.name="ResultMembersScroll";scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.follow_focus=true;scroll.focus_mode=Control.FOCUS_ALL;body.add_child(scroll)
- var members=VBoxContainer.new();members.name="ResultMembers";members.size_flags_horizontal=Control.SIZE_EXPAND_FILL;members.add_theme_constant_override("separation",10);scroll.add_child(members)
- var context=str(current.get("quest","")) if current.kind=="quest" else "敵部隊を退けました。同行者の戦果と成長を確認できます。"
- if context.is_empty():context="配達の報酬は所持金と同行者に反映済みです。"
- _label(members,context,18,MUTED).name="ResultContext"
+ var members_margin=MarginContainer.new();members_margin.size_flags_horizontal=Control.SIZE_EXPAND_FILL;members_margin.add_theme_constant_override("margin_top",Tokens.SPACE_SM);members_margin.add_theme_constant_override("margin_bottom",Tokens.SPACE_SM);scroll.add_child(members_margin)
+ var members=VBoxContainer.new();members.name="ResultMembers";members.size_flags_horizontal=Control.SIZE_EXPAND_FILL;members.add_theme_constant_override("separation",Tokens.SPACE_SM);members_margin.add_child(members)
+ var quest_title=str(current.get("quest","")) if current.kind=="quest" else ""
+ if not quest_title.is_empty():_label(members,quest_title,Tokens.FONT_SM,MUTED).name="ResultContext"
  ui.pages.quest_board.render_sluice_story(members,current)
- if not meta.is_empty():_label(members,meta,18,MUTED).name="ResultFacts"
+ if current.kind=="quest" and current.get("hours")!=null:_label(members,"所要時間 %d時間" % int(current.hours),Tokens.FONT_SM,MUTED).name="ResultFacts"
  var leveled=current.members.filter(func(member):return member.level_before!=null and member.level_after>member.level_before)
  if not leveled.is_empty():
   var strip_scroll=ScrollContainer.new();strip_scroll.name="ResultLevelUpScroll";strip_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;body.add_child(strip_scroll);body.move_child(strip_scroll,scroll.get_index())
   var level_section=VBoxContainer.new();strip_scroll.add_child(level_section)
-  _label(level_section,"レベルアップ",22,GOLD).autowrap_mode=TextServer.AUTOWRAP_OFF
-  var strip=HBoxContainer.new();strip.name="ResultLevelUpStrip";strip.add_theme_constant_override("separation",24);level_section.add_child(strip)
+  _label(level_section,"レベルアップ",Tokens.FONT_HEADING,GOLD).autowrap_mode=TextServer.AUTOWRAP_OFF
+  var strip=HBoxContainer.new();strip.name="ResultLevelUpStrip";strip.add_theme_constant_override("separation",Tokens.SPACE_XL);level_section.add_child(strip)
   for member in leveled:
    var column=VBoxContainer.new();column.name="ResultLevelUp_"+str(member.id);column.custom_minimum_size.x=152;strip.add_child(column)
-   var level=_label(column,"Lv.%d → Lv.%d" % [member.level_before,member.level_after],22,GOLD);level.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-   var face=TextureRect.new();face.texture=ui.portraits.texture(member.member,false);face.custom_minimum_size=Vector2(152,220);face.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;face.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;column.add_child(face)
-   var name_=_label(column,str(member.name),16);name_.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+   var level=_label(column,"Lv.%d → Lv.%d" % [member.level_before,member.level_after],Tokens.FONT_BODY,GOLD);level.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+   var face=TextureRect.new();face.texture=ui.portraits.texture(member.member,false);face.custom_minimum_size=Vector2(152,180);face.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;face.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;column.add_child(face)
+   var name_=_label(column,str(member.name),Tokens.FONT_SM);name_.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
    var points=[]
    if member.get("stat_gain",0)!=null and member.get("stat_gain",0)>0:points.append("能力 +%d" % int(member.stat_gain))
    if member.get("skill_gain",0)!=null and member.get("skill_gain",0)>0:points.append("スキル +%d" % int(member.skill_gain))
    if not points.is_empty():
-    var gain=_label(column," / ".join(points),18,GOLD);gain.name="ResultLevelUpPoints_"+str(member.id);gain.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
- var details=VBoxContainer.new();details.name="ResultMemberDetails";details.visible=false
- var toggle=Button.new();toggle.name="ResultDetailsToggle";toggle.text="成長の詳細";toggle.pressed.connect(func():details.visible=not details.visible);members.add_child(toggle);members.add_child(details)
+    var gain=_label(column," / ".join(points),Tokens.FONT_SM,GOLD);gain.name="ResultLevelUpPoints_"+str(member.id);gain.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ var details=VBoxContainer.new();details.name="ResultMemberDetails";details.size_flags_horizontal=Control.SIZE_EXPAND_FILL;details.add_theme_constant_override("separation",Tokens.SPACE_SM);members.add_child(details)
  for row in current.members:_member_card(details,row,compact)
- if current.restored:_label(members,"保存済みの結果です。成長前の値は記録されていません。",14,MUTED)
- var actions=HBoxContainer.new();actions.name="ResultActions";actions.add_theme_constant_override("separation",16);body.add_child(actions)
- save_button=Button.new();save_button.theme_type_variation=&"ActionButton";save_button.name="ResultSave";save_button.text="セーブ";save_button.custom_minimum_size=Vector2(140,46);save_button.pressed.connect(func():if active and not ui.locked:ui.save_game());actions.add_child(save_button)
+ if current.restored:_label(members,"保存済みの結果です。成長前の値は記録されていません。",Tokens.FONT_XS,MUTED)
+ var action_h := Tokens.BUTTON_MD if compact else Tokens.BUTTON_LG
+ var actions=HBoxContainer.new();actions.name="ResultActions";actions.add_theme_constant_override("separation",Tokens.SPACE_LG);body.add_child(actions)
+ save_button=Button.new();save_button.theme_type_variation=&"ActionButton";save_button.name="ResultSave";save_button.text="セーブ";Tokens.apply_button_size(save_button,action_h,true,Tokens.BUTTON_W_MD);save_button.pressed.connect(func():if active and not ui.locked:ui.save_game());actions.add_child(save_button)
  if current.kind=="quest" and not _replaying and str(current.location) in ["east","west","south","north"]:
-  var shortcut=Button.new();shortcut.name="ResultShop";shortcut.text=ui.town_name(current.location)+"の"+{"east":"武器店","west":"防具店","south":"道具店","north":"装飾品店"}[str(current.location)]+"へ";shortcut.custom_minimum_size=Vector2(180,46);actions.add_child(shortcut)
+  var shortcut=Button.new();shortcut.name="ResultShop";shortcut.text=ui.town_name(current.location)+"の"+{"east":"武器店","west":"防具店","south":"道具店","north":"装飾品店"}[str(current.location)]+"へ";Tokens.apply_button_size(shortcut,action_h,true,Tokens.BUTTON_W_LG);actions.add_child(shortcut)
   var shortcut_owner=sequence;shortcut.pressed.connect(func():if active and sequence==shortcut_owner:advance_to("shop"))
  var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(spacer)
- continue_button=Button.new();continue_button.name="ResultContinue";continue_button.text="OK";continue_button.custom_minimum_size=Vector2(220,46);ui.action_button(continue_button);actions.add_child(continue_button)
+ continue_button=Button.new();continue_button.name="ResultContinue";continue_button.text="OK";ui.action_button(continue_button);Tokens.apply_button_size(continue_button,action_h,true,Tokens.BUTTON_W_MD);actions.add_child(continue_button)
  if current.get("storyId")!="sluice-bell" and current.get("story",[]) is Array and not current.get("story",[]).is_empty():
-  var scene=Button.new();scene.name="ResultStory";scene.text="会話を見る";scene.custom_minimum_size=Vector2(160,46);actions.add_child(scene);scene.pressed.connect(func():if active:ui.pages.quest_board.play_scene(current.story,str(current.get("portrait","")),current.get("cast",[]),str(current.get("scenario",""))))
+  var scene=Button.new();scene.name="ResultStory";scene.text="会話を見る";Tokens.apply_button_size(scene,action_h,true,Tokens.BUTTON_W_MD);actions.add_child(scene);scene.pressed.connect(func():if active:ui.pages.quest_board.play_scene(current.story,str(current.get("portrait","")),current.get("cast",[]),str(current.get("scenario",""))))
  var owner=sequence;continue_button.pressed.connect(func():if active and sequence==owner:advance())
 func _summary(parent: Node,title: String,value: String,detail: String,node_name: String):
- var card=PanelContainer.new();card.name=node_name;card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.add_theme_stylebox_override("panel",style(Color("#f5f4ee"),Color("#cbd0c7"),10 if _compact else 12));parent.add_child(card)
- var box=VBoxContainer.new();box.add_theme_constant_override("separation",5);card.add_child(box);_label(box,title,15 if _compact else 17,MUTED);_label(box,value,24,GOLD);_label(box,detail,14 if _compact else 16,MUTED)
+ var card=PanelContainer.new();card.name=node_name;card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.add_theme_stylebox_override("panel",style(Tokens.SURFACE_ALT,Tokens.BORDER,Tokens.SPACE_SM if _compact else Tokens.SPACE_MD,Tokens.RADIUS_LG));parent.add_child(card)
+ var box=VBoxContainer.new();box.add_theme_constant_override("separation",Tokens.SPACE_XS);card.add_child(box);_label(box,title,Tokens.FONT_XS if _compact else Tokens.FONT_SM,MUTED);_label(box,value,Tokens.FONT_HEADING,GOLD);_label(box,detail,Tokens.FONT_XS if _compact else Tokens.FONT_SM,MUTED)
 func _member_card(parent: Node,row: Dictionary,compact: bool):
- var card=PanelContainer.new();card.name="ResultMember_"+str(row.id);card.add_theme_stylebox_override("panel",style(Color("#faf9f5"),Color("#cbd0c7"),12));parent.add_child(card)
- var line=HBoxContainer.new();line.add_theme_constant_override("separation",14);card.add_child(line)
+ var card=PanelContainer.new();card.name="ResultMember_"+str(row.id);card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.add_theme_stylebox_override("panel",style(Tokens.SURFACE,Tokens.BORDER,Tokens.SPACE_MD,Tokens.RADIUS_SM));parent.add_child(card)
+ var line=HBoxContainer.new();line.add_theme_constant_override("separation",Tokens.SPACE_MD);card.add_child(line)
  var portrait=TextureRect.new();portrait.custom_minimum_size=Vector2(62,62) if compact else Vector2(76,76);portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;portrait.texture=ui.portraits.texture(row.member,true);portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE;line.add_child(portrait)
- var info=VBoxContainer.new();info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.add_theme_constant_override("separation",3);line.add_child(info)
+ var info=VBoxContainer.new();info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.add_theme_constant_override("separation",Tokens.SPACE_XS);line.add_child(info)
  var level="Lv%d" % int(row.level_after)
  if row.level_before!=null and row.level_before!=row.level_after:level="Lv%d → Lv%d" % [int(row.level_before),int(row.level_after)]
- _label(info,str(row.name)+"　"+level,20,GOLD if row.level_before!=null and row.level_after>row.level_before else Color("#29332e"))
+ _label(info,str(row.name)+"　"+level,Tokens.FONT_BODY,GOLD if row.level_before!=null and row.level_after>row.level_before else Tokens.INK)
  var experience="累計EXP %d" % int(row.xp_after) if row.xp_before==null else "累計EXP %d → %d" % [int(row.xp_before),int(row.xp_after)]
- _label(info,experience,16,MUTED)
+ _label(info,experience,Tokens.FONT_SM,MUTED)
  var points=[]
  if row.stat_gain!=null and row.stat_gain>0:points.append("能力ポイント +%d" % int(row.stat_gain))
  if row.skill_gain!=null and row.skill_gain>0:points.append("スキルポイント +%d" % int(row.skill_gain))
- if not points.is_empty():_label(info," / ".join(points),16,GOLD)
- var gain=_label(line,"+%d EXP" % int(row.xp_gain),23,Color("#28714c"));gain.name="ResultGain_"+str(row.id);gain.autowrap_mode=TextServer.AUTOWRAP_OFF;gain.custom_minimum_size.x=128 if compact else 150;gain.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+ if not points.is_empty():_label(info," / ".join(points),Tokens.FONT_SM,GOLD)
+ var gain=_label(line,"+%d EXP" % int(row.xp_gain),Tokens.FONT_HEADING,Tokens.POSITIVE);gain.name="ResultGain_"+str(row.id);gain.autowrap_mode=TextServer.AUTOWRAP_OFF;gain.custom_minimum_size.x=128 if compact else 150;gain.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
 func _queue_layout():
  if _layout_queued:return
  _layout_queued=true;call_deferred("_deferred_layout")
@@ -190,7 +188,10 @@ func _layout():
  var row_height=Grid.cell_rect(view,0,1,1,1).size.y
  var crest=body.find_child("ResultCrest",true,false)
  crest.custom_minimum_size.y=minf(80 if compact else 100,row_height)
- for entry in [["ResultHeading",1,1,8,1],["ResultSummary",1,2,8,1],["ResultLevelUpScroll",1,3,8,4],["ResultMembersScroll",1,7,8,1],["ResultActions",1,8,8,1]]:
+ var has_level_up=panel.find_child("ResultLevelUpScroll",true,false)!=null
+ var members_row=6 if has_level_up else 3
+ var members_span=2 if has_level_up else 5
+ for entry in [["ResultHeading",1,1,8,1],["ResultSummary",1,2,8,1],["ResultLevelUpScroll",1,3,8,3],["ResultMembersScroll",1,members_row,8,members_span],["ResultActions",1,8,8,1]]:
   var region=panel.find_child(entry[0],true,false)
   if region==null:continue
   region.clip_contents=true
@@ -217,7 +218,7 @@ func _input(event):
   if event.pressed and event.keycode==KEY_ESCAPE:advance();get_viewport().set_input_as_handled();return
   if event.pressed and event.keycode==KEY_TAB:
    var controls=[]
-   for control in [shade.find_child("ResultMembersScroll",true,false),shade.find_child("ResultDetailsToggle",true,false),save_button,shade.find_child("ResultShop",true,false),shade.find_child("ResultStory",true,false),continue_button]:
+   for control in [shade.find_child("ResultMembersScroll",true,false),save_button,shade.find_child("ResultShop",true,false),shade.find_child("ResultStory",true,false),continue_button]:
     if is_instance_valid(control) and control.is_visible_in_tree():controls.append(control)
    var index=controls.find(get_viewport().gui_get_focus_owner());controls[posmod(index+(-1 if event.shift_pressed else 1),controls.size())].grab_focus();get_viewport().set_input_as_handled();return
   var scroll=shade.find_child("ResultMembersScroll",true,false)

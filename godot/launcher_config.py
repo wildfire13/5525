@@ -72,6 +72,9 @@ def _automatic_candidates(root: Path):
     runtime = root / "runtime" / "godot"
     if runtime.is_dir():
         yield from sorted(runtime.glob("*_console.exe"), key=lambda p: p.name, reverse=True)
+        for folder in sorted(runtime.glob("Godot*"), reverse=True):
+            if folder.is_dir():
+                yield from sorted(folder.glob("*_console.exe"), key=lambda p: p.name, reverse=True)
         yield from sorted(runtime.glob("godot*"), key=lambda p: p.name, reverse=True)
 
     for demo_root in (root, root.parent / "5525"):
@@ -112,13 +115,13 @@ def resolve_godot(root: Path, explicit: str | None = None, environ=None, validat
         if source == "godot/launcher.local.json" and not path.is_absolute():
             path = root / path
         if not path.is_file() or validate is not None and not validate(path):
-            raise FileNotFoundError(f"Godot executable from {source} is missing or is not a usable Godot 4.6.x executable.")
+            raise FileNotFoundError(f"Godot executable from {source} is missing or is not a usable Godot 4.7.x executable.")
         return path.resolve(), source
 
     for path in _automatic_candidates(root):
         if path.is_file() and (validate is None or validate(path)):
             return path.resolve(), "automatic discovery"
     raise FileNotFoundError(
-        "Godot 4.6.x was not found. Set GODOT_BIN or copy "
+        "Godot 4.7.x was not found. Set GODOT_BIN or copy "
         "godot/launcher.local.example.json to godot/launcher.local.json and edit godot_bin."
     )

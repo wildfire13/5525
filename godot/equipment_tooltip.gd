@@ -6,6 +6,8 @@ const SKILL="#c7a5ff"
 const NEUTRAL="#b4c4cf"
 var details: Array[String]=[]
 var plain_details: Array[String]=[]
+static var _effect_regex: RegEx
+static var _numeric_regex: RegEx
 static func bind_details(button: Button,ui,entry: Dictionary):
 	var item=entry.duplicate(true)
 	if not item.has("definition"):
@@ -47,11 +49,13 @@ func line(plain: String,rich: String=""):
 func colored_effect(text: String) -> String:
 	# Only explicit signs, multipliers, percentages and stated recovery amounts.
 	# Range/Lv/target counts remain purple; they are not fabricated modifiers.
-	var regex=RegEx.new();regex.compile("[+＋−-][0-9]+(?:\\.[0-9]+)?(?:%|％)?|×[0-9]+(?:\\.[0-9]+)?|[0-9]+(?:\\.[0-9]+)?(?:%|％)|(?:HP|MP)(?:を)?(?:各)?[0-9]+(?=回復)")
+	if _effect_regex==null:
+		_effect_regex=RegEx.new();_effect_regex.compile("[+＋−-][0-9]+(?:\\.[0-9]+)?(?:%|％)?|×[0-9]+(?:\\.[0-9]+)?|[0-9]+(?:\\.[0-9]+)?(?:%|％)|(?:HP|MP)(?:を)?(?:各)?[0-9]+(?=回復)")
+		_numeric_regex=RegEx.new();_numeric_regex.compile("[0-9]+(?:\\.[0-9]+)?")
 	var result="";var cursor=0
-	for match_ in regex.search_all(text):
+	for match_ in _effect_regex.search_all(text):
 		result+=escaped(text.substr(cursor,match_.get_start()-cursor))
-		var token=match_.get_string();var numeric=RegEx.new();numeric.compile("[0-9]+(?:\\.[0-9]+)?");var number=numeric.search(token);var amount=float(number.get_string())
+		var token=match_.get_string();var number=_numeric_regex.search(token);var amount=float(number.get_string())
 		var color=""
 		if token.begins_with("+") or token.begins_with("＋"):color=POSITIVE if amount>0 else ""
 		elif token.begins_with("-") or token.begins_with("−"):color=NEGATIVE if amount>0 else ""

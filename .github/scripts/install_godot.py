@@ -6,10 +6,10 @@ import platform
 import urllib.request
 import zipfile
 
-VERSION = '4.6.3-stable'
+VERSION = '4.7.2-stable'
 RELEASES = {
-    'Linux': ('linux.x86_64', 'd0bc2113065e481c9c2c2b2c37daa4e8be3fe9e27f0ab9ab0b6096e9a37907f3'),
-    'Windows': ('win64.exe', 'e39986a178d585ce7ac198fb8de6ea436366dc0cc00e594810c2e3e104c04b90'),
+    'Linux': ('linux.x86_64', 'cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4'),
+    'Windows': ('win64.exe', '731980f9608d61333e5baf54a2ef17210acc7a538446c0cb9969f002aca1e953'),
 }
 suffix, digest = RELEASES[platform.system()]
 name = f'Godot_v{VERSION}_{suffix}'

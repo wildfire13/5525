@@ -17,16 +17,25 @@ var wood: StandardMaterial3D
 var roof: StandardMaterial3D
 var moss: StandardMaterial3D
 var flat_shadows: Array = []
+var _mat_cache: Dictionary = {}
+var _tex_cache: Dictionary = {}
 
 func material(c: Color, rough: float = 0.9, unshaded: bool = false) -> StandardMaterial3D:
+	var key := "%s:%.2f:%d" % [c.to_html(true), rough, 1 if unshaded else 0]
+	if _mat_cache.has(key):
+		return _mat_cache[key]
 	var m=StandardMaterial3D.new()
 	m.albedo_color=c
 	m.roughness=rough
 	if unshaded: m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+	_mat_cache[key]=m
 	return m
 
 func texture_mat(base: Color, kind: String) -> StandardMaterial3D:
-	var img=Image.create(128,128,false,Image.FORMAT_RGB8)
+	var key := "%s:%s" % [kind, base.to_html(false)]
+	if _tex_cache.has(key):
+		return _tex_cache[key]
+	var img=Image.create_empty(128,128,false,Image.FORMAT_RGB8)
 	var rng=RandomNumberGenerator.new()
 	rng.seed=5525
 	for y in range(128):
@@ -39,31 +48,39 @@ func texture_mat(base: Color, kind: String) -> StandardMaterial3D:
 			elif kind!="earth": seam=y%16<2 or (x+(int(y/16)%2)*12)%24<1
 			if seam:c=c.darkened(.23)
 			img.set_pixel(x,y,c)
-	var m=material(Color.WHITE)
+	var m=StandardMaterial3D.new()
+	m.roughness=0.9
 	img.generate_mipmaps()
 	m.albedo_texture=ImageTexture.create_from_image(img)
 	m.albedo_color=Color(.72,.72,.72)
 	m.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	_tex_cache[key]=m
 	return m
 
-func box(p: Vector3, dims: Vector3, mat: Material, parent_: Node3D = null) -> MeshInstance3D:
+func box(p: Vector3, dims: Vector3, mat: Material, parent_: Node3D = null, shared_mesh: BoxMesh = null) -> MeshInstance3D:
 	var n=MeshInstance3D.new()
-	var mesh=BoxMesh.new()
-	mesh.size=dims
-	n.mesh=mesh
+	if shared_mesh!=null:
+		n.mesh=shared_mesh
+	else:
+		var mesh=BoxMesh.new()
+		mesh.size=dims
+		n.mesh=mesh
 	n.material_override=mat
 	n.position=p
 	(parent_ if parent_!=null else self).add_child(n)
 	return n
 
-func cylinder(p: Vector3, radius: float, height_: float, mat: Material, parent_: Node3D = null, top: float = -1.0) -> MeshInstance3D:
+func cylinder(p: Vector3, radius: float, height_: float, mat: Material, parent_: Node3D = null, top: float = -1.0, shared_mesh: CylinderMesh = null) -> MeshInstance3D:
 	var n=MeshInstance3D.new()
-	var mesh=CylinderMesh.new()
-	mesh.bottom_radius=radius
-	mesh.top_radius=radius if top<0 else top
-	mesh.height=height_
-	mesh.radial_segments=10
-	n.mesh=mesh
+	if shared_mesh!=null:
+		n.mesh=shared_mesh
+	else:
+		var mesh=CylinderMesh.new()
+		mesh.bottom_radius=radius
+		mesh.top_radius=radius if top<0 else top
+		mesh.height=height_
+		mesh.radial_segments=10
+		n.mesh=mesh
 	n.material_override=mat
 	n.position=p
 	(parent_ if parent_!=null else self).add_child(n)
@@ -107,16 +124,19 @@ func _ready():
 	box(Vector3(0,-.35,0),Vector3(16,1,10),texture_mat(Color("59624e"),"stone"),courtyard_ground)
 	box(Vector3(0,.03,0),Vector3(15.6,.22,9.6),moss,courtyard_ground)
 	box(Vector3(0,.055,0),Vector3(14,.1,7.2),stone,courtyard_ground)
+	var tile_mesh=BoxMesh.new();tile_mesh.size=Vector3(lab.CELL-.024,.12,lab.CELL-.024)
 	for y in range(5):
 		for x in range(10):
 			var base=Color("8a896a") if (x+y)%2==0 else Color("a29b79")
 			base=base.lerp(Color("538174") if x<5 else Color("936962"),.16)
-			box(lab.cell_world(Vector2i(x,y))-Vector3(0,.09,0),Vector3(lab.CELL-.024,.12,lab.CELL-.024),texture_mat(base,"stone"),courtyard_ground)
+			box(lab.cell_world(Vector2i(x,y))-Vector3(0,.09,0),tile_mesh.size,texture_mat(base,"stone"),courtyard_ground,tile_mesh)
 	grid_root=Node3D.new()
 	add_child(grid_root)
 	var gridmat=material(Color("b6b59b"))
-	for x in range(11):box(Vector3((x-5)*lab.CELL,.16,0),Vector3(.018,.008,5*lab.CELL),gridmat,grid_root)
-	for z in range(6):box(Vector3(0,.16,(z-2.5)*lab.CELL),Vector3(10*lab.CELL,.008,.018),gridmat,grid_root)
+	var grid_x_mesh=BoxMesh.new();grid_x_mesh.size=Vector3(.018,.008,5*lab.CELL)
+	var grid_z_mesh=BoxMesh.new();grid_z_mesh.size=Vector3(10*lab.CELL,.008,.018)
+	for x in range(11):box(Vector3((x-5)*lab.CELL,.16,0),grid_x_mesh.size,gridmat,grid_root,grid_x_mesh)
+	for z in range(6):box(Vector3(0,.16,(z-2.5)*lab.CELL),grid_z_mesh.size,gridmat,grid_root,grid_z_mesh)
 	box(Vector3(0,.173,0),Vector3(.04,.012,5*lab.CELL),material(Color("e9ce98")),grid_root)
 	scenery=Node3D.new()
 	add_child(scenery)
@@ -167,11 +187,15 @@ func build_scenery():
 		box(p+Vector3(0,.02,.368),Vector3(.085,.73,.055),material(Color("ad9867")),scenery)
 	var rng=RandomNumberGenerator.new()
 	rng.seed=2525
+	var grass_mat=material(Color("597345"))
+	var flower_mat=material(Color("d4b573"))
+	var grass_mesh=CylinderMesh.new();grass_mesh.bottom_radius=.08;grass_mesh.top_radius=.01;grass_mesh.height=.25;grass_mesh.radial_segments=10
+	var flower_mesh=CylinderMesh.new();flower_mesh.bottom_radius=.055;flower_mesh.top_radius=.055;flower_mesh.height=.05;flower_mesh.radial_segments=10
 	for i in range(40):
 		var side=-1 if i%2==0 else 1
 		var p=Vector3(rng.randf_range(-7.5,7.5),.18,side*rng.randf_range(3.55,4.2))
-		cylinder(p,.08,.25,material(Color("597345")),scenery,.01)
-		if i%4==0:cylinder(p+Vector3(0,.12,0),.055,.05,material(Color("d4b573")),scenery)
+		cylinder(p,.08,.25,grass_mat,scenery,.01,grass_mesh)
+		if i%4==0:cylinder(p+Vector3(0,.12,0),.055,.05,flower_mat,scenery,-1.0,flower_mesh)
 
 func house(p: Vector3, side: int):
 	box(p+Vector3(0,.95,0),Vector3(2.45,1.85,1.8),texture_mat(Color("b2a184"),"stone"),scenery)
@@ -194,10 +218,15 @@ func house(p: Vector3, side: int):
 
 func lantern(p: Vector3):
 	cylinder(p-Vector3(0,.27,0),.07,.55,wood,scenery)
-	var m=material(Color("ffcb75"),.6,true)
-	m.emission_enabled=true
-	m.emission=Color("ffb75c")
-	m.emission_energy_multiplier=1.2
+	var m_key := "lantern_glow"
+	var m: StandardMaterial3D
+	if _mat_cache.has(m_key):
+		m=_mat_cache[m_key]
+	else:
+		m=StandardMaterial3D.new()
+		m.albedo_color=Color("ffcb75");m.roughness=.6;m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.emission_enabled=true;m.emission=Color("ffb75c");m.emission_energy_multiplier=1.2
+		_mat_cache[m_key]=m
 	box(p,Vector3(.21,.29,.21),m,scenery)
 	box(p+Vector3(0,.18,0),Vector3(.32,.07,.32),wood,scenery)
 	var l=OmniLight3D.new()
@@ -219,7 +248,8 @@ func build_unit(i: int):
 	add_child(root)
 	unit_nodes.append(root)
 	# Shadows use a small flat contact disc, never a full opaque character quad.
-	var shadowmat=material(Color(0.015,.05,.055,.28),1.0,true)
+	var shadowmat=StandardMaterial3D.new()
+	shadowmat.albedo_color=Color(0.015,.05,.055,.28);shadowmat.roughness=1.0;shadowmat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
 	shadowmat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
 	var disc=cylinder(Vector3(0,.015,0),.42,.006,shadowmat,root)
 	disc.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

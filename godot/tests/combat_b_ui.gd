@@ -47,7 +47,7 @@ func run():
   check(menu_button.global_position.y<80 and menu_button.global_position.x>root.size.x-160,"battle menu at upper right")
   check(game.find_child("BattleDetails",true,false)==null,"obsolete battle details button removed")
   var hint=game.find_child("BattleCameraHint",true,false)
-  check(hint.is_visible_in_tree() and hint.global_position.y>root.size.y-48 and field.encloses(hint.get_global_rect()),"camera guidance at bottom of battlefield")
+  check(hint.is_visible_in_tree() and hint.global_position.y>root.size.y-160 and hint.get_global_rect().end.y<=game.battle_header.global_position.y and field.encloses(hint.get_global_rect()),"camera guidance at bottom of battlefield")
   var panels=[game.hud.left_panel.get_global_rect(),game.hud.right_panel.get_global_rect()]
   for cell in range(50):
    var center=game.board.global_position+game.board.project_cell(cell)

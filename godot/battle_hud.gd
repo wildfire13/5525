@@ -1,6 +1,7 @@
 extends RefCounted
 const ElementBadges=preload("res://element_badges.gd")
 const BattleText=preload("res://battle_text.gd")
+const Tokens=preload("res://ui_tokens.gd")
 ## State-focused display. Choices, predictions and results remain engine-owned.
 var ui
 var middle: Control
@@ -49,9 +50,8 @@ var reference_kind := "action_attack"
 var bottom_commands: VBoxContainer
 var left_panel
 var right_panel
-var deployment_bar: PanelContainer
+var deployment_footer: PanelContainer
 var deployment_instructions: Label
-var deployment_options: VBoxContainer
 var deployment_actions: HBoxContainer
 var deployment_layout := false
 var deployment_workspace=preload("res://deployment_workspace.gd").new()
@@ -62,15 +62,16 @@ var inspection_pinned := false
 var hover_generation := 0
 var hover_stamp := ""
 var skill_content_open := false
+var _layout_sig: Array=[]
 const QUEUE_VISIBLE=5
 const QUEUE_CARD_WIDTH=180
 const QUEUE_ARROW_WIDTH=24
-const QUEUE_GAP=8
+const QUEUE_GAP=Tokens.SPACE_SM
 const QUEUE_PITCH=QUEUE_CARD_WIDTH+QUEUE_ARROW_WIDTH+QUEUE_GAP*2
 const COMMANDS=[["action_attack","攻撃"],["action_move","移動"],["action_skill","スキル"],["items","アイテム"],["action_defend","防御"]]
 const Grid=preload("res://screen_grid.gd")
 func panel_rect(right: bool) -> Rect2:
-	var rect=Grid.cell_rect(ui.size,8 if right else 0,2,2,6)
+	var rect=Grid.cell_rect(ui.size,8 if right else 0,1,2,8)
 	rect.position-=middle.global_position
 	return rect
 func actor_panel_rect() -> Rect2:return panel_rect(false)
@@ -81,7 +82,7 @@ func set_panel_columns(count: int):
 func _init(frontend):ui=frontend
 func l(parent,text,large:=false):
 	var label=ui.label_(parent,str(text),large)
-	if large:label.add_theme_color_override("font_color",Color("#29332f"))
+	if large:label.add_theme_color_override("font_color",Tokens.INK)
 	return label
 func b(parent,text,fn,disabled:=false):
 	var control=ui.button(parent,text,fn,disabled);control.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;return control
@@ -125,59 +126,86 @@ func mount():
 	dock=left_panel
 	tools=HBoxContainer.new();tools.name="BattleTools";middle.add_child(tools)
 	var guidance=Control.new();guidance.name="CameraGuideRegion";guidance.mouse_filter=Control.MOUSE_FILTER_IGNORE;middle.add_child(guidance)
-	camera_hint=l(guidance,preload("res://battle_board.gd").CAMERA_HINT)
+	var hint_chip=PanelContainer.new();hint_chip.name="CameraGuideChip";hint_chip.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	hint_chip.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_XS))
+	guidance.add_child(hint_chip)
+	camera_hint=l(hint_chip,preload("res://battle_board.gd").CAMERA_HINT)
 	camera_hint.name="BattleCameraHint";camera_hint.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	camera_hint.autowrap_mode=TextServer.AUTOWRAP_OFF
-	camera_hint.add_theme_font_size_override("font_size",18)
-	camera_hint.add_theme_color_override("font_color",Color.WHITE)
-	camera_hint.add_theme_color_override("font_shadow_color",Color.BLACK)
-	camera_hint.add_theme_constant_override("shadow_offset_x",1);camera_hint.add_theme_constant_override("shadow_offset_y",1)
-	ui.battle_header=VBoxContainer.new();middle.add_child(ui.battle_header)
-	ui.battle_header.size=Vector2(middle.size.x,64)
+	camera_hint.add_theme_font_size_override("font_size",Tokens.FONT_SM)
+	camera_hint.add_theme_color_override("font_color",Tokens.INK)
+	camera_hint.add_theme_color_override("font_shadow_color",Color.TRANSPARENT)
+	ui.battle_header=PanelContainer.new();ui.battle_header.name="BattleTurnFooter";ui.battle_header.mouse_filter=Control.MOUSE_FILTER_STOP
+	ui.battle_header.add_theme_stylebox_override("panel",Tokens.surface_box())
+	ui.battle_header.z_index=1
+	middle.add_child(ui.battle_header)
 	last_actor="";last_action_count=-1;action_menu=true;item_list=false;selected_cell=-1
-	deployment_bar=PanelContainer.new();deployment_bar.name="DeploymentFormationWindow";middle.add_child(deployment_bar)
-	var formation_style=StyleBoxFlat.new();formation_style.bg_color=Color("#18212aef");formation_style.border_color=Color("#63717f");formation_style.set_border_width_all(1);formation_style.set_corner_radius_all(5);formation_style.set_content_margin_all(10);deployment_bar.add_theme_stylebox_override("panel",formation_style)
-	deployment_options=VBoxContainer.new();deployment_bar.add_child(deployment_options)
+	deployment_footer=PanelContainer.new();deployment_footer.name="DeploymentFooter";deployment_footer.mouse_filter=Control.MOUSE_FILTER_STOP
+	deployment_footer.add_theme_stylebox_override("panel",Tokens.surface_box())
+	deployment_footer.z_index=1
+	middle.add_child(deployment_footer)
+	var deploy_row=HBoxContainer.new();deploy_row.name="DeploymentFooterRow";deploy_row.size_flags_horizontal=Control.SIZE_EXPAND_FILL;deploy_row.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+	deploy_row.add_theme_constant_override("separation",Tokens.SPACE_MD)
+	deployment_footer.add_child(deploy_row)
 	deployment_instructions=Label.new();deployment_instructions.name="DeploymentInstructions";deployment_instructions.text="人物をドラッグ、または人物と配置先を順に選択"
+	deployment_instructions.size_flags_horizontal=Control.SIZE_EXPAND_FILL;deployment_instructions.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+	deployment_instructions.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	deployment_instructions.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	deployment_instructions.add_theme_color_override("font_color",Color.WHITE);deployment_instructions.add_theme_color_override("font_shadow_color",Color.BLACK)
-	middle.add_child(deployment_instructions)
-	deployment_actions=HBoxContainer.new();deployment_actions.name="DeploymentActions";middle.add_child(deployment_actions)
+	deployment_instructions.add_theme_color_override("font_color",Tokens.INK)
+	deploy_row.add_child(deployment_instructions)
+	deployment_actions=HBoxContainer.new();deployment_actions.name="DeploymentActions";deployment_actions.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+	deployment_actions.add_theme_constant_override("separation",Tokens.SPACE_SM)
+	deploy_row.add_child(deployment_actions)
 	# Control input follows sibling order, independently of drawing z_index.
 	middle.move_child(left_panel,-1);middle.move_child(right_panel,-1)
+	_layout_sig=[]
 	resize()
 func layout_camera_guide():
 	var region=Grid.cell_rect(ui.size,2,8,3,1)
-	camera_hint.get_parent().clip_contents=true
-	Grid.place(camera_hint.get_parent(),region)
-	camera_hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	Grid.place(camera_hint,region)
-func resize():
+	var chip: PanelContainer=camera_hint.get_parent()
+	var guide: Control=chip.get_parent()
+	guide.clip_contents=true
+	Grid.place(guide,region)
+	camera_hint.autowrap_mode=TextServer.AUTOWRAP_OFF
+	var chip_size=chip.get_combined_minimum_size()
+	if chip_size.x>region.size.x:
+		camera_hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+		chip_size=Vector2(region.size.x,minf(region.size.y,chip.get_combined_minimum_size().y))
+	else:
+		chip_size.y=minf(chip_size.y,region.size.y)
+	chip.position=Vector2(0.0,maxf(0.0,region.size.y-chip_size.y-float(Tokens.SPACE_SM)))
+	chip.size=chip_size
+func resize(force:=true):
 	if not is_instance_valid(left_panel) or not is_instance_valid(ui.board) or ui.board.is_queued_for_deletion() or middle.size.x<100:return
-	# In battle, keep movable panels clear of the order strip and camera help as well.
-	var central=Grid.cell_rect(ui.size,0,1 if deployment_layout else 2,10,8 if deployment_layout else 6)
+	var strip_id: int=ui.deployment_party_strip.get_instance_id() if is_instance_valid(ui.deployment_party_strip) else 0
+	var sig=[ui.size,middle.global_position,middle.size,left_panel.size,right_panel.size,deployment_layout,ui.board.get_instance_id(),strip_id,ui.battle_header.get_child_count()]
+	if not force and _layout_sig==sig:return
+	_layout_sig=sig
+	# Keep movable panels inside the middle eight rows between header (y=0..1) and footer (y=9..10).
+	var central=Grid.cell_rect(ui.size,0,1,10,8)
 	for panel in [left_panel,right_panel]:
 		panel.reserved_top=central.position.y
 		panel.reserved_bottom=ui.size.y-central.end.y
 	if deployment_layout:
 		deployment_workspace.layout();return
 	ui.board.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	Grid.place(ui.board,Grid.cell_rect(ui.size,2,2,6,6))
-	ui.board.battle_play_width=maxf(1,ui.size.x-left_panel.size.x-right_panel.size.x-64)
+	ui.board.position=Vector2.ZERO
+	ui.board.size=ui.size
+	ui.board.battle_play_width=maxf(1.0,ui.size.x-left_panel.size.x-right_panel.size.x-64.0)
 	layout_camera_guide()
 	var queue_scroll=ui.battle_header.find_child("TurnOrderViewport",true,false)
 	if queue_scroll!=null:queue_scroll.custom_minimum_size.x=queue_viewport_width()
-	var order_region=Grid.cell_rect(ui.size,2,1,6,1)
+	var order_region=Grid.cell_rect(ui.size,0,9,10,1)
 	Grid.place(ui.battle_header,order_region)
 	var order=ui.battle_header.find_child("TurnOrderControls",true,false)
-	if order!=null:order.size_flags_vertical=Control.SIZE_EXPAND_FILL
-	ui.board.deployment_bottom_limit=0
+	if order!=null:order.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+	ui.board.deployment_bottom_limit=0.0
 	ui.board.update_camera()
-	left_panel.place_regions(ui.size,Grid.cell_rect(ui.size,0,2,2,6),Grid.cell_rect(ui.size,0,2,2,2),Grid.cell_rect(ui.size,0,4,2,4),Rect2(),true)
-	right_panel.place_regions(ui.size,Grid.cell_rect(ui.size,8,2,2,6),Grid.cell_rect(ui.size,8,4,2,3),Grid.cell_rect(ui.size,8,2,2,2),Grid.cell_rect(ui.size,8,7,2,1),true)
+	left_panel.place_regions(ui.size,Grid.cell_rect(ui.size,0,1,2,8),Grid.cell_rect(ui.size,0,1,2,3),Grid.cell_rect(ui.size,0,4,2,5),Rect2(),true)
+	right_panel.place_regions(ui.size,Grid.cell_rect(ui.size,8,1,2,8),Grid.cell_rect(ui.size,8,4,2,4),Grid.cell_rect(ui.size,8,1,2,3),Grid.cell_rect(ui.size,8,8,2,1),true)
 	for panel in [left_panel,right_panel]:
 		panel.z_index=10
-	Grid.place(tools,Grid.cell_rect(ui.size,8,1,2,1))
+	Grid.place(tools,Grid.cell_rect(ui.size,6,1,2,1))
 
 func render():
 	var opening=false
@@ -189,8 +217,8 @@ func render():
 	if s.get("result")!=null or phase is Dictionary or ui.presenting:clear_inspection()
 	var deploying=bool(s.get("deploying",false))
 	deployment_instructions.visible=deploying
-	camera_hint.add_theme_color_override("font_color",ui.mock_shell.INK if deploying else Color.WHITE)
-	camera_hint.add_theme_color_override("font_shadow_color",Color.TRANSPARENT if deploying else Color.BLACK)
+	camera_hint.add_theme_color_override("font_color",Tokens.INK)
+	camera_hint.add_theme_color_override("font_shadow_color",Color.TRANSPARENT)
 	if deploying!=deployment_layout:
 		deployment_layout=deploying
 		if not deploying:deployment_workspace.restore()
@@ -199,8 +227,8 @@ func render():
 			panel.restore_rect(pair[2])
 	left_panel.find_child("DragHandle",true,false).text="配置する味方  ⋮" if deploying else "行動者 / コマンド  ⋮"
 	right_panel.find_child("DragHandle",true,false).text="敵の情報  ⋮" if deploying else "対象 / 効果  ⋮"
-	deployment_bar.visible=deploying;deployment_actions.visible=deploying;ui.battle_header.visible=not deploying
-	ui.clear(deployment_options);ui.clear(deployment_actions)
+	deployment_footer.visible=deploying;deployment_actions.visible=deploying;ui.battle_header.visible=not deploying
+	ui.clear(deployment_actions)
 	if deploying and phase==null and not ui.engine.disconnected:
 		selection_snapshot={}
 		tools.hide()
@@ -250,13 +278,9 @@ func build_panels(s,phase,a,deploying):
 	render_queue()
 	tools.visible=not deploying;tools.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	if ui.data.get("trial") is Dictionary:
-		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.name="EndTrial";end.custom_minimum_size=Vector2(160,52)
+		var end=b(tools,"試用終了",ui.act.bind("endTrial",[]),ui.presenting);end.name="EndTrial";Tokens.apply_button_size(end,Tokens.BUTTON_LG,true,Tokens.BUTTON_W_MD)
 
 	tools.tooltip_text=preload("res://battle_board.gd").CAMERA_HINT
-	if deploying:
-		var hint=l(right_panel.footer,tools.tooltip_text)
-		hint.name="DeploymentCameraHint";hint.add_theme_font_size_override("font_size",18)
-		hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	left_panel.visible=deploying or (a.get("side")=="ally" and not s.get("deploying",false) and s.get("result")==null) or ui.engine.disconnected
 	if phase is Dictionary and (is_instance_valid(action_visual) or str(phase.get("action_id",""))==shifted_action):left_panel.hide()
 	left_panel.section_with_handle.set_meta("ui_region","BattleActorInfoRegion")
@@ -314,15 +338,16 @@ func open_order_details():
 			line.name="OrderDetail_"+str(index)
 		local(actions,"閉じる",ui.dialog.close))
 func render_queue():
-	var line=ui.row(ui.battle_header);line.name="TurnOrderControls";line.add_theme_constant_override("separation",QUEUE_ARROW_WIDTH+QUEUE_GAP*2)
+	var line=ui.row(ui.battle_header);line.name="TurnOrderControls";line.size_flags_horizontal=Control.SIZE_EXPAND_FILL;line.size_flags_vertical=Control.SIZE_SHRINK_CENTER;line.add_theme_constant_override("separation",Tokens.SPACE_MD)
 	var queue_scroll=ScrollContainer.new();queue_scroll.name="TurnOrderViewport";queue_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;queue_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
-	queue_scroll.custom_minimum_size=Vector2(queue_viewport_width(),40 if ui.ui_size_mode=="standard" else 32)
+	queue_scroll.custom_minimum_size=Vector2(queue_viewport_width(),Tokens.BUTTON_LG if ui.ui_size_mode=="standard" else Tokens.BUTTON_MD)
+	queue_scroll.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 	queue_scroll.mouse_filter=Control.MOUSE_FILTER_STOP;queue_scroll.focus_mode=Control.FOCUS_ALL;ui.memory.key(queue_scroll,"turn_order");line.add_child(queue_scroll)
 	queue_scroll.gui_input.connect(func(event):
 		if queue_scroll.has_focus() and event is InputEventKey and event.pressed and event.keycode in [KEY_LEFT,KEY_RIGHT]:
 			queue_scroll.scroll_horizontal+=QUEUE_PITCH if event.keycode==KEY_RIGHT else -QUEUE_PITCH
 			queue_scroll.accept_event())
-	var band=ui.row(queue_scroll);band.name="TurnOrder";band.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var band=ui.row(queue_scroll);band.name="TurnOrder";band.size_flags_vertical=Control.SIZE_EXPAND_FILL;band.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var available=not ui.state().get("deploying",false) and (ui.state().get("result")==null or ui.data.get("presentation") is Dictionary)
 	var entries=queue_entries() if available else []
 	var presenting=ui.data.get("presentation") is Dictionary
@@ -331,11 +356,11 @@ func render_queue():
 	for index in range(QUEUE_VISIBLE+1 if presenting else QUEUE_VISIBLE):
 		if index>0:
 			var arrow=l(band,"←" if index<entries.size() else "")
-			arrow.custom_minimum_size.x=QUEUE_ARROW_WIDTH;arrow.size_flags_horizontal=Control.SIZE_FILL;arrow.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+			arrow.custom_minimum_size.x=QUEUE_ARROW_WIDTH;arrow.size_flags_horizontal=Control.SIZE_FILL;arrow.size_flags_vertical=Control.SIZE_SHRINK_CENTER;arrow.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 		if index>=entries.size():
 			var space=Control.new();space.custom_minimum_size.x=QUEUE_CARD_WIDTH;space.mouse_filter=Control.MOUSE_FILTER_IGNORE;band.add_child(space);continue
 		var u=entries[index].unit
-		var panel=PanelContainer.new();panel.custom_minimum_size.x=QUEUE_CARD_WIDTH;panel.name="TurnCard_"+str(index);panel.set_meta("unit_id",u.id);panel.mouse_filter=Control.MOUSE_FILTER_IGNORE;band.add_child(panel)
+		var panel=PanelContainer.new();panel.custom_minimum_size.x=QUEUE_CARD_WIDTH;panel.size_flags_vertical=Control.SIZE_SHRINK_CENTER;panel.name="TurnCard_"+str(index);panel.set_meta("unit_id",u.id);panel.mouse_filter=Control.MOUSE_FILTER_IGNORE;band.add_child(panel)
 		panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
 		panel.tooltip_text=str(u.name)+(" / "+str(entries[index].label) if not entries[index].label.is_empty() else "")
 		var inspect=Button.new()
@@ -350,17 +375,20 @@ func render_queue():
 		ui.mock_shell.bind_button_text(inspect,row)
 		# Faction color belongs to the portrait; the whole card is an inspect button.
 		var badge=PanelContainer.new();badge.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(badge)
-		var badge_style=StyleBoxFlat.new();badge_style.bg_color=Color("#e0e8dd") if u.side=="ally" else Color("#f0deda")
+		var badge_style=Tokens.box(Tokens.BTN_HOVER if u.side=="ally" else Color("#f0deda"),Color.TRANSPARENT,Tokens.RADIUS_SM,Tokens.SPACE_NONE,0)
 		badge.add_theme_stylebox_override("panel",badge_style)
 		ui.portrait(badge,u,true,32 if ui.ui_size_mode=="standard" else 24).mouse_filter=Control.MOUSE_FILTER_IGNORE
 		var label=l(row,("● " if index==0 else "")+str(u.name));label.mouse_filter=Control.MOUSE_FILTER_IGNORE;label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.custom_minimum_size=Vector2(132,24);label.clip_text=true;label.max_lines_visible=1;label.tooltip_text=str(u.name)
-	var all_=local(line,"順番詳細",open_order_details);all_.name="BattleOrderDetails";all_.custom_minimum_size=Vector2(QUEUE_CARD_WIDTH,40);all_.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
-	var history=local(line,"戦闘履歴",open_history);history.name="BattleHistory";history.custom_minimum_size=Vector2(QUEUE_CARD_WIDTH,40);history.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;spacer.mouse_filter=Control.MOUSE_FILTER_IGNORE;line.add_child(spacer)
+	var all_=local(line,"順番詳細",open_order_details);all_.name="BattleOrderDetails";Tokens.apply_button_size(all_,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
+	var history=local(line,"戦闘履歴",open_history);history.name="BattleHistory";history.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;Tokens.apply_button_size(history,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
 	if presenting and str(ui.data.presentation.get("action_id",""))==shifted_action:queue_scroll.set_deferred("scroll_horizontal",queue_distance)
 func queue_viewport_width() -> float:
-	# Keep all five cards, with the details action outside their scrolling area.
+	# Keep all five cards, with the details/history actions right-aligned outside their scrolling area.
 	var preferred=QUEUE_PITCH*QUEUE_VISIBLE-QUEUE_ARROW_WIDTH-QUEUE_GAP*2
-	return minf(preferred,maxf(1,Grid.cell_rect(ui.size,2,1,6,1).size.x-QUEUE_CARD_WIDTH*2-(QUEUE_ARROW_WIDTH+QUEUE_GAP*2)*2))
+	var footer_width=Grid.cell_rect(ui.size,0,9,10,1).size.x-float(Tokens.SPACE_SM*2)
+	var reserved_buttons=float(Tokens.BUTTON_W_MD*2+Tokens.SPACE_MD*3)
+	return minf(preferred,maxf(1.0,footer_width-reserved_buttons))
 func target_name(id) -> String:
 	return str(unit(id).get("name","対象不明"))
 func command_selected(kind: String) -> bool:
@@ -370,10 +398,10 @@ func render_bottom_commands():
 	var a=acting()
 	for pair in COMMANDS:
 		var selected=command_selected(pair[0])
-		var control=ui.icons.apply(b(bottom_commands,pair[1],choose_command.bind(pair[0]),a.get("side")!="ally" or ui.state().get("deploying",false) or ui.state().get("result")!=null or ui.data.get("presentation") is Dictionary or range_reference),ui.icons.command(pair[0]),40 if ui.size.x>=1800 else 24);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;control.custom_minimum_size.y=64 if ui.ui_size_mode=="standard" else 44
+		var control=ui.icons.apply(b(bottom_commands,pair[1],choose_command.bind(pair[0]),a.get("side")!="ally" or ui.state().get("deploying",false) or ui.state().get("result")!=null or ui.data.get("presentation") is Dictionary or range_reference),ui.icons.command(pair[0]),40 if ui.size.x>=1800 else 24);control.size_flags_horizontal=Control.SIZE_EXPAND_FILL;Tokens.apply_button_size(control,Tokens.BUTTON_LG if ui.ui_size_mode=="standard" else Tokens.BUTTON_MD,false)
 		control.tooltip_text="装備から得たスキルを選びます。アイコンを押すと効果を確認できます。" if pair[0]=="action_skill" else ui.command_hint(pair[0]);ui.memory.key(control,"command_"+pair[0]);buttons[pair[0]]=control
 		control.icon_alignment=HORIZONTAL_ALIGNMENT_LEFT
-		control.add_theme_constant_override("h_separation",8)
+		control.add_theme_constant_override("h_separation",Tokens.SPACE_SM)
 		ui.mark_selected(control,selected)
 		if pair[0]=="items" and not ui.data.get("itemUseInfo") is Dictionary:
 			control.tooltip_text="拳の効果がないため使用できません。クリックで説明"
@@ -468,10 +496,10 @@ func render_target():
 	var stage=state_id();var heading=ui.row(target_box) if ui.ui_size_mode!="standard" and ui.command=="action_skill" else target_box
 	if stage=="B1" or (stage!="B2" and ui.command!="action_skill"):
 		l(heading,"移動先を選択" if stage=="B1" else command_name(),true).name="DecisionTitle"
-	var split=VBoxContainer.new();split.add_theme_constant_override("separation",12);split.size_flags_vertical=Control.SIZE_EXPAND_FILL;target_box.add_child(split)
+	var split=VBoxContainer.new();split.add_theme_constant_override("separation",Tokens.SPACE_MD);split.size_flags_vertical=Control.SIZE_EXPAND_FILL;target_box.add_child(split)
 	var main=VBoxContainer.new();main.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(main)
 	var facts=VBoxContainer.new();facts.size_flags_horizontal=Control.SIZE_EXPAND_FILL;split.add_child(facts)
-	facts.add_theme_constant_override("separation",6 if ui.ui_size_mode=="standard" else 4)
+	facts.add_theme_constant_override("separation",Tokens.SPACE_SM if ui.ui_size_mode=="standard" else Tokens.SPACE_XS)
 	if ui.command=="action_move":render_move(main)
 	else:render_prediction(main,facts)
 	var cost=l(main,cost_text());cost.name="ActionCost";cost.visible=ui.command!="action_skill"
@@ -483,17 +511,17 @@ func render_target():
 	elif not action_menu and selected_cell>=0:availability.text="射程・条件を確認してください。"
 	availability.visible=ui.command!="action_move" and (ui.command!="action_skill" or (not availability.text.begins_with("MP不足") and not availability.text.is_empty()))
 	for fact in facts.get_children():
-		if fact is Label:fact.add_theme_color_override("font_color",Color("#58675f"))
+		if fact is Label:fact.add_theme_color_override("font_color",Tokens.MUTED_INK)
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
 	if stage=="B2":
 		var reference=b(ui.battle_actions,"仮位置の射程参考",open_range_reference)
-		reference.custom_minimum_size.y=48;ui.memory.key(reference,"range_reference")
+		Tokens.apply_button_size(reference,Tokens.BUTTON_MD,false);ui.memory.key(reference,"range_reference")
 	var controls=ui.row(ui.battle_actions)
 	if stage in ["B2","B4"] or ui.can_commit():
 		var commit=ui.action_button(b(controls,"実行",ui.commit,not ui.can_commit()))
-		commit.custom_minimum_size.y=48;ui.memory.key(commit,"battle_commit")
+		Tokens.apply_button_size(commit,Tokens.BUTTON_MD);ui.memory.key(commit,"battle_commit")
 	var cancel=b(controls,"キャンセル",ui.cancel)
-	cancel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;cancel.custom_minimum_size.y=48;ui.memory.key(cancel,"battle_cancel")
+	cancel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;Tokens.apply_button_size(cancel,Tokens.BUTTON_MD);ui.memory.key(cancel,"battle_cancel")
 func render_move(main):
 	if not ui.preview_ready or ui.pending==null:return
 	var gate_effect := sluice_move_effect(ui.state(), acting(), ui.preview)
@@ -650,7 +678,7 @@ func request_reference(which: String):
 	ui.render()
 func render_reference():
 	var compact=ui.ui_size_mode!="standard"
-	if compact:target_box.add_theme_constant_override("separation",2)
+	if compact:target_box.add_theme_constant_override("separation",Tokens.SPACE_XS)
 	var position_text="仮位置: "+coord(ui.pending)+" / "+("通常攻撃" if reference_kind=="action_attack" else "スキル")+" / 参考%dマス" % reference_preview.get("ranges",[]).size()
 	l(target_box,"仮位置からの射程参考"+(" / "+position_text if compact else ""),not compact)
 	l(target_box,"移動で手番終了・ここでは攻撃不可。次の本人の番まで状況は変わります。")
@@ -661,9 +689,9 @@ func render_reference():
 	var choices=ui.row(ui.battle_actions)
 	for entry in [["通常攻撃の参考","action_attack"],["スキルの参考","action_skill"]]:
 		var option=b(choices,entry[0],request_reference.bind(entry[1]))
-		option.size_flags_horizontal=Control.SIZE_EXPAND_FILL;option.custom_minimum_size.y=48
+		option.size_flags_horizontal=Control.SIZE_EXPAND_FILL;Tokens.apply_button_size(option,Tokens.BUTTON_MD)
 	var back=local(ui.battle_actions,"仮置きに戻る",close_reference)
-	back.custom_minimum_size.y=48;ui.memory.key(back,"reference_back")
+	Tokens.apply_button_size(back,Tokens.BUTTON_MD,false);ui.memory.key(back,"reference_back")
 func render_presentation(phase: Dictionary):
 	if phase.get("phase")=="action":presentation_action=phase.duplicate(true)
 	elif presentation_action.get("action_id")!=phase.get("action_id"):presentation_action={}
@@ -683,36 +711,32 @@ func render_presentation(phase: Dictionary):
 	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm"
 func render_deployment():
 	var s=ui.state()
-	var formations=ui.row(deployment_options)
-	var formation_status=l(formations,"陣形 "+("成立" if ui.data.get("formed",{}).get("ally",false) else "未成立"),true)
-	formation_status.size_flags_horizontal=Control.SIZE_FILL;formation_status.custom_minimum_size.x=200;formation_status.autowrap_mode=TextServer.AUTOWRAP_OFF
-	for pair in [["convoy","基本配置"],["flank","切り込み配置"]]:
-		var control=b(formations,pair[1],choose_formation.bind(pair[0]))
-		ui.mark_selected(control,s.get("formationKind","convoy")==pair[0])
-		control.tooltip_text="点線の3マスをポーター以外の味方生存者で埋めると発動。\n味方全員の攻撃×1.5・被ダメージ×0.75。\n陣形強化中は攻撃×1.75・被ダメージ×0.65（使用者の次の番まで）。\n陣形が崩れている間は無効。"
-		control.name="DeploymentFormation_"+pair[0];control.size_flags_horizontal=Control.SIZE_FILL;control.custom_minimum_size.x=200
 	if not s.units.any(func(u):return u.id==ui.selected and u.side=="ally" and u.hp>0):
 		ui.selected=""
 		for u in s.units:
 			if u.side=="ally" and u.hp>0:ui.selected=u.id;break
 	ui.battle_actions=deployment_actions
-	b(deployment_actions,"配置リセット",reset_deployment).name="DeploymentReset"
+	var reset_btn=b(deployment_actions,"配置リセット",reset_deployment)
+	reset_btn.name="DeploymentReset"
+	Tokens.apply_button_size(reset_btn,Tokens.BUTTON_LG,true,Tokens.BUTTON_W_MD)
 	var job=ui.campaign().get("activeQuest")
 	if not (job is Dictionary and job.get("id")=="sluice-bell"):
-		b(deployment_actions,"撤退",func():ui.confirm("戦闘から撤退しますか？",ui.act.bind("retreat",[]))).name="DeploymentRetreat"
-	ui.action_button(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true))).name="DeploymentBegin"
+		var retreat_btn=b(deployment_actions,"撤退",func():ui.confirm("戦闘から撤退しますか？",ui.act.bind("retreat",[])))
+		retreat_btn.name="DeploymentRetreat"
+		Tokens.apply_button_size(retreat_btn,Tokens.BUTTON_LG,true,Tokens.BUTTON_W_SM)
+	var begin_btn=ui.action_button(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true)))
+	begin_btn.name="DeploymentBegin"
+	Tokens.apply_button_size(begin_btn,Tokens.BUTTON_LG,true,Tokens.BUTTON_W_LG)
 func deployment_changed() -> bool:
 	for initial in ui.state().get("deploymentInitial",[]):
 		if unit(initial.id).get("pos")!=initial.pos:return true
 	return false
-func choose_formation(kind: String):
-	ui.act("chooseFormation",[kind])
 func reset_deployment():
-	if deployment_changed():ui.confirm("手動配置を現在のプリセットへ戻します。よろしいですか？",ui.act.bind("deployment_reset",[]))
+	if deployment_changed():ui.confirm("配置を初期位置へ戻します。よろしいですか？",ui.act.bind("deployment_reset",[]))
 	else:ui.act("deployment_reset",[])
 func render_result():
 	l(target_box,"木人の結果" if ui.data.get("trial") is Dictionary else "戦闘結果",true);l(target_box,str(ui.state().result))
-	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";ui.action_button(b(ui.battle_actions,"戦闘を終えて街道へ",ui.act.bind("finishBattle",[]),ui.data.get("trial")!=null))
+	ui.battle_actions=VBoxContainer.new();decision_footer.add_child(ui.battle_actions);ui.battle_actions.name="BattleConfirm";var finish=ui.action_button(b(ui.battle_actions,"戦闘を終えて街道へ",ui.act.bind("finishBattle",[]),ui.data.get("trial")!=null));Tokens.apply_button_size(finish,Tokens.BUTTON_MD,false)
 func open_equipment_sheet(uid: String):
 	if ui.modal_open() or not live_board():return
 	var origin=ui.board
@@ -740,7 +764,10 @@ func draw_loadout(body,member: Dictionary,tab: String):
 	var layout=preload("res://window_grid.gd")
 	var grid=preload("res://screen_grid.gd")
 	var heading=window.find_child("ModalHeading",true,false)
-	heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+	layout.set_heading_alignment(heading,HORIZONTAL_ALIGNMENT_LEFT)
+	var host_scroll=body.get_parent()
+	if host_scroll is ScrollContainer:
+		host_scroll.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
 	var line=ui.mock_shell.columns(body)
 	line.add_theme_constant_override("separation",0)
 	var spacer=Control.new();line.add_child(spacer)
@@ -751,22 +778,27 @@ func draw_loadout(body,member: Dictionary,tab: String):
 	stage.reparent(window,false)
 	column.stage.clip_contents=true
 	var detail=ui.scroller(line)
-	var detail_scroll=detail.get_parent()
+	var detail_scroll: ScrollContainer=detail.get_parent()
+	var detail_pad=StyleBoxEmpty.new()
+	detail_pad.content_margin_left=Tokens.SPACE_MD;detail_pad.content_margin_right=Tokens.SPACE_MD
+	detail_pad.content_margin_top=Tokens.SPACE_SM;detail_pad.content_margin_bottom=Tokens.SPACE_SM
+	detail_scroll.add_theme_stylebox_override("panel",detail_pad)
 	var art=Control.new();column.stage.add_child(art)
 	column.portrait.reparent(art,false)
 	var fit=func():
 		var view=Vector2(ui.get_tree().root.size)
-		var tab_rect=layout.local_rect(view,2,1,2,1)
-		var stage_rect=layout.local_rect(view,2,3,2,6)
-		var heading_height=layout.local_rect(view,2,2,2,1).size.y
+		var tab_rect=layout.local_rect(view,2,2,2,1)
+		var stage_rect=layout.local_rect(view,2,3,2,5)
 		spacer.custom_minimum_size.x=stage_rect.size.x
-		var tabs=column.get_node("LoadoutTabBar")
+		var tabs: MarginContainer=column.get_node("LoadoutTabBar")
+		tabs.add_theme_constant_override("margin_left",Tokens.SPACE_SM)
+		tabs.add_theme_constant_override("margin_right",Tokens.SPACE_SM)
 		tabs.custom_minimum_size.y=tab_rect.size.y
 		tabs.get_child(0).custom_minimum_size.y=tab_rect.size.y
-		column.panel.get_child(0).get_child(0).custom_minimum_size.y=heading_height
-		column.panel.custom_minimum_size.y=heading_height+stage_rect.size.y
-		detail_scroll.custom_minimum_size.y=layout.local_rect(view,4,2,5,6).size.y
-		column.custom_minimum_size=Vector2(stage_rect.size.x,stage_rect.end.y)
+		column.panel.get_child(0).get_child(0).custom_minimum_size.y=0
+		column.panel.custom_minimum_size.y=stage_rect.size.y
+		detail_scroll.custom_minimum_size.y=layout.local_rect(view,4,2,4,6).size.y
+		column.custom_minimum_size=Vector2(stage_rect.size.x,tab_rect.size.y+stage_rect.size.y)
 		grid.place(column,Rect2(tab_rect.position,column.custom_minimum_size))
 		stage.custom_minimum_size=Vector2.ZERO
 		grid.place(stage,stage_rect)
@@ -879,7 +911,7 @@ func render_person_content(parent,u: Dictionary,expanded:=false):
 	profile.name="ElementalCombatProfile"
 	profile.tooltip_text=ElementBadges.MATCHUP_TIP
 	profile.columns=5
-	profile.add_theme_constant_override("h_separation",8)
+	profile.add_theme_constant_override("h_separation",Tokens.SPACE_SM)
 	parent.add_child(profile)
 	for stat in ["atk","def"]:
 		var title=l(profile,stat.to_upper())
@@ -888,7 +920,7 @@ func render_person_content(parent,u: Dictionary,expanded:=false):
 		for element in ["","fire","water","earth"]:
 			var cell=ui.row(profile)
 			cell.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-			cell.add_theme_constant_override("separation",4)
+			cell.add_theme_constant_override("separation",Tokens.SPACE_XS)
 			if element.is_empty():
 				ui.icons.add(cell,"attack" if stat=="atk" else "defend",20)
 				cell.tooltip_text="物理攻撃力" if stat=="atk" else "物理防御力"

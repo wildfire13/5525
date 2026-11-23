@@ -1,5 +1,6 @@
 extends RefCounted
 ## Native Control D&D carries a quote of current deployment context, never game state.
+const Tokens=preload("res://ui_tokens.gd")
 static func available(ui) -> bool:
 	return is_instance_valid(ui) and not ui.closing and not ui.modal_open() and not ui.locked and not ui.presenting and not ui.loading_screen.active and not ui.engine.disconnected and ui.campaign().get("phase")=="deployment" and bool(ui.state().get("deploying",false)) and ui.data.get("trial")==null
 static func deployed(ui) -> Array:
@@ -40,10 +41,10 @@ static func consume(ui,payload) -> bool:
 	return true
 static func preview(ui,uid: String) -> Control:
 	var card=PanelContainer.new();card.set_meta("ui_region","MemberDragPreview");card.add_to_group("ui_drag_preview");card.theme=ui.theme;card.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	var style=StyleBoxFlat.new();style.bg_color=Color("#18212aef");style.border_color=Color("#e3c487");style.set_border_width_all(2);style.set_corner_radius_all(5);style.set_content_margin_all(8);card.add_theme_stylebox_override("panel",style)
-	var row=HBoxContainer.new();row.mouse_filter=Control.MOUSE_FILTER_IGNORE;card.add_child(row)
+	card.add_theme_stylebox_override("panel",Tokens.box(Tokens.SURFACE,Tokens.BORDER_ACCENT,Tokens.RADIUS_SM,Tokens.SPACE_SM,Tokens.BORDER_WIDTH_EMPHASIS))
+	var row=HBoxContainer.new();row.add_theme_constant_override("separation",Tokens.SPACE_SM);row.mouse_filter=Control.MOUSE_FILTER_IGNORE;card.add_child(row)
 	for member in ui.campaign().get("roster",[]):
 		if member.get("id")==uid:
 			var image=TextureRect.new();image.texture=ui.portraits.texture(member,true);image.custom_minimum_size=Vector2(42,42);image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;image.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(image)
-			var label=Label.new();label.text=str(member.get("name",uid))+" を配置";label.add_theme_color_override("font_color",Color("#fff6e4"));label.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(label);break
+			var label=Label.new();label.text=str(member.get("name",uid))+" を配置";label.add_theme_color_override("font_color",Tokens.INK);label.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(label);break
 	return card

@@ -1,12 +1,10 @@
 extends RefCounted
 ## Combat shares the approved campaign palette and typography.
 ## Board art, faction colors and combat result colors remain semantic.
+const Tokens=preload("res://ui_tokens.gd")
 static func apply(ui):
  ui.mock_shell.apply_theme()
- var ink=ui.mock_shell.INK
- var paper=ui.mock_shell.PAPER
- var tooltip=ui.mock_shell.surface_style(paper)
- tooltip.set_content_margin_all(12)
+ var tooltip=Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_MD)
  ui.theme.set_stylebox("panel","TooltipPanel",tooltip)
- ui.theme.set_color("font_color","TooltipLabel",ink)
- ui.theme.set_font_size("font_size","TooltipLabel",18)
+ ui.theme.set_color("font_color","TooltipLabel",Tokens.INK)
+ ui.theme.set_font_size("font_size","TooltipLabel",Tokens.FONT_SM)

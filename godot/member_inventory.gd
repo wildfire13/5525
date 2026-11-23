@@ -1,7 +1,9 @@
 extends RefCounted
 ## Shared inventory controls. Each screen supplies its own selection and actions.
+const Tokens=preload("res://ui_tokens.gd")
 static func add_filter(ui, parent, member, selected_filter: String, changed: Callable) -> OptionButton:
 	var filter=OptionButton.new()
+	Tokens.apply_button_size(filter,Tokens.BUTTON_MD,false)
 	parent.add_child(filter)
 	var choices=[["all","すべて"],["items","消耗品・荷物"]]
 	for slot in member.get("equipmentSlots",[]):
@@ -24,7 +26,7 @@ static func add_row(ui, parent, entry: Dictionary, on_pressed: Callable, selecte
 	var total=str(snappedf(float(weight)*count,0.01)).trim_suffix(".0") if weight!=null else "不明"
 	var button=ui.button(parent,"%s  ×%d　Wt %s" % [entry.name,count,total],on_pressed,disabled)
 	button.alignment=HORIZONTAL_ALIGNMENT_LEFT
-	button.custom_minimum_size.y=60
+	button.custom_minimum_size.y=Tokens.BUTTON_LG
 	button.clip_text=true
 	button.tooltip_text=str(entry.name)
 	var icon=ui.icons.equipment(entry) if entry.kind=="equipment" else "items" if entry.kind=="quest" else str(entry.id)

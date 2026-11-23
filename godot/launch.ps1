@@ -2,9 +2,11 @@
 param([switch]$Check,[switch]$SmokeTest)
 $ErrorActionPreference = 'Stop'
 $projectRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$script:ProjectGodotFallback = ''
 function Read-RuntimePaths {
     $shared = [Environment]::GetEnvironmentVariable('AKI_SHARED_ENV_FILE')
-    if ($null -ne $shared) {
+    $explicitShared = ($null -ne $shared)
+    if ($explicitShared) {
         $absolute = [IO.Path]::IsPathRooted($shared)
         if ([Environment]::OSVersion.Platform -eq 'Win32NT') {
             $absolute = $shared -match '^(?:[A-Za-z]:[\\/]|[\\/]{2})'
@@ -17,21 +19,29 @@ function Read-RuntimePaths {
     }
     $keys = @('GODOT_BIN','NATIVE5525_NODE','NATIVE5525_PYTHON')
     $selected = @{}
-    foreach ($file in @($shared, (Join-Path $projectRoot '.env'))) {
-        if (!$file -or $selected.Count -eq $keys.Count) { continue }
+    $projectEnv = Join-Path $projectRoot '.env'
+    foreach ($file in @($shared, $projectEnv)) {
+        if (!$file) { continue }
+        if ($selected.Count -eq $keys.Count -and ($explicitShared -or $file -ne $projectEnv)) { continue }
         if ([IO.Directory]::Exists($file)) { throw 'Set the dotenv path to a file.' }
         if (![IO.File]::Exists($file)) { continue }
         $entries = @{}
         foreach ($line in [IO.File]::ReadLines($file)) {
             $parts = $line -split '=', 2
             $key = $parts[0].Trim()
-            if ($parts.Count -lt 2 -or $key -cnotin $keys -or $selected.ContainsKey($key)) { continue }
-            if ($entries.ContainsKey($key)) { throw "Duplicate .env setting: $key" }
+            if ($parts.Count -lt 2 -or $key -cnotin $keys) { continue }
             $value = $parts[1].Trim()
             if ($value.StartsWith('"') -or $value.StartsWith("'")) {
                 if ($value.Length -lt 2 -or $value[-1] -ne $value[0]) { throw "Invalid .env quotes: $key" }
                 $value = $value.Substring(1, $value.Length - 2)
             }
+            if ($selected.ContainsKey($key)) {
+                if (!$explicitShared -and $file -eq $projectEnv -and $key -ceq 'GODOT_BIN' -and ![string]::IsNullOrWhiteSpace($value)) {
+                    $script:ProjectGodotFallback = [IO.Path]::GetFullPath([IO.Path]::Combine([IO.Path]::GetDirectoryName($file), $value))
+                }
+                continue
+            }
+            if ($entries.ContainsKey($key)) { throw "Duplicate .env setting: $key" }
             $entries[$key] = $value
         }
         foreach ($key in $entries.Keys) {
@@ -118,6 +128,9 @@ try {
     if (-not [string]::IsNullOrWhiteSpace($env:GODOT_BIN)) {
         $godotConfiguredValue = $env:GODOT_BIN
         $godotCandidates = @($godotConfiguredValue)
+        if (-not [string]::IsNullOrWhiteSpace($script:ProjectGodotFallback) -and $script:ProjectGodotFallback -ne $godotConfiguredValue) {
+            $godotCandidates += $script:ProjectGodotFallback
+        }
         $godotSource = 'GODOT_BIN'
     } else {
         $localConfig = Join-Path $projectRoot 'godot/launcher.local.json'
@@ -141,10 +154,14 @@ try {
     if (-not $godotSource) {
         $godotCandidates += (Command-Path 'godot')
         $godotCandidates += (Command-Path 'godot4')
-        $runtimeFolders = @((Join-Path $projectRoot 'runtime/godot'))
+        $runtimeRoot = Join-Path $projectRoot 'runtime/godot'
+        $runtimeFolders = @($runtimeRoot)
+        if (Test-Path -LiteralPath $runtimeRoot -PathType Container) {
+            $runtimeFolders += @(Get-ChildItem -LiteralPath $runtimeRoot -Directory -Filter 'Godot*' | Sort-Object Name -Descending | Select-Object -ExpandProperty FullName)
+        }
         $existingDemoRoot = Join-Path (Split-Path $projectRoot -Parent) '5525'
         if (Test-Path -LiteralPath $existingDemoRoot -PathType Container) {
-            $runtimeFolders += @(Get-ChildItem -LiteralPath $existingDemoRoot -Directory -Filter 'Godot*' | Select-Object -ExpandProperty FullName)
+            $runtimeFolders += @(Get-ChildItem -LiteralPath $existingDemoRoot -Directory -Filter 'Godot*' | Sort-Object Name -Descending | Select-Object -ExpandProperty FullName)
         }
         foreach ($folder in $runtimeFolders) {
             if (Test-Path -LiteralPath $folder -PathType Container) {
@@ -158,11 +175,11 @@ try {
         if (-not $resolved) { continue }
         try {
             $version = Probe $resolved @('--version')
-            if ($version -match '^4\.6\.') { $godotPath=$resolved; $godotVersion=$version; break }
+            if ($version -match '^4\.7\.') { $godotPath=$resolved; $godotVersion=$version; break }
         } catch { }
     }
-    if (-not $godotPath -and $godotSource) { throw "The configured Godot path from $godotSource was not found or is not Godot 4.6.x." }
-    if (-not $godotPath) { throw 'Godot 4.6.x was not found. Set GODOT_BIN or configure godot/launcher.local.json. Nothing was downloaded.' }
+    if (-not $godotPath -and $godotSource) { throw "The configured Godot path from $godotSource was not found or is not Godot 4.7.x." }
+    if (-not $godotPath) { throw 'Godot 4.7.x was not found. Set GODOT_BIN or configure godot/launcher.local.json. Nothing was downloaded.' }
     $report = [ordered]@{
         project=$projectRoot
         godot=@{path=$godotPath;version=$godotVersion}

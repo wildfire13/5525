@@ -10,7 +10,7 @@ func run():
  game.checks_fast=true;game.audio.fast_mode=true;await settle()
  var original=await saved();var art=game.pages.facility_art;var keepers={}
  for spec in [["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"]]:
-   var seed=original.duplicate(true);seed.state.location=spec[0];seed.state.gold=500;seed.state.characters["character_mirei"].hp=1
+  var seed=original.duplicate(true);seed.state.location=spec[0];seed.state.gold=500;seed.state.characters["character_mirei"].hp=1
   await game.update({"op":"campaign_load","data":seed});await enter_facility(spec[1]);await settle()
   var before=await saved();var path=art.npc.selected_path;var rng=art.npc.rng.state
   check(node("FacilityNpc")!=null,"NPC present on rendered facility "+spec[2])
@@ -21,7 +21,7 @@ func run():
    var item=game.pages.shop_view.offered()[0]
    await os_click(node("ProductBuy_"+str(item.id)));await os_click(node("PurchaseDecline"))
    check((await saved())==before and art.npc.selected_path==path and art.npc.rng.state==rng,"OS purchase cancel retains keeper "+spec[2])
-    await os_click(node("PartyFace_character_mirei"));await os_click(node("PartyFace_character_shion"));await os_key("Escape")
+   await os_click(node("PartyFace_character_mirei"));await os_click(node("PartyFace_character_shion"));await os_key("Escape")
    check(not game.modal_open() and art.npc.selected_path==path and art.npc.rng.state==rng,"OS character switching retains keeper "+spec[2])
   elif spec[1]=="inn":
    await os_click(node("InnStay"))
@@ -29,13 +29,13 @@ func run():
    await os_click(dialog.get_cancel_button());check((await saved())==before and art.npc.selected_path==path,"OS inn cancellation preserves state and keeper")
    await os_click(node("InnStay"));dialog=game.find_children("*","ConfirmationDialog",true,false).filter(func(n):return n.visible)[0]
    await os_click(dialog.get_ok_button())
-    var rested=game.roster().filter(func(u):return u.id=="character_mirei")[0]
-    check(int(game.campaign().gold)==470 and int(rested.hp)==int(rested.max) and art.npc.selected_path==path and art.npc.rng.state==rng,"OS inn confirmation remains accessible and keeps keeper")
+   var rested=game.roster().filter(func(u):return u.id=="character_mirei")[0]
+   check(int(game.campaign().gold)==470 and int(rested.hp)==int(rested.max) and art.npc.selected_path==path and art.npc.rng.state==rng,"OS inn confirmation remains accessible and keeps keeper")
   elif spec[1]=="party":
-    await os_click(node("GuildMember_character_mirei"));await os_click(node("GuildDetails"));await os_key("Escape")
-    check(game.pages.guild_view.chosen_id=="character_mirei" and art.npc.selected_path==path and art.npc.rng.state==rng,"OS guild details return without changing keeper")
+   await os_click(node("GuildMember_character_mirei"));await os_click(node("GuildDetails"));await os_key("Escape")
+   check(game.pages.guild_view.chosen_id=="character_mirei" and art.npc.selected_path==path and art.npc.rng.state==rng,"OS guild details return without changing keeper")
   else:
-    await os_click(node("PartyFace_character_mirei"));await os_click(node("PartyFace_character_shion"));await os_key("Escape")
+   await os_click(node("PartyFace_character_mirei"));await os_click(node("PartyFace_character_shion"));await os_key("Escape")
    check(not game.modal_open() and art.npc.selected_path==path,"OS item shop character switching retains keeper")
   game.navigate("hub");await settle();check(node("FacilityNpc")==null,"NPC leaves with facility "+spec[2])
   await enter_facility(spec[1]);await settle()

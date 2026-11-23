@@ -1,6 +1,7 @@
 extends RefCounted
 const ElementBadges=preload("res://element_badges.gd")
 const ScreenGrid=preload("res://screen_grid.gd")
+const Tokens=preload("res://ui_tokens.gd")
 ## Presentation of existing Campaign.view fields. Mutations stay in the bridge.
 var ui
 var party_uid := ""
@@ -40,7 +41,7 @@ func c() -> Dictionary:return ui.campaign()
 func roster() -> Array:return ui.roster()
 func town(id) -> String:return ui.town_name(id)
 func muted(parent,text):
-	var label=l(parent,text);label.add_theme_color_override("font_color",Color("#bcc9d3"));return label
+	var label=l(parent,text);label.add_theme_color_override("font_color",Tokens.MUTED_INK);return label
 # Display normal attack power before formation, skills and target defense.
 # Match the battle rule: only reaching weapons, with growth added once.
 func normal_reach(stats: Dictionary) -> int:
@@ -88,7 +89,7 @@ func map(parent):
 	var style=panel.get_theme_stylebox("panel").duplicate()
 	for side in ["left","top","right","bottom"]:style.set("content_margin_"+side,0.0)
 	panel.add_theme_stylebox_override("panel",style)
-	surface.add_theme_constant_override("separation",0);parent=surface
+	surface.add_theme_constant_override("separation",Tokens.SPACE_NONE);parent=surface
 	var available=[]
 	for place in c().get("destinations",[]):available.append(place.id if place is Dictionary else place)
 	var quest=c().get("activeQuest")
@@ -99,7 +100,7 @@ func map(parent):
 	parent.add_child(chart);chart.custom_minimum_size.y=ui.mock_shell.content_height()-ui.mock_shell.grid_cell().y;chart.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	for id in chart.buttons:ui.widgets.append(chart.buttons[id])
 	var actions=row(parent);actions.name="MapControls";actions.custom_minimum_size.y=ui.mock_shell.grid_cell().y
-	var route=VBoxContainer.new();route.custom_minimum_size.x=320;actions.add_child(route)
+	var route=VBoxContainer.new();route.custom_minimum_size.x=320;route.size_flags_vertical=Control.SIZE_SHRINK_CENTER;actions.add_child(route)
 	var route_title=l(route,town(c().location)+" → "+town(ui.destination),true)
 	chart.destination_selected.connect(func(id):
 		ui.destination=id
@@ -108,10 +109,13 @@ func map(parent):
 	l(route,"最短移動時間：6時間")
 	var over=c().get("inventoryOverflow",[])
 	var depart=ui.action_button(b(actions,"出発する",func():ui.act("depart",[ui.destination,"convoy"]),ui.destination.is_empty() or not over.is_empty()));depart.name="DepartButton"
+	Tokens.apply_button_size(depart)
 	if not over.is_empty():depart.tooltip_text="インベントリ枠を超えているメンバーがいます"
-	b(actions,"都市に入る" if c().location=="astaris" else "村に入る",ui.navigate.bind("hub"))
+	var enter_town=b(actions,"都市に入る" if c().location=="astaris" else "村に入る",ui.navigate.bind("hub"))
+	Tokens.apply_button_size(enter_town)
 	var space=Control.new();space.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(space)
-	b(actions,"全体表示",chart.reset_view).name="MapFit"
+	var fit_button=b(actions,"全体表示",chart.reset_view);fit_button.name="MapFit"
+	Tokens.apply_button_size(fit_button)
 func choose_formation(value: String):ui.formation=value;ui.render()
 func grid_height(cells: int) -> float:
 	return ScreenGrid.cell_rect(ui.size,0,0,1,cells).size.y
@@ -122,12 +126,12 @@ func journey(parent):
 		result(ui.scroller(parent))
 		return
 	if phase=="prepare":map(parent);return
-	parent.add_theme_constant_override("separation",0)
+	parent.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	var strip=preload("res://travel_strip.gd").new();strip.name="TravelRouteStrip"
 	strip.origin=town(journey_.get("origin",c().get("location","")))
 	strip.destination=town(journey_.get("outboundDestination",journey_.get("destination","")))
 	strip.returning=journey_.get("returning",false);strip.stage=int(journey_.get("stage",0));strip.phase=phase
-	var route=VBoxContainer.new();route.name="JourneyRoute";route.add_theme_constant_override("separation",0)
+	var route=VBoxContainer.new();route.name="JourneyRoute";route.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	route.custom_minimum_size.y=ui.mock_shell.content_height()-ui.mock_shell.grid_cell().y;parent.add_child(route);route.add_child(strip)
 	strip.custom_minimum_size.y=grid_height(2)
 	var quest=c().get("activeQuest")
@@ -135,23 +139,31 @@ func journey(parent):
 	var map_row=row(parent);map_row.name="JourneyMapBar";map_row.alignment=BoxContainer.ALIGNMENT_END;map_row.custom_minimum_size.y=grid_height(3)-grid_height(2)
 	var toggle=b(map_row,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",func():toggle_travel_map(parent,map_row,journey_))
 	toggle.name="TravelMapToggle"
+	Tokens.apply_button_size(toggle)
 	var actions=row(route);actions.name="CampActions"
 	var action_cell=3
 	actions.custom_minimum_size.y=grid_height(action_cell+1)-grid_height(action_cell)
-	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(copy)
+	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;copy.size_flags_vertical=Control.SIZE_SHRINK_CENTER;actions.add_child(copy)
 	l(copy,"帰路" if strip.returning else "野営地" if phase=="camp" else "到着" if phase in ["arrival","delivery"] else "%d区間目の道" % (int(journey_.get("stage",0))+1),true)
 	var remaining=maxi(0,2-int(journey_.get("stage",0)))*3
 	if phase=="arrival" or phase=="delivery":remaining=0
 	l(copy,"最短の到着見込 %d時間" % (int(journey_.get("hours",0))+remaining))
 	match phase:
 		"camp":
-			ui.action_button(b(actions,"次の区間へ",ui.act.bind("onward",[])))
+			var onward=ui.action_button(b(actions,"次の区間へ",ui.act.bind("onward",[])))
+			Tokens.apply_button_size(onward)
 			var rest=b(actions,"休息済み" if journey_.get("rested",false) else "休息する",ui.forecast_action.bind("rest","rest",[]),journey_.get("rested",false));rest.tooltip_text="2時間 · HP +60 / MP +2"
-			if c().get("canTurnBack",false):b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[])).tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
+			Tokens.apply_button_size(rest)
+			if c().get("canTurnBack",false):
+				var turn_back=b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[]));turn_back.tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
+				Tokens.apply_button_size(turn_back)
 		"road":
-			if c().get("canTurnBack",false):b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[])).tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
+			if c().get("canTurnBack",false):
+				var turn_back=b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[]));turn_back.tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
+				Tokens.apply_button_size(turn_back)
 		"arrival","delivery":
-			ui.action_button(b(actions,"都市に入る" if journey_.get("destination")=="astaris" else "村に入る",ui.act.bind("arrive",[])))
+			var arrive_btn=ui.action_button(b(actions,"都市に入る" if journey_.get("destination")=="astaris" else "村に入る",ui.act.bind("arrive",[])))
+			Tokens.apply_button_size(arrive_btn)
 	if phase=="road":
 		var choices=row(route);choices.name="RouteChoices"
 		choices.custom_minimum_size.y=grid_height(action_cell+2)-grid_height(action_cell+1)
@@ -162,6 +174,7 @@ func journey(parent):
 			var choose = b(choices, caption, ui.act.bind("travel", [choice[0]]))
 			choose.name = "RouteChoice_" + choice[0]
 			choose.custom_minimum_size = Vector2(400, 100) if sluice_trip else Vector2(260, 80)
+			choose.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		if sluice_trip:
 			var gate_note = "守護者が通常移動で巻上機に入ると開門。離脱・撃破で閉門。"
 			gate_note += "\n舟守の合図は一戦一度。開門後、味方が道を空けてポーターが一手で出口に届くと、次はポーターの手番。"
@@ -235,7 +248,7 @@ func item_members(parent) -> GridContainer:
 
 func items(parent):
 	if c().phase not in ["town","camp"]:l(parent,"町・野営で使用できます");return
-	parent.add_theme_constant_override("separation",0)
+	parent.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	if c().has("inventoryByCharacter"):
 		var controls=card(parent)
 		var panel=controls.get_parent();panel.name="CampaignItems";panel.custom_minimum_size.y=grid_height(2)-grid_height(1)
@@ -246,11 +259,11 @@ func items(parent):
 			var u=roster().filter(func(member):return member.id==uid)[0]
 			var member=card(members);member.name="ItemMember_"+str(uid);member.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
 			var portrait=ui.portrait(member,u,false,64);portrait.name="FullBodyPortrait";portrait.custom_minimum_size=Vector2(64,160 if ui.ui_size_mode=="standard" else 48);portrait.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-			var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;ui.short_name(name_label,str(u.name));name_label.add_theme_font_size_override("font_size",16)
+			var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;ui.short_name(name_label,str(u.name));name_label.add_theme_font_size_override("font_size",Tokens.FONT_SM)
 			var hp=ui.icons.line(ui,member,"hp","HP %d/%d" % [u.hp,u.max]);ui.emphasize_low_hp(hp,u)
 			ui.icons.line(ui,member,"mp","MP %d/%d" % [u.mp,u.maxMp])
 			if u.hp<=0:l(member,"戦闘不能")
-			var open_inventory=b(member,"インベントリ",party_view.open_inventory.bind(str(uid)));open_inventory.name="InventoryOwner_"+str(uid);open_inventory.add_theme_font_size_override("font_size",16)
+			var open_inventory=b(member,"インベントリ",party_view.open_inventory.bind(str(uid)));open_inventory.name="InventoryOwner_"+str(uid);open_inventory.add_theme_font_size_override("font_size",Tokens.FONT_SM)
 		return
 	var catalog=ItemMenu.definitions(c());var inventory: Dictionary=c().inventory
 	var selected_item={}
@@ -278,7 +291,7 @@ func items(parent):
 		if not c().selected.has(u.id):continue
 		var member=card(members);member.name="ItemMember_"+str(u.id);member.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		var portrait=ui.portrait(member,u,false,64);portrait.name="FullBodyPortrait";portrait.custom_minimum_size=Vector2(64,160 if ui.ui_size_mode=="standard" else 48);portrait.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;ui.short_name(name_label,str(u.name));name_label.add_theme_font_size_override("font_size",16)
+		var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;ui.short_name(name_label,str(u.name));name_label.add_theme_font_size_override("font_size",Tokens.FONT_SM)
 		var hp=ui.icons.line(ui,member,"hp","HP %d/%d" % [u.hp,u.max]);ui.emphasize_low_hp(hp,u)
 		ui.icons.line(ui,member,"mp","MP %d/%d" % [u.mp,u.maxMp])
 		if u.hp<=0:l(member,"戦闘不能")
@@ -297,10 +310,11 @@ func purchase(_q: Dictionary):shop_view.confirm_purchase()
 func buy(id: String):
 	await shop_view.confirm_purchase(id)
 func return_to_town(parent):
-	parent.add_theme_constant_override("separation",0)
+	parent.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	var actions=row(parent);actions.name="TownReturnRow";actions.alignment=BoxContainer.ALIGNMENT_END
 	actions.custom_minimum_size.y=grid_height(9)-grid_height(8)
-	var back=b(actions,"広場に移動",acknowledge.bind("hub"),ui.page=="party" and guild_view.busy());back.custom_minimum_size.y=44
+	var back=b(actions,"広場に移動",acknowledge.bind("hub"),ui.page=="party" and guild_view.busy())
+	Tokens.apply_button_size(back)
 	back.name="GuildReturn" if ui.page=="party" else "InnReturn" if ui.page=="inn" else "TownReturn"
 
 func result(parent):

@@ -11,6 +11,7 @@ var submitted := false
 var dialogue
 var meeting
 const Grid=preload("res://screen_grid.gd")
+const Tokens=preload("res://ui_tokens.gd")
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui;meeting=preload("res://quest_meeting.gd").new(ui)
 func _dialogue():
 	if not is_instance_valid(dialogue):dialogue=preload("res://quest_dialogue.gd").new(ui,self)
@@ -39,7 +40,9 @@ func render(parent):
 			render_detail(detail,q,active is Dictionary)
 			render_requester(split,q)
 	for entry in aftermath:
-		var after=pages.card(list);after.name="QuestAftermath_"+str(entry.id);pages.l(after,str(entry.name),true);pages.b(after,"出来事を知る",func():play_scene(entry.story,str(entry.get("portrait","")))).name="QuestAftermathStory_"+str(entry.id)
+		var after=pages.card(list);after.name="QuestAftermath_"+str(entry.id);pages.l(after,str(entry.name),true)
+		var after_story=pages.b(after,"出来事を知る",func():play_scene(entry.story,str(entry.get("portrait",""))))
+		after_story.name="QuestAftermathStory_"+str(entry.id);Tokens.apply_button_size(after_story,Tokens.BUTTON_MD,false,Tokens.BUTTON_W_MD)
 	for container in [split,parent,parent.get_parent()]:
 		container.item_rect_changed.connect(layout_board.bind(split))
 	layout_board.call_deferred(split)
@@ -100,7 +103,7 @@ func render_detail(parent,q: Dictionary,active: bool):
 	var content=VBoxContainer.new();content.name="QuestDetailContent";parent.add_child(content)
 	pages.l(content,("受注中: " if active else "")+str(q.name),true).name="QuestDetailTitle"
 	var details=ui.scroller(content);details.name="QuestDetailBody";details.get_parent().custom_minimum_size.y=64
-	var description=pages.l(details,str(q.get("text","")));description.name="QuestDetailDescription";description.add_theme_font_size_override("font_size",20);description.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
+	var description=pages.l(details,str(q.get("text","")));description.name="QuestDetailDescription";description.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	var facility=pages.hub_view.FACILITIES.get(q.get("deliveryFacility",""),[])
 	var destination=pages.town(q.get("to",""))+("・"+str(facility[0]) if not facility.is_empty() else "")
 	field(details,"期限切れの確認", "どの町でも可能") if q.get("meeting",{}).get("canSettleFailure",false) else field(details,"届け先",destination)
@@ -110,9 +113,9 @@ func render_detail(parent,q: Dictionary,active: bool):
 		field(details,"期限","掲載から%d時間以内 / %s" % [q.deadline,time_status(q)])
 	elif not q.get("scenario",false):field(details,"希望条件","%d時間以内に配達" % q.deadline+(" / "+time_status(q) if active else ""))
 	var cargo_line=pages.row(details);cargo_line.name="QuestCargoInformation"
-	var caption=pages.l(cargo_line,"荷物情報");caption.name="QuestCargoCaption";caption.custom_minimum_size.x=150;caption.size_flags_horizontal=Control.SIZE_FILL;caption.add_theme_font_size_override("font_size",18);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
+	var caption=pages.l(cargo_line,"荷物情報");caption.name="QuestCargoCaption";caption.custom_minimum_size.x=150;caption.size_flags_horizontal=Control.SIZE_FILL;caption.add_theme_font_size_override("font_size",Tokens.FONT_SM);caption.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	var cargo_items=q.get("cargoItems",[{"name":q.get("cargo","荷物"),"quantity":1,"weight":q.get("weight",0)}])
-	var cargo_flow=HFlowContainer.new();cargo_flow.name="QuestCargoItems";cargo_flow.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;cargo_flow.add_theme_constant_override("h_separation",12);cargo_flow.add_theme_constant_override("v_separation",12);cargo_line.add_child(cargo_flow)
+	var cargo_flow=HFlowContainer.new();cargo_flow.name="QuestCargoItems";cargo_flow.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;cargo_flow.add_theme_constant_override("h_separation",Tokens.SPACE_MD);cargo_flow.add_theme_constant_override("v_separation",Tokens.SPACE_MD);cargo_line.add_child(cargo_flow)
 	var total_weight=0.0
 	for cargo in cargo_items:
 		var item=HBoxContainer.new();cargo_flow.add_child(item)
@@ -123,7 +126,7 @@ func render_detail(parent,q: Dictionary,active: bool):
 		var count=pages.l(item,"×%d" % int(cargo.get("quantity",1)));count.autowrap_mode=TextServer.AUTOWRAP_OFF;count.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
 		total_weight+=float(cargo.get("weight",0))*int(cargo.get("quantity",1))
 	var weight_text=str(int(total_weight)) if is_equal_approx(total_weight,round(total_weight)) else str(total_weight)
-	var total=pages.l(cargo_line,"合計Wt "+weight_text);total.name="QuestCargoWeight";total.add_theme_font_size_override("font_size",20);total.autowrap_mode=TextServer.AUTOWRAP_OFF;total.size_flags_horizontal=Control.SIZE_SHRINK_END;total.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+	var total=pages.l(cargo_line,"合計Wt "+weight_text);total.name="QuestCargoWeight";total.autowrap_mode=TextServer.AUTOWRAP_OFF;total.size_flags_horizontal=Control.SIZE_SHRINK_END;total.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
 	separator(details,"QuestCargoSeparator")
 
 	var rewards=q.get("rewards",{})
@@ -136,10 +139,10 @@ func render_detail(parent,q: Dictionary,active: bool):
 	var meeting_column: VBoxContainer=null
 	if q.get("scenario",false) and str(q.get("eventId",""))=="wheel" and not q.get("meeting",{}).is_empty():
 		var panel=PanelContainer.new();panel.name="QuestMerchantAvailability";panel.add_theme_stylebox_override("panel",ui.mock_shell.surface_style());parent.add_child(panel)
-		meeting_column=VBoxContainer.new();meeting_column.add_theme_constant_override("separation",12);panel.add_child(meeting_column)
+		meeting_column=VBoxContainer.new();meeting_column.add_theme_constant_override("separation",Tokens.SPACE_MD);panel.add_child(meeting_column)
 		meeting.render(ui.scroller(meeting_column),q,"Quest",true)
 	if q.get("story") is Array and not q.story.is_empty():
-		var story=pages.b(details,"依頼時の話" if active else "話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);story.custom_minimum_size.y=44
+		var story=pages.b(details,"依頼時の話" if active else "話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);Tokens.apply_button_size(story,Tokens.BUTTON_MD,false,Tokens.BUTTON_W_MD)
 
 	var actions=pages.row(parent);actions.name="QuestDetailActions";actions.alignment=BoxContainer.ALIGNMENT_CENTER
 	if active:
@@ -155,20 +158,20 @@ func render_detail(parent,q: Dictionary,active: bool):
 		else:pages.b(actions,"届け先を確認",ui.navigate.bind("map"))
 
 	else:
-		var accept=ui.action_button(pages.b(actions,"この依頼を引き受ける",open_picker.bind(str(q.id)),not pages.c().get("hasPorter",false)));accept.name="QuestAccept";accept.size_flags_horizontal=Control.SIZE_SHRINK_END;accept.custom_minimum_size.x=280
+		var accept=ui.action_button(pages.b(actions,"この依頼を引き受ける",open_picker.bind(str(q.id)),not pages.c().get("hasPorter",false)));accept.name="QuestAccept";accept.size_flags_horizontal=Control.SIZE_SHRINK_END
 		if not pages.c().get("hasPorter",false):pages.l(details,"受注には編成中のポーターが必要です。")
-	for button in actions.get_children():button.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+	for button in actions.get_children():Tokens.apply_button_size(button,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_LG)
 
 func field(parent,caption: String,value: String):
-	var row=pages.row(parent);row.name="QuestField_"+caption;var label=pages.l(row,caption);label.name="QuestFieldCaption";label.custom_minimum_size.x=150;label.size_flags_horizontal=Control.SIZE_FILL;label.add_theme_font_size_override("font_size",18);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
-	var content=pages.l(row,value);content.name="QuestFieldValue";content.add_theme_font_size_override("font_size",20);content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
+	var row=pages.row(parent);row.name="QuestField_"+caption;var label=pages.l(row,caption);label.name="QuestFieldCaption";label.custom_minimum_size.x=150;label.size_flags_horizontal=Control.SIZE_FILL;label.add_theme_font_size_override("font_size",Tokens.FONT_SM);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
+	var content=pages.l(row,value);content.name="QuestFieldValue";content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	separator(parent,"QuestFieldSeparator")
 func reward_line(parent,caption: String,kind: String,amount: int,rp: int):
-	var row=pages.row(parent);row.name="QuestRewardRow_"+caption;var label=pages.l(row,caption);label.name="QuestRewardCaption";label.custom_minimum_size.x=150;label.size_flags_horizontal=Control.SIZE_FILL;label.add_theme_font_size_override("font_size",18);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
+	var row=pages.row(parent);row.name="QuestRewardRow_"+caption;var label=pages.l(row,caption);label.name="QuestRewardCaption";label.custom_minimum_size.x=150;label.size_flags_horizontal=Control.SIZE_FILL;label.add_theme_font_size_override("font_size",Tokens.FONT_SM);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	ui.icons.add(row,"experience" if kind=="experience" else "money",28)
-	var amount_label=pages.l(row,"×%d" % amount);amount_label.name="QuestRewardAmount";amount_label.add_theme_font_size_override("font_size",20);amount_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;amount_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
+	var amount_label=pages.l(row,"×%d" % amount);amount_label.name="QuestRewardAmount";amount_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;amount_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	if rp>0:
-		var rp_label=pages.l(row,"RP ×%d" % rp);rp_label.name="QuestRewardRP";rp_label.add_theme_font_size_override("font_size",20);rp_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;rp_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
+		var rp_label=pages.l(row,"RP ×%d" % rp);rp_label.name="QuestRewardRP";rp_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;rp_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	separator(parent,"QuestRewardSeparator")
 
 func separator(parent: Node,control_name: String):
@@ -218,6 +221,7 @@ func render_sluice_story(parent: Control, result: Dictionary) -> void:
 		var read = ui.local_button(parent, "続きを読む", play_scene.bind(lines.slice(1), str(result.get("portrait", "")), result.get("cast", [])))
 		read.name = "ResultStory"
 		read.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		Tokens.apply_button_size(read, Tokens.BUTTON_MD, true, Tokens.BUTTON_W_MD)
 
 func open_picker(id: String):
 	if ui.locked or ui.modal_open() or pages.c().get("phase")!="town" or pages.c().get("activeQuest") is Dictionary:return
@@ -225,7 +229,7 @@ func open_picker(id: String):
 	var generation=picker_generation;var token=pages.c().get("inventoryToken");var epoch=pages.epoch;var connection=ui.engine.connection_generation
 	ui.dialog.open("荷物を持つポーターを選択",func(body,actions):
 		pages.l(body,"荷物を持つポーターを選び、決定してください。")
-		var choices=HFlowContainer.new();choices.name="QuestCargoChoices";choices.add_theme_constant_override("h_separation",12);choices.add_theme_constant_override("v_separation",12);body.add_child(choices)
+		var choices=HFlowContainer.new();choices.name="QuestCargoChoices";choices.add_theme_constant_override("h_separation",Tokens.SPACE_MD);choices.add_theme_constant_override("v_separation",Tokens.SPACE_MD);body.add_child(choices)
 		var buttons: Array=[]
 		var confirm=ui.primary(pages.b(actions,"決定",commit.bind(id,token,epoch,connection,generation),true));confirm.name="QuestCargoConfirm"
 		for member in pages.roster():

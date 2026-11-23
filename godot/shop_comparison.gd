@@ -1,5 +1,6 @@
 extends RefCounted
 ## Read-only canonical quotes; purchase still uses the existing consent flow.
+const Tokens=preload("res://ui_tokens.gd")
 var shop_ref: WeakRef
 var shop:
 	get:return shop_ref.get_ref()
@@ -31,21 +32,21 @@ func render_inline(body: Control,actions: Control,id: String,uid: String):
 	slot=ui.shop_slot if choices.has(ui.shop_slot) else str(choices[0])
 	ui.shop_slot=slot;shop.mark_comparison_slot(slot)
 	panels.clear()
-	var comparison=RichTextLabel.new();comparison.name="ShopComparisonStats";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.scroll_active=false;comparison.add_theme_font_size_override("normal_font_size",22);comparison.add_theme_color_override("default_color",Color("#29332f"));comparison.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(comparison);comparison.text="比較を読み込み中…"
+	var comparison=RichTextLabel.new();comparison.name="ShopComparisonStats";comparison.bbcode_enabled=true;comparison.fit_content=true;comparison.scroll_active=false;comparison.add_theme_font_size_override("normal_font_size",Tokens.FONT_BODY);comparison.add_theme_color_override("default_color",Tokens.INK);comparison.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.add_child(comparison);comparison.text="比較を読み込み中…"
 	panels=equipment_columns(body,"購入候補")
 	if shop.c().get("location")=="north":
 		var header=panels[0].get_child(0)
-		var positions=OptionButton.new();positions.name="ShopComparisonSlot";positions.custom_minimum_size=Vector2(140,36);header.add_child(positions)
+		var positions=OptionButton.new();positions.name="ShopComparisonSlot";positions.custom_minimum_size=Vector2(140,Tokens.BUTTON_SM);positions.size_flags_vertical=Control.SIZE_SHRINK_CENTER;header.add_child(positions)
 		for id_ in choices:
 			positions.add_item(str(shop.c().get("slots",{}).get(id_,id_)));positions.set_item_metadata(positions.item_count-1,id_)
 			if id_==slot:positions.select(positions.item_count-1)
 		positions.item_selected.connect(func(i):switch_target(owner_id,str(positions.get_item_metadata(i))))
 	skill_rows=null
-	var conditions=ui.label_(body,"");conditions.name="ShopComparisonConditions";conditions.add_theme_font_size_override("font_size",20)
+	var conditions=ui.label_(body,"");conditions.name="ShopComparisonConditions"
 	# Keep payment/rejection beside the decision, outside long scrolling notes.
 	var money=shop.checkout_fields(actions,gear.price,func():switch_target(owner_id,slot))
-	var trial=ui.button(actions,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_END;trial.custom_minimum_size.y=40;trial.add_theme_font_size_override("font_size",20)
-	var buy=ui.primary(ui.button(actions,"取引を確認",purchase,true));buy.name="ShopComparisonBuy";buy.custom_minimum_size.y=40;buy.size_flags_horizontal=Control.SIZE_SHRINK_END
+	var trial=ui.button(actions,"木人で試す",shop.start_trial.bind(item_id),shop.busy());trial.name="ProductTrial_"+item_id;trial.size_flags_horizontal=Control.SIZE_SHRINK_END;Tokens.apply_button_size(trial,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
+	var buy=ui.primary(ui.button(actions,"取引を確認",purchase,true));buy.name="ShopComparisonBuy";Tokens.apply_button_size(buy,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD);buy.size_flags_horizontal=Control.SIZE_SHRINK_END
 	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
 	refresh(money,comparison,conditions,buy)
 func equipment_notes(body: Control,gear: Dictionary):
@@ -53,20 +54,36 @@ func equipment_notes(body: Control,gear: Dictionary):
 	var note=str(gear.get("note","")).strip_edges()
 	var flavor=str(gear.get("flavor","")).strip_edges()
 	if not flavor.is_empty() and not note.contains(flavor):
-		var description=ui.label_(body,flavor);description.name="ShopComparisonFlavor";description.add_theme_font_size_override("font_size",20)
+		var description=ui.label_(body,flavor);description.name="ShopComparisonFlavor"
 	if not note.is_empty():
-		var memo=ui.label_(body,note);memo.name="ShopComparisonNotes";memo.add_theme_font_size_override("font_size",20)
+		var memo=ui.label_(body,note);memo.name="ShopComparisonNotes"
 
 func equipment_columns(body: Control,candidate: String) -> Array:
 	var pair=ui.row(body);pair.name="ShopComparisonSkills"
-	pair.add_theme_constant_override("separation",0)
+	pair.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	pair.custom_minimum_size.y=ui.mock_shell.grid_cell().y*5
 	var columns=[]
 	for heading in ["現在の装備",candidate]:
+		var is_candidate=not columns.is_empty()
 		var scroll=ScrollContainer.new()
-		scroll.name="ComparisonCurrentColumn" if columns.is_empty() else "ComparisonCandidateColumn"
+		scroll.name="ComparisonCandidateColumn" if is_candidate else "ComparisonCurrentColumn"
 		scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+		if is_candidate:
+			var divider=StyleBoxFlat.new()
+			divider.bg_color=Color.TRANSPARENT
+			divider.border_color=Tokens.BORDER
+			divider.border_width_left=Tokens.BORDER_WIDTH
+			divider.content_margin_left=Tokens.SPACE_SM
+			divider.content_margin_right=Tokens.SPACE_SM
+			divider.content_margin_top=Tokens.SPACE_SM
+			scroll.add_theme_stylebox_override("panel",divider)
+		else:
+			var pad=StyleBoxEmpty.new()
+			pad.content_margin_left=Tokens.SPACE_SM
+			pad.content_margin_right=Tokens.SPACE_SM
+			pad.content_margin_top=Tokens.SPACE_SM
+			scroll.add_theme_stylebox_override("panel",pad)
 		pair.add_child(scroll)
 		var column=VBoxContainer.new();column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(column)
 		ui.label_(ui.row(column),heading)
@@ -84,9 +101,9 @@ func fill_columns(columns: Array,q: Dictionary):
 
 func gear_summary(parent,gear: Dictionary,rows: Array,candidate:=false):
 	var label=ui.local_button(parent,str(gear.get("name","なし")),func():pass)
-	label.icon=ui.icons.texture(ui.icons.equipment(gear));label.expand_icon=true;label.add_theme_constant_override("icon_max_width",40)
+	label.icon=ui.icons.texture(ui.icons.equipment(gear));label.expand_icon=true;label.add_theme_constant_override("icon_max_width",40);Tokens.apply_button_size(label,Tokens.BUTTON_MD,false)
 	if candidate:
-		label.name="ShopComparisonProduct";label.add_theme_font_size_override("font_size",28)
+		label.name="ShopComparisonProduct"
 	preload("res://equipment_tooltip.gd").bind_details(label,ui,gear)
 	for line in rows:ui.label_(parent,line)
 
@@ -110,13 +127,13 @@ func render():
 	var title=ui.label_(body,str(gear.name),true);title.name="ShopComparisonProduct"
 	var selectors=ui.row(body)
 	ui.label_(selectors,"対象")
-	var people=OptionButton.new();people.name="ShopComparisonOwner";people.fit_to_longest_item=false;people.clip_text=true;people.size_flags_horizontal=Control.SIZE_EXPAND_FILL;people.custom_minimum_size.x=150;selectors.add_child(people)
+	var people=OptionButton.new();people.name="ShopComparisonOwner";people.fit_to_longest_item=false;people.clip_text=true;people.size_flags_horizontal=Control.SIZE_EXPAND_FILL;people.custom_minimum_size=Vector2(150,Tokens.BUTTON_MD);people.size_flags_vertical=Control.SIZE_SHRINK_CENTER;selectors.add_child(people)
 	for uid in shop.c().selected:
 		people.add_item(ui.member_name(str(uid)));people.set_item_metadata(people.item_count-1,uid)
 		if uid==owner_id:people.select(people.item_count-1)
 	people.item_selected.connect(func(i):switch_target(str(people.get_item_metadata(i)),slot))
 	var slots=slots_for(gear)
-	var positions=OptionButton.new();positions.name="ShopComparisonSlot";positions.size_flags_horizontal=Control.SIZE_EXPAND_FILL;positions.custom_minimum_size.x=130;selectors.add_child(positions)
+	var positions=OptionButton.new();positions.name="ShopComparisonSlot";positions.size_flags_horizontal=Control.SIZE_EXPAND_FILL;positions.custom_minimum_size=Vector2(130,Tokens.BUTTON_MD);positions.size_flags_vertical=Control.SIZE_SHRINK_CENTER;selectors.add_child(positions)
 	for id in slots:
 		positions.add_item(str(shop.c().get("slots",{}).get(id,id)));positions.set_item_metadata(positions.item_count-1,id)
 		if id==slot:positions.select(positions.item_count-1)
@@ -129,7 +146,7 @@ func render():
 		ui.label_(body,"説明\n"+str(gear.flavor)).name="ShopComparisonFlavor"
 	if gear.has("note") and not str(gear.note).is_empty():
 		ui.label_(body,"装備メモ（原文）\n"+str(gear.note)).name="ShopComparisonNotes"
-	var buy=ui.button(ui.dialog.actions,"確認中…",purchase,true);buy.name="ShopComparisonBuy";ui.icons.apply(buy,"money");buy.size_flags_horizontal=Control.SIZE_SHRINK_END;buy.custom_minimum_size.x=220
+	var buy=ui.button(ui.dialog.actions,"確認中…",purchase,true);buy.name="ShopComparisonBuy";ui.icons.apply(buy,"money");buy.size_flags_horizontal=Control.SIZE_SHRINK_END;Tokens.apply_button_size(buy,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_LG)
 	buy.theme_type_variation=&"ActionButton"
 	money_label=money;comparison_label=comparison;condition_label=conditions;buy_button=buy
 	refresh(money,comparison,conditions,buy)
@@ -199,16 +216,16 @@ func removed_sources(before: Array,after: Array) -> Array:
 func render_skills(q: Dictionary):
 	if panels.is_empty():ui.clear(skill_rows)
 	var before=q.before.get("skillSources",[]);var after=q.after.get("skillSources",[])
-	for group in [["追加",removed_sources(after,before),"#277242"],["失う",removed_sources(before,after),"#a84432"]]:
+	for group in [["追加",removed_sources(after,before),Tokens.POSITIVE],["失う",removed_sources(before,after),Tokens.DANGER]]:
 		if group[1].is_empty():continue
 		var parent=skill_rows if panels.is_empty() else panels[1 if group[0]=="追加" else 0]
-		var label=ui.label_(parent,group[0]+"スキル");label.add_theme_color_override("font_color",Color(group[2]))
-		var line=HFlowContainer.new();line.add_theme_constant_override("h_separation",8);parent.add_child(line)
+		var label=ui.label_(parent,group[0]+"スキル");label.add_theme_color_override("font_color",group[2])
+		var line=HFlowContainer.new();line.add_theme_constant_override("h_separation",Tokens.SPACE_SM);parent.add_child(line)
 		for source in group[1]:
 			var id=str(source.id);var level=int(source.get("level",1));var name_=str(shop.c().get("skillNames",{}).get(id,id))
 			var gear=q.get("gear",{}) if group[0]=="追加" else q.get("current",{})
 			var button=Button.new();line.add_child(button);button.name="ComparisonSkill_"+group[0]+"_"+id+"_"+str(line.get_child_count());button.text="Lv%d" % level
-			button.custom_minimum_size=Vector2(96,52);button.icon=skill_texture(id,level);button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40)
+			button.custom_minimum_size=Vector2(96,Tokens.BUTTON_LG);button.icon=skill_texture(id,level);button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40)
 			preload("res://comparison_skill_icon.gd").bind_hover(button,id,name_,level,shop.c(),gear)
 			button.pressed.connect(ui.show_skill_details.bind(id,name_,level,gear))
 

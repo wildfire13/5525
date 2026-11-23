@@ -12,6 +12,7 @@ var page_body: Control
 var preview_generation=0
 var inventory_filter="all"
 const Drag=preload("res://item_drag.gd")
+const Tokens=preload("res://ui_tokens.gd")
 func _init(frontend):ui=frontend
 func refresh():
 	if not is_instance_valid(page_body) or not page_body.is_inside_tree() or ui.page!="character":
@@ -31,10 +32,10 @@ func render(parent):
 	var member=members.filter(func(u):return str(u.id)==ui.pages.party_uid)[0]
 	if owner!=str(member.id):owner=str(member.id);picked={};allocating=false
 	var split=ui.mock_shell.columns(parent)
-	split.add_theme_constant_override("separation",0)
+	split.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	var column=preload("res://member_loadout_column.gd").new()
 	split.add_child(column)
-	column.build(ui,member,tab,set_tab,"CharacterTab_",false,true)
+	column.build(ui,member,tab,set_tab,"CharacterTab_",false,true,true)
 	column.panel.name="CharacterLoadoutPanel"
 	inventory_column=column if tab=="inventory" else null
 	var art=column.portrait
@@ -47,7 +48,7 @@ func render(parent):
 		var help=ui.button(heading,"",open_portrait.bind(member))
 		help.name="CharacterPortraitHelp";help.tooltip_text="クリックで画像変更";help.accessibility_name="画像変更"
 		help.icon=preload("res://assets/interface_icons/5525_help_icon_blue_v2.png")
-		help.expand_icon=true;help.custom_minimum_size=Vector2(44,44);help.size_flags_horizontal=Control.SIZE_SHRINK_END
+		help.expand_icon=true;help.custom_minimum_size=Vector2(Tokens.BUTTON_MD,Tokens.BUTTON_MD);help.size_flags_horizontal=Control.SIZE_SHRINK_END;help.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 		ability(values,member)
 		return
 	if tab=="skills":
@@ -59,8 +60,8 @@ func render(parent):
 	right.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	split.add_child(right)
 	var card=ui.card(right);card.get_parent().name="CharacterEquipmentDetail"
-	var surface=ui.mock_shell.surface_style();surface.set_content_margin_all(0);card.get_parent().add_theme_stylebox_override("panel",surface)
-	card.add_theme_constant_override("separation",0)
+	var surface=Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_NONE);card.get_parent().add_theme_stylebox_override("panel",surface)
+	card.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	card.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
 	card.get_parent().custom_minimum_size=Vector2(ui.mock_shell.grid_cell().x*2,ui.mock_shell.content_height())
 	card.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -73,7 +74,7 @@ func render(parent):
 		column.equipment(ui,member,picked.get("equipped_slot",""),"CharacterSlot_",select_equipped,payload)
 	else:inventory(column.inventory_overlay(),member)
 	var detail=ui.scroller(card)
-	detail.add_theme_constant_override("separation",0)
+	detail.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	if picked.is_empty():return
 	if picked.has("equipped_slot"):
 		equipped_detail(detail,owner,picked,busy)
@@ -86,9 +87,9 @@ func render(parent):
 			for option in picked.get("useTargets",[]):
 				var control=ui.button(detail,str(option.targetName)+"に使う",perform.bind(owner,str(picked.id),"use",option.targetId,1,null),busy or not option.ok);control.tooltip_text=str(option.get("reason",""))
 				control.theme_type_variation=&"ActionButton"
-		var explanation=ui.button(detail,"詳しい説明",ui.show_equipment_details.bind(picked.duplicate(true)));explanation.name="CharacterItemDetails";explanation.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+		var explanation=ui.button(detail,"詳しい説明",ui.show_equipment_details.bind(picked.duplicate(true)));explanation.name="CharacterItemDetails";explanation.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;Tokens.apply_button_size(explanation,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
 		var discard=picked.get("discard",{})
-		var remove=ui.button(detail,"捨てる",confirm_discard.bind(owner,picked.duplicate(true)),busy or not discard.get("ok",false));remove.name="CharacterDiscard";remove.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;remove.tooltip_text=str(discard.get("reason",""))
+		var remove=ui.button(detail,"捨てる",confirm_discard.bind(owner,picked.duplicate(true)),busy or not discard.get("ok",false));remove.name="CharacterDiscard";remove.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;remove.tooltip_text=str(discard.get("reason",""));Tokens.apply_button_size(remove,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
 
 func owned_comparison(detail,card,member,item,cancel:=Callable()):
 	ui.label_(detail,"装備変更",true).custom_minimum_size.y=ui.mock_shell.grid_cell().y
@@ -98,18 +99,18 @@ func owned_comparison(detail,card,member,item,cancel:=Callable()):
 	if options.is_empty():
 		ui.label_(detail,"装備できる部位がありません");return
 	if not options.any(func(q):return q.slot==equip_slot):equip_slot=str(options[0].slot)
-	var selector=OptionButton.new();selector.name="CharacterEquipSlot";columns[0].get_child(0).add_child(selector)
+	var selector=OptionButton.new();selector.name="CharacterEquipSlot";Tokens.apply_button_size(selector,Tokens.BUTTON_SM);columns[0].get_child(0).add_child(selector)
 	for option in options:
 		selector.add_item(str(ui.campaign().slots.get(option.slot,option.slot)));selector.set_item_metadata(selector.item_count-1,str(option.slot))
 		if option.slot==equip_slot:selector.select(selector.item_count-1)
 	selector.disabled=busy
 	selector.item_selected.connect(func(i):equip_slot=str(selector.get_item_metadata(i));refresh())
-	var summary=RichTextLabel.new();summary.name="CharacterEquipmentComparison";summary.bbcode_enabled=true;summary.fit_content=true;summary.add_theme_color_override("default_color",Color("#29332f"));detail.add_child(summary)
+	var summary=RichTextLabel.new();summary.name="CharacterEquipmentComparison";summary.bbcode_enabled=true;summary.fit_content=true;summary.add_theme_color_override("default_color",Tokens.INK);detail.add_child(summary)
 
 	var actions=ui.row(card);actions.alignment=BoxContainer.ALIGNMENT_END
-	ui.button(actions,"キャンセル",cancel if cancel.is_valid() else func():picked={};refresh(),busy).name="CharacterEquipCancel"
+	var cancel_btn=ui.button(actions,"キャンセル",cancel if cancel.is_valid() else func():picked={};refresh(),busy);cancel_btn.name="CharacterEquipCancel";Tokens.apply_button_size(cancel_btn,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
 	var equip=ui.action_button(ui.button(actions,"変更する",perform.bind(str(member.id),str(item.id),"equip",null,1,equip_slot),true))
-	equip.size_flags_horizontal=Control.SIZE_SHRINK_END;equip.name="CharacterEquip";equip.tooltip_text=str(options[selector.selected].get("reason",""))
+	Tokens.apply_button_size(equip,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD);equip.size_flags_horizontal=Control.SIZE_SHRINK_END;equip.name="CharacterEquip";equip.tooltip_text=str(options[selector.selected].get("reason",""))
 	preview(columns,summary,member,item,equip)
 
 func equipped_detail(parent,uid,item,disabled):
@@ -121,6 +122,7 @@ func equipped_detail(parent,uid,item,disabled):
 		var unequip=ui.button(column,"装備を外す",perform.bind(uid,str(item.id),"unequip",null,1,item.equipped_slot),disabled)
 		unequip.theme_type_variation=&"ActionButton"
 		unequip.name="UnequipItem"
+		Tokens.apply_button_size(unequip,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
 
 func select_equipped(item: Dictionary):
 	picked=item
@@ -218,17 +220,18 @@ func preview(columns,text,member,item,equip):
 		var comparison=ui.pages.shop_view.comparison_view
 		var stats=["比較対象："+str(ui.campaign().get("slots",{}).get(chosen,chosen))]
 		for change in comparison.stat_changes(member,quote):stats.append(comparison.change(change[0],change[1],change[2]))
-		text.text="\n".join(stats).replace("#8ee6ab","#247044").replace("#ffb1a6","#b04430").replace("#d5dbe2","#707970")
+		text.text="\n".join(stats).replace("#8ee6ab","#"+Tokens.POSITIVE.to_html(false)).replace("#ffb1a6","#"+Tokens.DANGER.to_html(false)).replace("#d5dbe2","#"+Tokens.MUTED_INK.to_html(false))
 		comparison.fill_columns(columns,quote)
 		render_comparison_skills(columns[1],quote,columns[0])
 		comparison.equipment_notes(columns[1],item.get("definition",item))
 		equip.disabled=busy or not item.get("equipSlots",[]).any(func(q):return q.slot==chosen and q.ok);equip.set_meta("base_disabled",equip.disabled)
 	else:text.text="比較を取得できません。選び直してください。"
 
-func ability(parent,member):
-	if allocating:
+func ability(parent,member,allow_allocation:=true):
+	if allow_allocation and allocating:
 		ui.pages.party_view.growth(parent,member)
-		ui.button(parent,"戻る",end_allocation)
+		var back_btn=ui.button(parent,"戻る",end_allocation)
+		Tokens.apply_button_size(back_btn,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
 		return
 	var values=parent
 	var stats=member.get("stats",member)
@@ -237,7 +240,7 @@ func ability(parent,member):
 		var value=int(stats.get(key,0));var breakdown=stats.get("attributeBreakdown",{}).get(key,{})
 		var delta=int(breakdown.get("equipment",0)) if key in ["str","int"] else value-int(stats.get("agi",value)) if key=="speed" else 0
 		var line=ui.row(values);line.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;var base_label=ui.label_(line,("SPD" if key=="speed" else key.to_upper())+"  "+str(value));base_label.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;base_label.autowrap_mode=TextServer.AUTOWRAP_OFF
-		var mod=ui.label_(line,"(%+d)" % delta);mod.autowrap_mode=TextServer.AUTOWRAP_OFF;mod.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;mod.add_theme_color_override("font_color",Color("#247044") if delta>0 else Color("#b04430") if delta<0 else Color("#707970"))
+		var mod=ui.label_(line,"(%+d)" % delta);mod.autowrap_mode=TextServer.AUTOWRAP_OFF;mod.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;mod.add_theme_color_override("font_color",Tokens.POSITIVE if delta>0 else Tokens.DANGER if delta<0 else Tokens.MUTED_INK)
 	ui.label_(values,"EXP %d" % int(member.get("xp",0)))
 	ui.pages.party_view.identity(values,member)
 	var attack=ui.icons.line(ui,values,"attack","通常ATK %d / 射程 %d" % [ui.pages.normal_atk(stats,1),ui.pages.normal_reach(stats)]);attack.name="CharacterAttackProfile";attack.tooltip_text=ui.pages.attack_profile(stats);attack.mouse_filter=Control.MOUSE_FILTER_STOP
@@ -251,8 +254,11 @@ func ability(parent,member):
 			var label=preload("res://element_badges.gd").spec(element).label
 			ui.label_(line,"%s%d" % [label,stats.get(("def" if defense else "atk")+element.capitalize(),0)]).autowrap_mode=TextServer.AUTOWRAP_OFF
 	var points=int(member.get("statPoints",0))
-	var allocate=ui.button(parent,"能力を割り振る  "+str(points),func():allocating=true;refresh(),points<=0);allocate.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
-func skills(parent,member):
+	if allow_allocation:
+		var allocate=ui.button(parent,"能力を割り振る  "+str(points),func():allocating=true;refresh(),points<=0);allocate.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;Tokens.apply_button_size(allocate,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
+	elif points>0:
+		ui.label_(parent,"未割振ポイント  "+str(points))
+func skills(parent,member,prefix:="CharacterSkill_"):
 	var stats=member.get("stats",member);var names=ui.campaign().get("skillNames",{});var definitions=ui.campaign().get("skillDefinitions",{})
 	var columns=ui.scroller(parent)
 	for group in [["active","アクティブスキル"],["passive","パッシブスキル"]]:
@@ -266,7 +272,7 @@ func skills(parent,member):
 			var id=str(source.id);var classification=str(source.get("classification",definitions.get(id,{}).get("classification","passive")))
 			if classification!=group[0]:continue
 			var level=int(source.get("level",1));var name=str(names.get(id,id));var gear=member.get("equipmentDetails",{}).get(source.slot,{})
-			var button=ui.button(grid,name,ui.show_skill_details.bind(id,name,level,gear));button.name="CharacterSkill_"+group[0]+"_"+id+"_"+str(source.slot);button.icon=ui.icons.texture(ui.icons.skill(id,level));button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40);button.custom_minimum_size=Vector2(280,52)
+			var button=ui.button(grid,name,ui.show_skill_details.bind(id,name,level,gear));button.name=prefix+group[0]+"_"+id+"_"+str(source.slot);button.icon=ui.icons.texture(ui.icons.skill(id,level));button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40);button.custom_minimum_size=Vector2(280,Tokens.BUTTON_LG);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 			preload("res://comparison_skill_icon.gd").bind_hover(button,id,name,level,ui.campaign(),gear)
 		if grid.get_child_count()==0:ui.label_(content,"なし")
 
@@ -306,16 +312,16 @@ func open_portrait(member: Dictionary):
 func render_comparison_skills(parent,quote: Dictionary,current=null):
 	var helper=ui.pages.shop_view.comparison_view
 	var before=quote.before.get("skillSources",[]);var after=quote.after.get("skillSources",[])
-	for group in [["追加",helper.removed_sources(after,before),"#277242"],["失う",helper.removed_sources(before,after),"#a84432"]]:
+	for group in [["追加",helper.removed_sources(after,before),Tokens.POSITIVE],["失う",helper.removed_sources(before,after),Tokens.DANGER]]:
 		if group[1].is_empty():continue
 		var host=current if group[0]=="失う" and current!=null else parent
-		ui.label_(host,group[0]+"スキル").add_theme_color_override("font_color",Color(group[2]))
+		ui.label_(host,group[0]+"スキル").add_theme_color_override("font_color",group[2])
 		var line=HFlowContainer.new();host.add_child(line)
 		for source in group[1]:
 			var id=str(source.id);var level=int(source.get("level",1));var name_=str(ui.campaign().get("skillNames",{}).get(id,id))
 			var gear=quote.get("gear",{}) if group[0]=="追加" else quote.get("current",{})
 			var button=Button.new();line.add_child(button);button.name="CharacterComparisonSkill_"+group[0]+"_"+id;button.text="Lv%d" % level
-			button.icon=helper.skill_texture(id,level);button.custom_minimum_size=Vector2(96,52);button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40)
+			button.icon=helper.skill_texture(id,level);button.custom_minimum_size=Vector2(96,Tokens.BUTTON_LG);button.expand_icon=true;button.add_theme_constant_override("icon_max_width",40)
 			preload("res://comparison_skill_icon.gd").bind_hover(button,id,name_,level,ui.campaign(),gear)
 			button.pressed.connect(ui.show_skill_details.bind(id,name_,level,gear))
 

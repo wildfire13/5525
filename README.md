@@ -1,7 +1,7 @@
 # GoGo To Go — 5×5=25
 
 ## 遊ぶ
-Windowsでは **[Start-5525.cmd](Start-5525.cmd)** からGodot版を起動します。Godot 4.6.x、Node.js 22以上、Python 3.10以上とPillowが必要です。Linuxではリポジトリ直下で `godot --headless --editor --path godot --import` の後に `NATIVE5525_PYTHON="$(command -v python3)" godot --path godot` を実行します。
+Windowsでは **[Start-5525.cmd](Start-5525.cmd)** からGodot版を起動します。Godot 4.7.x、Node.js 22以上、Python 3.10以上とPillowが必要です。Linuxではリポジトリ直下で `godot --headless --editor --path godot --import` の後に `NATIVE5525_PYTHON="$(command -v python3)" godot --path godot` を実行します。
 
 画面・入力・音声はGodot、ゲームルールはNode.jsが担当します。Pythonは画像・保存データ・SQLiteの処理に使います。[起動設定と動作確認](godot/README.md)
 

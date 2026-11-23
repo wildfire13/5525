@@ -2,6 +2,7 @@ extends RefCounted
 ## Session-only selection. Ownership changes atomically in the campaign bridge.
 const Inventory=preload("res://member_inventory.gd")
 const Loadout=preload("res://member_loadout_column.gd")
+const Tokens=preload("res://ui_tokens.gd")
 var tab := "inventory"
 var filters := {"character":"all","warehouse":"all"}
 var equipped: Dictionary={}
@@ -89,27 +90,39 @@ func render(parent: Control):
 		quote_generation+=1;unequip_quote={}
 		refresh_unequip_quote.call_deferred(quote_generation,quote_context)
 	var split=ui.mock_shell.columns(parent);split.name="WarehouseColumns";split.custom_minimum_size.y=ui.mock_shell.content_height()
-	split.add_theme_constant_override("separation",0)
+	split.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	var loadout=Loadout.new()
 	split.add_child(loadout)
-	loadout.build(ui,member,tab,set_tab,"WarehouseTab_",busy())
+	loadout.build(ui,member,tab,set_tab,"WarehouseTab_",busy(),true,true)
 	if tab=="equipment":
 		loadout.equipment(ui,member,equipped.get("equipped_slot",""),"WarehouseSlot_",select_equipment,Callable(),busy())
-	else:
+	elif tab=="inventory":
 		var inventory=loadout.inventory_overlay()
 		inventory.name="WarehouseCharacter"
 		render_list(inventory,"character",member)
+	elif tab=="ability":
+		var overlay=loadout.inventory_overlay()
+		var pad=MarginContainer.new();pad.size_flags_vertical=Control.SIZE_EXPAND_FILL;pad.add_theme_constant_override("margin_left",Tokens.SPACE_SM);pad.add_theme_constant_override("margin_right",Tokens.SPACE_SM);pad.add_theme_constant_override("margin_top",Tokens.SPACE_SM);overlay.add_child(pad)
+		var values=ui.scroller(pad)
+		values.get_parent().name="WarehouseAbilityValues"
+		ui.label_(values,str(member.name)+" / Lv."+str(int(member.level)),true)
+		pages.party_view.workspace.ability(values,member,false)
+	elif tab=="skills":
+		var overlay=loadout.inventory_overlay()
+		var pad=MarginContainer.new();pad.size_flags_vertical=Control.SIZE_EXPAND_FILL;pad.add_theme_constant_override("margin_left",Tokens.SPACE_SM);pad.add_theme_constant_override("margin_right",Tokens.SPACE_SM);pad.add_theme_constant_override("margin_top",Tokens.SPACE_SM);overlay.add_child(pad)
+		var skill_list=VBoxContainer.new();skill_list.name="WarehouseSkillList";skill_list.size_flags_vertical=Control.SIZE_EXPAND_FILL;pad.add_child(skill_list)
+		pages.party_view.workspace.skills(skill_list,member,"WarehouseSkill_")
 	if source not in ["character","equipped"]:
 		render_ledger(split,member)
 		return
 	var panel=PanelContainer.new();panel.name="WarehouseSelectedPanel";panel.custom_minimum_size.x=440;panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(panel)
-	var surface=ui.mock_shell.surface_style();surface.set_content_margin_all(0);panel.add_theme_stylebox_override("panel",surface)
-	var details=VBoxContainer.new();details.name="WarehouseSelectedItem";details.add_theme_constant_override("separation",0);panel.add_child(details)
+	panel.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_NONE))
+	var details=VBoxContainer.new();details.name="WarehouseSelectedItem";details.add_theme_constant_override("separation",Tokens.SPACE_NONE);panel.add_child(details)
 	ui.label_(details,"選択アイテム").name="WarehouseHeading"
 	var selected=equipped if source=="equipped" else selected_row();var q=quote(source,item_id)
 	if selected.is_empty():
 		var hint=ui.label_(details,"アイテムを選択すると詳細が表示されます")
-		hint.add_theme_font_size_override("font_size",16)
+		hint.add_theme_font_size_override("font_size",Tokens.FONT_SM)
 		hint.size_flags_vertical=Control.SIZE_EXPAND_FILL
 		hint.vertical_alignment=VERTICAL_ALIGNMENT_TOP
 	else:
@@ -118,17 +131,17 @@ func render(parent: Control):
 		else:render_item_detail(content,selected)
 		if source!="equipped":ui.label_(content,"×%d" % int(selected.get("count",0)))
 		var reason_text=str(unequip_quote.get("reason","確認中…")) if source=="equipped" else str(q.get("reason",""))
-		var reason=ui.label_(details,error_message if not error_message.is_empty() else reason_text);reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",14)
+		var reason=ui.label_(details,error_message if not error_message.is_empty() else reason_text);reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",Tokens.FONT_XS)
 	var controls=ui.row(details);controls.name="WarehouseControls";controls.alignment=BoxContainer.ALIGNMENT_END
 	controls.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	if source=="equipped":
-		var remove=ui.button(controls,"装備を外す",unequip,busy() or not unequip_quote.get("ok",false));remove.name="WarehouseUnequip"
+		var remove=ui.button(controls,"装備を外す",unequip,busy() or not unequip_quote.get("ok",false));remove.name="WarehouseUnequip";Tokens.apply_button_size(remove,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
 		remove.theme_type_variation=&"ActionButton"
 	elif not selected.is_empty():
-		var move=ui.button(controls,"預ける" if source=="character" else "取り出す",request_transfer.bind(source,item_id),busy() or not q.get("ok",false));move.name="WarehouseTransfer";move.tooltip_text=str(q.get("reason",""))
+		var move=ui.button(controls,"預ける" if source=="character" else "取り出す",request_transfer.bind(source,item_id),busy() or not q.get("ok",false));move.name="WarehouseTransfer";move.tooltip_text=str(q.get("reason",""));Tokens.apply_button_size(move,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
 		move.theme_type_variation=&"ActionButton"
-	ui.button(controls,"戻る",pages.facility_entry.back,busy()).name="WarehouseReturn"
-	ui.button(controls,"出庫台帳",func():clear_selection();ui.render(),busy()).name="WarehouseLedgerReturn"
+	var back=ui.button(controls,"戻る",pages.facility_entry.back,busy());back.name="WarehouseReturn";Tokens.apply_button_size(back,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
+	var ledger_back=ui.button(controls,"出庫台帳",func():clear_selection();ui.render(),busy());ledger_back.name="WarehouseLedgerReturn";Tokens.apply_button_size(ledger_back,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
 	split.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data,"warehouse"),func(_at,data):drop(data,"warehouse"))
 
 func owned_count(id: String) -> int:
@@ -138,27 +151,27 @@ func owned_count(id: String) -> int:
 
 func render_ledger(parent: Control,member: Dictionary):
 	var panel=PanelContainer.new();panel.name="WarehouseStorage";panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;parent.add_child(panel)
-	var surface=ui.mock_shell.surface_style();surface.set_content_margin_all(0);panel.add_theme_stylebox_override("panel",surface)
+	panel.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_NONE))
 	ledger_panel=panel
-	var column=VBoxContainer.new();column.add_theme_constant_override("separation",0);panel.add_child(column)
+	var column=VBoxContainer.new();column.add_theme_constant_override("separation",Tokens.SPACE_NONE);panel.add_child(column)
 	ui.label_(column,"出庫台帳 — "+str(member.get("name",owner_id)))
 	var filter=Inventory.add_filter(ui,column,member,filters.warehouse,set_filter.bind("warehouse"))
 	filter.name="WarehouseFilter_warehouse";filter.disabled=busy()
 	var body=ui.scroller(column);body.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
 	ui.memory.watch(body.get_parent(),"warehouse_warehouse_"+owner_id)
-	var table=GridContainer.new();table.columns=4;table.size_flags_horizontal=Control.SIZE_EXPAND_FILL;table.add_theme_constant_override("h_separation",16);table.add_theme_constant_override("v_separation",8);body.add_child(table)
+	var table=GridContainer.new();table.columns=4;table.size_flags_horizontal=Control.SIZE_EXPAND_FILL;table.add_theme_constant_override("h_separation",Tokens.SPACE_LG);table.add_theme_constant_override("v_separation",Tokens.SPACE_SM);body.add_child(table)
 	for title in ["品名","倉庫",str(member.name)+"所持","取り出す数"]:
 		var heading=ui.label_(table,title)
 		heading.custom_minimum_size.x=148 if title!="品名" else 220
 	var summary=ui.label_(column,"");summary.name="WarehouseBeforeAfter"
-	var reason=ui.label_(column,"");reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",14)
+	var reason=ui.label_(column,"");reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",Tokens.FONT_XS)
 	var controls=ui.row(column);controls.alignment=BoxContainer.ALIGNMENT_END
 	controls.name="WarehouseControls";controls.custom_minimum_size.y=ui.mock_shell.grid_cell().y
 	var recipient=owner_id;var epoch=pages.epoch;var token=str(pages.c().get("inventoryToken",""))
 	var withdraw=func():
 		if recipient==owner_id and epoch==pages.epoch and source=="warehouse":transfer("warehouse",item_id,quantity,token)
-	var confirm=ui.primary(ui.button(controls,"取り出す",withdraw,true));confirm.name="WarehouseTransfer"
-	ui.button(controls,"戻る",pages.facility_entry.back,busy()).name="WarehouseReturn"
+	var confirm=ui.primary(ui.button(controls,"取り出す",withdraw,true));confirm.name="WarehouseTransfer";confirm.size_flags_horizontal=Control.SIZE_SHRINK_END;Tokens.apply_button_size(confirm,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
+	var back=ui.button(controls,"戻る",pages.facility_entry.back,busy());back.name="WarehouseReturn";Tokens.apply_button_size(back,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
 	var update_footer=func():
 		var selected=selected_row() if source=="warehouse" else {}
 		var count=int(selected.get("count",0));var held=owned_count(item_id);var q=quote("warehouse",item_id)
@@ -178,7 +191,7 @@ func render_ledger(parent: Control,member: Dictionary):
 		ui.memory.key(button,"warehouse_item_warehouse_"+id)
 		button.set_drag_forwarding(func(_at):return drag("warehouse",id),func(_at,data):return can_drop(data,"warehouse"),func(_at,data):drop(data,"warehouse"))
 		ui.label_(table,str(count));ui.label_(table,str(owned_count(id)))
-		var amount=SpinBox.new();amount.name="WarehouseQuantity_"+id;amount.min_value=0;amount.max_value=maxi(1,count);amount.step=1;amount.value=quantity if source=="warehouse" and item_id==id else 0;amount.custom_minimum_size.x=112;amount.editable=not busy();table.add_child(amount)
+		var amount=SpinBox.new();amount.name="WarehouseQuantity_"+id;amount.min_value=0;amount.max_value=maxi(1,count);amount.step=1;amount.value=quantity if source=="warehouse" and item_id==id else 0;amount.custom_minimum_size.x=112;amount.size_flags_vertical=Control.SIZE_SHRINK_CENTER;amount.editable=not busy();table.add_child(amount)
 		amount.value_changed.connect(func(value):
 			if busy() or recipient!=owner_id or epoch!=pages.epoch or token!=str(pages.c().get("inventoryToken","")):return
 			source="warehouse";item_id=id;quantity=int(value)
@@ -215,8 +228,8 @@ func render_list(column: Control,side: String,member: Dictionary):
 		if entry.get("overCapacity",false):button.tooltip_text+=" / 所持枠を超えています"
 		button.set_drag_forwarding(func(_at):return drag(side,id),func(_at,data):return can_drop(data,side),func(_at,data):drop(data,side))
 		ui.memory.key(button,"warehouse_item_"+side+"_"+id)
-	if body.get_child_count()==0:ui.label_(body,"アイテムはありません").add_theme_font_size_override("font_size",16)
-	if source!="character":ui.label_(column,"ここへドラッグして"+("預ける" if side=="warehouse" else "取り出す")).add_theme_font_size_override("font_size",14)
+	if body.get_child_count()==0:ui.label_(body,"アイテムはありません").add_theme_font_size_override("font_size",Tokens.FONT_SM)
+	if source!="character":ui.label_(column,"ここへドラッグして"+("預ける" if side=="warehouse" else "取り出す")).add_theme_font_size_override("font_size",Tokens.FONT_XS)
 func request_transfer(side: String,id: String):
 	if busy() or not available():return
 	var entry={}

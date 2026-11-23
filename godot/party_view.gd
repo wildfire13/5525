@@ -1,5 +1,6 @@
 extends RefCounted
 const ElementBadges=preload("res://element_badges.gd")
+const Tokens=preload("res://ui_tokens.gd")
 var owner_ref: WeakRef
 var pages:
 	get:return owner_ref.get_ref()
@@ -33,15 +34,15 @@ func growth(parent,u: Dictionary):
 	var stats=u.get("stats",u)
 	var remaining=int(u.get("statPoints",0))-draft_total();var editable=pages.c().get("phase")=="town" and ui.active_member(str(u.id)) and not committing
 	var points=ui.row(parent)
-	var info=ui.icons.apply(b(points,"ポイント説明",point_help),"attribute_points");info.name="AttributePointHelp"
+	var info=ui.icons.apply(b(points,"ポイント説明",point_help),"attribute_points");info.name="AttributePointHelp";Tokens.apply_button_size(info)
 	var count=l(points,"割り振り可能な残ポイント：%d" % remaining,true);count.name="AllocationRemaining"
 	for stat in ["str","int","agi"]:
 		var row=ui.row(parent);ui.icons.add(row,{"str":"strength","int":"intelligence","agi":"speed"}[stat],24)
 		var value=l(row,"%s  %d → %d（＋%d）" % [stat.to_upper(),stats.get(stat,0),stats.get(stat,0)+draft[stat],draft[stat]])
 		value.size_flags_horizontal=Control.SIZE_FILL;value.custom_minimum_size.x=260
-		ui.memory.key(b(row,"＋1",change_draft.bind(u,stat,1),not editable or remaining<=0),"allocate_"+stat)
-		ui.memory.key(b(row,"−1",change_draft.bind(u,stat,-1),not editable or draft[stat]<=0),"allocate_minus_"+stat)
-	var confirm=b(parent,"確定",confirm_allocation.bind(u),not editable or draft_total()==0);confirm.name="AllocationConfirm";confirm.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;confirm.custom_minimum_size.x=180;ui.memory.key(confirm,"allocation_confirm")
+		var plus=b(row,"＋1",change_draft.bind(u,stat,1),not editable or remaining<=0);Tokens.apply_button_size(plus);ui.memory.key(plus,"allocate_"+stat)
+		var minus=b(row,"−1",change_draft.bind(u,stat,-1),not editable or draft[stat]<=0);Tokens.apply_button_size(minus);ui.memory.key(minus,"allocate_minus_"+stat)
+	var confirm=b(parent,"確定",confirm_allocation.bind(u),not editable or draft_total()==0);confirm.name="AllocationConfirm";confirm.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;Tokens.apply_button_size(confirm,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD);ui.memory.key(confirm,"allocation_confirm")
 	confirm.theme_type_variation=&"ActionButton"
 	if not editable:l(parent,"控えは編成してから操作できます。" if not ui.active_member(str(u.id)) else "成長の配分は町にいる時だけ編集できます。" if pages.c().get("phase")!="town" else "確定結果を確認しています。")
 	l(parent,pages.stats_text(stats,str(u.id)));l(parent,"Wt上限はSTR。戦闘終了後、生存者が戦闘不能者の装備と荷物の重量を分担します。SPD（行動速度）はAGIと装備補正から算出します。")
@@ -61,6 +62,7 @@ func skills(parent,u: Dictionary,show_summary:=true):
 		ui.icons.line(ui,heading,ui.icons.skill(id,level),title,true)
 		var gear=u.get("equipmentDetails",{}).get(source.slot,{})
 		var button=ui.local_button(heading,"説明",ui.show_skill_details.bind(id,str(names.get(id,id)),level,gear));button.name="PartySkillDetails_"+id+("_%d" % occurrence if occurrence>0 else "")
+		Tokens.apply_button_size(button,Tokens.BUTTON_SM)
 		preload("res://comparison_skill_icon.gd").bind_hover(button,id,str(names.get(id,id)),level,pages.c(),gear)
 		l(parent,preload("res://skill_text.gd").plain(preload("res://skill_text.gd").document(id,str(names.get(id,id)),level,pages.c(),gear)))
 		l(parent,"由来: "+str(pages.c().slots.get(source.slot,source.slot))+" / "+str(gear.get("name",source.itemId)))

@@ -1,5 +1,7 @@
 extends ProgressBar
 
+const Tokens=preload("res://ui_tokens.gd")
+
 var current: int
 var projected: int
 var fill := StyleBoxFlat.new()
@@ -12,13 +14,13 @@ func setup(resource: String, value: int, maximum: int):
 	current=value;projected=value
 	max_value=maxi(1,maximum);self.value=current;show_percentage=false
 	custom_minimum_size.y=30;mouse_filter=Control.MOUSE_FILTER_STOP
-	var track=StyleBoxFlat.new();track.bg_color=Color("#dbe1d9");track.set_corner_radius_all(3)
+	var track=StyleBoxFlat.new();track.bg_color=Tokens.BTN_DISABLED;track.set_corner_radius_all(Tokens.RADIUS_SM)
 	base_color=Color("#93b6df") if resource=="mp" else Color("#df958b") if value*4<maximum else Color("#8dc9af")
-	fill.bg_color=base_color;fill.set_corner_radius_all(3)
+	fill.bg_color=base_color;fill.set_corner_radius_all(Tokens.RADIUS_SM)
 	add_theme_stylebox_override("background",track);add_theme_stylebox_override("fill",fill)
 	add_child(caption);caption.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	caption.offset_left=8;caption.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	caption.add_theme_color_override("font_color",Color("#182520"))
+	caption.offset_left=Tokens.SPACE_SM;caption.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;caption.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	caption.add_theme_color_override("font_color",Tokens.INK)
 	caption.text="%s %d/%d" % [resource.to_upper(),current,maximum]
 	tooltip_text=caption.text
 

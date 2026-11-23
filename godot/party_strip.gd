@@ -9,6 +9,7 @@ var scroll: ScrollContainer
 var left: Button
 var right: Button
 const Drag=preload("res://deployment_drag.gd")
+const Tokens=preload("res://ui_tokens.gd")
 func build(owner):
 	owner_ref=weakref(owner);name="PartyFaceBar"
 	var standard=ui.ui_size_mode=="standard"
@@ -20,11 +21,11 @@ func build(owner):
 		return
 	custom_minimum_size.y=84 if standard else 74
 	size_flags_horizontal=Control.SIZE_EXPAND_FILL;mouse_filter=Control.MOUSE_FILTER_PASS
-	add_theme_constant_override("separation",6)
+	add_theme_constant_override("separation",Tokens.SPACE_SM)
 	left=ui.button(self,"‹",slide.bind(-1));left.name="PartySlideLeft";left.custom_minimum_size=Vector2(38,custom_minimum_size.y);left.tooltip_text="パーティー一覧を左へ";left.set_meta("no_status_hint",true)
 	scroll=ScrollContainer.new();scroll.name="PartyFacesScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;add_child(scroll);ui.memory.watch(scroll,"party_faces")
 	var members: BoxContainer=HBoxContainer.new()
-	members.name="PartyFaces";members.add_theme_constant_override("separation",6);members.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.add_child(members)
+	members.name="PartyFaces";members.add_theme_constant_override("separation",Tokens.SPACE_SM);members.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.add_child(members)
 	for id in ui.campaign().get("selected",[]):
 		var matches=ui.roster().filter(func(member):return str(member.id)==str(id))
 		if matches.is_empty():continue
@@ -67,14 +68,15 @@ func configure_deployment_card(button,member,line):
 	var state=Label.new()
 	state.name="DeploymentMemberState"
 	state.text="戦闘不能" if member.hp<=0 else ("出場" if deployed else "控え")
-	state.add_theme_font_size_override("font_size",13)
+	state.add_theme_font_size_override("font_size",Tokens.FONT_XS)
 	state.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	line.add_child(state)
 	if deployed and member.hp<=0:
 		var remove=ui.button(line,"除外",remove_inactive.bind(id,Drag.signature(ui),ui.pages.epoch,ui.engine.connection_generation),ui.modal_open())
 		remove.name="DeploymentRemoveInactive_"+id
 		remove.tooltip_text="戦闘不能の出場枠を外して控えへ戻します。"
-		remove.custom_minimum_size=Vector2.ZERO
+		remove.custom_minimum_size=Vector2(0,Tokens.BUTTON_SM)
+		remove.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 		state.hide()
 	button.tooltip_text="人物詳細を開く" if member.hp<=0 else "人物詳細を開く / 盤面へドラッグして配置"
 func remove_inactive(id: String,stamp: String,epoch: int,connection: int):

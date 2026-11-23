@@ -6,9 +6,10 @@ var origin_name := ""
 var host_ref: WeakRef
 var epoch := 0
 var connection := 0
-var context_stamp := ""
+var context_stamp: Array = []
 const Layout=preload("res://window_grid.gd")
-func stamp() -> String:return JSON.stringify([ui.page,ui.state().get("actor"),ui.state().get("actions"),ui.pages.party_uid,ui.campaign().get("inventoryToken")])
+const Tokens=preload("res://ui_tokens.gd")
+func stamp() -> Array:return [ui.page,ui.state().get("actor"),ui.state().get("actions"),ui.pages.party_uid,ui.campaign().get("inventoryToken")]
 func configure(frontend,doc: Dictionary,context: String,note: String="",flavor: String=""):
  ui=frontend;theme=ui.theme;epoch=ui.pages.epoch;connection=ui.engine.connection_generation;context_stamp=stamp()
  name="SkillDetailsWindow";title=doc.get("window_title","スキルの説明");exclusive=true;transient=true
@@ -20,9 +21,13 @@ func configure(frontend,doc: Dictionary,context: String,note: String="",flavor: 
  var column=VBoxContainer.new();column.set_meta("ui_region","SkillDetailsSummary");layout.add_child(column)
  column.add_theme_constant_override("separation",0)
  var summary_content=ui.scroller(column)
- var summary_scroll=summary_content.get_parent()
+ var summary_scroll: ScrollContainer=summary_content.get_parent()
  summary_scroll.size_flags_vertical=Control.SIZE_FILL
- var fit_summary=func():summary_scroll.custom_minimum_size.y=Layout.local_rect(Vector2(get_tree().root.size),2,2,7,1).size.y
+ var scroll_pad=StyleBoxEmpty.new()
+ scroll_pad.content_margin_left=Tokens.SPACE_LG;scroll_pad.content_margin_right=Tokens.SPACE_LG
+ scroll_pad.content_margin_top=Tokens.SPACE_SM;scroll_pad.content_margin_bottom=Tokens.SPACE_SM
+ summary_scroll.add_theme_stylebox_override("panel",scroll_pad)
+ var fit_summary=func():summary_scroll.custom_minimum_size.y=Layout.local_rect(Vector2(get_tree().root.size),2,2,6,1).size.y
  size_changed.connect(fit_summary)
  fit_summary.call()
  if not context.is_empty() and doc.has("summary_text"):
@@ -33,12 +38,14 @@ func configure(frontend,doc: Dictionary,context: String,note: String="",flavor: 
  if not flavor.is_empty():pages.append(["説明",flavor,"SkillDetailsFlavor"])
  if not note.is_empty():pages.append(["装備メモ（原文）",note,"SkillDetailsNote"])
  for spec in pages:
-  var scroll=ScrollContainer.new();scroll.name=spec[0];scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;tabs.add_child(scroll)
+  var scroll=ScrollContainer.new();scroll.name=spec[0];scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.add_theme_stylebox_override("panel",scroll_pad);tabs.add_child(scroll)
   var text=ui.label_(scroll,spec[1]);text.name=spec[2];text.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  tabs.set_tab_disabled(1,true)
- var actions=ui.row(layout);actions.name="SkillDetailsActions"
+ var actions=ui.row(layout);actions.name="SkillDetailsActions";actions.alignment=BoxContainer.ALIGNMENT_CENTER
+ actions.add_theme_constant_override("separation",Tokens.SPACE_MD)
  layout.set_regions(heading,column,actions)
  var back=ui.local_button(actions,"閉じる・元の選択へ",finish);back.name="SkillDetailsBack"
+ Tokens.apply_button_size(back,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
  close_requested.connect(finish)
  window_input.connect(func(event):
   if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:

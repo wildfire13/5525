@@ -3,6 +3,7 @@ signal cell_clicked(pos: int)
 signal deploy_drag(uid: String, pos: int)
 signal deployment_assigned(uid: String, pos: Variant)
 const DeploymentDrag=preload("res://deployment_drag.gd")
+const ScreenGrid=preload("res://screen_grid.gd")
 var deployment_ui
 var battle_play_width := 0.0
 var deployment_bottom_limit := 0.0
@@ -47,7 +48,11 @@ var hit_tween: Tween
 var low_hp_font: FontVariation
 var inspected_enemy := ""
 var hover_uid := ""
-var hover_caption := ""
+var hover_caption := "":
+	set(value):
+		if hover_caption!=value:
+			hover_caption=value
+			if is_instance_valid(overlay):overlay.queue_redraw()
 var keyboard_cell := 24
 var last_visual_phase := ""
 var projected_pitch := Vector2(64,48)
@@ -85,8 +90,21 @@ func _ready():
 	mouse_exited.connect(func():set_hover(""))
 	focus_entered.connect(func():set_hover(str(unit_at(keyboard_cell).get("id","")),true))
 	focus_exited.connect(func():set_hover("",true))
-	visibility_changed.connect(func():
-		if not is_visible_in_tree():reset_animation();effect_action.clear();last_animated_phase="")
+	visibility_changed.connect(_sync_visibility)
+	_sync_visibility()
+func _has_pulse() -> bool:
+	var formed=data.get("formed",{})
+	if formed is Dictionary and (bool(formed.get("ally",false)) or bool(formed.get("enemy",false))):
+		return true
+	return kind=="action_move" and preview.has("formationSlots") and bool(preview.get("formationAfter",false))
+func _sync_visibility():
+	var active=is_visible_in_tree()
+	if is_instance_valid(view):
+		view.render_target_update_mode=SubViewport.UPDATE_ALWAYS if active else SubViewport.UPDATE_DISABLED
+	if not active:
+		reset_animation();effect_action.clear();last_animated_phase=""
+	set_process(active and _has_pulse())
+	if active and is_instance_valid(overlay):overlay.queue_redraw()
 func set_hover(uid: String,focus_changed:=false):
 	if uid==hover_uid and not focus_changed:return
 	hover_uid=uid;tooltip_text="";hover_caption="";unit_hovered.emit(uid);overlay.queue_redraw()
@@ -270,7 +288,7 @@ func update_camera():
 	var target=Vector3(0,.6,-1.1)
 	camera.projection=Camera3D.PROJECTION_ORTHOGONAL;camera.keep_aspect=Camera3D.KEEP_WIDTH
 	camera.size=world.zoom*maxf(1.0,size.x/maxf(1,size.y)/1.62)
-	if battle_play_width>0 and not bool(data.get("state",{}).get("deploying",false)):
+	if battle_play_width>0:
 		camera.size=maxf(camera.size,world.zoom*(10*CELL/16.5)*size.x/battle_play_width)
 	camera.position=target+Vector3(sin(camera_yaw)*cos(camera_pitch),sin(camera_pitch),cos(camera_yaw)*cos(camera_pitch))*22
 	camera.look_at(target)
@@ -363,6 +381,7 @@ func update_state(d: Dictionary, pr: Dictionary, command: String, uid: String, c
 				ghost.texture=portraits.texture(u);ghost.pixel_size=1.55/ghost.texture.get_height()
 				ghost.position=point(int(preview.destination))+Vector3(0,.75,0);ghost.visible=true
 	refresh_actor_scale()
+	set_process(is_visible_in_tree() and _has_pulse())
 	overlay.queue_redraw()
 func arrow(a: Vector2,b: Vector2,color: Color,width:=2.0):
 	if a.distance_to(b)<4:return
@@ -446,12 +465,11 @@ func draw_overlay():
 		prediction=draw_prediction_caption(int(preview.destination),move_caption,Color("#a9ede0"),150)
 	prediction_region.visible=prediction.has_area()
 	if prediction_region.visible:
-		var grid=preload("res://screen_grid.gd")
 		var view_size=Vector2(get_tree().root.size)
-		var step=view_size/grid.DIVISIONS
+		var step=view_size/ScreenGrid.DIVISIONS
 		var first=Vector2i(((global_position+prediction.position)/step).floor())
 		var end=Vector2i(((global_position+prediction.end)/step).ceil())
-		grid.place(prediction_region,grid.cell_rect(view_size,first.x,first.y,end.x-first.x,end.y-first.y))
+		ScreenGrid.place(prediction_region,ScreenGrid.cell_rect(view_size,first.x,first.y,end.x-first.x,end.y-first.y))
 	if has_focus():
 		cell_outline(keyboard_cell,Color("#78edce"),3.0)
 func draw_coordinate(at: Vector2, value: String, color: Color):
@@ -524,8 +542,10 @@ func draw_sluice(state: Dictionary) -> void:
 	elif opened:
 		tip = "巻上機を押さえたまま、ポーターを出口へ"
 	var width := font.get_string_size(tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 16
-	overlay.draw_rect(Rect2(8, 8, width, 26), Color("22332ef0"))
-	overlay.draw_string(font, Vector2(16, 27), tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
+	var safe_top := ScreenGrid.cell_rect(size, 2, 1, 6, 1).position
+	var tip_pos := Vector2(safe_top.x + 8.0, safe_top.y + 8.0)
+	overlay.draw_rect(Rect2(tip_pos, Vector2(width, 26)), Color("22332ef0"))
+	overlay.draw_string(font, tip_pos + Vector2(8, 19), tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
 
 func draw_unit_labels(state: Dictionary,show_hover_caption: bool) -> Rect2:
 	var prediction:=Rect2()

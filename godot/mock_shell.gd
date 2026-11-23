@@ -2,25 +2,24 @@ extends RefCounted
 ## Shared campaign chrome. All values and operations come from the game bridge.
 var ui
 var roster_jobs := {}
-const INK=Color("#29332f")
-const PAPER=Color("#faf9f5")
-const MUTED_INK=Color("#606960")
-const GREEN=Color("#345c4e")
+const Tokens=preload("res://ui_tokens.gd")
+const INK=Tokens.INK
+const PAPER=Tokens.SURFACE
+const MUTED_INK=Tokens.MUTED_INK
+const GREEN=Tokens.ACCENT
 const ROSTER_WIDTH=280
-const COLUMN_GAP=16
+const COLUMN_GAP=Tokens.SPACE_LG
 const SHOP_CATALOG_WIDTH=440
-const SURFACE_ALPHA=0.90
-const NESTED_SURFACE_ALPHA=0.12
+const SURFACE_ALPHA=Tokens.SURFACE_ALPHA
+const NESTED_SURFACE_ALPHA=Tokens.NESTED_SURFACE_ALPHA
 const Grid=preload("res://screen_grid.gd")
 func _init(frontend):ui=frontend
 static func style(fill: Color=PAPER) -> StyleBoxFlat:
-	var s=StyleBoxFlat.new();s.bg_color=fill;s.border_color=Color("#cbd0c8");s.set_border_width_all(1);s.set_corner_radius_all(3);s.set_content_margin_all(8);return s
+	return Tokens.box(fill)
 ## Apply transparency to the painted surface only, never to text or child controls.
 ## A nested card lightly separates content without making the outer window opaque.
 static func surface_style(fill: Color=PAPER,nested:=false) -> StyleBoxFlat:
-	var surface=style(fill)
-	surface.bg_color.a=NESTED_SURFACE_ALPHA if nested else SURFACE_ALPHA
-	return surface
+	return Tokens.surface_box(fill,nested)
 func content_height() -> float:
 	return ui.size.y-grid_cell().y*2
 func grid_cell() -> Vector2:
@@ -28,31 +27,30 @@ func grid_cell() -> Vector2:
 # Variations share resources across both scene themes. A disabled action always
 # uses the same neutral appearance, even if it was previously selected.
 static func apply_button_theme(target: Theme):
-	var disabled=style(Color("#e4e6e1"))
-	var focus=style(Color.TRANSPARENT)
-	focus.border_color=Color("#397794");focus.set_border_width_all(2)
+	var disabled=Tokens.box(Tokens.BTN_DISABLED)
+	var focus=Tokens.box(Color.TRANSPARENT,Tokens.FOCUS,Tokens.RADIUS_SM,Tokens.SPACE_SM,Tokens.BORDER_WIDTH_EMPHASIS)
 	var colors={
-		&"Button":[PAPER,Color("#e0e8dd"),Color("#c6d6c9")],
-		&"ActionButton":[Color("#236044"),Color("#2f7652"),Color("#194a34")],
-		&"SelectedButton":[Color("#dfe8dc"),Color("#d2e0d3"),Color("#b7cebf")],
-		&"DestinationButton":[Color("#fff0ba"),Color("#f7e293"),Color("#e8cb79")],
+		&"Button":[Tokens.SURFACE,Tokens.BTN_HOVER,Tokens.BTN_PRESSED],
+		&"ActionButton":[Tokens.ACTION,Tokens.ACTION_HOVER,Tokens.ACTION_PRESSED],
+		&"SelectedButton":[Tokens.SELECTED,Tokens.SELECTED_HOVER,Tokens.SELECTED_PRESSED],
+		&"DestinationButton":[Tokens.DEST,Tokens.DEST_HOVER,Tokens.DEST_PRESSED],
 	}
 	for role in colors:
 		var types=[role]
 		if role==&"Button":types.append_array([&"OptionButton",&"CheckButton",&"CheckBox",&"MenuButton"])
 		else:target.set_type_variation(role,&"Button")
-		var ink=Color.WHITE if role==&"ActionButton" else INK
+		var ink=Tokens.INK_INVERSE if role==&"ActionButton" else Tokens.INK
 		for type in types:
 			target.set_stylebox("focus",type,focus)
 			target.set_stylebox("disabled",type,disabled)
-			target.set_color("font_disabled_color",type,MUTED_INK)
+			target.set_color("font_disabled_color",type,Tokens.MUTED_INK)
 			for key in ["font_color","font_focus_color","font_hover_color","font_pressed_color","font_hover_pressed_color"]:
 				target.set_color(key,type,ink)
 		for i in 3:
 			var state=["normal","hover","pressed"][i]
-			var box=style(colors[role][i])
+			var box=Tokens.box(colors[role][i])
 			if role==&"SelectedButton":
-				box.border_color=GREEN;box.set_border_width_all(2)
+				box.border_color=Tokens.BORDER_ACCENT;box.set_border_width_all(Tokens.BORDER_WIDTH_EMPHASIS)
 			for type in types:
 				target.set_stylebox(state,type,box)
 				if state=="pressed":target.set_stylebox("hover_pressed",type,box)
@@ -62,10 +60,10 @@ static func apply_button_theme(target: Theme):
 		target.set_stylebox("tab_selected",type,target.get_stylebox("normal",&"SelectedButton"))
 		target.set_stylebox("tab_focus",type,focus)
 		for key in ["font_selected_color","font_unselected_color","font_hovered_color"]:
-			target.set_color(key,type,INK)
-		target.set_color("font_disabled_color",type,MUTED_INK)
+			target.set_color(key,type,Tokens.INK)
+		target.set_color("font_disabled_color",type,Tokens.MUTED_INK)
 	target.set_type_variation(&"DisabledButtonText",&"Label")
-	target.set_color("font_color",&"DisabledButtonText",MUTED_INK)
+	target.set_color("font_color",&"DisabledButtonText",Tokens.MUTED_INK)
 
 # A Button only paints its own text. Inventory rows and map pins also contain Labels.
 static func bind_button_text(button: Button,content: Control):
@@ -77,21 +75,25 @@ static func bind_button_text(button: Button,content: Control):
 			label.theme_type_variation=role)
 
 func apply_theme():
-	ui.theme.default_font_size=20
+	ui.theme.default_font_size=Tokens.FONT_BODY
 	for kind in ["Label","RichTextLabel","LineEdit","SpinBox"]:
-		for key in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:ui.theme.set_color(key,kind,INK)
-		ui.theme.set_color("font_disabled_color",kind,MUTED_INK)
+		for key in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:ui.theme.set_color(key,kind,Tokens.INK)
+		ui.theme.set_color("font_disabled_color",kind,Tokens.MUTED_INK)
 	ui.theme.set_stylebox("panel","PanelContainer",surface_style())
 	ui.theme.set_stylebox("panel","AcceptDialog",style())
 	ui.theme.set_stylebox("read_only","TextEdit",style())
-	ui.theme.set_color("font_readonly_color","TextEdit",INK)
+	ui.theme.set_color("font_readonly_color","TextEdit",Tokens.INK)
 	for key in ["normal","focus","read_only"]:ui.theme.set_stylebox(key,"LineEdit",style())
+	ui.theme.set_stylebox("panel","TooltipPanel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_MD))
+	ui.theme.set_color("font_color","TooltipLabel",Tokens.INK)
+	ui.theme.set_font_size("font_size","TooltipLabel",Tokens.FONT_SM)
 	for key in ["embedded_border","embedded_unfocused_border"]:
-		var frame=surface_style(GREEN);frame.expand_margin_top=32
+		var frame=Tokens.box(Tokens.ACCENT,Tokens.BORDER_ACCENT,Tokens.RADIUS_SM,Tokens.SPACE_SM)
+		frame.expand_margin_top=Tokens.WINDOW_BAR_HEIGHT
 		ui.theme.set_stylebox(key,"Window",frame)
 	ui.theme.set_constant("title_height","Window",ui.preferences.TITLE_HEIGHT)
-	ui.theme.set_color("title_color","Window",PAPER)
-	ui.theme.set_stylebox("panel","TabContainer",surface_style(PAPER,true))
+	ui.theme.set_color("title_color","Window",Tokens.INK_INVERSE)
+	ui.theme.set_stylebox("panel","TabContainer",surface_style(Tokens.SURFACE,true))
 var character_origin := "hub"
 
 func toggle_character():
@@ -112,7 +114,7 @@ func toggle_journey_quest():
 
 func navigation(parent):
 	var panel=PanelContainer.new();panel.name="CampaignHeader";panel.custom_minimum_size.y=grid_cell().y;panel.add_theme_stylebox_override("panel",surface_style());parent.add_child(panel)
-	var bar=ui.row(panel);bar.name="CampaignHeaderContent";bar.custom_minimum_size.y=56
+	var bar=ui.row(panel);bar.name="CampaignHeaderContent";bar.custom_minimum_size.y=Tokens.BUTTON_MD;bar.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 	var elapsed=Label.new()
 	elapsed.name="CampaignElapsedTime"
 	elapsed.text=elapsed_time_text()
@@ -135,11 +137,13 @@ func navigation(parent):
 	for link in links:
 		var blocked=facility.supported(ui.page) and (ui.pages.shop_view.busy() or ui.pages.warehouse_view.pending)
 		var nav=ui.button(bar,link[1],link[2],blocked)
-		nav.name="Header_"+str(link[0]);nav.custom_minimum_size=Vector2(140,44)
+		nav.name="Header_"+str(link[0]);Tokens.apply_button_size(nav,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_MD)
 		ui.mark_selected(nav,ui.page==link[0] or facility.supported(ui.page))
 	var spacer=Control.new();spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bar.add_child(spacer)
 	ui.icons.line(ui,bar,"money",str(int(ui.campaign().get("gold",0)))+" G").name="HeaderGold"
-	ui.memory.key(ui.local_button(bar,"メニュー",ui.open_menu),"game_menu")
+	var menu_btn=ui.local_button(bar,"メニュー",ui.open_menu)
+	Tokens.apply_button_size(menu_btn,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
+	ui.memory.key(menu_btn,"game_menu")
 func elapsed_time_text() -> String:
 	return "経過時間：%d時間" % int(ui.campaign().get("worldTime",0))
 func needs_roster() -> bool:
@@ -169,7 +173,7 @@ func workspace(parent) -> VBoxContainer:
 	var body=VBoxContainer.new();body.name="CampaignBody";body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;body.size_flags_vertical=Control.SIZE_EXPAND_FILL;row.add_child(body);return body
 func job_filter(parent,selected: String,changed: Callable) -> OptionButton:
 	var chooser=OptionButton.new();parent.add_child(chooser);chooser.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	chooser.custom_minimum_size.y=40;chooser.tooltip_text="職業で絞り込む"
+	Tokens.apply_button_size(chooser,Tokens.BUTTON_MD,false);chooser.tooltip_text="職業で絞り込む"
 	chooser.add_item("すべて");chooser.set_item_metadata(0,"")
 	var jobs=[]
 	for member in ui.roster():
@@ -214,8 +218,8 @@ func roster(parent,deployment=null):
 		var line=roster_member_line(button,u)
 		var info=line.get_node("MemberInfo")
 		var inventory=ui.campaign().get("inventoryByCharacter",{}).get(str(id),{});var capacity=inventory.get("capacity",{});var weight=inventory.get("weight",{});var stats=u.get("stats",u)
-		var detail=ui.label_(info,"%s / %s   Wt %s / %s" % [int(capacity.get("used",0)),int(capacity.get("limit",0)) if capacity.get("limit")!=null else "∞",int(weight.get("total",0)) if weight.get("total")!=null else "?",int(stats.get("str",0))]);detail.add_theme_font_size_override("font_size",16)
-		if weight.get("total")!=null and float(weight.total)>float(stats.get("str",0)):detail.add_theme_color_override("font_color",Color("#b04430"))
+		var detail=ui.label_(info,"%s / %s   Wt %s / %s" % [int(capacity.get("used",0)),int(capacity.get("limit",0)) if capacity.get("limit")!=null else "∞",int(weight.get("total",0)) if weight.get("total")!=null else "?",int(stats.get("str",0))]);detail.add_theme_font_size_override("font_size",Tokens.FONT_SM)
+		if weight.get("total")!=null and float(weight.total)>float(stats.get("str",0)):detail.add_theme_color_override("font_color",Tokens.DANGER)
 		for child in info.get_children():child.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		if deployment!=null:
 			deployment.configure_deployment_card(button,u,line)
@@ -228,12 +232,12 @@ func roster(parent,deployment=null):
 	return panel
 func roster_member_line(button: Button,u: Dictionary) -> HBoxContainer:
 	button.custom_minimum_size.y=88
-	var line=HBoxContainer.new();button.add_child(line);line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);line.offset_left=6;line.offset_top=6;line.offset_right=-6;line.offset_bottom=-6;line.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var line=HBoxContainer.new();button.add_child(line);line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);line.offset_left=Tokens.SPACE_XS;line.offset_top=Tokens.SPACE_XS;line.offset_right=-Tokens.SPACE_XS;line.offset_bottom=-Tokens.SPACE_XS;line.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	bind_button_text(button,line)
 	var portrait=ui.portrait(line,u,false,32);portrait.custom_minimum_size=Vector2(40,72);portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	var info=VBoxContainer.new();info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.mouse_filter=Control.MOUSE_FILTER_IGNORE;info.name="MemberInfo";line.add_child(info)
-	var name=ui.label_(info,str(u.name));name.add_theme_font_size_override("font_size",18);name.autowrap_mode=TextServer.AUTOWRAP_OFF;name.clip_text=true
-	var hp=ui.label_(info,"HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]);hp.add_theme_font_size_override("font_size",16)
+	var info=VBoxContainer.new();info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.mouse_filter=Control.MOUSE_FILTER_IGNORE;info.name="MemberInfo";info.add_theme_constant_override("separation",2);line.add_child(info)
+	var name=ui.label_(info,str(u.name));name.add_theme_font_size_override("font_size",Tokens.FONT_BODY);name.autowrap_mode=TextServer.AUTOWRAP_OFF;name.clip_text=true
+	var hp=ui.label_(info,"HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]);hp.add_theme_font_size_override("font_size",Tokens.FONT_SM)
 	for child in info.get_children():child.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	return line
 func refresh_roster_selection():

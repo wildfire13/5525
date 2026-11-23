@@ -16,6 +16,7 @@ var icons
 # Display only explicitly disclosed events; do not promise encounters on every route.
 var route_events: Dictionary={}
 var event_markers: Array=[]
+const Tokens=preload("res://ui_tokens.gd")
 const EVENT_COLORS={"danger":Color("#e36c67"),"unknown":Color("#f4cd60"),"safe":Color("#78c790")}
 const POS={"astaris":Vector2(.5,.5),"east":Vector2(.84,.5),"west":Vector2(.16,.5),"north":Vector2(.5,.15),"south":Vector2(.5,.85)}
 func _ready():
@@ -40,7 +41,7 @@ func _ready():
 				if not icon.is_empty():icons.add(symbols,icon,32)
 		b.disabled=read_only or id==current or not available.has(id)
 		b.tooltip_text="出発地" if id==current else "この拠点へは直接移動できません" if not available.has(id) else "目的地" if read_only and id==selected else "" if read_only else "行先に選ぶ"
-		var state_label=Label.new();state_label.name="TownState";state_label.add_theme_font_size_override("font_size",12);state_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;state_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.add_child(state_label)
+		var state_label=Label.new();state_label.name="TownState";state_label.add_theme_font_size_override("font_size",Tokens.FONT_XS);state_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;state_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.add_child(state_label)
 		add_child(b);buttons[id]=b;update_town_selection(id);b.pressed.connect(func():destination_selected.emit(id))
 	resized.connect(layout);layout()
 func select_town(id: String):
@@ -61,7 +62,7 @@ func update_town_selection(id: String):
 func layout():
 	for id in buttons:
 		var content=buttons[id].get_node("TownContents")
-		if size.y<240:content.get_child(0).add_theme_font_size_override("font_size",14)
+		if size.y<240:content.get_child(0).add_theme_font_size_override("font_size",Tokens.FONT_XS)
 		else:content.get_child(0).remove_theme_font_size_override("font_size")
 		for icon in content.get_child(1).get_children():icon.custom_minimum_size=Vector2.ONE*(16 if size.y<240 else 32)
 		buttons[id].size=Vector2(minf(240,size.x*.26),minf(88,size.y*.27));buttons[id].scale=Vector2.ONE*zoom;buttons[id].position=point(id)-buttons[id].size*zoom/2
@@ -80,7 +81,7 @@ func _gui_input(event):
 		if not event.button_mask&MOUSE_BUTTON_MASK_MIDDLE:panning=false;return
 		pan+=event.relative;layout();accept_event()
 func _draw():
-	draw_rect(Rect2(Vector2.ZERO,size),Color("#dfe5d9"))
+	draw_rect(Rect2(Vector2.ZERO,size),Tokens.SURFACE_BACKDROP)
 	event_markers.clear()
 	var drawn={}
 	var graph=routes if not routes.is_empty() else {"astaris":["east","west","north","south"]}
@@ -88,7 +89,7 @@ func _draw():
 		for dest in graph[origin]:
 			var key="|".join([origin,dest] if origin<dest else [dest,origin])
 			if drawn.has(key):continue
-			drawn[key]=true;draw_dashed_line(point(origin),point(dest),Color("#a0ac90"),2,8)
+			drawn[key]=true;draw_dashed_line(point(origin),point(dest),Tokens.MUTED_INK,Tokens.BORDER_WIDTH_EMPHASIS,Tokens.SPACE_SM)
 
 			var start=point(origin);var end=point(dest);var delta=end-start
 			var half=buttons[origin].size*zoom*.5

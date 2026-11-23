@@ -31,32 +31,28 @@ func drop(uid: String,source: String,cell):
 	var unchanged=await saved();game.board._drop_data(at,payload);await settle()
 	check(await saved()==unchanged and drops.size()==count+1,"same consumed payload cannot dispatch twice")
 func layout(label: String):
-	var formation=game.hud.deployment_bar;var actions=game.hud.deployment_actions;var begin=node("DeploymentBegin")
+	var footer=node("DeploymentFooter");var actions=game.hud.deployment_actions;var begin=node("DeploymentBegin")
 	var field=game.board.get_global_rect()
-	check(formation.get_global_rect().end.y<=field.position.y and begin.get_global_rect().position.y>=field.end.y,label+" formation above board and start below board remain separate")
-	check(game.hud.camera_hint.is_visible_in_tree() and game.hud.camera_hint.text==game.board.CAMERA_HINT and game.hud.camera_hint.global_position.y>field.end.y,label+" shared camera hint below battlefield")
+	check(field==Rect2(Vector2.ZERO,Vector2(root.size)) and footer.get_global_rect().position.y>=root.size.y-120 and begin.get_global_rect().position.y>=footer.get_global_rect().position.y,label+" full-screen board and bottom deployment footer")
+	check(game.hud.camera_hint.is_visible_in_tree() and game.hud.camera_hint.text==game.board.CAMERA_HINT and game.hud.camera_hint.get_global_rect().end.y<=footer.get_global_rect().position.y,label+" shared camera hint above deployment footer")
 	var rows=[]
-	for control in [formation,actions]:
+	for control in [footer,actions]:
 		check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(control.get_global_rect()),label+" footer inside viewport "+str(control.name))
 		for panel in [game.hud.left_panel,game.hud.right_panel]:check(not panel.visible or not panel.get_global_rect().intersection(control.get_global_rect()).has_area(),label+" visible information panels cannot obscure pinned controls")
 		rows.append({"control":str(control.name),"rect":str(control.get_global_rect())})
 	for cell in range(50):
 		if cell%10>=5:continue
 		var point=game.board.global_position+game.board.project_cell(cell)
-		var fixed=[formation,actions,game.deployment_party_strip,node("CommonMenuButton")]
+		var fixed=[footer,actions,game.deployment_party_strip,node("CommonMenuButton")]
 		check(Rect2(Vector2.ZERO,Vector2(root.size)).has_point(point) and not fixed.any(func(c):return is_instance_valid(c) and c.visible and c.get_global_rect().has_point(point)),label+" ally cell "+str(cell)+" clear of fixed footer")
 		check(game.board.cell_at(game.board.project_cell(cell))==cell,label+" projected hover/click floor agrees "+str(cell))
 	layouts.append({"label":label,"size":str(root.size),"rows":rows})
 func reserve_scroll_access(label: String):
-	var panel=game.hud.right_panel;var scroll=panel.lower_scroll;var reserve=node("DeploymentReserves")
-	check(scroll is ScrollContainer and reserve!=null,label+" deployed detail content has a dedicated scroll viewport")
-	check(not scroll.get_global_rect().intersection(panel.footer.get_global_rect()).has_area(),label+" reserve viewport never sits behind pinned instructions")
-	var cards=reserve.find_children("*","Button",false,false)
-	if cards.is_empty():return
-	check(scroll.vertical_scroll_mode!=ScrollContainer.SCROLL_MODE_DISABLED,label+" deployed detail viewport allows vertical scrolling")
-	check(cards.size()==3 and reserve.get_parent()==panel.lower,label+" all selected reserves remain in scrollable detail content")
-	var visible_reserves=reserve.get_global_rect().intersection(scroll.get_global_rect())
-	check(not visible_reserves.intersection(panel.footer.get_global_rect()).has_area(),label+" visible reserve cards do not overlap the fixed instruction text")
+	var strip=game.deployment_party_strip;var scroll=strip.scroll
+	check(scroll is ScrollContainer and node("DeploymentReserves")==null,label+" reserves live in left party roster scroll without duplicate right block")
+	check(scroll.vertical_scroll_mode!=ScrollContainer.SCROLL_MODE_DISABLED,label+" party roster viewport allows vertical scrolling")
+	var cards=scroll.get_child(0).find_children("*","Button",false,false)
+	check(cards.size()>=7,label+" all selected members including reserves remain in left roster")
 func drag_roster_card(uid: String, cell: int):
 	var card=node("PartyFace_"+uid)
 	var start=card.get_global_rect().get_center()
@@ -103,7 +99,7 @@ func run():
 	check(root.has_method("gui_cancel_drag"),"runtime exposes actual Viewport drag cancellation API")
 	layout("FHD");reserve_scroll_access("FHD")
 	var strip=game.deployment_party_strip
-	check(strip.is_visible_in_tree() and strip.get_global_rect().end.x<=game.board.get_global_rect().position.x and not strip.get_global_rect().intersects(game.hud.deployment_actions.get_global_rect()),"vertical roster left of field and separate from deployment actions")
+	check(strip.is_visible_in_tree() and strip.get_global_rect().end.x<=game.board.global_position.x+game.board.project_cell(0).x and not strip.get_global_rect().intersects(game.hud.deployment_actions.get_global_rect()),"vertical roster left of field and separate from deployment actions")
 	node("PartyFace_character_mirei").pressed.emit();await settle()
 	check(game.pages.party_uid=="character_mirei" and game.page=="character" and not game.modal_open(),"deployed card opens its member status")
 	node("Header_character").pressed.emit();await settle()
@@ -117,7 +113,9 @@ func run():
 	var preview=Drag.preview(game,"character_mirei")
 	var ink=preview.find_children("*","Label",true,false)[0].get_theme_color("font_color")
 	var background=preview.get_theme_stylebox("panel").bg_color
-	check((ink.get_luminance()+0.05)/(background.get_luminance()+0.05)>=4.5,"deployment drag preview text contrast")
+	var l1=ink.srgb_to_linear().get_luminance()
+	var l2=background.srgb_to_linear().get_luminance()
+	check((maxf(l1,l2)+0.05)/(minf(l1,l2)+0.05)>=4.5,"deployment drag preview text contrast")
 	preview.free()
 	var before=await saved();var payload=Drag.make_payload(game,"character_mirei","board")
 	check(Drag.valid(game,payload),"fresh board context is valid")

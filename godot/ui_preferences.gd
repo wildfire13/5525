@@ -1,10 +1,11 @@
 extends RefCounted
 const Grid=preload("res://screen_grid.gd")
 const WindowGrid=preload("res://window_grid.gd")
+const Tokens=preload("res://ui_tokens.gd")
 ## Local presentation preferences, deliberately separate from campaign saves.
 const DEFAULT_DIALOG_SIZE=Vector2(840,620)
-const TITLE_HEIGHT=32
-const TITLE_MARGIN=Vector2(0,36)
+const TITLE_HEIGHT=Tokens.WINDOW_BAR_HEIGHT
+const TITLE_MARGIN=Vector2(0,Tokens.WINDOW_BAR_HEIGHT+Tokens.SPACE_XS)
 const PATH="user://ui-layout-v1.cfg"
 var config=ConfigFile.new()
 func _init():config.load(PATH)
@@ -67,9 +68,12 @@ func keep_visible(window: Window,available: Vector2):
 	# smaller parent. Restore that minimum when the parent grows again.
 	if not window.has_meta("layout_minimum"):window.set_meta("layout_minimum",Vector2(window.min_size))
 	var minimum=Vector2(window.get_meta("layout_minimum")).min(area)
-	if window.min_size!=Vector2i(minimum) or window.max_size!=Vector2i(area):
+	var bounds_changed=window.min_size!=Vector2i(minimum) or window.max_size!=Vector2i(area)
+	if bounds_changed:
 		window.min_size=Vector2i.ONE;window.max_size=Vector2i(area);window.min_size=Vector2i(minimum)
 	var current=Rect2(Vector2(window.position)-window_origin(window),Vector2(window.size))
+	if not bounds_changed and area==window.get_meta("layout_area",Vector2.ZERO) and current==window.get_meta("layout_applied",Rect2()):
+		return
 	var preferred=window.get_meta("layout_preferred",current)
 	# Only a user resize/move in an unchanged parent updates the preference.
 	# Clamping a window to a smaller screen must not become its permanent size.
@@ -88,11 +92,11 @@ func remember_window(window: Window,key: String):
 func window_origin(window: Window) -> Vector2:
 	return Vector2.ZERO if window.is_embedded() else Vector2(window.get_tree().root.position)
 
-func place_detail_frame(window: Window):
+func place_detail_frame(window: Window,frame: Rect2=Rect2()):
 	if window.is_embedded():window.borderless=true
 	window.unresizable=true
 	var view=Vector2(window.get_tree().root.size)
-	var rect=WindowGrid.frame_rect(view)
+	var rect=frame if frame.has_area() else WindowGrid.modal_frame_rect(view)
 	window.position=Vector2i(rect.position+window_origin(window))
 	window.size=Vector2i(rect.size)
 	window.set_meta("managed_layout",true)
@@ -100,6 +104,10 @@ func place_detail_frame(window: Window):
 	window.set_meta("layout_preferred",rect)
 	window.set_meta("layout_applied",rect)
 	window.set_meta("layout_area",Grid.cell_rect(view,0,1,10,8).size)
+
+func place_confirm_frame(window: Window):
+	var view=Vector2(window.get_tree().root.size)
+	place_detail_frame(window,WindowGrid.confirm_frame_rect(view))
 
 func window_bounds(window: Window,available: Vector2) -> Rect2:
 	# Godot draws a decorated embedded title bar above its client rectangle.

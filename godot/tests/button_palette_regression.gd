@@ -96,5 +96,5 @@ func run():
 		check(scenes.size()>=(1 if role=="DestinationButton" else 2),role+" scene coverage")
 	var file=FileAccess.open(evidence.path_join("palette.json"),FileAccess.WRITE)
 	file.store_string(JSON.stringify({"samples":samples,"checks":checks},"\t"));file.close()
-	game.audio.close_audio();game.engine.close_engine()
+	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames()
 	quit(1 if checks.any(func(c):return not c.passed) else 0)
