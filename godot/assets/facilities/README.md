@@ -1,23 +1,24 @@
 # 施設背景の受け入れ先
 
-7施設の背景11枚を manifest.json に登録済み（すべて原本バイトのまま）。
+7施設の背景9枚を manifest.json に登録済み（すべて原本バイトのまま）。
 
-- 差替済み5施設（`weapon`, `armor`, `item`, `accessory`, `guild`）:
+- 差替済み6施設（`weapon`, `armor`, `item`, `accessory`, `guild`, `inn`）:
   - ファイル名:
     - `bg_guild_interior.png` (`guild`)
+    - `bg_inn_interior.png` (`inn`)
     - `bg_weapon_shop_interior.png` (`weapon`)
     - `bg_armor_shop_interior.png` (`armor`)
     - `bg_item_shop_interior.png` (`item`)
     - `bg_accessory_shop_interior.png` (`accessory`)
-  - style: `interior`（各1枚・計5枚）
+  - style: `interior`（各1枚・計6枚）
   - 解像度: `1920×1080`（`G:\Apps\CodexProjects\Share\prot_assets\背景\施設内` から原本バイトのまま受領）
-- 既存維持2施設（`inn`, `departure_map`）:
-  - ファイル名: `<facility>_<style>.png`（各3枚・計6枚）
+- 既存維持1施設（`departure_map`）:
+  - ファイル名: `departure_map_<style>.png`（3枚）
   - style: `papercut`, `gouache`, `watercolor_pen`
   - 解像度: `1672×941`
 
 manifest/CSV/SHA一覧との照合とPNG読込みを確認済み。
-町広場の既存画像は変更しない。制作・承認済み原画像だけを登録する。
+制作・承認済み原画像だけを登録する。
 
 - 推奨: 16:9 前後、背景のみ、文字なし。全体を縦横比維持で表示。
 

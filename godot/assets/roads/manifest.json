@@ -1,0 +1,75 @@
+{
+  "default": "forest",
+  "roads": [
+    {
+      "id": "forest",
+      "name": "森",
+      "source_filename": "背景_森.png",
+      "path": "res://assets/roads/bg_road_forest.png",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 6303332,
+      "sha256": "e1cc79dd6ec4d92fdb449800062537f6a236883d1a7767334df6c110cf5e926c"
+    },
+    {
+      "id": "mountain",
+      "name": "山",
+      "source_filename": "背景_山.png",
+      "path": "res://assets/roads/bg_road_mountain.png",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 5627952,
+      "sha256": "3c90bad8f4914d376411987519a62f623341292c55291f9663f469397cfeddba"
+    },
+    {
+      "id": "river",
+      "name": "川沿い",
+      "source_filename": "背景_川沿い.png",
+      "path": "res://assets/roads/bg_road_river.png",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 5701896,
+      "sha256": "753c295aab5c0bb5c8b039d4387d7b66fd9e3aef9e40a45cc1a7a65c9d39976b"
+    },
+    {
+      "id": "coast",
+      "name": "海岸",
+      "source_filename": "背景_海岸.png",
+      "path": "res://assets/roads/bg_road_coast.png",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 5136635,
+      "sha256": "8a73afd5dec772f0ea8021eba9cb48e216cfb728420f5e5e3ea0bf35813aa81e"
+    },
+    {
+      "id": "wetland",
+      "name": "湿原",
+      "source_filename": "背景_湿原.png",
+      "path": "res://assets/roads/bg_road_wetland.png",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 5273783,
+      "sha256": "97a7bd728ec12589bce73af825d2cc5e89afcdc2fcb8a384ab30f525ad7e0ab5"
+    },
+    {
+      "id": "desert",
+      "name": "砂漠",
+      "source_filename": "背景_砂漠.png",
+      "path": "res://assets/roads/bg_road_desert.png",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 5077919,
+      "sha256": "2871fa5b36e44de7b935129539229646b7461835f0eab9cc9cabf1238b07c4cc"
+    },
+    {
+      "id": "snow",
+      "name": "雪道",
+      "source_filename": "背景_雪道.png",
+      "path": "res://assets/roads/bg_road_snow.png",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 5374741,
+      "sha256": "2943c23ed7591782bf657e03ccb3b35775d506c2405cf8bb8e00ce77f7238a27"
+    }
+  ]
+}

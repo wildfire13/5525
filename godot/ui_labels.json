@@ -1089,6 +1089,10 @@
     "guild",
     "inn",
     "items",
+    "road",
+    "camp",
+    "arrival",
+    "result",
     "victory",
     "complete"
    ],
@@ -1096,6 +1100,7 @@
    "nodes": [
     "TownStill",
     "FacilityStill",
+    "RoadStill",
     "ResultBackground"
    ],
    "meaning": "場面全体の背景"

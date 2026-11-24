@@ -1,11 +1,13 @@
 extends RefCounted
 ## Visual-only visit state. Never uses the campaign/battle random generator.
 const ROOT="res://assets/facilities/"
+const DEFAULT_ROAD_PATH="res://assets/roads/bg_road_forest.png"
 const STYLES=["interior","papercut","gouache","watercolor_pen"]
 var catalog: Dictionary={}
 var visit_key := ""
 var artwork: Dictionary={}
 var texture: Texture2D
+var road_texture: Texture2D
 var rng=RandomNumberGenerator.new()
 var npc=preload("res://facility_npc.gd").new()
 func _init():
@@ -46,17 +48,25 @@ func sync(phase: String,location: String,page: String):
 	if variants.is_empty():return
 	var selected=variants[rng.randi_range(0,variants.size()-1)]
 	artwork=selected.entry.duplicate();texture=selected.texture
+func default_road_texture() -> Texture2D:
+	if road_texture==null and ResourceLoader.exists(DEFAULT_ROAD_PATH,"Texture2D"):
+		var loaded=load(DEFAULT_ROAD_PATH)
+		if loaded is Texture2D:road_texture=loaded
+	return road_texture
 func render_background(parent: Control,ui,battle: bool):
 	var c=ui.campaign()
-	if battle or c.get("phase")!="town":
+	if battle or c.is_empty():
 		if parent.get_child_count()>0:ui.clear(parent)
+		return
+	if c.get("phase")!="town":
+		fullscreen(parent,default_road_texture(),"RoadStill")
 		return
 	ui.pages.hub_view.select_art(str(c.get("location","")))
 	var town_art=ui.pages.hub_view.artwork
 	var town_texture=load(town_art.path) if texture==null and not town_art.is_empty() else null
 	fullscreen(parent,town_texture)
-func fullscreen(parent: Control,town_texture: Texture2D=null):
-	var selected=texture if texture!=null else town_texture
+func fullscreen(parent: Control,fallback_texture: Texture2D=null,fallback_name: String="TownStill"):
+	var selected=texture if texture!=null else fallback_texture
 	if selected==null:
 		for child in parent.get_children():
 			parent.remove_child(child);child.queue_free()
@@ -64,10 +74,11 @@ func fullscreen(parent: Control,town_texture: Texture2D=null):
 	# Reuse the same background nodes across tab/selection redraws.
 	var image=parent.get_node_or_null("FacilityStill")
 	if image==null:image=parent.get_node_or_null("TownStill")
+	if image==null:image=parent.get_node_or_null("RoadStill")
 	if image==null:
 		image=TextureRect.new();image.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;image.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		image.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	image.name="FacilityStill" if texture!=null else "TownStill"
+	image.name="FacilityStill" if texture!=null else fallback_name
 	if image.texture!=selected:image.texture=selected
 	var shade=image.get_node_or_null("FacilityReadabilityShade")
 	if shade==null:

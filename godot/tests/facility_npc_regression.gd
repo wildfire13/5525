@@ -14,12 +14,12 @@ func npc_layout(label: String):
 	check(viewport.encloses(choices.get_global_rect()) and choices.get_global_rect().end.x<=portrait.get_global_rect().position.x,"NPC entrance choices fit without portrait intersection "+label)
 	check(stage.mouse_filter==Control.MOUSE_FILTER_IGNORE and art.mouse_filter==Control.MOUSE_FILTER_IGNORE and portrait.mouse_filter==Control.MOUSE_FILTER_IGNORE and portrait.focus_mode==Control.FOCUS_NONE,"NPC decoration cannot consume pointer or focus "+label)
 	var portrait_rect=portrait.get_parent().get_global_rect()
-	check(portrait.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and portrait.expand_mode==TextureRect.EXPAND_IGNORE_SIZE and portrait.texture.get_size()==Vector2(1024,1536) and is_equal_approx(portrait.size.y,root.size.y*1.28) and portrait_rect==Rect2(1152,216,768,864),"NPC preserves original aspect inside the right-side FHD grid region: %s %s" % [portrait_rect,label])
+	check(portrait.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED and portrait.expand_mode==TextureRect.EXPAND_IGNORE_SIZE and portrait.texture.get_size()==Vector2(1024,1536) and is_equal_approx(portrait.size.y,root.size.y*0.5) and portrait_rect==Rect2(1152,432,768,540),"NPC preserves original aspect inside the right-side FHD grid region: %s %s" % [portrait_rect,label])
 	check(art.is_ancestor_of(portrait) and stage.is_ancestor_of(art) and entry.is_ancestor_of(stage) and not game.backdrop_layer.is_ancestor_of(portrait),"NPC belongs to entry lifecycle separately from cached backdrop "+label)
 	check(node("FacilityStill")!=null and game.base.get_index()>game.backdrop_layer.get_index(),"NPC entrance retains backdrop below foreground controls "+label)
 func service_layout(label: String):
 	var viewport=Rect2(Vector2.ZERO,Vector2(root.size));var body=node("CampaignBody")
-	check(node("FacilityEntry")==null and node("FacilityNpc")==null and node("FacilityNpcStage")==null and node("FacilityEntryArt")==null,"NPC enlarged entrance art leaves service working area "+label)
+	check(node("FacilityEntry")==null and node("FacilityNpc")==null and (game.page=="inn" or (node("FacilityNpcStage")==null and node("FacilityEntryArt")==null)),"NPC enlarged entrance art leaves service working area "+label)
 	check(body!=null and viewport.encloses(body.get_global_rect()) and node("FacilityStill")!=null,"NPC service retains contained workspace and facility backdrop "+label)
 	if game.page=="party":
 		var reserve=node("GuildReserveScroll");var comparison=node("GuildComparison");var actions=node("GuildActions")
@@ -48,7 +48,7 @@ func run():
 		var path=str(entry.path);var bytes=FileAccess.get_file_as_bytes(path);total+=bytes.size();resident_portraits.append(load(path))
 		var image=Image.new();var decoded=image.load_png_from_buffer(bytes)
 		check(FileAccess.get_sha256(path)==entry.sha256 and decoded==OK and image.get_size()==Vector2i(entry.width,entry.height) and image.get_format()==Image.FORMAT_RGBA8,"NPC original SHA256 dimensions and RGBA "+path.get_file())
-	check(total==18834299,"NPC six existing and three guild portrait PNG files retain exact byte count")
+	check(total==19048279,"NPC six existing and three guild portrait PNG files retain exact byte count")
 	var art=game.pages.facility_art;var seed=await saved();seed.state.gold=500;seed.state.characters[BUYER].inventory={"spear-wood":3,"potion":2}
 	var isolated=preload("res://facility_npc.gd").new();var expected=RandomNumberGenerator.new();isolated.rng.seed=5525;expected.seed=5525;var observed={};var exact=true
 	var background_state=art.rng.state;var campaign_before=await saved()
@@ -65,7 +65,7 @@ func run():
 			isolated.sync(facility)
 			check(isolated.CATALOG.guild.has(selected) and isolated.rng.state==after_draw,"NPC guild portrait draws from catalog once and remains fixed within visit")
 		else:
-			check(isolated.selected_path==isolated.ROOT+facility+".png" and isolated.rng.state==state,"NPC fixed facility uses no random draw "+facility)
+			check(isolated.selected_path==isolated.ROOT+str(isolated.CATALOG[facility][0]) and isolated.rng.state==state,"NPC fixed facility uses no random draw "+facility)
 		isolated.reset()
 	isolated.sync("departure_map");check(isolated.texture==null and isolated.selected_path.is_empty(),"NPC has no departure-map character")
 	isolated.rng.seed=5525;var guild_counts={}
@@ -112,9 +112,9 @@ func run():
 		var purchase_save=await saved()
 		var sale=game.pages.shop_view.sale
 		await click("RosterMember_"+BUYER);await click("ShopInventoryTab_inventory");await click("SaleItem_spear-wood")
-		check(node("SkillDetailsWindow")!=null,"NPC sale item opens shared equipment details")
-		await click("SkillDetailsBack");await click("FacilitySalePrepare")
-		check(node("FacilitySaleCancel")!=null,"NPC sale opens confirmation after closing details")
+		check(node("SkillDetailsWindow")==null and sale.item_id=="spear-wood","NPC sale item selects inline without popup modal")
+		await click("FacilitySalePrepare")
+		check(node("FacilitySaleCancel")!=null,"NPC sale opens confirmation after selecting item")
 		await click("FacilitySaleCancel")
 		check((await saved())==purchase_save and art.npc.selected_path==path and art.npc.rng.state==state,"NPC sale cancellation retains keeper "+str(dims.x))
 		var quote=sale.quote.duplicate(true)

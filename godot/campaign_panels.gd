@@ -122,7 +122,7 @@ func grid_height(cells: int) -> float:
 func journey(parent):
 	var phase=c().get("phase","");var journey_: Dictionary=c().get("journey") if c().get("journey") is Dictionary else {}
 	if phase=="result":
-		result(ui.scroller(parent))
+		result(card(ui.scroller(parent)))
 		return
 	if phase=="prepare":map(parent);return
 	parent.add_theme_constant_override("separation",Tokens.SPACE_NONE)
@@ -138,9 +138,13 @@ func journey(parent):
 	var map_row=row(parent);map_row.name="JourneyMapBar";map_row.alignment=BoxContainer.ALIGNMENT_END;map_row.custom_minimum_size.y=grid_height(3)-grid_height(2)
 	var toggle=b(map_row,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",func():toggle_travel_map(parent,map_row,journey_),false,"lg_md")
 	toggle.name="TravelMapToggle"
-	var actions=row(route);actions.name="CampActions"
+	var actions_panel=PanelContainer.new();actions_panel.name="CampActions"
 	var action_cell=3
-	actions.custom_minimum_size.y=grid_height(action_cell+1)-grid_height(action_cell)
+	actions_panel.custom_minimum_size.y=grid_height(action_cell+1)-grid_height(action_cell)
+	actions_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	actions_panel.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_SM))
+	route.add_child(actions_panel)
+	var actions=row(actions_panel)
 	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;copy.size_flags_vertical=Control.SIZE_SHRINK_CENTER;actions.add_child(copy)
 	l(copy,"帰路" if strip.returning else "野営地" if phase=="camp" else "到着" if phase in ["arrival","delivery"] else "%d区間目の道" % (int(journey_.get("stage",0))+1),true)
 	var remaining=maxi(0,2-int(journey_.get("stage",0)))*3
@@ -173,10 +177,12 @@ func journey(parent):
 			gate_note += "\n舟守の合図は一戦一度。開門後、味方が道を空けてポーターが一手で出口に届くと、次はポーターの手番。"
 			if int(journey_.get("stage", 0)) == 0:
 				gate_note += "\n最初の区間で川沿いの舟守を助けると、次の戦闘の出口が近くなる。"
-			var note=l(map_row,gate_note)
-			note.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+			var note_panel=PanelContainer.new();note_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;note_panel.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+			note_panel.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_XS))
+			map_row.add_child(note_panel);map_row.move_child(note_panel,0)
+			var note=l(note_panel,gate_note)
+			note.add_theme_font_size_override("font_size",Tokens.FONT_SM)
 			note.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
-			map_row.move_child(note,0)
 	if phase=="camp":
 		var inventory=row(route);inventory.name="CampInventoryBar";inventory.alignment=BoxContainer.ALIGNMENT_END
 		inventory.custom_minimum_size.y=grid_height(action_cell+2)-grid_height(action_cell+1)

@@ -44,7 +44,7 @@ func transition(request: Dictionary,expected_ok: bool,kind: String,label_: Strin
 	if not kind.is_empty():
 		check(loading.sequence==sequence+1,label_+" opens one transition, including chained arrival work")
 		var rows=observations.slice(start)
-		check(rows.size()>=2 and rows.all(func(row):return row.active and row.panel_visible and row.path.contains("/"+kind+"-")),label_+" shows matching set before and after work")
+		check(rows.size()>=2 and rows.all(func(row):return row.active and row.panel_visible and row.path.contains("/bg_loading_")),label_+" shows loading artwork before and after work")
 		check(not rows.is_empty() and not rows[0].engine_busy,label_+" first presented boundary precedes rules request")
 	else:check(loading.sequence==sequence,label_+" ordinary update adds no transition")
 	return reply
@@ -61,27 +61,25 @@ func run():
 	check(not loading.active and not loading.panel.visible,"loading overlay is absent at ordinary startup")
 	check(loading.layer>1025 and loading.panel.mouse_filter==Control.MOUSE_FILTER_STOP and loading.panel.focus_mode==Control.FOCUS_ALL,"loading input blocker above tooltips owns pointer and focus")
 	check(loading.picture.expand_mode==TextureRect.EXPAND_IGNORE_SIZE and loading.picture.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_COVERED,"loading artwork covers viewport without aspect distortion")
-	for kind in ["before","after"]:
-		for index in range(1,4):
-			var path="res://assets/loading/%s-%02d.png" % [kind,index]
-			var image=Image.new();var error=image.load_png_from_buffer(FileAccess.get_file_as_bytes(path))
-			check(ResourceLoader.exists(path,"Texture2D") and error==OK and image.get_size()==Vector2i(1920,1080),"delivered image exists and decodes at FHD "+path.get_file())
+	for index in range(1,4):
+		var path="res://assets/loading/bg_loading_%02d.png" % index
+		var image=Image.new();var error=image.load_png_from_buffer(FileAccess.get_file_as_bytes(path))
+		check(ResourceLoader.exists(path,"Texture2D") and error==OK and image.get_size()==Vector2i(1920,1080),"delivered image exists and decodes at FHD "+path.get_file())
 	var manifest=JSON.parse_string(FileAccess.get_file_as_string("res://assets/loading/manifest.json"))
-	check(manifest is Dictionary and manifest.get("status")=="provisional" and manifest.get("images",[]).size()==6,"technical manifest retains six provisional supplied artworks")
+	check(manifest is Dictionary and manifest.get("images",[]).size()==3,"technical manifest retains three supplied loading artworks")
 	for entry in manifest.images:
 		check(FileAccess.get_sha256(entry.path)==entry.sha256,"supplied artwork bytes preserved "+str(entry.path).get_file())
 	var baseline=await saved();var rng_states=[game.pages.facility_art.rng.state,game.pages.facility_art.npc.rng.state,game.pages.hub_view.rng.state]
 	loading.rng.seed=5525;var expected=RandomNumberGenerator.new();expected.seed=5525
 	var exact=true;var selected={}
 	for i in range(48):
-		var token=loading.begin("before");var expected_path="res://assets/loading/before-%02d.png" % (expected.randi_range(0,2)+1)
+		var token=loading.begin("before");var expected_path="res://assets/loading/bg_loading_%02d.png" % (expected.randi_range(0,2)+1)
 		exact=exact and loading.selected_path==expected_path and loading.rng.state==expected.state;selected[loading.selected_path]=true;loading.finish(token)
-	check(exact and selected.size()==3,"selection uses independent deterministic UI RNG across all three supplied before images")
+	check(exact and selected.size()==3,"selection uses independent deterministic UI RNG across all three supplied loading images")
 	var first=loading.begin("before");var second=loading.begin("after",true);var subdued_path=loading.selected_path
 	loading.finish(first)
 	check(loading.active and loading.panel.visible and loading.sequence==second and loading.selected_path==subdued_path,"obsolete owner cannot remove a newer transition")
-	var previous_rng=loading.rng.state
-	check(subdued_path=="res://assets/loading/after-03.png","subdued exit selects neutral return image instead of resting or treatment")
+	check(subdued_path.contains("/bg_loading_"),"subdued exit selects one of the supplied loading images")
 	await loading.painted(first)
 	check(loading.active and observations.is_empty(),"obsolete painted token cannot emit readiness")
 	await loading.painted(second);loading.finish(second);loading.finish(second)
@@ -90,7 +88,6 @@ func run():
 		root.size=dims;await frames();var token=loading.begin("after",true);await loading.painted(token);await frames()
 		check(loading.panel.get_global_rect()==Rect2(Vector2.ZERO,Vector2(dims)) and loading.picture.get_global_rect()==Rect2(Vector2.ZERO,Vector2(dims)),"overlay covers FHD viewport "+str(dims))
 		loading.finish(token)
-	check(loading.rng.state==previous_rng,"subdued exits do not draw from even the display RNG")
 	check(await saved()==baseline and rng_states==[game.pages.facility_art.rng.state,game.pages.facility_art.npc.rng.state,game.pages.hub_view.rng.state],"overlay-only cycles preserve campaign save and other display RNG streams")
 	observations.clear();native_cases=fixture_cases()
 	if not native_cases.is_empty():
@@ -112,13 +109,13 @@ func run():
 		check(game.campaign().phase=="town" and game.campaign().location=="east" and game.page=="hub","arrival chain completes final destination before overlay release")
 		await restore("defeat");var start=observations.size()
 		await transition({"op":"campaign","action":"finishBattle","args":[]},true,"after","defeat rolls back")
-		check(game.campaign().phase=="result" and game.campaign().result.outcome=="failed" and observations.slice(start).all(func(row):return row.path.ends_with("after-03.png")),"defeat uses neutral return image and preserves canonical failed outcome")
+		check(game.campaign().phase=="result" and game.campaign().result.outcome=="failed" and observations.slice(start).all(func(row):return row.path.contains("/bg_loading_")),"defeat uses loading image and preserves canonical failed outcome")
 		start=observations.size()
 		await transition({"op":"campaign","action":"acknowledge","args":[]},true,"after","defeat result return to town")
-		check(game.campaign().phase=="town" and game.page=="hub" and observations.slice(start).all(func(row):return row.path.ends_with("after-03.png")),"manual result return loads town under neutral after image")
+		check(game.campaign().phase=="town" and game.page=="hub" and observations.slice(start).all(func(row):return row.path.contains("/bg_loading_")),"manual result return loads town under loading image")
 		await restore("battle");start=observations.size()
 		await transition({"op":"campaign","action":"retreat","args":[]},true,"after","retreat rolls back")
-		check(observations.slice(start).all(func(row):return row.path.ends_with("after-03.png")),"retreat avoids victory/rest treatment imagery")
+		check(observations.slice(start).all(func(row):return row.path.contains("/bg_loading_")),"retreat transitions under supplied loading image")
 		await restore("shop");var before_trial=await saved();game.page="shop"
 		await transition({"op":"campaign","action":"trial","args":[before_trial.state.selected[0],"sword-wood","rightHand"]},true,"before","isolated equipment trial enters board")
 		check(game.data.get("trial")!=null,"trial establishes isolated trial battle")

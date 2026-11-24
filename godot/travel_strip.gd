@@ -20,7 +20,7 @@ func box(at: Vector2,title: String,subtitle: String,fill: Color):
 func panel(fill: Color) -> StyleBoxFlat:
 	return Tokens.box(fill,Tokens.BORDER_ACCENT,Tokens.RADIUS_SM,Tokens.SPACE_NONE,Tokens.BORDER_WIDTH)
 func _draw():
-	draw_rect(Rect2(Vector2.ZERO,size),Tokens.SURFACE_BACKDROP)
+	draw_rect(Rect2(Vector2.ZERO,size),Color(Tokens.SURFACE_BACKDROP.r,Tokens.SURFACE_BACKDROP.g,Tokens.SURFACE_BACKDROP.b,Tokens.SURFACE_ALPHA))
 	var from=Vector2(110,size.y/2);var to=Vector2(size.x-110,size.y/2)
 	draw_line(from,to,Tokens.SURFACE,14)
 	draw_dashed_line(from,to,Tokens.MUTED_INK,Tokens.BORDER_WIDTH_EMPHASIS,10)

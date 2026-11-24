@@ -11,7 +11,7 @@ func run():
  for dims in [Vector2i(1920,1080),Vector2i(1180,812),Vector2i(960,540)]:
   if OS.get_environment("TAIL_SMOKE")=="1" and dims.x!=1920:continue
   root.size=dims;await settle()
-  for spec in [["east","shop","weapon1","buy"],["east","shop","weapon2","buy"],["west","shop","armor","buy"],["south","shop","item","buy"],["north","shop","accessory","buy"],["astaris","party","guild","guild"],["astaris","inn","inn","inn"]]:
+  for spec in [["east","shop","weapon1","buy"],["east","shop","weapon2","buy"],["west","shop","armor","buy"],["south","shop","item","buy"],["north","shop","npc_accessory_shop","buy"],["astaris","party","guild","guild"],["astaris","inn","inn","inn"]]:
    if OS.get_environment("TAIL_SMOKE")=="1" and spec[2]!="weapon1":continue
    var fixture=seed.duplicate(true);fixture.state.location=spec[0]
    await game.update({"op":"campaign_load","data":fixture});game.navigate(spec[1]);await settle()

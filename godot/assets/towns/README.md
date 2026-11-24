@@ -3,16 +3,19 @@
 manifest.json の各拠点IDを配列にし、画像受領後に次の形式で登録する。
 
 ```json
-{"id":"astaris_a","path":"res://assets/towns/astaris_a.png","style":"受領した画風名"}
+{"id":"bg_town_astaris","path":"res://assets/towns/bg_town_astaris.png","style":"ローカルマップ"}
 ```
 
-対象は astaris / east / west / south / north。今回は各2枚を想定するが枚数制限はない。
+対象は astaris / east / west / south / north（各1枚・計5枚、解像度 `1920×1080`）。
+
+- `astaris`: `bg_town_astaris.png`（`背景_アスタリス.png` 原本バイト）
+- `east`: `bg_village_east.png`（`背景_イース.png` 原本バイト）
+- `west`: `bg_village_west.png`（`背景_ウエス.png` 原本バイト）
+- `south`: `bg_village_south.png`（`背景_サウス.png` 原本バイト）
+- `north`: `bg_village_north.png`（`背景_ノース.png` 原本バイト）
+
+原本の寸法・バイト数・SHA-256 は `source-manifest.json` に記録。
 FHD向け横長画像を推奨。文字・施設ボタンは画像に焼き込まない。
-建築・施設設定をこのファイルから追加しない。施設はcampaign.locationsを参照する。
-2026-10-18受領の10枚（各1672×941）を原本バイトのまま登録済み。
-原本の画風・ハッシュはsource-manifest.json。画面は日本語画風名を表示する。
-入力ZIP SHA-256: 5e8f3511ce2853f27b1ce5da2c10f1edc893223e1241ecf97facf18028691b9a
-転送元 commit: afe94fbfeb69348bbb91b364ce1b907550e4f0c9
-画像は仮ビジュアルであり、描かれた建築・地形を確定設定として追加しない。
+建築・施設設定をこのファイルから追加しない。施設は `campaign.locations` を参照する。
 表示は縦横比を保持して全体を収め、切り抜きや引き伸ばしをしない。
 到着時に候補から選択し、同じ訪問中の施設往復では保持する。戦闘用乱数とセーブ形式には影響しない。

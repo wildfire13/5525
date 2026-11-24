@@ -1,4 +1,4 @@
-"""Verify all 11 original background bytes against the delivered documents."""
+"""Verify all 9 original background bytes against the delivered documents."""
 import csv
 import hashlib
 import json
@@ -25,13 +25,14 @@ interior_filenames = {
     'item': 'bg_item_shop_interior.png',
     'accessory': 'bg_accessory_shop_interior.png',
     'guild': 'bg_guild_interior.png',
+    'inn': 'bg_inn_interior.png',
 }
 interior_facilities = set(interior_filenames)
-legacy_facilities = {'inn', 'departure_map'}
+legacy_facilities = {'departure_map'}
 facilities = interior_facilities | legacy_facilities
 legacy_styles = {'papercut', 'gouache', 'watercolor_pen'}
 assert set(catalog) == facilities
-assert len(assets) == len(source['assets']) == source['asset_count'] == len(rows) == len(csv_assets) == len(sums) == 11
+assert len(assets) == len(source['assets']) == source['asset_count'] == len(rows) == len(csv_assets) == len(sums) == 9
 assert set(assets) == set(csv_assets) == set(sums)
 assert {p.name for p in (repo / 'godot/assets/facilities').glob('*.png')} == {a['filename'] for a in assets.values()}
 for facility in sorted(facilities):
@@ -58,4 +59,4 @@ for facility in sorted(facilities):
             assert image.format == 'PNG' and image.size == dims
             image.verify()
         print('PASS original background ' + name)
-print('PASS all 11 original backgrounds and 7-facility catalog match manifest/CSV/SHA')
+print('PASS all 9 original backgrounds and 7-facility catalog match manifest/CSV/SHA')

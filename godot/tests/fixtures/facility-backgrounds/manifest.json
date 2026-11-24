@@ -1,11 +1,11 @@
 {
   "format_version": 2,
   "method": "curated_interior_and_legacy_image_gen",
-  "asset_count": 11,
+  "asset_count": 9,
   "notes": [
-    "Five facility interior backgrounds (weapon, armor, item, accessory, guild) replaced with 1920x1080 curated interior PNGs (original bytes retained).",
-    "Inn and departure_map retain their existing 1672x941 three-style variants (papercut, gouache, watercolor_pen).",
-    "Earlier exterior candidates and superseded 3-style variants for the 5 replaced facilities are excluded."
+    "Six facility interior backgrounds (weapon, armor, item, accessory, guild, inn) replaced with 1920x1080 curated interior PNGs (original bytes retained).",
+    "departure_map retains its existing 1672x941 three-style variants (papercut, gouache, watercolor_pen).",
+    "Earlier exterior candidates and superseded 3-style variants for the 6 replaced facilities are excluded."
   ],
   "assets": [
     {
@@ -75,54 +75,16 @@
     },
     {
       "facility": "inn",
-      "style": "papercut",
+      "style": "interior",
       "scene": "interior",
-      "filename": "inn_papercut.png",
-      "target_path": "godot/assets/facilities/inn_papercut.png",
-      "width": 1672,
-      "height": 941,
-      "bytes": 2806715,
-      "sha256": "7568875e9859582a931d370fd38265a2cb17bf33d4ede37a57d7fca19eb48a61",
-      "library_file_id": "libfile_a8fa228a92a48191bebb892ea583094d",
-      "file_id": "file_00000000a38c81f5b3f08034dc921a02",
-      "library_filename": "inn_papercut(1).png",
-      "source_reference": "weapon_interior_papercut.png",
-      "source_papercut_sha256": "7568875e9859582a931d370fd38265a2cb17bf33d4ede37a57d7fca19eb48a61",
-      "approval": "provisionally_selected_for_in_game_review"
-    },
-    {
-      "facility": "inn",
-      "style": "gouache",
-      "scene": "interior",
-      "filename": "inn_gouache.png",
-      "target_path": "godot/assets/facilities/inn_gouache.png",
-      "width": 1672,
-      "height": 941,
-      "bytes": 2780638,
-      "sha256": "2b5783d18e138a8cac50fafeaaa5e788eeaa30438561056100a29a1378dcf661",
-      "library_file_id": "libfile_d155dc43b09c819190bb18114e33c2e5",
-      "file_id": "file_00000000df5881f5a8d23457cbdc5620",
-      "library_filename": "inn_gouache.png",
-      "source_reference": "inn_papercut.png",
-      "source_papercut_sha256": "7568875e9859582a931d370fd38265a2cb17bf33d4ede37a57d7fca19eb48a61",
-      "approval": "provisionally_selected_for_in_game_review"
-    },
-    {
-      "facility": "inn",
-      "style": "watercolor_pen",
-      "scene": "interior",
-      "filename": "inn_watercolor_pen.png",
-      "target_path": "godot/assets/facilities/inn_watercolor_pen.png",
-      "width": 1672,
-      "height": 941,
-      "bytes": 3519382,
-      "sha256": "a1be8453c88eaf6806b64e365933423c987c7fc980ac06ce142ee27832b1c757",
-      "library_file_id": "libfile_d1913e3cf23c8191a1fbc2c6652fb4d2",
-      "file_id": "file_00000000883081f59242af52de74d5c5",
-      "library_filename": "inn_watercolor_pen.png",
-      "source_reference": "inn_papercut.png",
-      "source_papercut_sha256": "7568875e9859582a931d370fd38265a2cb17bf33d4ede37a57d7fca19eb48a61",
-      "approval": "provisionally_selected_for_in_game_review"
+      "filename": "bg_inn_interior.png",
+      "target_path": "godot/assets/facilities/bg_inn_interior.png",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 5681951,
+      "sha256": "0083449202fe11414e63c88ae8f033ca8ab0440824d6b71f88c899de9ff9401f",
+      "source_filename": "背景_宿屋.png",
+      "approval": "user_supplied_interior_replacement"
     },
     {
       "facility": "departure_map",
@@ -176,5 +138,5 @@
       "approval": "provisionally_selected_for_in_game_review"
     }
   ],
-  "adoption_status": "curated_interiors_and_provisional_inn_map"
+  "adoption_status": "curated_interiors_and_provisional_map"
 }

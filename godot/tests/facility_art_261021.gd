@@ -8,7 +8,7 @@ func run():
 	var art=game.pages.facility_art;var seed=await saved()
 	var production=art.catalog.duplicate(true)
 	check(production.size()==7,"production manifest contains all seven facilities")
-	var interior_filenames={"weapon":"bg_weapon_shop_interior.png","armor":"bg_armor_shop_interior.png","item":"bg_item_shop_interior.png","accessory":"bg_accessory_shop_interior.png","guild":"bg_guild_interior.png"}
+	var interior_filenames={"weapon":"bg_weapon_shop_interior.png","armor":"bg_armor_shop_interior.png","item":"bg_item_shop_interior.png","accessory":"bg_accessory_shop_interior.png","guild":"bg_guild_interior.png","inn":"bg_inn_interior.png"}
 	for facility in ["weapon","armor","item","accessory","guild","inn","departure_map"]:
 		var variants=production.get(facility,[])
 		var expected_count=1 if interior_filenames.has(facility) else 3
@@ -64,7 +64,7 @@ func run():
 			game.navigate(spec[1]);await settle();check(art.rng.state!=state if production[spec[2]].size()>1 else art.artwork==artwork,"returning facility makes new random draw (same style allowed)")
 			game.navigate("hub");await settle();check(game.pages.hub_view.artwork==town_image,"facility navigation preserves existing town still")
 			check(await saved()==before,"visual visits preserve exact campaign and battle RNG state")
-	art.catalog={"weapon":[{"style":"papercut","path":"res://assets/facilities/not-delivered.png"},{"style":"unknown","path":"res://assets/towns/west_b.png"}]}
+	art.catalog={"weapon":[{"style":"papercut","path":"res://assets/facilities/not-delivered.png"},{"style":"unknown","path":"res://assets/towns/bg_village_west.png"}]}
 	art.reset();art.sync("town","east","shop");check(art.texture==null,"missing paths and unsupported styles safely fall back")
 	art.catalog={"weapon":entries};art.reset();art.sync("town","east","shop");art.sync("battle","east","shop")
 	check(art.texture==null and art.visit_key.is_empty(),"battle and trial leave facility visit")

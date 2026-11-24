@@ -46,6 +46,6 @@ func run():
  save.state.location="west";await game.update({"op":"campaign_load","data":save});game.navigate("character");await settle()
  check(background().texture!=shop and background().name=="TownStill","changed location discards previous facility")
  await game.act("depart",["astaris","convoy"]);await settle()
- check(game.backdrop_layer.get_child_count()==0,"journey does not retain stale facility image")
+ check(game.backdrop_layer.get_child_count()==1 and background().name=="RoadStill" and background().texture!=shop,"journey replaces town/facility with road background")
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await process_frame
  quit(0 if failures.is_empty() else 1)

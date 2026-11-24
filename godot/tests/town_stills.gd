@@ -9,17 +9,17 @@ func run():
 	check(hub.catalog.size()==5,"five delivered town catalogs")
 	for town in hub.catalog:
 		var variants=hub.catalog[town]
-		check(variants.size()==2,"two delivered variants: "+town)
+		check(variants.size()==1,"one delivered local map background: "+town)
 		var seed=baseline.duplicate(true);seed.state.location=town
 		await game.update({"op":"campaign_load","data":seed});game.navigate("hub");await settle()
 		for variant in variants:
 			hub.location=town;hub.artwork=variant.duplicate(true);game.render();await settle()
 			var image=node("TownStill");var texture=image.texture
-			check(texture!=null and texture.resource_path==variant.path and texture.get_width()==1672 and texture.get_height()==941,"actual texture loaded: "+variant.id)
+			check(texture!=null and texture.resource_path==variant.path and texture.get_width()==1920 and texture.get_height()==1080,"actual texture loaded: "+variant.id)
 			check(texture.get_image()!=null and not texture.get_image().is_empty(),"decoded pixel image available: "+variant.id)
 			check(image.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_COVERED and image.get_global_rect()==Rect2(Vector2.ZERO,Vector2(root.size)),"full-window aspect-preserved cover image at FHD: "+variant.id)
 			check(node("TownArtStyle")==null and node("HeaderLocation").is_visible_in_tree() and node("HeaderLocation").text==game.town_name(town),"duplicate art/location heading removed; shared band identifies town: "+variant.id)
-			var landmarks={"east":{"board":Vector2(.79,.54),"weapon":Vector2(.21,.46)},"north":{"board":Vector2(.30,.52),"accessory":Vector2(.65,.58)}}
+			var landmarks={"east":{"board":Vector2(.82,.49),"weapon":Vector2(.24,.43)},"north":{"board":Vector2(.33,.48),"accessory":Vector2(.66,.54)}}
 			for facility in landmarks.get(town,{}):
 				var target=landmarks[town][facility]*Vector2(root.size)
 				check(node("HubFacility_"+facility).get_global_rect().has_point(target),"button covers artwork landmark: "+variant.id+"/"+facility)
@@ -29,7 +29,7 @@ func run():
 				check(hub.artwork==variant and node("TownStill").texture.resource_path==variant.path,"facility return retains picture: "+variant.id+"/"+button)
 		var seen={};hub.rng.seed=5525
 		for i in range(32):hub.reset();hub.select_art(town);seen[hub.artwork.id]=true
-		check(seen.size()==2,"random visits select both real variants: "+town)
+		check(seen.size()==1,"visits select delivered local map background: "+town)
 		var rng_state=hub.rng.state;var selected=hub.artwork.duplicate(true)
 		for i in range(5):hub.select_art(town)
 		check(hub.rng.state==rng_state and hub.artwork==selected,"same visit does not reroll: "+town)
