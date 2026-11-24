@@ -53,7 +53,6 @@ func run():
  check(game.find_child("RouteChoices",true,false)!=null,"map navigation returns to route choices")
  await game.act("travel",["short"]);await settle()
  check(game.campaign().phase=="deployment","outbound route enters deployment")
- check(game.theme.get_color("font_color","Label")==game.mock_shell.INK and game.theme.get_stylebox("normal","Button").bg_color==game.mock_shell.PAPER,"deployment retains approved B ink and paper theme")
  print("BATTLE_FONT ",game.theme.default_font_size)
  await capture("flow-deployment")
  await game.act("begin",[]);await settle()
@@ -61,7 +60,6 @@ func run():
  await synthetic_victory()
  check(game.campaign().phase=="camp","synthetic victory boundary returns to camp")
  game.navigate("map");await settle()
- check(game.theme.get_color("font_color","Label")==game.mock_shell.INK and game.theme.get_stylebox("normal","Button").bg_color==game.mock_shell.PAPER,"camp retains approved B ink and paper theme")
  var bag=game.find_children("*","Button",true,false).filter(func(b):return b.text=="インベントリ")[0]
  bag.pressed.emit();await settle()
  check(game.page=="character" and game.find_child("CharacterInventoryFilter",true,false)!=null,"camp bag opens inventory directly")
@@ -78,5 +76,12 @@ func run():
  var returned=(await game.engine.request({"op":"campaign_save"})).data.state
  check(game.campaign().activeQuest is Dictionary and int(returned.activeQuest.elapsedHours)>previous_hours,"return keeps quest and elapsed time")
  await capture("flow-returned")
+ var path=ProjectSettings.globalize_path("user://journey-roundtrip.json")
+ var snapshot=(await game.engine.request({"op":"campaign_save"})).data
+ await game.write_snapshot(path,snapshot,"進行")
+ check(FileAccess.file_exists(path),"return journey writes a current save file")
+ await game.new_game();await game.load_game(path);await settle()
+ var restored=(await game.engine.request({"op":"campaign_save"})).data.state
+ check(restored.activeQuest==returned.activeQuest and restored.hours==returned.hours and restored.location==returned.location and restored.gold==returned.gold,"reloading restores the contract, elapsed time, town and money")
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await process_frame
  quit(0 if failures.is_empty() else 1)

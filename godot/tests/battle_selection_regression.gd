@@ -31,9 +31,15 @@ func run():
   check(game.hud.buttons.action_attack.get_theme_stylebox("normal").bg_color.is_equal_approx(game.theme.get_stylebox("normal","Button").bg_color) and game.hud.buttons.action_attack.get_theme_color("font_color").is_equal_approx(game.theme.get_color("font_color","Button")),"enabled command keeps battle theme colors "+str(dims))
   var ally=game.state().units.filter(func(u):return u.side=="ally")[0]
   var enemy=game.state().units.filter(func(u):return u.side=="enemy")[0]
+  var target_region=preload("res://ui_labels.json").data.regions.filter(func(entry):return entry.label=="戦闘対象情報" and "battle" in entry.screens)
+  check(target_region.size()==1 and str(game.hud.right_panel.name) in target_region[0].nodes,"target panel is registered as 戦闘対象情報")
   for u in [ally,enemy,enemy]:
    await game.on_cell(int(u.pos));await settle()
    check(game.hud.inspection_pinned and game.hud.person_box.get_meta("inspected_unit","")==u.id,"tile click pins "+str(u.side)+" "+str(dims))
+   var region=game.hud.right_panel
+   var hp=region.find_child("Inspect_hp",true,false)
+   var names=region.find_children("*","Label",true,false).filter(func(label):return label.text==u.name and label.is_visible_in_tree() and region.get_global_rect().encloses(label.get_global_rect()))
+   check(not names.is_empty() and hp!=null and hp.caption.is_visible_in_tree() and region.get_global_rect().encloses(hp.caption.get_global_rect()) and hp.caption.text.replace(" ","")=="HP%d/%d" % [u.hp,u.max],"selected unit name and current HP are visible inside the target information panel")
    game.hud.inspect_hover(ally.id if u.id==enemy.id else enemy.id,game.board);await settle()
    check(game.hud.person_box.get_meta("inspected_unit","")==u.id,"hover cannot replace clicked person "+str(dims))
   var empty=0

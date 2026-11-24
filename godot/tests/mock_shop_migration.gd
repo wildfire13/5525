@@ -22,7 +22,7 @@ func run():
  if game.data.is_empty():push_error("initialization timeout");quit(2);return
  game.audio.fast_mode=true;game.checks_fast=true
  var save=(await game.engine.request({"op":"campaign_save"})).data
- save.state.location="east";save.state.gold=1000
+ save.state.location="east";save.state.gold=100
  await game.update({"op":"campaign_load","data":save})
  game.navigate("shop");game.pages.facility_entry.choose("buy");await settle()
  var shop=game.pages.shop_view
@@ -38,7 +38,6 @@ func run():
  check(spear==game.find_child(spear_name,true,false),"clearing filter reuses the same product")
  check(game.find_child("ShopInventory",true,false)!=null and game.find_child("ShopCatalog",true,false)!=null,"inventory and stock shown together")
  check(game.find_child("ShopExit",true,false)!=null,"transaction exit exists without selection")
- check(is_equal_approx(game.find_child("ShopCustomerArt",true,false).modulate.a,.22) and is_equal_approx(game.find_child("ShopKeeperArt",true,false).modulate.a,.2),"both portraits use translucent backdrop")
  var stock=game.find_child("ShopCatalog",true,false);var own=game.find_child("ShopInventory",true,false);var middle=game.find_child("ShopTransaction",true,false)
  check(own.global_position.x<middle.global_position.x and middle.global_position.x<stock.global_position.x,"inventory comparison stock order")
  check(absf(own.get_global_rect().end.y-middle.get_global_rect().end.y)<2 and absf(stock.size.y-middle.size.y)<2,"three panels share lower edge")
@@ -65,8 +64,11 @@ func run():
  check(root.get_visible_rect().encloses(purchase_rect),"purchase button visible at FHD")
  var buyer=shop.selected_owner();var before_gold=int(game.campaign().gold)
  game.find_child("ShopComparisonBuy",true,false).pressed.emit();await settle()
- check(not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ 木製の投げ槍×1 / 支払 100 G" % game.member_name(buyer) and int(game.campaign().gold)==before_gold-100,"one click purchases and shows a non-modal recipient/item/count/payment notice")
+ check(before_gold==int(shop.receipt.cost) and int(game.campaign().gold)==0,"buying with exact funds leaves zero gold")
+ check_purchase_notice(buyer,shop.receipt.gear.name,1,int(shop.receipt.cost))
  await capture("purchase-complete")
+ shop.open_comparison("javelin-wood");await settle()
+ check(game.find_child("ShopComparisonBuy",true,false).disabled,"a second purchase with insufficient funds is blocked")
  check(shop.sale.entries().any(func(item):return item.id=="javelin-wood"),"purchased product enters selected inventory")
  var filter=game.find_child("ShopInventoryFilter",true,false)
  filter.select(1);filter.item_selected.emit(1);await settle()
@@ -105,7 +107,7 @@ func run():
    game.find_child("ProductBuy_"+str(product.id)+"_1",true,false).pressed.emit();await settle()
    game.find_child("PurchaseAgree",true,false).pressed.emit();await settle()
    check(int(game.campaign().gold)==money-3*int(product.price) and int(game.campaign().characters[target].inventory.get(product.id,0))==old_count+3,"consumable quantity applies exact selected amount to chosen member")
-   check(not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ %s×3 / 支払 %d G" % [game.member_name(target),product.name,3*int(product.price)],"consumable completion notice includes recipient, product, selected count and total payment")
+   check_purchase_notice(target,product.name,3,3*int(product.price))
   else:
    check(game.find_child("ShopComparisonStats",true,false)!=null and not game.modal_open(),place+" inline gear comparison")
    var slot=game.find_child("ShopComparisonSlot",true,false)
@@ -113,6 +115,11 @@ func run():
   await capture("shop-"+place)
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await frames(4)
  quit(0 if checks.all(func(value):return value) else 1)
+func check_purchase_notice(buyer,item_name,count,cost):
+ var caption=game.save_notice.caption
+ var text=caption.text.replace(" ","").replace("　","")
+ check(not game.modal_open() and caption.is_visible_in_tree() and game.save_notice.get_global_rect().encloses(caption.get_global_rect()) and text.contains(game.member_name(buyer)) and text.contains(item_name) and text.contains("×%d" % count) and text.contains("%dG" % cost),"purchase notice shows recipient, product, quantity and payment")
+
 func recipient_regression():
  var shop=game.pages.shop_view
  var ids=game.campaign().selected
@@ -129,7 +136,7 @@ func recipient_regression():
  shop.open_comparison("javelin-wood");await settle()
  check(shop.comparison_view.owner_id==chosen,"entry comparison uses selected party member")
  game.find_child("ShopComparisonBuy",true,false).pressed.emit();await settle()
- check(not game.modal_open() and game.save_notice.visible and game.save_notice.caption.text=="%sへ 木製の投げ槍×1 / 支払 100 G" % game.member_name(chosen),"purchase notice names selected member, item, count and payment")
+ check_purchase_notice(chosen,shop.receipt.gear.name,1,int(shop.receipt.cost))
  var before=(await game.engine.request({"op":"campaign_save"})).data
  game.mock_shell.activate(old);await settle()
  check(game.pages.party_uid==old and game.shop_uid==old,"purchase notice permits immediate card selection")

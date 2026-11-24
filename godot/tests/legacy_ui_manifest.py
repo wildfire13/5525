@@ -1,4 +1,4 @@
-"""Ordered checks shared by the legacy UI runner and CI shards."""
+"""Historical checks available to the local diagnostic runner."""
 
 ASSET_CHECKS = (
     ('event_voice_assets', 'node', 'native/test_event_voice_integration.cjs'),
@@ -80,9 +80,3 @@ def suite_checks(name):
     if name == 'ui_preferences_restart':
         return [(name + '_write', 'write'), (name + '_read', 'read')]
     return [(name, '')]
-
-
-def check_groups():
-    groups = [[name] for name, _, _ in ASSET_CHECKS]
-    groups.extend([result for result, _ in suite_checks(name)] for name in GODOT_SUITES)
-    return groups

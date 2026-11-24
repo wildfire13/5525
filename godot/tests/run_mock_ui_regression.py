@@ -10,12 +10,14 @@ import subprocess
 import tempfile
 import time
 
-from mock_ui_suites import SUITES
+from mock_ui_suites import CI_SUITES, SUITES
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--evidence', required=True, type=Path)
 p.add_argument('--godot')
-p.add_argument('--only', nargs='+', choices=SUITES)
+selection = p.add_mutually_exclusive_group()
+selection.add_argument('--ci', action='store_true', help='Run player-facing regression checks used on push and PR')
+selection.add_argument('--only', nargs='+', choices=sorted(set(SUITES + CI_SUITES)))
 a = p.parse_args()
 repo = Path(__file__).resolve().parents[2]
 out = a.evidence.resolve()
@@ -28,9 +30,10 @@ settings = qa_environment(godot=a.godot)
 godot = settings['GODOT_BIN']
 results = []
 
-for name in a.only or SUITES:
+for name in a.only or (CI_SUITES if a.ci else SUITES):
     scope = Path(tempfile.mkdtemp(prefix=name + '-', dir=out))
     env = dict(settings, NATIVE5525_AUDIO_OFF='1', MENU_EXIT_QA_ROOT=str(scope),
+               INVENTORY_QA_ROOT=scope.as_posix(), SKILL_EFFECT_QA_ROOT=scope.as_posix(),
                PYTHONUTF8='1', PYTHONDONTWRITEBYTECODE='1')
     for key, child in [('HOME', 'home'), ('XDG_DATA_HOME', 'data'),
                        ('XDG_CONFIG_HOME', 'config'), ('XDG_CACHE_HOME', 'cache'),
@@ -92,6 +95,10 @@ for name in a.only or SUITES:
     source_sha256 = hashlib.sha256((repo / 'godot/tests' / (name + '.gd')).read_bytes()).hexdigest()
     result = dict(name=name, source_sha256=source_sha256, passed=code == 0 and not errors, exit=code,
                   errors=errors, seconds=round(time.monotonic() - started, 3))
+    if not result['passed']:
+        for line in text.splitlines():
+            if line.startswith(('FAIL ', 'ERROR:', 'SCRIPT ERROR:')):
+                print(f'{name}: {line}', flush=True)
     results.append(result)
     target.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(result, ensure_ascii=False), flush=True)

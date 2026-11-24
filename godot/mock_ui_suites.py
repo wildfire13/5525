@@ -12,6 +12,15 @@ SUITES = [
     'npc_meeting_regression', 'town_meeting_layout_regression', 'quest_decisions_regression', 'quest_aftermath_access_regression',
 ]
 
+# Normal push/PR checks follow player actions. Visual reviews can still run via --only.
+CI_SUITES = [
+    'mock_facility_migration', 'owned_equipment_regression', 'mock_shop_migration',
+    'shop_drag_261119', 'inventory_context_regression', 'mock_service_regression', 'mock_journey_integration',
+    'standalone_quest_failure_regression', 'quest_decisions_regression',
+    'mock_deployment_regression', 'battle_selection_regression', 'skill_effect_regression',
+    'turn_order_keyboard_regression', 'window_grid_regression', 'menu_exit_regression',
+]
+
 ERROR_KINDS = {"script-error", "engine-error", "assertion", "resource-leak", "timeout", "process-exit", "launch-error", "cleanup-error"}
 
 

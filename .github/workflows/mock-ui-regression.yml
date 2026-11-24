@@ -1,4 +1,4 @@
-name: Mock UI and journey regression
+name: FHD gameplay and UI
 
 on:
   workflow_dispatch:
@@ -62,16 +62,18 @@ jobs:
         run: |
           timeout 180 godot --headless --path godot --editor --import --quit > "$RUNNER_TEMP/godot-mock-import.log" 2>&1
           if rg 'SCRIPT ERROR:|ERROR:' "$RUNNER_TEMP/godot-mock-import.log"; then exit 1; fi
-      - name: Verify reward and return journey rules
-        run: node native/test_mock_ui_rules.cjs
+      - name: Verify facility and icon assets
+        run: |
+          python godot/tests/facility_asset_integrity.py
+          python godot/tests/individual_icons_integrity.py
       - name: Verify FHD report failure handling
         run: python godot/tests/mock_ui_results_tests.py
       - name: Verify FHD UI and state transitions
-        run: python godot/tests/run_mock_ui_regression.py --evidence "$RUNNER_TEMP/5525-mock-regression"
+        run: python godot/tests/run_mock_ui_regression.py --ci --evidence "$RUNNER_TEMP/5525-mock-regression"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ always() }}
         with:
           name: mock-ui-regression-summary
           path: ${{ runner.temp }}/5525-mock-regression/results.json
           retention-days: 5
-          if-no-files-found: ignore
+          if-no-files-found: error

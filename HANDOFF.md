@@ -1,3 +1,7 @@
+## 通常CIの検査範囲（2026-11-25）
+
+PR・mainの変更は、Windows起動、nativeのルール・保存、GodotのFHD操作で検査する。FHDの自動検査は `godot/tests/run_mock_ui_regression.py --ci --evidence <出力先>` で再実行できる。過去の単発QAは通常CIから外した。特定の現行画面を詳しく調べるときは同じランナーの `--only` を使う。
+
 ## 背景シェーダー試作（2026-11-24・採用判断待ち）
 
 `d9bae22` から派生。イースの水面と森の街道の雲影をF8で切り替えられる。起動時は適用。実画面の原寸比較と測定条件は[QA報告](../../QA/現行版用/results/261124-d9bae22-background-shader/RESULTS.md)を参照。

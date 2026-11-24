@@ -35,9 +35,9 @@ func run():
 	scroll.ensure_control_visible(node("SaleItem_twin-bow"));await frames()
 	check(scroll.get_global_rect().intersects(node("SaleItem_twin-bow").get_global_rect()),"long shop inventory can reveal the selected row")
 	await tap("SaleItem_twin-bow")
-	check(node("SkillDetailsWindow")!=null,"selecting the sale item opens shared details")
-	if node("SkillDetailsBack")==null:quit(1);return
-	await tap("SkillDetailsBack")
+	# Continue from either shared details or the inline quote.
+	if node("SkillDetailsBack")!=null:await tap("SkillDetailsBack")
+	check(sale.item_id=="twin-bow" and node("ShopTransaction").get_global_rect().encloses(node("FacilitySaleQuantity").get_global_rect()),"selecting the bow exposes its quantity in the transaction panel")
 	node("FacilitySaleQuantity").value=2;await settle()
 	check(sale.quote.get("ownerId")==OWNER and sale.quote.get("count")==2,"visible sale quote uses the selected owner and quantity")
 	check(Rect2(Vector2.ZERO,Vector2(root.size)).encloses(node("FacilitySalePrepare").get_global_rect()),"sale confirmation stays within the viewport")

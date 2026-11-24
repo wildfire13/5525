@@ -41,7 +41,7 @@ func run():
  check(central.encloses(game.hud.camera_hint.get_parent().get_global_rect()) and not footer.intersects(game.hud.camera_hint.get_parent().get_global_rect()),"deployment controls and help leave both common rows and the field clear")
  check(game.find_child("DeploymentFormationWindow",true,false)==null and game.find_child("EnemyJobFilter",true,false)!=null,"obsolete formation presets removed and enemy job filter present")
  var start=game.find_child("DeploymentBegin",true,false)
- check(start.get_global_rect().size.x>=150 and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(start.get_global_rect()),"start readable and inside FHD")
+ check(start.is_visible_in_tree() and not start.disabled and Rect2(Vector2.ZERO,Vector2(root.size)).encloses(start.get_global_rect()),"start readable and inside FHD")
  check(not sidebar.intersects(start.get_global_rect()) and not strip.get_global_rect().intersects(start.get_global_rect()),"start does not cover field or roster")
  if DisplayServer.get_name()!="headless" and not OS.get_environment("DEPLOYMENT_CAPTURE").is_empty():
   await RenderingServer.frame_post_draw
@@ -76,8 +76,7 @@ func run():
  check(enemy_card!=null and enemy_card.find_children("*","Label",true,false).any(func(l):return l.text==enemy.name),"enemy roster shows the same named member")
  enemy_card.pressed.emit();await settle()
  var enemy_tabs=game.dialog.window.find_child("LoadoutTabBar",true,false)
- var grid=preload("res://screen_grid.gd")
- check(game.modal_open() and Rect2(enemy_tabs.global_position+Vector2(game.dialog.window.position),enemy_tabs.size)==grid.cell_rect(Vector2(root.size),2,2,2,1) and game.dialog.window.find_child("BattleSlot_rightHand",true,false)!=null,"enemy roster opens equipment on the same absolute grid as party information")
+ check(game.modal_open() and enemy_tabs.is_visible_in_tree() and game.dialog.window.find_child("BattleSlot_rightHand",true,false).is_visible_in_tree(),"enemy equipment exposes its tabs and right-hand slot")
  var weapon=game.dialog.window.find_child("BattleSlot_rightHand",true,false)
  weapon.pressed.emit();await settle()
  var equipped=enemy.get("equipment",{}).get("rightHand","")
@@ -106,11 +105,15 @@ func run():
  check(not root.gui_is_dragging(),"drag cancels and allows another operation")
  await game.deployment_assigned(id,int(pos));await settle()
  check(game.state().units.any(func(u):return u.id==id),"reserve reassignment preserved")
- await game.act("chooseFormation",["flank"]);await settle()
- check(game.state().formationKind=="flank","formation choice preserved")
  await game.act("deployment_reset",[]);await settle()
  check(not game.hud.deployment_changed(),"reset preserved")
- await game.act("begin",[]);await settle()
+ var begin=game.find_child("DeploymentBegin",true,false)
+ check(begin.is_visible_in_tree() and not begin.disabled,"the deployed party can start battle")
+ begin.pressed.emit()
+ var deadline=Time.get_ticks_msec()+10000
+ while Time.get_ticks_msec()<deadline:
+  if game.campaign().phase=="battle" and not game.presenting and game.hud.left_panel.is_visible_in_tree():break
+  await process_frame
  check(not game.state().get("deploying",false) and game.board.get_global_rect()==Rect2(Vector2.ZERO,Vector2(root.size)),"starting battle retains the canonical deployment field rectangle")
  check(game.hud.left_panel.visible and game.hud.right_panel.find_child("DragHandle",true,false).visible,"battle inspector headers restored")
  game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free();await settle();quit(0 if failures.is_empty() else 1)

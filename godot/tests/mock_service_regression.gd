@@ -44,6 +44,10 @@ func run():
  await capture("inn-after-rest")
  game.pages.facility_entry.back();game.pages.facility_entry.choose("inn");await settle()
  check(node("InnKeeperSpeech").words.text==inn.FULL_GREETING,"already healthy visit displays healthy greeting")
+ var recovered=(await game.engine.request({"op":"campaign_save"})).data
+ check(node("InnStay").disabled,"full-health party cannot be charged for another stay")
+ inn.stay();await settle()
+ check((await game.engine.request({"op":"campaign_save"})).data==recovered,"a repeated rest request leaves the recovered party and gold intact")
  var rows=[]
  for member in game.campaign().roster.slice(0,8):
   rows.append({"id":str(member.id),"name":member.name,"member":member,"xp_before":0,"xp_after":150,"xp_gain":150,"level_before":1,"level_after":2,"stat_gain":2,"skill_gain":0})
