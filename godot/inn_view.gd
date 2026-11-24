@@ -27,36 +27,47 @@ func render(parent):
  if pages.facility_entry.render_top(parent,"inn"):reset();return
  var surface=Control.new();parent.add_child(surface);surface.name="InnService";surface.custom_minimum_size.y=ui.mock_shell.content_height();surface.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  var panel=PanelContainer.new();panel.name="FacilityChoices";surface.add_child(panel)
- pages.facility_entry.place_region(panel,Rect2(0,2,6,7))
- pages.facility_entry.render_title(surface,"inn")
  panel.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_NONE))
+ panel.top_level=true
+ var panel_ref=weakref(panel)
+ var place_panel=func():
+  var target=panel_ref.get_ref()
+  if not is_instance_valid(target) or not target.is_inside_tree() or target.is_queued_for_deletion():return
+  var area=ScreenGrid.cell_rect(ui.size,0,2,6,7)
+  var h=clampf(target.get_combined_minimum_size().y,0.0,area.size.y)
+  ScreenGrid.place(target,Rect2(area.position,Vector2(area.size.x,h)))
+ ui.resized.connect(place_panel)
+ panel.minimum_size_changed.connect(place_panel.call_deferred)
+ panel.tree_exiting.connect(func():if ui.resized.is_connected(place_panel):ui.resized.disconnect(place_panel),CONNECT_ONE_SHOT)
+ place_panel.call_deferred()
  var content=VBoxContainer.new();content.add_theme_constant_override("separation",Tokens.SPACE_NONE);panel.add_child(content)
  var q: Dictionary=pages.c().get("inn",{})
  var words=dialogue if not dialogue.is_empty() else FULL_GREETING if not q.get("needsRecovery",false) else pages.facility_entry.greeting_text()
  pages.facility_entry.render_entry_art(surface,words,true)
- parent=inset(content,1,true)
+ parent=inset(content,0,true)
  var heading=pages.row(parent)
- ui.icons.line(ui,heading,"inn","宿屋",true)
+ ui.icons.line(ui,heading,"inn","宿泊・回復",true)
  if not q.get("available",false):pages.l(parent,"宿屋はアスタリスで利用できます。");return
- if q.get("needsRecovery",false):pages.l(heading,"パーティ全員で%dG" % q.price)
- var recovery_hint=pages.muted(parent,"編成中の全員のHP・MPを全回復。控えは対象外、時間は経過しません。");recovery_hint.add_theme_font_size_override("font_size",Tokens.FONT_SM)
+ if q.get("needsRecovery",false):
+  var price_label=pages.l(heading,"パーティ全員で %d G" % q.price)
+  price_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  cards(content)
  parent=inset(content,0,false,true)
- parent.get_parent().get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
- if not q.get("needsRecovery",false):
-  var status=pages.l(parent,"宿泊完了。全員のHP・MPが回復しました。" if not healing_party.is_empty() else "全員が全回復しています。料金はかかりません。")
-  status.name="InnRecoveryStatus";status.add_theme_font_size_override("font_size",Tokens.FONT_SM)
- elif not q.get("affordable",false):pages.l(parent,"所持金が足りません。宿泊には%dG必要です。" % q.price)
- var action_space=Control.new();action_space.size_flags_vertical=Control.SIZE_EXPAND_FILL;parent.add_child(action_space)
  var actions=pages.row(parent);actions.name="InnActions";actions.alignment=BoxContainer.ALIGNMENT_END
+ if not q.get("needsRecovery",false):
+  var status=pages.l(actions,"宿泊完了" if not healing_party.is_empty() else "全快済み")
+  status.name="InnRecoveryStatus";status.add_theme_font_size_override("font_size",Tokens.FONT_SM);status.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ elif not q.get("affordable",false):
+  var lack=pages.l(actions,"所持金不足（%d G 必要）" % q.price)
+  lack.add_theme_font_size_override("font_size",Tokens.FONT_SM);lack.add_theme_color_override("font_color",Tokens.DANGER);lack.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  var caption="休息する"
  var disabled=pending or not q.get("needsRecovery",false) or not q.get("affordable",false)
  var stay_btn=ui.action_button(pages.b(actions,caption,stay,disabled),"md");stay_btn.name="InnStay"
- var back_btn=pages.b(actions,"戻る",pages.facility_entry.back,pending,"sm");back_btn.name="InnReturn"
+ var back_btn=pages.b(actions,"戻る",pages.facility_entry.back,pending,"md");back_btn.name="InnReturn"
 func inset(parent: Control,cells: int,bottom_divider:=false,top_divider:=false) -> VBoxContainer:
  var box=VBoxContainer.new()
  box.add_theme_constant_override("separation",Tokens.SPACE_NONE)
- box.custom_minimum_size.y=pages.grid_height(cells+1)-pages.grid_height(1)
+ if cells>0:box.custom_minimum_size.y=pages.grid_height(cells+1)-pages.grid_height(1)
  parent.add_child(box)
  if top_divider:
   var top_line=ColorRect.new();top_line.name="InnFooterDivider";top_line.color=Tokens.BORDER;top_line.custom_minimum_size.y=Tokens.BORDER_WIDTH;top_line.size_flags_horizontal=Control.SIZE_EXPAND_FILL;top_line.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(top_line)
@@ -70,11 +81,17 @@ func inset(parent: Control,cells: int,bottom_divider:=false,top_divider:=false) 
   var bottom_line=ColorRect.new();bottom_line.name="InnHeaderDivider";bottom_line.color=Tokens.BORDER;bottom_line.custom_minimum_size.y=Tokens.BORDER_WIDTH;bottom_line.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bottom_line.mouse_filter=Control.MOUSE_FILTER_IGNORE;box.add_child(bottom_line)
  return body
 func cards(parent):
- var scroll=ScrollContainer.new();scroll.name="InnPartyScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.custom_minimum_size.y=pages.grid_height(7)-pages.grid_height(3)
- var scroll_pad=StyleBoxEmpty.new();scroll_pad.content_margin_left=Tokens.SPACE_SM;scroll_pad.content_margin_right=Tokens.SPACE_SM;scroll_pad.content_margin_top=Tokens.SPACE_SM;scroll.add_theme_stylebox_override("panel",scroll_pad)
- parent.add_child(scroll)
+ var selected_ids=pages.c().get("selected",[])
  var compact=ui.size.y<720
- var members=ui.member_grid(scroll,"InnParty",280.0 if compact else 170.0,3 if compact else 6)
+ var cols=3 if compact else 6
+ var card_rows=maxi(1,ceili(float(maxi(1,selected_ids.size()))/float(cols)))
+ var has_ko=pages.roster().any(func(u):return selected_ids.has(u.id) and int(u.get("hp",1))<=0)
+ var row_height=104.0 if compact else (268.0 if has_ko else 248.0)
+ var max_scroll=float(pages.grid_height(7)-pages.grid_height(3))
+ var scroll=ScrollContainer.new();scroll.name="InnPartyScroll";scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;scroll.custom_minimum_size.y=minf(max_scroll,row_height*card_rows)
+ var scroll_pad=StyleBoxEmpty.new();scroll_pad.content_margin_left=Tokens.SPACE_SM;scroll_pad.content_margin_right=Tokens.SPACE_SM;scroll_pad.content_margin_top=Tokens.SPACE_SM;scroll_pad.content_margin_bottom=Tokens.SPACE_SM;scroll.add_theme_stylebox_override("panel",scroll_pad)
+ parent.add_child(scroll)
+ var members=ui.member_grid(scroll,"InnParty",280.0 if compact else 170.0,cols)
  var labels=[]
  for id in pages.c().get("selected",[]):
   var matches=pages.roster().filter(func(u):return u.id==id)
@@ -105,7 +122,11 @@ func paint(amount: float,labels: Array):
   if not is_instance_valid(entry.label):continue
   var shown=roundi(lerpf(float(entry.before),float(entry.after),amount))
   entry.label.text="%s %d → %d" % [str(entry.stat).to_upper(),shown,entry.maximum]
-  if amount>=1.0:entry.label.remove_theme_color_override("font_color");entry.label.set_meta("recovering",false)
+  if shown<entry.maximum or (entry.before<entry.after and amount<1.0):
+   entry.label.add_theme_color_override("font_color",Tokens.POSITIVE)
+  else:
+   entry.label.remove_theme_color_override("font_color")
+  if amount>=1.0:entry.label.set_meta("recovering",false)
 func stay():
  if not available() or pending or ui.locked or ui.presenting or ui.modal_open() or ui.closing:return
  var q: Dictionary=pages.c().get("inn",{})
@@ -113,7 +134,7 @@ func stay():
   dialogue=FULL_GREETING;recovered={};healing_party=[];recovery_started=0;ui.render();return
  if not q.get("affordable",false):return
  var token=pages.c().get("inventoryToken");var epoch=pages.epoch;var connection=ui.engine.connection_generation;var request=sequence
- ui.confirm("%dGを支払い、編成中の全員のHP・MPを全回復しますか？\n戦闘不能も回復。控えは対象外、時間は経過しません。" % q.price,commit.bind(token,epoch,connection,request))
+ ui.confirm("%d Gを支払い、編成中の全員のHP・MPを全回復しますか？\n戦闘不能も回復。控えは対象外、時間は経過しません。" % q.price,commit.bind(token,epoch,connection,request))
 func commit(token,epoch: int,connection: int,request: int):
  if pending or not available() or ui.locked or ui.presenting or ui.closing or request!=sequence or epoch!=pages.epoch or connection!=ui.engine.connection_generation or token!=pages.c().get("inventoryToken"):return
  var q: Dictionary=pages.c().get("inn",{})

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d0haeajj6kdd7"
-path="res://.godot/imported/accessory_papercut.png-01201a3e06c59ab066abe67f0ec706d0.ctex"
+uid="uid://cvjdegevas1fj"
+path="res://.godot/imported/armor.png-edb81cce80ae705b622d14eda9b5c99b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/facilities/accessory_papercut.png"
-dest_files=["res://.godot/imported/accessory_papercut.png-01201a3e06c59ab066abe67f0ec706d0.ctex"]
+source_file="res://assets/facilities/armor.png"
+dest_files=["res://.godot/imported/armor.png-edb81cce80ae705b622d14eda9b5c99b.ctex"]
 
 [params]
 

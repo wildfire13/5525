@@ -47,7 +47,6 @@ func growth(parent,u: Dictionary):
 	if not editable:l(parent,"控えは編成してから操作できます。" if not ui.active_member(str(u.id)) else "成長の配分は町にいる時だけ編集できます。" if pages.c().get("phase")!="town" else "確定結果を確認しています。")
 	l(parent,pages.stats_text(stats,str(u.id)));l(parent,"Wt上限はSTR。戦闘終了後、生存者が戦闘不能者の装備と荷物の重量を分担します。SPD（行動速度）はAGIと装備補正から算出します。")
 	pages.elemental_combat_line(parent,stats)
-	l(parent,"編成はアスタリスのギルドで変更できます。")
 func skills(parent,u: Dictionary,show_summary:=true):
 	var s=u.get("stats",u);var names=pages.c().get("skillNames",{})
 	if show_summary:

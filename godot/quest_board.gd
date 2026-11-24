@@ -53,8 +53,8 @@ func layout_board(split: Control):
 	Grid.place(split.get_node("QuestList"),Grid.cell_rect(view,0,1,3,8))
 	var detail=split.get_node("QuestDetail")
 	if not detail.visible:return
-	var frame=Grid.cell_rect(view,3,1,4,8)
-	var action=Grid.cell_rect(view,3,8,4,1)
+	var frame=Grid.cell_rect(view,3,1,4,6)
+	var action=Grid.cell_rect(view,3,6,4,1)
 	Grid.place(detail,frame)
 	var availability=detail.get_node_or_null("QuestMerchantAvailability")
 	Grid.place(detail.get_node("QuestDetailActions"),action)
@@ -145,26 +145,30 @@ func render_detail(parent,q: Dictionary,active: bool):
 		meeting_column=VBoxContainer.new();meeting_column.add_theme_constant_override("separation",Tokens.SPACE_MD);panel.add_child(meeting_column)
 		meeting.render(ui.scroller(meeting_column),q,"Quest",true)
 	if q.get("story") is Array and not q.story.is_empty():
-		var story=pages.b(details,"依頼時の話" if active else "話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);Tokens.apply_button_preset(story,"md",false)
+		var story=pages.b(details,"依頼時の話" if active else "話を聞く",open_story.bind(q.duplicate(true)));story.name="QuestStory_"+str(q.id);story.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;Tokens.apply_button_preset(story,"md",false)
 
 	var footer_line=ColorRect.new();footer_line.name="QuestDetailFooterDivider";footer_line.color=Tokens.BORDER;footer_line.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(footer_line)
-	var actions=pages.row(parent);actions.name="QuestDetailActions";actions.alignment=BoxContainer.ALIGNMENT_CENTER
+	var actions=pages.row(parent);actions.name="QuestDetailActions";actions.alignment=BoxContainer.ALIGNMENT_END
+	var primary_btn: Button=null
 	if active:
 		var m: Dictionary=q.get("meeting",{})
 		if m.get("canWait",false):
-			ui.primary(pages.b(actions,meeting.wait_label(q),meeting.open_wait)).name="WaitForMerchant"
+			primary_btn=ui.action_button(pages.b(actions,meeting.wait_label(q),meeting.open_wait));primary_btn.name="WaitForMerchant"
 		elif not m.is_empty() and (m.get("canDeliver",false) or m.get("canSettleFailure",false)):
-			pages.b(actions,"拠点で期限切れを確認" if m.get("canSettleFailure",false) else "拠点で受け渡しを確認",ui.navigate.bind("hub"))
+			primary_btn=ui.action_button(pages.b(actions,"拠点で期限切れを確認" if m.get("canSettleFailure",false) else "拠点で受け渡しを確認",ui.navigate.bind("hub")))
 		elif pages.c().location==q.to and q.get("eventId")!="wheel":
 			if not pages.c().get("cargoAboard",false):pages.l(details,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
 			var label="拠点で荷物を届ける" if facility.is_empty() else str(facility[0])+"で納品する"
-			pages.b(actions,label,ui.navigate.bind("hub" if facility.is_empty() else facility[1]))
-		else:pages.b(actions,"届け先を確認",ui.navigate.bind("map"))
-
+			primary_btn=ui.action_button(pages.b(actions,label,ui.navigate.bind("hub" if facility.is_empty() else facility[1])))
+		else:
+			primary_btn=pages.b(actions,"届け先を確認",ui.navigate.bind("map"))
 	else:
-		var accept=ui.action_button(pages.b(actions,"この依頼を引き受ける",open_picker.bind(str(q.id)),not pages.c().get("hasPorter",false)));accept.name="QuestAccept";accept.size_flags_horizontal=Control.SIZE_SHRINK_END
+		primary_btn=ui.action_button(pages.b(actions,"この依頼を引き受ける",open_picker.bind(str(q.id)),not pages.c().get("hasPorter",false)));primary_btn.name="QuestAccept";primary_btn.size_flags_horizontal=Control.SIZE_SHRINK_END
 		if not pages.c().get("hasPorter",false):pages.l(details,"受注には編成中のポーターが必要です。")
-	for button in actions.get_children():Tokens.apply_button_preset(button,"lg_md")
+	if primary_btn!=null:Tokens.apply_button_preset(primary_btn,"lg_md")
+	var return_target="hub" if pages.c().get("phase")=="town" else "map"
+	var back=pages.b(actions,"戻る",ui.navigate.bind(return_target),false,"md");back.name="QuestBoardReturn"
+	var actions_pad=Control.new();actions_pad.custom_minimum_size.x=Tokens.SPACE_MD;actions_pad.mouse_filter=Control.MOUSE_FILTER_IGNORE;actions.add_child(actions_pad)
 
 func field(parent,caption: String,value: String):
 	var row=pages.row(parent);row.name="QuestField_"+caption;var label=pages.l(row,caption);label.name="QuestFieldCaption";label.custom_minimum_size.x=150;label.size_flags_horizontal=Control.SIZE_FILL;label.add_theme_font_size_override("font_size",Tokens.FONT_SM);label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT

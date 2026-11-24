@@ -83,6 +83,8 @@ func set_panel_columns(count: int):
 func _init(frontend):
 	ui=frontend
 	loadout_modal=preload("res://battle_loadout_modal.gd").new(ui)
+func _format_number(value: float) -> String:
+	return String.num(value, 1).trim_suffix(".0")
 func l(parent,text,large:=false):
 	var label=ui.label_(parent,str(text),large)
 	if large:label.add_theme_color_override("font_color",Tokens.INK)
@@ -294,13 +296,17 @@ func build_panels(s,phase,a,deploying):
 		var battle_stats=ui.row(left_info)
 		ElementBadges.add(battle_stats,str(a.get("element","none")),28)
 		battle_stats.tooltip_text=""
-		var speed=l(battle_stats,"SPD %s" % a.get("agi",0))
+		var speed=l(battle_stats,"SPD %s" % _format_number(float(a.get("agi",0))))
 		speed.mouse_filter=Control.MOUSE_FILTER_STOP
 		speed.tooltip_text="行動速度。高いほど次の手番が早く回ります。"
 		if a.has("carriedWeight"):
-			var weight=l(battle_stats,"Wt %.1f / %.1f" % [float(a.get("carriedWeight",0))+float(a.get("fallenWeightShare",0)),float(a.get("weightLimit",0))])
+			var carried := float(a.get("carriedWeight",0))+float(a.get("fallenWeightShare",0))
+			var limit := float(a.get("weightLimit",0))
+			var weight=l(battle_stats,"Wt %s / %s" % [_format_number(carried),_format_number(limit)])
 			weight.mouse_filter=Control.MOUSE_FILTER_STOP
 			weight.tooltip_text="所持重量 / STR上限。上限を超えると行動速度が半減します。"
+			if bool(a.get("overburdened",false)) or (limit>0.0 and carried>limit):
+				weight.add_theme_color_override("font_color",Tokens.DANGER)
 	left_panel.lower_scroll.name="BattleCommandRegion"
 	bottom_commands=left_panel.lower;bottom_commands.name="ActorCommands"
 	if not deploying:render_bottom_commands()
@@ -313,9 +319,8 @@ func build_panels(s,phase,a,deploying):
 
 func open_history():
 	ui.dialog.open("戦闘履歴",func(body,actions):
-		l(body,"ログ（実結果・直近40件）",true)
 		for entry in ui.state().get("log",[]).slice(-40):l(body,ui.display_log(str(entry)))
-		ui.local_button(actions,"閉じる",ui.dialog.close))
+		ui.local_button(actions,"閉じる",ui.dialog.close),Callable(),Rect2(),preload("res://window_grid.gd").compact_modal_grid())
 func update_board():
 	ui.board.reference_mode=range_reference
 	ui.board.update_state(ui.data,reference_preview if range_reference else ui.preview,ui.command,ui.selected if ui.state().get("deploying",false) else "",ui.chosen)
@@ -334,12 +339,11 @@ func queue_entries() -> Array:
 	return entries
 func open_order_details():
 	ui.dialog.open("順番詳細",func(body,actions):
-		l(body,"行動順（現在の予測）",true)
 		for index in range(queue_entries().size()):
 			var entry=queue_entries()[index];var u=entry.unit
 			var line=l(body,"%d. %s / %s%s" % [index+1,str(u.name),"味方" if u.side=="ally" else "敵"," / "+entry.label if not entry.label.is_empty() else ""])
 			line.name="OrderDetail_"+str(index)
-		local(actions,"閉じる",ui.dialog.close))
+		local(actions,"閉じる",ui.dialog.close),Callable(),Rect2(),preload("res://window_grid.gd").compact_modal_grid())
 func render_queue():
 	var line=ui.row(ui.battle_header);line.name="TurnOrderControls";line.size_flags_horizontal=Control.SIZE_EXPAND_FILL;line.size_flags_vertical=Control.SIZE_SHRINK_CENTER;line.add_theme_constant_override("separation",Tokens.SPACE_MD)
 	var queue_scroll=ScrollContainer.new();queue_scroll.name="TurnOrderViewport";queue_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;queue_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
@@ -520,11 +524,12 @@ func render_target():
 		var reference=b(ui.battle_actions,"仮位置の射程参考",open_range_reference)
 		Tokens.apply_button_size(reference,Tokens.BUTTON_MD,false);ui.memory.key(reference,"range_reference")
 	var controls=ui.row(ui.battle_actions)
+	controls.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	if stage in ["B2","B4"] or ui.can_commit():
-		var commit=ui.action_button(b(controls,"実行",ui.commit,not ui.can_commit()))
-		Tokens.apply_button_size(commit,Tokens.BUTTON_MD);ui.memory.key(commit,"battle_commit")
+		var commit=ui.action_button(b(controls,"実行",ui.commit,not ui.can_commit()),"sm")
+		commit.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ui.memory.key(commit,"battle_commit")
 	var cancel=b(controls,"キャンセル",ui.cancel)
-	cancel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;Tokens.apply_button_size(cancel,Tokens.BUTTON_MD);ui.memory.key(cancel,"battle_cancel")
+	cancel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;Tokens.apply_button_preset(cancel,"sm");ui.memory.key(cancel,"battle_cancel")
 func render_move(main):
 	if not ui.preview_ready or ui.pending==null:return
 	var gate_effect := sluice_move_effect(ui.state(), acting(), ui.preview)
@@ -726,8 +731,8 @@ func render_deployment():
 	if not (job is Dictionary and job.get("id")=="sluice-bell"):
 		var retreat_btn=b(deployment_actions,"撤退",func():ui.confirm("戦闘から撤退しますか？",ui.act.bind("retreat",[])))
 		retreat_btn.name="DeploymentRetreat"
-		Tokens.apply_button_preset(retreat_btn,"sm_lg")
-	var begin_btn=ui.action_button(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true)),"lg")
+		Tokens.apply_button_preset(retreat_btn,"md_lg")
+	var begin_btn=ui.action_button(b(deployment_actions,"戦闘開始",ui.act.bind("begin",[]),not ui.campaign().get("deploymentRoster",{}).get("canBegin",true)),"md_lg")
 	begin_btn.name="DeploymentBegin"
 func deployment_changed() -> bool:
 	for initial in ui.state().get("deploymentInitial",[]):
@@ -763,7 +768,6 @@ func render_person(hover_only := false):
 	if not inspection_pinned and not ui.state().get("deploying",false) and ui.board.has_focus():
 		focused=ui.board.unit_at(ui.board.keyboard_cell)
 	if hover_only and inspected_uid.is_empty() and focused.is_empty() and ui.pending==null:
-		if ui.command!="action_move":l(person_box,"人物にカーソルを合わせると情報を表示します。")
 		return
 	var u=focused if not focused.is_empty() else unit(inspected_uid)
 	var reference=not u.is_empty()
@@ -776,7 +780,6 @@ func render_person(hover_only := false):
 	if u.is_empty() and selected_cell>=0:u=ui.board.unit_at(selected_cell)
 
 	if u.is_empty():
-		if ui.command!="action_move":l(person_box,"人物にカーソルを合わせると情報を表示します。")
 		return
 	person_box.set_meta("inspected_unit",u.id)
 	l(person_box,"参照" if reference else "能力").name="InspectedPersonHeading"
@@ -840,9 +843,11 @@ func render_person_content(parent,u: Dictionary,expanded:=false):
 			value.autowrap_mode=TextServer.AUTOWRAP_OFF
 	if u.has("carriedWeight"):
 		var carried=float(u.get("carriedWeight",0))+float(u.get("fallenWeightShare",0));var limit=float(u.get("weightLimit",0))
-		l(parent,"Wt %.1f / STR上限 %.1f%s" % [carried,limit,"（超過: SPD 50%）" if u.get("overburdened",false) else ""])
+		var weight_line=l(parent,"Wt %s / STR上限 %s%s" % [_format_number(carried),_format_number(limit),"（超過: SPD 50%）" if u.get("overburdened",false) else ""])
+		if bool(u.get("overburdened",false)) or (limit>0.0 and carried>limit):
+			weight_line.add_theme_color_override("font_color",Tokens.DANGER)
 		if float(u.get("fallenWeightShare",0))>0:
-			l(parent,"うち戦闘不能者の分担 %.1f Wt" % float(u.fallenWeightShare))
+			l(parent,"うち戦闘不能者の分担 %s Wt" % _format_number(float(u.fallenWeightShare)))
 	for pair in [["str","STR","strength"],["int","INT","intelligence"],["speed","SPD（行動速度）","speed"]]:
 		var value=u.get("agi") if pair[0]=="speed" else stats.get(pair[0],u.get(pair[0]))
 		var part=breakdown.get(pair[0],{});var suffix="補正：未取得"

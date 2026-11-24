@@ -87,11 +87,23 @@ class HeadingBar extends Control:
 static func frame_rect(view: Vector2) -> Rect2:
 	return Grid.cell_rect(view,1,1,8,8)
 
+static func grid_frame_rect(view: Vector2,box: Rect2i) -> Rect2:
+	return Grid.cell_rect(view,box.position.x,box.position.y,box.size.x,box.size.y)
+
 static func modal_frame_rect(view: Vector2) -> Rect2:
 	return Grid.cell_rect(view,2,1,6,8)
 
-static func confirm_frame_rect(view: Vector2) -> Rect2:
-	return Grid.cell_rect(view,3,2,4,6)
+static func battle_loadout_grid(with_detail: bool=true) -> Rect2i:
+	return Rect2i(2,1,4,8) if with_detail else Rect2i(2,1,2,8)
+
+static func compact_modal_grid() -> Rect2i:
+	return Rect2i(3,2,4,6)
+
+static func confirm_grid(long_content: bool=false) -> Rect2i:
+	return Rect2i(3,2,4,5) if long_content else Rect2i(3,3,4,3)
+
+static func confirm_frame_rect(view: Vector2,long_content: bool=false) -> Rect2:
+	return grid_frame_rect(view,confirm_grid(long_content))
 
 static func modal_local_rect(view: Vector2,x: int,y: int,width: int,height: int,frame: Rect2=Rect2()) -> Rect2:
 	var origin=frame.position if frame.has_area() else modal_frame_rect(view).position

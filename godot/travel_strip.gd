@@ -26,8 +26,16 @@ func _draw():
 	draw_dashed_line(from,to,Tokens.MUTED_INK,Tokens.BORDER_WIDTH_EMPHASIS,10)
 	box(from,origin,"出発地・帰着先" if returning else "出発地",Tokens.ACCENT)
 	box(to,destination,"当初の目的地" if returning else "目的地",Tokens.SELECTED)
+	var route_start=Vector2(from.x+90.0,from.y);var route_end=Vector2(to.x-90.0,to.y)
 	var ratio=.5 if stage==1 else .92 if stage==2 else .08
-	var at=from.lerp(to,ratio)
+	var label=("← 帰路" if returning else "野営地") if stage==1 else "到着" if stage==2 else "現在地"
+	var font=get_theme_default_font()
+	var label_w=font.get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,Tokens.FONT_SM).x
+	var margin=maxf(24.0,label_w*0.5+16.0)
+	var at=route_start.lerp(route_end,ratio)
+	if route_end.x-route_start.x>margin*2.0:
+		at.x=clampf(at.x,route_start.x+margin,route_end.x-margin)
+	else:
+		at.x=(route_start.x+route_end.x)*0.5
 	draw_circle(at,7,Tokens.WARN)
-	var label=("← 帰路" if returning else "野営地") if stage==1 else "到着" if stage==2 else "出発"
-	var font=get_theme_default_font();draw_string(font,at+Vector2(-font.get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,Tokens.FONT_SM).x/2,-22),label,HORIZONTAL_ALIGNMENT_LEFT,-1,Tokens.FONT_SM,Tokens.ACCENT)
+	draw_string(font,at+Vector2(-label_w/2.0,-22),label,HORIZONTAL_ALIGNMENT_LEFT,-1,Tokens.FONT_SM,Tokens.ACCENT)

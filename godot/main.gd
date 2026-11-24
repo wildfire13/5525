@@ -139,7 +139,7 @@ func _ready():
 	game_menu=preload("res://game_menu.gd").new(self)
 	game_menu.build(menu_button)
 	content=VBoxContainer.new();content.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.size_flags_vertical=Control.SIZE_EXPAND_FILL;base.add_child(content)
-	footer=Label.new();footer.name="StatusFooter";footer.custom_minimum_size.y=24;footer.clip_text=true;footer.max_lines_visible=1;footer.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;base.add_child(footer)
+	footer=Label.new();footer.name="StatusFooter";footer.custom_minimum_size.y=24;footer.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;footer.clip_text=true;footer.max_lines_visible=1;footer.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;base.add_child(footer)
 	footer.focus_mode=Control.FOCUS_ALL;footer.mouse_filter=Control.MOUSE_FILTER_STOP;footer.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND;memory.key(footer,"status_footer")
 	footer.gui_input.connect(func(event):
 		if (event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT) or (event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ENTER,KEY_SPACE]):
@@ -188,11 +188,18 @@ func button(parent: Node,text: String,fn: Callable,disabled:=false,preset: Strin
 	b.focus_entered.connect(func():
 		# Popup-local controls must not replace the underlying screen explanation.
 		if b.get_window()!=get_window() or b.get_meta("no_status_hint",false):return
-		focus_hint=b.tooltip_text
+		var hint: String = str(b.tooltip_text)
+		if not hint.is_empty() and _is_plain_card_name_tooltip(b,hint):hint=""
+		focus_hint=hint
 		if is_instance_valid(footer) and notice.is_empty():set_status(focus_hint))
 	b.focus_exited.connect(func():
 		if b.get_window()==get_window():focus_hint="")
 	return b
+func _is_plain_card_name_tooltip(control: Button,hint: String) -> bool:
+	if not control.text.is_empty():return false
+	for child in control.find_children("*","Label",true,false):
+		if child is Label and child.text.strip_edges()==hint.strip_edges():return true
+	return false
 func set_status(message: String):
 	# Newlines and wrapping must never enlarge the fixed status row.
 	# Reserve the populated line even when empty, so the party strip stays put.
@@ -201,6 +208,10 @@ func set_status(message: String):
 	footer.tooltip_text=message;footer.set_meta("full_message",message)
 	footer.focus_mode=Control.FOCUS_NONE if message.is_empty() else Control.FOCUS_ALL
 	footer.mouse_filter=Control.MOUSE_FILTER_IGNORE if message.is_empty() else Control.MOUSE_FILTER_STOP
+	if message.is_empty():
+		footer.add_theme_stylebox_override("normal",StyleBoxEmpty.new())
+	else:
+		footer.add_theme_stylebox_override("normal",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_MD))
 func show_help():
 	dialog.open("操作説明",func(body,actions):
 		for section in [
@@ -220,7 +231,7 @@ func show_status_details():
 		local_button(actions,"閉じる",dialog.close),func():
 		if not closing and pages.epoch==epoch and engine.connection_generation==generation and notice==saved_notice:
 			focus_hint=saved_hint;status_override=message;set_status(message)
-			dialog.origin="status_footer" if footer.is_visible_in_tree() and footer.focus_mode!=Control.FOCUS_NONE else "game_menu")
+			dialog.origin="status_footer" if footer.is_visible_in_tree() and footer.focus_mode!=Control.FOCUS_NONE else "game_menu",Rect2(),preload("res://window_grid.gd").compact_modal_grid())
 
 # Local interactions can refresh one panel without detaching the surrounding page.
 func refresh_panel(draw: Callable):
@@ -300,12 +311,12 @@ func confirm(text: String,fn: Callable,build: Callable=Callable()):
 	# Keep dialog_text for the confirmation contract; a scrollable copy prevents
 	# long paths or explanations from forcing buttons outside a short window.
 	d.get_label().hide()
-	var contents=d.content()
+	var confirm_box=preload("res://window_grid.gd").confirm_grid(build.is_valid() or text.length()>120 or text.count("\n")>=2)
+	var contents=d.content("",confirm_box)
 	if build.is_valid():build.call(contents,d)
 	d.get_ok_button().theme_type_variation=&"ActionButton"
 	for button_ in [d.get_ok_button(),d.get_cancel_button()]:
-		button_.custom_minimum_size.x=172 if build.is_valid() else 96 if size.x>=1800 else 80
-		Tokens.apply_button_size(button_,Tokens.BUTTON_MD)
+		Tokens.apply_button_preset(button_,"md")
 	if is_instance_valid(dialog.window) and dialog.window.visible:dialog.window.add_child(d)
 	else:add_child(d)
 	d.confirmed.connect(func():
@@ -866,12 +877,31 @@ func load_game(path: String):
 	await update({"op":"campaign_load","data":envelope},{"images":images,"music":music,"source_path":path})
 func show_action_log():
 	dialog.open("行動ログ",func(body,actions):
-		label_(body,"ゲーム内経過時間:%d時間" % campaign().get("hours",0),true).name="ActionLogHours"
-		var separator=HSeparator.new();separator.name="ActionLogSeparator";body.add_child(separator)
+		var hours := label_(body,"ゲーム内経過時間:%d時間" % campaign().get("hours",0),false)
+		hours.name="ActionLogHours"
+		hours.add_theme_font_size_override("font_size",Tokens.FONT_SM)
+		hours.add_theme_color_override("font_color",Tokens.MUTED_INK)
+		hours.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+		var hours_style := StyleBoxFlat.new()
+		hours_style.bg_color=Color.TRANSPARENT
+		hours_style.border_color=Tokens.BORDER
+		hours_style.border_width_bottom=Tokens.BORDER_WIDTH
+		hours_style.content_margin_left=Tokens.SPACE_LG
+		hours_style.content_margin_right=Tokens.SPACE_LG
+		hours_style.content_margin_top=Tokens.SPACE_SM
+		hours_style.content_margin_bottom=Tokens.SPACE_SM
+		hours.add_theme_stylebox_override("normal",hours_style)
+		var separator=HSeparator.new();separator.name="ActionLogSeparator";separator.hide();body.add_child(separator)
 		var history=label_(body,"\n".join(campaign().get("history",[])));history.name="ActionLogHistory"
 		if history.text.is_empty():history.text="記録はまだありません。"
+		var history_style := StyleBoxEmpty.new()
+		history_style.content_margin_left=Tokens.SPACE_LG
+		history_style.content_margin_right=Tokens.SPACE_LG
+		history_style.content_margin_top=Tokens.SPACE_MD
+		history_style.content_margin_bottom=Tokens.SPACE_MD
+		history.add_theme_stylebox_override("normal",history_style)
 		local_button(actions,"ログ保存",save_log).name="ActionLogSave"
-		local_button(actions,"閉じる",dialog.close))
+		local_button(actions,"閉じる",dialog.close),Callable(),Rect2(),preload("res://window_grid.gd").compact_modal_grid())
 func save_log():
 	var r=await update({"op":"export"})
 	if r.get("ok",false):
@@ -906,7 +936,7 @@ func portrait_dialog():
 			button(r,"位置・ズーム",func():d.queue_free();pages.party_view.workspace.open_portrait(u),not active_member(str(u.id)))
 		button(r,"元に戻す",func():reset_portrait(str(u.id));d.queue_free(),not active_member(str(u.id)) or not portraits.metadata.get("characters",{}).has(u.id))
 	if reserves_visible():label_(body,"控えの画像を変更するには、先に編成へ加えてください。")
-	local_button(actions,"閉じる",d.queue_free,"sm")
+	local_button(actions,"閉じる",d.queue_free,"md")
 	d.close_requested.connect(d.queue_free);preferences.place_detail_frame(d);d.popup()
 func import_portrait(path: String,uid: String):
 	if not active_member(uid):return

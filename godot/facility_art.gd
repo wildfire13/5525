@@ -1,7 +1,7 @@
 extends RefCounted
 ## Visual-only visit state. Never uses the campaign/battle random generator.
 const ROOT="res://assets/facilities/"
-const STYLES=["papercut","gouache","watercolor_pen"]
+const STYLES=["interior","papercut","gouache","watercolor_pen"]
 var catalog: Dictionary={}
 var visit_key := ""
 var artwork: Dictionary={}

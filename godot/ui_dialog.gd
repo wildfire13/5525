@@ -2,6 +2,8 @@ extends RefCounted
 ## One exclusive session-only detail window, with context-checked restoration.
 var ui
 var window: Window
+var layout
+var grid_box := Rect2i(2,1,6,8)
 var body: VBoxContainer
 var actions: HBoxContainer
 var restore_callback: Callable
@@ -15,18 +17,26 @@ var escape_frame := -1
 const Layout=preload("res://window_grid.gd")
 const Tokens=preload("res://ui_tokens.gd")
 func _init(frontend):ui=frontend
-func open(title: String, builder: Callable, closed: Callable=Callable(),_initial_rect:=Rect2()) -> Window:
+func set_grid_box(new_box: Rect2i):
+	grid_box=new_box
+	if is_instance_valid(layout):
+		layout.grid_box=new_box
+		layout.queue_sort()
+	if is_instance_valid(window):
+		ui.preferences.place_detail_frame(window,Layout.grid_frame_rect(Vector2(ui.get_tree().root.size),new_box))
+func open(title: String, builder: Callable, closed: Callable=Callable(),_initial_rect:=Rect2(),box_rect: Rect2i=Rect2i(2,1,6,8)) -> Window:
 	ui.pages.shop_view.cancel_pending()
 	close(false)
 	close_guard=Callable()
 	escape_handler=Callable()
+	grid_box=box_rect if box_rect.has_area() else Rect2i(2,1,6,8)
 	ui.memory.capture();checkpoint=ui.memory.scrolls.duplicate(true);origin=ui.memory.focus_key
 	epoch=ui.pages.epoch;connection=ui.engine.connection_generation;restore_callback=closed
 	window=Window.new();window.theme=ui.theme;window.name="StateDetails";window.title=title;window.exclusive=true;window.transient=true
 	ui.add_child(window)
 	var margin=preload("res://modal_input.gd").new();margin.owner_ref=weakref(self);window.add_child(margin);margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,0)
-	var box=Layout.new();margin.add_child(box)
+	var box=Layout.new();box.grid_box=grid_box;layout=box;margin.add_child(box)
 	var heading=Layout.title_label(title);heading.name="ModalHeading";box.add_child(heading)
 	body=ui.scroller(box);var detail_scroll: ScrollContainer=body.get_parent();detail_scroll.name="ModalDetailScroll"
 	var scroll_pad=StyleBoxEmpty.new()
@@ -49,15 +59,13 @@ func open(title: String, builder: Callable, closed: Callable=Callable(),_initial
 	if actions.get_child_count()==0:ui.local_button(actions,"閉じる",close)
 	for child in actions.get_children():
 		if child is Button:
-			var min_w := int(child.custom_minimum_size.x)
-			if min_w<=0:
-				min_w=Tokens.BUTTON_W_SM if child.text in ["閉じる","戻る","取消","取り消す","キャンセル"] else Tokens.BUTTON_W_MD
+			var min_w := maxi(int(child.custom_minimum_size.x),Tokens.BUTTON_W_MD)
 			Tokens.apply_button_size(child,Tokens.BUTTON_MD,true,min_w)
 	window.close_requested.connect(close)
 	window.window_input.connect(func(event):
 		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
 			window.set_input_as_handled();ui.get_viewport().set_input_as_handled();ui.modal_escape_frame=Engine.get_process_frames();escape())
-	ui.preferences.place_detail_frame(window);window.popup()
+	ui.preferences.place_detail_frame(window,Layout.grid_frame_rect(Vector2(ui.get_tree().root.size),grid_box));window.popup()
 	if actions.get_child_count()>0:actions.get_child(0).grab_focus()
 	return window
 func escape():

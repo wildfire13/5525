@@ -8,13 +8,17 @@ func run():
 	var art=game.pages.facility_art;var seed=await saved()
 	var production=art.catalog.duplicate(true)
 	check(production.size()==7,"production manifest contains all seven facilities")
+	var interior_facilities=["weapon","armor","item","accessory","guild"]
 	for facility in ["weapon","armor","item","accessory","guild","inn","departure_map"]:
 		var variants=production.get(facility,[])
-		check(variants.size()==3,"three original styles registered for "+facility)
+		var expected_count=1 if interior_facilities.has(facility) else 3
+		check(variants.size()==expected_count,"expected original styles registered for "+facility)
 		for variant in variants:
-			var image=Image.load_from_file(variant.path)
-			check(variant.path=="res://assets/facilities/"+facility+"_"+variant.style+".png" and art.STYLES.has(variant.style),"canonical original filename "+variant.path)
-			check(image!=null and image.get_size()==Vector2i(1671 if facility=="armor" else 1672,941),"original PNG dimensions "+variant.path)
+			var image=Image.load_from_file(ProjectSettings.globalize_path(variant.path))
+			var expected_path="res://assets/facilities/"+facility+".png" if variant.style=="interior" else "res://assets/facilities/"+facility+"_"+variant.style+".png"
+			var expected_dims=Vector2i(1920,1080) if variant.style=="interior" else Vector2i(1672,941)
+			check(variant.path==expected_path and art.STYLES.has(variant.style),"canonical original filename "+variant.path)
+			check(image!=null and image.get_size()==expected_dims,"original PNG dimensions "+variant.path)
 	var entries=production.weapon
 	var cases=[["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"],["astaris","map","departure_map"]]
 	for dims in [Vector2i(1920,1080)]:
@@ -52,12 +56,12 @@ func run():
 				map.buttons[destination].pressed.emit();await settle()
 				check(node("TownMap").selected==destination and art.rng.state==state,"destination selection works without reroll")
 			if spec[1]=="party":
-				for tab in [1,2,0]:
-					await click("GuildTab_"+str(tab))
-					check(game.pages.guild_view.detail_tab==tab and art.rng.state==state and art.artwork==artwork,"guild comparison tab keeps visit artwork "+str(tab))
+				for pair in [["equipment",1],["skills",2],["inventory",3],["ability",0]]:
+					await click("GuildTab_"+str(pair[0]))
+					check(game.pages.guild_view.detail_tab==pair[1] and art.rng.state==state and art.artwork==artwork,"guild comparison tab keeps visit artwork "+str(pair[0]))
 			game.navigate("hub");await settle();check(art.visit_key.is_empty() and art.texture==null,"leaving facility clears visit")
 			var town_image=game.pages.hub_view.artwork.duplicate()
-			game.navigate(spec[1]);await settle();check(art.rng.state!=state,"returning facility makes new random draw (same style allowed)")
+			game.navigate(spec[1]);await settle();check(art.rng.state!=state if production[spec[2]].size()>1 else art.artwork==artwork,"returning facility makes new random draw (same style allowed)")
 			game.navigate("hub");await settle();check(game.pages.hub_view.artwork==town_image,"facility navigation preserves existing town still")
 			check(await saved()==before,"visual visits preserve exact campaign and battle RNG state")
 	art.catalog={"weapon":[{"style":"papercut","path":"res://assets/facilities/not-delivered.png"},{"style":"unknown","path":"res://assets/towns/west_b.png"}]}

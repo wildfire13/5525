@@ -105,9 +105,14 @@ func place_detail_frame(window: Window,frame: Rect2=Rect2()):
 	window.set_meta("layout_applied",rect)
 	window.set_meta("layout_area",Grid.cell_rect(view,0,1,10,8).size)
 
-func place_confirm_frame(window: Window):
+func place_confirm_frame(window: Window,box: Rect2i=Rect2i()):
 	var view=Vector2(window.get_tree().root.size)
-	place_detail_frame(window,WindowGrid.confirm_frame_rect(view))
+	if box.has_area():
+		place_detail_frame(window,WindowGrid.grid_frame_rect(view,box))
+	elif window.get("grid_box") is Rect2i and window.grid_box.has_area():
+		place_detail_frame(window,WindowGrid.grid_frame_rect(view,window.grid_box))
+	else:
+		place_detail_frame(window,WindowGrid.confirm_frame_rect(view))
 
 func window_bounds(window: Window,available: Vector2) -> Rect2:
 	# Godot draws a decorated embedded title bar above its client rectangle.

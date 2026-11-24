@@ -4,6 +4,7 @@ signal deploy_drag(uid: String, pos: int)
 signal deployment_assigned(uid: String, pos: Variant)
 const DeploymentDrag=preload("res://deployment_drag.gd")
 const ScreenGrid=preload("res://screen_grid.gd")
+const Tokens=preload("res://ui_tokens.gd")
 var deployment_ui
 var battle_play_width := 0.0
 var deployment_bottom_limit := 0.0
@@ -532,8 +533,10 @@ func draw_sluice(state: Dictionary) -> void:
 					tag = candidate
 					break
 			overlay.draw_line(center + Vector2(0, 10), tag.get_center(), ink, 2, true)
-		overlay.draw_rect(tag, Color("22332ef0"))
-		overlay.draw_string(font, tag.position + Vector2(5, 17), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, ink)
+		overlay.draw_rect(tag, Tokens.SURFACE)
+		overlay.draw_rect(tag, Tokens.BORDER_ACCENT, false, 1.0)
+		var tag_ink := Tokens.INK if key == "lever" else (Tokens.POSITIVE if opened else Tokens.DANGER)
+		overlay.draw_string(font, tag.position + Vector2(5, 17), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, tag_ink)
 	if state.get("result") != null:
 		return
 	var tip := "守護者を巻上機に移動させよう"
@@ -544,8 +547,10 @@ func draw_sluice(state: Dictionary) -> void:
 	var width := font.get_string_size(tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 16
 	var safe_top := ScreenGrid.cell_rect(size, 2, 1, 6, 1).position
 	var tip_pos := Vector2(safe_top.x + 8.0, safe_top.y + 8.0)
-	overlay.draw_rect(Rect2(tip_pos, Vector2(width, 26)), Color("22332ef0"))
-	overlay.draw_string(font, tip_pos + Vector2(8, 19), tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
+	var tip_rect := Rect2(tip_pos, Vector2(width, 26))
+	overlay.draw_rect(tip_rect, Tokens.SURFACE)
+	overlay.draw_rect(tip_rect, Tokens.BORDER_ACCENT, false, 1.0)
+	overlay.draw_string(font, tip_pos + Vector2(8, 19), tip, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Tokens.INK)
 
 func draw_unit_labels(state: Dictionary,show_hover_caption: bool) -> Rect2:
 	var prediction:=Rect2()
@@ -571,13 +576,14 @@ func draw_unit_labels(state: Dictionary,show_hover_caption: bool) -> Rect2:
 		if show_hover_caption and u.id==hover_uid and not hover_caption.is_empty():
 			prediction=draw_prediction_caption(int(u.pos),hover_caption,color)
 	return prediction
-func draw_prediction_caption(cell: int,caption: String,color: Color,max_width: float=330) -> Rect2:
+func draw_prediction_caption(cell: int,caption: String,_color: Color,max_width: float=330) -> Rect2:
+	var font := get_theme_default_font()
 	var lines=caption.split("\n");var width_=minf(max_width,size.x-12);var height_=lines.size()*24+12
 	var origin=project_cell(cell)+Vector2(18,-height_-18)
 	origin.x=clampf(origin.x,6,maxf(6,size.x-width_-6));origin.y=clampf(origin.y,6,maxf(6,size.y-height_-6))
 	var rect=Rect2(origin,Vector2(width_,height_))
-	overlay.draw_rect(rect,Color(.04,.1,.14,.95));overlay.draw_rect(rect,color,false,1.0)
-	for i in range(lines.size()):overlay.draw_string(ThemeDB.fallback_font,origin+Vector2(6,23+i*24),lines[i],HORIZONTAL_ALIGNMENT_LEFT,width_-12,18,Color.WHITE)
+	overlay.draw_rect(rect,Tokens.SURFACE);overlay.draw_rect(rect,Tokens.BORDER_ACCENT,false,1.0)
+	for i in range(lines.size()):overlay.draw_string(font,origin+Vector2(6,23+i*24),lines[i],HORIZONTAL_ALIGNMENT_LEFT,width_-12,18,Tokens.INK)
 	return rect
 func reset_animation():
 	if is_instance_valid(skill_effects):skill_effects.clear()

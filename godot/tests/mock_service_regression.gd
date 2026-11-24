@@ -45,8 +45,8 @@ func run():
  game.pages.facility_entry.back();game.pages.facility_entry.choose("inn");await settle()
  check(node("InnKeeperSpeech").words.text==inn.FULL_GREETING,"already healthy visit displays healthy greeting")
  var rows=[]
- for member in game.campaign().roster:
-  if game.campaign().selected.has(member.id):rows.append({"id":str(member.id),"name":member.name,"member":member,"xp_before":0,"xp_after":150,"xp_gain":150,"level_before":1,"level_after":2,"stat_gain":2,"skill_gain":0})
+ for member in game.campaign().roster.slice(0,8):
+  rows.append({"id":str(member.id),"name":member.name,"member":member,"xp_before":0,"xp_after":150,"xp_gain":150,"level_before":1,"level_after":2,"stat_gain":2,"skill_gain":0})
  var result=game.results_view
  result.enqueue({"kind":"battle","title":"BATTLE VICTORY","subtitle":"戦闘勝利","gold_gain":30,"gold_after":1000,"members":rows,"restored":false,"acknowledge":false,"location":"astaris"})
  result.present_pending();await settle()

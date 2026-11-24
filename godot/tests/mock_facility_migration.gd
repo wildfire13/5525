@@ -29,8 +29,8 @@ func run():
  var reserve_list=node("GuildReserveScroll")
  guild.choose(str(candidate.id));await settle()
  check(node("GuildReserveScroll")==reserve_list,"selecting a reserve keeps its list")
- node("GuildTab_1").pressed.emit();await settle()
- check(node("GuildReserveScroll")==reserve_list and node("GuildTab_1").get_meta("selected"),"equipment comparison keeps list and updates tab")
+ node("GuildTab_equipment").pressed.emit();await settle()
+ check(node("GuildReserveScroll")==reserve_list and node("GuildTab_equipment").get_meta("selected"),"equipment comparison keeps list and updates tab")
  check(node("GuildSwap")!=null and not node("GuildSwap").disabled,"selecting reserve enables explicit swap")
  await capture("guild-comparison")
  var old_ids=game.campaign().selected.duplicate()
@@ -87,16 +87,12 @@ func run():
  var rows=[]
  for id in game.campaign().selected:
   var member=game.campaign().roster.filter(func(value):return value.id==id)[0]
-  rows.append({"id":str(id),"name":member.name,"member":member,"xp_before":0,"xp_after":150,"xp_gain":150,"level_before":1,"level_after":2 if rows.size()<2 else 1,"stat_gain":2,"skill_gain":0})
+  rows.append({"id":str(id),"name":member.name,"member":member,"xp_before":0,"xp_after":150,"xp_gain":150,"level_before":1,"level_after":2 if rows.size()<2 else 1,"stat_gain":2 if rows.size()<2 else 0,"skill_gain":0})
  var result=game.results_view
  result.enqueue({"kind":"quest","title":"QUEST COMPLETE","subtitle":"配達達成","gold_gain":0,"gold_after":180,"rp_gain":100,"members":rows,"quest":"試験配達","hours":6,"restored":false,"acknowledge":false,"location":"astaris"})
  result.present_pending();await settle()
- var strip=node("ResultLevelUpStrip")
- var portrait_names=[]
- if strip!=null:
-  for column in strip.get_children():
-   if column is VBoxContainer and column.is_visible_in_tree():portrait_names.append(str(column.name))
- check(portrait_names==["ResultLevelUp_"+rows[0].id,"ResultLevelUp_"+rows[1].id],"only leveled characters appear in portrait strip")
+ var point_names=game.find_children("ResultLevelUpPoints_*","Label",true,false).filter(func(l):return l.is_visible_in_tree()).map(func(l):return str(l.name))
+ check(node("ResultLevelUpStrip")==null and point_names==["ResultLevelUpPoints_"+rows[0].id,"ResultLevelUpPoints_"+rows[1].id],"only leveled characters show level-up points without duplicate strip")
  check(node("ResultContinue").text=="OK" and node("ResultRankPoints")!=null,"result shows RP and OK")
  await capture("result")
  result.advance();await settle()

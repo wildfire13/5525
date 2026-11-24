@@ -269,7 +269,8 @@
    "nodes": [
     "FacilityChoice_guild"
    ],
-   "meaning": "ギルドで編成へ進む入口"
+   "meaning": "ギルドで編成へ進む入口",
+   "grid_cover": true
   },
   {
    "screens": [
@@ -279,7 +280,8 @@
    "nodes": [
     "FacilityChoice_warehouse"
    ],
-   "meaning": "ギルドで倉庫へ進む入口"
+   "meaning": "ギルドで倉庫へ進む入口",
+   "grid_cover": true
   },
   {
    "screens": [
@@ -446,7 +448,8 @@
    "nodes": [
     "ComparisonCurrentColumn"
    ],
-   "meaning": "装備比較の基準"
+   "meaning": "装備比較の基準",
+   "grid_cover": true
   },
   {
    "screens": [
@@ -457,7 +460,8 @@
    "nodes": [
     "ComparisonCandidateColumn"
    ],
-   "meaning": "変更後の品・性能・注記"
+   "meaning": "変更後の品・性能・注記",
+   "grid_cover": true
   },
   {
    "screens": [
@@ -537,7 +541,8 @@
    "nodes": [
     "InnPartyScroll"
    ],
-   "meaning": "各人のHP・MPと回復"
+   "meaning": "各人のHP・MPと回復",
+   "grid_cover": true
   },
   {
    "screens": [
@@ -868,28 +873,14 @@
   },
   {
    "screens": [
-    "entry",
-    "victory",
-    "complete",
-    "inn"
-   ],
-   "label": "ページ見出し",
-   "nodes": [
-    "FacilityEntryTitle",
-    "ResultHeading"
-   ],
-   "meaning": "受付・リザルトの表題"
-  },
-  {
-   "screens": [
     "victory",
     "complete"
    ],
-   "label": "結果人物",
+   "label": "ページ見出し",
    "nodes": [
-    "ResultLevelUpScroll"
+    "ResultHeading"
    ],
-   "meaning": "レベルアップした人物の立ち絵と獲得ポイント"
+   "meaning": "リザルトの表題"
   },
   {
    "screens": [
@@ -1150,7 +1141,7 @@
    "nodes": [
     "GuildInfoTabs"
    ],
-   "meaning": "能力・スキルなどの人物情報切替"
+   "meaning": "同行者の装備・インベントリ・能力・スキル切替"
   },
   {
    "screens": [

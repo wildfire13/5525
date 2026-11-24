@@ -48,7 +48,7 @@ func render(parent):
 			button.set_meta("hub_x_anchor",point.x);button.resized.connect(_fit_before_meeting.bind(panel))
 	if has_meeting:
 		var fit=_fit_before_meeting.bind(panel);panel.resized.connect(fit);fit.call_deferred()
-	var map=ui.button(panel,"出発の準備\n街道口",ui.navigate.bind("map"));map.name="HubMap";map.anchor_left=.12;map.anchor_top=.82;Tokens.apply_button_preset(map,"md_lg",false);ui.memory.key(map,"nav_map")
+	var map=ui.button(panel,"出発の準備・街道口",ui.navigate.bind("map"));map.name="HubMap";map.anchor_left=.12;map.anchor_top=.82;map.anchor_right=.12;map.anchor_bottom=.82;Tokens.apply_button_preset(map,"lg",false);ui.memory.key(map,"nav_map")
 	if has_meeting:
 		var box=PanelContainer.new();box.name="HubMeetingPanel";box.add_theme_stylebox_override("panel",ui.mock_shell.surface_style());panel.add_child(box)
 		var place_meeting=func():

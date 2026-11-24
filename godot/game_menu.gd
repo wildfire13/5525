@@ -49,15 +49,41 @@ func build(menu_button: Button) -> void:
 	var menu_grid := WindowGrid.new()
 	panel.add_child(menu_grid)
 
+	var top_section := VBoxContainer.new()
+	top_section.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	top_section.add_theme_constant_override("separation", Tokens.SPACE_NONE)
+	menu_grid.add_child(top_section)
+
+	var heading := WindowGrid.title_label("メニュー")
+	heading.name = "CommonMenuHeading"
+	heading.custom_minimum_size.y = Tokens.WINDOW_BAR_HEIGHT
+	heading.bar.mouse_default_cursor_shape = Control.CURSOR_ARROW
+	var close_button := Button.new()
+	close_button.name = "CommonMenuClose"
+	close_button.text = "×"
+	close_button.tooltip_text = "閉じる"
+	close_button.focus_mode = Control.FOCUS_NONE
+	close_button.add_theme_font_size_override("font_size", Tokens.FONT_SM)
+	close_button.pressed.connect(panel.hide)
+	heading.attach_close(close_button)
+	top_section.add_child(heading)
+
 	var menu_scroll := ScrollContainer.new()
 	menu_scroll.name = "CommonMenuScroll"
 	menu_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	menu_scroll.follow_focus = true
 	menu_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	menu_grid.add_child(menu_scroll)
+	var scroll_pad := StyleBoxEmpty.new()
+	scroll_pad.content_margin_left = Tokens.SPACE_MD
+	scroll_pad.content_margin_right = Tokens.SPACE_MD
+	scroll_pad.content_margin_top = Tokens.SPACE_MD
+	scroll_pad.content_margin_bottom = Tokens.SPACE_MD
+	menu_scroll.add_theme_stylebox_override("panel", scroll_pad)
+	top_section.add_child(menu_scroll)
 
 	var menu_body := VBoxContainer.new()
 	menu_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	menu_body.add_theme_constant_override("separation", Tokens.SPACE_XS)
 	menu_scroll.add_child(menu_body)
 
 	_add_menu_actions(menu_body)
@@ -143,22 +169,35 @@ func _add_menu_actions(menu_body: VBoxContainer) -> void:
 
 
 func _add_audio_settings(menu_grid: Container) -> void:
-	var audio_settings := VBoxContainer.new()
+	var audio_settings := MarginContainer.new()
 	audio_settings.name = "AudioSettings"
+	audio_settings.add_theme_constant_override("margin_left", Tokens.SPACE_MD)
+	audio_settings.add_theme_constant_override("margin_right", Tokens.SPACE_MD)
+	audio_settings.add_theme_constant_override("margin_top", Tokens.SPACE_SM)
+	audio_settings.add_theme_constant_override("margin_bottom", Tokens.SPACE_MD)
 	menu_grid.add_child(audio_settings)
+
+	var audio_list := VBoxContainer.new()
+	audio_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	audio_list.add_theme_constant_override("separation", Tokens.SPACE_XS)
+	audio_settings.add_child(audio_list)
+	audio_list.add_child(HSeparator.new())
 
 	for pair in [["bgm", "BGM"], ["voice", "ボイス"], ["se", "SE"]]:
 		var kind := str(pair[0])
 		var caption := str(pair[1])
 
 		var controls := VBoxContainer.new()
-		audio_settings.add_child(controls)
+		controls.add_theme_constant_override("separation", 2)
+		audio_list.add_child(controls)
 
 		var category := Label.new()
 		category.text = caption + "音量"
+		category.add_theme_font_size_override("font_size", Tokens.FONT_SM)
 		controls.add_child(category)
 
 		var volume_row := HBoxContainer.new()
+		volume_row.add_theme_constant_override("separation", Tokens.SPACE_SM)
 		controls.add_child(volume_row)
 
 		var slider := HSlider.new()
@@ -166,7 +205,7 @@ func _add_audio_settings(menu_grid: Container) -> void:
 		slider.min_value = 0
 		slider.max_value = 100
 		slider.step = 10
-		slider.custom_minimum_size = Vector2(220, 32)
+		slider.custom_minimum_size = Vector2(220, 28)
 		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		volume_row.add_child(slider)
 
@@ -174,6 +213,7 @@ func _add_audio_settings(menu_grid: Container) -> void:
 		value_label.name = "AudioVolumeValue_" + kind
 		value_label.custom_minimum_size.x = 90
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		value_label.add_theme_font_size_override("font_size", Tokens.FONT_SM)
 		volume_row.add_child(value_label)
 
 		var refresh_audio := func():

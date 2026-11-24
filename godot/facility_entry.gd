@@ -57,23 +57,13 @@ func place_region(control: Control,cells: Rect2):
  control.minimum_size_changed.connect(place.call_deferred)
  control.tree_exiting.connect(func():ui.resized.disconnect(place),CONNECT_ONE_SHOT)
  place.call_deferred()
-func render_title(parent: Control,page: String):
- var layer=Control.new();layer.mouse_filter=Control.MOUSE_FILTER_IGNORE;layer.top_level=true;parent.add_child(layer)
- var heading=ui.label_(layer,facility_name(page),true);heading.name="FacilityEntryTitle"
- heading.autowrap_mode=TextServer.AUTOWRAP_OFF
- heading.custom_minimum_size=Vector2.ZERO
- heading.add_theme_font_size_override("font_size",Tokens.FONT_DISPLAY);heading.add_theme_color_override("font_color",Tokens.INK_INVERSE);heading.add_theme_color_override("font_outline_color",Tokens.TEXT_OUTLINE);heading.add_theme_constant_override("outline_size",6)
- place_region(heading,Rect2(1,1,8,1))
 func render_top(parent: Control,page: String) -> bool:
  sync()
  if not at_top(page):return false
  var layout=Control.new();parent.add_child(layout);layout.name="FacilityEntry";layout.custom_minimum_size.y=ui.mock_shell.content_height();layout.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  var cell=ui.mock_shell.grid_cell()
- var options=VBoxContainer.new();options.name="FacilityChoices";options.add_theme_constant_override("separation",Tokens.SPACE_NONE);layout.add_child(options)
+ var options=VBoxContainer.new();options.name="FacilityChoices";options.add_theme_constant_override("separation",Tokens.SPACE_SM);layout.add_child(options)
  place_region(options,Rect2(0,2,6,7))
- var town_label=ui.label_(options,ui.town_name(pages.c().get("location","")));town_label.add_theme_color_override("font_color",Tokens.INK_INVERSE);town_label.add_theme_color_override("font_outline_color",Tokens.TEXT_OUTLINE);town_label.add_theme_constant_override("outline_size",6)
- render_title(layout,page)
- town_label.custom_minimum_size.y=cell.y
  var choices=[]
  if page=="shop":
   choices=[["取引する","buy",true]]
@@ -87,7 +77,7 @@ func render_top(parent: Control,page: String) -> bool:
  for choice in choices:
   var button=ui.button(options,choice[0],choose.bind(choice[1]),not choice[2]);button.name="FacilityChoice_"+str(choice[1])
   button.theme_type_variation=&"ActionButton"
-  button.custom_minimum_size=Vector2(cell.x*2,cell.y)
+  button.custom_minimum_size=Vector2(cell.x*2,Tokens.BUTTON_LG)
   button.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
   ui.memory.key(button,"facility_"+str(choice[1]))
   if not choice[2]:
@@ -95,7 +85,9 @@ func render_top(parent: Control,page: String) -> bool:
    else:button.tooltip_text="この機能はまだ利用できません。"
  if handoff and not pages.c().get("cargoAboard",false):
   ui.label_(options,"同行ポーターがこの依頼の荷物を持っていません。依頼は未完了です。")
- var exit_button=ui.button(options,"店を出る",ui.navigate.bind("hub"));exit_button.name="FacilityExit";Tokens.apply_button_size(exit_button,Tokens.BUTTON_LG,false,Tokens.BUTTON_W_LG)
+ var exit_button=ui.button(options,"店を出る",ui.navigate.bind("hub"));exit_button.name="FacilityExit"
+ exit_button.custom_minimum_size=Vector2(cell.x*2,Tokens.BUTTON_LG)
+ exit_button.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
  render_entry_art(layout)
  return true
 func render_entry_art(layout: Control,words: String="",inn_service: bool=false):

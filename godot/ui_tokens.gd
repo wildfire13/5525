@@ -18,7 +18,7 @@ const INK_INVERSE_MUTED := Color("#cbd2d8")
 # Palette: Borders & Focus
 const BORDER := Color("#cbd0c8")
 const BORDER_ACCENT := Color("#345c4e")
-const FOCUS := Color("#397794")
+const FOCUS := Color("#1e563c")
 
 # Palette: Accent & Button Roles
 const ACCENT := Color("#345c4e")

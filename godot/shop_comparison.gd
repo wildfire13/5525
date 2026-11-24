@@ -86,7 +86,10 @@ func equipment_columns(body: Control,candidate: String) -> Array:
 			scroll.add_theme_stylebox_override("panel",pad)
 		pair.add_child(scroll)
 		var column=VBoxContainer.new();column.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(column)
-		ui.label_(ui.row(column),heading)
+		var header_row=ui.row(column)
+		header_row.custom_minimum_size.y=Tokens.BUTTON_SM
+		var header_label=ui.label_(header_row,heading)
+		header_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
 		columns.append(column)
 	return columns
 
@@ -105,7 +108,10 @@ func gear_summary(parent,gear: Dictionary,rows: Array,candidate:=false):
 	if candidate:
 		label.name="ShopComparisonProduct"
 	preload("res://equipment_tooltip.gd").bind_details(label,ui,gear)
-	for line in rows:ui.label_(parent,line)
+	for line in rows:
+		var stat_label=ui.label_(parent,line)
+		if line.contains("（↑"):stat_label.add_theme_color_override("font_color",Tokens.POSITIVE)
+		elif line.contains("（↓"):stat_label.add_theme_color_override("font_color",Tokens.DANGER)
 
 func open(id: String):
 	panels.clear();inline_host=null;item_id=id

@@ -36,11 +36,24 @@ func select_item(id: String):
  if busy() or ui.locked or ui.modal_open():return
  item_id=id;amount=1;quote={};stage="selected";message="";generation+=1;previewing=false;shop.selection_kind="sell";ui.render()
 func row(parent,item: Dictionary):
- var choose=preload("res://member_inventory.gd").add_row(ui,parent,item,select_item.bind(str(item.id)),shop.selection_kind=="sell" and item_id==str(item.id),busy())
+ var count=int(item.count)
+ var weight=item.get("definition",{}).get("weight",item.get("weight"))
+ var total=str(snappedf(float(weight)*count,0.01)).trim_suffix(".0") if weight!=null else "不明"
+ var choose=ui.button(parent,"%s  ×%d　Wt %s" % [item.name,count,total],select_item.bind(str(item.id)),busy())
  choose.name="SaleItem_"+str(item.id)
+ choose.alignment=HORIZONTAL_ALIGNMENT_LEFT
+ choose.custom_minimum_size.y=Tokens.BUTTON_LG
+ choose.clip_text=true
+ var icon=ui.icons.equipment(item) if item.get("kind")=="equipment" else "items" if item.get("kind")=="quest" else str(item.id)
+ choose.icon=ui.icons.texture(icon)
+ choose.expand_icon=true
+ choose.add_theme_constant_override("icon_max_width",40)
+ ui.mark_selected(choose,shop.selection_kind=="sell" and item_id==str(item.id))
+ preload("res://equipment_tooltip.gd").bind_hover(choose,item.duplicate(true),ui.campaign())
  preload("res://item_drag.gd").source(choose,shop.pages.party_view.workspace.payload.bind(item,"transfer",null,owner_id),str(item.name),choose.icon,shop.can_drop_product.bind(owner_id),shop.drop_inventory)
  ui.memory.key(choose,"sale_"+str(item.id));ui.memory.item(choose,str(item.id))
- choose.tooltip_text=str(item.get("sale",{}).get("reason",""))
+ var reason=str(item.get("sale",{}).get("reason",""))
+ if not reason.is_empty():choose.tooltip_text=reason
 func change_filter(value: String):
  if busy():return
  inventory_filter=value
@@ -58,18 +71,26 @@ func render_inventory(parent):
 func render_detail(parent,footer):
  var item=selected()
  if item.is_empty():ui.label_(parent,"インベントリのアイテムを選択");return
+ var pad=MarginContainer.new()
+ pad.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ for side in ["left","top","right","bottom"]:pad.add_theme_constant_override("margin_"+side,Tokens.SPACE_SM)
+ parent.add_child(pad)
+ var detail_body=VBoxContainer.new()
+ detail_body.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ detail_body.add_theme_constant_override("separation",Tokens.SPACE_SM)
+ pad.add_child(detail_body)
  var icon=ui.icons.equipment(item) if item.get("kind")=="equipment" else "items" if item.get("kind")=="quest" else str(item.id)
- if item.get("kind")=="equipment":shop.pages.describe_gear(parent,item.get("definition",item),true)
- else:ui.icons.line(ui,parent,icon,str(item.name),true).name="FacilitySaleTarget"
+ if item.get("kind")=="equipment":shop.pages.describe_gear(detail_body,item.get("definition",item),true)
+ else:ui.icons.line(ui,detail_body,icon,str(item.name),true).name="FacilitySaleTarget"
  amount=clampi(amount,1,int(item.count))
  var totals=shop.transaction_fields(footer,false,int(item.get("sale",{}).get("price",0)),amount,int(item.count),func(value):amount=int(value);quote={};generation+=1;request_quote())
  if not message.is_empty():totals.text=message
- var button=ui.action_button(ui.button(footer,"買取明細へ",confirm_sale,not item.get("sale",{}).get("ok",false) or busy()));button.name="FacilitySalePrepare";Tokens.apply_button_size(button);button.size_flags_horizontal=Control.SIZE_SHRINK_END
+ var button=ui.action_button(ui.button(footer,"買取明細へ",confirm_sale,not item.get("sale",{}).get("ok",false) or busy(),"md"),"md");button.name="FacilitySalePrepare";button.size_flags_horizontal=Control.SIZE_SHRINK_END
  button.tooltip_text=str(item.get("sale",{}).get("reason",""))
  if not quote.is_empty():show_quote(totals)
  elif not busy() and not previewing:request_quote()
 func show_quote(label: Label):
- label.text="所持金 %dG ＋ 売却 %dG = 残金 %dG" % [quote.goldBefore,quote.proceeds,quote.afterGold] if quote.get("ok",false) else str(quote.get("reason","金額を取得できません。"))
+ label.text="所持金 %d G ＋ 売却 %d G = 残金 %d G" % [quote.goldBefore,quote.proceeds,quote.afterGold] if quote.get("ok",false) else str(quote.get("reason","金額を取得できません。"))
 func valid(ticket: int,epoch: int,connection: int,owner: String,item: String,count: int,token) -> bool:
  return ticket==generation and epoch==ui.pages.epoch and connection==ui.engine.connection_generation and owner==owner_id and item==item_id and count==amount and token==ui.campaign().get("inventoryToken") and shop.sale_mode() and not ui.closing
 func request_quote():

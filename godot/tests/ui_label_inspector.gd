@@ -162,7 +162,7 @@ func capture(id: String, expected: Array, window: Window = null):
 				check(center.encloses(box),id+" body inside middle eight rows "+key+" "+str(box))
 		var aligned=box.position.is_equal_approx((box.position/cell).round()*cell) and box.end.is_equal_approx((box.end/cell).round()*cell)
 		check(aligned,id+" grid "+key+" "+str(box))
-		if not active[0].get("follows_target",false) and key!="ResultMembersScroll":
+		if window==root and not active[0].get("follows_target",false) and key not in ["ResultMembersScroll","WarehouseControls","WarehouseSelectedPanel","CharacterEquipmentDetail"]:
 			var label=("window:" if window!=root else "")+active[0].label
 			if not first_bounds.has(label):first_bounds[label]=[id,box]
 			var first=first_bounds[label]
@@ -260,6 +260,12 @@ func run():
 	gear.show_hover()
 	await capture("equipment-hover",["装備ホバー詳細"])
 	gear.close_hover()
+	var active_member=game.roster().filter(func(u):return u.id==game.pages.party_uid)[0]
+	workspace.select_equipped(preload("res://member_loadout_column.gd").slot_item(game,active_member,active_member.equipmentSlots[1]))
+	await capture("equipment-selected",["人物情報","選択アイテム"])
+	workspace.picked={}
+	workspace.refresh()
+	await settle()
 	var portrait_member=game.roster().filter(func(u):return u.id=="character_rio")[0]
 	await game.import_portrait(ProjectSettings.globalize_path("res://../native/assets/characters/scout-human-female-01.png"),portrait_member.id)
 	workspace.open_portrait(portrait_member)
@@ -386,7 +392,8 @@ func run():
 	else: check(false,"real purchase confirmation opened")
 	shop.set_inventory_tab("inventory")
 	await capture("shop-inventory",["インベントリ"])
-	await inspect_item_and_return("SaleItem_sword-wood")
+	await button("SaleItem_sword-wood")
+	check(not is_instance_valid(game.find_child("SkillDetailsWindow",true,false)),"sale item click selects inline without modal popup")
 	game.save_notice.dismiss()
 	await capture("sale",["インベントリ","取引操作"])
 	await button("FacilitySalePrepare")

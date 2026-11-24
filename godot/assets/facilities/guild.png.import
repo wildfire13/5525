@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dh6gvxsv21snc"
-path="res://.godot/imported/item_watercolor_pen.png-948e8a792ae011b4ee535fe03b685fbc.ctex"
+uid="uid://csfxccyo7855k"
+path="res://.godot/imported/guild.png-1fcb9baaf059a6817fe27e5c80bb0e1e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/facilities/item_watercolor_pen.png"
-dest_files=["res://.godot/imported/item_watercolor_pen.png-948e8a792ae011b4ee535fe03b685fbc.ctex"]
+source_file="res://assets/facilities/guild.png"
+dest_files=["res://.godot/imported/guild.png-1fcb9baaf059a6817fe27e5c80bb0e1e.ctex"]
 
 [params]
 

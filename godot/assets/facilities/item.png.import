@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c5uwjvg6ht7yy"
-path="res://.godot/imported/guild_papercut.png-690dd5e19e784873f42102046346616b.ctex"
+uid="uid://dds4f10u3ld5s"
+path="res://.godot/imported/item.png-1db54f1625301036015688cf232adc35.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/facilities/guild_papercut.png"
-dest_files=["res://.godot/imported/guild_papercut.png-690dd5e19e784873f42102046346616b.ctex"]
+source_file="res://assets/facilities/item.png"
+dest_files=["res://.godot/imported/item.png-1db54f1625301036015688cf232adc35.ctex"]
 
 [params]
 

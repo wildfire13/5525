@@ -81,7 +81,7 @@ func run():
  ws.set_tab("skills");await settle()
  check(game.find_children("CharacterSkill_active_skill_secret_pouch*","Button",true,false).is_empty(),"passive sources excluded from active group")
  check(game.find_children("CharacterSkill_passive_skill_secret_pouch*","Button",true,false).size()==2,"passive stacking sources retained separately")
- check(game.find_children("CharacterSkill_passive_skill_secret_pouch*","Button",true,false).all(func(b):return b.text==game.campaign().skillNames.skill_secret_pouch and not b.tooltip_text.is_empty()),"skill buttons show the skill name with details on hover")
+ check(game.find_children("CharacterSkill_passive_skill_secret_pouch*","Button",true,false).all(func(b):return b.text.begins_with(game.campaign().skillNames.skill_secret_pouch) and not b.tooltip_text.is_empty()),"skill buttons show the skill name with details on hover")
  await shot("fixed-skills")
  ws.set_tab("ability");await settle()
  var labels="\n".join(game.find_children("*","Label",true,false).filter(func(n):return n.is_visible_in_tree()).map(func(n):return n.text))

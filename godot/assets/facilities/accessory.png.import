@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dpvitr00u5iwb"
-path="res://.godot/imported/weapon_watercolor_pen.png-b320d194ddb5c5795482c12068764b48.ctex"
+uid="uid://sin1mij5bwas"
+path="res://.godot/imported/accessory.png-abe1b6c5f0ce1c3828ad2262ac114c4e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/facilities/weapon_watercolor_pen.png"
-dest_files=["res://.godot/imported/weapon_watercolor_pen.png-b320d194ddb5c5795482c12068764b48.ctex"]
+source_file="res://assets/facilities/accessory.png"
+dest_files=["res://.godot/imported/accessory.png-abe1b6c5f0ce1c3828ad2262ac114c4e.ctex"]
 
 [params]
 

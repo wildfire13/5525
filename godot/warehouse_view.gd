@@ -101,51 +101,50 @@ func render(parent: Control):
 		inventory.name="WarehouseCharacter"
 		render_list(inventory,"character",member)
 	elif tab=="ability":
-		var overlay=loadout.inventory_overlay()
-		var pad=MarginContainer.new();pad.size_flags_vertical=Control.SIZE_EXPAND_FILL;pad.add_theme_constant_override("margin_left",Tokens.SPACE_SM);pad.add_theme_constant_override("margin_right",Tokens.SPACE_SM);pad.add_theme_constant_override("margin_top",Tokens.SPACE_SM);overlay.add_child(pad)
-		var values=ui.scroller(pad)
-		values.get_parent().name="WarehouseAbilityValues"
-		ui.label_(values,str(member.name)+" / Lv."+str(int(member.level)),true)
-		pages.party_view.workspace.ability(values,member,false)
+		loadout.render_ability(ui,member,false,"WarehouseAbilityValues")
 	elif tab=="skills":
-		var overlay=loadout.inventory_overlay()
-		var pad=MarginContainer.new();pad.size_flags_vertical=Control.SIZE_EXPAND_FILL;pad.add_theme_constant_override("margin_left",Tokens.SPACE_SM);pad.add_theme_constant_override("margin_right",Tokens.SPACE_SM);pad.add_theme_constant_override("margin_top",Tokens.SPACE_SM);overlay.add_child(pad)
-		var skill_list=VBoxContainer.new();skill_list.name="WarehouseSkillList";skill_list.size_flags_vertical=Control.SIZE_EXPAND_FILL;pad.add_child(skill_list)
-		pages.party_view.workspace.skills(skill_list,member,"WarehouseSkill_")
+		loadout.render_skills(ui,member,"WarehouseSkill_","WarehouseSkillList")
 	if source not in ["character","equipped"]:
 		render_ledger(split,member)
 		return
-	var panel=PanelContainer.new();panel.name="WarehouseSelectedPanel";panel.custom_minimum_size.x=440;panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;split.add_child(panel)
+	var selected=equipped if source=="equipped" else selected_row();var q=quote(source,item_id)
+	var is_gear=source=="equipped" or selected.get("kind")=="equipment"
+	var panel_rows=5 if is_gear else 3
+	var cell=ui.mock_shell.grid_cell()
+	var panel=PanelContainer.new();panel.name="WarehouseSelectedPanel";panel.custom_minimum_size=Vector2(cell.x*2,cell.y*panel_rows);panel.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;panel.size_flags_vertical=Control.SIZE_SHRINK_BEGIN;split.add_child(panel)
 	panel.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_NONE))
 	var details=VBoxContainer.new();details.name="WarehouseSelectedItem";details.add_theme_constant_override("separation",Tokens.SPACE_NONE);panel.add_child(details)
-	var selected_heading=ui.label_(details,"選択アイテム");selected_heading.name="WarehouseHeading"
-	var selected_heading_style=StyleBoxFlat.new();selected_heading_style.bg_color=Color.TRANSPARENT;selected_heading_style.border_color=Tokens.BORDER;selected_heading_style.border_width_bottom=Tokens.BORDER_WIDTH;selected_heading_style.set_content_margin_all(Tokens.SPACE_SM);selected_heading.add_theme_stylebox_override("normal",selected_heading_style)
-	var selected=equipped if source=="equipped" else selected_row();var q=quote(source,item_id)
-	if selected.is_empty():
-		var hint=ui.label_(details,"アイテムを選択すると詳細が表示されます")
-		hint.add_theme_font_size_override("font_size",Tokens.FONT_SM)
-		hint.size_flags_vertical=Control.SIZE_EXPAND_FILL
-		hint.vertical_alignment=VERTICAL_ALIGNMENT_TOP
-	else:
+	if not selected.is_empty():
 		var content=ui.scroller(details);content.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
-		var content_pad=StyleBoxEmpty.new();content_pad.content_margin_left=Tokens.SPACE_SM;content_pad.content_margin_right=Tokens.SPACE_SM;content_pad.content_margin_top=Tokens.SPACE_SM;content.get_parent().add_theme_stylebox_override("panel",content_pad)
+		var content_pad=StyleBoxEmpty.new();content_pad.content_margin_left=Tokens.SPACE_SM;content_pad.content_margin_right=Tokens.SPACE_SM;content_pad.content_margin_top=Tokens.SPACE_SM;content_pad.content_margin_bottom=Tokens.SPACE_XS;content.get_parent().add_theme_stylebox_override("panel",content_pad)
 		if source=="equipped":pages.describe_gear(content,selected,true)
 		else:render_item_detail(content,selected)
 		if source!="equipped":ui.label_(content,"×%d" % int(selected.get("count",0)))
 		var reason_text=str(unequip_quote.get("reason","確認中…")) if source=="equipped" else str(q.get("reason",""))
-		var reason=ui.label_(details,error_message if not error_message.is_empty() else reason_text);reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",Tokens.FONT_XS)
+		var reason_value=error_message if not error_message.is_empty() else reason_text
+		var reason_margin=MarginContainer.new();reason_margin.add_theme_constant_override("margin_left",Tokens.SPACE_SM);reason_margin.add_theme_constant_override("margin_right",Tokens.SPACE_SM);reason_margin.add_theme_constant_override("margin_bottom",Tokens.SPACE_XS);reason_margin.visible=not reason_value.is_empty();details.add_child(reason_margin)
+		var reason=ui.label_(reason_margin,reason_value);reason.name="WarehouseReason";reason.add_theme_font_size_override("font_size",Tokens.FONT_XS)
+	else:
+		var spacer=Control.new();spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL;spacer.mouse_filter=Control.MOUSE_FILTER_IGNORE;details.add_child(spacer)
 	var selected_divider=ColorRect.new();selected_divider.name="WarehouseSelectedFooterDivider";selected_divider.color=Tokens.BORDER;selected_divider.custom_minimum_size.y=Tokens.BORDER_WIDTH;selected_divider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;selected_divider.mouse_filter=Control.MOUSE_FILTER_IGNORE;details.add_child(selected_divider)
-	var controls=ui.row(details);controls.name="WarehouseControls";controls.alignment=BoxContainer.ALIGNMENT_END
-	controls.custom_minimum_size.y=ui.mock_shell.grid_cell().y
-	if source=="equipped":
-		var remove=ui.button(controls,"装備を外す",unequip,busy() or not unequip_quote.get("ok",false),"md");remove.name="WarehouseUnequip"
-		remove.theme_type_variation=&"ActionButton"
-	elif not selected.is_empty():
-		var move=ui.button(controls,"預ける" if source=="character" else "取り出す",request_transfer.bind(source,item_id),busy() or not q.get("ok",false),"md");move.name="WarehouseTransfer";move.tooltip_text=str(q.get("reason",""))
-		move.theme_type_variation=&"ActionButton"
-	var back=ui.button(controls,"戻る",pages.facility_entry.back,busy(),"sm");back.name="WarehouseReturn"
-	var ledger_back=ui.button(controls,"出庫台帳",func():clear_selection();ui.render(),busy(),"md");ledger_back.name="WarehouseLedgerReturn"
-	var controls_pad=Control.new();controls_pad.custom_minimum_size.x=Tokens.SPACE_SM;controls_pad.mouse_filter=Control.MOUSE_FILTER_IGNORE;controls.add_child(controls_pad)
+	var controls=VBoxContainer.new();controls.name="WarehouseControls";controls.alignment=BoxContainer.ALIGNMENT_CENTER
+	controls.custom_minimum_size.y=ui.mock_shell.grid_cell().y;controls.add_theme_constant_override("separation",Tokens.SPACE_NONE);details.add_child(controls)
+	var controls_margin=MarginContainer.new();controls_margin.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	controls_margin.add_theme_constant_override("margin_left",Tokens.SPACE_SM);controls_margin.add_theme_constant_override("margin_right",Tokens.SPACE_SM)
+	controls_margin.add_theme_constant_override("margin_top",Tokens.SPACE_XS);controls_margin.add_theme_constant_override("margin_bottom",Tokens.SPACE_XS)
+	controls.add_child(controls_margin)
+	var controls_stack=VBoxContainer.new();controls_stack.alignment=BoxContainer.ALIGNMENT_CENTER;controls_stack.add_theme_constant_override("separation",Tokens.SPACE_XS);controls_margin.add_child(controls_stack)
+	if source=="equipped" or not selected.is_empty():
+		var primary_row=ui.row(controls_stack);primary_row.alignment=BoxContainer.ALIGNMENT_END
+		if source=="equipped":
+			var remove=ui.button(primary_row,"装備を外す",unequip,busy() or not unequip_quote.get("ok",false),"md");remove.name="WarehouseUnequip"
+			remove.theme_type_variation=&"ActionButton"
+		else:
+			var move=ui.button(primary_row,"預ける" if source=="character" else "取り出す",request_transfer.bind(source,item_id),busy() or not q.get("ok",false),"md");move.name="WarehouseTransfer";move.tooltip_text=str(q.get("reason",""))
+			move.theme_type_variation=&"ActionButton"
+	var nav_row=ui.row(controls_stack);nav_row.alignment=BoxContainer.ALIGNMENT_END
+	var ledger_back=ui.button(nav_row,"出庫台帳",func():clear_selection();ui.render(),busy(),"md");ledger_back.name="WarehouseLedgerReturn"
+	var back=ui.button(nav_row,"戻る",pages.facility_entry.back,busy(),"md");back.name="WarehouseReturn"
 	split.set_drag_forwarding(Callable(),func(_at,data):return can_drop(data,"warehouse"),func(_at,data):drop(data,"warehouse"))
 
 func owned_count(id: String) -> int:
@@ -184,16 +183,17 @@ func render_ledger(parent: Control,member: Dictionary):
 	var withdraw=func():
 		if recipient==owner_id and epoch==pages.epoch and source=="warehouse":transfer("warehouse",item_id,quantity,token)
 	var confirm=ui.primary(ui.button(controls,"取り出す",withdraw,true),"md");confirm.name="WarehouseTransfer";confirm.size_flags_horizontal=Control.SIZE_SHRINK_END
-	var back=ui.button(controls,"戻る",pages.facility_entry.back,busy(),"sm");back.name="WarehouseReturn"
+	var back=ui.button(controls,"戻る",pages.facility_entry.back,busy(),"md");back.name="WarehouseReturn"
 	var ledger_controls_pad=Control.new();ledger_controls_pad.custom_minimum_size.x=Tokens.SPACE_SM;ledger_controls_pad.mouse_filter=Control.MOUSE_FILTER_IGNORE;controls.add_child(ledger_controls_pad)
 	var update_footer=func():
 		var selected=selected_row() if source=="warehouse" else {}
 		var count=int(selected.get("count",0));var held=owned_count(item_id);var q=quote("warehouse",item_id)
-		summary.text="品名と数量を選択してください" if selected.is_empty() else "%s  倉庫 %d → %d ／ 所持 %d → %d" % [str(selected.get("name",item_id)),count,count-quantity,held,held+quantity]
+		summary.text="" if selected.is_empty() else "%s  倉庫 %d → %d ／ 所持 %d → %d" % [str(selected.get("name",item_id)),count,count-quantity,held,held+quantity]
 		confirm.text="取り出す" if selected.is_empty() else "%d個取り出す" % quantity
 		confirm.disabled=busy() or selected.is_empty() or quantity<1 or quantity>count or not q.get("ok",false)
 		confirm.set_meta("base_disabled",confirm.disabled)
 		reason.text=error_message if not error_message.is_empty() else str(q.get("reason","")) if not selected.is_empty() else ""
+		summary_margin.visible=not summary.text.is_empty() or not reason.text.is_empty()
 	var visible_rows=0
 	for entry in rows("warehouse"):
 		if not Inventory.matches(entry,filters.warehouse):continue

@@ -113,7 +113,7 @@ func map(parent):
 	if not over.is_empty():depart.tooltip_text="インベントリ枠を超えているメンバーがいます"
 	b(actions,"都市に入る" if c().location=="astaris" else "村に入る",ui.navigate.bind("hub"),false,"md")
 	var space=Control.new();space.size_flags_horizontal=Control.SIZE_EXPAND_FILL;actions.add_child(space)
-	var fit_button=b(actions,"全体表示",chart.reset_view,false,"sm");fit_button.name="MapFit"
+	var fit_button=b(actions,"全体表示",chart.reset_view,false,"md");fit_button.name="MapFit"
 	var right_pad=Control.new();right_pad.custom_minimum_size.x=Tokens.SPACE_MD;right_pad.mouse_filter=Control.MOUSE_FILTER_IGNORE;actions.add_child(right_pad)
 func choose_formation(value: String):ui.formation=value;ui.render()
 func grid_height(cells: int) -> float:
@@ -136,9 +136,8 @@ func journey(parent):
 	var quest=c().get("activeQuest")
 	var sluice_trip=phase=="road" and quest is Dictionary and quest.get("id")=="sluice-bell" and journey_.get("destination")=="east" and not strip.returning
 	var map_row=row(parent);map_row.name="JourneyMapBar";map_row.alignment=BoxContainer.ALIGNMENT_END;map_row.custom_minimum_size.y=grid_height(3)-grid_height(2)
-	var toggle=b(map_row,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",func():toggle_travel_map(parent,map_row,journey_))
+	var toggle=b(map_row,"経路だけ表示" if travel_map_expanded else "ワールドマップを表示",func():toggle_travel_map(parent,map_row,journey_),false,"lg_md")
 	toggle.name="TravelMapToggle"
-	Tokens.apply_button_size(toggle)
 	var actions=row(route);actions.name="CampActions"
 	var action_cell=3
 	actions.custom_minimum_size.y=grid_height(action_cell+1)-grid_height(action_cell)
@@ -149,20 +148,15 @@ func journey(parent):
 	l(copy,"最短の到着見込 %d時間" % (int(journey_.get("hours",0))+remaining))
 	match phase:
 		"camp":
-			var onward=ui.action_button(b(actions,"次の区間へ",ui.act.bind("onward",[])))
-			Tokens.apply_button_size(onward)
-			var rest=b(actions,"休息済み" if journey_.get("rested",false) else "休息する",ui.forecast_action.bind("rest","rest",[]),journey_.get("rested",false));rest.tooltip_text="2時間 · HP +60 / MP +2"
-			Tokens.apply_button_size(rest)
+			ui.action_button(b(actions,"次の区間へ",ui.act.bind("onward",[])),"md")
+			var rest=b(actions,"休息済み" if journey_.get("rested",false) else "休息する",ui.forecast_action.bind("rest","rest",[]),journey_.get("rested",false),"md");rest.tooltip_text="2時間 · HP +60 / MP +2"
 			if c().get("canTurnBack",false):
-				var turn_back=b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[]));turn_back.tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
-				Tokens.apply_button_size(turn_back)
+				var turn_back=b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[]),false,"md");turn_back.tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
 		"road":
 			if c().get("canTurnBack",false):
-				var turn_back=b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[]));turn_back.tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
-				Tokens.apply_button_size(turn_back)
+				var turn_back=b(actions,"引き返す",ui.forecast_action.bind("turnBack","turnBack",[]),false,"md");turn_back.tooltip_text="通った経路を戻る · 帰着まで%d時間" % c().get("returnHours",0)
 		"arrival","delivery":
-			var arrive_btn=ui.action_button(b(actions,"都市に入る" if journey_.get("destination")=="astaris" else "村に入る",ui.act.bind("arrive",[])))
-			Tokens.apply_button_size(arrive_btn)
+			ui.action_button(b(actions,"都市に入る" if journey_.get("destination")=="astaris" else "村に入る",ui.act.bind("arrive",[])),"md")
 	if phase=="road":
 		var choices=row(route);choices.name="RouteChoices"
 		choices.custom_minimum_size.y=grid_height(action_cell+2)-grid_height(action_cell+1)
@@ -184,9 +178,9 @@ func journey(parent):
 			note.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
 			map_row.move_child(note,0)
 	if phase=="camp":
-		var inventory=VBoxContainer.new();inventory.name="CampInventoryBar";route.add_child(inventory)
+		var inventory=row(route);inventory.name="CampInventoryBar";inventory.alignment=BoxContainer.ALIGNMENT_END
 		inventory.custom_minimum_size.y=grid_height(action_cell+2)-grid_height(action_cell+1)
-		b(inventory,"インベントリ",party_view.open_camp_inventory)
+		b(inventory,"インベントリ",party_view.open_camp_inventory,false,"md")
 	if travel_map_expanded:
 		route.hide()
 		add_travel_map(parent,journey_)
@@ -249,20 +243,74 @@ func items(parent):
 	if c().phase not in ["town","camp"]:l(parent,"町・野営で使用できます");return
 	parent.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	if c().has("inventoryByCharacter"):
-		var controls=card(parent)
-		var panel=controls.get_parent();panel.name="CampaignItems";panel.custom_minimum_size.y=grid_height(2)-grid_height(1)
-		var heading=l(controls,"インベントリ / 所持者を選択",true)
-		heading.size_flags_vertical=Control.SIZE_EXPAND_FILL;heading.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
-		var members=item_members(parent)
-		for uid in c().get("selected",[]):
-			var u=roster().filter(func(member):return member.id==uid)[0]
-			var member=card(members);member.name="ItemMember_"+str(uid);member.get_parent().size_flags_horizontal=Control.SIZE_EXPAND_FILL
-			var portrait=ui.portrait(member,u,false,64);portrait.name="FullBodyPortrait";portrait.custom_minimum_size=Vector2(64,160 if ui.ui_size_mode=="standard" else 48);portrait.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-			var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;ui.short_name(name_label,str(u.name));name_label.add_theme_font_size_override("font_size",Tokens.FONT_SM)
-			var hp=ui.icons.line(ui,member,"hp","HP %d/%d" % [u.hp,u.max]);ui.emphasize_low_hp(hp,u)
-			ui.icons.line(ui,member,"mp","MP %d/%d" % [u.mp,u.maxMp])
-			if u.hp<=0:l(member,"戦闘不能")
-			var open_inventory=b(member,"インベントリ",party_view.open_inventory.bind(str(uid)));open_inventory.name="InventoryOwner_"+str(uid);open_inventory.add_theme_font_size_override("font_size",Tokens.FONT_SM)
+		var selected_ids: Array=c().get("selected",[])
+		var cell_y=ui.mock_shell.grid_cell().y
+		var body_rows=clampi(ceili((selected_ids.size()*60.0+16.0)/cell_y),2,6)
+		var panel=PanelContainer.new();panel.name="CampaignItems"
+		panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL;panel.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+		panel.custom_minimum_size.y=cell_y*(body_rows+2)
+		panel.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_NONE))
+		parent.add_child(panel)
+		var layout=VBoxContainer.new();layout.add_theme_constant_override("separation",Tokens.SPACE_NONE)
+		layout.size_flags_horizontal=Control.SIZE_EXPAND_FILL;layout.size_flags_vertical=Control.SIZE_EXPAND_FILL;panel.add_child(layout)
+		var header_box=VBoxContainer.new();header_box.add_theme_constant_override("separation",Tokens.SPACE_NONE)
+		header_box.custom_minimum_size.y=cell_y;layout.add_child(header_box)
+		var header_margin=MarginContainer.new();header_margin.size_flags_vertical=Control.SIZE_EXPAND_FILL
+		header_margin.add_theme_constant_override("margin_left",Tokens.SPACE_MD);header_margin.add_theme_constant_override("margin_right",Tokens.SPACE_MD)
+		header_margin.add_theme_constant_override("margin_top",Tokens.SPACE_SM);header_margin.add_theme_constant_override("margin_bottom",Tokens.SPACE_XS)
+		header_box.add_child(header_margin)
+		var header_copy=VBoxContainer.new();header_copy.size_flags_vertical=Control.SIZE_EXPAND_FILL;header_copy.add_theme_constant_override("separation",Tokens.SPACE_SM);header_margin.add_child(header_copy)
+		l(header_copy,"所持品一覧",true)
+		var cols=row(header_copy)
+		var col_member=muted(cols,"メンバー");col_member.custom_minimum_size.x=180;col_member.size_flags_horizontal=Control.SIZE_FILL;col_member.add_theme_font_size_override("font_size",Tokens.FONT_SM)
+		var col_items=muted(cols,"所持品");col_items.size_flags_horizontal=Control.SIZE_EXPAND_FILL;col_items.add_theme_font_size_override("font_size",Tokens.FONT_SM)
+		var col_action=muted(cols,"操作");col_action.custom_minimum_size.x=Tokens.BUTTON_W_MD;col_action.size_flags_horizontal=Control.SIZE_SHRINK_END;col_action.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;col_action.add_theme_font_size_override("font_size",Tokens.FONT_SM)
+		var header_divider=ColorRect.new();header_divider.name="CampaignItemsHeaderDivider";header_divider.color=Tokens.BORDER;header_divider.custom_minimum_size.y=Tokens.BORDER_WIDTH;header_divider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;header_divider.mouse_filter=Control.MOUSE_FILTER_IGNORE;header_box.add_child(header_divider)
+		var body_list=ui.scroller(layout)
+		var body_scroll=body_list.get_parent()
+		body_scroll.name="CampParty" if c().phase=="camp" else "ItemParty"
+		body_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
+		body_scroll.custom_minimum_size.y=cell_y*body_rows
+		var body_pad=StyleBoxEmpty.new();body_pad.content_margin_left=Tokens.SPACE_MD;body_pad.content_margin_right=Tokens.SPACE_MD;body_pad.content_margin_top=Tokens.SPACE_XS;body_pad.content_margin_bottom=Tokens.SPACE_XS
+		body_scroll.add_theme_stylebox_override("panel",body_pad)
+		body_list.add_theme_constant_override("separation",Tokens.SPACE_XS)
+		var by_character: Dictionary=c().get("inventoryByCharacter",{})
+		var rendered_rows=0
+		for uid in selected_ids:
+			var matches=roster().filter(func(member):return member.id==uid)
+			if matches.is_empty():continue
+			if rendered_rows>0:body_list.add_child(HSeparator.new())
+			rendered_rows+=1
+			var u=matches[0]
+			var member=row(body_list);member.name="ItemMember_"+str(uid);member.custom_minimum_size.y=52
+			var name_box=VBoxContainer.new();name_box.custom_minimum_size.x=180;name_box.size_flags_vertical=Control.SIZE_SHRINK_CENTER;name_box.add_theme_constant_override("separation",2);member.add_child(name_box)
+			var name_label=l(name_box,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;ui.short_name(name_label,str(u.name))
+			var role_label=muted(name_box,str(u.get("role","")));role_label.add_theme_font_size_override("font_size",Tokens.FONT_XS)
+			if u.hp<=0:
+				var ko=l(name_box,"戦闘不能");ko.add_theme_font_size_override("font_size",Tokens.FONT_XS);ko.add_theme_color_override("font_color",Tokens.DANGER)
+			var entries: Array=by_character.get(str(uid),{}).get("entries",[])
+			var items_flow=HFlowContainer.new();items_flow.size_flags_horizontal=Control.SIZE_EXPAND_FILL;items_flow.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+			items_flow.add_theme_constant_override("h_separation",Tokens.SPACE_MD);items_flow.add_theme_constant_override("v_separation",Tokens.SPACE_XS);member.add_child(items_flow)
+			if entries.is_empty():
+				var empty_lbl=muted(items_flow,"所持品なし");empty_lbl.autowrap_mode=TextServer.AUTOWRAP_OFF;empty_lbl.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;empty_lbl.add_theme_font_size_override("font_size",Tokens.FONT_SM)
+			else:
+				for entry in entries:
+					var item_row=HBoxContainer.new();item_row.add_theme_constant_override("separation",Tokens.SPACE_XS);items_flow.add_child(item_row)
+					var icon_key=ui.icons.equipment(entry) if entry.get("kind")=="equipment" else "items" if entry.get("kind")=="quest" else str(entry.id)
+					ui.icons.add(item_row,icon_key,24)
+					var item_label=l(item_row,"%s ×%d" % [str(entry.get("name",entry.id)),int(entry.get("count",1))])
+					item_label.autowrap_mode=TextServer.AUTOWRAP_OFF;item_label.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;item_label.add_theme_font_size_override("font_size",Tokens.FONT_SM)
+			var open_inventory=b(member,"インベントリ",party_view.open_inventory.bind(str(uid)),false,"md")
+			open_inventory.name="InventoryOwner_"+str(uid);open_inventory.size_flags_horizontal=Control.SIZE_SHRINK_END
+		var footer_box=VBoxContainer.new();footer_box.add_theme_constant_override("separation",Tokens.SPACE_NONE)
+		footer_box.custom_minimum_size.y=cell_y;layout.add_child(footer_box)
+		var footer_divider=ColorRect.new();footer_divider.name="CampaignItemsFooterDivider";footer_divider.color=Tokens.BORDER;footer_divider.custom_minimum_size.y=Tokens.BORDER_WIDTH;footer_divider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;footer_divider.mouse_filter=Control.MOUSE_FILTER_IGNORE;footer_box.add_child(footer_divider)
+		var footer_margin=MarginContainer.new();footer_margin.size_flags_vertical=Control.SIZE_EXPAND_FILL
+		footer_margin.add_theme_constant_override("margin_left",Tokens.SPACE_MD);footer_margin.add_theme_constant_override("margin_right",Tokens.SPACE_MD)
+		footer_box.add_child(footer_margin)
+		var footer_row=row(footer_margin);footer_row.name="CampaignItemsActions";footer_row.alignment=BoxContainer.ALIGNMENT_END
+		var return_target="map" if c().get("phase")=="camp" else "hub"
+		var back=b(footer_row,"戻る",ui.navigate.bind(return_target),false,"md");back.name="ItemsReturn"
 		return
 	var catalog=ItemMenu.definitions(c());var inventory: Dictionary=c().inventory
 	var selected_item={}

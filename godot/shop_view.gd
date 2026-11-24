@@ -134,36 +134,43 @@ func render_inventory_column(column):
 		ui.memory.watch(inventory.get_parent(),"shop_inventory_"+inventory_tab)
 		sale.render_inventory(inventory)
 	elif inventory_tab=="ability":
-		var overlay=column.inventory_overlay()
-		var pad=MarginContainer.new();pad.size_flags_vertical=Control.SIZE_EXPAND_FILL;pad.add_theme_constant_override("margin_left",Tokens.SPACE_SM);pad.add_theme_constant_override("margin_right",Tokens.SPACE_SM);pad.add_theme_constant_override("margin_top",Tokens.SPACE_SM);overlay.add_child(pad)
-		var values=ui.scroller(pad)
-		values.get_parent().name="ShopAbilityValues"
-		ui.memory.watch(values.get_parent(),"shop_inventory_ability")
-		ui.label_(values,str(person.name)+" / Lv."+str(int(person.level)),true)
-		pages.party_view.workspace.ability(values,person,false)
+		column.render_ability(ui,person,false,"ShopAbilityValues","shop_inventory_ability")
 	elif inventory_tab=="skills":
-		var overlay=column.inventory_overlay()
-		var pad=MarginContainer.new();pad.size_flags_vertical=Control.SIZE_EXPAND_FILL;pad.add_theme_constant_override("margin_left",Tokens.SPACE_SM);pad.add_theme_constant_override("margin_right",Tokens.SPACE_SM);pad.add_theme_constant_override("margin_top",Tokens.SPACE_SM);overlay.add_child(pad)
-		var skill_list=VBoxContainer.new();skill_list.name="ShopSkillList";skill_list.size_flags_vertical=Control.SIZE_EXPAND_FILL;pad.add_child(skill_list)
-		pages.party_view.workspace.skills(skill_list,person,"ShopSkill_")
+		column.render_skills(ui,person,"ShopSkill_","ShopSkillList")
+func has_active_transaction() -> bool:
+	if selection_kind=="sell":return not sale.selected().is_empty()
+	if selection_kind=="owned":return not sale.selected().is_empty()
+	if selection_kind=="equipment":return not selected_equipment.is_empty()
+	if selection_kind=="buy":return not pages.gear_id.is_empty()
+	return false
 func render_transaction(middle):
-	var heading=l(middle,"購入" if selection_kind=="buy" else "売却" if selection_kind=="sell" else "取引を確認")
-	heading.name="ShopTransactionHeading";heading.custom_minimum_size.y=ui.mock_shell.grid_cell().y
-	heading.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
-	var heading_style=StyleBoxFlat.new()
-	heading_style.bg_color=Color.TRANSPARENT
-	heading_style.border_color=Tokens.BORDER
-	heading_style.border_width_bottom=Tokens.BORDER_WIDTH
-	heading_style.content_margin_left=Tokens.SPACE_SM
-	heading_style.content_margin_right=Tokens.SPACE_SM
-	heading.add_theme_stylebox_override("normal",heading_style)
+	var active=has_active_transaction()
+	var panel=middle.get_parent() as PanelContainer
+	if panel!=null:
+		panel.add_theme_stylebox_override("panel",Tokens.box(Tokens.SURFACE,Tokens.BORDER,Tokens.RADIUS_SM,Tokens.SPACE_NONE,Tokens.BORDER_WIDTH) if active else StyleBoxEmpty.new())
+	if active:
+		var heading=l(middle,"購入" if selection_kind=="buy" else "売却" if selection_kind=="sell" else "取引を確認")
+		heading.name="ShopTransactionHeading"
+		heading.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+		var heading_style=StyleBoxFlat.new()
+		heading_style.bg_color=Color.TRANSPARENT
+		heading_style.border_color=Tokens.BORDER
+		heading_style.border_width_bottom=Tokens.BORDER_WIDTH
+		heading_style.content_margin_left=Tokens.SPACE_SM
+		heading_style.content_margin_right=Tokens.SPACE_SM
+		heading_style.content_margin_top=Tokens.SPACE_SM
+		heading_style.content_margin_bottom=Tokens.SPACE_SM
+		heading.add_theme_stylebox_override("normal",heading_style)
 	var detail=ui.scroller(middle);detail.get_parent().name="ShopTransactionScroll"
 	detail.get_parent().vertical_scroll_mode=ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	detail.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	var operations=VBoxContainer.new();operations.name="ShopTransactionFooter";operations.custom_minimum_size.y=ui.mock_shell.grid_cell().y*2;operations.add_theme_constant_override("separation",Tokens.SPACE_NONE);middle.add_child(operations)
-	var footer_divider=ColorRect.new();footer_divider.name="ShopFooterDivider";footer_divider.color=Tokens.BORDER;footer_divider.custom_minimum_size.y=Tokens.BORDER_WIDTH;footer_divider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;footer_divider.mouse_filter=Control.MOUSE_FILTER_IGNORE;operations.add_child(footer_divider)
+	if active:
+		var footer_divider=ColorRect.new();footer_divider.name="ShopFooterDivider";footer_divider.color=Tokens.BORDER;footer_divider.custom_minimum_size.y=Tokens.BORDER_WIDTH;footer_divider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;footer_divider.mouse_filter=Control.MOUSE_FILTER_IGNORE;operations.add_child(footer_divider)
 	var footer_margin=MarginContainer.new();footer_margin.size_flags_vertical=Control.SIZE_EXPAND_FILL;footer_margin.add_theme_constant_override("margin_left",Tokens.SPACE_SM);footer_margin.add_theme_constant_override("margin_right",Tokens.SPACE_SM);footer_margin.add_theme_constant_override("margin_top",Tokens.SPACE_XS);footer_margin.add_theme_constant_override("margin_bottom",Tokens.SPACE_XS);operations.add_child(footer_margin)
 	var footer_body=VBoxContainer.new();footer_body.size_flags_vertical=Control.SIZE_EXPAND_FILL;footer_body.add_theme_constant_override("separation",Tokens.SPACE_XS);footer_margin.add_child(footer_body)
+	if not active:
+		var footer_spacer=Control.new();footer_spacer.size_flags_vertical=Control.SIZE_EXPAND_FILL;footer_spacer.mouse_filter=Control.MOUSE_FILTER_IGNORE;footer_body.add_child(footer_spacer)
 	var footer=ui.row(footer_body);footer.alignment=BoxContainer.ALIGNMENT_END
 	render_notice(footer_body)
 	if selection_kind=="sell":
@@ -180,7 +187,6 @@ func render_transaction(middle):
 		else:
 			if comparison_view==null:comparison_view=preload("res://shop_comparison.gd").new(self)
 			comparison_view.render_inline(detail,footer,pages.gear_id,ui.shop_uid)
-	else:l(detail,"商品またはインベントリのアイテムを選択")
 	var finish=b(footer,"取引終了",finish_trading,busy(),"md");finish.name="ShopExit";finish.size_flags_horizontal=Control.SIZE_SHRINK_END
 func render_catalog(stock):
 	preload("res://item_drag.gd").target(stock,can_drop_sale,drop_sale)
@@ -243,7 +249,7 @@ func render_product(parent: Control,item: Dictionary):
 	values.alignment=BoxContainer.ALIGNMENT_CENTER
 	values.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	line.add_child(values)
-	var price=l(values,"%dG" % int(item.price))
+	var price=l(values,"%d G" % int(item.price))
 	var weight=l(values,"Wt %s" % (str(item.weight) if item.get("weight")!=null else "不明"))
 	price.add_theme_font_size_override("font_size",Tokens.FONT_SM)
 	weight.add_theme_font_size_override("font_size",Tokens.FONT_SM)
@@ -291,7 +297,7 @@ func transaction_fields(actions: Control,buying: bool,unit_price: int,amount: in
 	return money
 
 func display_payment(money: Label,buy: Button,cost: Dictionary):
-	money.text="所持金 %dG − 購入 %dG = 残金 %dG" % [cost.goldBefore,cost.cost,cost.afterGold] if cost.get("ok",false) else "購入不可："+str(cost.reason)+" / 価格 %dG / 所持金 %dG" % [cost.cost,cost.goldBefore]
+	money.text="所持金 %d G − 購入 %d G = 残金 %d G" % [cost.goldBefore,cost.cost,cost.afterGold] if cost.get("ok",false) else "購入不可："+str(cost.reason)
 	money.add_theme_color_override("font_color",Tokens.INK if cost.get("ok",false) else Tokens.DANGER)
 	buy.text=("%d個の購入へ" if c().get("location")=="south" else "%d個購入する") % cost.count
 	buy.disabled=not cost.get("ok",false) or busy();buy.set_meta("base_disabled",buy.disabled)
@@ -354,9 +360,12 @@ func open_comparison(id: String):
 				if control!=null:ui.mark_selected(control,product==id))
 func render_notice(parent):
 	if message.is_empty():return
-	var notice=l(parent,message);notice.name="ShopNotice";notice.add_theme_color_override("font_color",Tokens.DANGER)
+	var host: Control=parent
+	if not has_active_transaction():
+		var frame=PanelContainer.new();frame.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_SM));parent.add_child(frame);host=frame
+	var notice=l(host,message);notice.name="ShopNotice";notice.add_theme_color_override("font_color",Tokens.DANGER)
 func record_sale(q: Dictionary):
-	transaction={"kind":"sell","ownerId":q.ownerId,"text":"%sの%s×%dを売却 / 受取%dG" % [q.ownerName,q.name,q.count,q.proceeds]};message="";ui.save_notice.display(str(transaction.text))
+	transaction={"kind":"sell","ownerId":q.ownerId,"text":"%sの%s×%dを売却 / 受取 %d G" % [q.ownerName,q.name,q.count,q.proceeds]};message="";ui.save_notice.display(str(transaction.text))
 func cancel_pending():
 	# Quotes are pure; an in-flight committed purchase must not be discarded here.
 	if stage!="S1":return
@@ -387,7 +396,7 @@ func confirm_purchase(id: String="",recipient: String="",count: int=1,direct:=fa
 	consent=q.duplicate(true);stage="S4"
 	ui.dialog.open("購入の確認",func(body,actions):
 		l(body,"%s / %d個" % [q.gear.name,q.count],true)
-		l(body,"支払 %dG / 所持金 %d → %dG" % [q.cost,q.goldBefore,q.afterGold],true).name="PurchasePayment"
+		l(body,"支払 %d G / 所持金 %d → %d G" % [q.cost,q.goldBefore,q.afterGold],true).name="PurchasePayment"
 		l(body,ui.member_name(recipient)+"のインベントリへ購入しますか？" if not recipient.is_empty() else "購入しますか？ 同意後に受取人を選びます。自動装備はしません。")
 		b(actions,"キャンセル",ui.dialog.close).name="PurchaseDecline"
 		ui.primary(b(actions,"購入する",func():
@@ -400,7 +409,7 @@ func choose_recipient(ticket: int):
 	if ticket!=generation or stage!="S9":return
 	ui.dialog.open("受取人の選択",func(body,actions):
 		l(body,str(consent.gear.name)+" / 1個",true)
-		l(body,"支払 %dG / 所持金 %d → %dG" % [consent.cost,consent.goldBefore,consent.afterGold]).name="RecipientPayment"
+		l(body,"支払 %d G / 所持金 %d → %d G" % [consent.cost,consent.goldBefore,consent.afterGold]).name="RecipientPayment"
 		l(body,"誰のインベントリに入れますか？ 受取確定まで所持金は減りません。")
 		for person in ui.roster():
 			if not c().get("selected",[]).has(person.id):continue
@@ -419,7 +428,7 @@ func buy(q: Dictionary,uid: String,ticket: int):
 	var after=int(c().get("characters",{}).get(uid,{}).get("inventory",{}).get(q.gearId,0))
 	if result.get("ok",false) and after==before+int(q.count) and c().get("gold")==q.afterGold:
 		stage="S0";receipt=q.duplicate(true);receipt.characterId=uid;message=""
-		transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×%d / 支払%dG" % [ui.member_name(uid),q.gear.name,q.count,q.cost]}
+		transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×%d / 支払 %d G" % [ui.member_name(uid),q.gear.name,q.count,q.cost]}
 		ui.save_notice.display(str(transaction.text))
 	else:
 		unknown=result.get("connection_lost",false) or result.get("ok",false);stage="S7" if unknown else "S0"
@@ -521,7 +530,7 @@ func drop_equipment(data: Dictionary,slot: String):
 		ui.render();return
 	stage="S4"
 	ui.dialog.open("購入して装備",func(body,actions):
-		l(body,"%s / %s / 支払%dG" % [ui.member_name(uid),q.gear.name,int(q.cost)],true)
+		l(body,"%s / %s / 支払 %d G" % [ui.member_name(uid),q.gear.name,int(q.cost)],true)
 		l(body,"選んだ部位に装備します。交換前の装備はインベントリに残ります。")
 		b(actions,"キャンセル",ui.dialog.close).name="PurchaseDecline"
 		var agree=b(actions,"購入して装備",func():
@@ -558,7 +567,7 @@ func confirm_consumable(id: String,uid: String):
 	if not payment.ok:message=str(payment.get("reason","所持金・インベントリの空きを確認してください。"));ui.render();return
 	generation+=1;var ticket=generation;stage="S4"
 	ui.dialog.open("購入の確認",func(body,actions):
-		l(body,"%s ×%d / 支払%dG / %sのインベントリへ" % [item.name,count,cost,ui.member_name(uid)],true)
+		l(body,"%s ×%d / 支払 %d G / %sのインベントリへ" % [item.name,count,cost,ui.member_name(uid)],true)
 		b(actions,"キャンセル",ui.dialog.close).name="PurchaseDecline"
 		var agree=b(actions,"購入する",func():
 			if stage!="S4" or ticket!=generation:return
@@ -567,7 +576,7 @@ func confirm_consumable(id: String,uid: String):
 			if ticket==generation:
 				unknown=reply.get("connection_lost",false);stage="S7" if unknown else "S0"
 				if reply.get("ok",false):
-					transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×%d / 支払%dG" % [ui.member_name(uid),item.name,count,cost]};message="";ui.save_notice.display(str(transaction.text))
+					transaction={"kind":"buy","ownerId":uid,"text":"%sへ %s×%d / 支払 %d G" % [ui.member_name(uid),item.name,count,cost]};message="";ui.save_notice.display(str(transaction.text))
 				else:message=str(reply.get("error","購入結果を確認してください。"))
 				ui.render())
 		agree.name="PurchaseAgree";agree.theme_type_variation=&"ActionButton",

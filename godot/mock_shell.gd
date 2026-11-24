@@ -254,8 +254,10 @@ func roster(parent,deployment=null):
 		var line=roster_member_line(button,u)
 		var info=line.get_node("MemberInfo")
 		var inventory=ui.campaign().get("inventoryByCharacter",{}).get(str(id),{});var capacity=inventory.get("capacity",{});var weight=inventory.get("weight",{});var stats=u.get("stats",u)
-		var detail=ui.label_(info,"%s / %s   Wt %s / %s" % [int(capacity.get("used",0)),int(capacity.get("limit",0)) if capacity.get("limit")!=null else "∞",int(weight.get("total",0)) if weight.get("total")!=null else "?",int(stats.get("str",0))]);detail.add_theme_font_size_override("font_size",Tokens.FONT_SM)
-		if weight.get("total")!=null and float(weight.total)>float(stats.get("str",0)):detail.add_theme_color_override("font_color",Tokens.DANGER)
+		var detail_row=HBoxContainer.new();detail_row.mouse_filter=Control.MOUSE_FILTER_IGNORE;detail_row.add_theme_constant_override("separation",Tokens.SPACE_MD);info.add_child(detail_row)
+		var cap_label=Label.new();cap_label.text="%s / %s" % [int(capacity.get("used",0)),int(capacity.get("limit",0)) if capacity.get("limit")!=null else "∞"];cap_label.add_theme_font_size_override("font_size",Tokens.FONT_SM);cap_label.autowrap_mode=TextServer.AUTOWRAP_OFF;cap_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;detail_row.add_child(cap_label)
+		var wt_label=Label.new();wt_label.text="Wt %s / %s" % [int(weight.get("total",0)) if weight.get("total")!=null else "?",int(stats.get("str",0))];wt_label.add_theme_font_size_override("font_size",Tokens.FONT_SM);wt_label.autowrap_mode=TextServer.AUTOWRAP_OFF;wt_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;detail_row.add_child(wt_label)
+		if weight.get("total")!=null and float(weight.total)>float(stats.get("str",0)):wt_label.add_theme_color_override("font_color",Tokens.DANGER)
 		for child in info.get_children():child.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		if deployment!=null:
 			deployment.configure_deployment_card(button,u,line)
