@@ -2,31 +2,31 @@
   "weapon": [
     {
       "style": "interior",
-      "path": "res://assets/facilities/weapon.png"
+      "path": "res://assets/facilities/bg_weapon_shop_interior.png"
     }
   ],
   "armor": [
     {
       "style": "interior",
-      "path": "res://assets/facilities/armor.png"
+      "path": "res://assets/facilities/bg_armor_shop_interior.png"
     }
   ],
   "item": [
     {
       "style": "interior",
-      "path": "res://assets/facilities/item.png"
+      "path": "res://assets/facilities/bg_item_shop_interior.png"
     }
   ],
   "accessory": [
     {
       "style": "interior",
-      "path": "res://assets/facilities/accessory.png"
+      "path": "res://assets/facilities/bg_accessory_shop_interior.png"
     }
   ],
   "guild": [
     {
       "style": "interior",
-      "path": "res://assets/facilities/guild.png"
+      "path": "res://assets/facilities/bg_guild_interior.png"
     }
   ],
   "inn": [

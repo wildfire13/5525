@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://csfxccyo7855k"
-path="res://.godot/imported/guild.png-1fcb9baaf059a6817fe27e5c80bb0e1e.ctex"
+uid="uid://ccd2t25ygy3hg"
+path="res://.godot/imported/bg_armor_shop_interior.png-aef19ab5fac3c6d248e7da76255597cd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/facilities/guild.png"
-dest_files=["res://.godot/imported/guild.png-1fcb9baaf059a6817fe27e5c80bb0e1e.ctex"]
+source_file="res://assets/facilities/bg_armor_shop_interior.png"
+dest_files=["res://.godot/imported/bg_armor_shop_interior.png-aef19ab5fac3c6d248e7da76255597cd.ctex"]
 
 [params]
 

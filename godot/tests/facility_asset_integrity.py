@@ -19,7 +19,14 @@ sums = {
     )
 }
 catalog = json.loads((repo / 'godot/assets/facilities/manifest.json').read_text(encoding='utf-8'))
-interior_facilities = {'weapon', 'armor', 'item', 'accessory', 'guild'}
+interior_filenames = {
+    'weapon': 'bg_weapon_shop_interior.png',
+    'armor': 'bg_armor_shop_interior.png',
+    'item': 'bg_item_shop_interior.png',
+    'accessory': 'bg_accessory_shop_interior.png',
+    'guild': 'bg_guild_interior.png',
+}
+interior_facilities = set(interior_filenames)
 legacy_facilities = {'inn', 'departure_map'}
 facilities = interior_facilities | legacy_facilities
 legacy_styles = {'papercut', 'gouache', 'watercolor_pen'}
@@ -35,7 +42,7 @@ for facility in sorted(facilities):
         assert len(variants) == 3 and {v['style'] for v in variants} == legacy_styles
     for variant in variants:
         style = variant['style']
-        name = f'{facility}.png' if style == 'interior' else f'{facility}_{style}.png'
+        name = interior_filenames[facility] if style == 'interior' else f'{facility}_{style}.png'
         path = 'godot/assets/facilities/' + name
         assert variant['path'] == 'res://assets/facilities/' + name
         a, row = assets[path], csv_assets[path]

@@ -3,8 +3,13 @@
 7施設の背景11枚を manifest.json に登録済み（すべて原本バイトのまま）。
 
 - 差替済み5施設（`weapon`, `armor`, `item`, `accessory`, `guild`）:
-  - ファイル名: `<facility>.png`（各1枚・計5枚）
-  - style: `interior`
+  - ファイル名:
+    - `bg_guild_interior.png` (`guild`)
+    - `bg_weapon_shop_interior.png` (`weapon`)
+    - `bg_armor_shop_interior.png` (`armor`)
+    - `bg_item_shop_interior.png` (`item`)
+    - `bg_accessory_shop_interior.png` (`accessory`)
+  - style: `interior`（各1枚・計5枚）
   - 解像度: `1920×1080`（`G:\Apps\CodexProjects\Share\prot_assets\背景\施設内` から原本バイトのまま受領）
 - 既存維持2施設（`inn`, `departure_map`）:
   - ファイル名: `<facility>_<style>.png`（各3枚・計6枚）
@@ -19,7 +24,7 @@ manifest/CSV/SHA一覧との照合とPNG読込みを確認済み。
 manifest の各 facility は次の形式の配列にする。
 
 ```json
-{"weapon": [{"style": "interior", "path": "res://assets/facilities/weapon.png"}]}
+{"weapon": [{"style": "interior", "path": "res://assets/facilities/bg_weapon_shop_interior.png"}]}
 ```
 
 施設へ入るごとに読み取り可能な候補から専用 RNG で抽選する。

@@ -8,14 +8,14 @@ func run():
 	var art=game.pages.facility_art;var seed=await saved()
 	var production=art.catalog.duplicate(true)
 	check(production.size()==7,"production manifest contains all seven facilities")
-	var interior_facilities=["weapon","armor","item","accessory","guild"]
+	var interior_filenames={"weapon":"bg_weapon_shop_interior.png","armor":"bg_armor_shop_interior.png","item":"bg_item_shop_interior.png","accessory":"bg_accessory_shop_interior.png","guild":"bg_guild_interior.png"}
 	for facility in ["weapon","armor","item","accessory","guild","inn","departure_map"]:
 		var variants=production.get(facility,[])
-		var expected_count=1 if interior_facilities.has(facility) else 3
+		var expected_count=1 if interior_filenames.has(facility) else 3
 		check(variants.size()==expected_count,"expected original styles registered for "+facility)
 		for variant in variants:
 			var image=Image.load_from_file(ProjectSettings.globalize_path(variant.path))
-			var expected_path="res://assets/facilities/"+facility+".png" if variant.style=="interior" else "res://assets/facilities/"+facility+"_"+variant.style+".png"
+			var expected_path="res://assets/facilities/"+str(interior_filenames[facility]) if variant.style=="interior" else "res://assets/facilities/"+facility+"_"+variant.style+".png"
 			var expected_dims=Vector2i(1920,1080) if variant.style=="interior" else Vector2i(1672,941)
 			check(variant.path==expected_path and art.STYLES.has(variant.style),"canonical original filename "+variant.path)
 			check(image!=null and image.get_size()==expected_dims,"original PNG dimensions "+variant.path)
