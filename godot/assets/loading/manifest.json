@@ -13,11 +13,11 @@
     {
       "path": "res://assets/loading/bg_loading_02.png",
       "name": "ロード画面_02",
-      "source_filename": "loading_02.png",
+      "source_filename": "loading_02_02.png",
       "width": 1920,
       "height": 1080,
-      "bytes": 5820656,
-      "sha256": "ffcb53b666897ed9e8427e44fcb02a651cd359ad67069159daa5024778b6df98"
+      "bytes": 5745867,
+      "sha256": "2b2d23fd83b64481b013873670855e416c9fab881bc0b2a1c8d183bcc3eea518"
     },
     {
       "path": "res://assets/loading/bg_loading_03.png",
