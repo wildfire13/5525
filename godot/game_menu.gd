@@ -86,40 +86,30 @@ func build(menu_button: Button) -> void:
 	menu_body.add_theme_constant_override("separation", Tokens.SPACE_XS)
 	menu_scroll.add_child(menu_body)
 
-	_add_menu_actions(menu_body)
+	var actions := GridContainer.new()
+	actions.name = "MenuActions"
+	actions.columns = 2
+	actions.add_theme_constant_override("h_separation", Tokens.SPACE_SM)
+	actions.add_theme_constant_override("v_separation", Tokens.SPACE_XS)
+	menu_body.add_child(actions)
+	_add_menu_actions(actions)
+	for control in actions.get_children():
+		control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	_add_cloud_speed(menu_body)
 	_add_audio_settings(menu_grid)
 
 	ui.menu = panel
 	ui.menu_overlay = overlay
 
 
-func _add_menu_actions(menu_body: VBoxContainer) -> void:
+func _add_menu_actions(menu_body: GridContainer) -> void:
 	for item in [["セーブ", ui.save_game], ["ロード", ui.load_dialog], ["行動ログ", ui.show_action_log]]:
 		var callback: Callable = item[1]
 		ui.button(menu_body, item[0], func():
 			panel.hide()
 			callback.call()
 		)
-
-	var withdraw: Button = ui.local_button(menu_body, "護送を断念して撤退", func():
-		panel.hide()
-		ui.confirm(
-			"水門の鐘の護送を断念しますか？　報酬はなく、受注前の状態に戻ります。",
-			ui.act.bind("retreat", [])
-		)
-	)
-	withdraw.name = "WithdrawSluice"
-	withdraw.hide()
-	panel.visibility_changed.connect(func():
-		var job = ui.campaign().get("activeQuest")
-		withdraw.visible = (
-			panel.visible
-			and job is Dictionary
-			and job.get("id") == "sluice-bell"
-			and ui.campaign().get("phase") == "battle"
-			and not ui.state().get("result")
-		)
-	)
 
 	var reopen_results: Button = ui.local_button(menu_body, "直近のリザルト", func():
 		panel.hide()
@@ -145,11 +135,12 @@ func _add_menu_actions(menu_body: VBoxContainer) -> void:
 	)
 
 	if ui.debug_view.is_enabled():
-		var dev_button: Button = ui.local_button(menu_body, "開発情報（別ウィンドウ）", func():
+		var dev_button: Button = ui.local_button(menu_body, "開発情報", func():
 			panel.hide()
 			ui.debug_view.open()
 		)
 		dev_button.name = "OpenDeveloperWindow"
+		dev_button.tooltip_text = "開発情報を別ウィンドウで開く"
 
 	ui.button(menu_body, "新しい旅", func():
 		panel.hide()
@@ -166,6 +157,55 @@ func _add_menu_actions(menu_body: VBoxContainer) -> void:
 	quit_button.name = "QuitGame"
 
 	ui.local_button(menu_body, "閉じる", panel.hide)
+
+	var withdraw: Button = ui.local_button(menu_body, "護送を断念して撤退", func():
+		panel.hide()
+		ui.confirm(
+			"水門の鐘の護送を断念しますか？　報酬はなく、受注前の状態に戻ります。",
+			ui.act.bind("retreat", [])
+		)
+	)
+	withdraw.name = "WithdrawSluice"
+	withdraw.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	withdraw.hide()
+	panel.visibility_changed.connect(func():
+		var job = ui.campaign().get("activeQuest")
+		withdraw.visible = (
+			panel.visible
+			and job is Dictionary
+			and job.get("id") == "sluice-bell"
+			and ui.campaign().get("phase") == "battle"
+			and not ui.state().get("result")
+		)
+	)
+
+
+func _add_cloud_speed(parent: Container) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", Tokens.SPACE_SM)
+	parent.add_child(row)
+	var label := Label.new()
+	label.text = "雲の速さ"
+	row.add_child(label)
+
+	var slider := HSlider.new()
+	slider.name = "CloudSpeed"
+	slider.max_value = ui.preferences.MAX_CLOUD_SPEED
+	slider.step = 0.05
+	slider.value = ui.preferences.cloud_speed
+	slider.custom_minimum_size.y = Tokens.BUTTON_MD
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(slider)
+
+	var value := Label.new()
+	value.text = "%.2f" % slider.value
+	value.custom_minimum_size.x = 55
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(value)
+	slider.value_changed.connect(func(speed: float):
+		value.text = "%.2f" % speed
+		ui.preferences.store_cloud_speed(speed)
+	)
 
 
 func _add_audio_settings(menu_grid: Container) -> void:
@@ -270,7 +310,7 @@ func focus_controls() -> Array:
 
 func fit() -> void:
 	_last_size = ui.size
-	ScreenGrid.place(panel, ScreenGrid.cell_rect(ui.size, 3, 1, 3, 8))
+	ScreenGrid.place(panel, ScreenGrid.cell_rect(ui.size, 3, 1, 2, 6))
 
 
 func sync_size() -> void:

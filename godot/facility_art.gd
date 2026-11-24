@@ -6,6 +6,14 @@ const BACKGROUND_EFFECTS = {
 	DEFAULT_ROAD_PATH: preload("res://shaders/forest_clouds.tres"),
 	"res://assets/towns/bg_village_east.png": preload("res://shaders/east_river.tres"),
 }
+const TOWN_SKY = preload("res://shaders/town_sky/clouds.tres")
+const SKY_MASKS = {
+	"res://assets/towns/bg_town_astaris.png": preload("res://shaders/town_sky/astaris.png"),
+	"res://assets/towns/bg_village_east.png": preload("res://shaders/town_sky/east.png"),
+	"res://assets/towns/bg_village_north.png": preload("res://shaders/town_sky/north.png"),
+	"res://assets/towns/bg_village_south.png": preload("res://shaders/town_sky/south.png"),
+	"res://assets/towns/bg_village_west.png": preload("res://shaders/town_sky/west.png"),
+}
 var effects_enabled := true
 const STYLES=["interior","papercut","gouache","watercolor_pen"]
 var catalog: Dictionary={}
@@ -64,13 +72,13 @@ func render_background(parent: Control,ui,battle: bool):
 		if parent.get_child_count()>0:ui.clear(parent)
 		return
 	if c.get("phase")!="town":
-		fullscreen(parent,default_road_texture(),"RoadStill")
+		fullscreen(parent,ui.preferences,default_road_texture(),"RoadStill")
 		return
 	ui.pages.hub_view.select_art(str(c.get("location","")))
 	var town_art=ui.pages.hub_view.artwork
 	var town_texture=load(town_art.path) if texture==null and not town_art.is_empty() else null
-	fullscreen(parent,town_texture)
-func fullscreen(parent: Control,fallback_texture: Texture2D=null,fallback_name: String="TownStill"):
+	fullscreen(parent,ui.preferences,town_texture)
+func fullscreen(parent: Control,preferences,fallback_texture: Texture2D=null,fallback_name: String="TownStill"):
 	var selected=texture if texture!=null else fallback_texture
 	if selected==null:
 		for child in parent.get_children():
@@ -86,11 +94,29 @@ func fullscreen(parent: Control,fallback_texture: Texture2D=null,fallback_name: 
 	image.name="FacilityStill" if texture!=null else fallback_name
 	if image.texture!=selected:image.texture=selected
 	image.material = BACKGROUND_EFFECTS.get(selected.resource_path) if effects_enabled else null
+	update_sky(image, preferences, SKY_MASKS.get(selected.resource_path) if effects_enabled else null)
 	var shade=image.get_node_or_null("FacilityReadabilityShade")
 	if shade==null:
 		shade=ColorRect.new();shade.name="FacilityReadabilityShade";shade.color=Color(.025,.04,.06,.12)
 		shade.mouse_filter=Control.MOUSE_FILTER_IGNORE;image.add_child(shade);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# NPC portraits are positioned by the facility entry or service view.
+func update_sky(image: TextureRect, preferences, mask: Texture2D):
+	var sky := image.get_node_or_null("TownSky") as TextureRect
+	if sky == null and mask != null:
+		sky = preload("res://shaders/town_sky/town_sky.gd").new()
+		sky.preferences = preferences
+		sky.name = "TownSky"
+		sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sky.expand_mode = image.expand_mode
+		sky.stretch_mode = image.stretch_mode
+		sky.material = TOWN_SKY.duplicate()
+		image.add_child(sky)
+		image.move_child(sky, 0)
+		sky.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if sky != null:
+		sky.texture = mask
+		sky.visible = mask != null
+
 func backdrop(parent: Control) -> Control:
 	var foreground=VBoxContainer.new();foreground.name="FacilityForeground";foreground.mouse_filter=Control.MOUSE_FILTER_PASS;foreground.size_flags_vertical=Control.SIZE_EXPAND_FILL;parent.add_child(foreground)
 	return foreground

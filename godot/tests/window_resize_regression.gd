@@ -27,7 +27,7 @@ func run():
   check(rect(probe).position==(expected if key=="old-default" else Grid.cell_rect(Vector2(root.size),0,2 if probe.is_embedded() else 1,1,1).position) and on_grid(rect(probe)),key+" layout restored on the intended cells")
   probe.queue_free();await settle()
  game.open_menu();await settle()
- check(Rect2(game.menu.position,game.menu.size)==Grid.cell_rect(Vector2(root.size),3,1,3,8),"menu occupies its registered cells");game.menu.hide()
+ check(Rect2(game.menu.position,game.menu.size)==Grid.cell_rect(Vector2(root.size),3,1,2,6),"menu occupies its registered cells");game.menu.hide()
  var confirmation=game.confirm("確認",func():pass);await settle()
  var detail_frame=preload("res://window_grid.gd").frame_rect(Vector2(root.size))
  check(rect(confirmation)==detail_frame,"confirmation opens in the shared frame");confirmation.canceled.emit();await settle()

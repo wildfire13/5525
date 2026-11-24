@@ -8,7 +8,21 @@ const TITLE_HEIGHT=Tokens.WINDOW_BAR_HEIGHT
 const TITLE_MARGIN=Vector2(0,Tokens.WINDOW_BAR_HEIGHT+Tokens.SPACE_XS)
 const PATH="user://ui-layout-v1.cfg"
 var config=ConfigFile.new()
-func _init():config.load(PATH)
+const DEFAULT_CLOUD_SPEED := 0.1
+const MAX_CLOUD_SPEED := 1.0
+var cloud_speed := DEFAULT_CLOUD_SPEED
+
+func _init():
+	config.load(PATH)
+	var stored = config.get_value("background", "cloud_speed", DEFAULT_CLOUD_SPEED)
+	if (stored is float or stored is int) and is_finite(float(stored)):
+		cloud_speed = clampf(float(stored), 0.0, MAX_CLOUD_SPEED)
+
+func store_cloud_speed(value: float):
+	cloud_speed = clampf(value, 0.0, MAX_CLOUD_SPEED)
+	config.set_value("background", "cloud_speed", cloud_speed)
+	save()
+
 func rect_for(key: String,fallback: Rect2,available: Vector2,minimum: Vector2) -> Rect2:
 	var value=config.get_value("windows",key,fallback)
 	return bounded(value if value is Rect2 else fallback,available,minimum)

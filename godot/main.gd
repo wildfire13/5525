@@ -1022,7 +1022,10 @@ func _input(event):
 			if not controls.is_empty():
 				var index=controls.find(get_viewport().gui_get_focus_owner())
 				var next=controls[posmod(index+(-1 if event.shift_pressed else 1),controls.size())]
-				next.grab_focus();(menu.find_child("CommonMenuScroll",true,false) as ScrollContainer).ensure_control_visible(next)
+				next.grab_focus()
+				var scroll := menu.find_child("CommonMenuScroll",true,false) as ScrollContainer
+				if scroll.is_ancestor_of(next):
+					scroll.ensure_control_visible(next)
 			get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey:
