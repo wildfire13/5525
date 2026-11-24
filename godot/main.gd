@@ -336,6 +336,10 @@ func _unhandled_key_input(event):
 	if results_view.active:get_viewport().set_input_as_handled();return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode==KEY_F11:fullscreen();get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_F8:
+			pages.facility_art.effects_enabled = not pages.facility_art.effects_enabled
+			pages.facility_art.render_background(backdrop_layer, self, view_kind == "battle")
+			get_viewport().set_input_as_handled()
 		elif event.keycode==KEY_ESCAPE:
 			if modal_escape_frame==Engine.get_process_frames():get_viewport().set_input_as_handled();return
 			if menu.visible:menu.hide()

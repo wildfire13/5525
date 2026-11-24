@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://shaders/forest_clouds.gdshader" id="shader"]
+
+[sub_resource type="FastNoiseLite" id="Noise"]
+seed = 5525
+frequency = 0.016
+fractal_octaves = 3
+
+[sub_resource type="NoiseTexture2D" id="CloudTexture"]
+width = 256
+height = 256
+seamless = true
+noise = SubResource("Noise")
+
+[resource]
+shader = ExtResource("shader")
+shader_parameter/cloud_noise = SubResource("CloudTexture")

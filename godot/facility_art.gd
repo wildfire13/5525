@@ -2,6 +2,11 @@ extends RefCounted
 ## Visual-only visit state. Never uses the campaign/battle random generator.
 const ROOT="res://assets/facilities/"
 const DEFAULT_ROAD_PATH="res://assets/roads/bg_road_forest.png"
+const BACKGROUND_EFFECTS = {
+	DEFAULT_ROAD_PATH: preload("res://shaders/forest_clouds.tres"),
+	"res://assets/towns/bg_village_east.png": preload("res://shaders/east_river.tres"),
+}
+var effects_enabled := true
 const STYLES=["interior","papercut","gouache","watercolor_pen"]
 var catalog: Dictionary={}
 var visit_key := ""
@@ -80,6 +85,7 @@ func fullscreen(parent: Control,fallback_texture: Texture2D=null,fallback_name: 
 		image.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(image);image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	image.name="FacilityStill" if texture!=null else fallback_name
 	if image.texture!=selected:image.texture=selected
+	image.material = BACKGROUND_EFFECTS.get(selected.resource_path) if effects_enabled else null
 	var shade=image.get_node_or_null("FacilityReadabilityShade")
 	if shade==null:
 		shade=ColorRect.new();shade.name="FacilityReadabilityShade";shade.color=Color(.025,.04,.06,.12)
