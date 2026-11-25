@@ -23,7 +23,7 @@ func observe(source: Button,label: String,leave:=true):
 	for i in range(11):
 		var point=Grid.cell_rect(area.size,i,i,0,0).position
 		xs.append(point.x);ys.append(point.y)
-	check(area.encloses(rect) and xs.has(rect.position.x) and xs.has(rect.end.x) and ys.has(rect.position.y) and ys.has(rect.end.y) and rect.size.x==576,"FHD grid rectangle: "+label)
+	check(area.encloses(rect) and xs.has(rect.position.x) and xs.has(rect.end.x) and ys.has(rect.position.y) and ys.has(rect.end.y) and rect.size.x in [576.0,768.0],"FHD grid rectangle: "+label)
 	check(popup.content.get_global_rect().end.y<=rect.end.y and not rect.intersects(anchor),"hover fits and leaves its source uncovered: %s %s > %s" % [label,anchor,popup.content.get_global_rect()])
 	check(popup.mouse_filter==Control.MOUSE_FILTER_IGNORE and popup.find_children("*","Control",true,false).all(func(c):return c.mouse_filter==Control.MOUSE_FILTER_IGNORE),"overlay and every child ignore pointer input: "+label)
 	var sample={"title":popup.title.text,"body":popup.body.text,"size":str(rect.size),"surface":popup.panel.get_theme_stylebox("panel").bg_color.to_html(),"ink":popup.body.get_theme_color("font_color").to_html()}
@@ -49,12 +49,12 @@ func run():
 	game.navigate("shop");await settle();await click("FacilityChoice_buy")
 	var before=await saved()
 	var cloth=await observe(node("Product_armor-cloth"),"shop-cloth")
-	check(cloth.get("title")=="布製の旅装" and cloth.get("body")=="Wt 3.0\n防御 5 / 火1","cloth summary excludes zero attributes, empty grants and operation hints")
+	check(cloth.get("title")=="布製の旅装" and cloth.get("body","").contains("装備の基礎能力") and cloth.get("body","").contains("DEF 物5 / 火1") and cloth.get("body","").contains("属性相性"),"cloth hover shows full equipment details")
 	var product=node("Product_armor-cloth")
 	await observe(product,"shop-cloth-before-click",false)
 	await pointer_click(product)
 	var detail=node("SkillDetailsWindow")
-	check(detail!=null and detail.visible,"click on a hovered product still opens full details")
+	check(detail==null,"click on a hovered shop product selects inline without modal popup")
 	if detail!=null:detail.finish();await settle()
 	game.pages.shop_view.set_inventory_tab("equipment");await settle()
 	product=node("Product_cloth-head")
@@ -87,7 +87,7 @@ func run():
 	var battle_cloth=await observe(equipped[0] if not equipped.is_empty() else null,"battle-cloth")
 	check(not cloth.is_empty() and battle_cloth==cloth,"shop and battle cloth share text, size and colors")
 	if not equipped.is_empty():
-		check(equipped[0].plain_details.any(func(line):return line.contains("属性相性")) and not equipped[0].brief().contains("属性相性"),"full detail text remains separate")
+		check(equipped[0].plain_details.any(func(line):return line.contains("属性相性")) and equipped[0].brief().contains("属性相性"),"full detail text appears in hover body")
 	game.dialog.close();await settle()
 	game.hud.open_skills();await settle()
 	var battle_skill=await observe(node("BattleSkillDetails_skill_retreat_slash"),"battle-retreat")

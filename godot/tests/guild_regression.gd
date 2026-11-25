@@ -84,7 +84,7 @@ func run():
 	var map_panel=node("CharacterLoadoutPanel")
 	var map_rect=map_panel.get_global_rect()
 	await check_roster_anchor(map_panel,"party")
-	await tap("Header_character")
+	await tap("FooterPartyButton")
 	await tap("HubFacility_guild")
 	check(node("FacilityChoice_guild")!=null and (await saved())==entry_before,"G01 guild opens pure service entry")
 	await tap("FacilityChoice_guild")

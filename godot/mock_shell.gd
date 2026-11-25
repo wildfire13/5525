@@ -97,6 +97,7 @@ func apply_theme():
 var character_origin := "hub"
 
 func toggle_character():
+	if ui.locked or ui.presenting:return
 	if ui.page=="party" and ui.pages.guild_view.busy():return
 	if not ui.pages.party_view.guard_leave(toggle_character):return
 	if ui.page=="character":ui.page=character_origin
@@ -115,6 +116,7 @@ func toggle_journey_quest():
 func add_header_menu_button(parent: Node,button_name: String="") -> Button:
 	var menu_btn=ui.local_button(parent,"メニュー",ui.open_menu)
 	if not button_name.is_empty():menu_btn.name=button_name
+	menu_btn.theme_type_variation=&"ActionButton"
 	Tokens.apply_button_size(menu_btn,Tokens.BUTTON_MD,true,Tokens.BUTTON_W_SM)
 	ui.memory.key(menu_btn,"game_menu")
 	return menu_btn
@@ -163,9 +165,9 @@ func navigation(parent):
 	var facility=ui.pages.facility_entry
 	var links=[]
 	if ui.page=="character":
-		links=[["character","パーティ情報",toggle_character]]
+		pass
 	elif not town:
-		links=[["character","パーティ情報",toggle_character],["board","クエスト",toggle_journey_quest]]
+		links=[["board","クエスト",toggle_journey_quest]]
 	elif facility.supported(ui.page):
 		links=[["hub",facility.facility_name(ui.page),ui.navigate.bind("hub")]]
 	elif ui.page=="board":
@@ -183,7 +185,11 @@ func navigation(parent):
 func elapsed_time_text() -> String:
 	return "経過時間：%d時間" % int(ui.campaign().get("worldTime",0))
 func needs_roster() -> bool:
-	return ui.page not in ["board","inn"] and not ui.pages.facility_entry.at_top() and ui.campaign().get("phase")!="result"
+	var phase=str(ui.campaign().get("phase",""))
+	if phase=="town" and ui.page in ["hub","map","board","inn"]:return false
+	if phase=="prepare":return false
+	if phase!="town" and ui.page not in ["character","items"] and ui.pages.travel_map_expanded:return false
+	return ui.page not in ["board","inn"] and not ui.pages.facility_entry.at_top() and (ui.page=="character" or phase!="result")
 func columns(parent: Control) -> HBoxContainer:
 	var row=ui.row(parent)
 	row.size_flags_vertical=Control.SIZE_SHRINK_BEGIN

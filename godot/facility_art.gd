@@ -35,7 +35,6 @@ func reset():
 func facility(phase: String,location: String,page: String) -> String:
 	if phase!="town":return ""
 	match page:
-		"map":return "departure_map"
 		"party":return "guild" if location=="astaris" else ""
 		"inn":return "inn" if location=="astaris" else ""
 		"shop":return {"east":"weapon","west":"armor","south":"item","north":"accessory"}.get(location,"")

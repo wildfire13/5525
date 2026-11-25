@@ -135,9 +135,10 @@
    "label": "パーティ名簿",
    "nodes": [
     "PartyRoster",
-    "PartyFacesScroll"
+    "PartyFacesScroll",
+    "BattlePartyOverlay"
    ],
-   "meaning": "人物の選択・受け渡し。配置時は出場状態も表示"
+   "meaning": "人物の選択・受け渡し。配置・戦闘時は出場メンバーを表示"
   },
   {
    "screens": [

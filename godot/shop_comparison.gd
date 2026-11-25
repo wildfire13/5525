@@ -107,7 +107,7 @@ func gear_summary(parent,gear: Dictionary,rows: Array,candidate:=false):
 	label.icon=ui.icons.texture(ui.icons.equipment(gear));label.expand_icon=true;label.add_theme_constant_override("icon_max_width",40);Tokens.apply_button_size(label,Tokens.BUTTON_MD,false)
 	if candidate:
 		label.name="ShopComparisonProduct"
-	preload("res://equipment_tooltip.gd").bind_details(label,ui,gear)
+	preload("res://equipment_tooltip.gd").bind_hover(label,gear,ui.campaign())
 	for line in rows:
 		var stat_label=ui.label_(parent,line)
 		if line.contains("（↑"):stat_label.add_theme_color_override("font_color",Tokens.POSITIVE)

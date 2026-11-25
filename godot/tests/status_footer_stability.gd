@@ -45,7 +45,7 @@ func run():
  for spec in [["east","shop"],["astaris","party"],["astaris","inn"]]:
   var fixture=seed.duplicate(true);fixture.state.location=spec[0]
   await game.update({"op":"campaign_load","data":fixture});game.navigate(spec[1]);await settle();game.set_status("他画面の説明");await settle()
-  check(game.footer.is_visible_in_tree() and game.footer.get_global_rect()==baseline_footer(),"facility reserves common footer "+spec[1])
+  check(game.footer.is_visible_in_tree() and node("StatusFooter").get_global_rect()==baseline_footer(),"facility reserves common footer "+spec[1])
  check(game.audio.muted.values().all(func(v):return v),"audio three OFF")
  var f=FileAccess.open(evidence.path_join("checks.json"),FileAccess.WRITE);f.store_string(JSON.stringify(checks,"\t"));f.close()
  f=FileAccess.open(evidence.path_join("geometry.json"),FileAccess.WRITE);f.store_string(JSON.stringify(measured,"\t"));f.close()

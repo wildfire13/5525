@@ -20,7 +20,7 @@ func run():
 			check(variant.path==expected_path and art.STYLES.has(variant.style),"canonical original filename "+variant.path)
 			check(image!=null and image.get_size()==expected_dims,"original PNG dimensions "+variant.path)
 	var entries=production.weapon
-	var cases=[["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"],["astaris","map","departure_map"]]
+	var cases=[["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"]]
 	for dims in [Vector2i(1920,1080)]:
 		root.size=dims
 		for spec in cases:
@@ -50,11 +50,10 @@ func run():
 				await game.pages.shop_view.confirm_purchase("spear-wood","character_merina");await settle();await click("PurchaseAgree")
 				check(game.campaign().characters["character_merina"].inventory.get("spear-wood",0)==int(before.state.characters["character_merina"].inventory.get("spear-wood",0))+1 and art.rng.state==state,"confirmed purchase works over fixed background")
 				before=await saved()
-			if spec[1]=="map":
-				check(node("TownMap")!=null and node("DepartButton")!=null,"map controls remain available over background")
-				var map=node("TownMap");var destination=map.buttons.keys().filter(func(id):return id!=map.current and id!=map.selected)[0]
-				map.buttons[destination].pressed.emit();await settle()
-				check(node("TownMap").selected==destination and art.rng.state==state,"destination selection works without reroll")
+				for tab in ["character","board","items"]:
+					game.navigate(tab);await settle()
+					check(art.visit_key=="east:weapon" and node("FacilityStill")!=null,"opening "+tab+" inside facility retains facility artwork")
+				game.navigate("shop");await settle()
 			if spec[1]=="party":
 				for pair in [["equipment",1],["skills",2],["inventory",3],["ability",0]]:
 					await click("GuildTab_"+str(pair[0]))
@@ -64,6 +63,18 @@ func run():
 			game.navigate(spec[1]);await settle();check(art.rng.state!=state if production[spec[2]].size()>1 else art.artwork==artwork,"returning facility makes new random draw (same style allowed)")
 			game.navigate("hub");await settle();check(game.pages.hub_view.artwork==town_image,"facility navigation preserves existing town still")
 			check(await saved()==before,"visual visits preserve exact campaign and battle RNG state")
+		for loc in ["astaris","east"]:
+			var map_seed=seed.duplicate(true);map_seed.state.location=loc
+			await game.update({"op":"campaign_load","data":map_seed});game.navigate("hub");await settle()
+			var town_path=game.pages.hub_view.artwork.path;var before_map=await saved();var state_map=art.rng.state
+			game.navigate("map");await settle()
+			check(art.visit_key.is_empty() and art.texture==null and node("FacilityStill")==null and node("TownStill")!=null and node("TownStill").texture.resource_path==town_path,"world map keeps current location background "+loc)
+			check(node("TownMap")!=null and node("DepartButton")!=null,"map controls remain available over town background "+loc)
+			var map=node("TownMap");var destination=map.buttons.keys().filter(func(id):return id!=map.current and id!=map.selected)[0]
+			map.buttons[destination].pressed.emit();await settle()
+			check(node("TownMap").selected==destination and art.rng.state==state_map and node("TownStill")!=null and node("TownStill").texture.resource_path==town_path,"destination selection keeps town background without reroll "+loc)
+			game.navigate("hub");await settle()
+			check(node("TownStill")!=null and node("TownStill").texture.resource_path==town_path and await saved()==before_map,"world map visit preserves town background and campaign "+loc)
 	art.catalog={"weapon":[{"style":"papercut","path":"res://assets/facilities/not-delivered.png"},{"style":"unknown","path":"res://assets/towns/bg_village_west.png"}]}
 	art.reset();art.sync("town","east","shop");check(art.texture==null,"missing paths and unsupported styles safely fall back")
 	art.catalog={"weapon":entries};art.reset();art.sync("town","east","shop");art.sync("battle","east","shop")

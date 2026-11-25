@@ -53,6 +53,11 @@ var right_panel
 var deployment_footer: PanelContainer
 var deployment_instructions: Label
 var deployment_actions: HBoxContainer
+var deployment_party_button: Button
+var battle_party_button: Button
+var party_overlay: PanelContainer
+var party_overlay_open := false
+var party_overlay_job := ""
 var deployment_layout := false
 var deployment_workspace=preload("res://deployment_workspace.gd").new()
 var loadout_modal
@@ -113,6 +118,8 @@ func reset_context():
 	expanded_menu="";menu_transition=false;menu_ticket+=1;clear_action_visual();shifted_action="";queue_distance=0;animation_trace.clear()
 	inspected_uid="";inspection_pinned=false;invalidate_hover();skill_content_open=false
 	discard_reference();item_list=false;skill_list=false;action_menu=true;selected_cell=-1;selected_enemy="";last_actor="";last_action_count=-1;presentation_action={};queue_at_start=[]
+	party_overlay_open=false;party_overlay_job=""
+	if is_instance_valid(party_overlay):party_overlay.hide()
 func mount():
 	selection_snapshot={}
 	deployment_workspace.hud=self
@@ -152,6 +159,12 @@ func mount():
 	var deploy_row=HBoxContainer.new();deploy_row.name="DeploymentFooterRow";deploy_row.size_flags_horizontal=Control.SIZE_EXPAND_FILL;deploy_row.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 	deploy_row.add_theme_constant_override("separation",Tokens.SPACE_MD)
 	deployment_footer.add_child(deploy_row)
+	deployment_party_button=local(deploy_row,"パーティ情報",ui.mock_shell.toggle_character)
+	deployment_party_button.name="DeploymentPartyButton"
+	deployment_party_button.set_meta("base_variation",&"ActionButton")
+	deployment_party_button.theme_type_variation=&"ActionButton"
+	Tokens.apply_button_preset(deployment_party_button,"md")
+	ui.memory.key(deployment_party_button,"battle_footer_party")
 	deployment_instructions=Label.new();deployment_instructions.name="DeploymentInstructions";deployment_instructions.text="人物をドラッグ、または人物と配置先を順に選択"
 	deployment_instructions.size_flags_horizontal=Control.SIZE_EXPAND_FILL;deployment_instructions.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
 	deployment_instructions.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
@@ -161,8 +174,12 @@ func mount():
 	deployment_actions=HBoxContainer.new();deployment_actions.name="DeploymentActions";deployment_actions.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 	deployment_actions.add_theme_constant_override("separation",Tokens.SPACE_SM)
 	deploy_row.add_child(deployment_actions)
+	party_overlay=PanelContainer.new();party_overlay.name="BattlePartyOverlay";party_overlay.mouse_filter=Control.MOUSE_FILTER_STOP
+	party_overlay.add_theme_stylebox_override("panel",Tokens.box(Tokens.SURFACE))
+	party_overlay.z_index=25;party_overlay.hide()
+	middle.add_child(party_overlay)
 	# Control input follows sibling order, independently of drawing z_index.
-	middle.move_child(left_panel,-1);middle.move_child(right_panel,-1)
+	middle.move_child(left_panel,-1);middle.move_child(right_panel,-1);middle.move_child(party_overlay,-1)
 	_layout_sig=[]
 	resize()
 func layout_camera_guide():
@@ -210,6 +227,10 @@ func resize(force:=true):
 	right_panel.place_regions(ui.size,Grid.cell_rect(ui.size,8,1,2,8),Grid.cell_rect(ui.size,8,4,2,4),Grid.cell_rect(ui.size,8,1,2,3),Grid.cell_rect(ui.size,8,8,2,1),true)
 	for panel in [left_panel,right_panel]:
 		panel.z_index=10
+	if is_instance_valid(party_overlay):
+		party_overlay.z_index=25
+		middle.move_child(party_overlay,-1)
+		Grid.place(party_overlay,Grid.cell_rect(ui.size,0,1,2,8))
 	Grid.place(tools,Grid.cell_rect(ui.size,6,1,2,1))
 
 func render():
@@ -234,7 +255,12 @@ func render():
 	right_panel.find_child("DragHandle",true,false).text="敵の情報  ⋮" if deploying else "対象 / 効果  ⋮"
 	deployment_footer.visible=deploying;deployment_actions.visible=deploying;ui.battle_header.visible=not deploying
 	ui.clear(deployment_actions)
+	if is_instance_valid(deployment_party_button):
+		deployment_party_button.name="BattleFooterPartyButton" if deploying else "DeploymentPartyButton"
 	if deploying and phase==null and not ui.engine.disconnected:
+		party_overlay_open=false
+		if is_instance_valid(party_overlay):party_overlay.hide()
+		ui.clear(ui.battle_header)
 		selection_snapshot={}
 		tools.hide()
 		render_actor(a)
@@ -265,7 +291,10 @@ func render():
 	selection_snapshot=ui.data if selecting else {}
 	selection_size=ui.size
 	previous_menu=expanded_menu
-	if not deploying:render_person()
+	if not deploying:
+		if s.get("result")!=null:party_overlay_open=false
+		render_party_overlay()
+		render_person()
 	if ui.engine.disconnected:l(command_box,"接続が終了しました",true)
 	elif phase is Dictionary:render_presentation(phase)
 	elif s.get("deploying",false):render_deployment()
@@ -346,6 +375,12 @@ func open_order_details():
 		local(actions,"閉じる",ui.dialog.close),Callable(),Rect2(),preload("res://window_grid.gd").compact_modal_grid())
 func render_queue():
 	var line=ui.row(ui.battle_header);line.name="TurnOrderControls";line.size_flags_horizontal=Control.SIZE_EXPAND_FILL;line.size_flags_vertical=Control.SIZE_SHRINK_CENTER;line.add_theme_constant_override("separation",Tokens.SPACE_MD)
+	battle_party_button=local(line,"パーティ情報",toggle_party_overlay)
+	battle_party_button.name="BattleFooterPartyButton"
+	battle_party_button.set_meta("base_variation",&"ActionButton")
+	Tokens.apply_button_preset(battle_party_button,"md")
+	ui.mark_selected(battle_party_button,party_overlay_open)
+	ui.memory.key(battle_party_button,"battle_footer_party")
 	var queue_scroll=ScrollContainer.new();queue_scroll.name="TurnOrderViewport";queue_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO;queue_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
 	queue_scroll.custom_minimum_size=Vector2(queue_viewport_width(),Tokens.BUTTON_LG if ui.ui_size_mode=="standard" else Tokens.BUTTON_MD)
 	queue_scroll.size_flags_vertical=Control.SIZE_SHRINK_CENTER
@@ -391,11 +426,64 @@ func render_queue():
 	var history=local(line,"戦闘履歴",open_history);history.name="BattleHistory";history.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN;Tokens.apply_button_preset(history,"md")
 	if presenting and str(ui.data.presentation.get("action_id",""))==shifted_action:queue_scroll.set_deferred("scroll_horizontal",queue_distance)
 func queue_viewport_width() -> float:
-	# Keep all five cards, with the details/history actions right-aligned outside their scrolling area.
+	# Keep all five cards, with party info on the left and details/history right-aligned.
 	var preferred=QUEUE_PITCH*QUEUE_VISIBLE-QUEUE_ARROW_WIDTH-QUEUE_GAP*2
 	var footer_width=Grid.cell_rect(ui.size,0,9,10,1).size.x-float(Tokens.SPACE_SM*2)
-	var reserved_buttons=float(Tokens.BUTTON_W_MD*2+Tokens.SPACE_MD*3)
+	var reserved_buttons=float(Tokens.BUTTON_W_MD*3+Tokens.SPACE_MD*4)
 	return minf(preferred,maxf(1.0,footer_width-reserved_buttons))
+func toggle_party_overlay():
+	if ui.state().get("deploying",false):
+		ui.mock_shell.toggle_character()
+		return
+	party_overlay_open=not party_overlay_open
+	render_party_overlay()
+	if is_instance_valid(battle_party_button):
+		ui.mark_selected(battle_party_button,party_overlay_open)
+	resize(true)
+func render_party_overlay():
+	if not is_instance_valid(party_overlay):return
+	ui.clear(party_overlay)
+	if not party_overlay_open or ui.state().get("deploying",false):
+		party_overlay.hide()
+		if is_instance_valid(battle_party_button):ui.mark_selected(battle_party_button,false)
+		return
+	party_overlay.show()
+	party_overlay.add_theme_stylebox_override("panel",Tokens.box(Tokens.SURFACE))
+	if is_instance_valid(battle_party_button):ui.mark_selected(battle_party_button,true)
+	var body=VBoxContainer.new()
+	party_overlay.add_child(body)
+	var allies=ui.state().get("units",[]).filter(func(u):return u.get("side")=="ally")
+	ui.label_(body,"パーティメンバー     %d / %d" % [allies.size(),int(ui.campaign().get("partyLimit",12))])
+	var filter=ui.mock_shell.job_filter(body,party_overlay_job,func(value):
+		party_overlay_job=value
+		for row in body.find_children("*","Button",true,false):
+			if row.has_meta("roster_job"):row.visible=value.is_empty() or row.get_meta("roster_job")==value)
+	filter.name="BattlePartyJobFilter"
+	var list=ui.scroller(body)
+	list.get_parent().name="BattlePartyOverlayScroll"
+	list.get_parent().size_flags_vertical=Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation",0)
+	var inv_by_char=ui.campaign().get("inventoryByCharacter",{})
+	for u in allies:
+		var uid=str(u.id)
+		var button=local(list,"",open_equipment_sheet.bind(uid))
+		button.name="BattlePartyMember_"+uid
+		button.set_meta("roster_job",str(u.get("job","")))
+		button.visible=party_overlay_job.is_empty() or str(u.get("job",""))==party_overlay_job
+		button.custom_minimum_size=Vector2(254,88)
+		var line=ui.mock_shell.roster_member_line(button,u)
+		var info=line.get_node("MemberInfo")
+		var inventory=inv_by_char.get(uid,{});var capacity=inventory.get("capacity",{})
+		var detail_row=HBoxContainer.new();detail_row.mouse_filter=Control.MOUSE_FILTER_IGNORE;detail_row.add_theme_constant_override("separation",Tokens.SPACE_MD);info.add_child(detail_row)
+		var cap_label=Label.new();cap_label.text="%s / %s" % [int(capacity.get("used",0)),int(capacity.get("limit",0)) if capacity.get("limit")!=null else "∞"];cap_label.add_theme_font_size_override("font_size",Tokens.FONT_SM);cap_label.autowrap_mode=TextServer.AUTOWRAP_OFF;cap_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;detail_row.add_child(cap_label)
+		if u.has("carriedWeight"):
+			var carried := float(u.get("carriedWeight",0))+float(u.get("fallenWeightShare",0))
+			var limit := float(u.get("weightLimit",u.get("str",0)))
+			var wt_label=Label.new();wt_label.text="Wt %s / %s" % [_format_number(carried),_format_number(limit)];wt_label.add_theme_font_size_override("font_size",Tokens.FONT_SM);wt_label.autowrap_mode=TextServer.AUTOWRAP_OFF;wt_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;detail_row.add_child(wt_label)
+			if bool(u.get("overburdened",false)) or (limit>0.0 and carried>limit):wt_label.add_theme_color_override("font_color",Tokens.DANGER)
+		if int(u.get("hp",0))<=0:
+			var ko=Label.new();ko.text="戦闘不能";ko.add_theme_font_size_override("font_size",Tokens.FONT_XS);ko.add_theme_color_override("font_color",Tokens.DANGER);ko.mouse_filter=Control.MOUSE_FILTER_IGNORE;line.add_child(ko)
+		for child in info.get_children():child.mouse_filter=Control.MOUSE_FILTER_IGNORE
 func target_name(id) -> String:
 	return str(unit(id).get("name","対象不明"))
 func command_selected(kind: String) -> bool:
@@ -754,6 +842,10 @@ func draw_loadout(body,member: Dictionary,tab: String):
 func close_detail() -> bool:
 	if range_reference:close_reference();return true
 	if is_instance_valid(ui.dialog.window):ui.dialog.close();return true
+	if party_overlay_open:
+		party_overlay_open=false
+		render_party_overlay()
+		return true
 	return false
 func live_board(source_id: int=0) -> bool:
 	return not ui.closing and is_instance_valid(ui.board) and ui.board.is_inside_tree() and not ui.board.is_queued_for_deletion() and (source_id==0 or source_id==ui.board.get_instance_id())

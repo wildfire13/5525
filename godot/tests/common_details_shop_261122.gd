@@ -13,18 +13,12 @@ func run():
 	var before=await saved()
 	await tap("Product_armor-cloth")
 	var detail=node("SkillDetailsWindow")
-	check(detail!=null and detail.visible,"product click opens common read-only detail")
-	if detail==null:quit(1);return
-	check(detail.find_child("SkillDetailsBody",true,false).text.contains("DEF 物5"),"cloth detail uses native equipment values")
-	check(detail.size.x==576,"common detail respects shared three-column width")
-	if DisplayServer.get_name()!="headless":
-		await process_frame;await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png(qa.path_join("common-detail.png"))
-	detail.finish();await settle()
-	check((await saved())==before,"closing product detail preserves money and equipment")
-	check(game.get_viewport().gui_get_focus_owner()==node("Product_armor-cloth"),"close restores product focus")
+	check(detail==null,"product click selects inline without popping up SkillDetailsWindow")
+	var cloth_btn=node("Product_armor-cloth")
+	check(cloth_btn.brief().contains("DEF 物5") and cloth_btn.brief().contains("装備の基礎能力"),"cloth hover exposes full native equipment details")
+	check((await saved())==before,"selecting product preserves money and equipment")
 	await pointer_drop(node("Product_cloth-head"),node("ShopEquipped_head"),product("cloth-head"))
-	check(node("PurchaseAgree")!=null,"detail closure preserves product-to-slot drag")
+	check(node("PurchaseAgree")!=null,"product-to-slot drag still opens purchase consent")
 	await tap("PurchaseDecline")
 	check((await saved())==before,"drag cancellation remains pure")
 	game.closing=true;await game.audio.finish_audio();game.engine.close_engine();game.queue_free()

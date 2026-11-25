@@ -46,6 +46,8 @@ var board
 var side: VBoxContainer
 var battle_header: Control
 var battle_actions: Control
+var footer_panel: PanelContainer
+var footer_party_button: Button
 var footer: Label
 var widgets: Array[Button]=[]
 var view_kind := ""
@@ -139,7 +141,17 @@ func _ready():
 	game_menu=preload("res://game_menu.gd").new(self)
 	game_menu.build(menu_button)
 	content=VBoxContainer.new();content.mouse_filter=Control.MOUSE_FILTER_IGNORE;content.size_flags_vertical=Control.SIZE_EXPAND_FILL;base.add_child(content)
-	footer=Label.new();footer.name="StatusFooter";footer.custom_minimum_size.y=24;footer.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;footer.clip_text=true;footer.max_lines_visible=1;footer.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;base.add_child(footer)
+	footer_panel=PanelContainer.new();footer_panel.name="StatusFooter";footer_panel.mouse_filter=Control.MOUSE_FILTER_STOP
+	footer_panel.custom_minimum_size.y=mock_shell.grid_cell().y
+	footer_panel.add_theme_stylebox_override("panel",mock_shell.surface_style())
+	base.add_child(footer_panel)
+	var footer_row=row(footer_panel);footer_row.name="FooterContent";footer_row.size_flags_horizontal=Control.SIZE_EXPAND_FILL;footer_row.size_flags_vertical=Control.SIZE_SHRINK_CENTER;footer_row.add_theme_constant_override("separation",Tokens.SPACE_MD)
+	footer_party_button=button(footer_row,"パーティ情報",mock_shell.toggle_character,false,"md")
+	footer_party_button.name="FooterPartyButton"
+	footer_party_button.set_meta("base_variation",&"ActionButton")
+	footer_party_button.theme_type_variation=&"ActionButton"
+	memory.key(footer_party_button,"footer_party")
+	footer=Label.new();footer.name="StatusFooterText";footer.size_flags_horizontal=Control.SIZE_EXPAND_FILL;footer.size_flags_vertical=Control.SIZE_SHRINK_CENTER;footer.custom_minimum_size.y=24;footer.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;footer.clip_text=true;footer.max_lines_visible=1;footer.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;footer_row.add_child(footer)
 	footer.focus_mode=Control.FOCUS_ALL;footer.mouse_filter=Control.MOUSE_FILTER_STOP;footer.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND;memory.key(footer,"status_footer")
 	footer.gui_input.connect(func(event):
 		if (event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT) or (event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ENTER,KEY_SPACE]):
@@ -185,33 +197,14 @@ func button(parent: Node,text: String,fn: Callable,disabled:=false,preset: Strin
 		if not closing and (b.get_meta("read_only",false) or (not locked and not presenting and not b.disabled)):
 			if hud!=null:hud.clear_inspection()
 			status_override="";fn.call())
-	b.focus_entered.connect(func():
-		# Popup-local controls must not replace the underlying screen explanation.
-		if b.get_window()!=get_window() or b.get_meta("no_status_hint",false):return
-		var hint: String = str(b.tooltip_text)
-		if not hint.is_empty() and _is_plain_card_name_tooltip(b,hint):hint=""
-		focus_hint=hint
-		if is_instance_valid(footer) and notice.is_empty():set_status(focus_hint))
-	b.focus_exited.connect(func():
-		if b.get_window()==get_window():focus_hint="")
 	return b
-func _is_plain_card_name_tooltip(control: Button,hint: String) -> bool:
-	if not control.text.is_empty():return false
-	for child in control.find_children("*","Label",true,false):
-		if child is Label and child.text.strip_edges()==hint.strip_edges():return true
-	return false
 func set_status(message: String):
 	# Newlines and wrapping must never enlarge the fixed status row.
-	# Reserve the populated line even when empty, so the party strip stays put.
 	footer.custom_minimum_size.y=maxf(footer.custom_minimum_size.y,ceilf(footer.get_theme_font("font").get_height(footer.get_theme_font_size("font_size"))))
 	footer.text=message.replace("\r","").replace("\n"," / ")
 	footer.tooltip_text=message;footer.set_meta("full_message",message)
 	footer.focus_mode=Control.FOCUS_NONE if message.is_empty() else Control.FOCUS_ALL
 	footer.mouse_filter=Control.MOUSE_FILTER_IGNORE if message.is_empty() else Control.MOUSE_FILTER_STOP
-	if message.is_empty():
-		footer.add_theme_stylebox_override("normal",StyleBoxEmpty.new())
-	else:
-		footer.add_theme_stylebox_override("normal",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_MD))
 func show_help():
 	dialog.open("操作説明",func(body,actions):
 		for section in [
@@ -534,8 +527,13 @@ func navigate(value: String):
 	pages.quest_board.meeting.reset()
 	invalidate_preview();pages.facility_entry.navigate(value);page=value;pages.reset_items();pages.invalidate_quote(false);memory.focus_key="";render()
 func sync_audio():
-	var route="local_"+str(campaign().get("location","")) if page=="hub" else pages.facility_art.visit_key
-	audio.sync(data,route)
+	var visit_key: String = str(pages.facility_art.visit_key)
+	var route := ""
+	if not visit_key.is_empty() and audio.bgm_catalog.has(visit_key):
+		route = visit_key
+	elif campaign().get("phase") == "town":
+		route = "local_" + str(campaign().get("location", ""))
+	audio.sync(data, route)
 func render():
 	if engine!=null and engine.disconnected:
 		show_engine_stop.call_deferred()
@@ -546,7 +544,7 @@ func render():
 	if not skip_capture_once:memory.capture()
 	skip_capture_once=false
 	audio.follow_connection(engine.connection_generation)
-	widgets=widgets.filter(func(b):return is_instance_valid(b) and (top.is_ancestor_of(b) or menu.is_ancestor_of(b) or (view_kind=="battle" and is_instance_valid(hud.middle) and hud.middle.is_ancestor_of(b))))
+	widgets=widgets.filter(func(b):return is_instance_valid(b) and (top.is_ancestor_of(b) or menu.is_ancestor_of(b) or (is_instance_valid(footer_panel) and footer_panel.is_ancestor_of(b)) or (view_kind=="battle" and is_instance_valid(hud.middle) and hud.middle.is_ancestor_of(b))))
 	for b in widgets:
 		b.disabled=bool(b.get_meta("base_disabled",false)) or ((locked or presenting) and not b.get_meta("read_only",false))
 	var available=get_viewport_rect().size
@@ -559,8 +557,14 @@ func render():
 	var battle=not inspecting_deployment and not s.is_empty() and (phase in ["deployment","battle"] or data.get("trial")!=null)
 	base.add_theme_constant_override("separation",0)
 	content.add_theme_constant_override("separation",0)
-	footer.visible=not battle
-	footer.custom_minimum_size.y=mock_shell.grid_cell().y
+	footer_panel.visible=not battle
+	footer_panel.custom_minimum_size.y=mock_shell.grid_cell().y
+	footer_panel.add_theme_stylebox_override("panel",mock_shell.surface_style())
+	if is_instance_valid(footer_party_button):
+		var party_blocked=pages.facility_entry.supported(page) and (pages.shop_view.busy() or pages.warehouse_view.pending)
+		footer_party_button.set_meta("base_disabled",party_blocked)
+		footer_party_button.disabled=party_blocked or locked or presenting or (engine!=null and engine.disconnected)
+		mark_selected(footer_party_button,page=="character")
 	pages.facility_art.sync("disconnected" if engine.disconnected else "battle" if battle else phase,str(c.get("location","")),page)
 	sync_audio()
 	if not themes_ready:
@@ -638,7 +642,7 @@ func render():
 		else:render_journey(body)
 		if phase=="result":pages.return_to_town(body)
 
-	set_status(notice if not notice.is_empty() else status_override if not status_override.is_empty() else focus_hint)
+	set_status(notice if not notice.is_empty() else status_override)
 	widgets=widgets.filter(func(b):return is_instance_valid(b) and b.is_inside_tree())
 	rendering=false;memory.restore()
 func town_name(id) -> String:
@@ -972,7 +976,8 @@ func primary(control: Button,preset: String="") -> Button:
 	return action_button(control,preset)
 func mark_selected(control: Button,selected: bool):
 	control.set_meta("selected",selected)
-	control.theme_type_variation=&"SelectedButton" if selected else &""
+	var base_variation: StringName=control.get_meta("base_variation",&"")
+	control.theme_type_variation=&"SelectedButton" if selected else base_variation
 func short_name(control: Label,full: String):
 	control.max_lines_visible=2;control.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;control.tooltip_text=full
 	control.size_flags_horizontal=Control.SIZE_EXPAND_FILL

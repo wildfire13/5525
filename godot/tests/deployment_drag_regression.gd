@@ -102,7 +102,7 @@ func run():
 	check(strip.is_visible_in_tree() and strip.get_global_rect().end.x<=game.board.global_position.x+game.board.project_cell(0).x and not strip.get_global_rect().intersects(game.hud.deployment_actions.get_global_rect()),"vertical roster left of field and separate from deployment actions")
 	node("PartyFace_character_mirei").pressed.emit();await settle()
 	check(game.pages.party_uid=="character_mirei" and game.page=="character" and not game.modal_open(),"deployed card opens its member status")
-	node("Header_character").pressed.emit();await settle()
+	node("FooterPartyButton").pressed.emit();await settle()
 	game.board.deployment_assigned.connect(func(uid,pos):drops.append([uid,pos]))
 	var roster_move=game.deployment_party_strip.drag_payload("character_mirei")
 	check(game.board._can_drop_data(game.board.project_cell(0),roster_move),"roster can reposition a deployed member when full")

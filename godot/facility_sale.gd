@@ -71,14 +71,38 @@ func render_inventory(parent):
 func render_detail(parent,footer):
  var item=selected()
  if item.is_empty():ui.label_(parent,"インベントリのアイテムを選択");return
- var pad=MarginContainer.new()
- pad.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- for side in ["left","top","right","bottom"]:pad.add_theme_constant_override("margin_"+side,Tokens.SPACE_SM)
- parent.add_child(pad)
+ var pair=ui.row(parent)
+ pair.name="FacilitySaleColumns"
+ pair.add_theme_constant_override("separation",Tokens.SPACE_NONE)
+ parent.size_flags_vertical=Control.SIZE_EXPAND_FILL
+ pair.custom_minimum_size.y=ui.mock_shell.grid_cell().y*5
+ pair.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ pair.size_flags_vertical=Control.SIZE_EXPAND_FILL
+ var left_scroll=ScrollContainer.new()
+ left_scroll.name="FacilitySaleDetail"
+ left_scroll.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ left_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
+ left_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
+ var left_pad=StyleBoxEmpty.new()
+ left_pad.content_margin_left=Tokens.SPACE_SM;left_pad.content_margin_right=Tokens.SPACE_SM
+ left_pad.content_margin_top=Tokens.SPACE_SM;left_pad.content_margin_bottom=Tokens.SPACE_SM
+ left_scroll.add_theme_stylebox_override("panel",left_pad)
+ pair.add_child(left_scroll)
  var detail_body=VBoxContainer.new()
  detail_body.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  detail_body.add_theme_constant_override("separation",Tokens.SPACE_SM)
- pad.add_child(detail_body)
+ left_scroll.add_child(detail_body)
+ var empty_panel=PanelContainer.new()
+ empty_panel.name="ShopSellEmptyPanel"
+ empty_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ empty_panel.size_flags_vertical=Control.SIZE_EXPAND_FILL
+ empty_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ var divider=StyleBoxFlat.new()
+ divider.bg_color=Color.TRANSPARENT
+ divider.border_color=Tokens.BORDER
+ divider.border_width_left=Tokens.BORDER_WIDTH
+ empty_panel.add_theme_stylebox_override("panel",divider)
+ pair.add_child(empty_panel)
  var icon=ui.icons.equipment(item) if item.get("kind")=="equipment" else "items" if item.get("kind")=="quest" else str(item.id)
  if item.get("kind")=="equipment":shop.pages.describe_gear(detail_body,item.get("definition",item),true)
  else:ui.icons.line(ui,detail_body,icon,str(item.name),true).name="FacilitySaleTarget"

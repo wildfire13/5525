@@ -112,7 +112,7 @@ func render_inventory_column(column):
 	if selection_kind=="equipment" and not person.get("equipmentSlots",[]).any(func(s):return s.slot==slot and s.id==selected_equipment.id):
 		selected_equipment={};selection_kind="";slot=""
 	if inventory_tab=="equipment":
-		column.equipment(ui,person,slot,"ShopEquipped_",select_equipment,pages.party_view.workspace.payload.bind(ui.shop_uid),busy())
+		column.equipment(ui,person,slot,"ShopEquipped_",select_equipment,pages.party_view.workspace.payload.bind(ui.shop_uid),busy(),false)
 		for entry in person.get("equipmentSlots",[]):
 			var button=column.find_child("ShopEquipped_"+str(entry.slot),true,false)
 			if button==null:continue
@@ -258,7 +258,8 @@ func render_product(parent: Control,item: Dictionary):
 		label.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
 		label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	ui.mark_selected(choose,selection_kind=="buy" and pages.gear_id==str(item.id));ui.memory.key(choose,"product_"+str(item.id))
-	preload("res://equipment_tooltip.gd").bind_details(choose,ui,{"id":item.id,"name":item.name,"kind":"item" if c().location=="south" else "equipment","count":1,"definition":item})
+	preload("res://equipment_tooltip.gd").bind_hover(choose,{"id":item.id,"name":item.name,"kind":"item" if c().location=="south" else "equipment","count":1,"definition":item},c())
+	choose.tooltip_text=str(item.name)
 	preload("res://item_drag.gd").source(choose,func():
 		if busy():return null
 		return {"kind":"shop_product","item":str(item.id),"connection":ui.engine.connection_generation,"token":c().get("inventoryToken"),"epoch":pages.epoch},str(item.name),ui.icons.texture(str(item.id) if c().location=="south" else ui.icons.equipment(item)),can_drop_sale,drop_sale)

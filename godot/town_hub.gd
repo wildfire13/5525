@@ -9,6 +9,16 @@ const Tokens=preload("res://ui_tokens.gd")
 const MEETING_GAP=float(Tokens.SPACE_LG)
 const Grid=preload("res://screen_grid.gd")
 const FACILITIES={"board":["掲示板","board"],"guild":["ギルド","party"],"inn":["宿屋","inn"],"weapon":["武器店","shop"],"armor":["防具店","shop"],"items":["道具店","shop"],"accessory":["装飾品店","shop"]}
+const HUB_ANCHORS={
+	"astaris":{"guild":Vector2(.50,.48),"board":Vector2(.645,.48),"inn":Vector2(.885,.57),"map":Vector2(.485,.82)},
+	"east":{"weapon":Vector2(.07,.40),"board":Vector2(.225,.41),"map":Vector2(.56,.49)},
+	"west":{"armor":Vector2(.80,.47),"board":Vector2(.90,.60),"map":Vector2(.43,.56)},
+	"south":{"items":Vector2(.82,.50),"board":Vector2(.12,.57),"map":Vector2(.54,.58)},
+	"north":{"board":Vector2(.13,.49),"accessory":Vector2(.305,.46),"map":Vector2(.53,.51)},
+}
+func anchor_for(loc: String,id: String,fallback: Vector2) -> Vector2:
+	var table: Dictionary=HUB_ANCHORS.get(loc,{})
+	return table.get(id,fallback)
 func _init(frontend):ui=frontend;rng.randomize()
 func reset():location="";artwork={}
 func select_art(id: String):
@@ -33,22 +43,18 @@ func render(parent):
 	var quest=c.get("activeQuest")
 	var has_meeting=quest is Dictionary and quest.get("eventId","")=="wheel"
 	var points={"board":Vector2(.58,.22),"guild":Vector2(.18,.22),"inn":Vector2(.64,.65),"weapon":Vector2(.18,.28),"armor":Vector2(.18,.28),"items":Vector2(.18,.28),"accessory":Vector2(.18,.28)}
-	# Anchors are relative to the playable map beside the party list.
-	if c.location=="east":
-		points.board=Vector2(.73,.46)
-		points.weapon=Vector2(0,.40)
-	elif c.location=="north":
-		points.board=Vector2(.11,.45)
-		points.accessory=Vector2(.53,.52)
+	# Anchors are relative to the playable map beside the party list, aligned to each town's artwork landmarks.
 	for id in place.get("facilities",[]):
 		if not FACILITIES.has(id):continue
-		var spec=FACILITIES[id];var button=ui.button(panel,spec[0],ui.navigate.bind(spec[1]));button.name="HubFacility_"+id;Tokens.apply_button_preset(button,"md_lg",false);ui.memory.key(button,"nav_"+spec[1])
-		var point=points.get(id,Vector2(.2,.2));button.anchor_left=point.x;button.anchor_top=point.y;button.anchor_right=point.x;button.anchor_bottom=point.y
+		var spec=FACILITIES[id];var button=ui.button(panel,spec[0],ui.navigate.bind(spec[1]));button.name="HubFacility_"+id;button.theme_type_variation=&"ActionButton";Tokens.apply_button_preset(button,"md_lg",false);ui.memory.key(button,"nav_"+spec[1])
+		var point=anchor_for(str(c.location),id,points.get(id,Vector2(.2,.2)));button.anchor_left=point.x;button.anchor_top=point.y;button.anchor_right=point.x;button.anchor_bottom=point.y
 		if has_meeting:
 			button.set_meta("hub_x_anchor",point.x);button.resized.connect(_fit_before_meeting.bind(panel))
+	var map_point=anchor_for(str(c.location),"map",Vector2(.12,.82))
+	var map=ui.button(panel,"出発の準備・街道口",ui.navigate.bind("map"));map.name="HubMap";map.theme_type_variation=&"ActionButton";map.anchor_left=map_point.x;map.anchor_top=map_point.y;map.anchor_right=map_point.x;map.anchor_bottom=map_point.y;Tokens.apply_button_preset(map,"lg",false);ui.memory.key(map,"nav_map")
 	if has_meeting:
+		map.set_meta("hub_x_anchor",map_point.x);map.resized.connect(_fit_before_meeting.bind(panel))
 		var fit=_fit_before_meeting.bind(panel);panel.resized.connect(fit);fit.call_deferred()
-	var map=ui.button(panel,"出発の準備・街道口",ui.navigate.bind("map"));map.name="HubMap";map.anchor_left=.12;map.anchor_top=.82;map.anchor_right=.12;map.anchor_bottom=.82;Tokens.apply_button_preset(map,"lg",false);ui.memory.key(map,"nav_map")
 	if has_meeting:
 		var box=PanelContainer.new();box.name="HubMeetingPanel";box.add_theme_stylebox_override("panel",ui.mock_shell.surface_style());panel.add_child(box)
 		var place_meeting=func():

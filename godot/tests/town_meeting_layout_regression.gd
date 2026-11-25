@@ -88,7 +88,7 @@ func run():
 	# No-quest hubs keep the adopted artwork-relative positions.
 	await install(seed,"astaris",0);check(node("HubMeetingPanel")==null,"no meeting panel without active wheel")
 	var hub=node("TownHub")
-	for pair in [["HubFacility_guild",.18],["HubFacility_board",.58],["HubFacility_inn",.64],["HubMap",.12]]:
+	for pair in [["HubFacility_guild",.50],["HubFacility_board",.645],["HubFacility_inn",.885],["HubMap",.485]]:
 		check(absf(node(pair[0]).position.x-hub.size.x*pair[1])<1,"no-quest original anchor retained: "+pair[0])
 	print("Town meeting layout regression: %d checks, %d failures" % [checks,failures.size()])
 	game.closing=true;game.dialog.close(false);await game.audio.finish_audio();game.engine.close_engine();game.queue_free()

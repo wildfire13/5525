@@ -95,7 +95,7 @@ func run():
  check(reserve!=null and game.find_child("DeploymentReserves",true,false)==null,"removed member appears in reserves")
  reserve.pressed.emit();await settle()
  check(game.page=="character" and game.pages.party_uid==id,"reserve inspection uses the same party information")
- game.find_child("Header_character",true,false).pressed.emit();await settle()
+ game.find_child("FooterPartyButton",true,false).pressed.emit();await settle()
  var drag=preload("res://deployment_drag.gd");var payload=drag.make_payload(game,id,"party")
  check(payload is Dictionary and drag.valid(game,payload),"reserve drag uses validated existing payload")
  var card=game.find_child("PartyFace_"+str(id),true,false)

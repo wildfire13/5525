@@ -33,7 +33,7 @@ func run():
 	if pants.size()==1:
 		pants[0].pressed.emit();await settle()
 		check(node("CharacterEquipmentComparison")!=null,"selected equipment opens an inline preview")
-		await click("Header_character")
+		await click("FooterPartyButton")
 		check(await saved()==before_preview,"leaving equipment preview preserves the full save")
 	# Both free travel and quest arrival normalize before the first visible render.
 	for quest in [false,true]:

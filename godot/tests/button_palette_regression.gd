@@ -59,7 +59,7 @@ func capture_button(scene: String,b: Button):
 	b.disabled=originally_disabled
 
 func scene_buttons(scene: String):
-	var targets={"town":["RosterMember_character_mirei"],"map":["Town_east","DepartButton"],"inn":["InnReturn","InnStay"],"road":["Header_character","RosterMember_character_mirei"],"window":["ActionLogSave"],"battle":["BattleOrderDetails"]}
+	var targets={"town":["HubFacility_guild","FooterPartyButton"],"map":["Header_map","Town_east","DepartButton"],"inn":["InnReturn","InnStay"],"road":["FooterPartyButton","RosterMember_character_mirei"],"window":["ActionLogSave"],"battle":["BattleOrderDetails"]}
 	for node_name in targets.get(scene,[]):
 		var b=root.find_child(node_name,true,false) as Button
 		check(b!=null and b.is_visible_in_tree(),scene+" explicit "+node_name)

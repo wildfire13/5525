@@ -44,7 +44,7 @@ func item_cases():
 		if inventory_entry.size()==1:
 			inventory_entry[0].pressed.emit();await settle()
 			check(game.page=="character" and game.pages.party_view.workspace.tab=="inventory" and await snapshot()==camp_before,"UX01 camp entry preserves resources")
-			node("Header_character").pressed.emit();await settle()
+			node("FooterPartyButton").pressed.emit();await settle()
 			check(game.page=="hub" and node("CampActions")!=null and await snapshot()==camp_before,"UX01 closing inventory restores camp")
 		for context in ["camp","town","four"]:
 			await restore(context,"items")
@@ -60,7 +60,7 @@ func item_cases():
 			check(root.get_visible_rect().encloses(node("RosterMember_character_mirei").get_global_rect()),"UX01 roster entry visible "+context)
 			node("InventoryOwner_character_mirei").pressed.emit();await settle()
 			check(game.page=="character" and game.pages.party_uid=="character_mirei" and game.pages.party_view.workspace.tab=="inventory" and await snapshot()==before,"UX01 owner opens inventory without consuming")
-			node("Header_character").pressed.emit();await settle()
+			node("FooterPartyButton").pressed.emit();await settle()
 			check(game.page=="items" and node("InventoryOwner_character_mirei")!=null and await snapshot()==before,"UX01 return to owner cards preserves save")
 	root.size=Vector2i(1920,1080)
 	for context in ["town","road","north_travel"]:

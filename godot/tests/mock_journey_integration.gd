@@ -63,7 +63,7 @@ func run():
  var bag=game.find_children("*","Button",true,false).filter(func(b):return b.text=="インベントリ")[0]
  bag.pressed.emit();await settle()
  check(game.page=="character" and game.find_child("CharacterInventoryFilter",true,false)!=null,"camp bag opens inventory directly")
- game.find_child("Header_character",true,false).pressed.emit();await settle()
+ game.find_child("FooterPartyButton",true,false).pressed.emit();await settle()
  check(game.page=="map" and game.campaign().phase=="camp","closing the bag returns to camp")
  var previous_hours=int(game.campaign().hours)
  var buttons=game.find_children("*","Button",true,false).filter(func(b):return b.text=="引き返す")

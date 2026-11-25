@@ -29,19 +29,19 @@ func run():
 	game.checks_fast=true;game.audio.fast_mode=true;await settle();var seed=await saved()
 	for dims in [Vector2i(1920,1080)]:
 		root.size=dims
-		for spec in [["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"],["astaris","map","departure_map"],["astaris","hub",""]]:
+		for spec in [["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"],["astaris","map",""],["astaris","hub",""]]:
 			var scenario=seed.duplicate(true);scenario.state.location=spec[0]
 			await game.update({"op":"campaign_load","data":scenario});game.navigate(spec[1]);await settle()
 			await visual_contract(str(spec)+str(dims))
 			var npc=node("FacilityNpc");var before=await saved();var art=game.pages.facility_art;var path=art.npc.selected_path;var random=art.npc.rng.state
-			if spec[2] not in ["departure_map",""]:
+			if not spec[2].is_empty():
 				var region=Rect2(1152,216,768,864)
 				check(npc!=null and npc.get_parent().name=="FacilityNpcRegion" and npc.get_parent().get_global_rect()==region and is_equal_approx(npc.size.y,root.size.y*1.28) and npc.texture==art.npc.texture and npc.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_CENTERED,"facility portrait keeps its aspect ratio inside right-side grid region "+str(spec)+str(dims))
 				check(npc!=null and npc.mouse_filter==Control.MOUSE_FILTER_IGNORE and npc.focus_mode==Control.FOCUS_NONE,"NPC cannot block UI inputs "+str(spec)+str(dims))
-			else:check(npc==null,"no invented NPC for hub/map "+str(spec))
+			else:check(npc==null and node("FacilityStill")==null and node("TownStill")!=null,"no invented NPC or facility still for hub/map "+str(spec))
 			game.render();await settle()
 			check(art.npc.selected_path==path and art.npc.rng.state==random and await saved()==before,"rerender preserves visit and exact save "+str(spec)+str(dims))
-			if spec[2] not in ["departure_map",""]:
+			if not spec[2].is_empty():
 				await enter_facility(spec[1]);await visual_contract("service "+str(spec))
 				check(art.npc.selected_path==path and art.npc.rng.state==random and await saved()==before,"service entry preserves visit artwork and campaign "+str(spec))
 	check(game.audio.muted.bgm and game.audio.muted.voice and game.audio.muted.se,"backdrop verification keeps all audio OFF")

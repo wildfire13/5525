@@ -19,7 +19,13 @@ func run():
 			check(texture.get_image()!=null and not texture.get_image().is_empty(),"decoded pixel image available: "+variant.id)
 			check(image.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_COVERED and image.get_global_rect()==Rect2(Vector2.ZERO,Vector2(root.size)),"full-window aspect-preserved cover image at FHD: "+variant.id)
 			check(node("TownArtStyle")==null and node("HeaderLocation").is_visible_in_tree() and node("HeaderLocation").text==game.town_name(town),"duplicate art/location heading removed; shared band identifies town: "+variant.id)
-			var landmarks={"east":{"board":Vector2(.82,.49),"weapon":Vector2(.24,.43)},"north":{"board":Vector2(.33,.48),"accessory":Vector2(.66,.54)}}
+			var landmarks={
+				"astaris":{"guild":Vector2(.54,.51),"board":Vector2(.69,.51),"inn":Vector2(.93,.58)},
+				"east":{"weapon":Vector2(.11,.45),"board":Vector2(.27,.45)},
+				"west":{"armor":Vector2(.84,.50),"board":Vector2(.94,.60)},
+				"south":{"items":Vector2(.86,.52),"board":Vector2(.16,.58)},
+				"north":{"board":Vector2(.17,.52),"accessory":Vector2(.35,.49)},
+			}
 			for facility in landmarks.get(town,{}):
 				var target=landmarks[town][facility]*Vector2(root.size)
 				check(node("HubFacility_"+facility).get_global_rect().has_point(target),"button covers artwork landmark: "+variant.id+"/"+facility)

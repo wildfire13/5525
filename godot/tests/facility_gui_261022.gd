@@ -37,7 +37,7 @@ func run():
 	await game.new_game()
 	game.audio.fast_mode=true;game.checks_fast=true;await settle()
 	var seed=await saved();var art=game.pages.facility_art;var production=art.catalog.duplicate(true)
-	var cases=[["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"],["astaris","map","departure_map"]]
+	var cases=[["east","shop","weapon"],["west","shop","armor"],["south","shop","item"],["north","shop","accessory"],["astaris","party","guild"],["astaris","inn","inn"]]
 	for dims in [Vector2i(1920,1080),Vector2i(1180,812)]:
 		root.size=dims;root.position=Vector2i.ZERO;await settle()
 		for spec in cases:
@@ -63,9 +63,6 @@ func run():
 				await os_click(node("ProductBuy_spear-wood"));check(node("PurchaseDecline")!=null,"OS shop purchase opens recipient/consent")
 				if node("PurchaseDecline")!=null:await os_click(node("PurchaseDecline"))
 				check(art.rng.state==state,"OS purchase cancellation keeps visit")
-			if spec[1]=="map":
-				var map=node("TownMap");var dest=map.buttons.keys().filter(func(id):return id!=map.current and id!=map.selected)[0]
-				await os_click(map.buttons[dest]);check(node("TownMap").selected==dest,"OS map destination works over background")
 			if spec[1]=="party":
 				await os_click(node("GuildMember_character_mirei"));check(game.pages.guild_view.chosen_id=="character_mirei","OS guild member selects over background")
 			if spec[1]=="inn":
@@ -74,6 +71,15 @@ func run():
 				check(confirmations.size()==1 and confirmations[0].visible,"OS inn consent opens over background")
 				if not confirmations.is_empty():await os_click(confirmations[0].get_cancel_button())
 			check(await saved()==before,"GUI inspection and cancellation preserve exact save and progress RNG")
+		var map_scenario=seed.duplicate(true);map_scenario.state.location="astaris";map_scenario.state.characters["character_mirei"].hp=1
+		await game.update({"op":"campaign_load","data":map_scenario});await enter_facility("map");await settle()
+		var map_before=await saved()
+		check(art.visit_key.is_empty() and node("FacilityStill")==null and node("TownStill")!=null,"OS world map keeps town background "+str(dims.x))
+		await snapshot("map_town_still_"+str(dims.x))
+		var map=node("TownMap");var dest=map.buttons.keys().filter(func(id):return id!=map.current and id!=map.selected)[0]
+		await os_click(map.buttons[dest]);check(node("TownMap").selected==dest,"OS map destination works over town background")
+		await os_click(node("TownReturn"));check(game.page=="hub" and art.visit_key.is_empty(),"OS return from world map keeps town background")
+		check(await saved()==map_before,"GUI world map inspection preserves exact save and progress RNG")
 	# Actual OS events travel through the window and Godot hit testing.
 	await game.update({"op":"campaign_load","data":battle_fixture().guard});await settle();await game.choose_command("action_attack");await settle()
 	game.board.cell_clicked.disconnect(game.on_cell);var clicked=[]

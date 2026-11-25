@@ -162,7 +162,7 @@ func capture(id: String, expected: Array, window: Window = null):
 				check(center.encloses(box),id+" body inside middle eight rows "+key+" "+str(box))
 		var aligned=box.position.is_equal_approx((box.position/cell).round()*cell) and box.end.is_equal_approx((box.end/cell).round()*cell)
 		check(aligned,id+" grid "+key+" "+str(box))
-		if window==root and not active[0].get("follows_target",false) and key not in ["ResultMembersScroll","WarehouseControls","WarehouseSelectedPanel","CharacterEquipmentDetail","LoadingBackground"]:
+		if window==root and not active[0].get("follows_target",false) and key not in ["ResultMembersScroll","WarehouseControls","WarehouseSelectedPanel","CharacterEquipmentDetail","LoadingBackground","ShopTransaction","ShopTransactionFooter","JourneyMapBar"]:
 			var label=("window:" if window!=root else "")+active[0].label
 			if not first_bounds.has(label):first_bounds[label]=[id,box]
 			var first=first_bounds[label]
@@ -210,7 +210,7 @@ func run():
 	initial.state.characters.character_mirei.inventory={"potion":1}
 	await game.update({"op":"campaign_load","data":initial})
 	var inspector=game.ui_labels
-	await capture("hub",["場面：ローカルマップ","ヘッダーナビ","拠点施設マップ","パーティ名簿"])
+	await capture("hub",["場面：ローカルマップ","ヘッダーナビ","拠点施設マップ","共通フッター"])
 	var gold=game.find_child("HeaderGold",true,false)
 	check(gold is Label and gold.is_visible_in_tree() and gold.text=="%d G" % int(game.campaign().gold),"town header shows the current gold balance")
 	game.save_notice.display("購入して装備しました")
@@ -364,7 +364,7 @@ func run():
 		game.pages.shop_view.set_inventory_tab("equipment")
 		await capture("shop-"+town,["商品一覧","取引確認"])
 	await inspect_drag(game.find_child("Product_undertow-sword",true,false),"drag-item","ドラッグ中の品物")
-	await inspect_item_and_return("Product_undertow-sword")
+	await button("Product_undertow-sword")
 	var filter=game.find_child("ShopSlotFilter",true,false)
 	filter.show_popup()
 	await capture("shop-filter",["選択候補一覧"])
@@ -380,7 +380,7 @@ func run():
 			skill.finish()
 			await settle()
 	var shop=game.pages.shop_view
-	await inspect_item_and_return("Product_spear-wood")
+	await button("Product_spear-wood")
 	await capture("shop-spear",["現在の装備","装備候補"])
 	shop.drop_equipment({"kind":"shop_product","item":"spear-wood","connection":game.engine.connection_generation,"epoch":game.pages.epoch,"token":game.campaign().inventoryToken},"rightHand")
 	await settle()

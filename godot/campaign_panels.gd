@@ -191,17 +191,9 @@ func journey(parent):
 		route.hide()
 		add_travel_map(parent,journey_)
 
-func toggle_travel_map(parent,map_row,journey_):
+func toggle_travel_map(_parent,_map_row,_journey_):
 	travel_map_expanded=not travel_map_expanded
-	parent.get_node("JourneyRoute").visible=not travel_map_expanded
-	var toggle=map_row.get_node("TravelMapToggle")
-	toggle.text="経路だけ表示" if travel_map_expanded else "ワールドマップを表示"
-	if travel_map_expanded:
-		add_travel_map(parent,journey_)
-	else:
-		var chart=parent.get_node("TravelFullMap")
-		parent.remove_child(chart)
-		chart.queue_free()
+	ui.render()
 
 func add_travel_map(parent,journey_):
 	var chart=preload("res://town_map.gd").new();chart.name="TravelFullMap";chart.read_only=true

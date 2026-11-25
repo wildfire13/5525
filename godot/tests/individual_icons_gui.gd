@@ -112,7 +112,7 @@ func normal_route():
  await os_click(node("RosterMember_guard"));var empty=node("CharacterSlot_head")
  check(empty.icon==null,"empty equipped slot remains iconless")
  await capture("normal-equipped")
- await os_click(node("Header_character"));await os_click(node("HubMap"));await os_click(node("Town_east"));await os_click(node("DepartButton"))
+ await os_click(node("FooterPartyButton"));await os_click(node("HubMap"));await os_click(node("Town_east"));await os_click(node("DepartButton"))
  var river=game.find_children("*","Button",true,false).filter(func(b):return b.text.begins_with("川沿いの道"))[0]
  await os_click(river);await os_click(node("DeploymentBegin"))
  check(game.campaign().phase=="battle","actual OS square/map/east/river/start reaches live battle")

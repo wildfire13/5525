@@ -56,7 +56,7 @@ func run():
 	game.navigate("map");await settle()
 	game.find_child("RosterMember_"+str(ids[0]),true,false).pressed.emit();await settle()
 	check(game.find_child("Header_map",true,false)==null,"party header omits map shortcut")
-	game.find_child("Header_character",true,false).pressed.emit();await settle()
+	game.find_child("FooterPartyButton",true,false).pressed.emit();await settle()
 	check(game.page=="map","header toggle restores map")
 	for tab in ["equipment","inventory","ability","skills"]:
 		game.mock_shell.activate(str(ids[0]));await settle()
@@ -70,7 +70,7 @@ func run():
 	check(clock.text=="経過時間：%d時間" % game.campaign().worldTime,"map displays elapsed world time")
 	game.navigate("board");await settle()
 	game.navigate("character");await settle()
-	game.find_child("Header_character",true,false).pressed.emit();await settle()
+	game.find_child("FooterPartyButton",true,false).pressed.emit();await settle()
 	check(game.page=="board","direct character entry remembers its own origin")
 	game.navigate("character");await settle()
 

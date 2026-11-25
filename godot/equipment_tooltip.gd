@@ -18,7 +18,11 @@ static func bind_details(button: Button,ui,entry: Dictionary):
 	if not previous_hint.is_empty():button.tooltip_text=previous_hint
 	button.pressed.connect(func():ui.show_equipment_details.call_deferred(item,str(button.name)))
 
-static func bind_hover(control: Control,item: Dictionary,campaign: Dictionary):
+static func bind_hover(control: Control,entry: Dictionary,campaign: Dictionary):
+	var item=entry.duplicate(true)
+	if not item.has("definition"):
+		item={"id":item.get("id",""),"name":item.get("name",""),"kind":"equipment","count":1,"definition":item}
+	item.count=item.get("count",1)
 	control.set_script(load("res://equipment_tooltip.gd"))
 	control.configure_entry(item,campaign)
 
@@ -116,7 +120,7 @@ func configure(title: String,gear: Dictionary,context: Dictionary):
 		line(str(gear.note))
 	if context.get("occupied",false):line("両手装備で使用中（独立した追加装備ではありません）")
 	if context.get("job")=="job_porter" and attacks:line("この人物は通常攻撃不可（ポーター）")
-	hover_body=equipment_brief(gear,explained_skills)
+	hover_body="" if gear.get("type")=="empty" else "\n".join(plain_details)
 	tooltip_text=heading+"\n"+"\n".join(plain_details)
 func configure_entry(entry: Dictionary,campaign: Dictionary):
 	connect_hover();close_hover()
@@ -126,13 +130,11 @@ func configure_entry(entry: Dictionary,campaign: Dictionary):
 	else:
 		heading=str(entry.name);details.clear();plain_details.clear()
 		if gear.has("resource"):line(preload("res://item_menu.gd").effect(gear))
+		if gear.get("weight",entry.get("weight"))!=null:line(weight_text(gear.get("weight",entry.get("weight"))))
 		if gear.has("battleRole"):line("戦闘での使用条件："+("ポーター" if gear.battleRole=="job_porter" else str(gear.battleRole)))
 		line(str(gear.get("note",gear.get("description","依頼に関わる所持品" if entry.get("kind")=="quest" else "使用時に1個消費"))))
 		tooltip_text=heading+"\n"+"\n".join(plain_details)
-		var points: Array[String]=[]
-		if gear.has("resource"):points.append(preload("res://item_menu.gd").effect(gear))
-		if gear.get("weight",entry.get("weight"))!=null:points.append(weight_text(gear.get("weight",entry.get("weight"))))
-		hover_body="\n".join(points)
+		hover_body="\n".join(plain_details)
 func detail_document(entry: Dictionary) -> Dictionary:
 	var doc=preload("res://skill_text.gd").document("",str(entry.name),1,{})
 	doc.window_title="所持品の説明";doc.summary_text="装備" if entry.get("kind")=="equipment" else "所持品"

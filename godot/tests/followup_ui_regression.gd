@@ -60,14 +60,14 @@ func camp_cases():
 		check(game.page=="character" and workspace.tab=="inventory" and workspace.owner==HERO,"camp opens the chosen owner's inventory")
 		await choose_item(HERO,"potion")
 		check(not button(game.member_name(HERO)+"に使う").disabled and button(game.member_name(ARCHER)+"に使う").disabled and button(game.member_name(MAGE)+"に使う").disabled,"potion excludes full HP and fallen recipients")
-		node("Header_character").pressed.emit();await settle()
+		node("FooterPartyButton").pressed.emit();await settle()
 		check(game.page=="items" and await snapshot()==before,"leaving item selection preserves exact save")
 		node("InventoryOwner_"+HERO).pressed.emit();await settle();await choose_item(HERO,"potion");await press(game.member_name(HERO)+"に使う")
 		var used=await snapshot();check(used.state.characters[HERO].hp==mini(before.state.characters[HERO].hp+55,game.roster().filter(func(u):return u.id==HERO)[0].max) and used.state.characters[HERO].inventory.potion==2 and used.state.characters[HERO].mp==before.state.characters[HERO].mp,"camp potion restores HP, consumes one owned item and preserves MP")
 		node("RosterMember_"+PORTER).pressed.emit();await settle()
 		await choose_item(PORTER,"ether");await press(game.member_name(HERO)+"に使う");used=await snapshot()
 		check(used.state.characters[HERO].mp==mini(before.state.characters[HERO].mp+3,game.roster().filter(func(u):return u.id==HERO)[0].maxMp) and used.state.characters[PORTER].inventory.ether==3,"camp ether distinguishes owner and target and preserves MP+3")
-		node("Header_character").pressed.emit();await settle()
+		node("FooterPartyButton").pressed.emit();await settle()
 	await restore("guard");check(node("CharacterInventoryFilter")==null,"loading battle leaves character inventory")
 func battle_cases():
 	for dims in [Vector2i(1178,814),Vector2i(800,600)]:
