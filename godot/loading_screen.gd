@@ -9,6 +9,7 @@ var selected_path := ""
 var rng=RandomNumberGenerator.new()
 var panel: Control
 var picture: TextureRect
+var battle_art: Array[Resource] = []
 signal frame_presented(token: int)
 func _ready():
 	layer=2048;rng.randomize()
@@ -35,5 +36,28 @@ func painted(token: int):
 func finish(token: int):
 	if token!=sequence:return
 	active=false;panel.hide();picture.texture=null;selected_path=""
+
+func prepare_battle_materials():
+	# A one-shot viewport draws behind the still. Its material references survive town and battle changes.
+	var view: SubViewport = preload("res://battle_material_warmup.tscn").instantiate()
+	add_child(view)
+	await RenderingServer.frame_post_draw
+	view.render_target_update_mode=SubViewport.UPDATE_DISABLED
+
+func prefetch_battle_art():
+	for folder in ["res://assets/vfx_production/", "res://assets/vfx_expansion/"]:
+		for file in ResourceLoader.list_directory(folder):
+			if not file.ends_with(".png"):continue
+			await get_tree().process_frame
+			while not get_parent().closing and get_parent().campaign().get("phase")!="town":
+				await get_tree().process_frame
+			if get_parent().closing:return
+			var path: String = folder + file
+			if ResourceLoader.load_threaded_request(path, "Texture2D")!=OK:continue
+			while ResourceLoader.load_threaded_get_status(path)==ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+				await get_tree().process_frame
+			var texture=ResourceLoader.load_threaded_get(path)
+			if texture!=null:battle_art.append(texture)
+			if get_parent().closing:return
 func _input(_event):
 	if active:get_viewport().set_input_as_handled()

@@ -1,0 +1,72 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/vfx_production/sweep_arc.png" id="1"]
+[ext_resource type="Shader" path="res://shaders/vfx_painted.gdshader" id="2"]
+
+[sub_resource type="BoxMesh" id="Box"]
+
+[sub_resource type="StandardMaterial3D" id="Stone"]
+albedo_texture = ExtResource("1")
+
+[sub_resource type="StandardMaterial3D" id="Glow"]
+shading_mode = 0
+emission_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="Flat"]
+shading_mode = 0
+
+[sub_resource type="ShaderMaterial" id="Paint"]
+shader = ExtResource("2")
+shader_parameter/art = ExtResource("1")
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 1
+ambient_light_source = 2
+fog_enabled = true
+
+[node name="BattleMaterialWarmup" type="SubViewport"]
+own_world_3d = true
+size = Vector2i(96, 64)
+render_target_update_mode = 1
+
+[node name="Camera" type="Camera3D" parent="."]
+position = Vector3(0,0,5)
+environment = SubResource("Environment")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.8,-0.55,0)
+shadow_enabled = true
+
+[node name="Lamp" type="OmniLight3D" parent="."]
+position = Vector3(1,1,1)
+
+[node name="Terrain" type="MeshInstance3D" parent="."]
+position = Vector3(-2,0,0)
+mesh = SubResource("Box")
+material_override = SubResource("Stone")
+
+[node name="Solid" type="MeshInstance3D" parent="."]
+position = Vector3(-1,0,0)
+mesh = SubResource("Box")
+
+[node name="Lantern" type="MeshInstance3D" parent="."]
+mesh = SubResource("Box")
+material_override = SubResource("Glow")
+
+[node name="Unshaded" type="MeshInstance3D" parent="."]
+position = Vector3(1,0,0)
+mesh = SubResource("Box")
+material_override = SubResource("Flat")
+
+[node name="Portrait" type="Sprite3D" parent="."]
+position = Vector3(2,0,0)
+texture = ExtResource("1")
+pixel_size = 0.002
+billboard = 1
+alpha_cut = 1
+alpha_scissor_threshold = 0.15
+
+[node name="Skill" type="MeshInstance3D" parent="."]
+position = Vector3(0,1.1,0)
+mesh = SubResource("Box")
+material_override = SubResource("Paint")

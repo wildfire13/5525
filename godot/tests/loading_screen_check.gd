@@ -55,10 +55,18 @@ func run():
 	if evidence.is_empty() or not OS.get_user_data_dir().begins_with(evidence+"/") or OS.get_environment("NATIVE5525_AUDIO_OFF")!="1":
 		push_error("Isolated XDG profile and NATIVE5525_AUDIO_OFF=1 required");quit(2);return
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
+	if DisplayServer.get_name()!="headless":
+		var startup=game.loading_screen
+		await startup.frame_presented
+		check(startup.active and startup.picture.is_visible_in_tree() and startup.picture.texture!=null,"startup paints the loading still before town input")
+		root.get_texture().get_image().save_png(evidence.path_join("startup-still.png"))
 	while game.data.is_empty():await process_frame
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	var loading=game.loading_screen;loading.frame_presented.connect(observed)
-	check(not loading.active and not loading.panel.visible,"loading overlay is absent at ordinary startup")
+	check(not loading.active and not loading.panel.visible,"town releases the loading overlay after startup")
+	if DisplayServer.get_name()!="headless":
+		var warmup=loading.get_node_or_null("BattleMaterialWarmup")
+		check(warmup!=null and warmup.render_target_update_mode==SubViewport.UPDATE_DISABLED,"town retains battle materials with the warmup viewport stopped")
 	check(loading.layer>1025 and loading.panel.mouse_filter==Control.MOUSE_FILTER_STOP and loading.panel.focus_mode==Control.FOCUS_ALL,"loading input blocker above tooltips owns pointer and focus")
 	check(loading.picture.expand_mode==TextureRect.EXPAND_IGNORE_SIZE and loading.picture.stretch_mode==TextureRect.STRETCH_KEEP_ASPECT_COVERED,"loading artwork covers viewport without aspect distortion")
 	for index in range(1,4):

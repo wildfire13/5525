@@ -162,6 +162,8 @@ func _ready():
 	resized.connect(queue_layout)
 	if not engine.start_engine():notice=engine.last_error;render();return
 	await update({"op":"campaign_start"})
+	if DisplayServer.get_name()!="headless" and not closing:
+		loading_screen.prefetch_battle_art()
 func campaign() -> Dictionary: return data.get("campaign") if data.get("campaign") is Dictionary else {}
 func state() -> Dictionary: return data.get("state") if data.get("state") is Dictionary else {}
 func roster() -> Array: return campaign().get("roster",[])
@@ -360,6 +362,7 @@ func close_game():
 	await get_tree().process_frame
 	get_tree().quit()
 func loading_kind(request: Dictionary) -> String:
+	if request.get("op")=="campaign_start" and data.is_empty() and DisplayServer.get_name()!="headless":return "startup"
 	if request.get("op")=="campaign":
 		if request.get("action") in ["travel","begin","trial"]:return "before"
 		if request.get("action") in ["finishBattle","retreat","endTrial"]:return "after"
@@ -395,6 +398,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		var subdued=request.get("action") in ["retreat","endTrial"] or not str(state().get("result","")).begins_with("勝利")
 		loading_token=loading_screen.begin(kind,subdued)
 		await loading_screen.painted(loading_token)
+		if kind=="startup" and not closing:loading_screen.prepare_battle_materials()
 	while engine.busy and not closing:await get_tree().process_frame
 	if closing:record_debug_rejection(request);locked=false;loading_screen.finish(loading_token);return {"ok":false,"error":"終了しています"}
 	for b in widgets:
