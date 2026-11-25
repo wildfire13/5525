@@ -19,6 +19,7 @@ var camera_yaw := 0.0
 var camera_pitch := 0.7
 var camera_drag := 0
 var right_panel: Control
+var party_overlay: Control
 var world
 var sluice_works: Node3D
 var grille_motion: Tween
@@ -187,7 +188,7 @@ func input_event(event):
 				suppress_deployment_release=false
 				keyboard_cell=pos if pos>=0 else keyboard_cell
 				if has_focus():set_hover(str(unit_at(keyboard_cell).get("id","")),true)
-				else:grab_focus()
+				elif focus_mode!=FOCUS_NONE:grab_focus()
 				var occupant=sprite_unit_at(event.position)
 				if occupant.is_empty():occupant=unit_at(pos)
 				unit_press=not occupant.is_empty()
@@ -263,6 +264,12 @@ func _drop_data(at_position: Vector2,payload):
 	suppress_deployment_release=true
 	deployment_assigned.emit(str(payload.uid),null if cell<0 else cell)
 func _input(event):
+	if event is InputEventMouseButton and event.pressed and event.button_index==MOUSE_BUTTON_LEFT and is_instance_valid(party_overlay) and party_overlay.is_visible_in_tree():
+		var focus:=get_viewport().gui_get_focus_owner()
+		if focus!=null and party_overlay.is_ancestor_of(focus):
+			# Godot assigns mouse focus before gui_input. Keep keyboard navigation available after this click.
+			focus_mode=FOCUS_NONE
+			set_deferred("focus_mode",FOCUS_ALL)
 	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE and get_viewport().gui_is_dragging():
 		var payload=get_viewport().gui_get_drag_data()
 		if payload is Dictionary and payload.get("kind")=="deployment_member":

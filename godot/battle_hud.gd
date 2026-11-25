@@ -178,6 +178,7 @@ func mount():
 	party_overlay.add_theme_stylebox_override("panel",Tokens.box(Tokens.SURFACE))
 	party_overlay.z_index=25;party_overlay.hide()
 	middle.add_child(party_overlay)
+	ui.board.party_overlay=party_overlay
 	# Control input follows sibling order, independently of drawing z_index.
 	middle.move_child(left_panel,-1);middle.move_child(right_panel,-1);middle.move_child(party_overlay,-1)
 	_layout_sig=[]

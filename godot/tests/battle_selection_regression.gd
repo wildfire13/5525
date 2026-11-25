@@ -35,7 +35,17 @@ func run():
   var member_name="BattlePartyMember_"+str(ally.id)
   var member=game.hud.party_overlay.find_child(member_name,true,false)
   member.grab_focus()
-  await game.on_cell(int(enemy.pos));await settle()
+  var enemy_point=game.board.get_global_transform()*game.board.project_cell(int(enemy.pos))
+  for down in [true,false]:
+   var event=InputEventMouseButton.new()
+   event.button_index=MOUSE_BUTTON_LEFT
+   event.position=enemy_point
+   event.global_position=enemy_point
+   event.pressed=down
+   root.push_input(event,true)
+   await process_frame
+  await settle()
+  check(game.hud.inspection_pinned and game.hud.person_box.get_meta("inspected_unit","")==enemy.id,"clicking the enemy on the board shows its details")
   check(is_instance_valid(member) and member==game.hud.party_overlay.find_child(member_name,true,false) and member.has_focus(),"inspecting a cell preserves the focused party member")
   game.hud.battle_party_button.pressed.emit();await settle()
   var target_region=preload("res://ui_labels.json").data.regions.filter(func(entry):return entry.label=="戦闘対象情報" and "battle" in entry.screens)
