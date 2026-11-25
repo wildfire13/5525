@@ -31,6 +31,13 @@ func run():
   check(game.hud.buttons.action_attack.get_theme_stylebox("normal").bg_color.is_equal_approx(game.theme.get_stylebox("normal","Button").bg_color) and game.hud.buttons.action_attack.get_theme_color("font_color").is_equal_approx(game.theme.get_color("font_color","Button")),"enabled command keeps battle theme colors "+str(dims))
   var ally=game.state().units.filter(func(u):return u.side=="ally")[0]
   var enemy=game.state().units.filter(func(u):return u.side=="enemy")[0]
+  game.hud.battle_party_button.pressed.emit();await settle()
+  var member_name="BattlePartyMember_"+str(ally.id)
+  var member=game.hud.party_overlay.find_child(member_name,true,false)
+  member.grab_focus()
+  await game.on_cell(int(enemy.pos));await settle()
+  check(is_instance_valid(member) and member==game.hud.party_overlay.find_child(member_name,true,false) and member.has_focus(),"inspecting a cell preserves the focused party member")
+  game.hud.battle_party_button.pressed.emit();await settle()
   var target_region=preload("res://ui_labels.json").data.regions.filter(func(entry):return entry.label=="戦闘対象情報" and "battle" in entry.screens)
   check(target_region.size()==1 and str(game.hud.right_panel.name) in target_region[0].nodes,"target panel is registered as 戦闘対象情報")
   for u in [ally,enemy,enemy]:

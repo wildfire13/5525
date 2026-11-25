@@ -120,12 +120,15 @@ func valid(ticket: int,epoch: int,connection: int,owner: String,item: String,cou
 func request_quote():
  var ticket=generation;var epoch=ui.pages.epoch;var connection=ui.engine.connection_generation;var owner=owner_id;var item=item_id;var count=amount;var token=ui.campaign().get("inventoryToken")
  previewing=true
- while ui.engine.busy:
+ while ui.engine.busy and valid(ticket,epoch,connection,owner,item,count,token):
   await ui.get_tree().process_frame
-  if not valid(ticket,epoch,connection,owner,item,count,token):return
- var reply=await ui.engine.request({"op":"campaign","action":"saleQuote","args":[owner,item,count]})
+ var reply: Dictionary={}
+ if valid(ticket,epoch,connection,owner,item,count,token):
+  reply=await ui.engine.request({"op":"campaign","action":"saleQuote","args":[owner,item,count]})
+ if ticket!=generation:return
+ previewing=false
  if not valid(ticket,epoch,connection,owner,item,count,token):return
- previewing=false;quote=reply.get("saleQuote",{})
+ quote=reply.get("saleQuote",{})
  if quote.get("ok",false):message=""
  if reply.get("connection_lost",false):stage="unknown";message="結果を確認できません。再送せず保存済みの進行を確認してください。";ui.handle_connection_loss(reply,connection);return
  var label=ui.find_child("FacilitySaleTotals",true,false)

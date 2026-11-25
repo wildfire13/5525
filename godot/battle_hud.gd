@@ -293,7 +293,7 @@ func render():
 	previous_menu=expanded_menu
 	if not deploying:
 		if s.get("result")!=null:party_overlay_open=false
-		render_party_overlay()
+		if not reuse:render_party_overlay()
 		render_person()
 	if ui.engine.disconnected:l(command_box,"接続が終了しました",true)
 	elif phase is Dictionary:render_presentation(phase)
