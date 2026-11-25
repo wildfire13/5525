@@ -1,6 +1,7 @@
 extends Node
 signal engine_stopped
 signal diagnostic_completed(file_operation: bool, ok: bool, duration_ms: int)
+var click_observer: Callable
 var debug_store: Node
 ## Rules and files own separate processes; a file timeout never kills game state.
 var transport=preload("res://pipe_transport.gd").new()
@@ -73,7 +74,7 @@ func _file_request(payload: Dictionary) -> Dictionary:
 			return {"ok":false,"outcome":"not_saved","error":recovered.data.get("reason","保存されていません。ゲーム進行は保持しています。")}
 		return {"ok":false,"outcome":"unknown","error":"保存結果を確認できません。ゲーム進行は保持しています。保存先を確認してから別名で保存してください。","path":payload.get("path","")}
 	return {"ok":false,"error":"ファイル処理が終了しました（%s）。ゲーム進行は保持しています。" % result.transport_error}
-func request(payload: Dictionary) -> Dictionary:
+func request(payload: Dictionary, click_context = null) -> Dictionary:
 	var diagnostic_token=debug_store.begin_request(payload) if is_instance_valid(debug_store) else {}
 	if busy or closing:
 		diagnostic_completed.emit(payload.get("op")=="godot_io",false,0)
@@ -84,6 +85,11 @@ func request(payload: Dictionary) -> Dictionary:
 		if is_instance_valid(debug_store):debug_store.finish_request(diagnostic_token,{"ok":false},"disconnected")
 		return {"ok":false,"connection_lost":true,"error":last_error}
 	busy=true
+	var observed := Callable()
+	if click_observer.is_valid():
+		var op: String = debug_store.sanitizer.operation(payload)
+		if op.is_empty():op=str(payload.get("op","other"))
+		observed=click_observer.call(op,click_context)
 	var diagnostic_started=Time.get_ticks_msec()
 	var result: Dictionary
 	if payload.get("op")=="godot_io":result=await _file_request(payload)
@@ -92,6 +98,7 @@ func request(payload: Dictionary) -> Dictionary:
 		if result.has("transport_error") and not closing:result=_disconnect(result.transport_error)
 	if closing:result={"ok":false,"error":"終了しています"}
 	busy=false
+	if observed.is_valid():observed.call()
 	if is_instance_valid(debug_store):debug_store.finish_request(diagnostic_token,result,"disconnected" if result.get("connection_lost",false) else "")
 	diagnostic_completed.emit(payload.get("op")=="godot_io",bool(result.get("ok",false)),Time.get_ticks_msec()-diagnostic_started)
 	return result

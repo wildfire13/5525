@@ -14,7 +14,8 @@ var quest_voice_keys: Dictionary = {}
 var suppress_result_voice_once := false
 var sounds: Dictionary = {}
 var streams: Dictionary = {}
-var quest_slots: Array = []
+const ROAD_TRACK := "road_01"
+const PREVIOUS_ROAD_TRACKS := ["quest_01_open_road", "quest_02_woodland", "quest_03_quiet_horizon"]
 var quest_id := ""
 var journey_key := ""
 var current_bgm := ""
@@ -71,8 +72,6 @@ func _ready():
 			event_voices[uid+"/"+cue]=event_base.path_join(event_manifest.characters[uid][cue].file)
 	var s = JSON.parse_string(FileAccess.get_file_as_string(base.path_join("se/manifest.json")))
 	for e in s.se: sounds[e.id]=base.path_join("se").path_join(e.filename)
-	quest_slots = JSON.parse_string(FileAccess.get_file_as_string("res://assets/quest_music.json")).tracks
-	for track in quest_slots:bgm_catalog[track.id]=track.path
 	var trial_music=JSON.parse_string(FileAccess.get_file_as_string("res://assets/music/trial_overrides.json"))
 	for track in trial_music.get("tracks",[]):bgm_catalog[str(track.id)]=str(track.path)
 func load_wav(path: String, loop := false) -> AudioStreamWAV:
@@ -80,6 +79,7 @@ func load_wav(path: String, loop := false) -> AudioStreamWAV:
 	var key = path + str(loop)
 	if streams.has(key): return streams[key]
 	var stream = AudioStreamWAV.load_from_file(path)
+	if stream != null:stream.resource_name=path.get_file()
 	if stream != null and loop:
 		stream.loop_mode=AudioStreamWAV.LOOP_FORWARD
 		stream.loop_begin=0
@@ -97,12 +97,6 @@ func load_bgm(path: String,loop:=true) -> AudioStream:
 			streams[key]=stream
 		return stream
 	return load_wav(path,loop)
-func quest_stream(track: Dictionary) -> AudioStreamWAV:
-	var stream=load_wav(str(bgm_catalog.get(track.id,"")),true)
-	if stream!=null:
-		stream.loop_begin=int(track.loop_start_frame)
-		stream.loop_end=int(track.loop_end_frame_exclusive)
-	return stream
 func choose_journey(c: Dictionary) -> void:
 	var j = c.get("journey")
 	if j == null:
@@ -111,27 +105,22 @@ func choose_journey(c: Dictionary) -> void:
 	var key = str(j.token)+":"+str(j.origin)+":"+str(j.destination)
 	if key == journey_key and not quest_id.is_empty(): return
 	journey_key=key
-	quest_id=str(quest_slots[randi()%quest_slots.size()].id)
+	quest_id=ROAD_TRACK
 	quest.stop(); quest_loaded=""
-func quest_title() -> String:
-	for t in quest_slots:
-		if t.id == quest_id: return t.title
-	return "旅曲未選択"
 func frontend_save() -> Dictionary:
 	return {"version":1,"journey_key":journey_key,"quest_id":quest_id}
 func valid_metadata(data) -> bool:
 	if not data is Dictionary:return false
 	if data.is_empty():return true
 	if data.get("version") != 1 or not data.get("journey_key","") is String or data.get("journey_key","").length()>200:return false
-	var valid=data.get("quest_id","")==""
-	for t in quest_slots:
-		if t.id==data.get("quest_id"):valid=true
-	return valid
+	var id = data.get("quest_id","")
+	return id == "" or id == ROAD_TRACK or id in PREVIOUS_ROAD_TRACKS
 func restore(data: Dictionary) -> bool:
 	if not valid_metadata(data):return false
 	# Music metadata does not reset presentation/result deduplication.
-	if data.is_empty(): journey_key="";quest_id="";quest.stop();quest_loaded="";return true
-	journey_key=data.get("journey_key","");quest_id=data.get("quest_id","");quest.stop();quest_loaded=""
+	journey_key=data.get("journey_key","")
+	quest_id="" if data.get("quest_id","")=="" else ROAD_TRACK
+	quest.stop();quest_loaded=""
 	return true
 func sync(d: Dictionary, town_route := "") -> void:
 	var c: Dictionary = d.get("campaign",{})
@@ -156,10 +145,8 @@ func sync(d: Dictionary, town_route := "") -> void:
 	if on_road:
 		if quest_loaded != quest_id:
 			quest.stop();quest_loaded=quest_id
-			for t in quest_slots:
-				if t.id==quest_id:
-					quest.stream=quest_stream(t)
-					if quest.stream: quest.play()
+			quest.stream=load_bgm(str(bgm_catalog.get(quest_id,"")))
+			if quest.stream:quest.play()
 		quest.stream_paused=not audible("bgm")
 	else: quest.stream_paused=true
 	if state.get("result")==null:result_key=""

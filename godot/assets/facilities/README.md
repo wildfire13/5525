@@ -1,6 +1,6 @@
 # 施設背景の受け入れ先
 
-7施設の背景9枚を manifest.json に登録済み（すべて原本バイトのまま）。
+6施設の背景6枚を manifest.json に登録済み（すべて原本バイトのまま）。
 
 - 差替済み6施設（`weapon`, `armor`, `item`, `accessory`, `guild`, `inn`）:
   - ファイル名:
@@ -11,11 +11,9 @@
     - `bg_item_shop_interior.png` (`item`)
     - `bg_accessory_shop_interior.png` (`accessory`)
   - style: `interior`（各1枚・計6枚）
-  - 解像度: `1920×1080`（`G:\Apps\CodexProjects\Share\prot_assets\背景\施設内` から原本バイトのまま受領）
-- 既存維持1施設（`departure_map`）:
-  - ファイル名: `departure_map_<style>.png`（3枚）
-  - style: `papercut`, `gouache`, `watercolor_pen`
-  - 解像度: `1672×941`
+  - 解像度: `1920×1080`。
+
+出発マップは現在地の町・村と同じ背景を表示する。
 
 manifest/CSV/SHA一覧との照合とPNG読込みを確認済み。
 制作・承認済み原画像だけを登録する。

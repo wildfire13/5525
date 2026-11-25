@@ -1,3 +1,1 @@
-個別装備用の引継ぎ済み仮画像。42装備IDごとに独立したPNGを参照。種別画像は assets/ui_icons/icons64 の原本を維持。
-各PNGは64×64 RGBA。元画像16種のRGB反転・alpha不変を全画素照合済み。生成せず受領ZIPから同一バイトを配置。
-mapping.json のID→パスは表示専用でセーブには含めない。将来は個別PNGまたは対応パスを差し替える。
+mapping.json は装備IDから現行の個別アイコンへの対応表です。画像と採用台帳は [individual_icons](../individual_icons/README.md) にあります。

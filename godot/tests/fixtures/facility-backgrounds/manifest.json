@@ -1,11 +1,9 @@
 {
   "format_version": 2,
-  "method": "curated_interior_and_legacy_image_gen",
-  "asset_count": 9,
+  "method": "curated_interior",
+  "asset_count": 6,
   "notes": [
-    "Six facility interior backgrounds (weapon, armor, item, accessory, guild, inn) replaced with 1920x1080 curated interior PNGs (original bytes retained).",
-    "departure_map retains its existing 1672x941 three-style variants (papercut, gouache, watercolor_pen).",
-    "Earlier exterior candidates and superseded 3-style variants for the 6 replaced facilities are excluded."
+    "Six facility interior backgrounds (weapon, armor, item, accessory, guild, inn) replaced with 1920x1080 curated interior PNGs (original bytes retained)."
   ],
   "assets": [
     {
@@ -85,57 +83,6 @@
       "sha256": "0083449202fe11414e63c88ae8f033ca8ab0440824d6b71f88c899de9ff9401f",
       "source_filename": "背景_宿屋.png",
       "approval": "user_supplied_interior_replacement"
-    },
-    {
-      "facility": "departure_map",
-      "style": "papercut",
-      "scene": "outdoors",
-      "filename": "departure_map_papercut.png",
-      "target_path": "godot/assets/facilities/departure_map_papercut.png",
-      "width": 1672,
-      "height": 941,
-      "bytes": 3194287,
-      "sha256": "d15593e381e4fe534461af9257c9f87feae817ab993b3285eb2858c022c4500f",
-      "library_file_id": "libfile_b95cde3a98f48191905939768f24502a",
-      "file_id": "file_0000000050e081f693cd6b0cce6c4eac",
-      "library_filename": "departure_map_papercut.png",
-      "source_reference": "libfile_244eb750e1c48191b5da515c4cc6000f",
-      "source_papercut_sha256": "d15593e381e4fe534461af9257c9f87feae817ab993b3285eb2858c022c4500f",
-      "approval": "provisionally_selected_for_in_game_review"
-    },
-    {
-      "facility": "departure_map",
-      "style": "gouache",
-      "scene": "outdoors",
-      "filename": "departure_map_gouache.png",
-      "target_path": "godot/assets/facilities/departure_map_gouache.png",
-      "width": 1672,
-      "height": 941,
-      "bytes": 3144310,
-      "sha256": "229374f93d2e37cb00bdd087d06121a258ea2abbf062eea0387fcc58638c8765",
-      "library_file_id": "libfile_df08e0831ca08191b635c81338134c1b",
-      "file_id": "file_00000000990081f5848b44ec99a0b18d",
-      "library_filename": "departure_map_gouache.png",
-      "source_reference": "departure_map_papercut.png",
-      "source_papercut_sha256": "d15593e381e4fe534461af9257c9f87feae817ab993b3285eb2858c022c4500f",
-      "approval": "provisionally_selected_for_in_game_review"
-    },
-    {
-      "facility": "departure_map",
-      "style": "watercolor_pen",
-      "scene": "outdoors",
-      "filename": "departure_map_watercolor_pen.png",
-      "target_path": "godot/assets/facilities/departure_map_watercolor_pen.png",
-      "width": 1672,
-      "height": 941,
-      "bytes": 3479045,
-      "sha256": "46e8f9e48133c8ae1201256e33b9fdea3a78535b96c346e67ac634731ef81f3e",
-      "library_file_id": "libfile_0cacb197a38481919e77a4a6e14a5507",
-      "file_id": "file_00000000f23c81f5b8286b8e3cf4dd52",
-      "library_filename": "departure_map_watercolor_pen.png",
-      "source_reference": "departure_map_papercut.png",
-      "source_papercut_sha256": "d15593e381e4fe534461af9257c9f87feae817ab993b3285eb2858c022c4500f",
-      "approval": "provisionally_selected_for_in_game_review"
     }
   ],
   "adoption_status": "curated_interiors_and_provisional_map"

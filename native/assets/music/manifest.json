@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "package_id": "5525-bgm-runtime-v1",
-  "purpose": "Approved provisional five location loops and adopted battle Pattern 2 loop for integration. Packaging only; no deployment.",
+  "purpose": "Four village arrival loops and the battle loop used for equipment trials.",
   "audio_format": {
     "container": "WAV",
     "encoding": "PCM signed integer little-endian",
@@ -11,7 +11,6 @@
   },
   "routes": {
     "locations": {
-      "astaris": "astaris",
       "north": "north",
       "east": "east",
       "west": "west",
@@ -39,23 +38,6 @@
     "gemma_terms_url": "https://ai.google.dev/gemma/terms"
   },
   "tracks": [
-    {
-      "id": "astaris",
-      "role": "location",
-      "location_id": "astaris",
-      "name": "アスタリス",
-      "filename": "loops/astaris.wav",
-      "sha256": "0148f18127eef401deb85e50a87001b13dbd1b79cd0c65070c06caaa8f9a6b1f",
-      "size_bytes": 5758472,
-      "sample_rate_hz": 48000,
-      "channels": 2,
-      "bits_per_sample": 24,
-      "frames": 959738,
-      "duration_seconds": 19.994541666666667,
-      "loop_start_frame": 0,
-      "loop_end_frame_exclusive": 959738,
-      "preserved_source_filename": "01_Astaris_loop_48k24.wav"
-    },
     {
       "id": "north",
       "role": "location",

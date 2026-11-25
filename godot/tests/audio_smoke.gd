@@ -1,8 +1,7 @@
 extends SceneTree
-# Uses the three actual delivered WAVs. Dummy driver: playback state, not listening.
+# Checks the shipped road MP3 using the Dummy audio driver.
 var failures: Array[String]=[]
 var count:=0
-var decoded=[]
 func check(ok: bool,label: String):
 	count+=1
 	if not ok:failures.append(label)
@@ -28,69 +27,47 @@ func run():
 	check(audio.current_bgm=="road_battle" and audio.bgm.stream_paused and not audio.bgm.playing and audio.quest.stream_paused and audio.frontend_save()==muted_selection,"default battle sync keeps both music streams silent and selection intact")
 	check(not audio.voice.playing and audio.effects.all(func(p):return not p.playing) and not audio.ui_player.playing,"default sync leaves voice and effects silent")
 	# Playback tests explicitly opt into BGM while preserving other mute defaults.
-	audio.set_mute("bgm",false)
+	audio.set_sound_level("bgm",100)
 	muted_campaign.phase="camp";audio.sync({"campaign":muted_campaign})
 	check(audio.quest.playing and not audio.quest.stream_paused and audio.frontend_save()==muted_selection and audio.muted.voice and audio.muted.se,"explicit BGM unmute starts retained selection only")
-	check(audio.quest_slots.size()==3,"three delivered quest tracks configured")
-	check(audio.bgm_catalog.has_all(["astaris","east","west","north","south","battle2"]),"base location and trial routes remain available")
-	var index=0
-	for track in audio.quest_slots:
-		index+=1
-		var id=str(track.id)
-		check(FileAccess.get_sha256(track.path)==track.sha256,id+" unchanged delivered WAV hash")
-		check(audio.bgm_catalog.get(id)==track.path,id+" merged into runtime catalog")
-		var stream=audio.quest_stream(track)
-		check(stream!=null,id+" decodes in Godot")
-		if stream==null:continue
-		check(stream.mix_rate==int(track.sample_rate) and stream.stereo and int(round(stream.get_length()*stream.mix_rate))==int(track.frames),id+" sample rate/channels/frame count")
-		check(stream.loop_mode==AudioStreamWAV.LOOP_FORWARD and stream.loop_begin==int(track.loop_start_frame) and stream.loop_end==int(track.loop_end_frame_exclusive),id+" exact map loop bounds")
-		decoded.append({"id":id,"seconds":stream.get_length(),"frames":stream.loop_end,"runtime_format":stream.format})
-		var campaign={"phase":"road","location":"astaris","journey":{"token":37+index,"origin":"astaris","destination":"north"}}
-		var key=str(campaign.journey.token)+":astaris:north"
-		audio.restore({"version":1,"journey_key":key,"quest_id":id})
-		audio.sync({"campaign":campaign})
-		check(audio.quest.playing and audio.quest.stream==stream and audio.quest_id==id,id+" road plays exact delivered stream")
-		var selected=audio.frontend_save()
-		await create_timer(.12).timeout
-		check(audio.quest.get_playback_position()>0,id+" playback position advances")
-		audio.quest.seek(stream.get_length()-.04)
-		await create_timer(.16).timeout
-		check(audio.quest.playing and audio.quest.get_playback_position()<.6,id+" playback wraps across actual loop boundary")
-		campaign.phase="battle";audio.sync({"campaign":campaign,"state":{"result":null}})
-		var position=audio.quest.get_playback_position()
-		check(audio.quest.stream_paused and audio.bgm.playing and audio.current_bgm=="road_battle",id+" combat pauses quest and uses existing battle track")
-		await create_timer(.1).timeout
-		check(absf(audio.quest.get_playback_position()-position)<.03,id+" position stays paused during combat")
-		campaign.phase="camp";audio.sync({"campaign":campaign})
-		check(audio.frontend_save()==selected and audio.quest.stream==stream and audio.quest.playing and not audio.quest.stream_paused and absf(audio.quest.get_playback_position()-position)<.03,id+" camp resumes same stream at same position")
-		var restored=JSON.parse_string(JSON.stringify(selected))
-		campaign.phase="battle";audio.restore(restored);audio.sync({"campaign":campaign,"state":{"result":null}})
-		check(audio.frontend_save()==selected and (audio.quest.stream_paused or not audio.quest.playing),id+" saved battle retains selection without road playback")
-		campaign.phase="camp";audio.sync({"campaign":campaign})
-		check(audio.frontend_save()==selected and audio.quest.stream==stream and audio.quest.playing and not audio.quest.stream_paused,id+" loaded battle returns to same song")
-		campaign.phase="arrival";audio.sync({"campaign":campaign})
-		check(audio.current_bgm=="north" and audio.bgm.playing and audio.quest.stream_paused,id+" arrival switches to destination town track")
-		campaign.phase="result";campaign.location="north";audio.sync({"campaign":campaign})
-		check(audio.current_bgm=="north" and audio.quest.stream_paused,id+" delivery result retains town music")
-		campaign.phase="town";campaign.journey=null;audio.sync({"campaign":campaign})
-		check(audio.quest_id.is_empty() and audio.journey_key.is_empty() and not audio.quest.playing and audio.current_bgm=="north",id+" town clears journey selection")
-		stream=null
-	seed(5525)
+	var id=audio.ROAD_TRACK
+	var stream=audio.quest.stream as AudioStreamMP3
+	check(stream!=null and stream.resource_path.get_file()=="road_01.mp3" and stream.loop and stream.loop_offset==0,"whole road MP3 loops from the start")
+	if stream==null:quit(1);return
+	var campaign=muted_campaign
+	var selected=audio.frontend_save()
+	await create_timer(.12).timeout
+	check(audio.quest.get_playback_position()>0,id+" playback position advances")
+	audio.quest.seek(stream.get_length()-.04)
+	await create_timer(.16).timeout
+	check(audio.quest.playing and audio.quest.get_playback_position()<.6,id+" playback wraps across actual loop boundary")
+	campaign.phase="battle";audio.sync({"campaign":campaign,"state":{"result":null}})
+	var position=audio.quest.get_playback_position()
+	check(audio.quest.stream_paused and audio.bgm.playing and audio.current_bgm=="road_battle",id+" combat pauses quest and uses existing battle track")
+	await create_timer(.1).timeout
+	check(absf(audio.quest.get_playback_position()-position)<.03,id+" position stays paused during combat")
+	campaign.phase="camp";audio.sync({"campaign":campaign})
+	check(audio.frontend_save()==selected and audio.quest.stream==stream and audio.quest.playing and not audio.quest.stream_paused and absf(audio.quest.get_playback_position()-position)<.03,id+" camp resumes same stream at same position")
+	var restored=JSON.parse_string(JSON.stringify(selected))
+	campaign.phase="battle";audio.restore(restored);audio.sync({"campaign":campaign,"state":{"result":null}})
+	check(audio.frontend_save()==selected and (audio.quest.stream_paused or not audio.quest.playing),id+" saved battle retains selection without road playback")
+	campaign.phase="camp";audio.sync({"campaign":campaign})
+	check(audio.frontend_save()==selected and audio.quest.stream==stream and audio.quest.playing and not audio.quest.stream_paused,id+" loaded battle returns to same song")
+	campaign.phase="arrival";audio.sync({"campaign":campaign})
+	check(audio.current_bgm=="north" and audio.bgm.playing and audio.quest.stream_paused,id+" arrival switches to destination town track")
+	campaign.phase="result";campaign.location="north";audio.sync({"campaign":campaign})
+	check(audio.current_bgm=="north" and audio.quest.stream_paused,id+" delivery result retains town music")
+	campaign.phase="town";campaign.journey=null;audio.sync({"campaign":campaign})
+	check(audio.quest_id.is_empty() and audio.journey_key.is_empty() and not audio.quest.playing and audio.current_bgm=="north",id+" town clears journey selection")
+	stream=null
 	var sample={"phase":"road","location":"astaris","journey":{"token":100,"origin":"astaris","destination":"east"}}
-	var selections={}
-	var stable=true
-	for n in range(96):
-		sample.journey.token=100+n
-		audio.choose_journey(sample)
-		var id=audio.quest_id
-		selections[id]=int(selections.get(id,0))+1
-		for repeat in range(3):
-			audio.choose_journey(sample)
-			stable=stable and audio.quest_id==id
-	check(selections.size()==3,"deterministic seeded starts can select all three songs")
-	check(stable,"repeated scene updates never reroll an active journey")
 	audio.sync({"campaign":sample})
 	var chosen=audio.frontend_save()
+	for former_id in ["quest_01_open_road","quest_02_woodland","quest_03_quiet_horizon"]:
+		var metadata=chosen.duplicate()
+		metadata.quest_id=former_id
+		check(audio.restore(metadata) and audio.frontend_save()==chosen,"previous road track ID resolves to road_01: "+former_id)
+	audio.sync({"campaign":sample})
 	audio.set_mute("bgm",true);audio.sync({"campaign":sample})
 	check(audio.quest.stream_paused,"mute pauses delivered quest audio")
 	audio.set_mute("bgm",false);audio.sync({"campaign":sample})
@@ -103,5 +80,5 @@ func run():
 	check(await audio.finish_audio(),"stopped audio streams released before test shutdown")
 	audio.queue_free()
 	for i in range(6):await process_frame
-	print(JSON.stringify({"suite":"audio_state_smoke","checks":count,"failures":failures,"audio_driver":"Dummy","new_quest_wavs_tested":true,"subjective_listening":false,"decoded":decoded,"seeded_start_counts":selections}))
+	print(JSON.stringify({"suite":"audio_state_smoke","checks":count,"failures":failures,"audio_driver":"Dummy","road_mp3_tested":true,"subjective_listening":false}))
 	quit(0 if failures.is_empty() else 1)

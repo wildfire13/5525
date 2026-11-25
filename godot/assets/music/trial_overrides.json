@@ -5,15 +5,11 @@
   "tracks": [
     {
       "id": "astaris",
-      "source_library_id": "libfile_80057d994f288191b8a0f138c67221ad",
-      "source_name": "5525_C01_都市_室内楽.mp3",
-      "path": "res://assets/music/trials/5525_C01_都市_室内楽.mp3",
-      "sha256": "9f7ebb0c350037e5ba55a0d91edcbf707b91c1f3b5bc05ff536306e9ae496918",
-      "duration_seconds": 99.0,
-      "sample_rate_hz": 48000,
-      "channels": 2,
-      "loop_entire_file": true,
-      "route_reason": "The filename identifies this as a city chamber-music track; Astaris is the game's city hub."
+      "path": "res://assets/music/local_map/city_01.mp3"
+    },
+    {
+      "id": "road_01",
+      "path": "res://assets/music/road_01.mp3"
     },
     {
       "id": "astaris:guild",

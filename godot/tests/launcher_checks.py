@@ -31,7 +31,7 @@ with tempfile.TemporaryDirectory(prefix='5525 launcher discovery ') as temporary
     for relative in ['Start-5525.cmd','Start-5525-Godot.cmd','godot/launch.ps1',
                      'godot/project.godot','godot/windows-shared-env.txt','native/bridge.cjs','native/godot_files.py',
                      'native/master-data.cjs','native/master_data.py','native/data/master.sqlite',
-                     'native/assets/music/manifest.json','godot/assets/quest_music.json']:
+                     'native/assets/music/manifest.json','godot/assets/music/trial_overrides.json']:
         target=project/relative;target.parent.mkdir(parents=True,exist_ok=True)
         shutil.copy2(ROOT/relative,target)
     env['AKI_SHARED_ENV_FILE']=str(project/'shared.env')

@@ -1,4 +1,4 @@
-"""Verify all 9 original background bytes against the delivered documents."""
+"""Verify all current background bytes against the delivered documents."""
 import csv
 import hashlib
 import json
@@ -27,29 +27,23 @@ interior_filenames = {
     'guild': 'bg_guild_interior.png',
     'inn': 'bg_inn_interior.png',
 }
-interior_facilities = set(interior_filenames)
-legacy_facilities = {'departure_map'}
-facilities = interior_facilities | legacy_facilities
-legacy_styles = {'papercut', 'gouache', 'watercolor_pen'}
+facilities = set(interior_filenames)
 assert set(catalog) == facilities
-assert len(assets) == len(source['assets']) == source['asset_count'] == len(rows) == len(csv_assets) == len(sums) == 9
+assert len(assets) == len(source['assets']) == source['asset_count'] == len(rows) == len(csv_assets) == len(sums) == len(facilities)
 assert set(assets) == set(csv_assets) == set(sums)
 assert {p.name for p in (repo / 'godot/assets/facilities').glob('*.png')} == {a['filename'] for a in assets.values()}
 for facility in sorted(facilities):
     variants = catalog[facility]
-    if facility in interior_facilities:
-        assert len(variants) == 1 and {v['style'] for v in variants} == {'interior'}
-    else:
-        assert len(variants) == 3 and {v['style'] for v in variants} == legacy_styles
+    assert len(variants) == 1 and {v['style'] for v in variants} == {'interior'}
     for variant in variants:
         style = variant['style']
-        name = interior_filenames[facility] if style == 'interior' else f'{facility}_{style}.png'
+        name = interior_filenames[facility]
         path = 'godot/assets/facilities/' + name
         assert variant['path'] == 'res://assets/facilities/' + name
         a, row = assets[path], csv_assets[path]
         data = (repo / path).read_bytes()
         digest = hashlib.sha256(data).hexdigest()
-        dims = (1920, 1080) if style == 'interior' else (1672, 941)
+        dims = (1920, 1080)
         assert a['facility'] == row['facility'] == facility
         assert a['style'] == row['style'] == style
         assert a['filename'] == name and len(data) == a['bytes']
@@ -59,4 +53,4 @@ for facility in sorted(facilities):
             assert image.format == 'PNG' and image.size == dims
             image.verify()
         print('PASS original background ' + name)
-print('PASS all 9 original backgrounds and 7-facility catalog match manifest/CSV/SHA')
+print('PASS all current backgrounds and facility catalog match manifest/CSV/SHA')

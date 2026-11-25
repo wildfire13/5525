@@ -40,7 +40,7 @@ class AudioAssetTests(unittest.TestCase):
     def test_music_routes(self):
         manifest = self.manifest('music')
         tracks = {track['id']: track for track in manifest['tracks']}
-        towns = {'astaris', 'north', 'east', 'west', 'south'}
+        towns = {'north', 'east', 'west', 'south'}
         self.assertEqual(manifest['routes']['locations'], {town: town for town in towns})
         self.assertEqual(manifest['routes']['battle'], 'battle')
         self.assertEqual(set(tracks), towns | {'battle'})

@@ -79,7 +79,7 @@ function Existing-Path([string]$Path) {
 }
 try {
     Read-RuntimePaths
-    foreach ($relative in @('godot/project.godot','native/bridge.cjs','native/godot_files.py','native/master-data.cjs','native/master_data.py','native/data/master.sqlite','native/assets/music/manifest.json','godot/assets/quest_music.json')) {
+    foreach ($relative in @('godot/project.godot','native/bridge.cjs','native/godot_files.py','native/master-data.cjs','native/master_data.py','native/data/master.sqlite','native/assets/music/manifest.json','godot/assets/music/trial_overrides.json')) {
         if (-not (Test-Path -LiteralPath (Join-Path $projectRoot $relative) -PathType Leaf)) {
             throw "Missing project file: $relative. Keep the godot and native folders together."
         }

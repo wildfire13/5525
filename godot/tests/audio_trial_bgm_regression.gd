@@ -22,10 +22,10 @@ func run():
 	if game.data.is_empty():quit(1);return
 	game.audio.test_silence=true
 	game.audio.set_sound_level("bgm",100)
-	game.navigate("hub");expect_song("5525_C01_都市_室内楽.mp3")
-	game.navigate("character");expect_song("5525_C01_都市_室内楽.mp3")
-	game.navigate("board");expect_song("5525_C01_都市_室内楽.mp3")
-	game.navigate("map");expect_song("5525_C01_都市_室内楽.mp3")
+	game.navigate("hub");expect_song("city_01.mp3")
+	game.navigate("character");expect_song("city_01.mp3")
+	game.navigate("board");expect_song("city_01.mp3")
+	game.navigate("map");expect_song("city_01.mp3")
 	check(game.find_child("TownStill",true,false)!=null and game.find_child("FacilityStill",true,false)==null,"astaris world map keeps town still")
 	game.navigate("party");expect_song("guild_01.mp3")
 	game.navigate("character");expect_song("guild_01.mp3")
@@ -50,7 +50,7 @@ func run():
 	await game.new_game()
 	await game.act("depart",["north","convoy"])
 	var selected=game.audio.quest_id
-	check(game.audio.quest.playing,"road plays the journey selection")
+	check(game.audio.quest.playing and game.audio.quest.stream.resource_path.get_file()=="road_01.mp3" and game.audio.quest.stream.loop and not game.audio.bgm.playing,"road_01.mp3 plays alone and loops")
 	for tab in ["character","board","map"]:
 		game.navigate(tab)
 		check(game.audio.quest.playing and game.audio.quest_id==selected and game.find_child("RoadStill",true,false)!=null,"road "+tab+" keeps journey music and road background")

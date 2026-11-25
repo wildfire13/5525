@@ -369,7 +369,13 @@ func loading_kind(request: Dictionary) -> String:
 		if incoming is Dictionary and incoming.get("phase") in ["battle","deployment"]:return "before"
 		if campaign().get("phase") in ["battle","deployment"] or data.get("trial")!=null:return "after"
 	return ""
+func update_request(request: Dictionary,click: Dictionary) -> Dictionary:
+	if is_instance_valid(debug_view.click_trace) and "click_observer" in engine:
+		return await engine.request(request,click)
+	return await engine.request(request)
+
 func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
+	var click: Dictionary=debug_view.click_trace.dispatch if is_instance_valid(debug_view.click_trace) else {}
 	if locked or closing or loading_screen.active:
 		record_debug_rejection(request);return {"ok":false,"error":"処理中です"}
 	pages.shop_view.cancel_pending()
@@ -396,18 +402,18 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 	debug_view.refresh_state()
 	var connection=engine.connection_generation
 	var result_before=campaign().duplicate(true);var battle_before=state().duplicate(true);var receipts=[]
-	var reply: Dictionary=await engine.request(request)
+	var reply: Dictionary=await update_request(request,click)
 	var first_receipt=results_view.receipt_for(str(request.get("action","")),result_before,battle_before,reply)
 	if not first_receipt.is_empty():receipts.append(first_receipt)
 	var arrived=false
 	if reply.get("ok",false) and reply.get("campaign") is Dictionary:
 		if reply.campaign.get("phase")=="arrival":
 			var arrival_before=reply.campaign.duplicate(true)
-			reply=await engine.request({"op":"campaign","action":"arrive","args":[]});arrived=reply.get("ok",false)
+			reply=await update_request({"op":"campaign","action":"arrive","args":[]},click);arrived=reply.get("ok",false)
 			var arrival_receipt=results_view.receipt_for("arrive",arrival_before,{},reply)
 			if not arrival_receipt.is_empty():receipts.append(arrival_receipt)
 		if reply.get("ok",false) and reply.get("campaign") is Dictionary and reply.campaign.get("phase")=="result" and reply.campaign.get("result",{}).get("outcome")=="travel":
-			reply=await engine.request({"op":"campaign","action":"acknowledge","args":[]});arrived=reply.get("ok",false)
+			reply=await update_request({"op":"campaign","action":"acknowledge","args":[]},click);arrived=reply.get("ok",false)
 	if connection!=engine.connection_generation:
 		var owns_loading=loading_token>0 and loading_screen.active and loading_screen.sequence==loading_token
 		loading_screen.finish(loading_token)
@@ -743,6 +749,7 @@ func deploy_dragged(uid: String,pos: int):
 func on_cell(pos: int):
 	if locked or presenting or closing or hud.range_reference or hud.item_list or hud.skill_list:return
 	var s=state();var u=board.unit_at(pos)
+	if is_instance_valid(debug_view.click_trace):debug_view.click_trace.board_action(pos,u)
 	hud.selected_cell=pos
 	if hud.action_menu and not s.get("deploying",false):hud.pin_inspection(pos);render();return
 	if u.get("side")=="enemy":hud.selected_enemy=str(u.id)

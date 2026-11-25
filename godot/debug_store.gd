@@ -6,6 +6,7 @@ const MAX_QUEUE=256
 const BATCH_SIZE=32
 const FLUSH_INTERVAL=.2
 const WORKER_TIMEOUT_MS=500
+const WORKER_START_TIMEOUT_MS=3000
 var transport=preload("res://debug_transport.gd").new()
 var sanitizer=preload("res://debug_events.gd").new()
 var session=""
@@ -92,21 +93,24 @@ func _process(delta):
  if elapsed<FLUSH_INTERVAL or pumping:return
  elapsed=0
  if not queue.is_empty():pump()
-func disable():
+func disable(reason: String):
  lost+=queue.size()
  _stop_polling()
- failed=true;active=false;status="保存停止（保存未確認%d件・ゲーム操作は継続できます）" % lost;queue.clear();set_process(false);transport.close()
-func pump(timeout_budget_ms: int=WORKER_TIMEOUT_MS):
+ failed=true;active=false;status="保存停止（%s・保存未確認%d件）" % [reason,lost];queue.clear();set_process(false);transport.close()
+func pump(timeout_budget_ms: int=WORKER_START_TIMEOUT_MS):
  if pumping or not active or queue.is_empty():return
  pumping=true
+ var timeout_ms := WORKER_TIMEOUT_MS
  if transport.handles.is_empty():
+  # The first acknowledgement includes Python startup and SQLite initialization.
+  timeout_ms=WORKER_START_TIMEOUT_MS
   if not transport.start(python_program,PackedStringArray(["-X","utf8","-B",worker_script,"--db",ProjectSettings.globalize_path(PATH)])):
-   pumping=false;disable();return
+   pumping=false;disable("記録プロセスを起動できません");return
  var events=queue.slice(0,BATCH_SIZE)
  queue=queue.slice(events.size())
  in_flight_count=events.size()
- if not transport.begin({"action":"batch","session":session,"version":BUILD,"events":events},clampi(timeout_budget_ms,1,WORKER_TIMEOUT_MS)):
-  lost+=in_flight_count;in_flight_count=0;pumping=false;disable();return
+ if not transport.begin({"action":"batch","session":session,"version":BUILD,"events":events},clampi(timeout_budget_ms,1,timeout_ms)):
+  lost+=in_flight_count;in_flight_count=0;pumping=false;disable("記録要求を送信できません");return
  poll_tree=get_tree()
  if not poll_tree.process_frame.is_connected(_poll_batch):poll_tree.process_frame.connect(_poll_batch)
 func _stop_polling():
@@ -117,7 +121,10 @@ func _poll_batch():
  var response=transport.poll()
  if response.get("pending",false):return
  _stop_polling();pumping=false
- if not response.get("ok",false):lost+=in_flight_count;in_flight_count=0;disable();return
+ if not response.get("ok",false):
+  var reasons={"timeout":"応答待ち時間切れ","closed":"接続終了","eof":"応答前に接続終了","invalid_reply":"応答形式エラー"}
+  lost+=in_flight_count;in_flight_count=0
+  disable(reasons.get(response.get("transport_error",""),"記録要求に失敗"));return
  in_flight_count=0;status="保存中"
  if dropped>0 and queue.size()<MAX_QUEUE:
   var count=dropped;dropped=0;enqueue("lifecycle","session",0,{"reason":"queue_overflow","dropped":count})

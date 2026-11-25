@@ -846,6 +846,16 @@
    "screens": [
     "debug"
    ],
+   "label": "BGM再生状況",
+   "nodes": [
+    "DebugMusic"
+   ],
+   "meaning": "場面曲と道中曲の音源・再生状態・経過時間"
+  },
+  {
+   "screens": [
+    "debug"
+   ],
    "label": "開発状態",
    "nodes": [
     "DebugState"

@@ -182,17 +182,21 @@ try:
     write_config(configuration)
     run('check-does-not-import', check=True)
     run('cold-normal-launch', verify_assets=True)
-    for recipe in (project/'godot/assets/equipment_icons_placeholder/icons64').glob('*.png.import'):
+    mapping_file = project/'godot/assets/equipment_icons_placeholder/mapping.json'
+    mapping = json.loads(mapping_file.read_text())
+    textures = sorted(set(mapping.values()))
+    for resource in textures:
+        recipe = project/'godot'/(resource.removeprefix('res://') + '.import')
         target = re.search(r'^path="([^"]+)"', recipe.read_text(), re.M).group(1)
         (project/'godot'/target.removeprefix('res://')).unlink()
     run('missing-cache-normal-launch', verify_assets=True)
     run('warm-smoke-launch', smoke=True, verify_assets=True)
     # A future addition has no recipe or cache; do not hard-code the current set.
-    folder=project/'godot/assets/equipment_icons_placeholder'
-    shutil.copy2(folder/'icons64/armor-cloth.png',folder/'icons64/future-item.png')
-    mapping=json.loads((folder/'mapping.json').read_text())
-    mapping['future-item']='res://assets/equipment_icons_placeholder/icons64/future-item.png'
-    (folder/'mapping.json').write_text(json.dumps(mapping))
+    original = project/'godot'/textures[0].removeprefix('res://')
+    future = original.with_name('future-item.png')
+    shutil.copy2(original, future)
+    mapping['future-item'] = 'res://' + future.relative_to(project/'godot').as_posix()
+    mapping_file.write_text(json.dumps(mapping))
     icons = project/'godot/assets/ui_icons/icons64'
     shutil.copy2(next(icons.glob('*.png')), icons/'future-ui-icon.png')
     run('future-png-normal-launch', verify_assets=True)
