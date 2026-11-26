@@ -48,9 +48,16 @@ static func apply_button_theme(target: Theme):
 				target.set_color(key,type,ink)
 		for i in 3:
 			var state=["normal","hover","pressed"][i]
-			var box=Tokens.box(colors[role][i])
+			var border=Tokens.BORDER_ACCENT if role==&"SelectedButton" else (Tokens.ACTION_PRESSED if role==&"ActionButton" else Tokens.BORDER)
+			var box=Tokens.box(colors[role][i],border)
 			if role==&"SelectedButton":
-				box.border_color=Tokens.BORDER_ACCENT;box.set_border_width_all(Tokens.BORDER_WIDTH_EMPHASIS)
+				box.set_border_width_all(Tokens.BORDER_WIDTH_EMPHASIS)
+			if role==&"ActionButton":
+				if state=="normal":Tokens.elevate(box,4,2.0,Tokens.SHADOW_ELEVATED)
+				elif state=="hover":Tokens.elevate(box,6,3.0,Tokens.SHADOW_ELEVATED)
+			elif role==&"Button" or role==&"DestinationButton":
+				if state=="normal":Tokens.elevate(box,2,1.0,Tokens.SHADOW_SOFT)
+				elif state=="hover":Tokens.elevate(box,4,2.0,Tokens.SHADOW_SOFT)
 			for type in types:
 				target.set_stylebox(state,type,box)
 				if state=="pressed":target.set_stylebox("hover_pressed",type,box)
@@ -84,7 +91,7 @@ func apply_theme():
 	ui.theme.set_stylebox("read_only","TextEdit",style())
 	ui.theme.set_color("font_readonly_color","TextEdit",Tokens.INK)
 	for key in ["normal","focus","read_only"]:ui.theme.set_stylebox(key,"LineEdit",style())
-	ui.theme.set_stylebox("panel","TooltipPanel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_MD))
+	ui.theme.set_stylebox("panel","TooltipPanel",Tokens.elevate(Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_MD),10,4.0,Tokens.SHADOW_ELEVATED))
 	ui.theme.set_color("font_color","TooltipLabel",Tokens.INK)
 	ui.theme.set_font_size("font_size","TooltipLabel",Tokens.FONT_SM)
 	for key in ["embedded_border","embedded_unfocused_border"]:

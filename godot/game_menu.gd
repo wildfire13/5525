@@ -3,11 +3,61 @@ extends RefCounted
 const Tokens = preload("res://ui_tokens.gd")
 const ScreenGrid = preload("res://screen_grid.gd")
 const WindowGrid = preload("res://window_grid.gd")
+const UiMotion = preload("res://ui_motion.gd")
+
+const PALETTE_PREVIEWS := [
+	{
+		"label": "配色：緑",
+		"tooltip": "既存：ディープパイン（クリックで次の配色へ）",
+		"normal": Tokens.ACTION,
+		"hover": Tokens.ACTION_HOVER,
+		"pressed": Tokens.ACTION_PRESSED,
+		"border": Tokens.ACTION_PRESSED,
+		"ink": Tokens.INK_INVERSE,
+	},
+	{
+		"label": "配色：ネイビー",
+		"tooltip": "ネイビー×真鍮ゴールド（クリックで次の配色へ）",
+		"normal": Color("#1e3a5f"),
+		"hover": Color("#294d7a"),
+		"pressed": Color("#142842"),
+		"border": Color("#c28b2c"),
+		"ink": Color("#f6f8fa"),
+	},
+	{
+		"label": "配色：臙脂",
+		"tooltip": "バーガンディ×スレート（クリックで次の配色へ）",
+		"normal": Color("#7c2633"),
+		"hover": Color("#963140"),
+		"pressed": Color("#5e1b26"),
+		"border": Color("#5e1b26"),
+		"ink": Color("#f9f7f6"),
+	},
+	{
+		"label": "配色：ティール",
+		"tooltip": "マリンティール×ミスト（クリックで次の配色へ）",
+		"normal": Color("#0f5e66"),
+		"hover": Color("#167680"),
+		"pressed": Color("#0a454b"),
+		"border": Color("#0a454b"),
+		"ink": Color("#f5f9f9"),
+	},
+	{
+		"label": "配色：ダーク",
+		"tooltip": "ダークスレート×アンバー（クリックで次の配色へ）",
+		"normal": Color("#18212b"),
+		"hover": Color("#243242"),
+		"pressed": Color("#10171f"),
+		"border": Color("#c88a2e"),
+		"ink": Color("#f4efe4"),
+	},
+]
 
 var ui
 var overlay: Control
 var panel: PanelContainer
 var _last_size := Vector2.ZERO
+var _palette_index := 0
 
 
 func _init(frontend) -> void:
@@ -28,6 +78,7 @@ func build(menu_button: Button) -> void:
 
 	panel = PanelContainer.new()
 	panel.name = "CommonMenu"
+	panel.clip_contents = true
 	overlay.add_child(panel)
 	panel.hide()
 
@@ -74,10 +125,10 @@ func build(menu_button: Button) -> void:
 	menu_scroll.follow_focus = true
 	menu_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var scroll_pad := StyleBoxEmpty.new()
-	scroll_pad.content_margin_left = Tokens.SPACE_MD
-	scroll_pad.content_margin_right = Tokens.SPACE_MD
-	scroll_pad.content_margin_top = Tokens.SPACE_MD
-	scroll_pad.content_margin_bottom = Tokens.SPACE_MD
+	scroll_pad.content_margin_left = Tokens.SPACE_SM
+	scroll_pad.content_margin_right = Tokens.SPACE_SM
+	scroll_pad.content_margin_top = Tokens.SPACE_SM
+	scroll_pad.content_margin_bottom = Tokens.SPACE_SM
 	menu_scroll.add_theme_stylebox_override("panel", scroll_pad)
 	top_section.add_child(menu_scroll)
 
@@ -89,14 +140,18 @@ func build(menu_button: Button) -> void:
 	var actions := GridContainer.new()
 	actions.name = "MenuActions"
 	actions.columns = 2
-	actions.add_theme_constant_override("h_separation", Tokens.SPACE_SM)
+	actions.add_theme_constant_override("h_separation", Tokens.SPACE_XS)
 	actions.add_theme_constant_override("v_separation", Tokens.SPACE_XS)
 	menu_body.add_child(actions)
 	_add_menu_actions(actions)
 	for control in actions.get_children():
 		control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if control is Button:
+			control.clip_text = true
+			control.add_theme_font_size_override("font_size", Tokens.FONT_SM)
 
 	_add_cloud_speed(menu_body)
+	_add_reduced_motion(menu_body)
 	_add_audio_settings(menu_grid)
 
 	ui.menu = panel
@@ -125,9 +180,12 @@ func _add_menu_actions(menu_body: GridContainer) -> void:
 	label_switch.toggled.connect(ui.ui_labels.set_enabled)
 	menu_body.add_child(label_switch)
 
-	ui.local_button(menu_body, "操作説明", func():
-		panel.hide()
-		ui.show_help()
+	var palette_button: Button = ui.local_button(menu_body, "", func(): pass)
+	palette_button.name = "PalettePreviewButton"
+	_apply_palette_preview(palette_button)
+	palette_button.pressed.connect(func():
+		_palette_index = (_palette_index + 1) % PALETTE_PREVIEWS.size()
+		_apply_palette_preview(palette_button)
 	)
 	ui.local_button(menu_body, "全画面 F11", func():
 		panel.hide()
@@ -180,6 +238,23 @@ func _add_menu_actions(menu_body: GridContainer) -> void:
 	)
 
 
+func _apply_palette_preview(button: Button) -> void:
+	var spec: Dictionary = PALETTE_PREVIEWS[_palette_index]
+	button.text = str(spec["label"])
+	button.tooltip_text = str(spec["tooltip"])
+	var border: Color = spec["border"]
+	var normal_box := Tokens.elevate(Tokens.box(spec["normal"], border), 4, 2.0, Tokens.SHADOW_ELEVATED)
+	var hover_box := Tokens.elevate(Tokens.box(spec["hover"], border), 6, 3.0, Tokens.SHADOW_ELEVATED)
+	var pressed_box := Tokens.box(spec["pressed"], border)
+	button.add_theme_stylebox_override("normal", normal_box)
+	button.add_theme_stylebox_override("hover", hover_box)
+	button.add_theme_stylebox_override("pressed", pressed_box)
+	button.add_theme_stylebox_override("hover_pressed", pressed_box)
+	var ink: Color = spec["ink"]
+	for key in ["font_color", "font_focus_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
+		button.add_theme_color_override(key, ink)
+
+
 func _add_cloud_speed(parent: Container) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", Tokens.SPACE_SM)
@@ -193,7 +268,7 @@ func _add_cloud_speed(parent: Container) -> void:
 	slider.max_value = ui.preferences.MAX_CLOUD_SPEED
 	slider.step = 0.05
 	slider.value = ui.preferences.cloud_speed
-	slider.custom_minimum_size.y = Tokens.BUTTON_MD
+	slider.custom_minimum_size.y = Tokens.BUTTON_SM
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(slider)
 
@@ -206,6 +281,17 @@ func _add_cloud_speed(parent: Container) -> void:
 		value.text = "%.2f" % speed
 		ui.preferences.store_cloud_speed(speed)
 	)
+
+
+func _add_reduced_motion(parent: Container) -> void:
+	var motion_switch := CheckButton.new()
+	motion_switch.name = "ReducedMotionSwitch"
+	motion_switch.text = "モーション軽減"
+	motion_switch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	Tokens.apply_button_size(motion_switch, Tokens.BUTTON_SM)
+	motion_switch.button_pressed = ui.preferences.reduced_motion
+	motion_switch.toggled.connect(ui.preferences.store_reduced_motion)
+	parent.add_child(motion_switch)
 
 
 func _add_audio_settings(menu_grid: Container) -> void:
@@ -292,6 +378,7 @@ func open() -> void:
 	overlay.show()
 	panel.show()
 	fit()
+	UiMotion.reveal(panel, ui, UiMotion.BASE, 0.975)
 
 	var controls := focus_controls()
 	if not controls.is_empty():

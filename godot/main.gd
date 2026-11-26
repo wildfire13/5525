@@ -74,6 +74,7 @@ var swallow_mouse_release := false
 var skip_capture_once := false
 var tracked_windows: Array[Window]=[]
 const Tokens=preload("res://ui_tokens.gd")
+const UiMotion=preload("res://ui_motion.gd")
 const ScreenGrid=preload("res://screen_grid.gd")
 const BG=Tokens.BACKDROP_DARK
 func _track_window(node: Node):
@@ -195,6 +196,7 @@ func button(parent: Node,text: String,fn: Callable,disabled:=false,preset: Strin
 		Tokens.apply_button_size(b,height)
 	b.set_meta("base_disabled",disabled);b.disabled=disabled or locked or presenting or (engine!=null and engine.disconnected)
 	parent.add_child(b);widgets.append(b)
+	UiMotion.bind_button(b,self)
 	b.pressed.connect(func():
 		if not closing and (b.get_meta("read_only",false) or (not locked and not presenting and not b.disabled)):
 			if hud!=null:hud.clear_inspection()
@@ -651,6 +653,10 @@ func render():
 		elif phase=="camp" and page=="items":render_items(body)
 		else:render_journey(body)
 		if phase=="result":pages.return_to_town(body)
+		var motion_scene="%s:%s:%s" % [phase,str(c.get("location","")),page]
+		if motion_scene!=str(get_meta(&"last_motion_scene","")):
+			set_meta(&"last_motion_scene",motion_scene)
+			UiMotion.fade_in(body,self,UiMotion.BASE)
 
 	set_status(notice if not notice.is_empty() else status_override)
 	widgets=widgets.filter(func(b):return is_instance_valid(b) and b.is_inside_tree())

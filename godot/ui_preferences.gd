@@ -11,16 +11,23 @@ var config=ConfigFile.new()
 const DEFAULT_CLOUD_SPEED := 0.1
 const MAX_CLOUD_SPEED := 1.0
 var cloud_speed := DEFAULT_CLOUD_SPEED
+var reduced_motion := false
 
 func _init():
 	config.load(PATH)
 	var stored = config.get_value("background", "cloud_speed", DEFAULT_CLOUD_SPEED)
 	if (stored is float or stored is int) and is_finite(float(stored)):
 		cloud_speed = clampf(float(stored), 0.0, MAX_CLOUD_SPEED)
+	reduced_motion = bool(config.get_value("motion", "reduced_motion", false))
 
 func store_cloud_speed(value: float):
 	cloud_speed = clampf(value, 0.0, MAX_CLOUD_SPEED)
 	config.set_value("background", "cloud_speed", cloud_speed)
+	save()
+
+func store_reduced_motion(value: bool):
+	reduced_motion = value
+	config.set_value("motion", "reduced_motion", reduced_motion)
 	save()
 
 func rect_for(key: String,fallback: Rect2,available: Vector2,minimum: Vector2) -> Rect2:

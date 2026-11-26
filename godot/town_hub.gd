@@ -6,6 +6,7 @@ var location := ""
 var artwork: Dictionary={}
 var rng=RandomNumberGenerator.new()
 const Tokens=preload("res://ui_tokens.gd")
+const UiMotion=preload("res://ui_motion.gd")
 const MEETING_GAP=float(Tokens.SPACE_LG)
 const Grid=preload("res://screen_grid.gd")
 const FACILITIES={"board":["掲示板","board"],"guild":["ギルド","party"],"inn":["宿屋","inn"],"weapon":["武器店","shop"],"armor":["防具店","shop"],"items":["道具店","shop"],"accessory":["装飾品店","shop"]}
@@ -44,14 +45,18 @@ func render(parent):
 	var has_meeting=quest is Dictionary and quest.get("eventId","")=="wheel"
 	var points={"board":Vector2(.58,.22),"guild":Vector2(.18,.22),"inn":Vector2(.64,.65),"weapon":Vector2(.18,.28),"armor":Vector2(.18,.28),"items":Vector2(.18,.28),"accessory":Vector2(.18,.28)}
 	# Anchors are relative to the playable map beside the party list, aligned to each town's artwork landmarks.
+	var stagger_index := 0
 	for id in place.get("facilities",[]):
 		if not FACILITIES.has(id):continue
 		var spec=FACILITIES[id];var button=ui.button(panel,spec[0],ui.navigate.bind(spec[1]));button.name="HubFacility_"+id;button.theme_type_variation=&"ActionButton";Tokens.apply_button_preset(button,"md_lg",false);ui.memory.key(button,"nav_"+spec[1])
 		var point=anchor_for(str(c.location),id,points.get(id,Vector2(.2,.2)));button.anchor_left=point.x;button.anchor_top=point.y;button.anchor_right=point.x;button.anchor_bottom=point.y
+		UiMotion.reveal(button,ui,UiMotion.BASE,0.96,stagger_index*UiMotion.STAGGER_STEP)
+		stagger_index += 1
 		if has_meeting:
 			button.set_meta("hub_x_anchor",point.x);button.resized.connect(_fit_before_meeting.bind(panel))
 	var map_point=anchor_for(str(c.location),"map",Vector2(.12,.82))
 	var map=ui.button(panel,"出発の準備・街道口",ui.navigate.bind("map"));map.name="HubMap";map.theme_type_variation=&"ActionButton";map.anchor_left=map_point.x;map.anchor_top=map_point.y;map.anchor_right=map_point.x;map.anchor_bottom=map_point.y;Tokens.apply_button_preset(map,"lg",false);ui.memory.key(map,"nav_map")
+	UiMotion.reveal(map,ui,UiMotion.BASE,0.96,stagger_index*UiMotion.STAGGER_STEP)
 	if has_meeting:
 		map.set_meta("hub_x_anchor",map_point.x);map.resized.connect(_fit_before_meeting.bind(panel))
 		var fit=_fit_before_meeting.bind(panel);panel.resized.connect(fit);fit.call_deferred()

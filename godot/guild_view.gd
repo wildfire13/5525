@@ -2,6 +2,7 @@ extends RefCounted
 ## Session-only selection. Existing Campaign.select commits one ordered ID array.
 const LEGACY_PARTY_LIMIT=5
 const Tokens=preload("res://ui_tokens.gd")
+const UiMotion=preload("res://ui_motion.gd")
 var owner_ref: WeakRef
 var pages:
 	get:return owner_ref.get_ref()
@@ -301,8 +302,9 @@ func animate_swap(old_rects: Dictionary,ticket: int):
 		clip.add_child(ghost);ghost.name="GuildSlide_"+id;ghost.mouse_filter=Control.MOUSE_FILTER_IGNORE;ghost.focus_mode=Control.FOCUS_NONE
 		ghost.position=old_rects[id].position-bounds.position;ghost.size=old_rects[id].size;ghost.modulate=Color.WHITE
 		ghosts.append(ghost);hidden.append(control);control.modulate.a=0
-		tween.tween_property(ghost,"position",target.position-bounds.position,.32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-		tween.tween_property(ghost,"size",target.size,.32)
+		var slide_dur=0.001 if ui.preferences.reduced_motion else UiMotion.EMPHASIS
+		tween.tween_property(ghost,"position",target.position-bounds.position,slide_dur).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
+		tween.tween_property(ghost,"size",target.size,slide_dur).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
 	if ghosts.is_empty():tween.kill()
 	else:await tween.finished
 	for ghost in ghosts:
@@ -360,7 +362,7 @@ func animate_faces(old_rects: Dictionary,ticket: int):
 		if not old_rects.has(id) or old_rects[id].position.distance_to(target.position)<1:continue
 		var ghost=control.duplicate(0) as Button;clip.add_child(ghost);ghost.mouse_filter=Control.MOUSE_FILTER_IGNORE;ghost.focus_mode=Control.FOCUS_NONE;ghost.position=old_rects[id].position-clip.global_position;ghost.size=target.size
 		hidden.append(control);control.modulate.a=0
-		tween.tween_property(ghost,"position",target.position-clip.global_position,.30).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		tween.tween_property(ghost,"position",target.position-clip.global_position,0.001 if ui.preferences.reduced_motion else UiMotion.EMPHASIS).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
 	if hidden.is_empty():tween.kill()
 	else:await tween.finished
 	for control in hidden:

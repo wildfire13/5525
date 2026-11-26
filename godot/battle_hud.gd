@@ -2,6 +2,7 @@ extends RefCounted
 const ElementBadges=preload("res://element_badges.gd")
 const BattleText=preload("res://battle_text.gd")
 const Tokens=preload("res://ui_tokens.gd")
+const UiMotion=preload("res://ui_motion.gd")
 ## State-focused display. Choices, predictions and results remain engine-owned.
 var ui
 var middle: Control
@@ -441,6 +442,8 @@ func toggle_party_overlay():
 	if is_instance_valid(battle_party_button):
 		ui.mark_selected(battle_party_button,party_overlay_open)
 	resize(true)
+	if party_overlay_open and is_instance_valid(party_overlay):
+		UiMotion.fade_in(party_overlay,ui,UiMotion.BASE)
 func render_party_overlay():
 	if not is_instance_valid(party_overlay):return
 	ui.clear(party_overlay)
@@ -1048,8 +1051,9 @@ func open_actor_panel():
 	ui.battle_header.z_index=1;panel.hide()
 	animation_trace.append({"stage":"command_open","actor":last_actor})
 	opening_tween=ui.create_tween().bind_node(opening_visual);opening_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS);opening_tween.set_parallel(true)
-	opening_tween.tween_property(opening_visual,"position",panel.position,.001 if ui.checks_fast else .32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	opening_tween.tween_property(opening_visual,"scale",Vector2.ONE,.001 if ui.checks_fast else .32)
+	var open_dur=UiMotion.duration(UiMotion.EMPHASIS,ui)
+	opening_tween.tween_property(opening_visual,"position",panel.position,open_dur).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
+	opening_tween.tween_property(opening_visual,"scale",Vector2.ONE,open_dur).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
 	opening_tween.finished.connect(finish_opening.bind(ticket,panel),CONNECT_ONE_SHOT)
 func finish_opening(ticket: int,panel):
 	if ticket!=opening_generation:return
@@ -1081,7 +1085,7 @@ func prepare_action(phase: Dictionary):
 		var flying=first.duplicate(0);flying.name="TurnSkipFlight";middle.add_child(flying);flying.position=first.global_position-middle.global_position;flying.z_index=30;visual_only(flying)
 		first.modulate.a=0
 		animation_trace.append({"action":id,"stage":"skip_fly_right","actor":phase.get("actor_id")})
-		var flight=ui.create_tween().bind_node(flying);flight.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS);flight.tween_property(flying,"position:x",middle.size.x+first.size.x,.001 if ui.checks_fast else .36).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		var flight=ui.create_tween().bind_node(flying);flight.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS);flight.tween_property(flying,"position:x",middle.size.x+first.size.x,UiMotion.duration(UiMotion.EMPHASIS,ui)).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
 		await flight.finished
 		if is_instance_valid(flying):flying.queue_free()
 	else:animation_trace.append({"action":id,"stage":"command_shrink"})
@@ -1089,13 +1093,14 @@ func prepare_action(phase: Dictionary):
 		left_panel.hide()
 		var destination=first.global_position-middle.global_position
 		var tween=ui.create_tween();tween.set_parallel(true)
-		tween.tween_property(action_visual,"position",destination,.001 if ui.checks_fast else .32).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-		tween.tween_property(action_visual,"scale",first.size/action_visual.size,.001 if ui.checks_fast else .32)
+		var shrink_dur=UiMotion.duration(UiMotion.EMPHASIS,ui)
+		tween.tween_property(action_visual,"position",destination,shrink_dur).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
+		tween.tween_property(action_visual,"scale",first.size/action_visual.size,shrink_dur).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
 		await tween.finished
 		clear_action_visual()
 	if ui.closing or not is_instance_valid(scroll):return
 	animation_trace.append({"action":id,"stage":"queue_slide","distance":queue_distance})
-	var slide=ui.create_tween();slide.tween_property(scroll,"scroll_horizontal",queue_distance,.001 if ui.checks_fast else .28).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	var slide=ui.create_tween();slide.tween_property(scroll,"scroll_horizontal",queue_distance,UiMotion.duration(UiMotion.BASE,ui)).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
 	await slide.finished
 	if ui.closing:return
 	shifted_action=id;animation_trace.append({"action":id,"stage":"turn_skipped" if phase.get("kind")=="action_skip" else "character_action"})

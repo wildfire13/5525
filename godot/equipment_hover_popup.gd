@@ -2,6 +2,7 @@ extends Control
 ## A root overlay, including when the source is in an embedded window.
 const Grid=preload("res://screen_grid.gd")
 const Tokens=preload("res://ui_tokens.gd")
+const UiMotion=preload("res://ui_motion.gd")
 const SURFACE=Tokens.SURFACE
 const INK=Tokens.INK
 const PADDING=Tokens.SPACE_MD
@@ -21,7 +22,7 @@ func _ready():
 	panel=Panel.new();panel.name="EquipmentTooltipPanel";panel.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel.clip_contents=true;add_child(panel)
 	if source.has_method("configure_skill"):panel.set_meta("ui_region","CompactSkillHover")
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var style=Tokens.box(Tokens.SURFACE,Tokens.BORDER_ACCENT,Tokens.RADIUS_SM,0,Tokens.BORDER_WIDTH)
+	var style=Tokens.elevate(Tokens.box(Tokens.SURFACE,Tokens.BORDER_ACCENT,Tokens.RADIUS_SM,0,Tokens.BORDER_WIDTH),10,4.0,Tokens.SHADOW_ELEVATED)
 	panel.add_theme_stylebox_override("panel",style)
 	content=Control.new();content.name="EquipmentTooltip";content.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	content.set_meta("hover_owner",weakref(self));panel.add_child(content);content.position=Vector2(PADDING,PADDING)
@@ -44,6 +45,7 @@ func present():
 	_placed_sig=[]
 	place()
 	show()
+	UiMotion.reveal(self,self,UiMotion.FAST,0.975)
 
 func measure_body_height() -> float:
 	if not body.visible:return 0.0

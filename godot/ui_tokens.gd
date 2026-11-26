@@ -1,53 +1,57 @@
 extends RefCounted
-## Single source of truth for Warm Paper & Forest Green UI tokens, typography,
-## spacing, control sizing, and shared StyleBox builders.
+## Single source of truth for Crisp Architectural Stone & Deep Pine Emerald UI
+## tokens, typography, spacing, control sizing, elevation, and StyleBox builders.
 
-# Palette: Surfaces
-const SURFACE := Color("#faf9f5")
-const SURFACE_ALT := Color("#f2f0e8")
-const SURFACE_BACKDROP := Color("#eeede7")
+# Palette: Surfaces (Crisp gallery stone-white so painted backgrounds pop)
+const SURFACE := Color("#f8faf8")
+const SURFACE_ALT := Color("#eef3ef")
+const SURFACE_BACKDROP := Color("#e6ede8")
 const SURFACE_ALPHA := 0.90
 const NESTED_SURFACE_ALPHA := 0.12
 
-# Palette: Text / Ink
-const INK := Color("#29332f")
-const MUTED_INK := Color("#606960")
-const INK_INVERSE := Color("#faf9f5")
-const INK_INVERSE_MUTED := Color("#cbd2d8")
+# Palette: Text / Ink (High WCAG AA+ contrast)
+const INK := Color("#16231e")
+const MUTED_INK := Color("#4c5e56")
+const INK_INVERSE := Color("#f8faf8")
+const INK_INVERSE_MUTED := Color("#c7d6d0")
 
 # Palette: Borders & Focus
-const BORDER := Color("#cbd0c8")
-const BORDER_ACCENT := Color("#345c4e")
-const FOCUS := Color("#1e563c")
+const BORDER := Color("#c2cdc6")
+const BORDER_ACCENT := Color("#1f5c45")
+const FOCUS := Color("#0f766e")
 
 # Palette: Accent & Button Roles
-const ACCENT := Color("#345c4e")
-const ACTION := Color("#236044")
-const ACTION_HOVER := Color("#2f7652")
-const ACTION_PRESSED := Color("#194a34")
-const SELECTED := Color("#dfe8dc")
-const SELECTED_HOVER := Color("#d2e0d3")
-const SELECTED_PRESSED := Color("#b7cebf")
-const DEST := Color("#fff0ba")
-const DEST_HOVER := Color("#f7e293")
-const DEST_PRESSED := Color("#e8cb79")
-const BTN_HOVER := Color("#e0e8dd")
-const BTN_PRESSED := Color("#c6d6c9")
-const BTN_DISABLED := Color("#e4e6e1")
+const ACCENT := Color("#1d4d3c")
+const ACTION := Color("#1b6647")
+const ACTION_HOVER := Color("#237d57")
+const ACTION_PRESSED := Color("#134c34")
+const SELECTED := Color("#d7ece2")
+const SELECTED_HOVER := Color("#c5e3d5")
+const SELECTED_PRESSED := Color("#aed6c4")
+const DEST := Color("#fde68a")
+const DEST_HOVER := Color("#fcd34d")
+const DEST_PRESSED := Color("#f0be3c")
+const BTN_HOVER := Color("#e5efe9")
+const BTN_PRESSED := Color("#cfe0d7")
+const BTN_DISABLED := Color("#e3e8e5")
 
 # Palette: Semantic Status
-const POSITIVE := Color("#28714c")
-const DANGER := Color("#a84432")
-const WARN := Color("#b7852b")
+const POSITIVE := Color("#1b7a4c")
+const DANGER := Color("#b83227")
+const WARN := Color("#b4690e")
 
 # Palette: Dark Overlays, Notices & Outlines
-const OVERLAY_DARK := Color("#111820")
-const OVERLAY_PANEL := Color(0.067, 0.094, 0.125, 0.94)
-const OVERLAY_BORDER := Color("#9da7b0")
-const NOTICE_BG := Color("#203c3bf2")
-const NOTICE_BORDER := Color("#94c9b8")
-const BACKDROP_DARK := Color("#191d23")
-const TEXT_OUTLINE := Color("#283128")
+const OVERLAY_DARK := Color("#0f1a18")
+const OVERLAY_PANEL := Color(0.059, 0.102, 0.094, 0.94)
+const OVERLAY_BORDER := Color("#7ea398")
+const NOTICE_BG := Color("#142b26f2")
+const NOTICE_BORDER := Color("#5eead4")
+const BACKDROP_DARK := Color("#141c1a")
+const TEXT_OUTLINE := Color("#16231e")
+
+# Palette: Elevation Shadows
+const SHADOW_SOFT := Color(0.06, 0.13, 0.10, 0.10)
+const SHADOW_ELEVATED := Color(0.05, 0.14, 0.10, 0.20)
 
 # Typography (5-step scale)
 const FONT_XS := 14
@@ -57,8 +61,8 @@ const FONT_HEADING := 24
 const FONT_DISPLAY := 28
 
 # Geometry & Spacing (4px base)
-const RADIUS_SM := 4
-const RADIUS_LG := 8
+const RADIUS_SM := 6
+const RADIUS_LG := 10
 const BORDER_WIDTH := 1
 const BORDER_WIDTH_EMPHASIS := 2
 const SPACE_NONE := 0
@@ -92,6 +96,19 @@ static func box(
 	s.set_border_width_all(border_width)
 	s.set_corner_radius_all(radius)
 	s.set_content_margin_all(margin)
+	s.anti_aliasing = true
+	return s
+
+
+static func elevate(
+	s: StyleBoxFlat,
+	shadow_size: int = 4,
+	y_offset: float = 2.0,
+	shadow_color: Color = SHADOW_SOFT
+) -> StyleBoxFlat:
+	s.shadow_size = shadow_size
+	s.shadow_offset = Vector2(0.0, y_offset)
+	s.shadow_color = shadow_color
 	return s
 
 
