@@ -55,9 +55,9 @@ func run():
  await load_case(cases.normal.result)
  for dims in [Vector2i(1920,1080)]:
   root.size=dims;await frames(12)
-  print("RESULT_LAYOUT ",dims," panel ",view.panel.get_global_rect()," min ",view.panel.get_combined_minimum_size()," body ",view.body.size," controls ",view.continue_button.get_global_rect()," save ",view.save_button.get_global_rect()," children ",view.body.get_children().map(func(c):return [str(c.name),str(c.size),str(c.get_combined_minimum_size())]))
+  print("RESULT_LAYOUT ",dims," panel ",view.panel.get_global_rect()," min ",view.panel.get_combined_minimum_size()," body ",view.body.size," controls ",view.continue_button.get_global_rect()," children ",view.body.get_children().map(func(c):return [str(c.name),str(c.size),str(c.get_combined_minimum_size())]))
   var bounds=Rect2(Vector2.ZERO,Vector2(dims));check(bounds.encloses(view.panel.get_global_rect()),str(dims)+" result panel remains inside game viewport")
-  check(bounds.encloses(view.continue_button.get_global_rect()) and bounds.encloses(view.save_button.get_global_rect()),str(dims)+" fixed primary/save actions remain visible")
+  check(bounds.encloses(view.continue_button.get_global_rect()),str(dims)+" fixed primary action remain visible")
   for gain in view.shade.find_children("ResultGain_*","Label",true,false):check(gain.size.x>=128 and gain.autowrap_mode==TextServer.AUTOWRAP_OFF,str(dims)+" growth amount remains one readable line "+str(gain.name))
   check(view.panel.get_global_rect().encloses(view.continue_button.get_global_rect()),str(dims)+" primary action stays within result frame")
   var grid=preload("res://screen_grid.gd")

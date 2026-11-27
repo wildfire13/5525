@@ -519,7 +519,7 @@ func run():
 	var token=game.loading_screen.begin("before")
 	await capture("loading",["読み込み画像"])
 	game.loading_screen.finish(token)
-	game.load_dialog()
+	game.file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray([preload("res://portraits.gd").FILE_FILTER]),func(_path):pass)
 	await capture("file",["場面：ファイル選択","ファイル選択欄"])
 	var picker=game.find_children("*","FileDialog",true,false)[0]
 	check(picker.title.contains("ファイル選択欄"),"native file picker title names its region")

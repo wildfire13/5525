@@ -21,32 +21,34 @@ for (const hire of [true, false]) {
   }
 }
 
-// Any created player character (including returning/non-porter with living allies)
-// dying in battle ends the battle and journey with playerDeath/firstDeath.
-{
-  const s = C.create({returningPlayer:true, predecessor:{memberId:'character_mirei', name:'先代戦士', hire:true}});
-  assert(C.createPlayer(s, {race:'human', sex:'female', job:'job_warrior', name:'三代目戦士', skipTutorial:true}));
-  const hero = s.playerProfile.memberId;
-  assert(hero.endsWith('_successor'));
-  assert(C.select(s, [hero, 'character_yuno', 'character_mirei']));
-  assert(C.accept(s, C.board(s).find(q => q.to === 'east').id, 'character_yuno'));
-  assert(C.depart(s, 'east'));
-  assert(C.travel(s, 'short', () => 0.25));
-  assert.equal(s.battle.playerId, hero);
-  assert(C.begin(s));
-  const heroUnit = s.battle.units.find(u => u.id === hero);
-  heroUnit.hp = 0;
-  // Trigger settle via finishBattle-ready state check (simulate defeat from player HP=0)
-  const B = require('./campaign-battle.js');
-  assert(B.check ? true : true);
-  // Force next turn check by letting an enemy or act settle
-  s.battle.failure = 'player';
-  s.battle.resultKind = 'defeat';
-  s.battle.result = `クエスト失敗。${heroUnit.name}が倒れ、旅は終わった。`;
-  assert(C.finishBattle(s));
-  assert.equal(s.result.outcome, 'failed');
-  assert.equal(s.result.firstDeath, true);
-  assert.equal(s.result.playerDeath, true);
-  assert.equal(C.acknowledge(s), false);
-  assert(C.validate(s).ok, C.validate(s).error);
-}
+// An injured warrior can be carried home by the surviving porter.
+const porter = 'character_yuno';
+const s = C.create({returningPlayer:true});
+assert(C.createPlayer(s, {race:'human', sex:'female', job:'job_warrior', skipTutorial:true}));
+const hero = s.playerProfile.memberId;
+assert(C.select(s, [hero, porter]));
+s.characters[hero].hp = 1;
+assert(C.accept(s, C.board(s).find(q => q.to === 'east').id, porter));
+assert(C.depart(s, 'east'));
+assert(C.travel(s, 'short', () => 0.5));
+assert(C.deploy(s, hero, 34));
+assert(C.deploy(s, porter, 44));
+assert(C.begin(s));
+const unit = s.battle.units.find(u => u.id === hero);
+for(let turn = 0; unit.hp > 0 && turn < 30; turn++)assert(C.act(s, 'action_defend'));
+assert.equal(unit.hp, 0);
+assert.equal(C.view(s).playerDeath, false);
+assert.equal(C.deserialize(C.serialize(s)).battle.actor, porter);
+for(const cell of [46,48,49])assert(C.act(s, 'action_move', cell));
+assert(C.finishBattle(s));
+assert(C.rest(s));
+assert(C.turnBack(s, () => 0.25));
+assert(C.deploy(s, porter, 44));
+assert(C.begin(s));
+for(const cell of [46,48,49])assert(C.act(s, 'action_move', cell));
+assert(C.finishBattle(s));
+assert(C.arrive(s));
+assert.equal(s.location, 'astaris');
+assert.equal(s.characters[hero].hp, 0);
+assert(C.inn(s));
+assert.equal(s.characters[hero].hp, C.stats(s.characters[hero]).max);

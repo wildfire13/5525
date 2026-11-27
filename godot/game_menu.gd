@@ -159,12 +159,9 @@ func build(menu_button: Button) -> void:
 
 
 func _add_menu_actions(menu_body: GridContainer) -> void:
-	for item in [["セーブ", ui.save_game], ["ロード", ui.load_dialog], ["行動ログ", ui.show_action_log]]:
-		var callback: Callable = item[1]
-		ui.button(menu_body, item[0], func():
-			panel.hide()
-			callback.call()
-		)
+	ui.button(menu_body,"行動ログ",func():
+		panel.hide()
+		ui.show_action_log())
 
 	var reopen_results: Button = ui.local_button(menu_body, "直近のリザルト", func():
 		panel.hide()
@@ -203,7 +200,7 @@ func _add_menu_actions(menu_body: GridContainer) -> void:
 	ui.button(menu_body, "新しい旅", func():
 		panel.hide()
 		ui.confirm(
-			"未保存の進行を終了し、新しい旅を始めます。保存済みファイルは変更しません。",
+			"現在の旅を終了し、自動セーブを新しい旅で上書きしますか？",
 			ui.new_game
 		)
 	)

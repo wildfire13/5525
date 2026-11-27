@@ -327,7 +327,7 @@ func open_portrait(member: Dictionary):
 	var apply_image = func(updated):
 		if ui.active_member(uid):
 			ui.portraits.assign(uid, updated)
-			ui.render()
+			if await ui.autosave():ui.render()
 	var change_image = func(path):
 		await ui.import_portrait(path, uid)
 		if ui.active_member(uid):open_portrait(member)

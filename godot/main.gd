@@ -34,6 +34,11 @@ var ui_labels
 var locked := false
 var presenting := false
 var closing := false
+var quit_requested := false
+var slot_enabled := false
+var slot_revision := ""
+var slot_failed := false
+var saving_slot := false
 var checks_fast := false
 var backdrop_layer: Control
 var base: VBoxContainer
@@ -168,11 +173,29 @@ func _ready():
 	if debug_view.is_enabled():engine.diagnostic_completed.connect(debug_view.request_finished)
 	resized.connect(queue_layout)
 	if not engine.start_engine():notice=engine.last_error;render();return
-	if not _is_script_run() and not await first_journey.request("first_status"):render();return
-	await update({"op":"campaign_start"})
+	var open_creator := true
+	if _is_script_run():
+		await update({"op":"campaign_start"})
+	else:
+		if not await first_journey.request("first_status"):
+			stop_autosave(notice)
+			return
+		var slot: Dictionary = await engine.request({"op":"godot_io","action":"slot_read"})
+		if not slot.get("ok",false):
+			stop_autosave(str(slot.get("error","読込失敗")))
+			return
+		slot_revision = slot.data.sha256
+		slot_enabled = true
+		if slot.data.save is Dictionary and first_journey.status.get("phase") != "pending":
+			open_creator = slot.data.save.state.has("playerProfile")
+			if not await load_envelope(slot.data.save, "autosave.json"):
+				stop_autosave(notice)
+				return
+		else:
+			await update({"op":"campaign_start"})
 	if DisplayServer.get_name()!="headless" and not closing:
 		loading_screen.prefetch_battle_art()
-	_maybe_open_character_creator()
+	if open_creator:_maybe_open_character_creator()
 func _is_script_run() -> bool:
 	if DisplayServer.get_name()=="headless":return true
 	for arg in OS.get_cmdline_args():
@@ -371,7 +394,10 @@ func _unhandled_key_input(event):
 func _notification(what):
 	if what==NOTIFICATION_WM_CLOSE_REQUEST and not closing:close_game()
 func close_game():
-	if closing:return
+	if closing or quit_requested:return
+	quit_requested=true
+	while slot_enabled and (locked or saving_slot or presenting or loading_screen.active or engine.busy):
+		await get_tree().process_frame
 	if is_instance_valid(board):board.persist_camera()
 	closing=true;results_view.reset();loading_screen.finish(loading_screen.sequence);invalidate_preview()
 	while engine.busy:await get_tree().process_frame
@@ -399,7 +425,7 @@ func update_request(request: Dictionary,click: Dictionary) -> Dictionary:
 
 func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 	var click: Dictionary=debug_view.click_trace.dispatch if is_instance_valid(debug_view.click_trace) else {}
-	if locked or closing or loading_screen.active:
+	if locked or closing or quit_requested or slot_failed or saving_slot or loading_screen.active:
 		record_debug_rejection(request);return {"ok":false,"error":"処理中です"}
 	pages.shop_view.cancel_pending()
 	var incoming={}
@@ -493,7 +519,11 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		audio.quest_completed(campaign())
 	if arrived:save_notice.display(town_name(campaign().get("location",""))+"に到着しました")
 	if data.get("presentation")!=null and not presenting and not engine.disconnected:await present()
-	if reply.get("campaign") is Dictionary and not presenting:await first_journey.observe()
+	if reply.get("ok",false) and reply.get("campaign") is Dictionary and not presenting:
+		var op = request.get("op")
+		if slot_enabled and data.get("trial") == null and (op in ["act","select_skill","select_return_skill"] or (op=="campaign" and request.get("action") not in ["forecast","previewGear","inventoryQuote","purchaseQuote","saleQuote","warehouseQuote"]) or frontend.get("replace_slot",false)):
+			if not await autosave():return {"ok":false,"error":notice}
+		await first_journey.observe()
 	return reply
 func present():
 	presenting=true
@@ -548,9 +578,10 @@ func handle_connection_loss(reply: Dictionary,connection: int) -> bool:
 	notice=str(reply.get("error","ゲーム処理が停止しました。ゲームを起動し直してください。"))
 	render();return true
 func new_game():
+	if saving_slot or slot_failed or closing or quit_requested:return
 	invalidate_preview()
 	portraits.activate({"version":1,"characters":{}});audio.restore({});gear_preview={};page="hub"
-	await update({"op":"campaign_start"})
+	await update({"op":"campaign_start"},{"replace_slot":true})
 	_maybe_open_character_creator()
 func record_debug_event(name: String,reason: String):
 	if engine!=null and engine.has_method("debug_local_event"):engine.debug_local_event(name,reason)
@@ -894,12 +925,6 @@ func localize_file_dialog(d: FileDialog):
 		if control is Label or control is Button:
 			if words.has(control.text):control.text=words[control.text]
 		if words.has(control.tooltip_text):control.tooltip_text=words[control.tooltip_text]
-func save_game():
-	var r=await update({"op":"campaign_save"})
-	if not r.get("ok",false):return
-	var envelope: Dictionary=campaign_identity.save_metadata(r.data)
-	envelope.nativePortraits=portraits.metadata.duplicate(true);envelope.godotFrontend=audio.frontend_save()
-	file_dialog(FileDialog.FILE_MODE_SAVE_FILE,PackedStringArray(["*.json ; 5525進行セーブ"]),write_snapshot.bind(envelope,"進行"),"5525-"+Time.get_datetime_string_from_system().replace(":","").replace("-","").replace("T","-")+"-%03d.json" % (Time.get_ticks_msec()%1000))
 func write_snapshot(path: String,envelope: Dictionary,kind: String):
 	var target=await update({"op":"godot_io","action":"write_target","path":path})
 	if not target.get("ok",false):return
@@ -914,20 +939,45 @@ func publish_snapshot(path: String,envelope: Dictionary,kind: String,expected_sh
 	var written=await update(request)
 	if written.get("ok",false):
 		notice="";save_notice.display(kind+"を保存しました",path);audio.ui("confirm");render()
-func load_dialog():
-	file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray(["*.json ; 5525進行セーブ"]),func(path):confirm("現在の未保存の進行を置き換えて読み込みます。元の保存ファイルは変更しません。",load_game.bind(path)))
 func load_game(path: String):
 	invalidate_preview()
 	var allowed=[]
 	for u in roster():allowed.append(u.id)
 	var r=await update({"op":"godot_io","action":"read","path":path,"allowed":allowed})
 	if not r.get("ok",false):return
-	var envelope: Dictionary=r.data
+	await load_envelope(r.data,path)
+
+func load_envelope(envelope: Dictionary,path: String) -> bool:
 	var images: Dictionary=envelope.get("nativePortraits",{"version":1,"characters":{}})
 	var music=envelope.get("godotFrontend",{})
-	if not audio.valid_metadata(music):record_debug_event("load_metadata","failed");notice="旅曲の保存情報が不正です";render();return
+	if not audio.valid_metadata(music):record_debug_event("load_metadata","failed");notice="旅曲の保存情報が不正です";render();return false
 	envelope.erase("godotFrontend")
-	await update({"op":"campaign_load","data":envelope},{"images":images,"music":music,"source_path":path})
+	var reply=await update({"op":"campaign_load","data":envelope},{"images":images,"music":music,"source_path":path})
+	return reply.get("ok",false)
+
+func stop_autosave(reason: String):
+	slot_failed=true
+	notice="自動セーブを続けられません。"+reason
+	show_engine_stop()
+
+func autosave() -> bool:
+	if not slot_enabled:return true
+	while saving_slot:await get_tree().process_frame
+	if slot_failed or closing:return false
+	saving_slot=true
+	while engine.busy:await get_tree().process_frame
+	var saved: Dictionary=await engine.request({"op":"campaign_save","autosave":true})
+	if saved.get("ok",false):
+		var envelope: Dictionary=campaign_identity.save_metadata(saved.data)
+		envelope.nativePortraits=portraits.metadata
+		envelope.godotFrontend=audio.frontend_save()
+		saved=await engine.request({"op":"godot_io","action":"slot_write","expected":slot_revision,"data":envelope})
+	saving_slot=false
+	if not saved.get("ok",false):
+		stop_autosave(str(saved.get("error","保存失敗")))
+		return false
+	slot_revision=saved.data.sha256
+	return true
 func show_action_log():
 	dialog.open("行動ログ",func(body,actions):
 		var hours := label_(body,"ゲーム内経過時間:%d時間" % campaign().get("hours",0),false)
@@ -994,7 +1044,9 @@ func portrait_dialog():
 func import_portrait(path: String,uid: String):
 	if not active_member(uid):return
 	var r=await read_portrait(path,uid)
-	if r.get("ok",false) and active_member(uid):portraits.assign(uid,r.data);notice="画像を変更しました。割当を残すには進行を保存してください。";render()
+	if r.get("ok",false) and active_member(uid):
+		portraits.assign(uid,r.data)
+		if await autosave():notice="画像を変更しました。";render()
 
 func read_portrait(path: String,replace_id: String="") -> Dictionary:
 	var retained=0
@@ -1003,7 +1055,8 @@ func read_portrait(path: String,replace_id: String="") -> Dictionary:
 	return await update({"op":"godot_io","action":"portrait","path":path,"retainedPortraitChars":retained})
 func reset_portrait(uid: String):
 	if not active_member(uid):return
-	portraits.clear_member(uid);notice="元の画像に戻しました。割当を残すには進行を保存してください。";render()
+	portraits.clear_member(uid)
+	if await autosave():notice="元の画像に戻しました。";render()
 
 func can_commit() -> bool:
 	if locked or presenting or closing or engine.disconnected or preview_pending or hud.range_reference or hud.action_menu or hud.item_list or hud.skill_list:return false

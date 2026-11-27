@@ -103,6 +103,7 @@ def write_save(path, data, operation=None, overwrite=False, expected_sha256=None
             f.write(raw); f.flush(); os.fsync(f.fileno())
         if overwrite: publish_replace(temp, path, expected_sha256)
         else: publish_new(temp, path)
+        return hashlib.sha256(raw).hexdigest()
     finally:
         if temp is not None: temp.unlink(missing_ok=True)
 
@@ -131,11 +132,11 @@ def recover_write(path, data, operation, resolved_target=None):
     return {'path':logical, 'outcome':'not_saved', 'reason':'保存されていません。別名または別の場所へ保存できます。'}
 
 def run(r):
-    if r.get('profile_dir') and (r['action'].startswith('first_') or r['action'] in ('read','write','recover_write')):
+    if r.get('profile_dir') and (r['action'].startswith('first_') or r['action'] in ('read','write','recover_write','slot_read','slot_write')):
         from first_journey import handle
         if r['action']=='first_death' and r.get('portrait') is not None:
             prepare_portraits({'version':1,'characters':{'player':r['portrait']}}, ['player'])
-        return handle(r, file_operation, write_save, MAX_SAVE)
+        return handle(r, file_operation, write_save, prepare_portraits, MAX_SAVE)
     return file_operation(r)
 
 

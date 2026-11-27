@@ -10,7 +10,6 @@ var shade: Control
 var panel: Panel
 var body: Control
 var continue_button: Button
-var save_button: Button
 var intro: Tween
 var _replaying := false
 var _compact := false
@@ -124,7 +123,6 @@ func _build():
  if current.restored:_label(members,"保存済みの結果です。成長前の値は記録されていません。",Tokens.FONT_XS,MUTED)
  var md_preset := "md" if compact else "md_lg"
  var actions=HBoxContainer.new();actions.name="ResultActions";actions.add_theme_constant_override("separation",Tokens.SPACE_LG);body.add_child(actions)
- save_button=Button.new();save_button.name="ResultSave";save_button.text="セーブ";Tokens.apply_button_preset(save_button,md_preset);save_button.pressed.connect(func():if active and not ui.locked:ui.save_game());actions.add_child(save_button)
  if current.kind=="quest" and not _replaying and str(current.location) in ["east","west","south","north"]:
   var shortcut=Button.new();shortcut.name="ResultShop";shortcut.text=ui.town_name(current.location)+"の"+{"east":"武器店","west":"防具店","south":"道具店","north":"装飾品店"}[str(current.location)]+"へ";Tokens.apply_button_preset(shortcut,md_preset);actions.add_child(shortcut)
   var shortcut_owner=sequence;shortcut.pressed.connect(func():if active and sequence==shortcut_owner:advance_to("shop"))
@@ -213,7 +211,7 @@ func _input(event):
   if event.pressed and event.keycode==KEY_ESCAPE:advance();get_viewport().set_input_as_handled();return
   if event.pressed and event.keycode==KEY_TAB:
    var controls=[]
-   for control in [shade.find_child("ResultMembersScroll",true,false),save_button,shade.find_child("ResultShop",true,false),shade.find_child("ResultStory",true,false),continue_button]:
+   for control in [shade.find_child("ResultMembersScroll",true,false),shade.find_child("ResultShop",true,false),shade.find_child("ResultStory",true,false),continue_button]:
     if is_instance_valid(control) and control.is_visible_in_tree():controls.append(control)
    var index=controls.find(get_viewport().gui_get_focus_owner());controls[posmod(index+(-1 if event.shift_pressed else 1),controls.size())].grab_focus();get_viewport().set_input_as_handled();return
   var scroll=shade.find_child("ResultMembersScroll",true,false)

@@ -23,16 +23,46 @@ def retire_save(filename, ident, write_save, max_size):
                    overwrite=True, expected_sha256=hashlib.sha256(raw).hexdigest(), resolved_target=filename)
 
 
-def handle(request, file_operation, write_save, max_size):
+def handle(request, file_operation, write_save, prepare_portraits, max_size):
     db_path = Path(request['profile_dir']) / 'first-journey.sqlite3'
     action = request['action']
-    if not db_path.exists() and action != 'first_start':
+    slot = db_path.parent / 'autosave.json'
+    if not db_path.exists() and action not in ('first_start','slot_read','slot_write'):
         return {} if action == 'first_status' else file_operation(request)
     with closing(sqlite3.connect(db_path, timeout=8)) as db, db:
         db.execute('BEGIN IMMEDIATE')
         db.execute('CREATE TABLE IF NOT EXISTS journey (singleton INTEGER PRIMARY KEY CHECK(singleton=1), id TEXT, member TEXT, name TEXT, phase TEXT)')
         db.execute('CREATE TABLE IF NOT EXISTS saves (path TEXT PRIMARY KEY)')
         db.execute('CREATE TABLE IF NOT EXISTS ended_journeys (id TEXT PRIMARY KEY)')
+        if action == 'slot_read':
+            if not slot.exists():
+                return {'sha256':'', 'save':None}
+            if slot.is_symlink() or slot.stat().st_size > max_size:
+                raise ValueError('自動セーブを読み込めません')
+            raw = slot.read_bytes()
+            save = json.loads(raw)
+            if not isinstance(save, dict) or save.get('format') not in ('5525-native-campaign', '5525-ended-journey'):
+                raise ValueError('自動セーブの形式が不正です')
+            digest = hashlib.sha256(raw).hexdigest()
+            ended = db.execute('SELECT 1 FROM ended_journeys WHERE id=? UNION SELECT 1 FROM journey WHERE id=? AND phase!=?', (save.get('godotCampaignId'),save.get('godotCampaignId'),'alive')).fetchone()
+            if ended or save.get('format') == '5525-ended-journey':
+                return {'sha256':digest, 'save':None}
+            # Validate the exact bytes corresponding to the returned revision.
+            state = save.get('state')
+            if not isinstance(state, dict) or not isinstance(state.get('characters'), dict):
+                raise ValueError('自動セーブの人物情報が不正です')
+            save['nativePortraits'] = prepare_portraits(save.get('nativePortraits'), state['characters'])
+            return {'sha256':digest, 'save':save}
+        if action == 'slot_write':
+            save = request['data']
+            expected = request['expected']
+            ident = save['godotCampaignId']
+            if db.execute('SELECT 1 FROM ended_journeys WHERE id=?', (ident,)).fetchone():
+                raise ValueError(ENDED)
+            if slot.is_symlink():
+                raise ValueError('自動セーブの保存先が不正です')
+            digest = write_save(slot, save, overwrite=bool(expected), expected_sha256=expected)
+            return {'sha256':digest}
         if action == 'first_start':
             ident = request['journey_id']
             if not re.fullmatch('[a-f0-9]{32}', ident):
@@ -41,8 +71,9 @@ def handle(request, file_operation, write_save, max_size):
             if existing is None:
                 db.execute("INSERT INTO journey VALUES (1,?,?,?,'alive')",
                            (ident, request['memberId'], request['name']))
-            elif existing[1] in ('hire', 'end') and existing[0] != ident:
-                db.execute('INSERT OR IGNORE INTO ended_journeys VALUES (?)', (existing[0],))
+            elif existing[0] != ident and existing[1] != 'pending':
+                if existing[1] in ('hire', 'end'):
+                    db.execute('INSERT OR IGNORE INTO ended_journeys VALUES (?)', (existing[0],))
                 db.execute("UPDATE journey SET id=?, member=?, name=?, phase='alive' WHERE singleton=1",
                            (ident, request['memberId'], request['name']))
         row = db.execute('SELECT id,member,name,phase FROM journey').fetchone()

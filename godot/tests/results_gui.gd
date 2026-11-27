@@ -19,7 +19,7 @@ func shot(label: String):
  var image=root.get_texture().get_image();check(image.get_size()==root.size,"result real rendered frame "+label);image.save_png(evidence.path_join(label+".png"));shots.append(label+".png")
 func geometry(label: String):
  var view=game.results_view;var bounds=Rect2(Vector2.ZERO,Vector2(root.size))
- check(bounds.encloses(view.panel.get_global_rect()) and bounds.encloses(view.continue_button.get_global_rect()) and bounds.encloses(view.save_button.get_global_rect()),label+" panel/actions fit real resized viewport")
+ check(bounds.encloses(view.panel.get_global_rect()) and bounds.encloses(view.continue_button.get_global_rect()),label+" panel/actions fit real resized viewport")
 func run():
  create_timer(240).timeout.connect(func():print("FAIL results GUI watchdog");quit(2))
  root.borderless=true;root.position=Vector2i.ZERO;root.size=Vector2i(1920,1080)
@@ -31,10 +31,6 @@ func run():
  await os_click(finish);check(view.active and view.current.kind=="battle","real finish button opens committed battle result")
  var paid=await saved();geometry("FHD battle");await shot("battle-result-FHD")
  await raw({"action":"click","x":root.size.x-60,"y":root.size.y-30});check(not game.menu.visible and view.active and await saved()==paid,"result backdrop blocks common menu and gameplay")
- await os_click(view.save_button)
- var file=game.find_children("*","FileDialog",true,false).filter(func(w):return w.visible)
- check(file.size()==1,"result Save opens existing real file dialog")
- await key("Escape");check(view.active and await saved()==paid,"cancelling result save returns to unchanged receipt")
  var scroll=view.shade.find_child("ResultMembersScroll",true,false);await key("End");await shot("battle-result-members-bottom")
  check(scroll.scroll_vertical>=int(scroll.get_v_scroll_bar().max_value-scroll.get_v_scroll_bar().page)-2,"result keyboard End reaches final member")
  await os_click(view.continue_button);check(not view.active and await saved()==paid,"result real continue closes without regrant")

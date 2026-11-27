@@ -12,7 +12,7 @@ func run():
 	game.checks_fast=true;game.audio.fast_mode=true;await settle()
 	check(game.audio.muted.values().all(func(v):return v),"playtest starts with all audio muted")
 	var menu_labels=game.menu.find_children("*","Button",true,false).map(func(b):return b.text)
-	check(menu_labels.slice(0,3)==["セーブ","ロード","行動ログ"] and menu_labels.slice(-3)==["新しい旅","ゲームを終了する","閉じる"],"menu labels and order")
+	check(menu_labels[0]=="行動ログ" and not "セーブ" in menu_labels and not "ロード" in menu_labels and menu_labels.slice(-3)==["新しい旅","ゲームを終了する","閉じる"],"menu labels and order")
 	check(not menu_labels.has("画像") and not menu_labels.has("拠点・旅程へ"),"redundant menu navigation and portrait entry removed")
 	var seed=await saved();seed.state.history.append("履歴保持テスト");seed.state.hours=123
 	for place in ["east","west","north","south"]:

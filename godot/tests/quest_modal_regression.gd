@@ -125,15 +125,6 @@ func visible_confirmation():
 	for dialog_ in game.find_children("*","ConfirmationDialog",true,false):
 		if dialog_.visible:return dialog_
 	return null
-func open_load_confirmation(path: String):
-	game.load_dialog();await settle()
-	var chooser
-	for child in game.find_children("*","FileDialog",true,false):
-		if child.get_meta("file_dialog_active",false):chooser = child;break
-	check(chooser is FileDialog,"actual load flow opens a file chooser")
-	if chooser == null:return null
-	chooser.file_selected.emit(path);await settle()
-	return visible_confirmation()
 func run():
 	create_timer(180).timeout.connect(func():print("FAIL quest modal watchdog");quit(2))
 	root.size = Vector2i(1920,1080)
@@ -179,19 +170,8 @@ func run():
 		await cleanup_scene();game.results_view.reset();await settle()
 	await cargo_picker("standalone-wheel",seed)
 	await game.update({"op":"campaign_load","data":seed});await settle();game.navigate("board");await settle()
-	var before = await saved();var payload = before.duplicate(true);payload.state.gold += 7
-	var path = ProjectSettings.globalize_path("user://quest-modal-synthetic.json")
-	var file = FileAccess.open(path,FileAccess.WRITE);file.store_string(JSON.stringify(payload));file.close()
-	var original_file = FileAccess.get_file_as_bytes(path)
-	var dialog_ = await open_load_confirmation(path)
-	check(dialog_ is ConfirmationDialog,"load selection reaches confirmation")
-	if dialog_ is ConfirmationDialog:
-		verify_confirmation(dialog_,"load")
-		check(await saved() == before,"load is not applied before confirmation")
-		dialog_.canceled.emit();await settle()
-		check(await saved() == before and game.page == "board","cancel load preserves campaign and originating page")
 	game.dialog.open("確認の親ウィンドウ",func(body,_actions):game.label_(body,"人工状態の確認"));await settle()
-	var calls = [0];dialog_ = game.confirm("長い確認文です。".repeat(640),func():calls[0] += 1);await settle()
+	var calls = [0];var dialog_ = game.confirm("長い確認文です。".repeat(640),func():calls[0] += 1);await settle()
 	verify_confirmation(dialog_,"nested long confirmation")
 	await shot("nested-long-confirmation")
 	var scroll = dialog_.find_child("ConfirmationTextScroll",true,false);scroll.scroll_vertical = 100000;await settle()
@@ -200,10 +180,6 @@ func run():
 	dialog_.confirmed.emit();dialog_.confirmed.emit();await settle()
 	check(calls[0] == 1,"confirmation callback executes exactly once")
 	game.dialog.close();await settle()
-	dialog_ = await open_load_confirmation(path)
-	if dialog_ is ConfirmationDialog:dialog_.confirmed.emit();dialog_.confirmed.emit();await settle()
-	check(game.campaign().gold == payload.state.gold,"confirmed synthetic load is applied")
-	check(FileAccess.get_file_as_bytes(path) == original_file,"load flow never changes original synthetic file")
 	print("quest modal regression: %d checks, %d failures" % [checks,failures.size()])
 	game.closing = true;game.dialog.close(false);await game.audio.finish_audio();game.engine.close_engine();game.queue_free()
 	for i in range(6):await process_frame

@@ -501,10 +501,8 @@ const Battle = (() => {
       s.sluice.open=false;
       log(s,'巻上機から手が離れ、水門が閉じた。');
     }
-    const playerUnit=s.playerId?s.units.find(u=>u.side==='ally'&&u.id===s.playerId):null;
     const porter=s.units.find(u=>u.side==='ally'&&u.job==='job_porter');
-    if(playerUnit&&playerUnit.hp<=0){s.failure='player';s.resultKind='defeat';s.result=`クエスト失敗。${playerUnit.name}が倒れ、旅は終わった。`;}
-    else if(porter&&porter.hp<=0){s.failure='porter';s.resultKind='defeat';s.result=`クエスト失敗。${porter.name}が倒れ、荷物を運べなくなった。`;}
+    if(porter&&porter.hp<=0){s.failure='porter';s.resultKind='defeat';s.result=`クエスト失敗。${porter.name}が倒れ、荷物を運べなくなった。`;}
     else if(canBreakThrough(s)){s.resultKind='breakthrough';s.result=s.sluice?'突破成功！ 水門を抜けて荷物を運び出した。':'突破成功！ ポーターが敵陣最奥へ到達。';}
     else if(!alive(s).some(u=>u.side==='enemy')){s.resultKind='annihilation';s.result='勝利！ ミラーマッチを制した。';}
     else if(!alive(s).some(u=>u.side==='ally')){s.resultKind='defeat';s.result='敗北。配置と連携を変えて再挑戦しよう。';}

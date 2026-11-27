@@ -173,7 +173,8 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
     }
     else if(r.op==='campaign_save') {
       if(!campaign||trial)throw Error('試用を終了してから保存してください');
-      const saved=campaignEngine().serialize(campaign);response={ok:true,data:typeof saved==='string'?JSON.parse(saved):saved};record('campaign.save.prepared');
+      const saved=campaignEngine().serialize(campaign);response={ok:true,data:typeof saved==='string'?JSON.parse(saved):saved};
+      if(!r.autosave)record('campaign.save.prepared');
     }
     else if(r.op==='campaign_load') {
       if(trial)throw Error('試用を終了してから読み込んでください');

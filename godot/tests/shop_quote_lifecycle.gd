@@ -81,7 +81,7 @@ func run():
 	gate.release=true;await settle()
 	check(not game.modal_open() and shop.stage=="S0","closing a newer confirmation does not revive old purchase")
 	await hold("purchaseQuote","ShopComparisonBuy")
-	game.load_dialog();await frames()
+	game.file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray([preload("res://portraits.gd").FILE_FILTER]),func(_path):pass);await frames()
 	for child in game.get_children():
 		if child is FileDialog:child.hide();child.queue_free()
 	await frames();gate.release=true;await settle()

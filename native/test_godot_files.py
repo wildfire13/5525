@@ -6,6 +6,24 @@ from pathlib import Path
 from godot_files import write_new, run, prepare_portraits
 from portraits import read_raster
 class GodotFilesTests(unittest.TestCase):
+    def test_fixed_slot_preserves_newer_and_unreadable_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            def op(action, **fields):
+                return run(dict(action=action, profile_dir=directory, **fields))
+            save = dict(format='5525-native-campaign', godotCampaignId='a'*32, state={'characters':{}})
+            self.assertIsNone(op('slot_read')['save'])
+            first = op('slot_write', expected='', data=save)['sha256']
+            second = op('slot_write', expected=first, data=dict(save, state={'characters':{}, 'gold':20}))['sha256']
+            with self.assertRaises(ValueError):
+                op('slot_write', expected=first, data=save)
+            self.assertEqual(op('slot_read')['sha256'], second)
+            slot = Path(directory)/'autosave.json'
+            self.assertEqual(list(slot.parent.glob('*.json')), [slot])
+            slot.write_bytes(b'bad')
+            with self.assertRaises(ValueError):
+                op('slot_read')
+            self.assertEqual(slot.read_bytes(), b'bad')
+
     def test_first_death_retires_only_the_matching_journey(self):
         for hire in (False, True):
             with self.subTest(hire=hire), tempfile.TemporaryDirectory() as directory:

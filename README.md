@@ -6,6 +6,8 @@ Windowsでは **[Start-5525.cmd](Start-5525.cmd)** からGodot版を起動しま
 画面・入力・音声はGodot、ゲームルールはNode.jsが担当します。Pythonは画像・保存データ・SQLiteの処理に使います。[起動設定と動作確認](godot/README.md)
 
 
+進行はクライアントの `user-data/autosave.json` 1枠に自動保存され、次回の起動時に再開します。「新しい旅」は確認後にこの枠を上書きします。save-labで作った進行を試す場合はゲームを閉じ、検証専用の保存フォルダを `NATIVE5525_USER_DATA_DIR` に指定して、その中に `autosave.json` を置いて起動します。
+
 ## 旧Web比較版の履歴
 旧Web比較版の `prototype/` は現行ツリーから整理しました。コード・画像・QA記録・同梱ライブラリとライセンスは、[削除前の固定コミット b723b4c](https://github.com/wildfire13/5525/tree/b723b4cdfb84f1b20fe895502d459092d412effb/prototype)から参照できます。当時の起動方法・仮仕様・Web検証手順は[固定版README](https://github.com/wildfire13/5525/blob/b723b4cdfb84f1b20fe895502d459092d412effb/prototype/README.md)に残しています。
 

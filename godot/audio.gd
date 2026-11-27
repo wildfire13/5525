@@ -99,6 +99,7 @@ func load_bgm(path: String,loop:=true) -> AudioStream:
 		if stream == null and ResourceLoader.exists(path):
 			stream = load(path) as AudioStreamMP3
 		if stream!=null:
+			stream.resource_name=path.get_file()
 			stream.loop=loop
 			if loop:stream.loop_offset=0.0
 			streams[key]=stream
@@ -144,16 +145,7 @@ func sync(d: Dictionary, town_route := "", first_death_pending := false) -> void
 		elif phase=="deployment":key="deployment"
 		elif phase=="town" and bgm_catalog.has(town_route):key=town_route
 	if phase=="arrival": key=str(c.get("journey",{}).get("destination",key))
-	var player: Dictionary = c.get("playerProfile", {})
-	var death := first_death_pending
-	if d.get("trial")==null and player.get("created",false):
-		var outcome: Variant = c.get("result")
-		if outcome is Dictionary and (outcome.get("firstDeath",false) or outcome.get("playerDeath",false)):death=true
-		var player_id := str(player.get("memberId",""))
-		if not player_id.is_empty():
-			for unit in state.get("units",[]):
-				if unit.id==player_id and int(unit.get("hp",1))<=0:death=true
-	if death:
+	if first_death_pending or (d.get("trial")==null and c.get("playerDeath",false)):
 		on_road=false
 		key="rip"
 	if key != current_bgm:

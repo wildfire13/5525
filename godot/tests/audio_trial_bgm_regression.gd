@@ -10,7 +10,7 @@ func check(ok: bool,label: String):
 func expect_song(file: String):
 	var player=game.audio.bgm
 	var stream=player.stream as AudioStreamMP3
-	check(stream!=null and stream.resource_path.get_file()==file and stream.loop and player.playing and not game.audio.quest.playing,file+" plays alone and loops")
+	check(stream!=null and stream.resource_name==file and stream.loop and player.playing and not game.audio.quest.playing,file+" plays alone and loops")
 
 func _initialize():call_deferred("run")
 
@@ -50,7 +50,7 @@ func run():
 	await game.new_game()
 	await game.act("depart",["north","convoy"])
 	var selected=game.audio.quest_id
-	check(game.audio.quest.playing and game.audio.quest.stream.resource_path.get_file()=="road_01.mp3" and game.audio.quest.stream.loop and not game.audio.bgm.playing,"road_01.mp3 plays alone and loops")
+	check(game.audio.quest.playing and game.audio.quest.stream.resource_name=="road_01.mp3" and game.audio.quest.stream.loop and not game.audio.bgm.playing,"road_01.mp3 plays alone and loops")
 	for tab in ["character","board","map"]:
 		game.navigate(tab)
 		check(game.audio.quest.playing and game.audio.quest_id==selected and game.find_child("RoadStill",true,false)!=null,"road "+tab+" keeps journey music and road background")

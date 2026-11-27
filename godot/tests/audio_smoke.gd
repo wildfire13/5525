@@ -32,7 +32,7 @@ func run():
 	check(audio.quest.playing and not audio.quest.stream_paused and audio.frontend_save()==muted_selection and audio.muted.voice and audio.muted.se,"explicit BGM unmute starts retained selection only")
 	var id=audio.ROAD_TRACK
 	var stream=audio.quest.stream as AudioStreamMP3
-	check(stream!=null and stream.resource_path.get_file()=="road_01.mp3" and stream.loop and stream.loop_offset==0,"whole road MP3 loops from the start")
+	check(stream!=null and stream.resource_name=="road_01.mp3" and stream.loop and stream.loop_offset==0,"whole road MP3 loops from the start")
 	if stream==null:quit(1);return
 	var campaign=muted_campaign
 	var selected=audio.frontend_save()

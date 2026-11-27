@@ -546,7 +546,7 @@ const Campaign = (() => {
     b.itemInventories=Object.fromEntries(ids.map(id=>[id,Object.fromEntries(items.map(item=>[item.id,I.count(s.characters[id].inventory,item.id)]))]));
     const preset=deploymentPreset(ids,j.formation);for(const u of b.units.filter(u=>u.side==='ally')){u.pos=preset.units.find(p=>p.id===u.id).pos;u.name=displayName(s,u.id);}
     applyAllyEquipment(s,b);
-    if(s.playerProfile?.created)b.playerId=s.playerProfile.memberId;
+
     b.campaignToken=j.token;b.campaignStage=j.stage;
     if(ambush){
       const chief=b.units.find(u=>u.id==='enemy-guard');
@@ -651,12 +651,17 @@ const Campaign = (() => {
     if(s.phase!=='battle'||!b||b.result||!j||!s.rollback||b.campaignToken!==j.token||b.campaignStage!==j.stage)return false;
     return rollbackFailure(s,'戦闘から撤退しました。','retreat');
   }
+  function playerLost(s) {
+    if(!s.playerProfile?.created||s.battle?.resultKind!=='defeat'||!s.selected.includes(s.playerProfile.memberId))return false;
+    const hp=id=>s.battle.units.find(u=>u.side==='ally'&&u.id===id)?.hp??s.characters[id].hp;
+    return hp(s.playerProfile.memberId)<=0&&s.selected.every(id=>hp(id)<=0);
+  }
   function finishBattle(s) {
     const b=s.battle,j=s.journey;
     if(s.phase!=='battle'||!b?.result||!j||b.campaignToken!==j.token||b.campaignStage!==j.stage)return false;
-    const allies=b.units.filter(u=>u.side==='ally'),playerDead=Boolean(s.playerProfile?.created&&allies.some(u=>u.id===s.playerProfile.memberId&&u.hp<=0)),failed=playerDead||allies.some(u=>u.job==='job_porter'&&u.hp<=0)||allies.every(u=>u.hp<=0)||!!b.failure;
+    const allies=b.units.filter(u=>u.side==='ally'),failed=allies.some(u=>u.job==='job_porter'&&u.hp<=0)||allies.every(u=>u.hp<=0)||!!b.failure;
     if(failed){
-      if(playerDead){
+      if(playerLost(s)){
         if(s.activeQuest?.cargoItemId)delete s.characters[s.activeQuest.cargoOwnerId].inventory[s.activeQuest.cargoItemId];
         for(const ally of allies)s.characters[ally.id].hp=ally.hp;
         invalidateInventory(s);
@@ -1092,6 +1097,7 @@ const Campaign = (() => {
       slots:S.slots,skillNames:{...skills,skill_invasion:'敵陣初期配置'},skillDefinitions:clone(E.definitions),roster:rosterFor(s).map(member=>rosterMemberView(s, member)),
       inventoryOverflow:inventoryOverflow(s),warehouseView:warehouseView(s),guildAvailable:s.phase==='town'&&s.location==='astaris',hasPorter:hasPorter(s),
       playerProfile:s.playerProfile?clone(s.playerProfile):{created:false},
+      playerDeath:playerLost(s)||Boolean(s.result?.playerDeath||s.result?.firstDeath),
       tutorial:s.tutorial?clone(s.tutorial):{active:false,completed:false,skipped:false,introShown:false}};
   }
   function validate(state) {
