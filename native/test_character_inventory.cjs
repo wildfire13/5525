@@ -61,10 +61,10 @@ test('ABA transfer and identical save reload cannot revive an old confirmation t
   assert.equal(action(loaded,"character_mirei",'potion','discard',null,1,null,token),false);okay(loaded);
 });
 test('buy and remove gear retain it with owner, no refund or duplicated placeholder items',()=>{
-  const s=inventoryFixture();assert(C.select(s,[...s.selected,'character_kyle']));const bow=s.characters['character_kyle'];bow.weapon='bow-wood';Object.assign(bow,{xp:100,level:2,statPoints:2,skillPoints:1});assert(C.allocate(s,bow.id,'str'));s.location='east';const before=total(s,'bow-wood');assert(C.buyGear(s,"character_kyle",'bow-wood-1','rightHand'));
-  assert.equal(s.gold,40);assert.equal(s.characters["character_kyle"].inventory['bow-wood'],1);assert.equal(total(s,'bow-wood'),before);
+  const s=inventoryFixture();assert(C.select(s,[...s.selected,'character_kyle']));const bow=s.characters['character_kyle'];bow.weapon='bow-wood';Object.assign(bow,{xp:100,level:2,statPoints:2,skillPoints:1});assert(C.allocate(s,bow.id,'str'));s.location='east';const funds=s.gold,before=total(s,'bow-wood');assert(C.buyGear(s,"character_kyle",'bow-wood-1','rightHand'));
+  assert.equal(s.gold,funds-140);assert.equal(s.characters["character_kyle"].inventory['bow-wood'],1);assert.equal(total(s,'bow-wood'),before);
   assert(action(s,"character_kyle",'bow-wood-1','unequip',null,1,'rightHand'));assert.equal(s.characters["character_kyle"].weapon,'empty-rightHand');
-  assert.equal(s.characters["character_kyle"].inventory['bow-wood-1'],1);assert.equal(s.gold,40);
+  assert.equal(s.characters["character_kyle"].inventory['bow-wood-1'],1);assert.equal(s.gold,funds-140);
   assert(action(s,"character_kyle",'bow-wood','equip',null,1,'rightHand'));assert.equal(s.characters["character_kyle"].inventory['bow-wood'],undefined);okay(s);
 });
 test('hand occupancy and race restrictions remain authoritative when equipping owned gear',()=>{

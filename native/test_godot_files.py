@@ -6,6 +6,23 @@ from pathlib import Path
 from godot_files import write_new, run, prepare_portraits
 from portraits import read_raster
 class GodotFilesTests(unittest.TestCase):
+    def test_burial_history_survives_replacing_the_only_save(self):
+        with tempfile.TemporaryDirectory() as directory:
+            def op(action, **fields):
+                return run(dict(action=action, profile_dir=directory, **fields))
+            first, second = 'a'*32, 'b'*32
+            op('first_start', journey_id=first, memberId='character_yuno', name='初代')
+            save = dict(format='5525-native-campaign', godotCampaignId=first,
+                        state={'characters':{}, 'buriedRecruitIds':['character_sera']})
+            revision = op('slot_write', expected='', data=save)['sha256']
+            with self.assertRaises(ValueError):
+                op('slot_write', expected='0'*64, data=dict(save, state={'buriedRecruitIds':['character_rio']}))
+            op('first_death', journey_id=first)
+            self.assertEqual(op('first_choose', journey_id=first, hire=True)['buriedRecruitIds'], ['character_sera'])
+            op('first_start', journey_id=second, memberId='character_mirei', name='二代目')
+            op('slot_write', expected=revision, data=dict(save, godotCampaignId=second, state={'characters':{}}))
+            self.assertEqual(op('first_status')['buriedRecruitIds'], ['character_sera'])
+
     def test_fixed_slot_preserves_newer_and_unreadable_files(self):
         with tempfile.TemporaryDirectory() as directory:
             def op(action, **fields):

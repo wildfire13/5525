@@ -21,6 +21,10 @@ func request(action: String, fields: Dictionary = {}) -> bool:
 
 func campaign_options() -> Dictionary:
 	var options := {"returningPlayer": ui.campaign_identity.returning_player or not status.is_empty()}
+	var buried: Array=status.get("buriedRecruitIds",[]).duplicate()
+	for id in ui.campaign().get("buriedRecruitIds",[]):
+		if not buried.has(id):buried.append(id)
+	options.buriedRecruitIds=buried
 	if status.get("phase") in ["hire", "end"]:
 		options.predecessor = {"memberId":status.memberId, "name":status.name, "hire":status.phase == "hire"}
 	return options
@@ -58,7 +62,7 @@ func show_choice() -> void:
 	window = d
 	d.name = "FirstJourneyEnding"
 	d.title = "%sの旅の終わり" % status.name
-	d.dialog_text = "%sは戦いで命を落とした。\n次の旅では、アスタリスのギルドで仲間を雇えます。\n\n%sを、ギルドで雇える人物として残しますか？\nどちらを選んでも、この旅のセーブは読み込めなくなります。" % [status.name, status.name]
+	d.dialog_text = "%sは旅の途中で命を落とした。\n次の旅では、アスタリスのギルドで仲間を雇えます。\n\n%sを、ギルドで雇える人物として残しますか？\nどちらを選んでも、この旅のセーブは読み込めなくなります。" % [status.name, status.name]
 	d.dialog_hide_on_ok = false
 	d.exclusive = true
 	d.ok_button_text = "ギルドに残す"

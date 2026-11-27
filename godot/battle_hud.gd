@@ -478,7 +478,11 @@ func render_party_overlay():
 		button.set_meta("roster_job",str(u.get("job","")))
 		button.visible=party_overlay_job.is_empty() or str(u.get("job",""))==party_overlay_job
 		button.custom_minimum_size=Vector2(254,88)
-		var line=ui.mock_shell.roster_member_line(button,u)
+		var campaign_member=ui.roster().filter(func(member):return member.id==uid)
+		var shown: Dictionary=u
+		if not campaign_member.is_empty():
+			shown=u.merged({"dead":campaign_member[0].get("dead",false),"corpseWeight":campaign_member[0].get("corpseWeight",0),"rescueHours":campaign_member[0].get("rescueHours")},true)
+		var line=ui.mock_shell.roster_member_line(button,shown)
 		var info=line.get_node("MemberInfo")
 		var inventory=inv_by_char.get(uid,{});var capacity=inventory.get("capacity",{})
 		var detail_row=HBoxContainer.new();detail_row.mouse_filter=Control.MOUSE_FILTER_IGNORE;detail_row.add_theme_constant_override("separation",Tokens.SPACE_MD);info.add_child(detail_row)
@@ -488,7 +492,7 @@ func render_party_overlay():
 			var limit := float(u.get("weightLimit",u.get("str",0)))
 			var wt_label=Label.new();wt_label.text="Wt %s / %s" % [_format_number(carried),_format_number(limit)];wt_label.add_theme_font_size_override("font_size",Tokens.FONT_SM);wt_label.autowrap_mode=TextServer.AUTOWRAP_OFF;wt_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;detail_row.add_child(wt_label)
 			if bool(u.get("overburdened",false)) or (limit>0.0 and carried>limit):wt_label.add_theme_color_override("font_color",Tokens.DANGER)
-		if int(u.get("hp",0))<=0:
+		if int(u.get("hp",0))<=0 and shown.get("rescueHours")==null:
 			var ko=Label.new();ko.text="戦闘不能";ko.add_theme_font_size_override("font_size",Tokens.FONT_XS);ko.add_theme_color_override("font_color",Tokens.DANGER);ko.mouse_filter=Control.MOUSE_FILTER_IGNORE;line.add_child(ko)
 		for child in info.get_children():child.mouse_filter=Control.MOUSE_FILTER_IGNORE
 func target_name(id) -> String:

@@ -71,11 +71,11 @@ test('city and four source-map villages, correct facilities',()=>{
   assert.deepEqual(C.locations.map(p=>p.facilities),[['board','guild','inn'],['board','weapon'],['board','armor'],['board','items'],['board','accessory']]);
   for(const p of C.locations){const s=town(p.id);assert.ok(C.board(s).length);assert.equal(C.view(s).guildAvailable,p.id==='astaris');okay(s);}
 });
-test('guild is city-only, free, party cap twelve, unique roster; porter required only at acceptance',()=>{
+test('guild is city-only, charges for new hires, party cap twelve, unique roster; porter required only at acceptance',()=>{
   const s=require('./test-current-fixture.cjs')(),gold=s.gold;for(const ids of [[],[s.selected[0],s.selected[0]],['bogus',s.selected[0]]])assert.equal(C.select(s,ids),false);
-  const ids=Object.keys(s.characters);assert(ids.length>12);assert(C.select(s,ids.slice(0,12)));const full=clone(s);assert.equal(C.select(s,ids.slice(0,13)),false);assert.deepEqual(s,full);assert.equal(s.gold,gold);
+  const ids=Object.keys(s.characters);assert(ids.length>12);const firstCost=2*ids.slice(0,12).filter(id=>!s.selected.includes(id)).length;assert(C.select(s,ids.slice(0,12)));const full=clone(s);assert.equal(C.select(s,ids.slice(0,13)),false);assert.deepEqual(s,full);assert.equal(s.gold,gold-firstCost);
   assert.equal(C.select(s,["character_mirei"]),true);okay(s);assert.equal(acceptWithPorter(s,C.board(s)[0].id),false);
-  assert.equal(C.select(s,["character_yuno","character_grant"]),true);assert.equal(s.gold,gold);s.location='east';assert.equal(C.select(s,["character_yuno"]),false);
+  assert.equal(C.select(s,["character_yuno","character_grant"]),true);assert.equal(s.gold,gold-firstCost-4);s.location='east';assert.equal(C.select(s,["character_yuno"]),false);
 });
 test('boards expose real deadline/reward tradeoff and refresh after trip',()=>{
   const s=require('./test-current-fixture.cjs')(),offers=C.board(s);assert.equal(offers[0].deadline,6);assert.equal(offers[0].reward,180);assert.equal(offers[1].deadline,10);assert.equal(offers[1].reward,150);

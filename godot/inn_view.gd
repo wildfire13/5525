@@ -113,7 +113,7 @@ func cards(parent):
    if recovered.has(str(id)) and recovered[str(id)].get("after",{}).get(stat)==current:before=int(recovered[str(id)].before.get(stat,current))
    labels.append({"label":label,"stat":stat,"before":before,"after":current,"maximum":maximum})
    if before<current and progress()<1.0:label.add_theme_color_override("font_color",Tokens.POSITIVE);label.set_meta("recovering",true)
-  if u.hp<=0:pages.l(member,"戦闘不能")
+  if u.hp<=0:pages.l(member,"死亡" if u.get("dead",false) else "戦闘不能")
  paint(progress(),labels)
  if progress()<1.0:
   var tween=members.create_tween();tween.tween_method(paint.bind(labels),progress(),1.0,RECOVERY_SECONDS*(1.0-progress()))
@@ -134,7 +134,7 @@ func stay():
   dialogue=FULL_GREETING;recovered={};healing_party=[];recovery_started=0;ui.render();return
  if not q.get("affordable",false):return
  var token=pages.c().get("inventoryToken");var epoch=pages.epoch;var connection=ui.engine.connection_generation;var request=sequence
- ui.confirm("%d Gを支払い、編成中の全員のHP・MPを全回復しますか？\n戦闘不能も回復。控えは対象外、時間は経過しません。" % q.price,commit.bind(token,epoch,connection,request))
+ ui.confirm("%d Gを支払い、編成中の生存者のHP・MPを全回復しますか？\n戦闘不能も回復。控えは対象外、時間は経過しません。" % q.price,commit.bind(token,epoch,connection,request))
 func commit(token,epoch: int,connection: int,request: int):
  if pending or not available() or ui.locked or ui.presenting or ui.closing or request!=sequence or epoch!=pages.epoch or connection!=ui.engine.connection_generation or token!=pages.c().get("inventoryToken"):return
  var q: Dictionary=pages.c().get("inn",{})

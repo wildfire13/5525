@@ -134,7 +134,7 @@ func run():
 	var after=await saved()
 	var swapped=before.state.selected.duplicate();swapped[swapped.find(guard)]=alternate
 	check(game.campaign().selected==swapped and recorder.select_count==1,"G03 party swap changes one slot through one select")
-	check(after.state.characters==before.state.characters and after.state.gold==before.state.gold,"G06 swap preserves owner/equipment/HP/MP/growth/gold")
+	check(after.state.characters==before.state.characters and after.state.gold==before.state.gold-2*before.state.characters[alternate].level,"G06 swap preserves equipment and growth and prepays the new hire")
 	check(guild.notice.contains("入替完了") and current_ids()==game.campaign().selected,"G03 response updates lists and notice")
 	await tap("RosterMember_"+porter)
 	check(not node("GuildRemove").disabled and not guild.candidate("remove",porter,"").is_empty() and not guild.candidate("swap",porter,reserve_porter).is_empty(),"G04 porter removal and replacement allowed")

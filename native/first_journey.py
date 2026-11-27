@@ -23,6 +23,15 @@ def retire_save(filename, ident, write_save, max_size):
                    overwrite=True, expected_sha256=hashlib.sha256(raw).hexdigest(), resolved_target=filename)
 
 
+def burial_ids(save):
+    ids = save.get('state', {}).get('buriedRecruitIds', [])
+    if not isinstance(ids, list) or len(ids) > 100 or any(
+        not isinstance(uid, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', uid) for uid in ids
+    ):
+        raise ValueError('埋葬記録が不正です')
+    return [(uid,) for uid in ids]
+
+
 def handle(request, file_operation, write_save, prepare_portraits, max_size):
     db_path = Path(request['profile_dir']) / 'first-journey.sqlite3'
     action = request['action']
@@ -34,6 +43,7 @@ def handle(request, file_operation, write_save, prepare_portraits, max_size):
         db.execute('CREATE TABLE IF NOT EXISTS journey (singleton INTEGER PRIMARY KEY CHECK(singleton=1), id TEXT, member TEXT, name TEXT, phase TEXT)')
         db.execute('CREATE TABLE IF NOT EXISTS saves (path TEXT PRIMARY KEY)')
         db.execute('CREATE TABLE IF NOT EXISTS ended_journeys (id TEXT PRIMARY KEY)')
+        db.execute('CREATE TABLE IF NOT EXISTS buried_recruits (member TEXT PRIMARY KEY)')
         if action == 'slot_read':
             if not slot.exists():
                 return {'sha256':'', 'save':None}
@@ -52,6 +62,7 @@ def handle(request, file_operation, write_save, prepare_portraits, max_size):
             if not isinstance(state, dict) or not isinstance(state.get('characters'), dict):
                 raise ValueError('自動セーブの人物情報が不正です')
             save['nativePortraits'] = prepare_portraits(save.get('nativePortraits'), state['characters'])
+            db.executemany('INSERT OR IGNORE INTO buried_recruits VALUES (?)', burial_ids(save))
             return {'sha256':digest, 'save':save}
         if action == 'slot_write':
             save = request['data']
@@ -61,6 +72,7 @@ def handle(request, file_operation, write_save, prepare_portraits, max_size):
                 raise ValueError(ENDED)
             if slot.is_symlink():
                 raise ValueError('自動セーブの保存先が不正です')
+            db.executemany('INSERT OR IGNORE INTO buried_recruits VALUES (?)', burial_ids(save))
             digest = write_save(slot, save, overwrite=bool(expected), expected_sha256=expected)
             return {'sha256':digest}
         if action == 'first_start':
@@ -118,6 +130,9 @@ def handle(request, file_operation, write_save, prepare_portraits, max_size):
                     else:
                         db.execute('DELETE FROM saves WHERE path=?', (filename,))
             result = {'id':ident,'memberId':member,'name':name,'phase':phase,'deferred':deferred,'endedIds':sorted(ended_ids)}
+            buried = [r[0] for r in db.execute('SELECT member FROM buried_recruits ORDER BY member')]
+            if buried:
+                result['buriedRecruitIds'] = buried
             if phase == 'hire':
                 portrait = db.execute('SELECT entry FROM first_portrait').fetchone()
                 if portrait:

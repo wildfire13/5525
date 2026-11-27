@@ -93,15 +93,15 @@ func render(parent):
 		var line=ui.row(margin);line.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		var face=ui.portrait(line,u,false,40);face.custom_minimum_size=Vector2(44,72);face.mouse_filter=Control.MOUSE_FILTER_IGNORE
 		var copy=VBoxContainer.new();copy.mouse_filter=Control.MOUSE_FILTER_IGNORE;copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;copy.add_theme_constant_override("separation",Tokens.SPACE_NONE);line.add_child(copy)
-		for text in [str(u.name),str(u.get("role",""))+" · Lv."+str(int(u.get("level",1))),"HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]]:
+		for text in [str(u.name),"%s · Lv.%d · %d G/日" % [u.get("role",""),u.get("level",1),u.get("dailyFee",0)],ui.mock_shell.member_condition(u)]:
 			var label=l(copy,text);label.add_theme_font_size_override("font_size",Tokens.FONT_SM);label.autowrap_mode=TextServer.AUTOWRAP_OFF;label.clip_text=true;label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	if reserves.is_empty():l(body,"この職業の控えはいません")
 	var add_footer=VBoxContainer.new();add_footer.add_theme_constant_override("separation",Tokens.SPACE_NONE)
 	add_footer.custom_minimum_size.y=ui.mock_shell.grid_cell().y-Tokens.SPACE_SM;reserve_body.add_child(add_footer)
 	var add_divider=ColorRect.new();add_divider.color=Tokens.BORDER;add_divider.custom_minimum_size.y=Tokens.BORDER_WIDTH;add_divider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;add_divider.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_footer.add_child(add_divider)
 	var add_center=CenterContainer.new();add_center.size_flags_vertical=Control.SIZE_EXPAND_FILL;add_footer.add_child(add_center)
-	var add=b(add_center,"編成に加える",func():prepare("add","",chosen_id),busy() or candidate("add","",chosen_id).is_empty(),"lg_md");add.name="GuildAdd";add.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;ui.action_button(add,"lg_md")
-	update_remove_button();ui.mock_shell.refresh_roster_selection()
+	var add=b(add_center,"編成に加える",func():guild_action("add",chosen_id),busy() or candidate("add","",chosen_id).is_empty(),"lg_md");add.name="GuildAdd";add.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;ui.action_button(add,"lg_md")
+	update_contract_button(add,chosen_id,"add");update_remove_button();ui.mock_shell.refresh_roster_selection()
 func select_tab(index: int):
 	var names=["ability","equipment","skills","inventory"]
 	if index<0 or index>=names.size():return
@@ -131,8 +131,7 @@ func refresh_selection():
 			var selected=button.get_meta("member_id")==chosen_id
 			if button.get_meta("selected",false)!=selected:ui.mark_selected(button,selected)
 		var add=reserve.find_child("GuildAdd",true,false)
-		add.disabled=busy() or candidate("add","",chosen_id).is_empty()
-		add.set_meta("base_disabled",add.disabled)
+		update_contract_button(add,chosen_id,"add")
 		update_remove_button()
 		ui.mock_shell.refresh_roster_selection())
 
@@ -148,6 +147,7 @@ func build_comparison(center):
 	mid.add_child(swap_margin)
 	var swap_column=VBoxContainer.new();swap_column.name="GuildSwapColumn";swap_column.alignment=BoxContainer.ALIGNMENT_CENTER;swap_column.add_theme_constant_override("separation",Tokens.SPACE_MD);swap_margin.add_child(swap_column)
 	var swap=b(swap_column,"入れ替える",prepare.bind("swap",current_id,chosen_id),busy() or candidate("swap",current_id,chosen_id).is_empty(),"lg_md");swap.name="GuildSwap";swap.size_flags_horizontal=Control.SIZE_SHRINK_CENTER
+	if int(c().get("unpaidWages",0))>0:l(swap_column,"未払い雇用費 %d G" % c().unpaidWages)
 	var notice_panel=PanelContainer.new();notice_panel.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;notice_panel.visible=not notice.is_empty()
 	notice_panel.add_theme_stylebox_override("panel",Tokens.surface_box(Tokens.SURFACE,false,Tokens.RADIUS_SM,Tokens.SPACE_SM));swap_column.add_child(notice_panel)
 	var notice_label=l(notice_panel,notice);notice_label.name="GuildNotice";notice_label.add_theme_font_size_override("font_size",Tokens.FONT_SM);notice_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
@@ -194,12 +194,33 @@ func remove_button(parent):
 	remove_footer.custom_minimum_size.y=ui.mock_shell.grid_cell().y-Tokens.SPACE_SM;parent.add_child(remove_footer)
 	var remove_divider=ColorRect.new();remove_divider.color=Tokens.BORDER;remove_divider.custom_minimum_size.y=Tokens.BORDER_WIDTH;remove_divider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;remove_divider.mouse_filter=Control.MOUSE_FILTER_IGNORE;remove_footer.add_child(remove_divider)
 	var remove_center=CenterContainer.new();remove_center.size_flags_vertical=Control.SIZE_EXPAND_FILL;remove_footer.add_child(remove_center)
-	var remove=b(remove_center,"パーティから外す",func():prepare("remove",current_id,""),false,"lg_md");remove.name="GuildRemove";remove.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;ui.action_button(remove,"lg_md")
+	var remove=b(remove_center,"パーティから外す",func():guild_action("remove",current_id),false,"lg_md");remove.name="GuildRemove";remove.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;ui.action_button(remove,"lg_md")
 func update_remove_button():
 	var button=ui.content.find_child("GuildRemove",true,false)
 	if button!=null:
-		button.disabled=busy() or candidate("remove",current_id,"").is_empty()
-		button.set_meta("base_disabled",button.disabled)
+		update_contract_button(button,current_id,"remove")
+func update_contract_button(button: Button,id: String,kind: String):
+	var u=person(id)
+	if u.get("dead",false):
+		button.text="埋葬 %d G" % int(u.burialFee)
+		button.disabled=busy() or int(c().gold)<int(u.burialFee) or (active(id) and c().selected.size()==1)
+	elif kind=="remove":
+		button.text="パーティから外す"
+		button.disabled=busy() or candidate(kind,id,"").is_empty()
+	else:
+		button.text="雇用 %d G" % int(u.dailyFee) if not u.is_empty() else "雇用"
+		button.disabled=busy() or candidate(kind,"",id).is_empty()
+	button.set_meta("base_disabled",button.disabled)
+func guild_action(kind: String,id: String):
+	if busy() or not available() or ui.modal_open():return
+	var u=person(id)
+	if u.get("dead",false):
+		ui.confirm("%sを%d Gで埋葬しますか？\n残っている装備と所持品も埋葬されます。" % [u.name,u.burialFee],func():
+			var reply=await ui.act("bury",[id])
+			if reply.get("ok",false):
+				reset();current_id="";ui.render())
+	elif kind=="add":prepare(kind,"",id)
+	else:prepare(kind,id,"")
 func select_filtered_current(current: Array,job: String):
 	var matches=current.filter(func(u):return job.is_empty() or u.job==job)
 	if not matches.any(func(u):return str(u.id)==current_id):current_id=str(matches[0].id) if not matches.is_empty() else ""
@@ -230,8 +251,9 @@ func candidate(kind: String,outgoing: String,incoming: String) -> Array:
 		if outgoing==incoming or not ids.has(outgoing) or not ids.has(incoming):return []
 		var first=ids.find(outgoing);var second=ids.find(incoming)
 		ids[first]=incoming;ids[second]=outgoing;return ids
-	if kind in ["swap","remove"] and not ids.has(outgoing):return []
+	if kind in ["swap","remove"] and (not ids.has(outgoing) or int(person(outgoing).get("hp",0))<=0):return []
 	if kind in ["swap","add"] and (person(incoming).is_empty() or ids.has(incoming)):return []
+	if kind in ["swap","add"] and (person(incoming).get("dead",false) or person(incoming).get("dailyFee",0)>c().gold):return []
 	if kind=="swap":ids[ids.find(outgoing)]=incoming
 	elif kind=="add":
 		if ids.size()>=party_limit():return []
@@ -257,7 +279,8 @@ func prepare(kind: String,outgoing: String,incoming: String):
 		if kind in ["swap","remove"] and quest is Dictionary and quest.get("cargoOwnerId")==outgoing:
 			l(body,"そのポーター、荷物を持っていますが、控えに戻してよいですか？",true)
 			l(body,"荷物は本人が持ち続けます。控えのままでは納品できません。")
-		l(body,text,true);l(body,"編成変更は無料です。自動装備や所持品の移動は行いません。")
+		l(body,text,true)
+		if kind=="swap":l(body,"雇用費 %d G / 24時間" % person(incoming).dailyFee)
 		b(actions,"取り消す",ui.dialog.close).name="GuildConfirmCancel"
 		ui.primary(b(actions,"入れ替える" if kind=="swap" else "編成に加える" if kind=="add" else "控えへ戻す",commit.bind(kind,outgoing,incoming,ids,context,ticket))).name="GuildConfirm",
 		func():

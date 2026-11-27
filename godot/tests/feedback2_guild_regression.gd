@@ -62,7 +62,10 @@ func run():
    await tap("GuildAdd");wanted.append(id);added+=1
    check(game.campaign().selected==wanted,"canonical membership count "+str(wanted.size())+" commits ordered personal IDs")
   check(roster_ids.size()==24 and wanted.size()==12 and added==7,"twelve live people join while twelve candidates remain in reserve")
-  var full=await saved();check(full.state.characters==seed.state.characters and full.state.gold==seed.state.gold,"joining seven additional people preserves equipment inventories growth and money")
+  var full=await saved();var fee=0
+  for id in wanted:
+   if not seed.state.selected.has(id):fee+=2*int(seed.state.characters[id].level)
+  check(full.state.characters==seed.state.characters and full.state.gold==seed.state.gold-fee,"joining seven people prepays each new hire and preserves equipment, inventory and growth")
   var extra=roster_ids.filter(func(id):return not wanted.has(id))[0];guild.choose(extra);await settle()
   check(node("GuildAdd").disabled and guild.candidate("add","",extra).is_empty() and (await saved())==full,"canonical full party rejects a thirteenth member without mutation")
   guild.cancel_selection();await settle();check((await saved())==full,"ending capacity probe preserves full party")

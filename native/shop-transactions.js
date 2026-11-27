@@ -25,7 +25,7 @@ module.exports=function({I,clone,integer,getGear,template,shop,inventoryToken,in
   function saleQuote(s,ownerId,id,count=1) {
     const g=getGear(id),owner=template(ownerId)&&s.characters[ownerId],amount=owner?I.count(owner.inventory,id):0;
     const price=g?.salePrice??g?.price??0;
-    const q={ok:false,reason:'',ownerId,itemId:id,count,name:g?.name||id,ownerName:template(ownerId)?.name||ownerId,available:amount,price,proceeds:price*count,goldBefore:s.gold,afterGold:s.gold+price*count,token:inventoryToken(s)};
+    const q={ok:false,reason:'',ownerId,itemId:id,count,name:g?.name||id,ownerName:template(ownerId)?.name||ownerId,available:amount,price,proceeds:price*count,goldBefore:s.gold,afterGold:s.gold+price*count-Math.min(s.unpaidWages||0,price*count),token:inventoryToken(s)};
     if(!g||g.type==='empty'||g.sellable===false)return {...q,reason:'売却できないアイテムです'};
     if(!saleAvailable(s))return {...q,reason:'装備店（イース・ウエス・ノース）で売却できます'};
     if(!owner||!s.selected.includes(ownerId))return {...q,reason:'編成中の所持者を選んでください'};
@@ -37,7 +37,7 @@ module.exports=function({I,clone,integer,getGear,template,shop,inventoryToken,in
     const q=saleQuote(s,ownerId,id,count);if(!q.ok||token!==q.token)return false;
     return commitInventory(s,draft=>{
       const bag=I.remove(draft.characters[ownerId].inventory,id,count);if(!bag)return false;
-      draft.characters[ownerId].inventory=bag;draft.gold=q.afterGold;
+      draft.characters[ownerId].inventory=bag;draft.gold+=q.proceeds;
       note(draft,`${q.ownerName}の${q.name} ${count}個を${q.proceeds}Gで売却。`);return true;
     });
   }

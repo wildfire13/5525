@@ -285,6 +285,10 @@ func roster(parent,deployment=null):
 		button.set_drag_forwarding(Callable(),func(_at,payload):return can_drop(payload,str(id)),func(_at,payload):drop(payload,str(id)))
 	if deployment==null and ui.pages.guild_view.available():ui.pages.guild_view.remove_button(body)
 	return panel
+func member_condition(u: Dictionary) -> String:
+	if u.get("dead",false):return "死亡　遺体Wt %d" % int(u.corpseWeight)
+	if u.get("rescueHours")!=null:return "戦闘不能　残り%d時間" % int(u.rescueHours)
+	return "HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]
 func roster_member_line(button: Button,u: Dictionary) -> HBoxContainer:
 	button.custom_minimum_size.y=88
 	var line=HBoxContainer.new();button.add_child(line);line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);line.offset_left=Tokens.SPACE_XS;line.offset_top=Tokens.SPACE_XS;line.offset_right=-Tokens.SPACE_XS;line.offset_bottom=-Tokens.SPACE_XS;line.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -292,7 +296,7 @@ func roster_member_line(button: Button,u: Dictionary) -> HBoxContainer:
 	var portrait=ui.portrait(line,u,false,32);portrait.custom_minimum_size=Vector2(40,72);portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var info=VBoxContainer.new();info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;info.mouse_filter=Control.MOUSE_FILTER_IGNORE;info.name="MemberInfo";info.add_theme_constant_override("separation",2);line.add_child(info)
 	var name=ui.label_(info,str(u.name));name.add_theme_font_size_override("font_size",Tokens.FONT_BODY);name.autowrap_mode=TextServer.AUTOWRAP_OFF;name.clip_text=true
-	var hp=ui.label_(info,"HP %d/%d   MP %d/%d" % [u.hp,u.max,u.mp,u.maxMp]);hp.add_theme_font_size_override("font_size",Tokens.FONT_SM)
+	var hp=ui.label_(info,member_condition(u));hp.add_theme_font_size_override("font_size",Tokens.FONT_SM)
 	for child in info.get_children():child.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	return line
 func refresh_roster_selection():

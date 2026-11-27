@@ -8,7 +8,7 @@ let s=require('./test-current-fixture.cjs')();
 assert.deepEqual(s.selected,C.create().selected);check(s.selected.length===5,'actual current initial party');
 const people=JSON.stringify(s.characters),gold=s.gold;
 check(C.select(s,["character_mirei","character_kyle","character_merina","character_rio"]),'remove last porter while other members remain');
-check(JSON.stringify(s.characters)===people&&s.gold===gold,'composition preserves personal records and gold');
+check(JSON.stringify(s.characters)===people&&s.gold===gold-2,'composition preserves personal records and charges the new hire');
 check(roundtrip(s).selected.length===4,'zero porter save roundtrip');
 let before=C.serialize(s);
 check(!acceptWithPorter(s,C.board(s)[0].id)&&C.serialize(s)===before,'zero porter acceptance rejected without mutation');

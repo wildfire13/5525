@@ -46,9 +46,60 @@ const Campaign = (() => {
   const getGear = id => gear.find(g=>g.id===id);
   const getPlace = id => locations.find(p=>p.id===id);
   const template = B.memberTemplate;
-  const availableMember=(s,id)=>s.predecessor?.memberId!==id||s.predecessor.hire||!s.playerProfile?.created||s.playerProfile.memberId===id;
+  const availableMember=(s,id)=>!s.characters[id]?.buried&&(!s.buriedRecruitIds?.includes(id)||formerPlayer(s,id))&&(s.predecessor?.memberId!==id||s.predecessor.hire||!s.playerProfile?.created||s.playerProfile.memberId===id);
+  const isPlayer=(s,id)=>s.playerProfile?.created&&s.playerProfile.memberId===id;
+  const formerPlayer=(s,id)=>s.predecessor?.hire&&s.predecessor.memberId===id;
+  const dailyFee=(s,id)=>isPlayer(s,id)?0:s.characters[id].level*(formerPlayer(s,id)?1:2);
+  const burialFee=(s,id)=>s.characters[id].level*(formerPlayer(s,id)?5:10);
+  const expired=(s,c)=>c.rescueUntil!==undefined&&s.worldTime>c.rescueUntil;
+  function settleWages(s){
+    if(!s.unpaidWages)return;
+    const paid=Math.min(s.gold,s.unpaidWages);
+    s.gold-=paid;s.unpaidWages-=paid;
+    if(paid)note(s,`雇用費を${paid}G支払いました。`);
+  }
+  function chargeGuild(s,cost,wages=false){
+    if(!cost)return;
+    if(s.rollback)s.guildCostsSinceRollback=(s.guildCostsSinceRollback||0)+cost;
+    if(wages){
+      s.unpaidWages=(s.unpaidWages||0)+cost;
+      settleWages(s);
+      if(s.unpaidWages)note(s,`未払い雇用費 ${s.unpaidWages}G。`);
+    }else s.gold-=cost;
+  }
+  function updateContracts(s,start){
+    const renewals=s.contractRenewals??={};
+    for(const id of s.selected){
+      const c=s.characters[id];
+      if(c.buried)continue;
+      if(c.hp<=0&&template(id).job!=='job_porter')c.rescueUntil??=start+12;
+      if(!isPlayer(s,id)&&start<=(c.rescueUntil??Infinity)){
+        renewals[id]??=start+24;
+        const until=Math.min(s.worldTime,c.rescueUntil??s.worldTime);
+        if(renewals[id]<=until){
+          const days=1+Math.floor((until-renewals[id])/24);
+          chargeGuild(s,days*dailyFee(s,id),true);
+          renewals[id]+=days*24;
+        }
+      }
+      if(expired(s,c))delete renewals[id];
+    }
+    settleWages(s);
+  }
+  function bury(s,id){
+    const c=s.characters[id];
+    if(s.phase!=='town'||s.location!=='astaris'||!c||c.buried||!expired(s,c)||isPlayer(s,id))return false;
+    if(s.selected.includes(id)&&s.selected.length===1||s.gold<burialFee(s,id))return false;
+    chargeGuild(s,burialFee(s,id));c.buried=true;c.mp=0;if(s.contractRenewals)delete s.contractRenewals[id];
+    s.selected=s.selected.filter(uid=>uid!==id);
+    if(s.battleSelected)s.battleSelected=s.battleSelected.filter(uid=>uid!==id);
+    s.buriedRecruitIds=[...new Set([...(s.buriedRecruitIds||[]),id])];
+    c.inventory={};
+    for(const slot of Object.keys(S.slots))c[S.storage(slot)]='empty-'+slot;
+    invalidateInventory(s);note(s,displayName(s,id)+'をギルドで埋葬しました。');return true;
+  }
   function rosterFor(s){
-    const list=B.roster.filter(t=>Object.hasOwn(s.characters||{},t.id)&&availableMember(s,t.id));
+    const list=B.roster.filter(t=>Object.hasOwn(s.characters||{},t.id)&&(s.playerProfile?.created===false||availableMember(s,t.id)));
     if(s.playerProfile?.memberId?.endsWith('_successor'))list.push(template(s.playerProfile.memberId));
     return list;
   }
@@ -75,7 +126,7 @@ const Campaign = (() => {
     if(!s.standaloneEvents||typeof s.standaloneEvents!=='object')s.standaloneEvents=freshWorldEvents(s.worldTime);
     for(const q of STANDALONE_QUESTS){const e=s.standaloneEvents.events?.[q.eventId];if(e?.status==='available'&&s.worldTime>s.standaloneEvents.epoch+q.deadline)e.status='missed';}
   }
-  function tickWorld(s,hours){syncWorld(s);s.worldTime+=hours;syncWorld(s);if(s.activeQuest?.eventId==='wheel')refreshWheelQuest(s,s.activeQuest);}
+  function tickWorld(s,hours){syncWorld(s);const start=s.worldTime;s.worldTime+=hours;updateContracts(s,start);syncWorld(s);if(s.activeQuest?.eventId==='wheel')refreshWheelQuest(s,s.activeQuest);}
   function worldAge(s,id){syncWorld(s);return s.worldTime-s.standaloneEvents.epoch;}
   const MERCHANT_STOPS=[{stop:'astaris',from:10,to:18,endInclusive:false},{stop:'south',from:18,to:36,endInclusive:true}];
   function merchantSchedule(age){
@@ -185,10 +236,14 @@ const Campaign = (() => {
     const total=bag.total===null?null:bag.total+equipped;
     return {known:bag.known+equipped,total,unknown:bag.unknown};
   }
+  const CORPSE_WEIGHT=10;
+  function transportWeight(s,id){
+    return (carriedWeight(s,id).total??0)+(expired(s,s.characters[id])?CORPSE_WEIGHT:0);
+  }
   function weightLoads(s,battle=null){
     const hp=id=>battle?.units.find(u=>u.side==='ally'&&u.id===id)?.hp??s.characters[id].hp;
     const alive=s.selected.filter(id=>hp(id)>0),fallen=s.selected.filter(id=>hp(id)<=0);
-    const downWeight=fallen.reduce((n,id)=>n+(carriedWeight(s,id).total??0),0),share=alive.length?downWeight/alive.length:0;
+    const downWeight=fallen.reduce((n,id)=>n+transportWeight(s,id),0),share=alive.length?downWeight/alive.length:0;
     return Object.fromEntries(s.selected.map(id=>[id,{own:carriedWeight(s,id),fallenShare:hp(id)>0?share:0,burden:hp(id)>0?share:0,total:(carriedWeight(s,id).total??0)+(hp(id)>0?share:0)}]));
   }
   const defaultAccessory=(c,slot)=>slot==='accessory1'&&template(c.id).job==='job_scout'?'invasion-charm-1':`empty-${slot}`;
@@ -212,13 +267,14 @@ const Campaign = (() => {
       sequence:0,boardRound:0,completed:0,result:null,history:['アスタリスに到着。繰り返し遊べる試作を開始。']};
     state.cargoRevision=1;state.characters[state.selected[0]].inventory={potion:3,ether:1};return state;
   }
-  function create({returningPlayer,predecessor}={}){
+  function create({returningPlayer,predecessor,buriedRecruitIds}={}){
     const s=createLegacy();
     s.characters=Object.fromEntries(B.recruitRoster.map(t=>[t.id,character(t.id)]));
     if(typeof returningPlayer==='boolean'){
       s.playerProfile={created:false,returningPlayer};
       s.selected=[B.recruitRoster.find(t=>t.job==='job_porter'&&t.race==='human'&&t.sex==='female').id];
     }else s.selected=['character_mirei','character_rio','character_merina','character_shion','character_yuno'];
+    if(buriedRecruitIds!==undefined){validateBuriedIds(buriedRecruitIds);s.buriedRecruitIds=[...buriedRecruitIds];}
     if(predecessor!=null){
       validatePredecessor(predecessor);
       s.predecessor={memberId:predecessor.memberId,name:predecessor.name,hire:predecessor.hire};
@@ -241,7 +297,7 @@ const Campaign = (() => {
     if(!chosen||!Object.hasOwn(s.characters||{},chosen.id))return false;
     const rawName=typeof options.name==='string'?options.name.replace(/[\r\n\t]/g,'').trim():'';
     const name=(rawName||chosen.name).slice(0,16);
-    if(s.predecessor?.hire&&s.predecessor.memberId===chosen.id){
+    if(formerPlayer(s,chosen.id)||s.buriedRecruitIds?.includes(chosen.id)){
       chosen=template(chosen.id+'_successor');
       s.characters[chosen.id]=character(chosen.id);
     }
@@ -384,14 +440,20 @@ const Campaign = (() => {
     syncWorld(s);const age=worldAge(s,'turnip'),kilnAge=worldAge(s,'kiln'),wheelAge=worldAge(s,'wheel'),events=s.standaloneEvents.events;
     return {turnip:events.turnip.status==='completed'&&age>=18?'second':events.turnip.status,kiln:kilnAge<20?'open':kilnAge<21?'closed':kilnAge<22?'fired':kilnAge<23?'cooling':'returned',wheel:wheelAge<10?'in_transit':wheelAge<18?'astaris':wheelAge<=24?'south_full':wheelAge<=36?'south_late':'departed'};
   }
-  function snapshot(s) {const saved=clone(s);saved.rollback=null;saved.battle=null;saved.journey=null;saved.result=null;return saved;}
+  function snapshot(s) {delete s.guildCostsSinceRollback;const saved=clone(s);saved.rollback=null;saved.battle=null;saved.journey=null;saved.result=null;return saved;}
   const PARTY_LIMIT=12,BATTLE_LIMIT=5;
   const battleIds=s=>s.battleSelected??s.selected;
   function select(s,ids) {
     if(s.phase!=='town'||s.location!=='astaris'||!Array.isArray(ids)||ids.length<1||ids.length>PARTY_LIMIT||new Set(ids).size!==ids.length||ids.some(id=>!template(id)||!s.characters[id]))return false;
-    if(ids.some(id=>!availableMember(s,id)))return false;
+    if(ids.some(id=>!availableMember(s,id))||s.selected.some(id=>s.characters[id].hp===0&&!ids.includes(id)))return false;
+    const hires=ids.filter(id=>!s.selected.includes(id));
+    if(hires.some(id=>expired(s,s.characters[id])))return false;
+    const cost=hires.reduce((sum,id)=>sum+dailyFee(s,id),0);
+    if(s.gold<cost)return false;
+    chargeGuild(s,cost);
+    s.contractRenewals=Object.fromEntries(ids.filter(id=>!isPlayer(s,id)&&!expired(s,s.characters[id])).map(id=>[id,s.selected.includes(id)?s.contractRenewals?.[id]??s.worldTime+24:s.worldTime+24]));
     if(s.battleSelected!==undefined||ids.length>BATTLE_LIMIT){const kept=battleIds(s).filter(id=>ids.includes(id));s.battleSelected=[...kept,...ids.filter(id=>!kept.includes(id))].slice(0,BATTLE_LIMIT);}
-    s.selected=[...ids];invalidateInventory(s);note(s,'ギルドで無償編成。キャラ別の装備は保持。');return true;
+    s.selected=[...ids];invalidateInventory(s);note(s,cost?`ギルドで雇用し、初日分の${cost}Gを支払いました。`:'ギルドで編成を変更しました。');return true;
   }
   function accept(s,id,ownerId) {
     if(s.phase!=='town'||s.activeQuest||!hasPorter(s))return false;
@@ -447,8 +509,8 @@ const Campaign = (() => {
     b.weightRevision=2;b.damageRevision=1;b.enemyEquipmentRevision=2;
     const loads=weightLoads(s),active=new Set(b.units.filter(u=>u.side==='ally').map(u=>u.id));
     b.partyAliveInitial=s.selected.filter(id=>s.characters[id].hp>0).length;
-    b.initialDownWeight=s.selected.filter(id=>s.characters[id].hp<=0).reduce((n,id)=>n+(carriedWeight(s,id).total??0),0);
-    b.reserveDownWeight=s.selected.filter(id=>!active.has(id)&&s.characters[id].hp<=0).reduce((n,id)=>n+(carriedWeight(s,id).total??0),0);
+    b.initialDownWeight=s.selected.filter(id=>s.characters[id].hp<=0).reduce((n,id)=>n+transportWeight(s,id),0);
+    b.reserveDownWeight=s.selected.filter(id=>!active.has(id)&&s.characters[id].hp<=0).reduce((n,id)=>n+transportWeight(s,id),0);
     for(const u of b.units.filter(u=>u.side==='ally')) {
       const c=s.characters[u.id];if(!c)continue;
       const g=replacement?.characterId===u.id?{...getGear(replacement.gearId),targetSlot:replacement.slot}:null,st=stats(c,g);
@@ -534,6 +596,7 @@ const Campaign = (() => {
     if(!J.travel(s.journey,route))return false;
     if(j.stage===0)j.outboundRoute=route;
     s.hours+=route==='short'?2:4;tickWorld(s,route==='short'?2:4);
+    if(rescueExpiredForPlayer(s))return endPlayerJourney(s);
     if(!ambush && s.tutorial?.active && !j.returning && !sluiceEncounter(s,j) && j.stage===1 && route==='safe'){
       j.stage=2;j.rested=false;j.phase='delivery';
       s.battle=null;s.phase='arrival';
@@ -630,14 +693,49 @@ const Campaign = (() => {
   function gainXp(s,amount) {
     // Legacy team xp/level fields are retained only for save compatibility.
     // Rewards apply exactly once to the current travelling characters.
-    for(const id of s.selected){const c=s.characters[id],old=c.level;c.xp+=amount;c.level=1+Math.floor(c.xp/100);c.statPoints+=(c.level-old)*2;c.skillPoints+=c.level-old;}
+    for(const id of s.selected){const c=s.characters[id],old=c.level;if(expired(s,c))continue;c.xp+=amount;c.level=1+Math.floor(c.xp/100);c.statPoints+=(c.level-old)*2;c.skillPoints+=c.level-old;}
+  }
+  function restoreBeforeTrip(s){
+    const old=clone(s.rollback);
+    old.worldTime=s.worldTime;old.standaloneEvents=clone(s.standaloneEvents);
+    const fees=s.guildCostsSinceRollback||0;
+    if(s.buriedRecruitIds)old.buriedRecruitIds=[...s.buriedRecruitIds];
+    // Time and funerals are permanent even when a failed trip restores its cargo and rewards.
+    for(const [id,c] of Object.entries(s.characters)){
+      const prior=old.characters[id];
+      if(c.buried){
+        old.characters[id]=clone(c);
+        old.selected=old.selected.filter(member=>member!==id);
+        if(old.battleSelected)old.battleSelected=old.battleSelected.filter(member=>member!==id);
+      }else if(c.rescueUntil!==undefined){
+        prior.hp=0;prior.rescueUntil=c.rescueUntil;
+        if(s.selected.includes(id)&&!old.selected.includes(id))old.selected=[...s.selected];
+      }else if(prior.rescueUntil!==undefined&&c.hp>0){
+        delete prior.rescueUntil;prior.hp=Math.min(c.hp,stats(prior).max);
+      }
+    }
+    if(!old.selected.length)old.selected=[...s.selected];
+    if(s.contractRenewals)old.contractRenewals=Object.fromEntries(old.selected.filter(id=>!isPlayer(old,id)&&!expired(old,old.characters[id])).map(id=>[id,s.contractRenewals[id]??old.worldTime+24]));
+    if(old.battleSelected)old.battleSelected=old.battleSelected.filter(id=>old.selected.includes(id));
+    if(fees)chargeGuild(old,fees,true);
+    for(const key of Object.keys(s))delete s[key];
+    Object.assign(s,old);
+  }
+  function recordCasualties(s,endHour){
+    for(const ally of s.battle.units){
+      if(ally.side!=='ally'||ally.hp>0||ally.job==='job_porter')continue;
+      const c=s.characters[ally.id];
+      c.hp=0;
+      c.rescueUntil??=endHour+12;
+    }
   }
   function rollbackFailure(s,reason,ending) {
+    recordCasualties(s,s.worldTime);
     const failedQuest=s.activeQuest;
     const failedTrip={origin:s.journey.origin,destination:s.journey.destination,hours:s.journey.hours};
-    const failedEvent=s.activeQuest?.eventId,elapsedWorld=s.worldTime??s.hours,events=clone(s.standaloneEvents||freshWorldEvents(s.hours));
-    const old=clone(s.rollback);for(const key of Object.keys(s))delete s[key];Object.assign(s,old);
-    s.worldTime=elapsedWorld;s.standaloneEvents=events;if(failedEvent&&s.standaloneEvents.events[failedEvent]?.status==='accepted')s.standaloneEvents.events[failedEvent].status='available';syncWorld(s);
+    const failedEvent=s.activeQuest?.eventId;
+    restoreBeforeTrip(s);
+    if(failedEvent&&s.standaloneEvents.events[failedEvent]?.status==='accepted')s.standaloneEvents.events[failedEvent].status='available';syncWorld(s);
     invalidateInventory(s);
     s.phase='result';s.result={outcome:'failed',reason,restored:true,trip:failedTrip,gold:0,xp:0};
     if(failedQuest?.id==='sluice-bell'){
@@ -656,18 +754,24 @@ const Campaign = (() => {
     const hp=id=>s.battle.units.find(u=>u.side==='ally'&&u.id===id)?.hp??s.characters[id].hp;
     return hp(s.playerProfile.memberId)<=0&&s.selected.every(id=>hp(id)<=0);
   }
+  function endPlayerJourney(s){
+    if(s.activeQuest?.cargoItemId)delete s.characters[s.activeQuest.cargoOwnerId].inventory[s.activeQuest.cargoItemId];
+    invalidateInventory(s);
+    s.result={outcome:'failed',firstDeath:true,playerDeath:true,reason:s.playerProfile.name+'は旅の途中で命を落とした。',gold:0,xp:0};
+    s.phase='result';s.activeQuest=null;s.rollback=null;s.journey=null;s.battle=null;
+    return true;
+  }
+  function rescueExpiredForPlayer(s){
+    return s.playerProfile?.created&&expired(s,s.characters[s.playerProfile.memberId]);
+  }
   function finishBattle(s) {
     const b=s.battle,j=s.journey;
     if(s.phase!=='battle'||!b?.result||!j||b.campaignToken!==j.token||b.campaignStage!==j.stage)return false;
     const allies=b.units.filter(u=>u.side==='ally'),failed=allies.some(u=>u.job==='job_porter'&&u.hp<=0)||allies.every(u=>u.hp<=0)||!!b.failure;
     if(failed){
       if(playerLost(s)){
-        if(s.activeQuest?.cargoItemId)delete s.characters[s.activeQuest.cargoOwnerId].inventory[s.activeQuest.cargoItemId];
         for(const ally of allies)s.characters[ally.id].hp=ally.hp;
-        invalidateInventory(s);
-        s.result={outcome:'failed',firstDeath:true,playerDeath:true,reason:s.playerProfile.name+'は旅の途中で命を落とした。',gold:0,xp:0};
-        s.phase='result';s.activeQuest=null;s.rollback=null;s.journey=null;s.battle=null;
-        return true;
+        return endPlayerJourney(s);
       }
       return rollbackFailure(s,'ポーター戦闘不能または護送隊敗北。',allies.every(u=>u.hp<=0)?'defeat':'porter');
     }
@@ -682,8 +786,10 @@ const Campaign = (() => {
     });
     for(const u of allies){s.characters[u.id].hp=u.hp;s.characters[u.id].mp=u.mp;}
     for(const u of allies)for(const item of items){const count=b.itemInventories[u.id][item.id];if(count)s.characters[u.id].inventory[item.id]=count;else delete s.characters[u.id].inventory[item.id];}
+    recordCasualties(s,s.worldTime+1);
     s.hours+=1;tickWorld(s,1);
-    const reward={xp:20,gold:8};gainXp(s,reward.xp);s.gold+=reward.gold;
+    if(rescueExpiredForPlayer(s))return endPlayerJourney(s);
+    const reward={xp:20,gold:8};gainXp(s,reward.xp);s.gold+=reward.gold;settleWages(s);
     note(s,`戦闘勝利：戦闘EXP＋${reward.xp}・戦利品${reward.gold}G（配達報酬とは別）。`);
     s.battle=null;s.phase=j.phase==='delivery'?'arrival':j.phase;return true;
   }
@@ -691,6 +797,7 @@ const Campaign = (() => {
     if(inventoryOverflow(s).length)return false;
     if(s.phase!=='camp'||!s.journey||!J.rest(s.journey))return false;
     s.hours+=2;tickWorld(s,2);
+    if(rescueExpiredForPlayer(s))return endPlayerJourney(s);
     for(const u of s.journey.party){const c=s.characters[u.id];c.hp=u.hp>0?u.hp:0;c.mp=u.mp;}
     note(s,'野営で休息（2時間・HP＋60／MP＋2）。');return true;
   }
@@ -698,6 +805,7 @@ const Campaign = (() => {
     const m=recipientMeeting(s);if(!m?.canWait)return false;
     if(expected!==null&&(!expected||typeof expected!=='object'||Object.keys(m.waitExpected).some(k=>expected[k]!==m.waitExpected[k])))return false;
     const hours=m.waitHours;s.hours+=hours;tickWorld(s,hours);
+    if(rescueExpiredForPlayer(s))return endPlayerJourney(s);
     note(s,`行商人の到着予定まで${hours}時間待ちました。`);return true;
   }
   function onward(s) {if(s.phase!=='camp'||inventoryOverflow(s).length||!J.onward(s.journey))return false;s.phase='road';return true;}
@@ -761,8 +869,8 @@ const Campaign = (() => {
     const hours=q.elapsedHours||0,late=q.eventId?age>q.deadline:hours>q.deadline;
     const scenarioFailure=!!q.eventId&&(q.eventId==='wheel'?age>q.lateDeadline:late);
     if(scenarioFailure){
-      const currentWorld=s.worldTime,events=clone(s.standaloneEvents),old=clone(s.rollback);
-      for(const key of Object.keys(s))delete s[key];Object.assign(s,old);s.worldTime=currentWorld;s.standaloneEvents=events;s.standaloneEvents.events[q.eventId].status='failed';syncWorld(s);
+      const currentWorld=s.worldTime;
+      restoreBeforeTrip(s);s.standaloneEvents.events[q.eventId].status='failed';syncWorld(s);
       s.phase='result';s.result={outcome:'failed',reason:SCENARIO_DEADLINE_REASON,gold:0,xp:0,hours,worldTime:currentWorld,location:s.location,quest:q.name,scenario:q.eventId,restored:true};note(s,`${q.name}は期限を過ぎ、荷物と受注前の状態を戻しました。報酬はありません。`);s.activeQuest=null;s.rollback=null;s.journey=null;s.battle=null;return true;
     }
     const amount=q.eventId==='wheel'&&late?q.lateReward:q.eventId?q.reward:Math.floor(q.reward*(late?.65:1));
@@ -770,7 +878,7 @@ const Campaign = (() => {
     const rp=q.rewardRevision===1?(late?Math.min(60,q.xp):q.xp):0;
     const xp=rewardType==='experience'?amount:q.rewardRevision===1?0:late?60:q.xp;
     if(!Cargo.consume(s))return false;
-    invalidateInventory(s);s.gold+=gold;if(xp)gainXp(s,xp);if(rp)s.partyRP=(s.partyRP||0)+rp;s.completed++;s.boardRound++;
+    invalidateInventory(s);s.gold+=gold;settleWages(s);if(xp)gainXp(s,xp);if(rp)s.partyRP=(s.partyRP||0)+rp;s.completed++;s.boardRound++;
     note(s,'「荷物」を渡しました。'+q.cargo+'を引き渡しました。');
     note(s,`配達完了：${gold}G・RP＋${rp}${xp?'・各メンバーEXP＋'+xp:''}${late?'（基本報酬）':'（希望条件達成）'}。`);
     if(q.eventId){s.standaloneEvents.events[q.eventId].status=scenarioFailure?'failed':'completed';}
@@ -841,15 +949,15 @@ const Campaign = (() => {
   function innQuote(s) {
     return {price:INN_PRICE,available:s.phase==='town'&&s.location==='astaris',
       affordable:s.gold>=INN_PRICE,needsRecovery:s.selected.some(id=>{
-        const c=s.characters[id],st=stats(c);return c.hp<st.max||c.mp<st.maxMp;
+        const c=s.characters[id],st=stats(c);return !expired(s,c)&&(c.hp<st.max||c.mp<st.maxMp);
       })};
   }
   function inn(s) {
     const q=innQuote(s);
     if(!q.available||!q.affordable||!q.needsRecovery)return false;
     s.gold-=q.price;
-    for(const id of s.selected){const c=s.characters[id],st=stats(c);c.hp=st.max;c.mp=st.maxMp;}
-    note(s,`アスタリスの宿屋：${q.price}Gで編成中の全員のHP・MPを全回復。`);
+    for(const id of s.selected){const c=s.characters[id],st=stats(c);if(expired(s,c))continue;c.hp=st.max;c.mp=st.maxMp;delete c.rescueUntil;}
+    note(s,`アスタリスの宿屋：${q.price}Gで編成中の生存者のHP・MPを全回復。`);
     return true;
   }
   function syncCharacter(s,id) {
@@ -862,6 +970,7 @@ const Campaign = (() => {
   }
   function commitInventory(s,change) {
     const draft=clone(s);if(!change(draft))return false;
+    if(draft.gold>s.gold)settleWages(draft);
     // Use the actual pretty-printed save representation, including whitespace.
     try{serialize(draft);}catch{return false;}
     // Validation finishes before either participant or any resource is changed.
@@ -979,7 +1088,7 @@ const Campaign = (() => {
     if(!Number.isSafeInteger(total)||total<1||total>c.statPoints)return false;
     const old=stats(c),next={...c,allocations:{...c.allocations},statPoints:c.statPoints-total};
     for(const key of keys)next.allocations[key]+=delta[key];
-    const after=stats(next);next.hp+=after.max-old.max;next.mp+=after.maxMp-old.maxMp;
+    const after=stats(next);if(next.hp>0)next.hp+=after.max-old.max;next.mp+=after.maxMp-old.maxMp;
     s.characters[charId]=next;
     note(s,`${displayName(s,charId)}：${keys.filter(k=>delta[k]).map(k=>`${k.toUpperCase()}＋${delta[k]}`).join(' / ')}（${total}点を確定、残り${next.statPoints}点）。`);
     return true;
@@ -987,7 +1096,7 @@ const Campaign = (() => {
   function allocate(s,charId,key,count=1) {
     const c=s.characters[charId];
     if(s.phase!=='town'||!c||!s.selected.includes(charId)||!['str','int','agi'].includes(key)||!Number.isInteger(count)||count<1||count>c.statPoints)return false;
-    const old=stats(c);c.allocations[key]+=count;c.statPoints-=count;const after=stats(c);c.hp+=after.max-old.max;c.mp+=after.maxMp-old.maxMp;
+    const old=stats(c);c.allocations[key]+=count;c.statPoints-=count;const after=stats(c);if(c.hp>0)c.hp+=after.max-old.max;c.mp+=after.maxMp-old.maxMp;
     note(s,`${displayName(s,charId)}：${key.toUpperCase()}＋${count}（仮成長値）。`);return true;
   }
   function previewGear(s,charId,gearId,slot) {
@@ -997,8 +1106,8 @@ const Campaign = (() => {
   }
   function trial(s,charId,gearId,slot) {
     const preview=previewGear(s,charId,gearId,slot);
-    if(s.phase!=='town'||!s.selected.includes(charId)||!preview?.eligible||!preview.available)return null;
-    const friends=[...new Set(['guard','archer','mage',...s.selected])].filter(id=>id!==charId&&s.selected.includes(id)).slice(0,2);
+    if(s.phase!=='town'||!s.selected.includes(charId)||expired(s,s.characters[charId])||!preview?.eligible||!preview.available)return null;
+    const friends=[...new Set(['guard','archer','mage',...s.selected])].filter(id=>id!==charId&&s.selected.includes(id)&&!expired(s,s.characters[id])).slice(0,2);
     const b=B.create({ally:[charId,...friends],enemy:['guard','archer','mage'],enemyPotions:0,potions:3,deployment:true,formationVersion:3,formationBasis:'porter_relative',formation:'convoy'});
     const copy=clone(s);for(const id of [charId,...friends]){const st=stats(copy.characters[id]);copy.characters[id].hp=st.max;copy.characters[id].mp=st.maxMp;}
     applyAllyEquipment(copy,b,{characterId:charId,gearId,slot:preview.slot});
@@ -1072,7 +1181,7 @@ const Campaign = (() => {
     const {equipmentSlots,equipmentDetails}=equipmentSheet(current.equipment,character);
     const activeSkillNames = current.activeSkills.map(id => skills[id]);
     return {
-      ...member, ...clone(character), name: displayName(s, member.id), isPlayer: Boolean(s.playerProfile?.created && s.playerProfile.memberId === member.id), allocationToken: allocationToken(s, member.id),
+      ...member, ...clone(character), dead:expired(s,character), corpseWeight:expired(s,character)?CORPSE_WEIGHT:0, rescueHours:character.hp===0&&member.job!=='job_porter'?Math.max(0,(character.rescueUntil??s.worldTime+12)-s.worldTime):null, dailyFee:dailyFee(s,member.id), burialFee:burialFee(s,member.id), name: displayName(s, member.id), isPlayer: Boolean(s.playerProfile?.created && s.playerProfile.memberId === member.id), allocationToken: allocationToken(s, member.id),
       max: current.max, maxMp: current.maxMp, atk: current.atk, agi: current.speed,
       reach: current.reach, stats: current, equipmentDetails, equipmentSlots, activeSkillNames,
       weaponName: getGear(character.weapon).name, armorName: getGear(character.armor).name,
@@ -1136,6 +1245,9 @@ const Campaign = (() => {
     demand(['town','road','deployment','battle','camp','arrival','result'].includes(s.phase),'進行段階');
     demand(!!getPlace(s.location),'拠点');
     for(const key of ['gold','xp','hours','sequence','boardRound','completed'])demand(integer(s[key]),key);
+    demand(s.contractRenewals===undefined||(record(s.contractRenewals)&&Object.entries(s.contractRenewals).every(([id,hour])=>s.characters?.[id]&&integer(hour))),'雇用更新時刻');
+    demand(s.guildCostsSinceRollback===undefined||integer(s.guildCostsSinceRollback),'旅のギルド費用');
+    demand(s.unpaidWages===undefined||integer(s.unpaidWages),'未払い雇用費');
     demand(s.partyRP===undefined||integer(s.partyRP),'パーティRP');
     demand(integer(s.level,1),'旧隊レベル');demand(validSelection(s.selected),'編成');
     demand(s.worldTime===undefined||integer(s.worldTime),'世界時刻');
@@ -1158,6 +1270,9 @@ const Campaign = (() => {
     else demand(!Object.hasOwn(s,'inventory'),'旧共通在庫と個人所持の重複');
   }
 
+  function validateBuriedIds(ids){
+    demand(Array.isArray(ids)&&new Set(ids).size===ids.length&&ids.every(id=>B.roster.some(t=>t.id===id)),'埋葬済みの候補者');
+  }
   function validatePredecessor(p){
     demand(record(p)&&B.recruitRoster.some(t=>t.id===p.memberId)&&typeof p.name==='string'&&p.name.trim().length>0&&p.name.length<=16&&typeof p.hire==='boolean','初代の人物情報');
   }
@@ -1165,15 +1280,21 @@ const Campaign = (() => {
     demand(Array.isArray(s.history)&&s.history.length<=200&&s.history.every(x=>typeof x==='string'),'履歴');
     demand(s.updatePlanRevision===undefined||s.updatePlanRevision===1,'未対応の候補者形式');
     const expected=s.updatePlanRevision===1?[...B.recruitRoster,...(B.legacyRoster.some(t=>Object.hasOwn(s.characters||{},t.id))?B.legacyRoster:[])]:B.legacyRoster;
-    if(s.predecessor!==undefined){
-      validatePredecessor(s.predecessor);
-      if(s.predecessor.hire&&s.playerProfile?.memberId===s.predecessor.memberId+'_successor')expected.push(template(s.playerProfile.memberId));
-      demand(s.selected.every(id=>availableMember(s,id)),'ギルドの人物');
+    if(s.buriedRecruitIds!==undefined)validateBuriedIds(s.buriedRecruitIds);
+    if(s.predecessor!==undefined)validatePredecessor(s.predecessor);
+    const playerId=s.playerProfile?.memberId;
+    if(playerId?.endsWith('_successor')){
+      const base=playerId.slice(0,-'_successor'.length);
+      demand(template(playerId)&&(formerPlayer(s,base)||s.buriedRecruitIds?.includes(base)),'後継者');
+      expected.push(template(playerId));
     }
+    demand(s.selected.every(id=>availableMember(s,id)),'ギルドの人物');
     demand(record(s.characters)&&Object.keys(s.characters).length===expected.length&&expected.every(t=>Object.hasOwn(s.characters,t.id)),'キャラ一覧');
     demand(s.selected.every(id=>Object.hasOwn(s.characters,id)),'編成の人物');
     for(const t of expected) {
-      const c=s.characters[t.id];demand(record(c)&&c.id===t.id&&c.race===(t.race??bases[buildKey(t)].race)&&((c.element===undefined)||['fire','water','earth','none'].includes(c.element))&&(t.sex===undefined?c.sex===undefined:c.sex===t.sex)&&Object.keys(c).every(k=>['id','equipmentRevision','combatRevision','element','race','sex','weapon','armor','accessory1','accessory2','leftHand','head','lowerBody','feet','hp','mp','def','xp','level','statPoints','skillPoints','allocations',...(version>=2?['inventory']:[])].includes(k)),'キャラ情報');
+      const c=s.characters[t.id];demand(record(c)&&c.id===t.id&&c.race===(t.race??bases[buildKey(t)].race)&&((c.element===undefined)||['fire','water','earth','none'].includes(c.element))&&(t.sex===undefined?c.sex===undefined:c.sex===t.sex)&&Object.keys(c).every(k=>['id','equipmentRevision','combatRevision','element','race','sex','weapon','armor','accessory1','accessory2','leftHand','head','lowerBody','feet','hp','mp','def','xp','level','statPoints','skillPoints','allocations','rescueUntil','buried',...(version>=2?['inventory']:[])].includes(k)),'キャラ情報');
+      demand(c.rescueUntil===undefined||(integer(c.rescueUntil)&&c.hp===0&&t.job!=='job_porter'),'救命期限');
+      demand(c.buried===undefined||(c.buried===true&&expired(s,c)&&!s.selected.includes(t.id)),'埋葬記録');
       demand(c.def===undefined||integer(c.def),'キャラDEF');
       if(version>=2){
         demand(record(c.inventory),'個人の所持品');
@@ -1586,8 +1707,8 @@ const Campaign = (() => {
         if(!hadWeightState){
           const b=s.battle,active=new Set(b.units.filter(u=>u.side==='ally').map(u=>u.id));
           b.partyAliveInitial=s.selected.filter(id=>(b.units.find(u=>u.side==='ally'&&u.id===id)?.hp??s.characters[id].hp)>0).length;
-          b.initialDownWeight=s.selected.filter(id=>(b.units.find(u=>u.side==='ally'&&u.id===id)?.hp??s.characters[id].hp)<=0).reduce((n,id)=>n+(carriedWeight(s,id).total??0),0);
-          b.reserveDownWeight=s.selected.filter(id=>!active.has(id)&&s.characters[id].hp<=0).reduce((n,id)=>n+(carriedWeight(s,id).total??0),0);
+          b.initialDownWeight=s.selected.filter(id=>(b.units.find(u=>u.side==='ally'&&u.id===id)?.hp??s.characters[id].hp)<=0).reduce((n,id)=>n+transportWeight(s,id),0);
+          b.reserveDownWeight=s.selected.filter(id=>!active.has(id)&&s.characters[id].hp<=0).reduce((n,id)=>n+transportWeight(s,id),0);
         }
       }
       if(s.battle)for(const u of s.battle.units.filter(u=>u.side==='ally')) {
@@ -1639,7 +1760,7 @@ const Campaign = (() => {
   const {purchaseQuote,buyInventory,saleQuote,sellInventory,saleAvailable}=require('./shop-transactions.js')({I,clone,integer,getGear,template,shop,inventoryToken,inventoryCapacity,commitInventory,note,createHash});
   const {warehouseQuote,warehouseAction,warehouseView}=require('./warehouse.js')({I,getGear,items,template,inventoryToken,commitInventory,inventoryCapacity,note});
   return {equipmentSheet,warehouseQuote,warehouseAction,inventoryCapacity,VERSION,MAX_SAVE_BYTES,equipment,slots:S.slots,locations,gear,items,materials,provisional,create,createLegacy,createPlayer,tutorialAction,view,board,scenarioAftermath,scenarioStages,destinations,hasPorter,stats,
-    recipientMeeting,questRewards,canTurnBack,turnBack,select,accept,depart,travel,deploy,deployment_assign,chooseFormation,deployment_reset,begin,act,retreat,finishBattle,rest,waitForEvent,onward,forecast,arrive,acknowledge,
+    recipientMeeting,questRewards,canTurnBack,turnBack,select,bury,accept,depart,travel,deploy,deployment_assign,chooseFormation,deployment_reset,begin,act,retreat,finishBattle,rest,waitForEvent,onward,forecast,arrive,acknowledge,
     completeQuest,eligibility,shop,quote,buyGear,buyItem,inn,useItem,inventoryTotals,inventoryToken,inventoryQuote,inventoryAction,inventoryView,purchaseQuote,buyInventory,saleQuote,sellInventory,saleAvailable,allocate,allocateBatch,allocationToken,previewGear,trial,trialAct,validate,serialize,deserialize};
 })();
 module.exports = Campaign;

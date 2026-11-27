@@ -364,7 +364,7 @@ func _matched_member() -> Dictionary:
 
 func _preview_member(member: Dictionary) -> Dictionary:
 	var former: Dictionary = ui.campaign().get("predecessor", {})
-	if former.get("hire", false) and former.get("memberId") == member.get("id"):
+	if (former.get("hire", false) and former.get("memberId") == member.get("id")) or ui.campaign().get("buriedRecruitIds",[]).has(member.get("id")):
 		var successor := member.duplicate()
 		successor.id = str(member.id) + "_successor"
 		return successor

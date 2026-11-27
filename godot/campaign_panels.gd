@@ -290,7 +290,7 @@ func items(parent):
 			var name_label=l(name_box,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;ui.short_name(name_label,str(u.name))
 			var role_label=muted(name_box,str(u.get("role","")));role_label.add_theme_font_size_override("font_size",Tokens.FONT_XS)
 			if u.hp<=0:
-				var ko=l(name_box,"戦闘不能");ko.add_theme_font_size_override("font_size",Tokens.FONT_XS);ko.add_theme_color_override("font_color",Tokens.DANGER)
+				var ko=l(name_box,ui.mock_shell.member_condition(u) if u.get("rescueHours")!=null else "戦闘不能");ko.add_theme_font_size_override("font_size",Tokens.FONT_XS);ko.add_theme_color_override("font_color",Tokens.DANGER)
 			var entries: Array=by_character.get(str(uid),{}).get("entries",[])
 			var items_flow=HFlowContainer.new();items_flow.size_flags_horizontal=Control.SIZE_EXPAND_FILL;items_flow.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 			items_flow.add_theme_constant_override("h_separation",Tokens.SPACE_MD);items_flow.add_theme_constant_override("v_separation",Tokens.SPACE_XS);member.add_child(items_flow)
@@ -344,7 +344,7 @@ func items(parent):
 		var name_label=l(member,u.name);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT;ui.short_name(name_label,str(u.name));name_label.add_theme_font_size_override("font_size",Tokens.FONT_SM)
 		var hp=ui.icons.line(ui,member,"hp","HP %d/%d" % [u.hp,u.max]);ui.emphasize_low_hp(hp,u)
 		ui.icons.line(ui,member,"mp","MP %d/%d" % [u.mp,u.maxMp])
-		if u.hp<=0:l(member,"戦闘不能")
+		if u.hp<=0:l(member,ui.mock_shell.member_condition(u) if u.get("rescueHours")!=null else "戦闘不能")
 		if item_stage=="target":
 			var reason=ItemMenu.camp_reason(selected_item,u,inventory)
 			var target=b(member,"使う" if reason.is_empty() else reason,use_selected_item.bind(u.id),not reason.is_empty());target.name="ItemTarget_"+str(u.id);ui.memory.key(target,"item_target_"+str(u.id))

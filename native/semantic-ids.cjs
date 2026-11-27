@@ -51,9 +51,9 @@ function unit(value,enrich=false) {
 function state(value) {
   if(!value||typeof value!=='object')return value;
   if(Array.isArray(value.units))value.units.forEach(value=>unit(value,true));
-  for(const field of ['selected','battleSelected','guildOrder','rosterOrder','travelling','deployed','battleMembers','partyOrder','memberOrder'])if(Array.isArray(value[field]))value[field]=value[field].map(person);
+  for(const field of ['selected','battleSelected','guildOrder','buriedRecruitIds','rosterOrder','travelling','deployed','battleMembers','partyOrder','memberOrder'])if(Array.isArray(value[field]))value[field]=value[field].map(person);
   for(const field of ['actor','ownerId','carrierId','selectedCharacterId'])if(typeof value[field]==='string')value[field]=person(value[field]);
-  for(const field of ['characters','itemInventories'])if(value[field]&&typeof value[field]==='object'&&!Array.isArray(value[field])){
+  for(const field of ['characters','itemInventories','contractRenewals'])if(value[field]&&typeof value[field]==='object'&&!Array.isArray(value[field])){
     const entries=Object.entries(value[field]),seen=new Set();
     value[field]=Object.fromEntries(entries.map(([id,record])=>{
       const next=person(id);

@@ -10,7 +10,7 @@ let s=make(),characters=JSON.stringify(s.characters),gold=s.gold;
 check(C.select(s,["character_sera","character_kyle","character_merina","character_rio","character_yuno"]),'existing select atomically swaps full party');
 assert.deepEqual(s.selected,['character_sera','character_kyle','character_merina','character_rio','character_yuno']);
 check(true,'selected order preserves swapped slot and all other members');
-check(JSON.stringify(s.characters)===characters&&s.gold===gold,'membership changes preserve all character fields and gold');
+check(JSON.stringify(s.characters)===characters&&s.gold===gold-4,'membership preserves personal records and prepays two new hires');
 check(C.inventoryTotals(s).potion===0&&C.inventoryTotals(s).ether===4,'reserve goods stay owned and do not pool with companions');
 let q=C.inventoryQuote(s,"character_mirei",'potion','discard');
 check(!q.ok&&!C.inventoryAction(s,"character_mirei",'potion','discard',null,1,null,q.token),'reserve inventory action remains denied');
