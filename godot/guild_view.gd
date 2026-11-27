@@ -1,5 +1,6 @@
 extends RefCounted
 ## Session-only selection. Existing Campaign.select commits one ordered ID array.
+const HelpBadge=preload("res://help_badge.gd")
 const LEGACY_PARTY_LIMIT=5
 const Tokens=preload("res://ui_tokens.gd")
 const UiMotion=preload("res://ui_motion.gd")
@@ -81,7 +82,9 @@ func render(parent):
 	var reserve_margin=MarginContainer.new();reserve_margin.size_flags_vertical=Control.SIZE_EXPAND_FILL;reserve.add_child(reserve_margin)
 	for edge in ["left","right","top","bottom"]:reserve_margin.add_theme_constant_override("margin_"+edge,Tokens.SPACE_SM)
 	var reserve_body=VBoxContainer.new();reserve_body.size_flags_vertical=Control.SIZE_EXPAND_FILL;reserve_margin.add_child(reserve_body)
-	l(reserve_body,"控え %d人" % lists[0].size()).name="GuildReserveHeading"
+	var heading=ui.row(reserve_body)
+	l(heading,"控え %d人" % lists[0].size()).name="GuildReserveHeading"
+	HelpBadge.attach(heading,"雇用費","1日分はレベル×2 G、元主人公はレベル×1 G。現主人公にはかかりません。\n雇う時に初日分を払い、以降はその仲間を雇ってから24時間ごとに支払います。\n不足分は次の入金から精算します。戦闘不能の間も雇用は続き、死亡すると以後の雇用費はかかりません。","HelpGuildHire",24)
 	reserve_filter(reserve_body)
 	var body=ui.scroller(reserve_body);body.get_parent().name="GuildReserveScroll";ui.memory.watch(body.get_parent(),"guild_reserves_"+reserve_job)
 	for u in reserves:
@@ -194,11 +197,15 @@ func remove_button(parent):
 	remove_footer.custom_minimum_size.y=ui.mock_shell.grid_cell().y-Tokens.SPACE_SM;parent.add_child(remove_footer)
 	var remove_divider=ColorRect.new();remove_divider.color=Tokens.BORDER;remove_divider.custom_minimum_size.y=Tokens.BORDER_WIDTH;remove_divider.size_flags_horizontal=Control.SIZE_EXPAND_FILL;remove_divider.mouse_filter=Control.MOUSE_FILTER_IGNORE;remove_footer.add_child(remove_divider)
 	var remove_center=CenterContainer.new();remove_center.size_flags_vertical=Control.SIZE_EXPAND_FILL;remove_footer.add_child(remove_center)
-	var remove=b(remove_center,"パーティから外す",func():guild_action("remove",current_id),false,"lg_md");remove.name="GuildRemove";remove.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;ui.action_button(remove,"lg_md")
+	var actions=ui.row(remove_center)
+	var remove=b(actions,"パーティから外す",func():guild_action("remove",current_id),false,"lg_md");remove.name="GuildRemove";remove.size_flags_horizontal=Control.SIZE_SHRINK_CENTER;ui.action_button(remove,"lg_md")
+	var help=HelpBadge.attach(actions,"埋葬","埋葬費はレベル×10 G、元主人公はレベル×5 Gです。\n残したい装備や所持品は、先にパーティ情報で仲間に渡してください。残った品は一緒に埋葬されます。\n埋葬すると遺体の重量負担がなくなります。次の主人公の旅でも、この仲間はギルドに戻りません。","HelpGuildBurial",24)
+	help.visible=person(current_id).get("dead",false)
 func update_remove_button():
 	var button=ui.content.find_child("GuildRemove",true,false)
 	if button!=null:
 		update_contract_button(button,current_id,"remove")
+		button.get_parent().get_node("HelpGuildBurial").visible=person(current_id).get("dead",false)
 func update_contract_button(button: Button,id: String,kind: String):
 	var u=person(id)
 	if u.get("dead",false):

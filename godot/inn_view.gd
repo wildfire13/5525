@@ -4,6 +4,7 @@ extends RefCounted
 const RECOVERY_SECONDS := 1.2
 const FULL_GREETING := "みなさん、お元気ですね。今は休まなくても大丈夫ですよ。"
 const RESTED_GREETING := "おはようございます。みなさん、ゆっくり休めましたね。"
+const HelpBadge=preload("res://help_badge.gd")
 const ScreenGrid=preload("res://screen_grid.gd")
 const Tokens=preload("res://ui_tokens.gd")
 var owner_ref: WeakRef
@@ -47,6 +48,7 @@ func render(parent):
  parent=inset(content,0,true)
  var heading=pages.row(parent)
  ui.icons.line(ui,heading,"inn","宿泊・回復",true)
+ HelpBadge.attach(heading,"戦闘不能者の救命","ポーター以外の仲間は、倒れた戦闘の終了から12時間まで宿泊で救命できます。「残り0時間」でも、ゲーム内の時間を進めずに泊まれば間に合います。\n期限を過ぎると死亡します。主人公が死亡した場合は、その人物をギルドに残すか選び、次の主人公へ進みます。","HelpInnRescue",24)
  if not q.get("available",false):pages.l(parent,"宿屋はアスタリスで利用できます。");return
  if q.get("needsRecovery",false):
   var price_label=pages.l(heading,"パーティ全員で %d G" % q.price)

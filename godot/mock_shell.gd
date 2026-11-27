@@ -245,7 +245,7 @@ func roster(parent,deployment=null):
 	var roster_head=ui.row(body)
 	var roster_title=ui.label_(roster_head,"パーティメンバー     %d / %d" % [ids.size(),ui.campaign().get("partyLimit",12)])
 	roster_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	HelpBadge.attach(roster_head,"所持枠と重量（Wt）","・『0 / 2』等は個人インベントリの使用枠／上限です（ポーターは ∞）。\n・『Wt』は装備と所持品の合計重量。STR上限を超えると赤字になり、戦闘中のSPD（行動速度）が50%に低下します。","HelpPartyRoster")
+	HelpBadge.attach(roster_head,"名簿の見方","「0 / 2」は使用枠／上限（ポーターは∞）、Wtは装備と所持品の重量です。STRを超えると戦闘中のSPDが半分になります。\nポーター以外が戦闘不能になると、名簿に救命期限までの残り時間が出ます。倒れた戦闘の終了から12時間以内にアスタリスの宿屋へ。\n救命か埋葬までは、その仲間をパーティから外せません。","HelpPartyRoster")
 	var scene="deployment" if deployment!=null else str(ui.page)
 	var job=str(roster_jobs.get(scene,""))
 	var filter=job_filter(body,job,func(value):
