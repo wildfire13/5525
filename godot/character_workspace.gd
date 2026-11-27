@@ -322,27 +322,35 @@ func end_allocation():
 	allocating=false;refresh()
 func open_portrait(member: Dictionary):
 	if not ui.pages.party_view.guard_leave(open_portrait.bind(member)):return
+	var uid = str(member.id)
+	var entry: Dictionary = ui.portraits.metadata.characters.get(uid, {})
+	var apply_image = func(updated):
+		if ui.active_member(uid):
+			ui.portraits.assign(uid, updated)
+			ui.render()
+	var change_image = func(path):
+		await ui.import_portrait(path, uid)
+		if ui.active_member(uid):open_portrait(member)
+	show_portrait_editor(member, entry, apply_image, change_image)
+
+func show_portrait_editor(member: Dictionary, entry: Dictionary, apply_image: Callable, change_image: Callable):
 	ui.dialog.open(str(member.name)+"の画像",func(body,actions):
-		var uid=str(member.id)
-		var entry: Dictionary=ui.portraits.metadata.characters.get(uid,{})
 		if not entry.is_empty():
 			var editor=preload("res://portrait_editor.gd").new();body.add_child(editor)
 			editor.name="PortraitFraming"
 			editor.size_flags_vertical=Control.SIZE_EXPAND_FILL
-			editor.setup(ui.portraits.image_for(member),entry.get("framing",{"zoom":1.0,"x":0.0,"y":0.0}))
+			editor.setup(preload("res://portraits.gd").imported_image(entry),entry.get("framing",{"zoom":1.0,"x":0.0,"y":0.0}))
 			editor.custom_minimum_size.y=680
 			var apply=ui.local_button(actions,"適用",func():
-				if not ui.active_member(uid):return
-				var updated=entry.duplicate(true);updated.framing=editor.framing.duplicate(true)
-				ui.portraits.assign(uid,updated);ui.dialog.close();ui.render())
+				var updated=entry.duplicate();updated.framing=editor.framing.duplicate()
+				ui.dialog.close()
+				apply_image.call(updated))
 			apply.name="PortraitFramingApply";apply.theme_type_variation=&"ActionButton"
 		else:
 			var picture=ui.portrait(body,member,false,200);picture.custom_minimum_size=Vector2(300,680);picture.size_flags_vertical=Control.SIZE_EXPAND_FILL
 		ui.local_button(actions,"画像変更",func():
 			ui.dialog.close()
-			ui.file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray(["*.png,*.jpg,*.jpeg,*.webp,*.bmp,*.gif ; キャラ画像"]),func(path):
-				await ui.import_portrait(path,uid)
-				if ui.active_member(uid):open_portrait(member))).name="StatusChangePortrait"
+			ui.file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray([preload("res://portraits.gd").FILE_FILTER]),change_image)).name="StatusChangePortrait"
 		ui.local_button(actions,"閉じる",ui.dialog.close),Callable(),ui.preferences.overlay_rect(ui.size,Vector2(1400,860),16))
 func render_comparison_skills(parent,quote: Dictionary,current=null):
 	var helper=ui.pages.shop_view.comparison_view

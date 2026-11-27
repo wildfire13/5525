@@ -59,6 +59,7 @@ func _run_file(payload: Dictionary,script: String,budget: int) -> Dictionary:
 	return result
 func _file_request(payload: Dictionary) -> Dictionary:
 	var request=payload.duplicate(true)
+	request.profile_dir=OS.get_user_data_dir()
 	var writing=request.get("action")=="write"
 	if writing:request.operation=Crypto.new().generate_random_bytes(16).hex_encode()
 	var script=io_script if not io_script.is_empty() else native_dir.path_join("godot_files.py")

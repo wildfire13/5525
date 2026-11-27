@@ -3,6 +3,7 @@ const ElementBadges=preload("res://element_badges.gd")
 const BattleText=preload("res://battle_text.gd")
 const Tokens=preload("res://ui_tokens.gd")
 const UiMotion=preload("res://ui_motion.gd")
+const HelpBadge=preload("res://help_badge.gd")
 ## State-focused display. Choices, predictions and results remain engine-owned.
 var ui
 var middle: Control
@@ -172,6 +173,7 @@ func mount():
 	deployment_instructions.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	deployment_instructions.add_theme_color_override("font_color",Tokens.INK)
 	deploy_row.add_child(deployment_instructions)
+	HelpBadge.attach(deploy_row,"配置と陣形リンク（黄色の破線）","・味方をドラッグするか、キャラ→マスの順にクリックして配置を変更できます。\n・味方同士を結ぶ黄色の破線は『陣形』の成立を示し、前衛・後衛の連携やポーターの陣形強化スキルの対象になります。","HelpDeploymentFormation")
 	deployment_actions=HBoxContainer.new();deployment_actions.name="DeploymentActions";deployment_actions.size_flags_vertical=Control.SIZE_SHRINK_CENTER
 	deployment_actions.add_theme_constant_override("separation",Tokens.SPACE_SM)
 	deploy_row.add_child(deployment_actions)
@@ -330,6 +332,7 @@ func build_panels(s,phase,a,deploying):
 		var speed=l(battle_stats,"SPD %s" % _format_number(float(a.get("agi",0))))
 		speed.mouse_filter=Control.MOUSE_FILTER_STOP
 		speed.tooltip_text="行動速度。高いほど次の手番が早く回ります。"
+		HelpBadge.attach(battle_stats,"SPDと重量（Wt）","・SPD（行動速度）：高いほど下部の行動順バーで早く手番が回ってきます。\n・Wt（重量）：上限を超過するとSPDが50%に低下します。行動順カードをクリックすると敵味方の装備も確認できます。","HelpBattleStats",18)
 		if a.has("carriedWeight"):
 			var carried := float(a.get("carriedWeight",0))+float(a.get("fallenWeightShare",0))
 			var limit := float(a.get("weightLimit",0))

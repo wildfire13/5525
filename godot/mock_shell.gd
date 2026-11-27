@@ -13,6 +13,7 @@ const SHOP_CATALOG_WIDTH=440
 const SURFACE_ALPHA=Tokens.SURFACE_ALPHA
 const NESTED_SURFACE_ALPHA=Tokens.NESTED_SURFACE_ALPHA
 const Grid=preload("res://screen_grid.gd")
+const HelpBadge=preload("res://help_badge.gd")
 func _init(frontend):ui=frontend
 static func style(fill: Color=PAPER) -> StyleBoxFlat:
 	return Tokens.box(fill)
@@ -241,7 +242,10 @@ func roster(parent,deployment=null):
 	else:panel.custom_minimum_size.x=grid_cell().x*2
 	var body=VBoxContainer.new();panel.add_child(body)
 	var ids=ui.campaign().get("selected",[])
-	ui.label_(body,"パーティメンバー     %d / %d" % [ids.size(),ui.campaign().get("partyLimit",12)])
+	var roster_head=ui.row(body)
+	var roster_title=ui.label_(roster_head,"パーティメンバー     %d / %d" % [ids.size(),ui.campaign().get("partyLimit",12)])
+	roster_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	HelpBadge.attach(roster_head,"所持枠と重量（Wt）","・『0 / 2』等は個人インベントリの使用枠／上限です（ポーターは ∞）。\n・『Wt』は装備と所持品の合計重量。STR上限を超えると赤字になり、戦闘中のSPD（行動速度）が50%に低下します。","HelpPartyRoster")
 	var scene="deployment" if deployment!=null else str(ui.page)
 	var job=str(roster_jobs.get(scene,""))
 	var filter=job_filter(body,job,func(value):

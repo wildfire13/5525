@@ -2,6 +2,7 @@ extends RefCounted
 const ElementBadges=preload("res://element_badges.gd")
 const ScreenGrid=preload("res://screen_grid.gd")
 const Tokens=preload("res://ui_tokens.gd")
+const HelpBadge=preload("res://help_badge.gd")
 ## Presentation of existing Campaign.view fields. Mutations stay in the bridge.
 var ui
 var party_uid := ""
@@ -146,7 +147,11 @@ func journey(parent):
 	route.add_child(actions_panel)
 	var actions=row(actions_panel)
 	var copy=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;copy.size_flags_vertical=Control.SIZE_SHRINK_CENTER;actions.add_child(copy)
-	l(copy,"帰路" if strip.returning else "野営地" if phase=="camp" else "到着" if phase in ["arrival","delivery"] else "%d区間目の道" % (int(journey_.get("stage",0))+1),true)
+	var road_head=row(copy)
+	var road_title=l(road_head,"帰路" if strip.returning else "野営地" if phase=="camp" else "到着" if phase in ["arrival","delivery"] else "%d区間目の道" % (int(journey_.get("stage",0))+1),true)
+	road_title.autowrap_mode=TextServer.AUTOWRAP_OFF
+	road_title.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+	HelpBadge.attach(road_head,"街道ルートの違い","・近道（移動 2時間）：早く着くため希望条件（納期）に間に合わせやすい反面、敵との遭遇数が増えます。\n・川沿い等の安全な道（移動 4時間）：時間はかかりますが、敵の数が少なく安全寄りです。","HelpRoadRoutes")
 	var remaining=maxi(0,2-int(journey_.get("stage",0)))*3
 	if phase=="arrival" or phase=="delivery":remaining=0
 	l(copy,"最短の到着見込 %d時間" % (int(journey_.get("hours",0))+remaining))
@@ -364,6 +369,9 @@ func return_to_town(parent):
 
 func result(parent):
 	var result_: Dictionary=c().get("result",{});var outcome=result_.get("outcome","")
+	if result_.get("firstDeath",false):
+		l(parent,result_.reason,true)
+		return
 	var delivery_status: String=ui.results_view.delivery_status(result_)
 	l(parent,delivery_status if not delivery_status.is_empty() else {"failed":"クエスト失敗 / 出発前へ","travel":"目的地に到着"}.get(outcome,"旅の結果"),true)
 	quest_board.render_sluice_story(parent,result_)

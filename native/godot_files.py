@@ -1,5 +1,5 @@
 """Godot-only file adapter: atomic creation or explicitly confirmed replacement."""
-import base64, hashlib, json, math, os, re, sys, tempfile
+import base64, hashlib, json, math, os, re, sqlite3, sys, tempfile
 from pathlib import Path
 from portraits import read_raster, normalize_raster, MAX_PNG_BYTES
 MAX_SAVE = 12 * 1024 * 1024
@@ -131,6 +131,15 @@ def recover_write(path, data, operation, resolved_target=None):
     return {'path':logical, 'outcome':'not_saved', 'reason':'保存されていません。別名または別の場所へ保存できます。'}
 
 def run(r):
+    if r.get('profile_dir') and (r['action'].startswith('first_') or r['action'] in ('read','write','recover_write')):
+        from first_journey import handle
+        if r['action']=='first_death' and r.get('portrait') is not None:
+            prepare_portraits({'version':1,'characters':{'player':r['portrait']}}, ['player'])
+        return handle(r, file_operation, write_save, MAX_SAVE)
+    return file_operation(r)
+
+
+def file_operation(r):
     if r['action']=='portrait':
         raw=read_raster(r['path'])
         png=base64.b64encode(raw).decode('ascii')
@@ -143,6 +152,8 @@ def run(r):
         if path.stat().st_size>MAX_SAVE: raise ValueError('保存サイズ超過')
         data=json.loads(path.read_text(encoding='utf-8-sig'))
         if not isinstance(data,dict): raise ValueError('保存形式が不正です')
+        if data.get('format')=='5525-ended-journey':
+            raise ValueError('この旅は初代の死亡により終了しました。')
         # Character membership belongs to the incoming save, not the currently
         # open/new game's roster. Full campaign validation still precedes adoption.
         state=data.get('state')
@@ -167,6 +178,7 @@ def player_error(error):
     return 'ファイルの形式が正しくありません。5525の対応するファイルを選び直してください。'
 
 PLAYER_VALIDATION_MESSAGES = {
+    'この旅は初代の死亡により終了しました。','初代の選択を確定できません','進行の識別情報が不正です',
     '保存画像の形式が不正です', '保存画像のキャラIDが不正です', '保存画像のサイズが不正です', '保存画像が破損しています',
     '保存サイズ超過', '保存要求の識別子が不正です', 'JSONファイル名を指定してください', '保存先の確認情報が不正です',
     '確認後に保存先の実体が変わりました。保存先を選び直してください。', '保存先に通常ファイルを指定してください', '既存ファイルが大きすぎます',
@@ -174,4 +186,4 @@ PLAYER_VALIDATION_MESSAGES = {
 }
 if __name__=='__main__':
     try: print(json.dumps({'ok':True,'data':run(json.loads(sys.stdin.readline()))},ensure_ascii=False))
-    except (OSError,ValueError,KeyError,TypeError) as e: print(json.dumps({'ok':False,'error':player_error(e)},ensure_ascii=False))
+    except (OSError,ValueError,KeyError,TypeError,sqlite3.Error) as e: print(json.dumps({'ok':False,'error':player_error(e)},ensure_ascii=False))

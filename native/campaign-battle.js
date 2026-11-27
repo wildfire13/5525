@@ -233,7 +233,10 @@ const Battle = (() => {
   ];
   const legacyRoster=templates.flatMap((t,i)=>t.id==='warrior'?[t]:[t,{...t,id:t.id+'-2',name:['バルト','セナ','ユイ','ルカ','ハル'][i]}]);
   const recruitRoster=require('./recruit-roster.js')(templates);
+  // A successor can share the first porter's appearance and still travel alongside them.
+  const successors=recruitRoster.filter(t=>t.job==='job_porter').map(t=>({...t,id:t.id+'_successor'}));
   const roster=[...legacyRoster,...recruitRoster];
+  const memberTemplate=id=>roster.find(t=>t.id===id)||successors.find(t=>t.id===id);
   const defaultIds=['guard','archer','mage','scout'];
   function swapTarget(s,a,p){
     if(a.job!=='job_porter'||!canEnter(a,p)||p===a.pos)return null;
@@ -487,6 +490,12 @@ const Battle = (() => {
     apply(s,a,action.kind,action.target,landing,cells);
   }
   const order=(a,b)=>a.next-b.next||b.agi-a.agi||a.tie-b.tie;
+  function canBreakThrough(s){
+    const porter=s.units.find(u=>u.side==='ally'&&u.job==='job_porter');
+    if(!porter||porter.hp<=0)return false;
+    if(s.sluice)return s.sluice.open&&alive(s).some(u=>u.side==='ally'&&u.job==='job_porter'&&u.pos===s.sluice.exit);
+    return x(porter.pos)===9&&!s.units.some(u=>u.id===s.banditChiefId&&u.hp>0);
+  }
   function check(s){
     if(s.sluice?.open && !s.units.some(unit=>operatesSluiceLever(unit, s.sluice))){
       s.sluice.open=false;
@@ -494,8 +503,7 @@ const Battle = (() => {
     }
     const porter=s.units.find(u=>u.side==='ally'&&u.job==='job_porter');
     if(porter&&porter.hp<=0){s.failure='porter';s.resultKind='defeat';s.result=`クエスト失敗。${porter.name}が倒れ、荷物を運べなくなった。`;}
-    else if(s.sluice?.open && alive(s).some(u=>u.side==='ally' && u.job==='job_porter' && u.pos===s.sluice.exit)){s.resultKind='breakthrough';s.result='突破成功！ 水門を抜けて荷物を運び出した。';}
-    else if(!s.sluice&&porter&&x(porter.pos)===9){s.resultKind='breakthrough';s.result='突破成功！ ポーターが敵陣最奥へ到達。';}
+    else if(canBreakThrough(s)){s.resultKind='breakthrough';s.result=s.sluice?'突破成功！ 水門を抜けて荷物を運び出した。':'突破成功！ ポーターが敵陣最奥へ到達。';}
     else if(!alive(s).some(u=>u.side==='enemy')){s.resultKind='annihilation';s.result='勝利！ ミラーマッチを制した。';}
     else if(!alive(s).some(u=>u.side==='ally')){s.resultKind='defeat';s.result='敗北。配置と連携を変えて再挑戦しよう。';}
     if(s.result){
@@ -534,7 +542,7 @@ const Battle = (() => {
     const units=[];
     for(const side of ['ally','enemy']){
       const ids=options[side]||defaultIds,used=new Set();
-      const members=ids.map(id=>({...roster.find(t=>t.id===id)}));
+      const members=ids.map(id=>({...memberTemplate(id)}));
       for(const t of members){if(!used.has(t.pos)){used.add(t.pos);}else t.pos=null;}
       for(const t of members){if(t.pos===null){t.pos=(t.job==='job_porter'?[32,12,2,42]:[24,13,33,4,14,34]).find(p=>!used.has(p));used.add(t.pos);}}
       if(side==='ally'&&options.formation==='flank'){const scout=members.find(t=>t.job==='job_scout');if(scout)scout.pos=14;}
@@ -595,6 +603,6 @@ const Battle = (() => {
     return true;
   }
   function queue(s){const copies=alive(s).map(u=>({...u})),result=[];for(let i=0;i<10&&copies.length;i++){copies.sort(order);result.push({id:copies[0].id,name:copies[0].name,side:copies[0].side,...(copies[0].skipNextTurn?{skip:true}:{})});delete copies[0].skipNextTurn;copies[0].next+=100/copies[0].agi;}return result;}
-  return {setCarriedWeight,operatesSluiceLever,returnSkillOptions,returnSkillOption,selectReturnSkill,activeSkillOptions,selectedSkillOption,itemSkillOption,sweepCells,sweepChance,sweepTargets,vaultCell,itemUseLevel,itemInRange,grappleCell,skillLevel,skillInfo,effectCount,percentageIncrease,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,legacyRoster,recruitRoster,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,chooseAction};
+  return {memberTemplate,canBreakThrough,setCarriedWeight,operatesSluiceLever,returnSkillOptions,returnSkillOption,selectReturnSkill,activeSkillOptions,selectedSkillOption,itemSkillOption,sweepCells,sweepChance,sweepTargets,vaultCell,itemUseLevel,itemInRange,grappleCell,skillLevel,skillInfo,effectCount,percentageIncrease,stepEnemy,damagePreview,effectPreview,reachFilteredPower,attackPreview,activeSkills,selectSkill,equipmentSkills,hasEffect,moveReach,skillCost,skillTargets,crossCells,retreatCell,MAX_LOG_LINES,trimLog,legacyRoster,recruitRoster,roster,create,deploy,begin,act,legal,legalFor,formation,boosted,swapTarget,slots,formationSlots,queue,range,screen,cell,boardOf,activeSkill,skillName,attackReach,stampCells,inRange,paths,ambush,receive,chooseAction};
 })();
 if(typeof module!=='undefined')module.exports=Battle;

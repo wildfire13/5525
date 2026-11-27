@@ -6,6 +6,42 @@ from pathlib import Path
 from godot_files import write_new, run, prepare_portraits
 from portraits import read_raster
 class GodotFilesTests(unittest.TestCase):
+    def test_first_death_retires_only_the_matching_journey(self):
+        for hire in (False, True):
+            with self.subTest(hire=hire), tempfile.TemporaryDirectory() as directory:
+                def op(action, **fields):
+                    return run(dict(action=action, profile_dir=directory, **fields))
+                ident = 'a' * 32
+                first = dict(format='5525-native-campaign', godotCampaignId=ident)
+                other = dict(first, godotCampaignId='b' * 32)
+                original, extra, reused, copied = (Path(directory) / (n+'.json') for n in ('first', 'extra', 'reused', 'copy'))
+                op('first_start', journey_id=ident, memberId='character_yuno', name='ナギ')
+                for path in (original, extra, reused):
+                    op('write', path=str(path), data=first)
+                copied.write_bytes(original.read_bytes())
+                reused.write_bytes(godot_files.encoded_save(other))
+                portrait = run({'action':'portrait', 'path':str(Path(__file__).parent/'assets/characters/scout-human-female-01.png')})
+                op('first_death', journey_id=ident, portrait=portrait)
+                self.assertEqual(op('first_status')['phase'], 'pending')
+                with self.assertRaisesRegex(ValueError, '終了'):
+                    op('read', path=str(copied))
+                with patch('godot_files.publish_replace', side_effect=PermissionError()):
+                    chosen = op('first_choose', journey_id=ident, hire=hire)
+                self.assertEqual(chosen['phase'], 'hire' if hire else 'end')
+                self.assertEqual(chosen['deferred'], 2)
+                self.assertEqual(op('first_status').get('portrait'), portrait if hire else None)
+                with self.assertRaisesRegex(ValueError, '終了'):
+                    op('read', path=str(original))
+                self.assertEqual(op('first_status')['deferred'], 0)
+                for path in (original, extra):
+                    self.assertEqual(json.loads(path.read_bytes())['format'], '5525-ended-journey')
+                self.assertEqual(json.loads(reused.read_bytes()), other)
+                self.assertEqual(op('read', path=str(reused))['godotCampaignId'], other['godotCampaignId'])
+                with self.assertRaisesRegex(ValueError, '終了'):
+                    op('write', path=str(copied), data=first)
+                with self.assertRaises(ValueError):
+                    op('first_choose', journey_id=ident, hire=not hire)
+
     def test_reject_import_over_combined_portrait_budget(self):
         request={'action':'portrait','path':str(Path(__file__).parent/'assets/characters/scout-human-female-01.png')}
         remaining=godot_files.MAX_PORTRAIT_BASE64-len(run(request)['png'])

@@ -1,7 +1,10 @@
 extends RefCounted
 ## UI session identity for new and loaded campaigns.
+const FIRST_PLAYER_MARKER := "user://first-character-created"
+var returning_player := FileAccess.file_exists(FIRST_PLAYER_MARKER)
 var current_id := ""
 var legacy_ids: Dictionary={}
+
 func new_campaign():current_id=Crypto.new().generate_random_bytes(16).hex_encode()
 func prepare_load(value,source_path: String="") -> Dictionary:
 	var envelope=value

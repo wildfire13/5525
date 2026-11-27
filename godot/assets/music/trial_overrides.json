@@ -4,6 +4,10 @@
   "notes": "Provisional scene tracks selected for the prototype.",
   "tracks": [
     {
+      "id": "rip",
+      "path": "res://assets/music/rip.mp3"
+    },
+    {
       "id": "astaris",
       "path": "res://assets/music/local_map/city_01.mp3"
     },

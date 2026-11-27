@@ -122,7 +122,7 @@ func restore(data: Dictionary) -> bool:
 	quest_id="" if data.get("quest_id","")=="" else ROAD_TRACK
 	quest.stop();quest_loaded=""
 	return true
-func sync(d: Dictionary, town_route := "") -> void:
+func sync(d: Dictionary, town_route := "", first_death_pending := false) -> void:
 	var c: Dictionary = d.get("campaign",{})
 	choose_journey(c)
 	var state: Dictionary = d.get("state") if d.get("state") is Dictionary else {}
@@ -137,6 +137,17 @@ func sync(d: Dictionary, town_route := "") -> void:
 		elif phase=="deployment":key="deployment"
 		elif phase=="town" and bgm_catalog.has(town_route):key=town_route
 	if phase=="arrival": key=str(c.get("journey",{}).get("destination",key))
+	var player: Dictionary = c.get("playerProfile", {})
+	var death := first_death_pending
+	if d.get("trial")==null and player.get("firstLife",false):
+		var outcome: Variant = c.get("result")
+		if outcome is Dictionary and outcome.get("firstDeath",false):death=true
+		if state.get("resultKind")=="defeat":
+			for unit in state.get("units",[]):
+				if unit.id==player.memberId and unit.hp==0:death=true
+	if death:
+		on_road=false
+		key="rip"
 	if key != current_bgm:
 		bgm.stop();current_bgm=key
 		bgm.stream=load_bgm(str(bgm_catalog.get(key,"")),true)

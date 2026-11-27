@@ -161,7 +161,7 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       else log.startRun(context(),'journey.restart');response=view();
     }
     else if(r.op==='campaign_start') {
-      campaign=campaignEngine().create();trial=null;qa=null;syncCampaign();
+      campaign=campaignEngine().create({returningPlayer:r.returningPlayer,predecessor:r.predecessor});trial=null;qa=null;syncCampaign();
       log=P.create({mode:'campaign'});record('run.started',{reason:'campaign.started'});response=view();
     }
     else if(r.op==='battle_equipment'){
@@ -206,7 +206,7 @@ readline.createInterface({input:process.stdin}).on('line',line=>{
       else if(r.action==='saleQuote'){response={...view(),saleQuote:C.saleQuote(campaign,...args)};}
       else if(r.action==='purchaseQuote'){response={...view(),purchaseQuote:C.purchaseQuote(campaign,...args)};}
       else if(r.action==='trial'){trial=C.trial(campaign,...args);result=!!trial;}
-      else if(['accept','select','depart','travel','deploy','deployment_assign','chooseFormation','deployment_reset','begin','retreat','turnBack','finishBattle','rest','waitForEvent','onward','arrive','completeQuest','acknowledge','buyGear','buyInventory','buyItem','inn','useItem','inventoryAction','warehouseAction','sellInventory','allocate','allocateBatch'].includes(r.action)) {
+      else if(['createPlayer','tutorialAction','accept','select','depart','travel','deploy','deployment_assign','chooseFormation','deployment_reset','begin','retreat','turnBack','finishBattle','rest','waitForEvent','onward','arrive','completeQuest','acknowledge','buyGear','buyInventory','buyItem','inn','useItem','inventoryAction','warehouseAction','sellInventory','allocate','allocateBatch'].includes(r.action)) {
         if(r.action==='begin'&&r.presentation) {
           result=presentation.start(state,B,()=>C.begin(campaign,...args),()=>record('campaign.begin',{args,accepted:true}));
         } else if(r.action==='begin') {

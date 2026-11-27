@@ -21,6 +21,13 @@ static func catalog_by_id(rows: Array) -> Dictionary:
 			push_error("Character identity catalog contains a duplicate ID: "+str(person.id));return {}
 		result[person.id]=person
 	return result
+const FILE_FILTER = "*.png,*.jpg,*.jpeg,*.webp,*.bmp,*.gif ; キャラ画像"
+
+static func imported_image(entry: Dictionary) -> Image:
+	var image := Image.new()
+	if image.load_png_from_buffer(Marshalls.base64_to_raw(entry.png)) != OK:return null
+	return image
+
 var characters: Dictionary=catalog_by_id(read_character_catalog())
 var overrides: Dictionary = {}
 var textures: Dictionary = {}
@@ -30,9 +37,8 @@ func activate(meta: Dictionary) -> void:
 	metadata = meta.duplicate(true)
 	overrides.clear(); textures.clear(); faces.clear()
 	for uid in meta.get("characters",{}):
-		var bytes = Marshalls.base64_to_raw(meta.characters[uid].png)
-		var image = Image.new()
-		if image.load_png_from_buffer(bytes) == OK: overrides[uid] = image
+		var image := imported_image(meta.characters[uid])
+		if image != null: overrides[uid] = image
 func assign(uid: String, entry: Dictionary) -> void:
 	var next = metadata.duplicate(true)
 	next.characters[uid] = entry

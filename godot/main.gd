@@ -9,6 +9,7 @@ var results_view
 var deployment_party_strip
 var data: Dictionary={}
 var campaign_identity=preload("res://campaign_identity.gd").new()
+var first_journey=preload("res://first_journey_flow.gd").new(self)
 var preview: Dictionary={}
 var pending=null
 var chosen: Array=[]
@@ -75,6 +76,9 @@ var skip_capture_once := false
 var tracked_windows: Array[Window]=[]
 const Tokens=preload("res://ui_tokens.gd")
 const UiMotion=preload("res://ui_motion.gd")
+const HelpBadge=preload("res://help_badge.gd")
+var character_creator
+var tutorial_guide
 const ScreenGrid=preload("res://screen_grid.gd")
 const BG=Tokens.BACKDROP_DARK
 func _track_window(node: Node):
@@ -98,6 +102,8 @@ func _ready():
 	memory=preload("res://ui_memory.gd").new(self)
 	hud=preload("res://battle_hud.gd").new(self)
 	dialog=preload("res://ui_dialog.gd").new(self)
+	character_creator=preload("res://character_creator.gd").new(self);add_child(character_creator)
+	tutorial_guide=preload("res://tutorial_guide.gd").new(self);add_child(tutorial_guide)
 	get_tree().auto_accept_quit=false
 	get_tree().root.gui_embed_subwindows=true
 	var theme_=Theme.new();theme_.default_font_size=Tokens.FONT_BODY
@@ -162,9 +168,20 @@ func _ready():
 	if debug_view.is_enabled():engine.diagnostic_completed.connect(debug_view.request_finished)
 	resized.connect(queue_layout)
 	if not engine.start_engine():notice=engine.last_error;render();return
+	if not _is_script_run() and not await first_journey.request("first_status"):render();return
 	await update({"op":"campaign_start"})
 	if DisplayServer.get_name()!="headless" and not closing:
 		loading_screen.prefetch_battle_art()
+	_maybe_open_character_creator()
+func _is_script_run() -> bool:
+	if DisplayServer.get_name()=="headless":return true
+	for arg in OS.get_cmdline_args():
+		if arg=="--script" or arg=="-s":return true
+	return false
+func _maybe_open_character_creator():
+	if closing or checks_fast or _is_script_run() or first_journey.status.get("phase")=="pending":return
+	if not bool(campaign().get("playerProfile",{}).get("created",false)) and character_creator!=null:
+		character_creator.open()
 func campaign() -> Dictionary: return data.get("campaign") if data.get("campaign") is Dictionary else {}
 func state() -> Dictionary: return data.get("state") if data.get("state") is Dictionary else {}
 func roster() -> Array: return campaign().get("roster",[])
@@ -338,6 +355,7 @@ func _unhandled_key_input(event):
 			pages.facility_art.render_background(backdrop_layer, self, view_kind == "battle")
 			get_viewport().set_input_as_handled()
 		elif event.keycode==KEY_ESCAPE:
+			HelpBadge.dismiss()
 			if modal_escape_frame==Engine.get_process_frames():get_viewport().set_input_as_handled();return
 			if menu.visible:menu.hide()
 			elif is_instance_valid(dialog.window):dialog.close()
@@ -385,8 +403,11 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		record_debug_rejection(request);return {"ok":false,"error":"処理中です"}
 	pages.shop_view.cancel_pending()
 	var incoming={}
+	if request.get("op")=="campaign_start" and not (checks_fast or _is_script_run()):
+		request=request.merged(first_journey.campaign_options(),true)
 	if request.get("op")=="campaign_load":
 		incoming=campaign_identity.prepare_load(request.get("data"),str(frontend.get("source_path","")))
+		if incoming.ok and first_journey.ended(incoming.identity):incoming={"ok":false,"error":"この旅は初代の死亡により終了しました。"}
 		if not incoming.ok:record_debug_rejection(request);notice=incoming.error;render();return {"ok":false,"error":incoming.error}
 		request=request.duplicate(true);request.data=incoming.envelope
 	locked=true;status_override=""
@@ -437,6 +458,10 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 				audio.suppress_result_voice_once=request.get("op")=="campaign_load"
 			if request.get("op")=="campaign_load":
 				portraits.activate(reply.get("nativePortraits",{"version":1,"characters":{}}))
+			elif request.get("op")=="campaign_start" and first_journey.status.get("phase")=="hire" and first_journey.status.has("portrait"):
+				portraits.assign(first_journey.status.memberId,first_journey.status.portrait)
+			elif request.get("action")=="createPlayer" and frontend.has("portrait"):
+				portraits.assign(reply.campaign.playerProfile.memberId,frontend.portrait)
 			elif frontend.has("images"):
 				portraits.activate(frontend.images)
 			if frontend.has("music"):audio.restore(frontend.music)
@@ -468,6 +493,7 @@ func update(request: Dictionary,frontend: Dictionary={}) -> Dictionary:
 		audio.quest_completed(campaign())
 	if arrived:save_notice.display(town_name(campaign().get("location",""))+"に到着しました")
 	if data.get("presentation")!=null and not presenting and not engine.disconnected:await present()
+	if reply.get("campaign") is Dictionary and not presenting:await first_journey.observe()
 	return reply
 func present():
 	presenting=true
@@ -525,6 +551,7 @@ func new_game():
 	invalidate_preview()
 	portraits.activate({"version":1,"characters":{}});audio.restore({});gear_preview={};page="hub"
 	await update({"op":"campaign_start"})
+	_maybe_open_character_creator()
 func record_debug_event(name: String,reason: String):
 	if engine!=null and engine.has_method("debug_local_event"):engine.debug_local_event(name,reason)
 func record_debug_rejection(request: Dictionary):
@@ -545,7 +572,7 @@ func sync_audio():
 		route = visit_key
 	elif campaign().get("phase") == "town":
 		route = "local_" + str(campaign().get("location", ""))
-	audio.sync(data, route)
+	audio.sync(data, route, first_journey.status.get("phase")=="pending")
 func render():
 	if engine!=null and engine.disconnected:
 		show_engine_stop.call_deferred()
@@ -652,7 +679,7 @@ func render():
 		elif page=="character":pages.party_view.render_page(body)
 		elif phase=="camp" and page=="items":render_items(body)
 		else:render_journey(body)
-		if phase=="result":pages.return_to_town(body)
+		if phase=="result" and not c.result.get("firstDeath",false):pages.return_to_town(body)
 		var motion_scene="%s:%s:%s" % [phase,str(c.get("location","")),page]
 		if motion_scene!=str(get_meta(&"last_motion_scene","")):
 			set_meta(&"last_motion_scene",motion_scene)
@@ -661,6 +688,7 @@ func render():
 	set_status(notice if not notice.is_empty() else status_override)
 	widgets=widgets.filter(func(b):return is_instance_valid(b) and b.is_inside_tree())
 	rendering=false;memory.restore()
+	if tutorial_guide!=null:tutorial_guide.sync()
 func town_name(id) -> String:
 	for t in campaign().get("towns",[]):
 		if t.id==id:return t.name
@@ -954,7 +982,7 @@ func portrait_dialog():
 		var r=row(body);r.set_meta("member_id",u.id);portrait(r,u,false,55);label_(r,u.name)
 		button(r,"画像を選ぶ",func():
 			d.queue_free()
-			file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray(["*.png,*.jpg,*.jpeg,*.webp,*.bmp,*.gif ; キャラ画像"]),func(path):
+			file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray([preload("res://portraits.gd").FILE_FILTER]),func(path):
 				await import_portrait(path,str(u.id))
 				if active_member(str(u.id)):pages.party_view.workspace.open_portrait(u)),not active_member(str(u.id)))
 		if portraits.metadata.get("characters",{}).has(u.id):
@@ -965,11 +993,14 @@ func portrait_dialog():
 	d.close_requested.connect(d.queue_free);preferences.place_detail_frame(d);d.popup()
 func import_portrait(path: String,uid: String):
 	if not active_member(uid):return
+	var r=await read_portrait(path,uid)
+	if r.get("ok",false) and active_member(uid):portraits.assign(uid,r.data);notice="画像を変更しました。割当を残すには進行を保存してください。";render()
+
+func read_portrait(path: String,replace_id: String="") -> Dictionary:
 	var retained=0
 	for id in portraits.metadata.characters:
-		if id!=uid:retained+=portraits.metadata.characters[id].png.length()
-	var r=await update({"op":"godot_io","action":"portrait","path":path,"retainedPortraitChars":retained})
-	if r.get("ok",false) and active_member(uid):portraits.assign(uid,r.data);notice="画像を変更しました。割当を残すには進行を保存してください。";render()
+		if id!=replace_id:retained+=portraits.metadata.characters[id].png.length()
+	return await update({"op":"godot_io","action":"portrait","path":path,"retainedPortraitChars":retained})
 func reset_portrait(uid: String):
 	if not active_member(uid):return
 	portraits.clear_member(uid);notice="元の画像に戻しました。割当を残すには進行を保存してください。";render()
@@ -1010,6 +1041,7 @@ func file_dialog_open() -> bool:
 		if is_instance_valid(child) and child is FileDialog and child.get_meta("file_dialog_active",false) and not child.is_queued_for_deletion():return true
 	return false
 func modal_open() -> bool:
+	if character_creator!=null and character_creator.is_open():return true
 	if file_dialog_open():return true
 	if menu.visible:return true
 	for child in get_children():

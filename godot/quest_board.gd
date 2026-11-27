@@ -12,6 +12,7 @@ var dialogue
 var meeting
 const Grid=preload("res://screen_grid.gd")
 const Tokens=preload("res://ui_tokens.gd")
+const HelpBadge=preload("res://help_badge.gd")
 func _init(owner):owner_ref=weakref(owner);ui=owner.ui;meeting=preload("res://quest_meeting.gd").new(ui)
 func _dialogue():
 	if not is_instance_valid(dialogue):dialogue=preload("res://quest_dialogue.gd").new(ui,self)
@@ -130,6 +131,7 @@ func render_detail(parent,q: Dictionary,active: bool):
 		total_weight+=float(cargo.get("weight",0))*int(cargo.get("quantity",1))
 	var weight_text=str(int(total_weight)) if is_equal_approx(total_weight,round(total_weight)) else str(total_weight)
 	var total=pages.l(cargo_line,"合計Wt "+weight_text);total.name="QuestCargoWeight";total.autowrap_mode=TextServer.AUTOWRAP_OFF;total.size_flags_horizontal=Control.SIZE_SHRINK_END;total.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+	HelpBadge.attach(cargo_line,"荷物情報と重量（Wt）","依頼の荷物は同行ポーターが運びます。合計WtがポーターのSTR上限を超えると、戦闘中のSPD（行動速度）が50%に低下します。","HelpQuestCargo",20)
 	separator(details,"QuestCargoSeparator")
 
 	var rewards=q.get("rewards",{})
@@ -180,6 +182,8 @@ func reward_line(parent,caption: String,kind: String,amount: int,rp: int):
 	var amount_label=pages.l(row,"×%d" % amount);amount_label.name="QuestRewardAmount";amount_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;amount_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
 	if rp>0:
 		var rp_label=pages.l(row,"RP ×%d" % rp);rp_label.name="QuestRewardRP";rp_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;rp_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
+		if caption=="基本報酬":
+			HelpBadge.attach(row,"報酬とRPについて","・G（ゴールド）：武器・防具・アイテム購入や宿屋で使う資金です。\n・RP：依頼達成で貯まるパーティの評価・報酬ポイント。希望条件（納期）を守ると追加ボーナスが得られます。","HelpQuestRewards",20)
 	separator(parent,"QuestRewardSeparator")
 
 func separator(parent: Node,control_name: String):
@@ -234,8 +238,17 @@ func open_picker(id: String):
 	if ui.locked or ui.modal_open() or pages.c().get("phase")!="town" or pages.c().get("activeQuest") is Dictionary:return
 	picker_generation+=1;picker_owner="";submitted=false
 	var generation=picker_generation;var token=pages.c().get("inventoryToken");var epoch=pages.epoch;var connection=ui.engine.connection_generation
+	var quest_weight := 0
+	for q in pages.c().get("board", []):
+		if str(q.get("id", "")) == id:
+			quest_weight = int(q.get("weight", 0))
+			break
+	var inv_by_char: Dictionary = pages.c().get("inventoryByCharacter", {})
 	ui.dialog.open("荷物を持つポーターを選択",func(body,actions):
 		pages.l(body,"荷物を持つポーターを選び、決定してください。")
+		var note_lbl: Label = pages.l(body,"※ポーターの所持枠(∞)は上限なしですが、総重量(Wt)がSTR上限を超えると戦闘中のSPDが50%になります。")
+		note_lbl.add_theme_font_size_override("font_size",Tokens.FONT_XS)
+		note_lbl.add_theme_color_override("font_color",Tokens.MUTED_INK)
 		var choices=HFlowContainer.new();choices.name="QuestCargoChoices";choices.add_theme_constant_override("h_separation",Tokens.SPACE_MD);choices.add_theme_constant_override("v_separation",Tokens.SPACE_MD);body.add_child(choices)
 		var buttons: Array=[]
 		var confirm=ui.primary(pages.b(actions,"決定",commit.bind(id,token,epoch,connection,generation),true));confirm.name="QuestCargoConfirm"
@@ -250,6 +263,17 @@ func open_picker(id: String):
 				confirm.disabled=false;confirm.set_meta("base_disabled",false))
 			button.name="QuestCargoOwner_"+str(member.id);button.toggle_mode=true;button.set_meta("owner_id",str(member.id));button.custom_minimum_size=Vector2(224,210);button.clip_text=true;button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;button.alignment=HORIZONTAL_ALIGNMENT_CENTER;button.vertical_icon_alignment=VERTICAL_ALIGNMENT_TOP;button.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER
 			button.icon=ui.portraits.texture(member,false);button.expand_icon=true;button.add_theme_constant_override("icon_max_width",140);buttons.append(button)
+			var inv: Dictionary = inv_by_char.get(member.id, {})
+			var wt_obj: Variant = inv.get("weight", {})
+			var cur_wt := int(wt_obj.get("total", 0)) if wt_obj is Dictionary and wt_obj.get("total") != null else 0
+			var wt_limit := int(inv.get("weightLimit", 0))
+			if wt_limit > 0:
+				var after_wt := cur_wt + quest_weight
+				var over := after_wt > wt_limit
+				var wt_lbl: Label = pages.l(box, "Wt %d → %d / %d%s" % [cur_wt, after_wt, wt_limit, "（超過: SPD50%）" if over else ""])
+				wt_lbl.name = "QuestCargoWeight_" + str(member.id)
+				wt_lbl.add_theme_font_size_override("font_size", Tokens.FONT_XS)
+				wt_lbl.add_theme_color_override("font_color", Tokens.DANGER if over else Tokens.MUTED_INK)
 		pages.b(actions,"キャンセル",ui.dialog.close).name="QuestCargoCancel",func():picker_generation+=1;picker_owner="")
 func commit(id: String,token,epoch: int,connection: int,generation: int):
 	if submitted or ui.locked or ui.closing or generation!=picker_generation or epoch!=pages.epoch or connection!=ui.engine.connection_generation or token!=pages.c().get("inventoryToken") or picker_owner.is_empty():return
