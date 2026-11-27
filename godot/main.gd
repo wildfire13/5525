@@ -1025,7 +1025,7 @@ func portrait_dialog():
 	actions.add_theme_constant_override("separation",Tokens.SPACE_MD)
 	layout.set_regions(heading,content,actions)
 	label_(body,"各キャラの画像を変更します。能力・装備は変わりません。")
-	label_(body,"PNG / JPEG / WebP / BMP / GIF（先頭フレーム）、16MiBまで。透過・縦横比を保持し最大1024pxに正規化。割当を残すには進行を保存してください。")
+	label_(body,"PNG / JPEG / WebP / BMP / GIF（先頭フレーム）、16MiBまで。透過・縦横比を保持し最大1024pxに正規化。")
 	d.window_input.connect(func(event):
 		if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:d.queue_free())
 	for u in visible_roster():
