@@ -24,6 +24,7 @@ godot/launcher.local.json
 native/5525-save-*.json
 native/5525-campaign-log-*.json
 native/user-data/
+godot/user-data/
 native/qa-portraits-tk-report.json
 
 # Retired party portraits and character-specific battle poses

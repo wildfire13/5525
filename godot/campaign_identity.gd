@@ -1,7 +1,8 @@
 extends RefCounted
 ## UI session identity for new and loaded campaigns.
-const FIRST_PLAYER_MARKER := "user://first-character-created"
-var returning_player := FileAccess.file_exists(FIRST_PLAYER_MARKER)
+const UserDataPaths := preload("res://user_data_paths.gd")
+const FIRST_PLAYER_MARKER := "first-character-created"
+var returning_player := FileAccess.file_exists(UserDataPaths.file_path(FIRST_PLAYER_MARKER))
 var current_id := ""
 var legacy_ids: Dictionary={}
 

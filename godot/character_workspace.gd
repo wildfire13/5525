@@ -333,25 +333,26 @@ func open_portrait(member: Dictionary):
 		if ui.active_member(uid):open_portrait(member)
 	show_portrait_editor(member, entry, apply_image, change_image)
 
-func show_portrait_editor(member: Dictionary, entry: Dictionary, apply_image: Callable, change_image: Callable):
+func show_portrait_editor(member: Dictionary, entry: Dictionary, apply_image: Callable, change_image: Callable, on_close: Callable = Callable()):
 	ui.dialog.open(str(member.name)+"の画像",func(body,actions):
+		var preview_h := clampf(ui.size.y * 0.54, 360.0, 580.0)
 		if not entry.is_empty():
 			var editor=preload("res://portrait_editor.gd").new();body.add_child(editor)
 			editor.name="PortraitFraming"
 			editor.size_flags_vertical=Control.SIZE_EXPAND_FILL
 			editor.setup(preload("res://portraits.gd").imported_image(entry),entry.get("framing",{"zoom":1.0,"x":0.0,"y":0.0}))
-			editor.custom_minimum_size.y=680
+			editor.custom_minimum_size.y=preview_h
 			var apply=ui.local_button(actions,"適用",func():
 				var updated=entry.duplicate();updated.framing=editor.framing.duplicate()
 				ui.dialog.close()
 				apply_image.call(updated))
 			apply.name="PortraitFramingApply";apply.theme_type_variation=&"ActionButton"
 		else:
-			var picture=ui.portrait(body,member,false,200);picture.custom_minimum_size=Vector2(300,680);picture.size_flags_vertical=Control.SIZE_EXPAND_FILL
+			var picture=ui.portrait(body,member,false,200);picture.custom_minimum_size=Vector2(300,preview_h);picture.size_flags_vertical=Control.SIZE_EXPAND_FILL
 		ui.local_button(actions,"画像変更",func():
 			ui.dialog.close()
 			ui.file_dialog(FileDialog.FILE_MODE_OPEN_FILE,PackedStringArray([preload("res://portraits.gd").FILE_FILTER]),change_image)).name="StatusChangePortrait"
-		ui.local_button(actions,"閉じる",ui.dialog.close),Callable(),ui.preferences.overlay_rect(ui.size,Vector2(1400,860),16))
+		ui.local_button(actions,"閉じる",ui.dialog.close),on_close,ui.preferences.overlay_rect(ui.size,Vector2(1400,860),16))
 func render_comparison_skills(parent,quote: Dictionary,current=null):
 	var helper=ui.pages.shop_view.comparison_view
 	var before=quote.before.get("skillSources",[]);var after=quote.after.get("skillSources",[])

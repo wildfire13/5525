@@ -41,6 +41,21 @@ class GodotFilesTests(unittest.TestCase):
                     op('write', path=str(copied), data=first)
                 with self.assertRaises(ValueError):
                     op('first_choose', journey_id=ident, hire=not hire)
+                # Second journey can start, die, choose hire, and retire its own saves while keeping first retired.
+                second_id = 'c' * 32
+                second_save = Path(directory) / 'second.json'
+                second_data = dict(format='5525-native-campaign', godotCampaignId=second_id)
+                st2 = op('first_start', journey_id=second_id, memberId='character_mirei', name='二代目')
+                self.assertEqual(st2['id'], second_id)
+                self.assertEqual(st2['phase'], 'alive')
+                op('write', path=str(second_save), data=second_data)
+                op('first_death', journey_id=second_id, portrait=None)
+                self.assertEqual(op('first_status')['phase'], 'pending')
+                op('first_choose', journey_id=second_id, hire=True)
+                with self.assertRaisesRegex(ValueError, '終了'):
+                    op('read', path=str(second_save))
+                with self.assertRaisesRegex(ValueError, '終了'):
+                    op('read', path=str(original))
 
     def test_reject_import_over_combined_portrait_budget(self):
         request={'action':'portrait','path':str(Path(__file__).parent/'assets/characters/scout-human-female-01.png')}

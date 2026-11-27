@@ -43,8 +43,10 @@ func refresh():
 	queue_redraw()
 
 func display_rect() -> Rect2:
+	var pad := 8.0
+	var avail := Vector2(maxf(1.0, size.x - pad * 2.0), maxf(1.0, size.y - pad * 2.0))
 	var fitted=Vector2(preload("res://portraits.gd").framing_rect(image,framing).size)
-	fitted*=minf(size.x/fitted.x,size.y/fitted.y)
+	fitted*=minf(avail.x/fitted.x,avail.y/fitted.y)
 	return Rect2((size-fitted)*0.5,fitted)
 
 func _draw():

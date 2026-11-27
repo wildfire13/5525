@@ -25,20 +25,24 @@ static func dismiss() -> void:
 	_active_popover = null
 
 
-static func attach(parent: Node, title: String, body: String, badge_name: String = "", icon_size: int = 22) -> Button:
+static func attach(parent: Node, title: String, body: String, badge_name: String = "", icon_size: int = 28) -> Button:
+	var sz := maxi(24, icon_size)
 	var btn := Button.new()
 	if not badge_name.is_empty():
 		btn.name = badge_name
 	btn.flat = true
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.mouse_default_cursor_shape = Control.CURSOR_HELP
-	btn.custom_minimum_size = Vector2(icon_size + 4, icon_size + 4)
+	var empty := StyleBoxEmpty.new()
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		btn.add_theme_stylebox_override(state, empty)
+	btn.custom_minimum_size = Vector2(sz, sz)
 	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	btn.icon = _icon_texture()
 	btn.expand_icon = true
 	btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	btn.add_theme_constant_override("icon_max_width", icon_size)
+	btn.add_theme_constant_override("icon_max_width", sz)
 	btn.tooltip_text = title + "\n" + body
 	btn.set_meta(&"help_title", title)
 	btn.set_meta(&"help_body", body)

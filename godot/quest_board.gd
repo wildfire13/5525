@@ -131,7 +131,7 @@ func render_detail(parent,q: Dictionary,active: bool):
 		total_weight+=float(cargo.get("weight",0))*int(cargo.get("quantity",1))
 	var weight_text=str(int(total_weight)) if is_equal_approx(total_weight,round(total_weight)) else str(total_weight)
 	var total=pages.l(cargo_line,"合計Wt "+weight_text);total.name="QuestCargoWeight";total.autowrap_mode=TextServer.AUTOWRAP_OFF;total.size_flags_horizontal=Control.SIZE_SHRINK_END;total.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
-	HelpBadge.attach(cargo_line,"荷物情報と重量（Wt）","依頼の荷物は同行ポーターが運びます。合計WtがポーターのSTR上限を超えると、戦闘中のSPD（行動速度）が50%に低下します。","HelpQuestCargo",20)
+	HelpBadge.attach(cargo_line,"荷物情報と重量（Wt）","依頼の荷物は同行ポーターが運びます。合計WtがポーターのSTR上限を超えると、戦闘中のSPD（行動速度）が50%に低下します。","HelpQuestCargo",26)
 	separator(details,"QuestCargoSeparator")
 
 	var rewards=q.get("rewards",{})
@@ -183,7 +183,7 @@ func reward_line(parent,caption: String,kind: String,amount: int,rp: int):
 	if rp>0:
 		var rp_label=pages.l(row,"RP ×%d" % rp);rp_label.name="QuestRewardRP";rp_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;rp_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
 		if caption=="基本報酬":
-			HelpBadge.attach(row,"報酬とRPについて","・G（ゴールド）：武器・防具・アイテム購入や宿屋で使う資金です。\n・RP：依頼達成で貯まるパーティの評価・報酬ポイント。希望条件（納期）を守ると追加ボーナスが得られます。","HelpQuestRewards",20)
+			HelpBadge.attach(row,"報酬とRPについて","・G（ゴールド）：武器・防具・アイテム購入や宿屋で使う資金です。\n・RP：依頼達成で貯まるパーティの評価・報酬ポイント。希望条件（納期）を守ると追加ボーナスが得られます。","HelpQuestRewards",26)
 	separator(parent,"QuestRewardSeparator")
 
 func separator(parent: Node,control_name: String):

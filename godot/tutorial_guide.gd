@@ -64,7 +64,7 @@ func _ensure_banner() -> void:
 		"チュートリアル進行ガイド",
 		"アスタリスで依頼を受け、街道を通ってイースへ荷物を届けるまでの一連のゲームサイクルを案内します。いつでも右の「スキップ」で終了できます。",
 		"TutorialHelpBadge",
-		20
+		26
 	)
 
 	skip_button = Button.new()

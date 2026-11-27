@@ -332,7 +332,7 @@ func build_panels(s,phase,a,deploying):
 		var speed=l(battle_stats,"SPD %s" % _format_number(float(a.get("agi",0))))
 		speed.mouse_filter=Control.MOUSE_FILTER_STOP
 		speed.tooltip_text="行動速度。高いほど次の手番が早く回ります。"
-		HelpBadge.attach(battle_stats,"SPDと重量（Wt）","・SPD（行動速度）：高いほど下部の行動順バーで早く手番が回ってきます。\n・Wt（重量）：上限を超過するとSPDが50%に低下します。行動順カードをクリックすると敵味方の装備も確認できます。","HelpBattleStats",18)
+		HelpBadge.attach(battle_stats,"SPDと重量（Wt）","・SPD（行動速度）：高いほど下部の行動順バーで早く手番が回ってきます。\n・Wt（重量）：上限を超過するとSPDが50%に低下します。行動順カードをクリックすると敵味方の装備も確認できます。","HelpBattleStats",24)
 		if a.has("carriedWeight"):
 			var carried := float(a.get("carriedWeight",0))+float(a.get("fallenWeightShare",0))
 			var limit := float(a.get("weightLimit",0))

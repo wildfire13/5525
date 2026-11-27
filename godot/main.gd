@@ -879,7 +879,7 @@ func file_dialog(mode: FileDialog.FileMode, filters: PackedStringArray, callback
 	else:add_child(d)
 	d.title="保存先を選択" if mode==FileDialog.FILE_MODE_SAVE_FILE else "ファイルを選択"
 	d.ok_button_text="保存" if mode==FileDialog.FILE_MODE_SAVE_FILE else "開く";d.cancel_button_text="キャンセル"
-	d.current_dir=ProjectSettings.globalize_path("user://")
+	d.current_dir=preload("res://user_data_paths.gd").base_dir()
 	if not filename.is_empty():d.current_file=filename;d.title="保存先を選択";d.overwrite_warning_enabled=false
 	var diagnostic_kind="file_save" if mode==FileDialog.FILE_MODE_SAVE_FILE else "file_open"
 	record_debug_event(diagnostic_kind,"start")

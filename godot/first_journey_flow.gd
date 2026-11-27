@@ -26,6 +26,8 @@ func campaign_options() -> Dictionary:
 	return options
 
 func ended(id: String) -> bool:
+	if id in status.get("endedIds", []):
+		return true
 	return id == status.get("id") and status.get("phase") in ["pending","hire","end"]
 
 func observe() -> void:
@@ -33,18 +35,22 @@ func observe() -> void:
 		return
 	var campaign: Dictionary = ui.campaign()
 	var player: Dictionary = campaign.get("playerProfile", {})
-	if player.get("firstLife", false) and status.is_empty():
-		if not await request("first_start", {"journey_id":ui.campaign_identity.current_id, "memberId":player.memberId, "name":player.name}):
-			return
+	var live_member_id := str(player.get("memberId", ""))
+	var base_member_id := live_member_id.trim_suffix("_successor")
+	if player.get("created", false) and not base_member_id.is_empty():
+		var can_start: bool = status.is_empty() or (status.get("phase") in ["hire", "end"] and ui.campaign_identity.current_id != status.get("id"))
+		if can_start:
+			if not await request("first_start", {"journey_id":ui.campaign_identity.current_id, "memberId":base_member_id, "name":str(player.get("name", ""))}):
+				return
 	if status.get("phase") == "alive" and ui.campaign_identity.current_id == status.id and ui.data.get("trial") == null:
 		var result: Variant = campaign.get("result")
-		var death: bool = result is Dictionary and result.get("firstDeath", false)
+		var death: bool = result is Dictionary and (result.get("firstDeath", false) or result.get("playerDeath", false))
 		var battle: Variant = campaign.get("battle")
-		if battle is Dictionary and battle.get("resultKind") == "defeat":
-			for unit in battle.units:
-				if unit.id == status.memberId and unit.hp == 0:
+		if battle is Dictionary and not live_member_id.is_empty():
+			for unit in battle.get("units", []):
+				if unit.id == live_member_id and int(unit.get("hp", 1)) <= 0:
 					death = true
-		if death and not await request("first_death", {"journey_id":status.id, "portrait":ui.portraits.metadata.characters.get(status.memberId)}):
+		if death and not await request("first_death", {"journey_id":status.id, "portrait":ui.portraits.metadata.characters.get(live_member_id)}):
 			return
 	if status.get("phase") == "pending":
 		ui.sync_audio()

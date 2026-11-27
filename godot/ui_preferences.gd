@@ -6,15 +6,19 @@ const Tokens=preload("res://ui_tokens.gd")
 const DEFAULT_DIALOG_SIZE=Vector2(840,620)
 const TITLE_HEIGHT=Tokens.WINDOW_BAR_HEIGHT
 const TITLE_MARGIN=Vector2(0,Tokens.WINDOW_BAR_HEIGHT+Tokens.SPACE_XS)
-const PATH="user://ui-layout-v1.cfg"
+const UserDataPaths=preload("res://user_data_paths.gd")
+const SETTINGS_FILE="ui-layout-v1.cfg"
 var config=ConfigFile.new()
 const DEFAULT_CLOUD_SPEED := 0.1
 const MAX_CLOUD_SPEED := 1.0
 var cloud_speed := DEFAULT_CLOUD_SPEED
 var reduced_motion := false
 
+func _path() -> String:
+	return UserDataPaths.file_path(SETTINGS_FILE)
+
 func _init():
-	config.load(PATH)
+	config.load(_path())
 	var stored = config.get_value("background", "cloud_speed", DEFAULT_CLOUD_SPEED)
 	if (stored is float or stored is int) and is_finite(float(stored)):
 		cloud_speed = clampf(float(stored), 0.0, MAX_CLOUD_SPEED)
@@ -42,7 +46,7 @@ func camera() -> Dictionary:
 	return value if value is Dictionary else {}
 func store_camera(value: Dictionary):config.set_value("battle","camera",value);save()
 func save():
-	var error=config.save(PATH)
+	var error=config.save(_path())
 	if error!=OK:push_warning("UI preferences could not be saved: %s" % error)
 
 func default_window_rect(available: Vector2,extent: Vector2) -> Rect2:

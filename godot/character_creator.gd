@@ -200,10 +200,11 @@ func open() -> void:
 	job_buttons.clear()
 	for spec in JOBS:
 		var jid := str(spec["id"])
-		var btn: Button = ui.button(job_grid, str(spec["label"]), func():
+		var btn: Button = ui.local_button(job_grid, str(spec["label"]), func():
 			selected_job = jid
 			_refresh()
-		, not returning_player and jid != "job_porter")
+		)
+		btn.disabled = not returning_player and jid != "job_porter"
 		btn.name = "CreatorJob_" + jid
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		job_buttons[jid] = btn
@@ -309,9 +310,20 @@ func _layout() -> void:
 
 func _pick_image() -> void:
 	if reading_image or _submitting:return
+	if portrait_entry.is_empty():
+		ui.file_dialog(FileDialog.FILE_MODE_OPEN_FILE, PackedStringArray([Portraits.FILE_FILTER]), _read_image)
+		return
+	_open_portrait_editor()
+
+func _open_portrait_editor() -> void:
+	if not is_open() or reading_image or _submitting:return
 	var member := _preview_member(_matched_member()).duplicate()
 	member.name = name_input.text.strip_edges()
-	ui.pages.party_view.workspace.show_portrait_editor(member, portrait_entry, _apply_image, _read_image)
+	visible = false
+	ui.pages.party_view.workspace.show_portrait_editor(member, portrait_entry, _apply_image, _read_image, func():
+		if is_open():
+			visible = true
+	)
 
 func _read_image(path: String) -> void:
 	if not is_open() or reading_image or _submitting:return
@@ -321,11 +333,12 @@ func _read_image(path: String) -> void:
 	if not is_open() or panel != owner_panel:return
 	reading_image = false
 	if not reply.get("ok", false):
+		visible = true
 		image_message.text = reply.get("error", "画像を読み込めませんでした")
 		image_message.show()
 		return
 	_apply_image(reply.data)
-	_pick_image()
+	_open_portrait_editor()
 
 func _apply_image(entry: Dictionary) -> void:
 	portrait_entry = entry

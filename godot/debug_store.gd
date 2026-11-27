@@ -1,7 +1,8 @@
 extends Node
 ## Debug-only, local diagnostics. The rules/file workers never await this worker.
+const UserDataPaths=preload("res://user_data_paths.gd")
 const BUILD="89c4990+debug-store-v1"
-const PATH="user://diagnostics/debug.sqlite"
+const DB_REL_PATH="diagnostics/debug.sqlite"
 const MAX_QUEUE=256
 const BATCH_SIZE=32
 const FLUSH_INTERVAL=.2
@@ -104,7 +105,7 @@ func pump(timeout_budget_ms: int=WORKER_START_TIMEOUT_MS):
  if transport.handles.is_empty():
   # The first acknowledgement includes Python startup and SQLite initialization.
   timeout_ms=WORKER_START_TIMEOUT_MS
-  if not transport.start(python_program,PackedStringArray(["-X","utf8","-B",worker_script,"--db",ProjectSettings.globalize_path(PATH)])):
+  if not transport.start(python_program,PackedStringArray(["-X","utf8","-B",worker_script,"--db",UserDataPaths.file_path(DB_REL_PATH)])):
    pumping=false;disable("記録プロセスを起動できません");return
  var events=queue.slice(0,BATCH_SIZE)
  queue=queue.slice(events.size())

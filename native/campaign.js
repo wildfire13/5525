@@ -546,6 +546,7 @@ const Campaign = (() => {
     b.itemInventories=Object.fromEntries(ids.map(id=>[id,Object.fromEntries(items.map(item=>[item.id,I.count(s.characters[id].inventory,item.id)]))]));
     const preset=deploymentPreset(ids,j.formation);for(const u of b.units.filter(u=>u.side==='ally')){u.pos=preset.units.find(p=>p.id===u.id).pos;u.name=displayName(s,u.id);}
     applyAllyEquipment(s,b);
+    if(s.playerProfile?.created)b.playerId=s.playerProfile.memberId;
     b.campaignToken=j.token;b.campaignStage=j.stage;
     if(ambush){
       const chief=b.units.find(u=>u.id==='enemy-guard');
@@ -653,13 +654,13 @@ const Campaign = (() => {
   function finishBattle(s) {
     const b=s.battle,j=s.journey;
     if(s.phase!=='battle'||!b?.result||!j||b.campaignToken!==j.token||b.campaignStage!==j.stage)return false;
-    const allies=b.units.filter(u=>u.side==='ally'),failed=allies.some(u=>u.job==='job_porter'&&u.hp<=0)||allies.every(u=>u.hp<=0)||!!b.failure;
+    const allies=b.units.filter(u=>u.side==='ally'),playerDead=Boolean(s.playerProfile?.created&&allies.some(u=>u.id===s.playerProfile.memberId&&u.hp<=0)),failed=playerDead||allies.some(u=>u.job==='job_porter'&&u.hp<=0)||allies.every(u=>u.hp<=0)||!!b.failure;
     if(failed){
-      if(s.playerProfile?.firstLife&&allies.some(u=>u.id===s.playerProfile.memberId&&u.hp===0)){
+      if(playerDead){
         if(s.activeQuest?.cargoItemId)delete s.characters[s.activeQuest.cargoOwnerId].inventory[s.activeQuest.cargoItemId];
         for(const ally of allies)s.characters[ally.id].hp=ally.hp;
         invalidateInventory(s);
-        s.result={outcome:'failed',firstDeath:true,reason:s.playerProfile.name+'は旅の途中で命を落とした。',gold:0,xp:0};
+        s.result={outcome:'failed',firstDeath:true,playerDeath:true,reason:s.playerProfile.name+'は旅の途中で命を落とした。',gold:0,xp:0};
         s.phase='result';s.activeQuest=null;s.rollback=null;s.journey=null;s.battle=null;
         return true;
       }
@@ -1152,7 +1153,7 @@ const Campaign = (() => {
   }
 
   function validatePredecessor(p){
-    demand(record(p)&&B.recruitRoster.some(t=>t.id===p.memberId&&t.job==='job_porter')&&typeof p.name==='string'&&p.name.trim().length>0&&p.name.length<=16&&typeof p.hire==='boolean','初代の人物情報');
+    demand(record(p)&&B.recruitRoster.some(t=>t.id===p.memberId)&&typeof p.name==='string'&&p.name.trim().length>0&&p.name.length<=16&&typeof p.hire==='boolean','初代の人物情報');
   }
   function validateRoster(s,version) {
     demand(Array.isArray(s.history)&&s.history.length<=200&&s.history.every(x=>typeof x==='string'),'履歴');
@@ -1248,6 +1249,7 @@ const Campaign = (() => {
       demand(Array.isArray(b.units)&&b.units.length>=(s.phase==='deployment'?1:2)&&b.units.length<=10&&new Set(b.units.map(u=>u.id)).size===b.units.length,'戦闘人数');
       demand(JSON.stringify(b.units.filter(u=>u.side==='ally').map(u=>u.id))===JSON.stringify(ids),'味方の一致');
       demand(b.units.some(u=>u.side==='enemy')&&b.units.every(u=>['ally','enemy'].includes(u.side)),'敵味方');
+      demand(b.playerId===undefined||(s.playerProfile?.created&&b.playerId===s.playerProfile.memberId),'戦闘中の主人公');
       if(j.banditAmbush&&!j.returning&&j.stage===1)demand(b.banditChiefId==='enemy-guard'&&b.units.some(u=>u.id===b.banditChiefId&&u.side==='enemy'&&u.rank==='strong'),'初配達の頭目');
       else demand(b.banditChiefId===undefined,'待ち伏せ以外の頭目');
       demand(integer(b.actions)&&record(b.potions)&&integer(b.potions.ally,0,99)&&integer(b.potions.enemy,0,99)&&Array.isArray(b.log)&&b.log.every(line=>typeof line==='string')&&Array.isArray(b.recentEnemies)&&b.recentEnemies.every(e=>record(e)&&typeof e.name==='string'&&typeof e.action==='string'),'戦闘資源');

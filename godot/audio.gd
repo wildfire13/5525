@@ -20,7 +20,10 @@ var quest_id := ""
 var journey_key := ""
 var current_bgm := ""
 var quest_loaded := ""
-const SETTINGS_PATH="user://audio-settings-v1.cfg"
+const UserDataPaths=preload("res://user_data_paths.gd")
+const SETTINGS_FILE="audio-settings-v1.cfg"
+func _settings_path() -> String:
+	return UserDataPaths.file_path(SETTINGS_FILE)
 # 100% retains the delivered mix; the control scales its amplitude, not dB.
 const MIX_DB={"bgm":-6.0,"voice":0.0,"se":-4.0,"ui":-6.0}
 var muted := {"bgm":false,"voice":false,"se":false}
@@ -90,7 +93,11 @@ func load_bgm(path: String,loop:=true) -> AudioStream:
 	if path.get_extension().to_lower()=="mp3":
 		var key=path+str(loop)
 		if streams.has(key):return streams[key]
-		var stream=load(path) as AudioStreamMP3
+		var stream: AudioStreamMP3 = null
+		if FileAccess.file_exists(path):
+			stream = AudioStreamMP3.load_from_file(path)
+		if stream == null and ResourceLoader.exists(path):
+			stream = load(path) as AudioStreamMP3
 		if stream!=null:
 			stream.loop=loop
 			if loop:stream.loop_offset=0.0
@@ -139,12 +146,13 @@ func sync(d: Dictionary, town_route := "", first_death_pending := false) -> void
 	if phase=="arrival": key=str(c.get("journey",{}).get("destination",key))
 	var player: Dictionary = c.get("playerProfile", {})
 	var death := first_death_pending
-	if d.get("trial")==null and player.get("firstLife",false):
+	if d.get("trial")==null and player.get("created",false):
 		var outcome: Variant = c.get("result")
-		if outcome is Dictionary and outcome.get("firstDeath",false):death=true
-		if state.get("resultKind")=="defeat":
+		if outcome is Dictionary and (outcome.get("firstDeath",false) or outcome.get("playerDeath",false)):death=true
+		var player_id := str(player.get("memberId",""))
+		if not player_id.is_empty():
 			for unit in state.get("units",[]):
-				if unit.id==player.memberId and unit.hp==0:death=true
+				if unit.id==player_id and int(unit.get("hp",1))<=0:death=true
 	if death:
 		on_road=false
 		key="rip"
@@ -211,7 +219,7 @@ func apply_levels():
 		ui_player.stop()
 func load_settings():
 	var config=ConfigFile.new()
-	if config.load(SETTINGS_PATH)!=OK:return
+	if config.load(_settings_path())!=OK:return
 	for kind in muted:
 		var mute=config.get_value(kind,"muted",muted[kind]);var percent=config.get_value(kind,"volume",volumes[kind])
 		if mute is bool:muted[kind]=mute
@@ -219,10 +227,11 @@ func load_settings():
 func save_settings():
 	if test_silence:return
 	# Read before write so independent local preferences are not discarded.
-	var config=ConfigFile.new();config.load(SETTINGS_PATH)
+	var path := _settings_path()
+	var config=ConfigFile.new();config.load(path)
 	for kind in muted:
 		config.set_value(kind,"muted",muted[kind]);config.set_value(kind,"volume",volumes[kind])
-	var error=config.save(SETTINGS_PATH)
+	var error=config.save(path)
 	if error!=OK:push_warning("Audio preferences could not be saved: %s" % error)
 func sluice_signal() -> void:
 	if audible("se"):

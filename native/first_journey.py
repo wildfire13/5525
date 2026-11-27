@@ -32,24 +32,38 @@ def handle(request, file_operation, write_save, max_size):
         db.execute('BEGIN IMMEDIATE')
         db.execute('CREATE TABLE IF NOT EXISTS journey (singleton INTEGER PRIMARY KEY CHECK(singleton=1), id TEXT, member TEXT, name TEXT, phase TEXT)')
         db.execute('CREATE TABLE IF NOT EXISTS saves (path TEXT PRIMARY KEY)')
+        db.execute('CREATE TABLE IF NOT EXISTS ended_journeys (id TEXT PRIMARY KEY)')
         if action == 'first_start':
             ident = request['journey_id']
             if not re.fullmatch('[a-f0-9]{32}', ident):
                 raise ValueError('進行の識別情報が不正です')
-            db.execute("INSERT OR IGNORE INTO journey VALUES (1,?,?,?,'alive')",
-                       (ident, request['memberId'], request['name']))
+            existing = db.execute('SELECT id,phase FROM journey').fetchone()
+            if existing is None:
+                db.execute("INSERT INTO journey VALUES (1,?,?,?,'alive')",
+                           (ident, request['memberId'], request['name']))
+            elif existing[1] in ('hire', 'end') and existing[0] != ident:
+                db.execute('INSERT OR IGNORE INTO ended_journeys VALUES (?)', (existing[0],))
+                db.execute("UPDATE journey SET id=?, member=?, name=?, phase='alive' WHERE singleton=1",
+                           (ident, request['memberId'], request['name']))
         row = db.execute('SELECT id,member,name,phase FROM journey').fetchone()
         if row is None:
             return {} if action == 'first_status' else file_operation(request)
         ident, member, name, phase = row
+        ended_ids = {r[0] for r in db.execute('SELECT id FROM ended_journeys').fetchall()}
+        if phase != 'alive':
+            ended_ids.add(ident)
         if action.startswith('first_'):
             if action not in ('first_start','first_status') and request['journey_id'] != ident:
                 raise ValueError('進行の識別情報が不正です')
             db.execute('CREATE TABLE IF NOT EXISTS first_portrait (singleton INTEGER PRIMARY KEY CHECK(singleton=1), entry TEXT NOT NULL)')
             if action == 'first_death' and phase == 'alive':
                 phase = 'pending'
+                ended_ids.add(ident)
+                db.execute('INSERT OR IGNORE INTO ended_journeys VALUES (?)', (ident,))
                 if request.get('portrait') is not None:
-                    db.execute('INSERT INTO first_portrait VALUES (1,?)', (json.dumps(request['portrait']),))
+                    db.execute('INSERT OR REPLACE INTO first_portrait VALUES (1,?)', (json.dumps(request['portrait']),))
+                else:
+                    db.execute('DELETE FROM first_portrait')
             if action == 'first_choose':
                 choice = request.get('hire')
                 if type(choice) is not bool or phase not in ('pending', 'hire' if choice else 'end'):
@@ -66,12 +80,13 @@ def handle(request, file_operation, write_save, max_size):
                 db.execute('BEGIN IMMEDIATE')
                 for (filename,) in db.execute('SELECT path FROM saves').fetchall():
                     try:
-                        retire_save(filename, ident, write_save, max_size)
+                        for eid in ended_ids:
+                            retire_save(filename, eid, write_save, max_size)
                     except (OSError, ValueError):
                         deferred += 1
                     else:
                         db.execute('DELETE FROM saves WHERE path=?', (filename,))
-            result = {'id':ident,'memberId':member,'name':name,'phase':phase,'deferred':deferred}
+            result = {'id':ident,'memberId':member,'name':name,'phase':phase,'deferred':deferred,'endedIds':sorted(ended_ids)}
             if phase == 'hire':
                 portrait = db.execute('SELECT entry FROM first_portrait').fetchone()
                 if portrait:
@@ -79,10 +94,11 @@ def handle(request, file_operation, write_save, max_size):
             return result
         saving = action in ('write','recover_write')
         data = request.get('data') if saving else file_operation(request)
-        if isinstance(data, dict) and data.get('godotCampaignId') == ident:
-            if phase != 'alive':
+        if isinstance(data, dict):
+            save_id = data.get('godotCampaignId')
+            if save_id in ended_ids:
                 raise ValueError(ENDED)
-            if data.get('format') == '5525-native-campaign':
+            if save_id == ident and data.get('format') == '5525-native-campaign':
                 path = Path(request['path'])
                 filename = str(path.parent.resolve() / path.name)
                 db.execute('INSERT OR IGNORE INTO saves VALUES (?)', (filename,))
