@@ -20,10 +20,9 @@ func display(message: String,path: String=""):
 		return
 	pivot_offset=size*0.5;modulate.a=0.0;scale=Vector2(0.975,0.975)
 	fade=create_tween()
-	fade.set_parallel(true)
 	fade.tween_property(self,"modulate:a",1.0,UiMotion.BASE).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
-	fade.tween_property(self,"scale",Vector2.ONE,UiMotion.BASE).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
-	fade.chain().tween_interval(5.0)
+	fade.parallel().tween_property(self,"scale",Vector2.ONE,UiMotion.BASE).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
+	fade.tween_interval(5.0)
 	fade.tween_property(self,"modulate:a",0.0,UiMotion.EMPHASIS).set_trans(UiMotion.TRANS).set_ease(UiMotion.EASE)
 	fade.tween_callback(_hide_notice)
 func _hide_notice():

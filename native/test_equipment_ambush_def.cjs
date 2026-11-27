@@ -49,7 +49,7 @@ try{
   C.depart(s,'east');C.travel(s,'safe',()=>.3);
   const actor=s.battle.units.find(u=>u.id==="character_rio");
   check(B.skillLevel(actor)===level,'normal battle uses gear level independent of team/personal levels');
-  const scouts=s.battle.units.filter(u=>u.job==='job_scout'&&u.side==='enemy');check(scouts.length>0,'fixture actually contains enemy scout');
+  const scouts=s.battle.units.filter(u=>u.equipment?.rightHand===dagger.id&&u.side==='enemy');check(scouts.length>0,'fixture actually contains enemy scout');
   for(const enemy of scouts)check(B.skillLevel(enemy)===level,'enemy uses same gear definition');
   s.location='east';s.phase='town';s.journey=null;s.battle=null;s.rollback=null;
   const t=C.trial(s,"character_rio",'dagger-wood');check(B.skillLevel(t.battle.units.find(u=>u.id==="character_rio"))===level,'trial uses same gear level');

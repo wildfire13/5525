@@ -244,6 +244,7 @@
     "inn"
    ],
    "label": "施設スタッフ",
+   "caption_row": -1,
    "nodes": [
     "FacilityNpcRegion",
     "InnKeeper"
@@ -364,6 +365,8 @@
     "window"
    ],
    "label": "人物情報",
+   "window_slot": "window_person",
+   "caption_row": 1,
    "nodes": [
     "CharacterLoadoutPanel",
     "MemberLoadoutPanel",
@@ -392,6 +395,7 @@
     "window"
    ],
    "label": "インベントリ",
+   "caption_row": -2,
    "nodes": [
     "RegionInventory"
    ],
@@ -703,6 +707,7 @@
     "complete"
    ],
    "label": "結果・報酬",
+   "caption_slot": "bottom_right",
    "nodes": [
     "ResultSummary"
    ],
@@ -714,6 +719,7 @@
     "complete"
    ],
    "label": "人物別結果",
+   "caption_row": 1,
    "nodes": [
     "ResultMembersScroll"
    ],
@@ -765,6 +771,7 @@
     "window"
    ],
    "label": "明細本文",
+   "caption_row": 1,
    "nodes": [
     "ModalDetailScroll",
     "SkillDetailsSummary"
@@ -776,6 +783,7 @@
     "window"
    ],
    "label": "確認見出し",
+   "window_slot": "window_heading",
    "nodes": [
     "ConfirmationHeading"
    ],
@@ -837,6 +845,7 @@
     "window"
    ],
    "label": "確認メッセージ",
+   "window_slot": "below",
    "nodes": [
     "ConfirmationMessage"
    ],
@@ -1017,6 +1026,7 @@
     "window"
    ],
    "label": "明細見出し",
+   "window_slot": "window_heading",
    "nodes": [
     "SkillDetailsTitle",
     "ModalHeading"

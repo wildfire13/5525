@@ -51,12 +51,12 @@ func image_for(u: Dictionary) -> Image:
 			file = "characters/" + str(u.portraitKey) + ".png"
 		elif characters.has(u.get("id","")):
 			file = "characters/" + str(characters[u.id].portraitKey) + ".png"
-	if u.get("side","ally") == "enemy": file = "enemy/enemy_" + file
 	var path = ProjectSettings.globalize_path("res://../native/assets/").path_join(file)
 	if not FileAccess.file_exists(path): return null
 	return Image.load_from_file(path)
 func texture(u: Dictionary, face := false) -> Texture2D:
 	var key = str(u.get("side","ally")) + ":" + str(u.get("id",u.get("image","")))
+	if u.get("side","ally") == "enemy": key = "enemy:" + str(u.get("image",""))
 	var cache = faces if face else textures
 	if cache.has(key): return cache[key]
 	var img = image_for(u)

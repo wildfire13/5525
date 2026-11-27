@@ -12,7 +12,10 @@ func battle_loadout(side: String):
 	region(node("ModalActions"))
 	check(node("BattleItemDetail")==null,side+" detail pane hidden until an item is selected")
 	check(node("BattleSlot_rightHand")!=null,side+" equipment hit target exists")
+	var person_at=caption_position("人物情報",game.dialog.window)
+	var body_at=caption_position("明細本文",game.dialog.window)
 	await mouse_press(node("BattleLoadoutTab_inventory"))
+	check(person_at==caption_position("人物情報",game.dialog.window) and body_at==caption_position("明細本文",game.dialog.window),side+" loadout captions stay in place across tabs")
 	region(node("LoadoutTabBar"));region(node("RegionInventory"))
 	region(node("ModalActions"))
 	var entries=node("BattleInventory")
@@ -101,6 +104,35 @@ func facility_menu_input(facility: String):
 	if game.menu.visible:game.menu.hide()
 	if game.page==facility:await mouse_press(node("FacilityExit"))
 	check(game.page=="hub",facility+" exit works after menu is closed")
+func caption_position(label_name: String,window: Window=null) -> Vector2:
+	game.ui_labels.refresh()
+	for entry in game.ui_labels.overlays[window if window!=null else root].captions:
+		if entry[0]==game.ui_labels.CATALOG.data.prefix+label_name:return entry[1].position
+	check(false,"missing caption "+label_name)
+	return Vector2.INF
+
+func check_shared_captions():
+	game.navigate("inn");await settle()
+	var staff=caption_position("施設スタッフ")
+	await mouse_press(node("FacilityChoice_inn"))
+	check(caption_position("施設スタッフ")==staff,"staff caption stays in place when entering inn")
+	game.navigate("character");await settle()
+	var gear=node("CharacterSlot_upperBody")
+	game.checks_fast=false
+	game.preferences.reduced_motion=true
+	gear.show_hover()
+	check(gear.hover_window.modulate.a==1.0 and gear.hover_window.scale==Vector2.ONE,"gear hover opens immediately with reduced motion")
+	gear.close_hover()
+	game.preferences.reduced_motion=false
+	game.checks_fast=true
+	game.pages.party_view.workspace.set_tab("inventory");await settle()
+	var person=caption_position("人物情報")
+	var inventory=caption_position("インベントリ")
+	game.navigate("party");await settle()
+	await mouse_press(node("FacilityChoice_warehouse"))
+	game.pages.party_view.workspace.set_tab("inventory");await settle()
+	check(caption_position("人物情報")==person and caption_position("インベントリ")==inventory,"character and warehouse share caption positions")
+
 func run():
 	create_timer(100).timeout.connect(func():quit(2))
 	root.size=Vector2i(1920,1080);game=load("res://main.tscn").instantiate();root.add_child(game)
@@ -109,6 +141,8 @@ func run():
 	check(root.size==Vector2i(1920,1080),"FHD game viewport")
 	await facility_menu_input("inn")
 	await facility_menu_input("party")
+	await check_shared_captions()
+	game.navigate("hub");await settle()
 	var home=await saved()
 	var east=home.duplicate(true);east.state.location="east"
 	await game.update({"op":"campaign_load","data":east})
@@ -121,7 +155,16 @@ func run():
 	check(volume.get_theme_color("font_color")==game.mock_shell.INK,"menu volume uses the shared dark text")
 	check(game.menu.get_theme_stylebox("panel").bg_color.a==1.0,"map text cannot show through the menu")
 	await shot("menu")
-	game.menu.hide();game.save_notice.display("グリッド通知");await settle();region(game.save_notice)
+	game.checks_fast=false
+	var preview=node("PalettePreviewButton")
+	await mouse_press(preview)
+	await create_timer(.25).timeout
+	check(preview.is_hovered() and preview.scale.x>1.0,"menu button keeps its hover appearance after release")
+	game.menu.hide();game.save_notice.display("グリッド通知")
+	await create_timer(.5).timeout
+	check(game.save_notice.visible and game.save_notice.modulate.a==1.0,"notice remains readable after its entrance")
+	region(game.save_notice)
+	game.checks_fast=true
 	game.dialog.open("グリッド詳細",func(body,actions):
 		game.label_(body,"内容と入力を保持する詳細")
 		game.local_button(actions,"閉じる",game.dialog.close).name="GridClose")

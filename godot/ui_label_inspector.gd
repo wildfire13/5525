@@ -3,6 +3,7 @@ extends CanvasLayer
 const CATALOG = preload("res://ui_labels.json")
 const FONT = preload("res://assets/fonts/NotoSansJP.ttf")
 const Grid = preload("res://screen_grid.gd")
+const Tokens = preload("res://ui_tokens.gd")
 const FONT_SIZE = 14
 const INK = Color("#665775")
 const PAPER = Color("#fffdf5")
@@ -24,7 +25,7 @@ class RegionOverlay extends Control:
 		for caption in captions:
 			var baseline: Vector2 = caption[1].position + Vector2(0, FONT.get_ascent(FONT_SIZE))
 			draw_rect(caption[1].grow(1), PAPER)
-			draw_string(FONT, baseline, caption[0], HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, INK)
+			draw_string(FONT, baseline, caption[0], HORIZONTAL_ALIGNMENT_LEFT, caption[1].size.x, FONT_SIZE, INK)
 
 func setup(game):
 	ui = game
@@ -170,7 +171,7 @@ func occupied_text(window: Window, bounds: Rect2) -> Array[Rect2]:
 		occupied.append(rect)
 	return occupied
 
-func place(captions: Array, text: String, area: Rect2, bounds: Rect2, occupied: Array[Rect2]):
+func place(captions: Array, text: String, area: Rect2, bounds: Rect2, occupied: Array[Rect2], preferred_row: int = 0, slot: String = ""):
 	var extent: Vector2
 	if _text_extents.has(text):
 		extent = _text_extents[text]
@@ -179,8 +180,27 @@ func place(captions: Array, text: String, area: Rect2, bounds: Rect2, occupied: 
 		_text_extents[text] = extent
 	var corner = (area.end-extent-Vector2(6,2)).clamp(Vector2.ONE*2,(bounds.end-extent-Vector2.ONE*2).max(Vector2.ONE*2)).floor()
 	var box = Rect2(corner,extent)
+	# Fixed captions use the region edge or the free strip below the window bar.
+	if slot != "":
+		var line = extent.y + 2
+		match slot:
+			"below": box.position.y = area.end.y + 2
+			"window_title": box.position = Vector2(6, Tokens.WINDOW_BAR_HEIGHT)
+			"window_heading": box.position.y = Tokens.WINDOW_BAR_HEIGHT + line
+			"window_person": box.position = Vector2(area.position.x + 6, Tokens.WINDOW_BAR_HEIGHT + 2 * line)
+			"result_title": box.position.x = floorf(bounds.size.x * 0.6)
+		box.size.x = minf(box.size.x, bounds.size.x - 4)
+		box.position = box.position.clamp(Vector2.ONE * 2, (bounds.end - box.size - Vector2.ONE * 2).max(Vector2.ONE * 2))
+		captions.append([text,box])
+		occupied.append(box.grow(2))
+		return
 	# Prefer the same edge, then the adjoining margin, before moving up the panel.
-	for dy in [0,extent.y+4,-extent.y-3,-2*(extent.y+3),2*(extent.y+3),-3*(extent.y+3)]:
+	var offsets = [0,extent.y+4,-extent.y-3,-2*(extent.y+3),2*(extent.y+3),-3*(extent.y+3)]
+	if preferred_row != 0:
+		var preferred = preferred_row * (extent.y + (4 if preferred_row > 0 else 3))
+		offsets.erase(preferred)
+		offsets.push_front(preferred)
+	for dy in offsets:
 		for dx in range(0,ceili(maxf(area.size.x,extent.x)),32):
 			var candidate = Rect2(corner+Vector2(-dx,dy),extent)
 			if candidate.position.x < minf(area.position.x,corner.x)-2: break
@@ -223,6 +243,8 @@ func refresh():
 	for window in overlays:
 		if not window.visible: continue
 		var screen = screen_id(window)
+		if screen == "menu" and not ui.menu.scale.is_equal_approx(Vector2.ONE):
+			continue
 		var bounds: Rect2 = window.get_visible_rect()
 		var title: String = CATALOG.data.screens[screen].label
 		if screen == "window": title += "／" + window.title
@@ -230,7 +252,11 @@ func refresh():
 		var underneath = screen_id(window, false) if screen in ["menu","story","file"] else screen
 		var occupied=occupied_text(window,bounds)
 		var captions := []
-		place(captions, "場面：" + title, Rect2(Vector2.ZERO, Vector2(bounds.size.x * 0.68, 30)), bounds, occupied)
+		var title_slot = ""
+		if screen in ["window","debug"]: title_slot = "window_title"
+		elif screen in ["victory","complete","result"]: title_slot = "result_title"
+		place(captions, "場面：" + title, Rect2(Vector2.ZERO, Vector2(bounds.size.x * 0.68, 30)), bounds, occupied, 0, title_slot)
+		var labeled_areas := {}
 		for node in controls.get(window, []):
 			if not is_instance_valid(node) or not node.is_visible_in_tree() or node.is_queued_for_deletion(): continue
 			for region in definitions[str(node.get_meta("ui_region",node.name))]:
@@ -239,7 +265,12 @@ func refresh():
 				var area = region_box(node,window,region)
 				if area.size.x < 12 or area.size.y < 10: continue
 				var caption: String = CATALOG.data.prefix + region.label
-				place(captions, caption, area, bounds, occupied)
+				if not labeled_areas.has(caption): labeled_areas[caption] = []
+				if labeled_areas[caption].has(area): continue
+				labeled_areas[caption].append(area)
+				var slot = region.get("caption_slot","")
+				if screen == "window": slot = region.get("window_slot",slot)
+				place(captions, caption, area, bounds, occupied, region.get("caption_row", 0), slot)
 		# Godot draws these popup windows above the parent canvas. Mark the adjoining
 		# edge on the parent so review text cannot cover the choices or the hint.
 		for popup in hint_windows:
@@ -261,4 +292,8 @@ func _process(delta):
 	elapsed += delta
 	if elapsed >= 0.12:
 		elapsed = 0.0
-		refresh()
+		# Containers finish sorting after _process. Measure the layout that will be drawn.
+		if DisplayServer.get_name() == "headless":
+			refresh()
+		elif not RenderingServer.frame_pre_draw.is_connected(refresh):
+			RenderingServer.frame_pre_draw.connect(refresh, CONNECT_ONE_SHOT)

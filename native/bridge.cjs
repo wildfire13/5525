@@ -133,7 +133,9 @@ function trip(action,args=[]) {
   const ok=J[action](journey,...args);
   if(ok&&action==='travel') {
     const s=journey,count=s.route==='short'?(s.stage===0?3:4):(s.stage===0?2:3);
-    state=B.create({ally:s.selected,enemy:J.randomEnemies(count),formation:s.formation,previous:s.party,
+    const enemy=J.randomEnemies(count);
+    state=B.create({ally:s.selected,enemy,strongEnemy:s.stage===1?Math.floor(Math.random()*count):-1,
+      appearanceRolls:enemy.map(()=>Math.random()),formation:s.formation,previous:s.party,
       bonusMp:s.kit==='ether'?2:0,skillStage:s.level,potions:s.potions,enemyPotions:s.stage===0?0:1,deployment:true});
     s.history.push('遭遇：'+state.units.filter(u=>u.side==='enemy').map(u=>u.role).join('・'));
     deploymentInitial=state.units.filter(u=>u.side==='ally').map(u=>({id:u.id,pos:u.pos}));

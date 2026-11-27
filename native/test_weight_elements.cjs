@@ -47,6 +47,7 @@ assert(master.gear.some(x=>x.def>0)&&master.gear.some(x=>x.defFire>0)&&master.ge
  assert(C.finishBattle(s));assert(C.onward(s));const road=clone(s);assert(C.travel(s,'short',()=>0.9));
  const enemies=s.battle.units.filter(u=>u.side==='enemy');
  assert.deepEqual(enemies.map(u=>u.inventory.potion),[0,0,0,1]);
+ assert.deepEqual(enemies.map(u=>u.rank),['normal','normal','normal','strong']);
  for(const ally of s.battle.units.filter(u=>u.side==='ally'&&u.hp>0)){
    assert.equal(ally.fallenWeightShare,burden/(alive-1));
  }

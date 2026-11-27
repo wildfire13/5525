@@ -6,6 +6,7 @@ const Battle = (() => {
   const {items}=require('./character-inventory.js');
   const {definitions:equipmentSkills}=require('./equipment-skills.js');
   const IDs=require('./semantic-ids.cjs');
+  const appearances=require('./enemy-appearance.cjs');
   const hasEffect=(a,id)=>(a.effects||[]).includes(id);
   // Equipped contributions remain distinct. Legacy standalone fixtures have
   // no source metadata and retain one contribution per enabled effect.
@@ -105,7 +106,14 @@ const Battle = (() => {
   // positions. In a two-Porter party, only non-Porters can complete the line.
   const formation = (s,side="ally") => {const cells=formationSlots(s,side);return cells.length===3&&cells.every(p=>p>=0&&p<50&&alive(s).some(u=>u.side===side&&u.job!=='job_porter'&&u.pos===p));};
   // 仮接続：槌装備でスタンプを試せる。完成版の習得・使用条件は未決定。
-  const activeSkills = a => a.activeSkills||[a.job==='job_porter'?'skill_formation_boost':a.equippedSkill || (a.weapon==='hammer'?'skill_stamp':IDs.defaultSkill[a.job])].filter(Boolean);
+  function activeSkills(a){
+    if(a.activeSkills)return a.activeSkills;
+    if(a.job==='job_porter')return ['skill_formation_boost'];
+    if(a.equippedSkill)return [a.equippedSkill];
+    if(a.weapon==='hammer')return ['skill_stamp'];
+    if(a.side==='enemy' && a.weapon==='bow')return ['skill_snipe'];
+    return [IDs.defaultSkill[a.job]].filter(Boolean);
+  }
   // A grant has an identity independent of the shared effect definition.
   // The slot ordinal also distinguishes repeated grants within one item.
   function grantOptions(a,ids) {
@@ -533,6 +541,13 @@ const Battle = (() => {
       members.forEach((t,index)=>{
         const roleIndex=templates.findIndex(p=>t.id==='warrior'?p.id===t.id:p.job===t.job),old=side==='ally'?options.previous?.find(p=>p.id===t.id):null;
         const maxMp=old?.maxMp??t.mp+(side==='ally'?(options.bonusMp||0):0);
+        if(side==='enemy'){
+          const pool=appearances.candidates(t,index===options.strongEnemy?'strong':'normal');
+          if(pool.length){
+            const pick=options.appearanceRolls ? Math.floor(options.appearanceRolls[index]*pool.length) : index%pool.length;
+            appearances.assign(t,pool[pick]);
+          }
+        }
         units.push({...t,id:side==='ally'?t.id:'enemy-'+t.id,side,name:side==='ally'?t.name:'敵'+t.role+(options.enemy?' '+(index+1):''),pos:side==='ally'?t.pos:y(t.pos)*10+9-x(t.pos),hp:old?.hp??t.max,mp:old?.mp??maxMp,maxMp,def:0,...(options.skillStage!==undefined?{skillStage:options.skillStage}:{}),next:100/t.agi,guard:false,cover:null,tie:roleIndex*4+(side===(roleIndex%2?'ally':'enemy')?0:1)+index*.01});
       });
     }

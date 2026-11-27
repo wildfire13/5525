@@ -45,7 +45,7 @@ func present():
 	_placed_sig=[]
 	place()
 	show()
-	UiMotion.reveal(self,self,UiMotion.FAST,0.975)
+	UiMotion.reveal(self,source,UiMotion.FAST,0.975)
 
 func measure_body_height() -> float:
 	if not body.visible:return 0.0

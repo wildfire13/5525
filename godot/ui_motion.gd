@@ -93,8 +93,7 @@ static func bind_button(button: BaseButton, target: Variant = null) -> void:
 		if is_reduced(owner_ref):
 			button.scale = Vector2.ONE
 			return
-		var hovered := button.get_rect().has_point(button.get_local_mouse_position())
-		var rest: Vector2 = hover_scale.call() if hovered and not button.disabled else Vector2.ONE
+		var rest: Vector2 = hover_scale.call() if button.is_hovered() and not button.disabled else Vector2.ONE
 		_tween_scale(button, rest, FAST)
 	)
 

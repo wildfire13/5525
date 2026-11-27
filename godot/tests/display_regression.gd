@@ -41,7 +41,7 @@ func orbit(delta: Vector2):
 func verify_sprites(custom_id: String = "", custom_path: String = ""):
 	for unit in game.state().units:
 		var sprite=game.board.actors[unit.id].sprite
-		var file="enemy/enemy_"+unit.image if unit.side=="enemy" else unit.image
+		var file=unit.image
 		var path=custom_path if unit.id==custom_id else ProjectSettings.globalize_path("res://../native/assets/"+file)
 		var source=Image.load_from_file(path)
 		check(source!=null and sprite.texture!=null,"battle portrait exists for "+unit.id)

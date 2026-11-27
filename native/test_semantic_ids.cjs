@@ -47,7 +47,7 @@ assert(C.depart(s,s.activeQuest.to));
 assert(C.travel(s,'safe',()=>.5));
 checkRoundtrip(s);
 const resumed=JSON.parse(C.serialize(s));
-for(const unit of resumed.state.battle.units){delete unit.portraitKey;delete unit.voiceKey;}
+for(const unit of resumed.state.battle.units.filter(u=>u.side==='ally')){delete unit.portraitKey;delete unit.voiceKey;}
 const enriched=C.deserialize(resumed);
 assert.deepEqual(enriched,clone(s),'resumed CURRENT battle gains the same explicit asset keys as a fresh battle');
 const custom=JSON.parse(C.serialize(s)),customUnit=custom.state.battle.units.find(unit=>unit.id==='character_mirei');
